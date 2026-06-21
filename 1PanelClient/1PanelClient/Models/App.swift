@@ -48,7 +48,7 @@ struct AppInstall: Decodable, Identifiable, Sendable {
 
     /// 显示名（优先用 name，否则用 serviceName）
     var displayName: String {
-        if let name, !name.isEmpty { return name }
+        if !name.isEmpty { return name }
         return serviceName ?? "未命名应用"
     }
 
