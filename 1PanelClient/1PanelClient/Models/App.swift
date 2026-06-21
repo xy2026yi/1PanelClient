@@ -27,7 +27,7 @@ struct AppInstalledListResponse: Decodable {
 
 /// 已安装应用
 /// 字段已通过 logs/输出16.log 实际返回数据验证
-struct AppInstall: Decodable, Identifiable, Sendable {
+struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
     let id: Int
     let name: String?
     let appID: Int?
@@ -53,7 +53,7 @@ struct AppInstall: Decodable, Identifiable, Sendable {
     let createdAt: String?
     let app: AppLinks?
 
-    struct AppLinks: Decodable, Sendable {
+    struct AppLinks: Decodable, Hashable, Sendable {
         let website: String?
         let document: String?
         let github: String?
