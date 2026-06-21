@@ -133,6 +133,16 @@ struct AppVersion: Decodable, Identifiable, Sendable {
     var id: Int { detailId }
 }
 
+/// 查询可用更新版本的请求 body
+struct AppUpdateVersionsRequest: Encodable {
+    let appInstallId: Int
+}
+
+/// /apps/installed/update/versions 的响应（直接返回数组，套一层 APIResponse）
+struct AppVersionsResponse: Decodable {
+    let data: [AppVersion]?
+}
+
 /// 应用安装/升级请求（request.AppInstallCreate）
 /// 升级时用新版本的 appDetailId + 原应用的 name 和 params
 struct AppInstallRequest: Encodable {

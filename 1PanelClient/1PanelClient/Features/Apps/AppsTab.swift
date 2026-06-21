@@ -45,13 +45,15 @@ struct AppsTab: View {
             .onChange(of: searchText) { _, newValue in
                 Task { await vm.search(query: newValue) }
             }
+            .navigationDestination(item: $vm.selectedApp) { app in
+                AppDetailView(app: app, vm: vm)
+            }
         }
         .task { await vm.refresh() }
     }
 
     private var appList: some View {
         List {
-            // 可更新统计栏（当有可更新应用时显示）
             if vm.updatableCount > 0 {
                 Section {
                     HStack(spacing: 10) {
@@ -61,7 +63,7 @@ struct AppsTab: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(vm.updatableCount) 个应用可更新")
                                 .font(.subheadline.bold())
-                            Text("左滑应用行，点击「升级」查看可用版本")
+                            Text("点击应用进入详情查看升级选项")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -73,62 +75,187 @@ struct AppsTab: View {
 
             Section {
                 ForEach(vm.apps) { app in
-                    AppRow(
-                        app: app,
-                        isOperating: vm.operatingAppIds.contains(app.id)
-                    )
+                    NavigationLink(value: app) {
+                        AppRow(
+                            app: app,
+                            isOperating: vm.operatingAppIds.contains(app.id)
+                        )
+                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        // 升级按钮（仅有可更新版本时显示）
-                        if app.canUpdate == true {
-                            Button {
-                                Task { await vm.loadVersions(for: app) }
-                            } label: {
-                                Label("升级", systemImage: "arrow.up.circle")
-                            }
-                            .tint(.orange)
-                        }
-
-                        // 启动/停止
                         if app.isRunning {
                             Button {
                                 Task { await vm.operate(app: app, op: .stop) }
-                            } label: {
-                                Label("停止", systemImage: "stop.fill")
-                            }
+                            } label: { Label("停止", systemImage: "stop.fill") }
                             .tint(.orange)
                         } else {
                             Button {
                                 Task { await vm.operate(app: app, op: .start) }
-                            } label: {
-                                Label("启动", systemImage: "play.fill")
-                            }
+                            } label: { Label("启动", systemImage: "play.fill") }
                             .tint(.green)
                         }
-
-                        // 重启
                         Button {
                             Task { await vm.operate(app: app, op: .restart) }
-                        } label: {
-                            Label("重启", systemImage: "arrow.triangle.2.circlepath")
-                        }
+                        } label: { Label("重启", systemImage: "arrow.triangle.2.circlepath") }
                         .tint(.blue)
                     }
                 }
             }
         }
         .listStyle(.insetGrouped)
-        // 升级版本选择 Sheet
-        .sheet(isPresented: $vm.showUpgradeSheet) {
-            if let app = vm.upgradingApp {
-                UpgradeSheetView(app: app, vm: vm)
-            }
-        }
-        // 操作结果提示
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
+    }
+}
+
+// MARK: - 应用详情页
+
+struct AppDetailView: View {
+    let app: AppInstall
+    @ObservedObject var vm: AppsViewModel
+
+    var body: some View {
+        List {
+            // 基本信息
+            Section("应用信息") {
+                LabeledRow("名称", value: app.displayName)
+                if let n = app.name, !n.isEmpty {
+                    LabeledRow("内部名称", value: n)
+                }
+                if let key = app.appKey, !key.isEmpty {
+                    LabeledRow("App Key", value: key)
+                }
+                if let v = app.version, !v.isEmpty {
+                    LabeledRow("版本", value: "v\(v)")
+                }
+                if let port = app.httpPort, port > 0 {
+                    LabeledRow("HTTP 端口", value: "\(port)")
+                }
+                if let ports = app.httpsPort, ports > 0 {
+                    LabeledRow("HTTPS 端口", value: "\(ports)")
+                }
+                if let container = app.container, !container.isEmpty {
+                    LabeledRow("容器名", value: container)
+                }
+                if let created = app.createdAt, !created.isEmpty {
+                    LabeledRow("安装时间", value: String(created.prefix(19)))
+                }
+            }
+
+            // 状态
+            Section("状态") {
+                HStack {
+                    Image(systemName: app.statusIcon)
+                        .foregroundStyle(app.statusColor)
+                    Text((app.status ?? "未知").capitalized)
+                        .foregroundStyle(app.statusColor)
+                }
+                if let msg = app.message, !msg.isEmpty {
+                    LabeledRow("消息", value: msg)
+                }
+            }
+
+            // 操作
+            Section("操作") {
+                if app.isRunning {
+                    Button {
+                        Task { await vm.operate(app: app, op: .stop) }
+                    } label: {
+                        Label("停止应用", systemImage: "stop.fill")
+                    }
+                } else {
+                    Button {
+                        Task { await vm.operate(app: app, op: .start) }
+                    } label: {
+                        Label("启动应用", systemImage: "play.fill")
+                    }
+                }
+                Button {
+                    Task { await vm.operate(app: app, op: .restart) }
+                } label: {
+                    Label("重启应用", systemImage: "arrow.triangle.2.circlepath")
+                }
+            }
+
+            // 升级（仅有新版本时显示）
+            if app.canUpdate == true {
+                Section {
+                    Button {
+                        Task { await vm.loadVersions(for: app) }
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .foregroundStyle(.orange)
+                            VStack(alignment: .leading) {
+                                Text("检查更新")
+                                    .foregroundStyle(.primary)
+                                Text("查看可用的新版本")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                } header: {
+                    HStack(spacing: 4) {
+                        Text("升级")
+                        Text("NEW")
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Color.orange.opacity(0.2))
+                            .clipShape(Capsule())
+                            .foregroundStyle(.orange)
+                    }
+                }
+            }
+
+            // 相关链接
+            if let links = app.app {
+                Section("相关链接") {
+                    if let website = links.website, let url = URL(string: website) {
+                        Link("官方网站", destination: url)
+                    }
+                    if let doc = links.document, let url = URL(string: doc) {
+                        Link("文档", destination: url)
+                    }
+                    if let github = links.github, let url = URL(string: github) {
+                        Link("GitHub", destination: url)
+                    }
+                }
+            }
+        }
+        .navigationTitle(app.displayName)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $vm.showUpgradeSheet) {
+            UpgradeSheetView(app: app, vm: vm)
+        }
+    }
+}
+
+struct LabeledRow: View {
+    let label: String
+    let value: String
+
+    init(_ label: String, value: String) {
+        self.label = label
+        self.value = value
+    }
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .multilineTextAlignment(.trailing)
+        }
+        .font(.subheadline)
     }
 }
 
@@ -151,7 +278,6 @@ struct UpgradeSheetView: View {
                     )
                 } else {
                     List {
-                        // 当前版本
                         Section("当前版本") {
                             HStack {
                                 Image(systemName: "checkmark.circle.fill")
@@ -166,7 +292,6 @@ struct UpgradeSheetView: View {
                             }
                         }
 
-                        // 可选版本
                         Section("可升级到") {
                             ForEach(vm.availableVersions) { ver in
                                 Button {
@@ -285,12 +410,6 @@ struct AppRow: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
-
-                    if let fav = app.favorite, fav {
-                        Image(systemName: "star.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.yellow)
-                    }
                 }
             }
 
@@ -309,9 +428,11 @@ final class AppsViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var operatingAppIds: Set<Int> = []
 
+    // 选中的应用（用于导航到详情页）
+    @Published var selectedApp: AppInstall?
+
     // 升级相关
     @Published var showUpgradeSheet = false
-    @Published var upgradingApp: AppInstall?
     @Published var availableVersions: [AppVersion] = []
     @Published var isLoadingVersions = false
     @Published var upgradingVersionId: Int?
@@ -322,7 +443,6 @@ final class AppsViewModel: ObservableObject {
 
     private var client: APIClient
 
-    /// 可更新应用数量
     var updatableCount: Int {
         apps.filter { $0.canUpdate == true }.count
     }
@@ -379,6 +499,10 @@ final class AppsViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
+            // 更新当前选中的应用
+            if let updated = apps.first(where: { $0.id == app.id }) {
+                selectedApp = updated
+            }
         } catch let err as APIError {
             showAlert(message: "\(op.displayName)失败：\(err.errorDescription ?? "未知错误")")
         } catch {
@@ -388,20 +512,18 @@ final class AppsViewModel: ObservableObject {
 
     // MARK: - 升级流程
 
-    /// 加载某个应用的可用更新版本
     func loadVersions(for app: AppInstall) async {
-        upgradingApp = app
         availableVersions = []
         isLoadingVersions = true
         showUpgradeSheet = true
 
         do {
+            // /apps/installed/update/versions 直接返回 AppVersion 数组（裸 JSON）
             let versions: [AppVersion] = try await client.send(
                 path: APIEndpoint.appsUpdateVersions.path,
-                queryItems: [URLQueryItem(name: "appInstallId", value: String(app.id))],
+                body: AppUpdateVersionsRequest(appInstallId: app.id),
                 as: [AppVersion].self
             )
-            // 过滤掉当前版本，只显示更新的
             let currentDetailId = app.appDetailID ?? -1
             self.availableVersions = versions.filter { $0.detailId != currentDetailId }
         } catch let err as APIError {
@@ -414,7 +536,6 @@ final class AppsViewModel: ObservableObject {
         isLoadingVersions = false
     }
 
-    /// 确认升级到指定版本
     func confirmUpgrade(app: AppInstall, to version: AppVersion) async {
         upgradingVersionId = version.detailId
         defer { upgradingVersionId = nil }
@@ -434,9 +555,11 @@ final class AppsViewModel: ObservableObject {
             )
             showUpgradeSheet = false
             showAlert(message: "升级请求已提交，应用正在后台更新中…")
-            // 等待 3 秒后刷新列表
             try? await Task.sleep(for: .seconds(3))
             await load(query: "")
+            if let updated = apps.first(where: { $0.id == app.id }) {
+                selectedApp = updated
+            }
         } catch let err as APIError {
             showAlert(message: "升级失败：\(err.errorDescription ?? "未知错误")")
         } catch {
