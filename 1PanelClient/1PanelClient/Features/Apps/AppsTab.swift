@@ -264,6 +264,7 @@ struct LabeledRow: View {
 struct UpgradeSheetView: View {
     let app: AppInstall
     @ObservedObject var vm: AppsViewModel
+    @State private var showComposeEditor = false
 
     var body: some View {
         NavigationStack {
@@ -277,49 +278,7 @@ struct UpgradeSheetView: View {
                         description: Text("该应用暂无更高版本可供升级")
                     )
                 } else {
-                    List {
-                        Section("当前版本") {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                                VStack(alignment: .leading) {
-                                    Text(app.version ?? "未知")
-                                        .font(.body.bold())
-                                    Text("已安装")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-
-                        Section("可升级到") {
-                            ForEach(vm.availableVersions) { ver in
-                                Button {
-                                    Task { await vm.confirmUpgrade(app: app, to: ver) }
-                                } label: {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(ver.version ?? "v\(ver.detailId)")
-                                                .font(.body.bold())
-                                                .foregroundStyle(.primary)
-                                            Text("ID: \(ver.detailId)")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        Spacer()
-                                        if vm.upgradingVersionId == ver.detailId {
-                                            ProgressView()
-                                        } else {
-                                            Image(systemName: "arrow.up.circle.fill")
-                                                .foregroundStyle(.orange)
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(vm.upgradingVersionId != nil)
-                            }
-                        }
-                    }
+                    versionList
                 }
             }
             .navigationTitle("升级 \(app.displayName)")
@@ -329,6 +288,220 @@ struct UpgradeSheetView: View {
                     Button("取消") { vm.showUpgradeSheet = false }
                 }
             }
+            .navigationDestination(isPresented: $showComposeEditor) {
+                if let version = vm.selectedVersion {
+                    ComposeEditorView(
+                        app: app,
+                        version: version,
+                        vm: vm,
+                        onBack: { showComposeEditor = false }
+                    )
+                }
+            }
+        }
+    }
+
+    private var versionList: some View {
+        List {
+            Section {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text("升级将替换 docker-compose.yml，如有自定义修改请查看对比")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("当前版本")
+            }
+
+            Section("可升级到") {
+                ForEach(vm.availableVersions) { ver in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(ver.version ?? "v\(ver.detailId)")
+                                    .font(.body.bold())
+                                Text("ID: \(ver.detailId)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if vm.upgradingVersionId == ver.detailId {
+                                ProgressView()
+                            }
+                        }
+
+                        HStack(spacing: 8) {
+                            Button {
+                                Task { await vm.confirmUpgrade(app: app, to: ver, customCompose: nil) }
+                            } label: {
+                                Label("直接升级", systemImage: "arrow.up.circle.fill")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.orange)
+                            .disabled(vm.upgradingVersionId != nil)
+
+                            Button {
+                                vm.selectedVersion = ver
+                                showComposeEditor = true
+                            } label: {
+                                Label("对比/编辑", systemImage: "doc.text.magnifyingglass")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(vm.upgradingVersionId != nil)
+                        }
+                        .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Compose 文件对比/编辑页
+
+struct ComposeEditorView: View {
+    let app: AppInstall
+    let version: AppVersion
+    @ObservedObject var vm: AppsViewModel
+    let onBack: () -> Void
+
+    @State private var useCustom = false
+    @State private var editedCompose = ""
+    @State private var showDiff = true
+
+    private var newCompose: String {
+        version.dockerCompose ?? ""
+    }
+
+    private var oldCompose: String {
+        app.currentDockerCompose ?? app.dockerCompose ?? ""
+    }
+
+    var body: some View {
+        List {
+            // 模式切换
+            Section {
+                Toggle(isOn: $useCustom) {
+                    Label(useCustom ? "使用自定义配置" : "使用默认配置",
+                          systemImage: useCustom ? "wand.and.stars" : "doc")
+                }
+                .tint(.orange)
+
+                if useCustom {
+                    Text("已启用自定义 docker-compose.yml，请仔细检查内容")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            } header: {
+                Text("配置模式")
+            }
+
+            // 操作按钮
+            Section {
+                Button {
+                    Task {
+                        let compose = useCustom ? editedCompose : nil
+                        await vm.confirmUpgrade(app: app, to: version, customCompose: compose)
+                        if vm.upgradeSuccess {
+                            onBack()
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label(useCustom ? "使用自定义配置升级" : "使用默认配置升级",
+                              systemImage: "arrow.up.circle.fill")
+                        Spacer()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                .disabled(vm.upgradingVersionId != nil)
+
+                if vm.upgradingVersionId != nil {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                        Text("正在升级…")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+
+            // 当前版本（只读）
+            Section {
+                CodePreview(text: oldCompose, color: .secondary)
+                    .frame(minHeight: 160)
+            } header: {
+                HStack {
+                    Text("当前版本")
+                    Spacer()
+                    Text("v\(app.version ?? "?")")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // 新版本（可编辑）
+            Section {
+                if useCustom {
+                    TextEditor(text: $editedCompose)
+                        .font(.system(.caption, design: .monospaced))
+                        .frame(minHeight: 240)
+                        .scrollContentBackground(.hidden)
+                        .background(Color(.secondarySystemBackground))
+                } else {
+                    CodePreview(text: newCompose, color: .primary)
+                        .frame(minHeight: 200)
+                }
+            } header: {
+                HStack {
+                    Text(useCustom ? "自定义配置（可编辑）" : "新版本")
+                    Spacer()
+                    Text("v\(version.version ?? "?")")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // 重置自定义编辑
+            if useCustom {
+                Section {
+                    Button(role: .destructive) {
+                        editedCompose = newCompose
+                    } label: {
+                        Label("重置为新版本默认值", systemImage: "arrow.counterclockwise")
+                    }
+                }
+            }
+        }
+        .navigationTitle("docker-compose.yml")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if editedCompose.isEmpty {
+                editedCompose = newCompose
+            }
+        }
+    }
+}
+
+/// 只读代码预览
+struct CodePreview: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        ScrollView {
+            Text(text.isEmpty ? "(空)" : text)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(color)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .textSelection(.enabled)
         }
     }
 }
@@ -436,6 +609,10 @@ final class AppsViewModel: ObservableObject {
     @Published var availableVersions: [AppVersion] = []
     @Published var isLoadingVersions = false
     @Published var upgradingVersionId: Int?
+    /// 当前选中的要升级到的版本（在 ComposeEditorView 里使用）
+    @Published var selectedVersion: AppVersion?
+    /// 标记升级是否成功完成（用于编辑器返回时的判断）
+    @Published var upgradeSuccess = false
 
     // 操作提示
     @Published var showAlert = false
@@ -492,11 +669,16 @@ final class AppsViewModel: ObservableObject {
 
             let (all, updatable) = try await (allResp, updatableResp)
             var apps = all.items ?? []
-            let updatableIds = Set((updatable.items ?? []).map { $0.id })
+            let updatableMap = Dictionary((updatable.items ?? []).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
 
-            // 标记可更新状态
+            // 合并可更新状态和 dockerCompose（当前版本）
             for i in apps.indices {
-                apps[i].canUpdate = updatableIds.contains(apps[i].id)
+                if let updatableApp = updatableMap[apps[i].id] {
+                    apps[i].canUpdate = true
+                    apps[i].currentDockerCompose = updatableApp.dockerCompose
+                } else {
+                    apps[i].canUpdate = false
+                }
             }
             self.apps = apps
         } catch let err as APIError {
@@ -558,18 +740,18 @@ final class AppsViewModel: ObservableObject {
         isLoadingVersions = false
     }
 
-    func confirmUpgrade(app: AppInstall, to version: AppVersion) async {
+    func confirmUpgrade(app: AppInstall, to version: AppVersion, customCompose: String?) async {
         upgradingVersionId = version.detailId
+        upgradeSuccess = false
         defer { upgradingVersionId = nil }
 
-        // 正确的升级接口: /apps/installed/op  operate=upgrade
-        // 通过 logs/输出22.log 验证成功
         let req = AppInstalledOperateRequest(
             installId: app.id,
             operate: AppOperation.upgrade.rawValue,
             detailId: version.detailId,
             backup: false,
-            pullImage: true
+            pullImage: true,
+            dockerCompose: customCompose
         )
         do {
             let _: EmptyResponse = try await client.send(
@@ -577,6 +759,7 @@ final class AppsViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
+            upgradeSuccess = true
             showUpgradeSheet = false
             showAlert(message: "升级请求已提交，应用正在后台更新中…")
             try? await Task.sleep(for: .seconds(5))
