@@ -48,6 +48,11 @@ struct AppsTab: View {
             .navigationDestination(for: AppInstall.self) { app in
                 AppDetailView(app: app, vm: vm)
             }
+            .alert("提示", isPresented: $vm.showAlert) {
+                Button("好的", role: .cancel) {}
+            } message: {
+                Text(vm.alertMessage)
+            }
         }
         .task { await vm.refresh() }
     }
@@ -102,11 +107,6 @@ struct AppsTab: View {
             }
         }
         .listStyle(.insetGrouped)
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
-        } message: {
-            Text(vm.alertMessage)
-        }
     }
 }
 
