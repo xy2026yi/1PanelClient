@@ -45,7 +45,7 @@ struct AppsTab: View {
             .onChange(of: searchText) { _, newValue in
                 Task { await vm.search(query: newValue) }
             }
-            .navigationDestination(item: $vm.selectedApp) { app in
+            .navigationDestination(for: AppInstall.self) { app in
                 AppDetailView(app: app, vm: vm)
             }
         }
@@ -466,7 +466,7 @@ final class AppsViewModel: ObservableObject {
 
         let req = AppInstalledSearchRequest(
             page: 1, pageSize: 100, name: query, type: "", tags: [],
-            update: false, all: false, unused: false, sync: false
+            update: true, all: false, unused: false, sync: false
         )
         do {
             let resp: AppInstalledListResponse = try await client.send(
