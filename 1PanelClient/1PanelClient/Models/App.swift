@@ -111,17 +111,30 @@ struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
 }
 
 /// 应用操作请求（request.AppInstalledOperate）
+/// 同一个接口支持多种操作（已通过 logs/输出16.log + 输出22.log 验证）
 struct AppInstalledOperateRequest: Encodable {
     let installId: Int
     let operate: String
+    // 升级专用
+    var detailId: Int? = nil
+    var backup: Bool? = nil
+    var pullImage: Bool? = nil
+    // 删除专用
+    var deleteDB: Bool? = nil
+    var deleteImage: Bool? = nil
+    var forceDelete: Bool? = nil
+    var deleteBackup: Bool? = nil
 }
 
-/// 应用操作类型（已通过 logs/输出16.log 验证）
+/// 应用操作类型（已通过 logs/输出16.log + 输出22.log 验证）
+/// start/stop/restart: 基础生命周期
+/// upgrade: 升级到新版本（需要 detailId 指定目标版本）
 /// 注意：up/down 不被支持，会返回 "operate not support"
 enum AppOperation: String {
     case start = "start"
     case stop = "stop"
     case restart = "restart"
+    case upgrade = "upgrade"
 }
 
 /// 可用更新版本（dto.AppVersion）
@@ -136,19 +149,4 @@ struct AppVersion: Decodable, Identifiable, Sendable {
 /// 查询可用更新版本的请求 body
 struct AppUpdateVersionsRequest: Encodable {
     let appInstallId: Int
-}
-
-/// /apps/installed/update/versions 的响应（直接返回数组，套一层 APIResponse）
-struct AppVersionsResponse: Decodable {
-    let data: [AppVersion]?
-}
-
-/// 应用安装/升级请求（request.AppInstallCreate）
-/// 升级时用新版本的 appDetailId + 原应用的 name 和 params
-struct AppInstallRequest: Encodable {
-    let appDetailId: Int
-    let params: [String: String]
-    let name: String
-    let advanced: Bool
-    let pullImage: Bool
 }

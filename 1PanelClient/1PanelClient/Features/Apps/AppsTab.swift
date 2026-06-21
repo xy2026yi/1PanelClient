@@ -464,6 +464,9 @@ final class AppsViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
+        // update:false 返回所有应用但 canUpdate 始终 false（后端不计算）
+        // update:true  返回所有应用且正确计算 canUpdate（已通过 logs/输出20.log 验证）
+        // 注意：update=true 并不是过滤器，仍返回全部应用，total 不变
         let req = AppInstalledSearchRequest(
             page: 1, pageSize: 100, name: query, type: "", tags: [],
             update: true, all: false, unused: false, sync: false
@@ -499,7 +502,6 @@ final class AppsViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            // 更新当前选中的应用
             if let updated = apps.first(where: { $0.id == app.id }) {
                 selectedApp = updated
             }
@@ -518,7 +520,6 @@ final class AppsViewModel: ObservableObject {
         showUpgradeSheet = true
 
         do {
-            // /apps/installed/update/versions 直接返回 AppVersion 数组（裸 JSON）
             let versions: [AppVersion] = try await client.send(
                 path: APIEndpoint.appsUpdateVersions.path,
                 body: AppUpdateVersionsRequest(appInstallId: app.id),
@@ -540,22 +541,24 @@ final class AppsViewModel: ObservableObject {
         upgradingVersionId = version.detailId
         defer { upgradingVersionId = nil }
 
-        let req = AppInstallRequest(
-            appDetailId: version.detailId,
-            params: [:],
-            name: app.name ?? app.displayName,
-            advanced: false,
+        // 正确的升级接口: /apps/installed/op  operate=upgrade
+        // 通过 logs/输出22.log 验证成功
+        let req = AppInstalledOperateRequest(
+            installId: app.id,
+            operate: AppOperation.upgrade.rawValue,
+            detailId: version.detailId,
+            backup: false,
             pullImage: true
         )
         do {
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.appsInstall.path,
+                path: APIEndpoint.appsInstalledOperate.path,
                 body: req,
                 as: EmptyResponse.self
             )
             showUpgradeSheet = false
             showAlert(message: "升级请求已提交，应用正在后台更新中…")
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(for: .seconds(5))
             await load(query: "")
             if let updated = apps.first(where: { $0.id == app.id }) {
                 selectedApp = updated
@@ -579,6 +582,7 @@ extension AppOperation {
         case .start: return "启动"
         case .stop: return "停止"
         case .restart: return "重启"
+        case .upgrade: return "升级"
         }
     }
 }
