@@ -1,0 +1,154 @@
+//
+//  APIClient.swift
+//  1PanelClient
+//
+
+import Foundation
+import CryptoKit
+
+final class APIClient {
+    let server: ServerConfig
+    private let session: URLSession
+
+    init(server: ServerConfig) {
+        self.server = server
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 15
+        config.timeoutIntervalForResource = 30
+        config.httpCookieAcceptPolicy = .always
+        config.httpShouldSetCookies = true
+        config.httpCookieStorage = nil
+        self.session = URLSession(configuration: config)
+    }
+
+    // MARK: - Token 签名
+
+    private func generateHeaders() -> [String: String] {
+        let timestamp = String(Int(Date().timeIntervalSince1970))
+        let raw = "1panel" + server.apiKey + timestamp
+        let digest = Insecure.MD5.hash(data: Data(raw.utf8))
+        let token = digest.map { String(format: "%02x", $0) }.joined()
+        return [
+            "1Panel-Token": token,
+            "1Panel-Timestamp": timestamp,
+            "Content-Type": "application/json"
+        ]
+    }
+
+    // MARK: - 核心请求
+
+    func send<T: Decodable>(
+        path: String,
+        method: String = "POST",
+        body: (any Encodable)? = nil,
+        as type: T.Type
+    ) async throws -> T {
+        guard let url = URL(string: server.normalizedBaseURL + path) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        for (k, v) in generateHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+        if let body {
+            request.httpBody = try JSONEncoder().encode(AnyEncodable(body))
+        } else if method == "POST" {
+            request.httpBody = Data("{}".utf8)
+        }
+
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw APIError.networkError(error)
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        // 安全入口拦截检测
+        if let ct = http.value(forHTTPHeaderField: "Content-Type"), ct.contains("text/html") {
+            throw APIError.htmlBlocked
+        }
+
+        guard (200...299).contains(http.statusCode) else {
+            let msg = String(data: data, encoding: .utf8) ?? ""
+            throw APIError.httpError(http.statusCode, msg)
+        }
+
+        // 优先走业务包装
+        if let wrapped = try? JSONDecoder().decode(APIResponse<T>.self, from: data) {
+            if wrapped.isSuccess, let value = wrapped.data {
+                return value
+            }
+            if wrapped.code == 200 && T.self == EmptyResponse.self {
+                return EmptyResponse() as! T
+            }
+            throw APIError.businessError(wrapped.code, wrapped.message)
+        }
+
+        // 裸 JSON
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            throw APIError.decodingError(error.localizedDescription)
+        }
+    }
+
+    // 便捷方法：只要知道成功即可
+    func sendRaw(
+        path: String,
+        method: String = "POST",
+        body: (any Encodable)? = nil
+    ) async throws -> Data {
+        guard let url = URL(string: server.normalizedBaseURL + path) else {
+            throw APIError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        for (k, v) in generateHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+        if let body {
+            request.httpBody = try JSONEncoder().encode(AnyEncodable(body))
+        } else if method == "POST" {
+            request.httpBody = Data("{}".utf8)
+        }
+
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw APIError.networkError(error)
+        }
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        if let ct = http.value(forHTTPHeaderField: "Content-Type"), ct.contains("text/html") {
+            throw APIError.htmlBlocked
+        }
+        guard (200...299).contains(http.statusCode) else {
+            throw APIError.httpError(http.statusCode, String(data: data, encoding: .utf8) ?? "")
+        }
+        return data
+    }
+}
+
+// MARK: - 辅助类型
+
+struct EmptyResponse: Codable {}
+
+struct AnyEncodable: Encodable {
+    private let encodeFunc: (Encoder) throws -> Void
+    init(_ wrapped: any Encodable) {
+        self.encodeFunc = wrapped.encode
+    }
+    func encode(to encoder: Encoder) throws {
+        try encodeFunc(encoder)
+    }
+}
+
+// MARK: - MD5（备用，iOS 用 CryptoKit.Insecure.MD5）
