@@ -41,9 +41,16 @@ final class APIClient {
         path: String,
         method: String = "POST",
         body: (any Encodable)? = nil,
+        queryItems: [URLQueryItem]? = nil,
         as type: T.Type
     ) async throws -> T {
-        guard let url = URL(string: server.normalizedBaseURL + path) else {
+        guard var components = URLComponents(string: server.normalizedBaseURL + path) else {
+            throw APIError.invalidURL
+        }
+        if let queryItems, !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+        guard let url = components.url else {
             throw APIError.invalidURL
         }
 

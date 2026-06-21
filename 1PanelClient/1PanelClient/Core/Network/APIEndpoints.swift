@@ -35,6 +35,8 @@ enum APIEndpoint {
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
     case appsInstalledOperate     // POST 操作已安装应用（启动/停止/重启）
+    case appsUpdateVersions      // POST 查询可用更新版本
+    case appsInstall             // POST 安装/升级应用
 
     var path: String {
         switch self {
@@ -50,6 +52,8 @@ enum APIEndpoint {
         case .filesSearch:           return "/api/v2/files/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
+        case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
+        case .appsInstall:           return "/api/v2/apps/install"
         }
     }
 

@@ -123,3 +123,22 @@ enum AppOperation: String {
     case stop = "stop"
     case restart = "restart"
 }
+
+/// 可用更新版本（dto.AppVersion）
+struct AppVersion: Decodable, Identifiable, Sendable {
+    let detailId: Int
+    let version: String?
+    let dockerCompose: String?
+
+    var id: Int { detailId }
+}
+
+/// 应用安装/升级请求（request.AppInstallCreate）
+/// 升级时用新版本的 appDetailId + 原应用的 name 和 params
+struct AppInstallRequest: Encodable {
+    let appDetailId: Int
+    let params: [String: String]
+    let name: String
+    let advanced: Bool
+    let pullImage: Bool
+}
