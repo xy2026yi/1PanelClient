@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// 容器搜索请求（dto.PageContainer）
 struct ContainerSearchRequest: Encodable {
@@ -45,13 +46,13 @@ struct Container: Decodable, Identifiable {
 
     var displayImage: String { imageName ?? "unknown" }
 
-    var stateColor: String {
+    var stateColor: Color {
         switch state.lowercased() {
-        case "running": return "green"
-        case "exited", "stopped": return "gray"
-        case "paused": return "orange"
-        case "restarting": return "blue"
-        default: return "red"
+        case "running": return .green
+        case "exited", "stopped": return .gray
+        case "paused": return .orange
+        case "restarting": return .blue
+        default: return .red
         }
     }
 

@@ -68,7 +68,7 @@ struct ContainerRow: View {
         HStack(spacing: 12) {
             Image(systemName: container.stateIcon)
                 .font(.title2)
-                .foregroundStyle(Color(container.stateColor))
+                .foregroundStyle(container.stateColor)
                 .frame(width: 32)
 
             VStack(alignment: .leading, spacing: 4) {
@@ -84,7 +84,7 @@ struct ContainerRow: View {
                 HStack(spacing: 8) {
                     Label(container.state.capitalized, systemImage: "circle.fill")
                         .font(.caption2)
-                        .foregroundStyle(Color(container.stateColor))
+                        .foregroundStyle(container.stateColor)
                     if let runTime = container.runTime {
                         Text("· \(runTime)")
                             .font(.caption2)

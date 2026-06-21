@@ -91,7 +91,7 @@ struct AppRow: View {
             // 应用图标
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(app.statusColor).opacity(0.15))
+                    .fill(app.statusColor.opacity(0.15))
                     .frame(width: 44, height: 44)
                 if isOperating {
                     ProgressView()
@@ -99,7 +99,7 @@ struct AppRow: View {
                 } else {
                     Image(systemName: app.statusIcon)
                         .font(.title3)
-                        .foregroundStyle(Color(app.statusColor))
+                        .foregroundStyle(app.statusColor)
                 }
             }
 
@@ -147,8 +147,8 @@ struct AppRow: View {
                         .font(.caption2.bold())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(Color(app.statusColor).opacity(0.15))
-                        .foregroundStyle(Color(app.statusColor))
+                        .background(app.statusColor.opacity(0.15))
+                        .foregroundStyle(app.statusColor)
                         .clipShape(Capsule())
 
                     if let port = app.httpPort, port > 0 {

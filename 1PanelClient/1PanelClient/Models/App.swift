@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// 已安装应用搜索请求（request.AppInstalledSearch）
 struct AppInstalledSearchRequest: Encodable {
@@ -80,14 +81,14 @@ struct AppInstall: Decodable, Identifiable, Sendable {
     }
 
     /// 状态颜色
-    var statusColor: String {
+    var statusColor: Color {
         switch (status ?? "").lowercased() {
-        case "running": return "green"
-        case "stopped", "exited": return "gray"
-        case "error", "failed": return "red"
-        case "upgrading", "installing": return "blue"
-        case "restarting": return "orange"
-        default: return "secondary"
+        case "running": return .green
+        case "stopped", "exited": return .gray
+        case "error", "failed": return .red
+        case "upgrading", "installing": return .blue
+        case "restarting": return .orange
+        default: return .secondary
         }
     }
 
