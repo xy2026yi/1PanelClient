@@ -18,44 +18,64 @@ struct AppInstalledSearchRequest: Encodable {
     let sync: Bool
 }
 
-/// 已安装应用列表响应（dto.PageResult 包装的 model.AppInstall）
+/// 已安装应用列表响应（dto.PageResult 包装）
 struct AppInstalledListResponse: Decodable {
     let total: Int
     let items: [AppInstall]?
 }
 
-/// 已安装应用（model.AppInstall）
+/// 已安装应用
+/// 字段已通过 logs/输出16.log 实际返回数据验证
 struct AppInstall: Decodable, Identifiable, Sendable {
     let id: Int
-    let appId: Int?
-    let appDetailId: Int?
-    let name: String
+    let name: String?
+    let appID: Int?
+    let appDetailID: Int?
+    let appKey: String?
+    let appName: String?
+    let appType: String?
     let version: String?
-    let description: String?
     let status: String?
     let message: String?
-    let containerName: String?
-    let serviceName: String?
-    let env: String?
-    let dockerCompose: String?
-    let param: String?
     let httpPort: Int?
     let httpsPort: Int?
+    let path: String?
+    let container: String?
+    let serviceName: String?
+    let dockerCompose: String?
     let webUI: String?
+    let icon: String?
+    let canUpdate: Bool?
     let favorite: Bool?
+    let ready: Int?
+    let total: Int?
     let createdAt: String?
-    let updatedAt: String?
+    let app: AppLinks?
 
-    /// 显示名（优先用 name，否则用 serviceName）
+    struct AppLinks: Decodable, Sendable {
+        let website: String?
+        let document: String?
+        let github: String?
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, version, status, message, path, container, serviceName
+        case appID, appDetailID, appKey, appName, appType
+        case httpPort, httpsPort, dockerCompose, webUI, icon, canUpdate
+        case favorite, ready, total, createdAt, app
+    }
+
+    /// 显示名（优先 appName，其次 name，最后 serviceName）
     var displayName: String {
-        if !name.isEmpty { return name }
+        if let an = appName, !an.isEmpty { return an }
+        if let n = name, !n.isEmpty { return n }
         return serviceName ?? "未命名应用"
     }
 
-    /// 描述信息（可能为空）
+    /// 描述信息（优先 message，其次 appType）
     var displayDesc: String {
-        if let desc = description, !desc.isEmpty { return desc }
         if let msg = message, !msg.isEmpty { return msg }
+        if let t = appType, !t.isEmpty { return t }
         return ""
     }
 
@@ -95,9 +115,10 @@ struct AppInstalledOperateRequest: Encodable {
     let operate: String
 }
 
-/// 应用操作类型
+/// 应用操作类型（已通过 logs/输出16.log 验证）
+/// 注意：up/down 不被支持，会返回 "operate not support"
 enum AppOperation: String {
-    case start = "up"
-    case stop = "down"
+    case start = "start"
+    case stop = "stop"
     case restart = "restart"
 }

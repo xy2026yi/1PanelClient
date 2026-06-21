@@ -52,7 +52,7 @@ struct AppsTab: View {
     private var appList: some View {
         List {
             ForEach(vm.apps) { app in
-                AppRow(app: app)
+                AppRow(app: app, isOperating: vm.operatingAppIds.contains(app.id))
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         if app.isRunning {
                             Button {
@@ -84,18 +84,27 @@ struct AppsTab: View {
 
 struct AppRow: View {
     let app: AppInstall
+    var isOperating: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "square.grid.2x2.fill")
-                .font(.title2)
-                .foregroundStyle(Color(app.statusColor))
-                .frame(width: 40, height: 40)
-                .background(Color(app.statusColor).opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+            // 应用图标
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(app.statusColor).opacity(0.15))
+                    .frame(width: 44, height: 44)
+                if isOperating {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                } else {
+                    Image(systemName: app.statusIcon)
+                        .font(.title3)
+                        .foregroundStyle(Color(app.statusColor))
+                }
+            }
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
+                HStack(spacing: 6) {
                     Text(app.displayName)
                         .font(.body.bold())
                         .lineLimit(1)
@@ -109,31 +118,51 @@ struct AppRow: View {
                             .clipShape(Capsule())
                             .foregroundStyle(.secondary)
                     }
+
+                    if let canUpdate = app.canUpdate, canUpdate {
+                        Text("可更新")
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.2))
+                            .clipShape(Capsule())
+                            .foregroundStyle(.orange)
+                    }
                 }
 
-                if !app.displayDesc.isEmpty {
-                    Text(app.displayDesc)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                if let container = app.container, !container.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "cylinder")
+                            .font(.caption2)
+                        Text(container)
+                            .lineLimit(1)
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
 
                 HStack(spacing: 8) {
-                    Image(systemName: app.statusIcon)
-                        .foregroundStyle(Color(app.statusColor))
+                    // 状态标签
                     Text((app.status ?? "未知").capitalized)
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color(app.statusColor).opacity(0.15))
                         .foregroundStyle(Color(app.statusColor))
+                        .clipShape(Capsule())
 
                     if let port = app.httpPort, port > 0 {
-                        Text("· 端口 \(port)")
+                        Label("\(port)", systemImage: "network")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
-                    if let webUI = app.webUI, !webUI.isEmpty {
-                        Text("· \(webUI)")
-                            .lineLimit(1)
+
+                    if let fav = app.favorite, fav {
+                        Image(systemName: "star.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.yellow)
                     }
                 }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
             }
 
             Spacer()
@@ -211,6 +240,8 @@ final class AppsViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
+            // 等待 1 秒让服务端更新状态
+            try? await Task.sleep(for: .seconds(1))
             await load(query: "")
         } catch let err as APIError {
             self.errorMessage = err.errorDescription
