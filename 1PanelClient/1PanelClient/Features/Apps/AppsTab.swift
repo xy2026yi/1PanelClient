@@ -464,20 +464,41 @@ final class AppsViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
-        // update:false 返回所有应用但 canUpdate 始终 false（后端不计算）
-        // update:true  返回所有应用且正确计算 canUpdate（已通过 logs/输出20.log 验证）
-        // 注意：update=true 并不是过滤器，仍返回全部应用，total 不变
-        let req = AppInstalledSearchRequest(
+        // update=false 返回全部应用但 canUpdate 始终 false（后端不计算）
+        // update=true  只返回可更新的应用，但正确计算 canUpdate
+        // 通过 logs/输出20.log 验证：两者 total 不同
+        // 解决方案：先拿全部应用，再并发拿可更新列表，用后者标记前者的 canUpdate
+        let allReq = AppInstalledSearchRequest(
             page: 1, pageSize: 100, name: query, type: "", tags: [],
+            update: false, all: false, unused: false, sync: false
+        )
+        // 查询可更新列表时不用 name 过滤，因为可能被搜索词过滤掉
+        let updatableReq = AppInstalledSearchRequest(
+            page: 1, pageSize: 100, name: "", type: "", tags: [],
             update: true, all: false, unused: false, sync: false
         )
+
         do {
-            let resp: AppInstalledListResponse = try await client.send(
+            async let allResp: AppInstalledListResponse = client.send(
                 path: APIEndpoint.appsInstalledSearch.path,
-                body: req,
+                body: allReq,
                 as: AppInstalledListResponse.self
             )
-            self.apps = resp.items ?? []
+            async let updatableResp: AppInstalledListResponse = client.send(
+                path: APIEndpoint.appsInstalledSearch.path,
+                body: updatableReq,
+                as: AppInstalledListResponse.self
+            )
+
+            let (all, updatable) = try await (allResp, updatableResp)
+            var apps = all.items ?? []
+            let updatableIds = Set((updatable.items ?? []).map { $0.id })
+
+            // 标记可更新状态
+            for i in apps.indices {
+                apps[i].canUpdate = updatableIds.contains(apps[i].id)
+            }
+            self.apps = apps
         } catch let err as APIError {
             self.errorMessage = err.errorDescription
             self.apps = []

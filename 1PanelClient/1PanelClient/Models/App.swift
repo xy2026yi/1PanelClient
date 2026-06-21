@@ -46,7 +46,7 @@ struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
     let dockerCompose: String?
     let webUI: String?
     let icon: String?
-    let canUpdate: Bool?
+    var canUpdate: Bool?
     let favorite: Bool?
     let ready: Int?
     let total: Int?
