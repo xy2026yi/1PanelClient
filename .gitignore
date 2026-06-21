@@ -20,3 +20,4 @@ __pycache__/
 # Sensitive
 *.env
 *.key
+doc/
