@@ -614,9 +614,6 @@ final class AppsViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var operatingAppIds: Set<Int> = []
 
-    // 选中的应用（用于导航到详情页）
-    @Published var selectedApp: AppInstall?
-
     // 升级相关
     @Published var showUpgradeSheet = false
     @Published var availableVersions: [AppVersion] = []
@@ -779,9 +776,6 @@ final class AppsViewModel: ObservableObject {
             showAlert(message: "升级请求已提交，应用正在后台更新中…")
             try? await Task.sleep(for: .seconds(4))
             await load(query: "")
-            if let updated = apps.first(where: { $0.id == app.id }) {
-                selectedApp = updated
-            }
         } catch let err as APIError {
             showAlert(message: "升级失败：\(err.errorDescription ?? "未知错误")")
         } catch {
@@ -827,9 +821,9 @@ final class AppsViewModel: ObservableObject {
             // 延迟显示 alert，避免 sheet 关闭动画"吞掉" alert 状态
             try? await Task.sleep(for: .milliseconds(300))
             showAlert(message: successMsg)
-            await load(query: "")
-            if let updated = apps.first(where: { $0.id == app.id }) {
-                selectedApp = updated
+            // 本地更新 canUpdate，避免立即 reload 破坏导航栈
+            if let idx = apps.firstIndex(where: { $0.id == app.id }) {
+                apps[idx].canUpdate = false
             }
         } catch let err as APIError {
             showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")

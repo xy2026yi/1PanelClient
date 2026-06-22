@@ -396,6 +396,7 @@ struct AppInstallView: View {
                 }
             }
         } catch {
+            print("❌ loadDetailForVersion 失败: \(error)")
             self.appDetail = nil
         }
     }
