@@ -57,6 +57,10 @@ struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
     /// （list 接口里的 dockerCompose 字段通常为空，只有可更新时才填充）
     var currentDockerCompose: String?
 
+    /// 已忽略升级的记录 ID（来自 /apps/ignored/detail）
+    /// 非 nil 表示该应用已被忽略升级，nil 表示未忽略
+    var ignoredRecordID: Int?
+
     struct AppLinks: Decodable, Hashable, Sendable {
         let website: String?
         let document: String?

@@ -180,44 +180,63 @@ struct AppDetailView: View {
                 }
             }
 
-            // 升级（仅有新版本时显示）
-            if app.canUpdate == true {
+            // 升级区（有可更新 OR 已忽略升级时显示）
+            if app.canUpdate == true || app.ignoredRecordID != nil {
                 Section {
-                    Button {
-                        Task { await vm.loadVersions(for: app) }
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .foregroundStyle(.orange)
-                            VStack(alignment: .leading) {
-                                Text("检查更新")
-                                    .foregroundStyle(.primary)
-                                Text("查看可用的新版本")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                    if app.canUpdate == true {
+                        Button {
+                            Task { await vm.loadVersions(for: app) }
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .foregroundStyle(.orange)
+                                VStack(alignment: .leading) {
+                                    Text("检查更新")
+                                        .foregroundStyle(.primary)
+                                    Text("查看可用的新版本")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(.tertiary)
                             }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundStyle(.tertiary)
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(role: .destructive) {
+                            Task { await vm.ignoreUpgrade(app: app) }
+                        } label: {
+                            Label("忽略所有升级", systemImage: "eye.slash")
                         }
                     }
-                    .buttonStyle(.plain)
 
-                    Button(role: .destructive) {
-                        Task { await vm.ignoreUpgrade(app: app) }
-                    } label: {
-                        Label("忽略所有升级", systemImage: "eye.slash")
+                    // 已忽略时显示「取消忽略升级」
+                    if app.ignoredRecordID != nil {
+                        Button {
+                            Task { await vm.cancelIgnoreUpgrade(app: app) }
+                        } label: {
+                            Label("取消忽略升级", systemImage: "eye")
+                        }
                     }
                 } header: {
                     HStack(spacing: 4) {
                         Text("升级")
-                        Text("NEW")
-                            .font(.caption2.bold())
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
-                            .background(Color.orange.opacity(0.2))
-                            .clipShape(Capsule())
-                            .foregroundStyle(.orange)
+                        if app.canUpdate == true {
+                            Text("NEW")
+                                .font(.caption2.bold())
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Color.orange.opacity(0.2))
+                                .clipShape(Capsule())
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                } footer: {
+                    if app.ignoredRecordID != nil && app.canUpdate != true {
+                        Text("该应用的升级提示已被忽略，取消后可恢复更新检查。")
+                    } else {
+                        Text("升级将替换 docker-compose.yml，建议查看文件对比。")
                     }
                 }
             }
@@ -237,18 +256,12 @@ struct AppDetailView: View {
                 }
             }
 
-            // 危险区：卸载 + 取消忽略升级
+            // 危险区：卸载
             Section {
                 Button {
                     showUninstallSheet = true
                 } label: {
                     Label("卸载应用", systemImage: "trash")
-                }
-
-                Button {
-                    Task { await vm.cancelIgnoreUpgrade(app: app) }
-                } label: {
-                    Label("取消忽略升级", systemImage: "eye")
                 }
             } header: {
                 Text("危险操作")
@@ -820,18 +833,33 @@ final class AppsViewModel: ObservableObject {
                 body: updatableReq,
                 as: AppInstalledListResponse.self
             )
+            // 并发拉取已忽略列表（GET 接口，失败不阻断主流程）
+            async let ignoredResp: [AppIgnoreUpgrade] = client.send(
+                path: APIEndpoint.appsIgnoredList.path,
+                method: APIEndpoint.appsIgnoredList.method,
+                as: [AppIgnoreUpgrade].self
+            )
 
             let (all, updatable) = try await (allResp, updatableResp)
+            // ignored 拉取失败则降级为空数组（不阻断应用列表展示）
+            let ignored = (try? await ignoredResp) ?? []
             var apps = all.items ?? []
             let updatableMap = Dictionary((updatable.items ?? []).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            // 构建 appID → ignoredRecordID 映射
+            let ignoredMap = Dictionary(ignored.compactMap {
+                $0.appID.map { ($0, $0.id) }
+            }, uniquingKeysWith: { a, _ in a })
 
-            // 合并可更新状态和 dockerCompose（当前版本）
+            // 合并可更新状态、dockerCompose、忽略记录 ID
             for i in apps.indices {
                 if let updatableApp = updatableMap[apps[i].id] {
                     apps[i].canUpdate = true
                     apps[i].currentDockerCompose = updatableApp.dockerCompose
                 } else {
                     apps[i].canUpdate = false
+                }
+                if let appID = apps[i].appID {
+                    apps[i].ignoredRecordID = ignoredMap[appID]
                 }
             }
             self.apps = apps
@@ -973,29 +1001,16 @@ final class AppsViewModel: ObservableObject {
 
     // MARK: - 取消忽略升级
 
-    /// 取消指定应用的忽略升级
-    /// 思路：先拉取 ignored 列表，找到 appID 匹配的记录的 ID，再调用 cancel 接口
+    /// 取消指定应用的忽略升级（直接用已加载的 ignoredRecordID）
     func cancelIgnoreUpgrade(app: AppInstall) async {
-        let appID = app.appID ?? 0
-        guard appID > 0 else {
-            showAlert(message: "无法取消忽略：缺少应用 ID")
+        guard let recordID = app.ignoredRecordID else {
+            showAlert(message: "该应用当前未在忽略列表中")
             return
         }
         do {
-            // 1. 拉取已忽略列表，找到匹配的 ID
-            let list: [AppIgnoreUpgrade] = try await client.send(
-                path: APIEndpoint.appsIgnoredList.path,
-                method: APIEndpoint.appsIgnoredList.method,
-                as: [AppIgnoreUpgrade].self
-            )
-            guard let target = list.first(where: { $0.appID == appID }) else {
-                showAlert(message: "该应用当前未在忽略列表中")
-                return
-            }
-            // 2. 调用 cancel 接口
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.appsIgnoredCancel.path,
-                body: ReqWithID(id: target.id),
+                body: ReqWithID(id: recordID),
                 as: EmptyResponse.self
             )
             showAlert(message: "已取消忽略升级，后续将正常检查更新")
@@ -1024,11 +1039,11 @@ final class AppsViewModel: ObservableObject {
         let checkPath = APIEndpoint.appsInstalledDeleteCheck.path
             .replacingOccurrences(of: ":installId", with: String(app.id))
         do {
-            // 后端 data 可能为 null，用 String? 解析以兼容
-            let _: String? = try await client.send(
+            // 后端 data 为 null，使用 EmptyResponse 解析（APIClient 对其容忍 null）
+            let _: EmptyResponse = try await client.send(
                 path: checkPath,
                 method: "GET",
-                as: String?.self
+                as: EmptyResponse.self
             )
         } catch let err as APIError {
             showAlert(message: "无法卸载：\(err.errorDescription ?? "未知错误")")
@@ -1043,8 +1058,8 @@ final class AppsViewModel: ObservableObject {
             operate: "delete",
             deleteDB: deleteDB,
             deleteImage: deleteImage,
-            deleteBackup: deleteBackup,
-            forceDelete: forceDelete
+            forceDelete: forceDelete,
+            deleteBackup: deleteBackup
         )
         do {
             let _: EmptyResponse = try await client.send(
