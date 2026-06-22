@@ -267,7 +267,7 @@ struct CreateWebsiteView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section("域名") {
+                Section {
                     TextField("主域名", text: $primaryDomain)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
@@ -281,6 +281,8 @@ struct CreateWebsiteView: View {
                             .multilineTextAlignment(.trailing)
                     }
                     TextField("备注（可选）", text: $remark)
+                } header: {
+                    Text("域名")
                 } footer: {
                     if !primaryDomain.isEmpty {
                         Text("预览：\(primaryDomain):\(port)")
