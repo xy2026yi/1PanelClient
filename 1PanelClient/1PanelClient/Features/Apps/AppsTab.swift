@@ -715,9 +715,6 @@ final class AppsViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            if let updated = apps.first(where: { $0.id == app.id }) {
-                selectedApp = updated
-            }
         } catch let err as APIError {
             showAlert(message: "\(op.displayName)失败：\(err.errorDescription ?? "未知错误")")
         } catch {

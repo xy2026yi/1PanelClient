@@ -142,8 +142,9 @@ struct AppFormField: Decodable, Hashable, Sendable {
     let labelEn: String?
     let required: Bool?
     let `default`: FormFieldValue?
-    let description: String?
     let values: [String]?      // select 类型的候选值
+    // 注意：JSON 里还有 label/description，它们是多语言对象 {en:..., zh:...}，
+    // 此处不声明这两个字段（Decodable 会自动忽略多余字段），避免类型不匹配导致 decode 失败。
 
     /// 显示标签（优先中文）
     var displayLabel: String {

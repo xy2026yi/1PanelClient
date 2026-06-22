@@ -7,7 +7,7 @@ import Foundation
 import SwiftUI
 
 /// 已安装应用搜索请求（request.AppInstalledSearch）
-struct AppInstalledSearchRequest: Encodable {
+struct AppInstalledSearchRequest: Encodable, Sendable {
     let page: Int
     let pageSize: Int
     let name: String
@@ -20,7 +20,7 @@ struct AppInstalledSearchRequest: Encodable {
 }
 
 /// 已安装应用列表响应（dto.PageResult 包装）
-struct AppInstalledListResponse: Decodable {
+struct AppInstalledListResponse: Decodable, Sendable {
     let total: Int
     let items: [AppInstall]?
 }
