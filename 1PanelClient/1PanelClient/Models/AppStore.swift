@@ -182,13 +182,40 @@ enum FormFieldValue: Decodable, Hashable, Sendable {
 // MARK: - 安装请求
 
 /// 应用安装请求（request.AppInstallCreate）
-/// appDetailId 和 name 必填，params 由表单生成
+/// 通过 doc/网页安装app请求抓取.log 完整抓包验证字段
 struct AppInstallCreateRequest: Encodable {
     let appDetailId: Int
-    let params: [String: String]
+    let params: [String: AnyCodableValue]
     let name: String
     let advanced: Bool
+    let cpuQuota: Int
+    let memoryLimit: Int
+    let memoryUnit: String
+    let containerName: String
+    let allowPort: Bool
+    let editCompose: Bool
+    let dockerCompose: String
+    let version: String
+    let appID: String
     let pullImage: Bool
+    let taskID: String
+    let gpuConfig: Bool
+    let specifyIP: String
+    let restartPolicy: String
+}
+
+/// 通用值类型（params 可能是 Int 或 String，需要保持原类型）
+enum AnyCodableValue: Encodable {
+    case int(Int)
+    case string(String)
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .int(let v): try c.encode(v)
+        case .string(let v): try c.encode(v)
+        }
+    }
 }
 
 // MARK: - 忽略升级

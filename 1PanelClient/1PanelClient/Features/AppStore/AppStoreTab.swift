@@ -262,12 +262,28 @@ struct AppInstallView: View {
     @ObservedObject var vm: AppStoreViewModel
     @Environment(\.dismiss) private var dismiss
 
+    // 基础
     @State private var installName = ""
     @State private var selectedVersion = ""
     @State private var loadError: String?
     @State private var appDetail: AppDetail?
     @State private var isLoadingDetail = true
     @State private var paramValues: [String: String] = [:]
+
+    // 高级设置（默认值参考抓包日志）
+    @State private var advancedEnabled = true
+    @State private var containerName = ""
+    @State private var allowPort = false
+    @State private var restartPolicy = "always"
+    @State private var cpuQuota = 0
+    @State private var memoryLimit = 0
+    @State private var memoryUnit = "M"
+    @State private var pullImage = true
+    @State private var editCompose = false
+    @State private var customCompose = ""
+
+    private let restartPolicies = ["no", "always", "on-failure", "unless-stopped"]
+    private let memoryUnits = ["M", "G"]
 
     var body: some View {
         NavigationStack {
@@ -308,12 +324,11 @@ struct AppInstallView: View {
     @ViewBuilder
     private func installForm(_ appDetail: AppDetail) -> some View {
         List {
-            // 基础配置
+            // MARK: 基础配置
             Section {
                 HStack {
-                    Text("应用名称")
-                        .foregroundStyle(.secondary)
-                    TextField("my-\(detail.key ?? "app")", text: $installName)
+                    Text("名称").foregroundStyle(.secondary)
+                    TextField(detail.key ?? "app", text: $installName)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
@@ -331,10 +346,10 @@ struct AppInstallView: View {
             } header: {
                 Text("基础配置")
             } footer: {
-                Text("应用名称用于区分不同实例，只能包含小写字母、数字和连字符")
+                Text("名称只能包含小写字母、数字和连字符")
             }
 
-            // 参数表单
+            // MARK: 应用参数（动态表单）
             if let fields = appDetail.params?.formFields, !fields.isEmpty {
                 Section {
                     ForEach(Array(fields.enumerated()), id: \.offset) { _, field in
@@ -349,25 +364,83 @@ struct AppInstallView: View {
                         }
                     }
                 } header: {
-                    Text("参数配置")
+                    Text("应用参数")
+                }
+            }
+
+            // MARK: 高级设置开关
+            Section {
+                Toggle("高级设置", isOn: $advancedEnabled)
+            }
+
+            // MARK: 高级设置详情
+            if advancedEnabled {
+                Section("容器") {
+                    HStack {
+                        Text("容器名称").foregroundStyle(.secondary)
+                        TextField("留空则自动生成", text: $containerName)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    Toggle("端口外部访问", isOn: $allowPort)
+                    Picker("重启规则", selection: $restartPolicy) {
+                        ForEach(restartPolicies, id: \.self) { Text($0).tag($0) }
+                    }
+                }
+
+                Section("资源限制") {
+                    HStack {
+                        Text("CPU 核心").foregroundStyle(.secondary)
+                        Spacer()
+                        TextField("0", value: $cpuQuota, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("核")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    HStack {
+                        Text("内存限制").foregroundStyle(.secondary)
+                        Spacer()
+                        TextField("0", value: $memoryLimit, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Picker("", selection: $memoryUnit) {
+                            ForEach(memoryUnits, id: \.self) { Text($0).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 80)
+                    }
                 } footer: {
-                    if let v = appDetail.version {
-                        Text("基于版本 \(v) 的默认参数")
+                    Text("填 0 表示不限制")
+                }
+
+                Section("镜像与编排") {
+                    Toggle("拉取镜像", isOn: $pullImage)
+                    Toggle("编辑 docker-compose.yml", isOn: $editCompose)
+                        .onChange(of: editCompose) { _, isOn in
+                            if isOn && customCompose.isEmpty {
+                                customCompose = appDetail.dockerCompose ?? ""
+                            }
+                        }
+                }
+
+                if editCompose {
+                    Section {
+                        TextEditor(text: $customCompose)
+                            .font(.system(.caption, design: .monospaced))
+                            .frame(minHeight: 200)
+                    } header: {
+                        Text("docker-compose.yml")
+                    } footer: {
+                        Text("编辑后将使用自定义内容覆盖默认编排文件")
                     }
                 }
             }
 
-            // docker-compose 预览
-            if let compose = appDetail.dockerCompose, !compose.isEmpty {
-                Section {
-                    CodePreview(text: compose, color: .secondary)
-                        .frame(minHeight: 160)
-                } header: {
-                    Text("docker-compose.yml")
-                }
-            }
-
-            // 安装进度
+            // MARK: 安装进度
             if vm.isInstalling {
                 Section {
                     HStack {
@@ -392,21 +465,23 @@ struct AppInstallView: View {
             loadError = "未找到可用版本"
             return
         }
-        // path: /apps/detail/:appId/:version/:type
-        // type 参数固定为 "installed"（已通过 logs/输出23.log 验证）
-        let path = "/api/v2/apps/detail/\(detail.id)/\(version)/installed"
+        // type=app 用于安装新应用（通过 doc/1panel_install_new_app.py 验证）
+        let path = "/api/v2/apps/detail/\(detail.id)/\(version)/app"
         do {
             let resp: AppDetail = try await vm.client.send(
                 path: path, method: "GET", as: AppDetail.self
             )
             self.appDetail = resp
-            // 用默认值填充参数
             if let fields = resp.params?.formFields {
                 for f in fields {
                     if let key = f.envKey, let def = f.default {
                         paramValues[key] = def.stringValue
                     }
                 }
+            }
+            // 初始化自定义 compose 为默认值
+            if customCompose.isEmpty {
+                customCompose = resp.dockerCompose ?? ""
             }
         } catch let err as APIError {
             loadError = err.errorDescription ?? "服务器返回错误，该应用可能尚未同步安装文件"
@@ -418,12 +493,41 @@ struct AppInstallView: View {
     }
 
     private func performInstall() async {
-        guard let appDetailId = appDetail?.id else { return }
-        await vm.installApp(
-            appDetailId: appDetailId,
+        guard let appDetail = appDetail else { return }
+
+        // 构建 params：保留原始类型（number → Int，text → String）
+        var params: [String: AnyCodableValue] = [:]
+        for (k, v) in paramValues {
+            // 端口等数字参数保持 Int 类型
+            if let intVal = Int(v) {
+                params[k] = .int(intVal)
+            } else {
+                params[k] = .string(v)
+            }
+        }
+
+        let compose = editCompose ? customCompose : (appDetail.dockerCompose ?? "")
+        let req = AppInstallCreateRequest(
+            appDetailId: appDetail.id,
+            params: params,
             name: installName,
-            params: paramValues
+            advanced: advancedEnabled,
+            cpuQuota: cpuQuota,
+            memoryLimit: memoryLimit,
+            memoryUnit: memoryUnit,
+            containerName: containerName,
+            allowPort: allowPort,
+            editCompose: editCompose,
+            dockerCompose: compose,
+            version: selectedVersion.isEmpty ? (detail.latestVersion ?? "") : selectedVersion,
+            appID: "",
+            pullImage: pullImage,
+            taskID: UUID().uuidString,
+            gpuConfig: false,
+            specifyIP: "",
+            restartPolicy: restartPolicy
         )
+        await vm.installApp(req: req)
         if vm.installSuccess {
             vm.showInstall = false
         }
@@ -655,18 +759,11 @@ final class AppStoreViewModel: ObservableObject {
         showInstall = true
     }
 
-    func installApp(appDetailId: Int, name: String, params: [String: String]) async {
+    func installApp(req: AppInstallCreateRequest) async {
         isInstalling = true
         installSuccess = false
         defer { isInstalling = false }
 
-        let req = AppInstallCreateRequest(
-            appDetailId: appDetailId,
-            params: params,
-            name: name,
-            advanced: false,
-            pullImage: true
-        )
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.appsInstall.path,
