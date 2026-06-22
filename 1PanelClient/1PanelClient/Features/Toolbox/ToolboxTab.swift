@@ -14,6 +14,7 @@ struct ToolboxTab: View {
     /// 工具入口定义
     private enum ToolItem: String, CaseIterable, Identifiable {
         case files
+        case websites
         case settings
         case terminal
         case cronjob
@@ -21,13 +22,13 @@ struct ToolboxTab: View {
         case database
         case ssl
         case process
-        case snapshots
 
         var id: String { rawValue }
 
         var title: String {
             switch self {
             case .files:     return "文件管理"
+            case .websites:  return "网站"
             case .settings:  return "设置"
             case .terminal:  return "终端"
             case .cronjob:   return "计划任务"
@@ -35,13 +36,13 @@ struct ToolboxTab: View {
             case .database:  return "数据库"
             case .ssl:       return "SSL 证书"
             case .process:   return "进程"
-            case .snapshots: return "快照"
             }
         }
 
         var icon: String {
             switch self {
             case .files:     return "folder"
+            case .websites:  return "globe"
             case .settings:  return "gearshape"
             case .terminal:  return "terminal"
             case .cronjob:   return "clock.badge.checkmark"
@@ -49,27 +50,26 @@ struct ToolboxTab: View {
             case .database:  return "cylinder"
             case .ssl:       return "lock.shield"
             case .process:   return "chart.bar"
-            case .snapshots: return "camera.viewfinder"
             }
         }
 
         var color: Color {
             switch self {
             case .files:     return .blue
+            case .websites:  return .green
             case .settings:  return .gray
             case .terminal:  return .black
             case .cronjob:   return .indigo
             case .firewall:  return .orange
             case .database:  return .teal
-            case .ssl:       return .green
+            case .ssl:       return .purple
             case .process:   return .pink
-            case .snapshots: return .purple
             }
         }
 
         var available: Bool {
             switch self {
-            case .files, .settings: return true
+            case .files, .websites, .settings: return true
             default: return false
             }
         }
@@ -117,8 +117,9 @@ struct ToolboxTab: View {
     private func destination(for item: ToolItem) -> some View {
         switch item {
         case .files:
-            // 传入子页面的 filesRootContent 以共享外层 NavigationStack
             FilesTabContent(manager: manager)
+        case .websites:
+            WebsitesTabContent(manager: manager)
         case .settings:
             SettingsTabContent(manager: manager)
         default:

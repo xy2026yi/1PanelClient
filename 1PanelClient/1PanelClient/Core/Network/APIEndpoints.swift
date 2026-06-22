@@ -25,6 +25,10 @@ enum APIEndpoint {
 
     // MARK: - 网站
     case websitesSearch           // POST 分页查询网站
+    case websitesCreate           // POST 创建网站（一键部署/反向代理/...）
+    case websitesCheck            // POST 创建前环境检查
+    case websiteDir               // GET  获取网站默认根目录
+    case websitesSSLSearch        // POST 获取 SSL 证书列表（用于创建时选择）
 
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库
@@ -60,6 +64,10 @@ enum APIEndpoint {
         case .loginSetting:          return "/api/v2/core/auth/setting"
         case .containersSearch:      return "/api/v2/containers/search"
         case .websitesSearch:        return "/api/v2/websites/search"
+        case .websitesCreate:        return "/api/v2/websites"
+        case .websitesCheck:         return "/api/v2/websites/check"
+        case .websiteDir:            return "/api/v2/files/path/websiteDir"
+        case .websitesSSLSearch:     return "/api/v2/websites/ssl/search"
         case .databasesSearch:       return "/api/v2/databases/db/search"
         case .filesSearch:           return "/api/v2/files/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
@@ -83,7 +91,7 @@ enum APIEndpoint {
         switch self {
         case .dashboardOS, .dashboardBase, .dashboardTopCPU, .dashboardTopMem,
              .loginSetting, .appsIgnoredList, .appsStoreDetail,
-             .appsInstalledDeleteCheck, .appsInstalledParams:
+             .appsInstalledDeleteCheck, .appsInstalledParams, .websiteDir:
             return "GET"
         default:
             return "POST"
