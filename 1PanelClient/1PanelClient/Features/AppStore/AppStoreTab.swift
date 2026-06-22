@@ -21,61 +21,66 @@ struct AppStoreTab: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if vm.isLoading && vm.apps.isEmpty {
-                    ProgressView("加载中…")
-                } else if vm.apps.isEmpty {
-                    ContentUnavailableView.search(text: searchText)
-                } else {
-                    appList
-                }
+            storeRootContent
+        }
+        .task { await vm.refresh() }
+    }
+
+    /// 供统一外壳复用的根内容（不含 NavigationStack/task）
+    var storeRootContent: some View {
+        Group {
+            if vm.isLoading && vm.apps.isEmpty {
+                ProgressView("加载中…")
+            } else if vm.apps.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+            } else {
+                appList
             }
-            .navigationTitle("应用商店")
-            .navigationBarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "搜索应用名")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            Task { await vm.refresh() }
-                        } label: {
-                            Label("刷新列表", systemImage: "arrow.clockwise")
-                        }
-                        Divider()
-                        Button {
-                            Task { await vm.syncRemote() }
-                        } label: {
-                            Label("更新远程应用", systemImage: "arrow.triangle.pull")
-                        }
-                        .disabled(vm.isSyncing)
-                        Button {
-                            Task { await vm.syncLocal() }
-                        } label: {
-                            Label("同步本地应用", systemImage: "arrow.triangle.2.circlepath")
-                        }
-                        .disabled(vm.isSyncing)
+        }
+        .navigationTitle("应用商店")
+        .navigationBarTitleDisplayMode(.large)
+        .searchable(text: $searchText, prompt: "搜索应用商店")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        Task { await vm.refresh() }
                     } label: {
-                        if vm.isSyncing {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "ellipsis.circle")
-                        }
+                        Label("刷新列表", systemImage: "arrow.clockwise")
+                    }
+                    Divider()
+                    Button {
+                        Task { await vm.syncRemote() }
+                    } label: {
+                        Label("更新远程应用", systemImage: "arrow.triangle.pull")
+                    }
+                    .disabled(vm.isSyncing)
+                    Button {
+                        Task { await vm.syncLocal() }
+                    } label: {
+                        Label("同步本地应用", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .disabled(vm.isSyncing)
+                } label: {
+                    if vm.isSyncing {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "ellipsis.circle")
                     }
                 }
             }
-            .onChange(of: searchText) { _, newValue in
-                Task { await vm.search(query: newValue) }
-            }
-            .navigationDestination(for: AppStoreApp.self) { app in
-                AppStoreDetailView(appKey: app.key ?? "", vm: vm)
-            }
-            .alert("提示", isPresented: $vm.showAlert) {
-                Button("好的", role: .cancel) {}
-            } message: {
-                Text(vm.alertMessage)
-            }
         }
-        .task { await vm.refresh() }
+        .onChange(of: searchText) { _, newValue in
+            Task { await vm.search(query: newValue) }
+        }
+        .navigationDestination(for: AppStoreApp.self) { app in
+            AppStoreDetailView(appKey: app.key ?? "", vm: vm)
+        }
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
     }
 
     private var appList: some View {

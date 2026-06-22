@@ -19,35 +19,7 @@ struct AppsTab: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if vm.isLoading && vm.apps.isEmpty {
-                    ProgressView("加载中…")
-                } else if vm.apps.isEmpty {
-                    ContentUnavailableView(
-                        "暂无已安装应用",
-                        systemImage: "shippingbox",
-                        description: Text(vm.errorMessage ?? "这台服务器上没有已安装的应用")
-                    )
-                } else {
-                    appList
-                }
-            }
-            .navigationTitle("应用")
-            .navigationBarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "搜索应用名")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await vm.refresh() }
-                    } label: { Image(systemName: "arrow.clockwise") }
-                }
-            }
-            .onChange(of: searchText) { _, newValue in
-                Task { await vm.search(query: newValue) }
-            }
-            .navigationDestination(for: AppInstall.self) { app in
-                AppDetailView(app: app, vm: vm)
-            }
+            installedRootContent
         }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
@@ -55,6 +27,39 @@ struct AppsTab: View {
             Text(vm.alertMessage)
         }
         .task { await vm.refresh() }
+    }
+
+    /// 供统一外壳复用的根内容（不含 NavigationStack/alert/task）
+    var installedRootContent: some View {
+        Group {
+            if vm.isLoading && vm.apps.isEmpty {
+                ProgressView("加载中…")
+            } else if vm.apps.isEmpty {
+                ContentUnavailableView(
+                    "暂无已安装应用",
+                    systemImage: "shippingbox",
+                    description: Text(vm.errorMessage ?? "这台服务器上没有已安装的应用")
+                )
+            } else {
+                appList
+            }
+        }
+        .navigationTitle("应用")
+        .navigationBarTitleDisplayMode(.large)
+        .searchable(text: $searchText, prompt: "搜索已安装应用")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await vm.refresh() }
+                } label: { Image(systemName: "arrow.clockwise") }
+            }
+        }
+        .onChange(of: searchText) { _, newValue in
+            Task { await vm.search(query: newValue) }
+        }
+        .navigationDestination(for: AppInstall.self) { app in
+            AppDetailView(app: app, vm: vm)
+        }
     }
 
     private var appList: some View {

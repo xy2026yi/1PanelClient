@@ -19,14 +19,9 @@ struct MainTabView: View {
                             Label("概览", systemImage: "square.grid.2x2")
                         }
 
-                    AppsTab(manager: manager)
+                    UnifiedAppsTab(manager: manager)
                         .tabItem {
                             Label("应用", systemImage: "app.badge")
-                        }
-
-                    AppStoreTab(manager: manager)
-                        .tabItem {
-                            Label("商店", systemImage: "storefront")
                         }
 
                     ContainersTab(manager: manager)
