@@ -78,13 +78,13 @@ struct ToolboxTab: View {
         var subtitle: String {
             available ? "" : "敬请期待"
         }
-    }
 
-    /// 需要独立 NavigationStack（全屏覆盖）的工具
-    private var requiresFullScreen: Bool {
-        switch self {
-        case .websites: return true
-        default:        return false
+        /// 需要独立 NavigationStack（全屏覆盖）的工具
+        var requiresFullScreen: Bool {
+            switch self {
+            case .websites: return true
+            default:        return false
+            }
         }
     }
 
