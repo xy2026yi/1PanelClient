@@ -1422,8 +1422,14 @@ final class AppsViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            try? await Task.sleep(for: .seconds(1))
-            await load(query: "")
+            // rebuild 是异步操作，状态不会立即变化，需要明确反馈
+            if op == .rebuild {
+                showAlert(message: "\(app.displayName) 重建请求已提交，容器正在后台重建…")
+                needsRefresh = true
+            } else {
+                try? await Task.sleep(for: .seconds(1))
+                await load(query: "")
+            }
         } catch let err as APIError {
             showAlert(message: "\(op.displayName)失败：\(err.errorDescription ?? "未知错误")")
         } catch {
