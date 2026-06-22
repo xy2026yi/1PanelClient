@@ -180,3 +180,76 @@ struct AppVersion: Decodable, Identifiable, Sendable {
 struct AppUpdateVersionsRequest: Encodable {
     let appInstallId: Int
 }
+
+// MARK: - 更新已安装应用参数（重建应用）
+
+/// 已安装应用参数查询响应（GET /apps/installed/params/:installId）
+/// 通过 doc/更新已安装应用参数重建应用抓取信息.log 验证字段
+struct InstalledParamsResponse: Decodable, Sendable {
+    let params: [InstalledParamField]?
+    /// 当前生效的 compose（用户上次保存的）
+    let rawCompose: String?
+    let advanced: Bool?
+    let cpuQuota: Int?
+    let memoryLimit: Int?
+    let memoryUnit: String?
+    let containerName: String?
+    let allowPort: Bool?
+    let editCompose: Bool?
+    /// 新版本默认 compose（用于展示对比）
+    let dockerCompose: String?
+    let hostMode: Bool?
+    let pullImage: Bool?
+    let gpuConfig: Bool?
+    let webUI: String?
+    let type: String?
+    let specifyIP: String?
+    let restartPolicy: String?
+}
+
+/// 已安装应用的参数字段（带当前值，区别于 AppFormField 的「安装表单定义」）
+struct InstalledParamField: Decodable, Identifiable, Hashable, Sendable {
+    /// 是否可编辑（false 表示只读展示）
+    let edit: Bool?
+    let key: String?
+    /// 校验规则，如 "paramPort"
+    let rule: String?
+    let labelZh: String?
+    let labelEn: String?
+    let type: String?
+    let values: [String]?
+    let showValue: String?
+    let required: Bool?
+    let multiple: Bool?
+    /// 当前值（可能是 Int 或 String）
+    let value: FormFieldValue?
+
+    var id: String { key ?? UUID().uuidString }
+
+    /// 显示标签（优先中文）
+    var displayLabel: String {
+        labelZh ?? labelEn ?? key ?? "参数"
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case edit, key, rule, labelZh, labelEn, type, values, showValue
+        case required, multiple, value
+    }
+}
+
+/// 更新已安装应用参数请求（POST /apps/installed/params/update）
+/// 通过抓包日志验证字段
+struct AppParamsUpdateRequest: Encodable {
+    let webUI: String
+    let installId: Int
+    let params: [String: AnyCodableValue]
+    let advanced: Bool
+    let memoryLimit: Int
+    let cpuQuota: Int
+    let memoryUnit: String
+    let allowPort: Bool
+    let containerName: String
+    let editCompose: Bool
+    let dockerCompose: String
+    let restartPolicy: String
+}

@@ -121,6 +121,7 @@ struct AppDetailView: View {
     let app: AppInstall
     @ObservedObject var vm: AppsViewModel
     @State private var showUninstallSheet = false
+    @State private var showUpdateParamsSheet = false
 
     var body: some View {
         List {
@@ -182,6 +183,11 @@ struct AppDetailView: View {
                     Task { await vm.operate(app: app, op: .restart) }
                 } label: {
                     Label("重启应用", systemImage: "arrow.triangle.2.circlepath")
+                }
+                Button {
+                    showUpdateParamsSheet = true
+                } label: {
+                    Label("更新参数", systemImage: "slider.horizontal.3")
                 }
             }
 
@@ -281,6 +287,9 @@ struct AppDetailView: View {
         }
         .sheet(isPresented: $showUninstallSheet) {
             UninstallSheetView(app: app, vm: vm)
+        }
+        .sheet(isPresented: $showUpdateParamsSheet) {
+            UpdateParamsSheetView(app: app, vm: vm)
         }
         .onDisappear {
             // 返回列表时，如有待刷新（忽略升级/升级完成），重新加载
@@ -526,6 +535,294 @@ struct UninstallSheetView: View {
         // 无论成功失败都关闭 sheet，alert 会在详情页/列表上展示
         if vm.uninstallDone {
             dismiss()
+        }
+    }
+}
+
+// MARK: - 更新参数 Sheet（重建应用）
+
+struct UpdateParamsSheetView: View {
+    let app: AppInstall
+    @ObservedObject var vm: AppsViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var paramsResp: InstalledParamsResponse?
+    @State private var isLoading = true
+    @State private var loadError: String?
+
+    // 表单值
+    @State private var paramValues: [String: String] = [:]
+    @State private var containerName = ""
+    @State private var allowPort = false
+    @State private var restartPolicy = "always"
+    @State private var cpuQuota = 0
+    @State private var memoryLimit = 0
+    @State private var memoryUnit = "MB"
+    @State private var editCompose = false
+    @State private var customCompose = ""
+
+    private let restartPolicies = ["no", "always", "on-failure", "unless-stopped"]
+    private let memoryUnits = ["MB", "GB"]
+
+    private var hasLoaded: Bool { paramsResp != nil }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isLoading {
+                    ProgressView("加载参数…")
+                } else if let resp = paramsResp {
+                    paramsForm(resp)
+                } else {
+                    ContentUnavailableView {
+                        Label("无法加载参数", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(loadError ?? "请稍后重试")
+                    } actions: {
+                        Button("重试") { Task { await load() } }
+                    }
+                }
+            }
+            .navigationTitle("更新参数")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .destructiveAction) {
+                    Button("更新") {
+                        Task { await performUpdate() }
+                    }
+                    .disabled(!hasLoaded || vm.isUpdatingParams)
+                }
+            }
+        }
+        .task { await load() }
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {
+                if vm.paramsUpdated { dismiss() }
+            }
+        } message: {
+            Text(vm.alertMessage)
+        }
+    }
+
+    @ViewBuilder
+    private func paramsForm(_ resp: InstalledParamsResponse) -> some View {
+        Form {
+            // 参数列表
+            if let fields = resp.params, !fields.isEmpty {
+                Section {
+                    ForEach(fields) { field in
+                        if field.edit == true {
+                            InstalledParamEditRow(field: field, value: binding(for: field))
+                        } else {
+                            InstalledParamReadRow(field: field)
+                        }
+                    }
+                } header: {
+                    Text("参数")
+                } footer: {
+                    Text("修改后将重建容器使参数生效。")
+                }
+            }
+
+            // 容器配置
+            Section {
+                HStack {
+                    Text("容器名").foregroundStyle(.secondary)
+                    Spacer()
+                    TextField("", text: $containerName)
+                        .multilineTextAlignment(.trailing)
+                }
+                Toggle("端口外部访问", isOn: $allowPort)
+                Picker("重启规则", selection: $restartPolicy) {
+                    ForEach(restartPolicies, id: \.self) { Text($0).tag($0) }
+                }
+            } header: {
+                Text("容器配置")
+            }
+
+            // 资源限制
+            Section {
+                HStack {
+                    Text("CPU 核心").foregroundStyle(.secondary)
+                    Spacer()
+                    TextField("0", value: $cpuQuota, format: .number)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 80)
+                    Text("核").foregroundStyle(.secondary).font(.caption)
+                }
+                HStack {
+                    Text("内存限制").foregroundStyle(.secondary)
+                    Spacer()
+                    TextField("0", value: $memoryLimit, format: .number)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 80)
+                    Picker("", selection: $memoryUnit) {
+                        ForEach(memoryUnits, id: \.self) { Text($0).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 80)
+                }
+            } header: {
+                Text("资源限制")
+            } footer: {
+                Text("填 0 表示不限制")
+            }
+
+            // docker-compose
+            Section {
+                Toggle("编辑 docker-compose.yml", isOn: $editCompose)
+                    .onChange(of: editCompose) { _, isOn in
+                        if isOn && customCompose.isEmpty {
+                            customCompose = resp.dockerCompose ?? resp.rawCompose ?? ""
+                        }
+                    }
+            } header: {
+                Text("docker-compose")
+            }
+
+            if editCompose {
+                Section {
+                    TextEditor(text: $customCompose)
+                        .font(.system(.caption, design: .monospaced))
+                        .frame(minHeight: 200)
+                } footer: {
+                    Text("编辑后将使用自定义内容覆盖默认编排文件")
+                }
+            }
+
+            // 当前 compose 预览（只读）
+            if !editCompose, let raw = resp.rawCompose, !raw.isEmpty {
+                Section {
+                    CodePreview(text: raw, color: .secondary)
+                        .frame(minHeight: 140)
+                } header: {
+                    Text("当前 docker-compose.yml")
+                }
+            }
+
+            if vm.isUpdatingParams {
+                Section {
+                    HStack {
+                        ProgressView()
+                        Text("正在更新…")
+                    }
+                }
+            }
+        }
+    }
+
+    private func binding(for field: InstalledParamField) -> Binding<String> {
+        let key = field.key ?? ""
+        return Binding(
+            get: { paramValues[key] ?? field.value?.stringValue ?? "" },
+            set: { paramValues[key] = $0 }
+        )
+    }
+
+    private func load() async {
+        isLoading = true
+        loadError = nil
+        guard let resp = await vm.loadParams(for: app) else {
+            loadError = vm.alertMessage
+            isLoading = false
+            return
+        }
+        self.paramsResp = resp
+        // 用接口返回的当前值初始化
+        if let fields = resp.params {
+            for f in fields {
+                if let k = f.key {
+                    paramValues[k] = f.value?.stringValue ?? ""
+                }
+            }
+        }
+        containerName = resp.containerName ?? ""
+        allowPort = resp.allowPort ?? false
+        restartPolicy = resp.restartPolicy ?? "always"
+        cpuQuota = resp.cpuQuota ?? 0
+        memoryLimit = resp.memoryLimit ?? 0
+        memoryUnit = resp.memoryUnit ?? "MB"
+        customCompose = resp.dockerCompose ?? resp.rawCompose ?? ""
+        isLoading = false
+    }
+
+    private func performUpdate() async {
+        guard let resp = paramsResp else { return }
+        var params: [String: AnyCodableValue] = [:]
+        for (k, v) in paramValues {
+            if let intVal = Int(v) {
+                params[k] = .int(intVal)
+            } else {
+                params[k] = .string(v)
+            }
+        }
+        let compose = editCompose ? customCompose : (resp.dockerCompose ?? resp.rawCompose ?? "")
+        let req = AppParamsUpdateRequest(
+            webUI: resp.webUI ?? "",
+            installId: app.id,
+            params: params,
+            advanced: true,
+            memoryLimit: memoryLimit,
+            cpuQuota: cpuQuota,
+            memoryUnit: memoryUnit,
+            allowPort: allowPort,
+            containerName: containerName,
+            editCompose: editCompose,
+            dockerCompose: compose,
+            restartPolicy: restartPolicy
+        )
+        await vm.updateParams(app: app, req: req)
+    }
+}
+
+/// 已安装参数 - 可编辑行
+struct InstalledParamEditRow: View {
+    let field: InstalledParamField
+    @Binding var value: String
+
+    var body: some View {
+        switch field.type ?? "text" {
+        case "number":
+            HStack {
+                Text(field.displayLabel).foregroundStyle(.secondary)
+                Spacer()
+                TextField("", text: $value)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 100)
+            }
+        case "select":
+            Picker(field.displayLabel, selection: $value) {
+                ForEach(field.values ?? [], id: \.self) { v in
+                    Text(v).tag(v)
+                }
+            }
+        default:
+            HStack {
+                Text(field.displayLabel).foregroundStyle(.secondary)
+                Spacer()
+                TextField("", text: $value)
+                    .multilineTextAlignment(.trailing)
+            }
+        }
+    }
+}
+
+/// 已安装参数 - 只读行（edit=false）
+struct InstalledParamReadRow: View {
+    let field: InstalledParamField
+
+    var body: some View {
+        HStack {
+            Text(field.displayLabel).foregroundStyle(.secondary)
+            Spacer()
+            Text(field.value?.stringValue ?? "—")
+                .foregroundStyle(.secondary)
         }
     }
 }
@@ -787,6 +1084,12 @@ final class AppsViewModel: ObservableObject {
     @Published var isUninstalling = false
     @Published var uninstallDone = false
 
+    // 更新参数相关
+    @Published var isLoadingParams = false
+    @Published var loadedParams: InstalledParamsResponse?
+    @Published var isUpdatingParams = false
+    @Published var paramsUpdated = false
+
     /// 标记列表需要刷新（在详情页操作后置 true，返回列表时触发刷新）
     @Published var needsRefresh = false
 
@@ -1025,6 +1328,53 @@ final class AppsViewModel: ObservableObject {
             showAlert(message: "取消忽略失败：\(err.errorDescription ?? "未知错误")")
         } catch {
             showAlert(message: "取消忽略失败：\(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 更新参数（重建应用）
+
+    /// 加载已安装应用的当前参数（用于「更新参数」表单）
+    @MainActor
+    func loadParams(for app: AppInstall) async -> InstalledParamsResponse? {
+        isLoadingParams = true
+        defer { isLoadingParams = false }
+        let path = APIEndpoint.appsInstalledParams.path
+            .replacingOccurrences(of: ":installId", with: String(app.id))
+        do {
+            let resp: InstalledParamsResponse = try await client.send(
+                path: path,
+                method: APIEndpoint.appsInstalledParams.method,
+                as: InstalledParamsResponse.self
+            )
+            self.loadedParams = resp
+            return resp
+        } catch let err as APIError {
+            showAlert(message: "加载参数失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "加载参数失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// 提交参数更新（重建应用）
+    func updateParams(app: AppInstall, req: AppParamsUpdateRequest) async {
+        isUpdatingParams = true
+        paramsUpdated = false
+        defer { isUpdatingParams = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.appsInstalledParamsUpdate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            paramsUpdated = true
+            showAlert(message: "参数更新请求已提交，应用正在后台重建中…")
+            needsRefresh = true
+        } catch let err as APIError {
+            showAlert(message: "更新失败：\(err.errorDescription ?? "未知错误")")
+        } catch {
+            showAlert(message: "更新失败：\(error.localizedDescription)")
         }
     }
 

@@ -41,6 +41,8 @@ enum APIEndpoint {
     case appsIgnoredList         // GET  忽略升级列表
     case appsIgnoredCancel       // POST 取消忽略升级
     case appsInstalledDeleteCheck // GET 删除前检查（:installId 路径参数）
+    case appsInstalledParams     // GET  获取已安装应用参数（:installId 路径参数）
+    case appsInstalledParamsUpdate // POST 更新已安装应用参数（重建应用）
 
     // MARK: - 应用商店
     case appsStoreSearch         // POST 应用商店搜索
@@ -68,6 +70,8 @@ enum APIEndpoint {
         case .appsIgnoredList:       return "/api/v2/apps/ignored/detail"
         case .appsIgnoredCancel:     return "/api/v2/apps/ignored/cancel"
         case .appsInstalledDeleteCheck: return "/api/v2/apps/installed/delete/check/:installId"
+        case .appsInstalledParams:   return "/api/v2/apps/installed/params/:installId"
+        case .appsInstalledParamsUpdate: return "/api/v2/apps/installed/params/update"
         case .appsStoreSearch:       return "/api/v2/apps/search"
         case .appsStoreDetail:       return "/api/v2/apps/:key"
         case .appsSyncRemote:        return "/api/v2/apps/sync/remote"
@@ -79,7 +83,7 @@ enum APIEndpoint {
         switch self {
         case .dashboardOS, .dashboardBase, .dashboardTopCPU, .dashboardTopMem,
              .loginSetting, .appsIgnoredList, .appsStoreDetail,
-             .appsInstalledDeleteCheck:
+             .appsInstalledDeleteCheck, .appsInstalledParams:
             return "GET"
         default:
             return "POST"
