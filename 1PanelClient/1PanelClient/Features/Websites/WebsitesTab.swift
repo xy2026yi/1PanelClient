@@ -272,7 +272,9 @@ struct CreateWebsiteView: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    LabeledContent("端口") {
+                    HStack {
+                        Text("端口")
+                        Spacer()
                         TextField("端口", value: $port, format: .number)
                             .keyboardType(.numberPad)
                             .frame(width: 80)
