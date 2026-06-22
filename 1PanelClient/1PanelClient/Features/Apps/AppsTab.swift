@@ -48,11 +48,11 @@ struct AppsTab: View {
             .navigationDestination(for: AppInstall.self) { app in
                 AppDetailView(app: app, vm: vm)
             }
-            .alert("提示", isPresented: $vm.showAlert) {
-                Button("好的", role: .cancel) {}
-            } message: {
-                Text(vm.alertMessage)
-            }
+        }
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
         }
         .task { await vm.refresh() }
     }
@@ -243,9 +243,13 @@ struct AppDetailView: View {
         }
         .onDisappear {
             // 返回列表时，如有待刷新（忽略升级/升级完成），重新加载
+            // 延迟到导航动画结束后执行，避免破坏 NavigationStack 环境树
             if vm.needsRefresh {
                 vm.needsRefresh = false
-                Task { await vm.refresh() }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    await vm.refresh()
+                }
             }
         }
     }
