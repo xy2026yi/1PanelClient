@@ -10,6 +10,7 @@ import SwiftUI
 
 struct ToolboxTab: View {
     @ObservedObject var manager: ServerManager
+    @State private var presentedTool: ToolItem?
 
     /// 工具入口定义
     private enum ToolItem: String, CaseIterable, Identifiable {
@@ -79,6 +80,14 @@ struct ToolboxTab: View {
         }
     }
 
+    /// 需要独立 NavigationStack（全屏覆盖）的工具
+    private var requiresFullScreen: Bool {
+        switch self {
+        case .websites: return true
+        default:        return false
+        }
+    }
+
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 3)
 
     var body: some View {
@@ -96,30 +105,52 @@ struct ToolboxTab: View {
             .navigationTitle("工具箱")
             .navigationBarTitleDisplayMode(.large)
         }
+        .fullScreenCover(item: $presentedTool) { item in
+            fullScreenDestination(for: item)
+        }
     }
 
     @ViewBuilder
     private func toolTile(_ item: ToolItem) -> some View {
         if item.available {
-            NavigationLink {
-                destination(for: item)
-            } label: {
-                tileContent(item)
+            if item.requiresFullScreen {
+                Button {
+                    presentedTool = item
+                } label: {
+                    tileContent(item)
+                }
+                .buttonStyle(.plain)
+            } else {
+                NavigationLink {
+                    destination(for: item)
+                } label: {
+                    tileContent(item)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         } else {
             tileContent(item)
                 .allowsHitTesting(false)
         }
     }
 
+    /// 全屏覆盖式目标（带自己的 NavigationStack）
+    @ViewBuilder
+    private func fullScreenDestination(for item: ToolItem) -> some View {
+        switch item {
+        case .websites:
+            WebsitesTab(manager: manager)
+        default:
+            EmptyView()
+        }
+    }
+
+    /// 推入式目标（复用外层 NavigationStack）
     @ViewBuilder
     private func destination(for item: ToolItem) -> some View {
         switch item {
         case .files:
             FilesTabContent(manager: manager)
-        case .websites:
-            WebsitesTabContent(manager: manager)
         case .settings:
             SettingsTabContent(manager: manager)
         default:

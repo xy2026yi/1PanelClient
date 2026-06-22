@@ -20,50 +20,48 @@ struct WebsitesTab: View {
 
     var body: some View {
         NavigationStack {
-            websitesRootContent
+            Group {
+                if vm.isLoading && vm.websites.isEmpty {
+                    ProgressView("加载中…")
+                } else if vm.websites.isEmpty {
+                    ContentUnavailableView(
+                        "暂无网站",
+                        systemImage: "globe",
+                        description: Text(vm.errorMessage ?? "点击右上角创建第一个网站")
+                    )
+                } else {
+                    websiteList
+                }
+            }
+            .navigationTitle("网站")
+            .navigationBarTitleDisplayMode(.large)
+            .searchable(text: $searchText, prompt: "搜索域名")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task { await vm.refresh() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showCreateSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .onChange(of: searchText) { _, newValue in
+                Task { await vm.search(query: newValue) }
+            }
+            .navigationDestination(for: Website.self) { website in
+                WebsiteDetailView(website: website, vm: vm)
+            }
         }
         .task { await vm.refresh() }
-    }
-
-    /// 供工具箱/外层 NavigationStack 复用的根内容（不包含 NavigationStack/task）
-    var websitesRootContent: some View {
-        Group {
-            if vm.isLoading && vm.websites.isEmpty {
-                ProgressView("加载中…")
-            } else if vm.websites.isEmpty {
-                ContentUnavailableView(
-                    "暂无网站",
-                    systemImage: "globe",
-                    description: Text(vm.errorMessage ?? "点击右上角创建第一个网站")
-                )
-            } else {
-                websiteList
-            }
-        }
-        .navigationTitle("网站")
-        .navigationBarTitleDisplayMode(.large)
-        .searchable(text: $searchText, prompt: "搜索域名")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await vm.refresh() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    showCreateSheet = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
-        }
-        .onChange(of: searchText) { _, newValue in
-            Task { await vm.search(query: newValue) }
-        }
-        .navigationDestination(for: Website.self) { website in
-            WebsiteDetailView(website: website, vm: vm)
+        .alert(vm.alertMessage, isPresented: $vm.showAlert) {
+            Button("好", role: .cancel) {}
         }
     }
 
@@ -239,7 +237,7 @@ struct CreateWebsiteView: View {
 
     @State private var selectedType: WebsiteType = .deployment
     @State private var primaryDomain = ""
-    @State private var otherDomains = ""
+    @State private var port: Int = 80
     @State private var remark = ""
 
     // 一键部署专用
@@ -274,11 +272,19 @@ struct CreateWebsiteView: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    TextField("其他域名（换行分隔）", text: $otherDomains, axis: .vertical)
-                        .lineLimit(2...4)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    LabeledContent("端口") {
+                        TextField("端口", value: $port, format: .number)
+                            .keyboardType(.numberPad)
+                            .frame(width: 80)
+                            .multilineTextAlignment(.trailing)
+                    }
                     TextField("备注（可选）", text: $remark)
+                } footer: {
+                    if !primaryDomain.isEmpty {
+                        Text("预览：\(primaryDomain):\(port)")
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.blue)
+                    }
                 }
 
                 // 类型特定字段
@@ -379,7 +385,6 @@ struct CreateWebsiteView: View {
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .placeholder("127.0.0.1:8080")
         } header: {
             Text("代理目标")
         } footer: {
@@ -392,7 +397,8 @@ struct CreateWebsiteView: View {
     }
 
     private var canSubmit: Bool {
-        guard !primaryDomain.contains(" "), !primaryDomain.isEmpty else { return false }
+        guard !primaryDomain.contains(" "), !primaryDomain.isEmpty,
+              port > 0, port < 65536 else { return false }
         switch selectedType {
         case .deployment:
             return selectedAppInstallId != nil
@@ -408,10 +414,18 @@ struct CreateWebsiteView: View {
         req.alias = primaryDomain.split(separator: ":").first.map(String.init) ?? primaryDomain
         req.primaryDomain = ""
         req.remark = remark
-        req.otherDomains = otherDomains
         req.enableSSL = enableSSL
         req.websiteSSLID = selectedSSLId ?? 0
         req.taskID = UUID().uuidString
+        // 端口：HTTPS 启用时端口字段常被设为 443/自定义；未启用时默认 80
+        req.port = port
+        // domains 数组必须包含 {domain, host, port, ssl} —— 关键字段
+        req.domains = [WebsiteDomainBody(
+            domain: primaryDomain,
+            host: primaryDomain,
+            port: port,
+            ssl: enableSSL
+        )]
 
         switch selectedType {
         case .deployment:
@@ -425,20 +439,6 @@ struct CreateWebsiteView: View {
         let ok = await vm.createWebsite(req: req)
         if ok {
             dismiss()
-        }
-    }
-}
-
-// MARK: - TextField 占位符辅助
-
-private extension View {
-    func placeholder(_ text: String, when show: Bool = true) -> some View {
-        ZStack(alignment: .leading) {
-            if show {
-                Text(text)
-                    .foregroundStyle(Color.secondary.opacity(0.5))
-            }
-            self
         }
     }
 }
@@ -598,74 +598,5 @@ final class WebsitesViewModel: ObservableObject {
     private func showAlert(message: String) {
         alertMessage = message
         showAlert = true
-    }
-}
-
-/// 供工具箱/外层 NavigationStack 复用的「网站」内容视图
-/// WebsitesTab 自身保留 NavigationStack 以兼容独立使用；
-/// 在工具箱场景下用本视图，由外层提供 NavigationStack。
-struct WebsitesTabContent: View {
-    @ObservedObject var manager: ServerManager
-    @StateObject private var vm: WebsitesViewModel
-    @State private var searchText = ""
-    @State private var showCreateSheet = false
-
-    init(manager: ServerManager) {
-        self.manager = manager
-        let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
-        _vm = StateObject(wrappedValue: WebsitesViewModel(server: server))
-    }
-
-    var body: some View {
-        Group {
-            if vm.isLoading && vm.websites.isEmpty {
-                ProgressView("加载中…")
-            } else if vm.websites.isEmpty {
-                ContentUnavailableView(
-                    "暂无网站",
-                    systemImage: "globe",
-                    description: Text(vm.errorMessage ?? "点击右上角创建第一个网站")
-                )
-            } else {
-                List {
-                    ForEach(vm.websites) { w in
-                        NavigationLink(value: w) {
-                            WebsiteRow(website: w)
-                        }
-                    }
-                }
-                .listStyle(.insetGrouped)
-                .refreshable { await vm.refresh() }
-            }
-        }
-        .navigationTitle("网站")
-        .navigationBarTitleDisplayMode(.large)
-        .searchable(text: $searchText, prompt: "搜索域名")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await vm.refresh() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    showCreateSheet = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
-        }
-        .onChange(of: searchText) { _, newValue in
-            Task { await vm.search(query: newValue) }
-        }
-        .navigationDestination(for: Website.self) { website in
-            WebsiteDetailView(website: website, vm: vm)
-        }
-        .sheet(isPresented: $showCreateSheet) {
-            CreateWebsiteView(vm: vm)
-        }
-        .task { await vm.refresh() }
     }
 }
