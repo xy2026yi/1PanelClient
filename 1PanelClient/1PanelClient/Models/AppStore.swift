@@ -250,3 +250,8 @@ struct AppIgnoreUpgrade: Decodable, Identifiable, Sendable {
 struct ReqWithID: Encodable {
     let id: Int
 }
+
+/// 带 taskID 的请求（应用商店同步接口使用）
+struct ReqWithTaskID: Encodable {
+    let taskID: String
+}

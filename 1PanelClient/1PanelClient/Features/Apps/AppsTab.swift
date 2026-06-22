@@ -846,8 +846,9 @@ final class AppsViewModel: ObservableObject {
             var apps = all.items ?? []
             let updatableMap = Dictionary((updatable.items ?? []).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
             // 构建 appID → ignoredRecordID 映射
-            let ignoredMap = Dictionary(ignored.compactMap {
-                $0.appID.map { ($0, $0.id) }
+            let ignoredMap = Dictionary(ignored.compactMap { item -> (Int, Int)? in
+                guard let appID = item.appID else { return nil }
+                return (appID, item.id)
             }, uniquingKeysWith: { a, _ in a })
 
             // 合并可更新状态、dockerCompose、忽略记录 ID

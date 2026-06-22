@@ -35,9 +35,32 @@ struct AppStoreTab: View {
             .searchable(text: $searchText, prompt: "搜索应用名")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await vm.refresh() }
-                    } label: { Image(systemName: "arrow.clockwise") }
+                    Menu {
+                        Button {
+                            Task { await vm.refresh() }
+                        } label: {
+                            Label("刷新列表", systemImage: "arrow.clockwise")
+                        }
+                        Divider()
+                        Button {
+                            Task { await vm.syncRemote() }
+                        } label: {
+                            Label("更新远程应用", systemImage: "arrow.triangle.pull")
+                        }
+                        .disabled(vm.isSyncing)
+                        Button {
+                            Task { await vm.syncLocal() }
+                        } label: {
+                            Label("同步本地应用", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                        .disabled(vm.isSyncing)
+                    } label: {
+                        if vm.isSyncing {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                    }
                 }
             }
             .onChange(of: searchText) { _, newValue in
@@ -760,6 +783,9 @@ final class AppStoreViewModel: ObservableObject {
     @Published var isInstalling = false
     @Published var installSuccess = false
 
+    // 同步
+    @Published var isSyncing = false
+
     // 提示
     @Published var showAlert = false
     @Published var alertMessage = ""
@@ -823,6 +849,46 @@ final class AppStoreViewModel: ObservableObject {
             showAlert(message: "安装失败：\(err.errorDescription ?? "未知错误")")
         } catch {
             showAlert(message: "安装失败：\(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 同步应用商店
+
+    /// 更新远程应用（从远程商店拉取最新应用列表到本地）
+    func syncRemote() async {
+        await performSync(
+            endpoint: .appsSyncRemote,
+            successMsg: "远程应用更新请求已提交，正在后台同步…"
+        )
+    }
+
+    /// 同步本地应用（将本地已安装应用状态同步到面板）
+    func syncLocal() async {
+        await performSync(
+            endpoint: .appsSyncLocal,
+            successMsg: "本地应用同步请求已提交，正在后台同步…"
+        )
+    }
+
+    private func performSync(endpoint: APIEndpoint, successMsg: String) async {
+        isSyncing = true
+        defer { isSyncing = false }
+
+        let req = ReqWithTaskID(taskID: UUID().uuidString)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: endpoint.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            showAlert(message: successMsg)
+            // 同步后刷新应用列表
+            try? await Task.sleep(for: .seconds(1))
+            await refresh()
+        } catch let err as APIError {
+            showAlert(message: "同步失败：\(err.errorDescription ?? "未知错误")")
+        } catch {
+            showAlert(message: "同步失败：\(error.localizedDescription)")
         }
     }
 

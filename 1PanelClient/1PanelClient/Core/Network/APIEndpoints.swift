@@ -45,6 +45,8 @@ enum APIEndpoint {
     // MARK: - 应用商店
     case appsStoreSearch         // POST 应用商店搜索
     case appsStoreDetail         // GET  按 key 获取应用详情
+    case appsSyncRemote          // POST 同步远程应用商店
+    case appsSyncLocal           // POST 同步本地已安装应用
 
     var path: String {
         switch self {
@@ -68,6 +70,8 @@ enum APIEndpoint {
         case .appsInstalledDeleteCheck: return "/api/v2/apps/installed/delete/check/:installId"
         case .appsStoreSearch:       return "/api/v2/apps/search"
         case .appsStoreDetail:       return "/api/v2/apps/:key"
+        case .appsSyncRemote:        return "/api/v2/apps/sync/remote"
+        case .appsSyncLocal:         return "/api/v2/apps/sync/local"
         }
     }
 
