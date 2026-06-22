@@ -378,7 +378,7 @@ struct AppInstallView: View {
     }
 
     private func loadDetailForVersion(_ version: String) async {
-        guard !version else { return }
+        guard !version.isEmpty else { return }
         // path: /apps/detail/:appId/:version/:type
         let type = detail.type ?? "installed"
         let path = "/api/v2/apps/detail/\(detail.id)/\(version)/\(type)"
