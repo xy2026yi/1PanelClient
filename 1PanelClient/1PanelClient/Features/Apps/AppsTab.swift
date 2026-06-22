@@ -205,7 +205,7 @@ struct AppDetailView: View {
                     Button(role: .destructive) {
                         Task { await vm.ignoreUpgrade(app: app) }
                     } label: {
-                        Label("忽略此版本升级", systemImage: "eye.slash")
+                        Label("忽略所有升级", systemImage: "eye.slash")
                     }
                 } header: {
                     HStack(spacing: 4) {
@@ -362,6 +362,13 @@ struct UpgradeSheetView: View {
                         .font(.caption)
                     }
                     .buttonStyle(.plain)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            Task { await vm.ignoreUpgrade(app: app, version: ver) }
+                        } label: {
+                            Label("忽略此版本", systemImage: "eye.slash")
+                        }
+                    }
                 }
             }
         }
@@ -767,8 +774,10 @@ final class AppsViewModel: ObservableObject {
             )
             upgradeSuccess = true
             showUpgradeSheet = false
+            // 延迟显示 alert，避免 sheet 关闭动画"吞掉" alert 状态
+            try? await Task.sleep(for: .milliseconds(300))
             showAlert(message: "升级请求已提交，应用正在后台更新中…")
-            try? await Task.sleep(for: .seconds(5))
+            try? await Task.sleep(for: .seconds(4))
             await load(query: "")
             if let updated = apps.first(where: { $0.id == app.id }) {
                 selectedApp = updated
@@ -787,20 +796,37 @@ final class AppsViewModel: ObservableObject {
 
     // MARK: - 忽略升级
 
-    func ignoreUpgrade(app: AppInstall) async {
+    /// 忽略指定版本的升级（在版本列表里左滑）
+    func ignoreUpgrade(app: AppInstall, version: AppVersion) async {
         let req = AppIgnoreUpgradeRequest(
             appID: app.appID ?? 0,
             scope: "version",
-            appDetailID: app.appDetailID
+            appDetailID: version.detailId
         )
+        await performIgnore(req: req, app: app, successMsg: "已忽略 v\(version.version ?? "") 的升级提示")
+    }
+
+    /// 忽略所有版本的升级（在详情页）
+    func ignoreUpgrade(app: AppInstall) async {
+        let req = AppIgnoreUpgradeRequest(
+            appID: app.appID ?? 0,
+            scope: "all",
+            appDetailID: nil
+        )
+        await performIgnore(req: req, app: app, successMsg: "已忽略该应用的所有升级提示")
+    }
+
+    private func performIgnore(req: AppIgnoreUpgradeRequest, app: AppInstall, successMsg: String) async {
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.appsInstalledIgnore.path,
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "已忽略此版本的升级提示")
-            try? await Task.sleep(for: .seconds(1))
+            showUpgradeSheet = false
+            // 延迟显示 alert，避免 sheet 关闭动画"吞掉" alert 状态
+            try? await Task.sleep(for: .milliseconds(300))
+            showAlert(message: successMsg)
             await load(query: "")
             if let updated = apps.first(where: { $0.id == app.id }) {
                 selectedApp = updated
