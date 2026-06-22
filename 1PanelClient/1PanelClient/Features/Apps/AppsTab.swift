@@ -201,6 +201,12 @@ struct AppDetailView: View {
                         }
                     }
                     .buttonStyle(.plain)
+
+                    Button(role: .destructive) {
+                        Task { await vm.ignoreUpgrade(app: app) }
+                    } label: {
+                        Label("忽略此版本升级", systemImage: "eye.slash")
+                    }
                 } header: {
                     HStack(spacing: 4) {
                         Text("升级")
@@ -777,6 +783,33 @@ final class AppsViewModel: ObservableObject {
     private func showAlert(message: String) {
         alertMessage = message
         showAlert = true
+    }
+
+    // MARK: - 忽略升级
+
+    func ignoreUpgrade(app: AppInstall) async {
+        let req = AppIgnoreUpgradeRequest(
+            appID: app.appID ?? 0,
+            scope: "version",
+            appDetailID: app.appDetailID
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.appsInstalledIgnore.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            showAlert(message: "已忽略此版本的升级提示")
+            try? await Task.sleep(for: .seconds(1))
+            await load(query: "")
+            if let updated = apps.first(where: { $0.id == app.id }) {
+                selectedApp = updated
+            }
+        } catch let err as APIError {
+            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+        } catch {
+            showAlert(message: "操作失败：\(error.localizedDescription)")
+        }
     }
 }
 

@@ -34,9 +34,16 @@ enum APIEndpoint {
 
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
-    case appsInstalledOperate     // POST 操作已安装应用（启动/停止/重启）
+    case appsInstalledOperate     // POST 操作已安装应用（启动/停止/重启/升级）
     case appsUpdateVersions      // POST 查询可用更新版本
-    case appsInstall             // POST 安装/升级应用
+    case appsInstall             // POST 安装应用
+    case appsInstalledIgnore     // POST 忽略应用升级
+    case appsIgnoredList         // GET  忽略升级列表
+    case appsIgnoredCancel       // POST 取消忽略升级
+
+    // MARK: - 应用商店
+    case appsStoreSearch         // POST 应用商店搜索
+    case appsStoreDetail         // GET  按 key 获取应用详情
 
     var path: String {
         switch self {
@@ -54,12 +61,18 @@ enum APIEndpoint {
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
         case .appsInstall:           return "/api/v2/apps/install"
+        case .appsInstalledIgnore:   return "/api/v2/apps/installed/ignore"
+        case .appsIgnoredList:       return "/api/v2/apps/ignored/detail"
+        case .appsIgnoredCancel:     return "/api/v2/apps/ignored/cancel"
+        case .appsStoreSearch:       return "/api/v2/apps/search"
+        case .appsStoreDetail:       return "/api/v2/apps/:key"
         }
     }
 
     var method: String {
         switch self {
-        case .dashboardOS, .dashboardBase, .dashboardTopCPU, .dashboardTopMem, .loginSetting:
+        case .dashboardOS, .dashboardBase, .dashboardTopCPU, .dashboardTopMem,
+             .loginSetting, .appsIgnoredList, .appsStoreDetail:
             return "GET"
         default:
             return "POST"

@@ -24,6 +24,11 @@ struct MainTabView: View {
                             Label("应用", systemImage: "app.badge")
                         }
 
+                    AppStoreTab(manager: manager)
+                        .tabItem {
+                            Label("商店", systemImage: "storefront")
+                        }
+
                     ContainersTab(manager: manager)
                         .tabItem {
                             Label("容器", systemImage: "shippingbox")
