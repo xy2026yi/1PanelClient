@@ -228,13 +228,22 @@ struct AppIgnoreUpgradeRequest: Encodable {
 }
 
 /// 忽略升级记录（model.AppIgnoreUpgrade）
+/// 通过 doc/取消升级以及卸载应用抓取信息.log 验证字段（注意 ID 为大写）
 struct AppIgnoreUpgrade: Decodable, Identifiable, Sendable {
     let id: Int
     let appID: Int?
     let appDetailID: Int?
     let scope: String?
+    let version: String?
+    let name: String?
     let createdAt: String?
     let updatedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id = "ID"
+        case appID, appDetailID, scope, version, name
+        case createdAt, updatedAt
+    }
 }
 
 /// 通用 ID 请求（request.ReqWithID）

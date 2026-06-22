@@ -274,6 +274,7 @@ struct AppInstallView: View {
     @State private var advancedEnabled = true
     @State private var containerName = ""
     @State private var allowPort = false
+    @State private var specifyIP = ""
     @State private var restartPolicy = "always"
     @State private var cpuQuota = 0
     @State private var memoryLimit = 0
@@ -281,6 +282,11 @@ struct AppInstallView: View {
     @State private var pullImage = true
     @State private var editCompose = false
     @State private var customCompose = ""
+
+    // 安装结果（本地弹窗，避免回到主页才弹）
+    @State private var showResultAlert = false
+    @State private var resultMessage = ""
+    @State private var installSuccess = false
 
     private let restartPolicies = ["no", "always", "on-failure", "unless-stopped"]
     private let memoryUnits = ["M", "G"]
@@ -318,6 +324,16 @@ struct AppInstallView: View {
                 }
             }
             .task { await loadDetail() }
+            // 安装结果的 alert 绑定在 sheet 自身，避免回到主页才弹
+            .alert("提示", isPresented: $showResultAlert) {
+                Button("好的", role: .cancel) {
+                    if installSuccess {
+                        vm.showInstall = false
+                    }
+                }
+            } message: {
+                Text(resultMessage)
+            }
         }
     }
 
@@ -383,12 +399,22 @@ struct AppInstallView: View {
                             .autocorrectionDisabled()
                     }
                     Toggle("端口外部访问", isOn: $allowPort)
+                    if allowPort {
+                        HStack {
+                            Text("绑定主机 IP").foregroundStyle(.secondary)
+                            Spacer()
+                            TextField("留空则全部 IP", text: $specifyIP)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 140)
+                        }
+                    }
                     Picker("重启规则", selection: $restartPolicy) {
                         ForEach(restartPolicies, id: \.self) { Text($0).tag($0) }
                     }
                 }
 
-                Section("资源限制") {
+                Section {
                     HStack {
                         Text("CPU 核心").foregroundStyle(.secondary)
                         Spacer()
@@ -413,6 +439,8 @@ struct AppInstallView: View {
                         .pickerStyle(.segmented)
                         .frame(width: 80)
                     }
+                } header: {
+                    Text("资源限制")
                 } footer: {
                     Text("填 0 表示不限制")
                 }
@@ -455,8 +483,11 @@ struct AppInstallView: View {
     private func loadDetail() async {
         isLoadingDetail = true
         loadError = nil
-        let version = selectedVersion.isEmpty ? (detail.latestVersion ?? "") : selectedVersion
-        await loadDetailForVersion(version)
+        // 名称默认为应用 key
+        if installName.isEmpty { installName = detail.key ?? "" }
+        // 版本默认为最新版
+        if selectedVersion.isEmpty { selectedVersion = detail.latestVersion ?? "" }
+        await loadDetailForVersion(selectedVersion)
         isLoadingDetail = false
     }
 
@@ -527,10 +558,26 @@ struct AppInstallView: View {
             specifyIP: "",
             restartPolicy: restartPolicy
         )
-        await vm.installApp(req: req)
-        if vm.installSuccess {
-            vm.showInstall = false
+
+        vm.isInstalling = true
+        defer { vm.isInstalling = false }
+
+        do {
+            let _: EmptyResponse = try await vm.client.send(
+                path: APIEndpoint.appsInstall.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            installSuccess = true
+            resultMessage = "安装请求已提交，应用正在后台部署中…"
+        } catch let err as APIError {
+            installSuccess = false
+            resultMessage = "安装失败：\(err.errorDescription ?? "未知错误")"
+        } catch {
+            installSuccess = false
+            resultMessage = "安装失败：\(error.localizedDescription)"
         }
+        showResultAlert = true
     }
 }
 

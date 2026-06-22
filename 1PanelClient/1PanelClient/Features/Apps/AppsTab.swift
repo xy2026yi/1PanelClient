@@ -115,6 +115,7 @@ struct AppsTab: View {
 struct AppDetailView: View {
     let app: AppInstall
     @ObservedObject var vm: AppsViewModel
+    @State private var showUninstallSheet = false
 
     var body: some View {
         List {
@@ -235,11 +236,33 @@ struct AppDetailView: View {
                     }
                 }
             }
+
+            // 危险区：卸载 + 取消忽略升级
+            Section {
+                Button {
+                    showUninstallSheet = true
+                } label: {
+                    Label("卸载应用", systemImage: "trash")
+                }
+
+                Button {
+                    Task { await vm.cancelIgnoreUpgrade(app: app) }
+                } label: {
+                    Label("取消忽略升级", systemImage: "eye")
+                }
+            } header: {
+                Text("危险操作")
+            } footer: {
+                Text("卸载将删除容器及相关数据，请谨慎操作。")
+            }
         }
         .navigationTitle(app.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $vm.showUpgradeSheet) {
             UpgradeSheetView(app: app, vm: vm)
+        }
+        .sheet(isPresented: $showUninstallSheet) {
+            UninstallSheetView(app: app, vm: vm)
         }
         .onDisappear {
             // 返回列表时，如有待刷新（忽略升级/升级完成），重新加载
@@ -382,6 +405,109 @@ struct UpgradeSheetView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - 卸载应用 Sheet
+
+struct UninstallSheetView: View {
+    let app: AppInstall
+    @ObservedObject var vm: AppsViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var deleteDB = true
+    @State private var deleteImage = false
+    @State private var deleteBackup = false
+    @State private var forceDelete = false
+    @State private var confirmName = ""
+
+    private var nameMatches: Bool {
+        confirmName == (app.name ?? "") || confirmName == app.displayName
+    }
+
+    private var canSubmit: Bool {
+        nameMatches && !vm.isUninstalling
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.octagon.fill")
+                            .font(.title2)
+                            .foregroundStyle(.red)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("即将卸载 \(app.displayName)")
+                                .font(.subheadline.bold())
+                            Text("该操作不可撤销，容器和数据将被删除")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+
+                Section {
+                    Toggle("同时删除数据库", isOn: $deleteDB)
+                    Toggle("删除镜像", isOn: $deleteImage)
+                    Toggle("删除备份", isOn: $deleteBackup)
+                    Toggle("强制删除", isOn: $forceDelete)
+                } header: {
+                    Text("清理选项")
+                } footer: {
+                    Text("默认勾选「删除数据库」与网页端行为一致。")
+                }
+
+                Section {
+                    TextField("输入应用名称以确认", text: $confirmName)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                } header: {
+                    Text("确认操作")
+                } footer: {
+                    Text("请输入 \(app.name ?? app.displayName) 以开启卸载按钮。")
+                }
+
+                if vm.isUninstalling {
+                    Section {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("正在卸载…")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("卸载应用")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .destructiveAction) {
+                    Button("卸载", role: .destructive) {
+                        Task { await performUninstall() }
+                    }
+                    .disabled(!canSubmit)
+                }
+            }
+        }
+    }
+
+    private func performUninstall() async {
+        await vm.uninstall(
+            app: app,
+            deleteDB: deleteDB,
+            deleteImage: deleteImage,
+            deleteBackup: deleteBackup,
+            forceDelete: forceDelete
+        )
+        // 失败时 vm.alertMessage 已携带错误，成功时则携带成功消息
+        // 无论成功失败都关闭 sheet，alert 会在详情页/列表上展示
+        if vm.uninstallDone {
+            dismiss()
         }
     }
 }
@@ -639,6 +765,10 @@ final class AppsViewModel: ObservableObject {
     @Published var showAlert = false
     @Published var alertMessage = ""
 
+    // 卸载相关
+    @Published var isUninstalling = false
+    @Published var uninstallDone = false
+
     /// 标记列表需要刷新（在详情页操作后置 true，返回列表时触发刷新）
     @Published var needsRefresh = false
 
@@ -838,6 +968,97 @@ final class AppsViewModel: ObservableObject {
             showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
         } catch {
             showAlert(message: "操作失败：\(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 取消忽略升级
+
+    /// 取消指定应用的忽略升级
+    /// 思路：先拉取 ignored 列表，找到 appID 匹配的记录的 ID，再调用 cancel 接口
+    func cancelIgnoreUpgrade(app: AppInstall) async {
+        let appID = app.appID ?? 0
+        guard appID > 0 else {
+            showAlert(message: "无法取消忽略：缺少应用 ID")
+            return
+        }
+        do {
+            // 1. 拉取已忽略列表，找到匹配的 ID
+            let list: [AppIgnoreUpgrade] = try await client.send(
+                path: APIEndpoint.appsIgnoredList.path,
+                method: APIEndpoint.appsIgnoredList.method,
+                as: [AppIgnoreUpgrade].self
+            )
+            guard let target = list.first(where: { $0.appID == appID }) else {
+                showAlert(message: "该应用当前未在忽略列表中")
+                return
+            }
+            // 2. 调用 cancel 接口
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.appsIgnoredCancel.path,
+                body: ReqWithID(id: target.id),
+                as: EmptyResponse.self
+            )
+            showAlert(message: "已取消忽略升级，后续将正常检查更新")
+            needsRefresh = true
+        } catch let err as APIError {
+            showAlert(message: "取消忽略失败：\(err.errorDescription ?? "未知错误")")
+        } catch {
+            showAlert(message: "取消忽略失败：\(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 卸载应用
+
+    /// 卸载应用（先做删除前检查，再调用 delete 操作）
+    /// options: deleteDB（删除数据库） / deleteImage（删除镜像） / deleteBackup（删除备份） / forceDelete（强制删除）
+    func uninstall(app: AppInstall,
+                   deleteDB: Bool,
+                   deleteImage: Bool,
+                   deleteBackup: Bool,
+                   forceDelete: Bool) async {
+        isUninstalling = true
+        uninstallDone = false
+        defer { isUninstalling = false }
+
+        // 1. 删除前检查（若后端返回错误，会在 catch 里展示；返回 null 视为允许删除）
+        let checkPath = APIEndpoint.appsInstalledDeleteCheck.path
+            .replacingOccurrences(of: ":installId", with: String(app.id))
+        do {
+            // 后端 data 可能为 null，用 String? 解析以兼容
+            let _: String? = try await client.send(
+                path: checkPath,
+                method: "GET",
+                as: String?.self
+            )
+        } catch let err as APIError {
+            showAlert(message: "无法卸载：\(err.errorDescription ?? "未知错误")")
+            return
+        } catch {
+            showAlert(message: "无法卸载：\(error.localizedDescription)")
+            return
+        }
+        // 2. 执行删除
+        let req = AppInstalledOperateRequest(
+            installId: app.id,
+            operate: "delete",
+            deleteDB: deleteDB,
+            deleteImage: deleteImage,
+            deleteBackup: deleteBackup,
+            forceDelete: forceDelete
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.appsInstalledOperate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            uninstallDone = true
+            showAlert(message: "卸载请求已提交，应用正在后台清理…")
+            needsRefresh = true
+        } catch let err as APIError {
+            showAlert(message: "卸载失败：\(err.errorDescription ?? "未知错误")")
+        } catch {
+            showAlert(message: "卸载失败：\(error.localizedDescription)")
         }
     }
 }
