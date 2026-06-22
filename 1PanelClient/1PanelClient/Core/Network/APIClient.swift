@@ -142,6 +142,72 @@ final class APIClient {
         }
         return data
     }
+
+    // MARK: - SSE 流式请求（日志查看）
+
+    /// 发起 SSE 流式请求，逐行产出日志内容（已剥离 `data: ` 前缀）
+    /// - Parameters:
+    ///   - path: 接口路径
+    ///   - queryItems: 查询参数
+    /// - Returns: 异步日志行序列（遇到 `data: ` 开头则剥离前缀；空行跳过）
+    func streamSSELines(
+        path: String,
+        queryItems: [URLQueryItem]
+    ) -> AsyncThrowingStream<String, Error> {
+        var components = URLComponents(string: server.normalizedBaseURL + path)
+        components?.queryItems = queryItems
+        guard let url = components?.url else {
+            return AsyncThrowingStream { _ in }
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        for (k, v) in generateHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+
+        return AsyncThrowingStream<String, Error> { continuation in
+            let task = Task {
+                do {
+                    let (bytes, response): (URLSession.AsyncBytes, URLResponse)
+                    do {
+                        (bytes, response) = try await session.bytes(for: request)
+                    } catch {
+                        continuation.finish(throwing: APIError.networkError(error))
+                        return
+                    }
+                    guard let http = response as? HTTPURLResponse else {
+                        continuation.finish(throwing: APIError.invalidResponse)
+                        return
+                    }
+                    if !(200...299).contains(http.statusCode) {
+                        continuation.finish(throwing: APIError.httpError(http.statusCode, "日志流请求失败"))
+                        return
+                    }
+                    // 逐行读取 SSE 数据
+                    for try await line in bytes.lines {
+                        if Task.isCancelled { break }
+                        if line.isEmpty { continue }
+                        if line.hasPrefix("data:") {
+                            let payload = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+                            if !payload.isEmpty {
+                                continuation.yield(payload)
+                            }
+                        } else {
+                            // 非 SSE 格式，直接输出原行
+                            continuation.yield(line)
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { @Sendable _ in
+                task.cancel()
+            }
+        }
+    }
 }
 
 // MARK: - 辅助类型

@@ -159,12 +159,14 @@ struct AppInstalledOperateRequest: Encodable {
 /// 应用操作类型（已通过 logs/输出16.log + 输出22.log 验证）
 /// start/stop/restart: 基础生命周期
 /// upgrade: 升级到新版本（需要 detailId 指定目标版本）
+/// rebuild: 重建容器（使用当前参数重新创建容器）
 /// 注意：up/down 不被支持，会返回 "operate not support"
 enum AppOperation: String {
     case start = "start"
     case stop = "stop"
     case restart = "restart"
     case upgrade = "upgrade"
+    case rebuild = "rebuild"
 }
 
 /// 可用更新版本（dto.AppVersion）
