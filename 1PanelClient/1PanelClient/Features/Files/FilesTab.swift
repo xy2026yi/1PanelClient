@@ -18,41 +18,46 @@ struct FilesTab: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if vm.isLoading && vm.currentFiles.isEmpty {
-                    ProgressView("加载中…")
-                } else if vm.currentFiles.isEmpty {
-                    ContentUnavailableView(
-                        "空文件夹",
-                        systemImage: "folder",
-                        description: Text(vm.errorMessage ?? "没有文件")
-                    )
-                } else {
-                    fileList
+            filesRootContent
+        }
+        .task { await vm.refresh() }
+    }
+
+    /// 供外部 NavigationStack 复用的根内容（不包含 NavigationStack/task）
+    var filesRootContent: some View {
+        Group {
+            if vm.isLoading && vm.currentFiles.isEmpty {
+                ProgressView("加载中…")
+            } else if vm.currentFiles.isEmpty {
+                ContentUnavailableView(
+                    "空文件夹",
+                    systemImage: "folder",
+                    description: Text(vm.errorMessage ?? "没有文件")
+                )
+            } else {
+                fileList
+            }
+        }
+        .navigationTitle(vm.currentDirName)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await vm.refresh() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
                 }
             }
-            .navigationTitle(vm.currentDirName)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+            if vm.canGoBack {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        Task { await vm.refresh() }
+                        vm.goBack()
                     } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                }
-                if vm.canGoBack {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            vm.goBack()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                        }
+                        Image(systemName: "chevron.left")
                     }
                 }
             }
         }
-        .task { await vm.refresh() }
     }
 
     private var fileList: some View {
@@ -69,6 +74,69 @@ struct FilesTab: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+}
+
+/// 供工具箱/外层 NavigationStack 复用的「文件管理」内容视图
+/// FilesTab 自身保留 NavigationStack 以兼容独立使用；
+/// 在工具箱场景下用本视图，由外层提供 NavigationStack。
+struct FilesTabContent: View {
+    @ObservedObject var manager: ServerManager
+    @StateObject private var vm: FilesViewModel
+
+    init(manager: ServerManager) {
+        self.manager = manager
+        let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        _vm = StateObject(wrappedValue: FilesViewModel(server: server))
+    }
+
+    var body: some View {
+        Group {
+            if vm.isLoading && vm.currentFiles.isEmpty {
+                ProgressView("加载中…")
+            } else if vm.currentFiles.isEmpty {
+                ContentUnavailableView(
+                    "空文件夹",
+                    systemImage: "folder",
+                    description: Text(vm.errorMessage ?? "没有文件")
+                )
+            } else {
+                List {
+                    ForEach(vm.currentFiles, id: \.name) { f in
+                        Button {
+                            if f.isDir {
+                                Task { await vm.enter(f) }
+                            }
+                        } label: {
+                            FileRow(file: f)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .listStyle(.insetGrouped)
+            }
+        }
+        .navigationTitle(vm.currentDirName)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await vm.refresh() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+            }
+            if vm.canGoBack {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        vm.goBack()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                    }
+                }
+            }
+        }
+        .task { await vm.refresh() }
     }
 }
 

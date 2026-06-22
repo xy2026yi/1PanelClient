@@ -29,14 +29,9 @@ struct MainTabView: View {
                             Label("容器", systemImage: "shippingbox")
                         }
 
-                    FilesTab(manager: manager)
+                    ToolboxTab(manager: manager)
                         .tabItem {
-                            Label("文件", systemImage: "folder")
-                        }
-
-                    SettingsTab(manager: manager)
-                        .tabItem {
-                            Label("我的", systemImage: "person.circle")
+                            Label("工具箱", systemImage: "wrench.adjustable")
                         }
                 }
                 .tint(.blue)
