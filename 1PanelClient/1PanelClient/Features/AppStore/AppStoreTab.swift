@@ -264,6 +264,7 @@ struct AppInstallView: View {
 
     @State private var installName = ""
     @State private var selectedVersion = ""
+    @State private var loadError: String?
     @State private var appDetail: AppDetail?
     @State private var isLoadingDetail = true
     @State private var paramValues: [String: String] = [:]
@@ -276,7 +277,15 @@ struct AppInstallView: View {
                 } else if let appDetail {
                     installForm(appDetail)
                 } else {
-                    ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle")
+                    ContentUnavailableView {
+                        Label("无法加载安装参数", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(loadError ?? "请稍后重试，或尝试其他版本")
+                    } actions: {
+                        Button("重试") {
+                            Task { await loadDetail() }
+                        }
+                    }
                 }
             }
             .navigationTitle("安装 \(detail.name ?? "")")
@@ -372,17 +381,20 @@ struct AppInstallView: View {
 
     private func loadDetail() async {
         isLoadingDetail = true
+        loadError = nil
         let version = selectedVersion.isEmpty ? (detail.latestVersion ?? "") : selectedVersion
         await loadDetailForVersion(version)
         isLoadingDetail = false
     }
 
     private func loadDetailForVersion(_ version: String) async {
-        guard !version.isEmpty else { return }
+        guard !version.isEmpty else {
+            loadError = "未找到可用版本"
+            return
+        }
         // path: /apps/detail/:appId/:version/:type
         // type 参数固定为 "installed"（已通过 logs/输出23.log 验证）
         let path = "/api/v2/apps/detail/\(detail.id)/\(version)/installed"
-        print("🔍 loadDetailForVersion 请求路径: \(path)")
         do {
             let resp: AppDetail = try await vm.client.send(
                 path: path, method: "GET", as: AppDetail.self
@@ -396,8 +408,11 @@ struct AppInstallView: View {
                     }
                 }
             }
+        } catch let err as APIError {
+            loadError = err.errorDescription ?? "服务器返回错误，该应用可能尚未同步安装文件"
+            self.appDetail = nil
         } catch {
-            print("❌ loadDetailForVersion 失败: \(error)")
+            loadError = error.localizedDescription
             self.appDetail = nil
         }
     }
