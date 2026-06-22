@@ -241,6 +241,13 @@ struct AppDetailView: View {
         .sheet(isPresented: $vm.showUpgradeSheet) {
             UpgradeSheetView(app: app, vm: vm)
         }
+        .onDisappear {
+            // 返回列表时，如有待刷新（忽略升级/升级完成），重新加载
+            if vm.needsRefresh {
+                vm.needsRefresh = false
+                Task { await vm.refresh() }
+            }
+        }
     }
 }
 
@@ -628,6 +635,9 @@ final class AppsViewModel: ObservableObject {
     @Published var showAlert = false
     @Published var alertMessage = ""
 
+    /// 标记列表需要刷新（在详情页操作后置 true，返回列表时触发刷新）
+    @Published var needsRefresh = false
+
     private var client: APIClient
 
     var updatableCount: Int {
@@ -818,10 +828,8 @@ final class AppsViewModel: ObservableObject {
             // 延迟显示 alert，避免 sheet 关闭动画"吞掉" alert 状态
             try? await Task.sleep(for: .milliseconds(300))
             showAlert(message: successMsg)
-            // 本地更新 canUpdate，避免立即 reload 破坏导航栈
-            if let idx = apps.firstIndex(where: { $0.id == app.id }) {
-                apps[idx].canUpdate = false
-            }
+            // 不立即修改 apps 数组（会破坏 NavigationStack），标记返回列表时再刷新
+            needsRefresh = true
         } catch let err as APIError {
             showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
         } catch {

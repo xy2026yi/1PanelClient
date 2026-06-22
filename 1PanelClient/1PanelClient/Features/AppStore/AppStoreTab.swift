@@ -382,6 +382,7 @@ struct AppInstallView: View {
         // path: /apps/detail/:appId/:version/:type
         // type 参数固定为 "installed"（已通过 logs/输出23.log 验证）
         let path = "/api/v2/apps/detail/\(detail.id)/\(version)/installed"
+        print("🔍 loadDetailForVersion 请求路径: \(path)")
         do {
             let resp: AppDetail = try await vm.client.send(
                 path: path, method: "GET", as: AppDetail.self
