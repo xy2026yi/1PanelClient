@@ -32,7 +32,7 @@ struct MainTabView: View {
                         .tag(AppTab.settings)
                         .tabItem { Label("设置", systemImage: "gearshape") }
                 }
-                .tint(.tint)
+                // AccentColor 资产自动作为默认 tint，无需显式指定
             }
         }
     }
