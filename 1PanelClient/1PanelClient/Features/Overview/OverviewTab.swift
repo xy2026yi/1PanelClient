@@ -159,19 +159,10 @@ struct OverviewTab: View {
             }
             Divider()
             InfoRow(key: "主机名", value: b.hostname ?? "-")
-            if let distro = b.prettyDistro, !distro.isEmpty {
-                InfoRow(key: "发行版", value: distro)
-            } else if let os = b.os {
-                InfoRow(key: "系统", value: "\(os) \(b.platformVersion ?? "")")
-            }
-            InfoRow(key: "内核", value: "\(b.kernelVersion ?? "-") (\(b.kernelArch ?? "-"))")
-            if let ip = b.ipV4Addr, !ip.isEmpty {
-                InfoRow(key: "IP", value: ip)
-            }
-            if let cpuModel = b.cpuModelName, !cpuModel.isEmpty {
-                InfoRow(key: "CPU", value: cpuModel)
-                InfoRow(key: "核心数", value: "\(b.cpuCores ?? 0) 物理核 / \(b.cpuLogicalCores ?? 0) 逻辑核")
-            }
+            InfoRow(key: "版本", value: b.prettyDistro ?? "-")
+            InfoRow(key: "内核版本", value: b.kernelVersion ?? "-")
+            InfoRow(key: "系统类型", value: b.kernelArch ?? "-")
+            InfoRow(key: "主机地址", value: b.ipV4Addr ?? "-")
         }
         .padding()
         .background(.regularMaterial)
