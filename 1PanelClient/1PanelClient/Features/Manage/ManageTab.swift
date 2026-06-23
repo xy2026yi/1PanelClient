@@ -2,7 +2,7 @@
 //  ManageTab.swift
 //  1PanelClient
 //
-//  管理：以列表形式聚合应用、网站、容器、计划任务等功能入口
+//  管理：分组列表聚合各功能入口，支持隐藏未使用模块
 //  对齐 1Panel 官方 App 的「管理」Tab 结构
 //
 
@@ -10,34 +10,49 @@ import SwiftUI
 
 struct ManageTab: View {
     @ObservedObject var manager: ServerManager
+    @StateObject private var prefs = ManagePrefs()
     @State private var presentedItem: ManageItem?
+    @State private var showEditSheet = false
+
+    /// 所有可管理的功能项，按固定分组排列
+    private var groups: [(title: String, items: [ManageItem])] {
+        [
+            ("",          [.apps, .websites, .database, .containers]),
+            ("",          [.terminal, .process]),
+            ("安全",       [.firewall]),
+            ("",          [.cronjob])
+        ]
+    }
 
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    manageRow(.apps)
-                    manageRow(.websites)
-                }
-
-                Section {
-                    manageRow(.containers)
-                    manageRow(.cronjob)
-                }
-
-                Section {
-                    manageRow(.database)
-                    manageRow(.terminal)
-                    manageRow(.firewall)
-                    manageRow(.process)
+                ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
+                    Section(group.title.isEmpty ? nil : group.title) {
+                        ForEach(group.items) { item in
+                            if prefs.isEnabled(item) {
+                                manageRow(item)
+                            }
+                        }
+                    }
                 }
             }
             .navigationTitle("管理")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("编辑") { showEditSheet = true }
+                }
+            }
+            .sheet(isPresented: $showEditSheet) {
+                ManageEditView(prefs: prefs)
+                    .presentationDetents([.medium])
+            }
         }
         .fullScreenCover(item: $presentedItem) { item in
             destination(for: item)
         }
+        .environmentObject(prefs)
     }
 
     @ViewBuilder
@@ -92,31 +107,123 @@ struct ManageTab: View {
     }
 }
 
+// MARK: - 编辑（显示/隐藏）视图
+
+struct ManageEditView: View {
+    @ObservedObject var prefs: ManagePrefs
+    @Environment(\.dismiss) private var dismiss
+
+    /// 与 ManageTab 保持一致的分组
+    private var groups: [(title: String, items: [ManageItem])] {
+        [
+            ("核心功能",  [.apps, .websites, .database, .containers]),
+            ("系统",      [.terminal, .process]),
+            ("安全",      [.firewall]),
+            ("自动化",    [.cronjob])
+        ]
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text("隐藏的功能将从管理列表中移除，但不会影响服务器上的实际运行。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
+                    Section(group.title) {
+                        ForEach(group.items) { item in
+                            HStack(spacing: 12) {
+                                IconBadge(systemName: item.icon, color: item.color, size: 34, cornerRadius: 8)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.title)
+                                    Text(item.subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Toggle("", isOn: Binding(
+                                    get: { prefs.isEnabled(item) },
+                                    set: { prefs.setEnabled($0, for: item) }
+                                ))
+                                .labelsHidden()
+                                .disabled(!item.available)
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("自定义功能")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("完成") { dismiss() }
+                }
+            }
+        }
+        // sheet 里 environmentObject 会重新注入，避免与 sheet 内部新建冲突
+        .environmentObject(prefs)
+    }
+}
+
+// MARK: - 持久化偏好
+
+/// 管理模块的显示/隐藏偏好，持久化到 UserDefaults
+final class ManagePrefs: ObservableObject {
+    @Published private(set) var disabledItems: Set<String>
+
+    private let key = "manage.disabledItems"
+
+    init() {
+        if let raw = UserDefaults.standard.array(forKey: key) as? [String] {
+            disabledItems = Set(raw)
+        } else {
+            disabledItems = []
+        }
+    }
+
+    func isEnabled(_ item: ManageItem) -> Bool {
+        !disabledItems.contains(item.rawValue)
+    }
+
+    func setEnabled(_ enabled: Bool, for item: ManageItem) {
+        if enabled {
+            disabledItems.remove(item.rawValue)
+        } else {
+            disabledItems.insert(item.rawValue)
+        }
+        UserDefaults.standard.set(Array(disabledItems), forKey: key)
+    }
+}
+
 // MARK: - 管理项定义
 
 extension ManageTab {
     enum ManageItem: String, Identifiable {
         case apps
         case websites
-        case containers
-        case cronjob
         case database
+        case containers
         case terminal
-        case firewall
         case process
+        case firewall
+        case cronjob
 
         var id: String { rawValue }
 
         var title: String {
             switch self {
-            case .apps:       return "应用"
+            case .apps:       return "应用程序"
             case .websites:   return "网站"
-            case .containers: return "容器"
-            case .cronjob:    return "计划任务"
             case .database:   return "数据库"
+            case .containers: return "容器"
             case .terminal:   return "终端"
-            case .firewall:   return "防火墙"
             case .process:    return "进程"
+            case .firewall:   return "防火墙"
+            case .cronjob:    return "计划任务"
             }
         }
 
@@ -124,12 +231,12 @@ extension ManageTab {
             switch self {
             case .apps:       return "已安装应用 / 应用商店"
             case .websites:   return "网站 / SSL 证书"
-            case .containers: return "Docker 容器"
-            case .cronjob:    return "定时备份与脚本"
             case .database:   return "管理数据库实例"
+            case .containers: return "Docker 容器"
             case .terminal:   return "远程终端连接"
-            case .firewall:   return "防火墙规则"
             case .process:    return "系统进程监控"
+            case .firewall:   return "防火墙规则"
+            case .cronjob:    return "定时备份与脚本"
             }
         }
 
@@ -137,12 +244,12 @@ extension ManageTab {
             switch self {
             case .apps:       return "app.badge"
             case .websites:   return "globe"
-            case .containers: return "shippingbox"
-            case .cronjob:    return "clock.badge.checkmark"
             case .database:   return "cylinder"
+            case .containers: return "shippingbox"
             case .terminal:   return "terminal"
-            case .firewall:   return "flame"
             case .process:    return "chart.bar"
+            case .firewall:   return "flame"
+            case .cronjob:    return "clock.badge.checkmark"
             }
         }
 
@@ -150,12 +257,12 @@ extension ManageTab {
             switch self {
             case .apps:       return .blue
             case .websites:   return .green
-            case .containers: return .indigo
-            case .cronjob:    return .teal
             case .database:   return .purple
+            case .containers: return .indigo
             case .terminal:   return .black
-            case .firewall:   return .orange
             case .process:    return .pink
+            case .firewall:   return .orange
+            case .cronjob:    return .teal
             }
         }
 
