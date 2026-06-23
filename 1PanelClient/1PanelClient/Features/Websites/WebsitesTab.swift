@@ -542,9 +542,14 @@ struct CreateWebsiteView: View {
         localAlertMessage = nil
         didCreateSucceed = false
         let result = await vm.createWebsite(req: req)
-        didCreateSucceed = result.success
-        localAlertMessage = result.message
-        showLocalAlert = true
+        if result.success {
+            // 成功：直接返回列表，列表刷新即为反馈，不弹窗
+            dismiss()
+        } else {
+            // 失败：弹窗显示错误，留在当前页
+            localAlertMessage = result.message
+            showLocalAlert = true
+        }
     }
 }
 
@@ -1151,6 +1156,8 @@ struct WebsiteHTTPSView: View {
     @State private var algorithm = ""
     @State private var selectedSSLId = 0
     @State private var httpsPort = ""
+    // 从响应里读取的当前证书 ID，保存时若用户未修改则用它
+    @State private var originalSSLId = 0
 
     private let availableProtocols = ["TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"]
     private let availableHttpConfigs = [
@@ -1268,23 +1275,29 @@ struct WebsiteHTTPSView: View {
         sslProtocol = Set(c.sslProtocol ?? ["TLSv1.3", "TLSv1.2"])
         algorithm = c.algorithm ?? ""
         httpsPort = c.httpsPort ?? ""
+        // 关键：保存响应里的当前证书 ID，保存时若用户未改证书则用它
+        originalSSLId = c.currentSSLId
+        selectedSSLId = 0
     }
 
     private func save() async {
         isSaving = true
         defer { isSaving = false }
+        // selectedSSLId == 0 表示「不修改」，用原始证书 ID
+        let sslId = selectedSSLId == 0 ? originalSSLId : selectedSSLId
         let req = WebsiteHTTPSUpdateRequest(
             enable: enable,
             websiteId: websiteId,
-            websiteSSLId: selectedSSLId,
+            websiteSSLId: sslId,
             httpConfig: httpConfig,
             hsts: hsts,
             hstsIncludeSubDomains: hstsIncludeSubDomains,
             algorithm: algorithm,
-            sslProtocol: Array(sslProtocol)
+            sslProtocol: Array(sslProtocol),
+            httpsPort: httpsPort,
+            http3: http3
         )
-        _ = await vm.updateHTTPSConfig(websiteId: websiteId, sslId: selectedSSLId, req: req)
-        // 重新加载
+        _ = await vm.updateHTTPSConfig(websiteId: websiteId, sslId: sslId, req: req)
         await load()
     }
 }

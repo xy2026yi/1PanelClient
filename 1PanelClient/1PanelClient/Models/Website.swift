@@ -387,6 +387,7 @@ struct WebsiteLogResponse: Decodable {
 struct WebsiteHTTPS: Decodable {
     let enable: Bool?
     let httpConfig: String?
+    let ssl: WebsiteHTTPSSSL?
     let sslProtocol: [String]?
     let algorithm: String?
     let hsts: Bool?
@@ -396,10 +397,14 @@ struct WebsiteHTTPS: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case enable, httpConfig
+        case ssl = "SSL"
         case sslProtocol = "SSLProtocol"
         case algorithm, hsts, hstsIncludeSubDomains
         case httpsPort, http3
     }
+
+    /// 当前证书 ID（SSL.id），没有启用 HTTPS 时为 0
+    var currentSSLId: Int { ssl?.id ?? 0 }
 
     /// httpConfig 显示名
     var httpConfigDisplay: String {
@@ -410,6 +415,12 @@ struct WebsiteHTTPS: Decodable {
         default:            return httpConfig ?? "默认"
         }
     }
+}
+
+/// HTTPS 响应中嵌入的 SSL 证书（仅需 id 即可）
+struct WebsiteHTTPSSSL: Decodable {
+    let id: Int
+    let primaryDomain: String?
 }
 
 /// HTTPS 配置更新请求（request.WebsiteHTTPSUpdate）
@@ -430,6 +441,8 @@ struct WebsiteHTTPSUpdateRequest: Encodable {
     var hstsIncludeSubDomains: Bool
     var algorithm: String
     var sslProtocol: [String]
+    var httpsPort: String = ""
+    var http3: Bool
 
     enum CodingKeys: String, CodingKey {
         case acmeAccountID, enable, websiteId, websiteSSLId
@@ -437,6 +450,7 @@ struct WebsiteHTTPSUpdateRequest: Encodable {
         case privateKeyPath, certificatePath
         case httpConfig, hsts, hstsIncludeSubDomains, algorithm
         case sslProtocol = "SSLProtocol"
+        case httpsPort, http3
     }
 }
 
