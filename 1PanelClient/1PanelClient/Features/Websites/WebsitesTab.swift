@@ -864,10 +864,14 @@ final class WebsitesViewModel: ObservableObject {
             )
             return resp.proxies ?? []
         } catch let err as APIError {
-            showAlert(message: "加载反向代理失败：\(err.errorDescription ?? "未知错误")")
+            // 一键部署类网站的反向代理查询可能返回 data=null（code 200），
+            // 此时按"空列表"处理，不弹错误窗，允许用户继续创建代理
+            if case .businessError(200, _) = err {
+                return []
+            }
+            // 其他错误静默处理（避免阻塞 UI），返回空列表
             return []
         } catch {
-            showAlert(message: "加载反向代理失败：\(error.localizedDescription)")
             return []
         }
     }

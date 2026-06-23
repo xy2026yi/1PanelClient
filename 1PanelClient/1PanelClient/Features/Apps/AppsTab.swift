@@ -1625,6 +1625,31 @@ final class AppsViewModel: ObservableObject {
         uninstallDone = false
         defer { isUninstalling = false }
 
+        // 0. 联动检查：查询是否存在一键部署类网站引用了该应用
+        do {
+            let searchReq = WebsiteSearchRequest(
+                name: "", page: 1, pageSize: 200,
+                orderBy: "created_at", order: "descending",
+                websiteGroupId: 0, type: ""
+            )
+            let resp: WebsiteListResponse = try await client.send(
+                path: APIEndpoint.websitesSearch.path,
+                body: searchReq,
+                as: WebsiteListResponse.self
+            )
+            let linked = (resp.items ?? []).filter {
+                ($0.appType?.lowercased() == "installed" || ($0.type ?? "").lowercased() == "deployment")
+                && ($0.appName ?? "").lowercased() == (app.appName ?? app.name ?? "").lowercased()
+            }
+            if !linked.isEmpty {
+                let names = linked.map { $0.displayName }.joined(separator: "、")
+                showAlert(message: "该应用被以下网站使用：\(names)。请先在「工具箱 → 网站」中删除对应网站（删除时可勾选删除关联应用），再卸载此应用。")
+                return
+            }
+        } catch {
+            // 网站查询失败时不阻塞卸载，继续走原有流程
+        }
+
         // 1. 删除前检查（若后端返回错误，会在 catch 里展示；返回 null 视为允许删除）
         let checkPath = APIEndpoint.appsInstalledDeleteCheck.path
             .replacingOccurrences(of: ":installId", with: String(app.id))
