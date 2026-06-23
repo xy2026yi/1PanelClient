@@ -34,6 +34,11 @@ enum APIEndpoint {
     case websitesNginxConfig      // GET  获取 nginx 配置（:id 路径参数）
     case websitesNginxUpdate      // POST 更新 nginx 配置
     case websitesLogRead          // POST 读取网站日志（access/error）
+    case websitesHTTPSRead        // GET  获取 HTTPS 配置（:id 路径参数）
+    case websitesHTTPSUpdate      // POST 更新 HTTPS 配置（:id 路径参数）
+    case websitesProxiesList      // POST 获取反向代理列表
+    case websitesProxiesUpdate    // POST 创建/编辑/删除反向代理
+    case websitesProxiesFile      // POST 读取/保存反向代理源文
 
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库
@@ -78,6 +83,11 @@ enum APIEndpoint {
         case .websitesNginxConfig:   return "/api/v2/websites/:id/config/openresty"
         case .websitesNginxUpdate:   return "/api/v2/websites/nginx/update"
         case .websitesLogRead:       return "/api/v2/files/read"
+        case .websitesHTTPSRead:     return "/api/v2/websites/:id/https"
+        case .websitesHTTPSUpdate:   return "/api/v2/websites/:id/https"
+        case .websitesProxiesList:   return "/api/v2/websites/proxies"
+        case .websitesProxiesUpdate: return "/api/v2/websites/proxies/update"
+        case .websitesProxiesFile:   return "/api/v2/websites/proxies/file"
         case .databasesSearch:       return "/api/v2/databases/db/search"
         case .filesSearch:           return "/api/v2/files/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
@@ -102,7 +112,7 @@ enum APIEndpoint {
         case .dashboardOS, .dashboardBase, .dashboardTopCPU, .dashboardTopMem,
              .loginSetting, .appsIgnoredList, .appsStoreDetail,
              .appsInstalledDeleteCheck, .appsInstalledParams, .websiteDir,
-             .websitesDetail, .websitesNginxConfig:
+             .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead:
             return "GET"
         default:
             return "POST"

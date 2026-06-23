@@ -379,3 +379,135 @@ struct WebsiteLogResponse: Decodable {
     let lines: [String]?
     let totalLines: Int?
 }
+
+// MARK: - HTTPS 配置
+
+/// HTTPS 配置读取响应（response.WebsiteHTTPS）
+/// 来自 GET /api/v2/websites/:id/https
+struct WebsiteHTTPS: Decodable {
+    let enable: Bool?
+    let httpConfig: String?
+    let sslProtocol: [String]?
+    let algorithm: String?
+    let hsts: Bool?
+    let hstsIncludeSubDomains: Bool?
+    let httpsPort: String?
+    let http3: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case enable, httpConfig
+        case sslProtocol = "SSLProtocol"
+        case algorithm, hsts, hstsIncludeSubDomains
+        case httpsPort, http3
+    }
+
+    /// httpConfig 显示名
+    var httpConfigDisplay: String {
+        switch httpConfig ?? "" {
+        case "HTTPToHTTPS": return "HTTP 自动跳转 HTTPS"
+        case "HTTPOnly":    return "仅 HTTP"
+        case "HTTPSOnly":   return "仅 HTTPS"
+        default:            return httpConfig ?? "默认"
+        }
+    }
+}
+
+/// HTTPS 配置更新请求（request.WebsiteHTTPSUpdate）
+/// 发送到 POST /api/v2/websites/:id/https
+struct WebsiteHTTPSUpdateRequest: Encodable {
+    var acmeAccountID: Int = 0
+    var enable: Bool
+    var websiteId: Int
+    var websiteSSLId: Int
+    var type: String = "existed"
+    var importType: String = "paste"
+    var privateKey: String = ""
+    var certificate: String = ""
+    var privateKeyPath: String = ""
+    var certificatePath: String = ""
+    var httpConfig: String
+    var hsts: Bool
+    var hstsIncludeSubDomains: Bool
+    var algorithm: String
+    var sslProtocol: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case acmeAccountID, enable, websiteId, websiteSSLId
+        case type, importType, privateKey, certificate
+        case privateKeyPath, certificatePath
+        case httpConfig, hsts, hstsIncludeSubDomains, algorithm
+        case sslProtocol = "SSLProtocol"
+    }
+}
+
+// MARK: - 反向代理路由
+
+/// 反向代理列表请求（request.WebsiteProxyList）
+struct WebsiteProxiesListRequest: Encodable {
+    let id: Int
+}
+
+/// 反向代理项（response.WebsiteProxy）
+struct WebsiteProxy: Decodable, Identifiable, Hashable {
+    let name: String?
+    let match: String?
+    let proxyPass: String?
+    let enable: Bool?
+    let cache: Bool?
+    let cors: Bool?
+    let modifier: String?
+    let content: String?
+    let filePath: String?
+
+    var id: String { name ?? UUID().uuidString }
+
+    var displayName: String { name ?? "(未命名)" }
+    var displayMatch: String { match ?? "—" }
+    var displayProxyPass: String { proxyPass ?? "—" }
+}
+
+/// 反向代理操作类型
+enum WebsiteProxyOperate: String {
+    case create
+    case edit
+    case delete
+}
+
+/// 反向代理更新请求（request.WebsiteProxyUpdate）
+/// 用于创建/编辑/删除（operate 决定行为）
+struct WebsiteProxyUpdateRequest: Encodable {
+    var id: Int
+    var operate: String          // create / edit / delete
+    var enable: Bool
+    var cache: Bool = false
+    var cacheTime: Int = 0
+    var cacheUnit: String = ""
+    var serverCacheTime: Int = 0
+    var serverCacheUnit: String = ""
+    var name: String
+    var modifier: String = ""
+    var match: String
+    var proxyPass: String
+    var proxyHost: String = "$host"
+    var content: String = ""
+    var filePath: String = ""
+    var replaces: [String: String]? = nil
+    var sni: Bool = false
+    var proxySSLName: String = "$proxy_host"
+    var cors: Bool = false
+    var allowOrigins: String = ""
+    var allowMethods: String = ""
+    var allowHeaders: String = ""
+    var allowCredentials: Bool = false
+    var preflight: Bool = false
+    var browserCache: String = "noModify"
+    var proxyProtocol: String
+    var proxyAddress: String
+}
+
+/// 反向代理源文（content）读写请求
+struct WebsiteProxyFileRequest: Encodable {
+    let name: String
+    let websiteID: Int
+    let content: String
+}

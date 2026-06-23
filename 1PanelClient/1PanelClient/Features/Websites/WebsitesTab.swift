@@ -168,6 +168,16 @@ struct WebsiteDetailView: View {
                 } label: {
                     Label("配置文件", systemImage: "doc.text")
                 }
+                NavigationLink {
+                    WebsiteHTTPSView(websiteId: website.id, vm: vm)
+                } label: {
+                    Label("HTTPS", systemImage: "lock.shield")
+                }
+                NavigationLink {
+                    WebsiteProxiesView(websiteId: website.id, vm: vm)
+                } label: {
+                    Label("反向代理", systemImage: "arrow.left.arrow.right")
+                }
                 Button {
                     logType = .access
                     showLogSheet = true
@@ -328,6 +338,11 @@ struct CreateWebsiteView: View {
     @State private var enableSSL = false
     @State private var selectedSSLId: Int? = nil
 
+    // 本地反馈
+    @State private var showLocalAlert = false
+    @State private var localAlertMessage: String?
+    @State private var didCreateSucceed = false
+
     var body: some View {
         NavigationStack {
             Form {
@@ -425,6 +440,13 @@ struct CreateWebsiteView: View {
             .onChange(of: selectedType) { _, newType in
                 Task { await vm.loadCreateData(type: newType) }
             }
+            .alert(localAlertMessage ?? "", isPresented: $showLocalAlert) {
+                Button("好") {
+                    if didCreateSucceed {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 
@@ -517,9 +539,17 @@ struct CreateWebsiteView: View {
             req.proxyAddress = proxyAddress
         }
 
-        let ok = await vm.createWebsite(req: req)
-        if ok {
-            dismiss()
+        localAlertMessage = nil
+        didCreateSucceed = false
+        let result = await vm.createWebsite(req: req)
+        switch result {
+        case .success:
+            didCreateSucceed = true
+            localAlertMessage = "网站创建请求已提交，正在后台配置…"
+            showLocalAlert = true
+        case .failure(let msg):
+            localAlertMessage = msg
+            showLocalAlert = true
         }
     }
 }
@@ -631,7 +661,7 @@ final class WebsitesViewModel: ObservableObject {
 
     /// 提交创建网站请求
     @discardableResult
-    func createWebsite(req: WebsiteCreateRequest) async -> Bool {
+    func createWebsite(req: WebsiteCreateRequest) async -> Result<Bool, String> {
         isCreating = true
         defer { isCreating = false }
 
@@ -643,11 +673,9 @@ final class WebsitesViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
         } catch let err as APIError {
-            showAlert(message: "环境检查失败：\(err.errorDescription ?? "未知错误")")
-            return false
+            return .failure("环境检查失败：\(err.errorDescription ?? "未知错误")")
         } catch {
-            showAlert(message: "环境检查失败：\(error.localizedDescription)")
-            return false
+            return .failure("环境检查失败：\(error.localizedDescription)")
         }
 
         // 提交创建
@@ -657,16 +685,13 @@ final class WebsitesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "网站创建请求已提交，正在后台配置…")
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            return true
+            return .success(true)
         } catch let err as APIError {
-            showAlert(message: "创建失败：\(err.errorDescription ?? "未知错误")")
-            return false
+            return .failure("创建失败：\(err.errorDescription ?? "未知错误")")
         } catch {
-            showAlert(message: "创建失败：\(error.localizedDescription)")
-            return false
+            return .failure("创建失败：\(error.localizedDescription)")
         }
     }
 
@@ -786,6 +811,117 @@ final class WebsitesViewModel: ObservableObject {
     private func showAlert(message: String) {
         alertMessage = message
         showAlert = true
+    }
+
+    // MARK: - HTTPS 配置
+
+    func loadHTTPSConfig(id: Int) async -> WebsiteHTTPS? {
+        let path = APIEndpoint.websitesHTTPSRead.path
+            .replacingOccurrences(of: ":id", with: String(id))
+        do {
+            return try await client.send(
+                path: path,
+                method: "GET",
+                as: WebsiteHTTPS.self
+            )
+        } catch let err as APIError {
+            showAlert(message: "加载 HTTPS 配置失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "加载 HTTPS 配置失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func updateHTTPSConfig(websiteId: Int, sslId: Int, req: WebsiteHTTPSUpdateRequest) async -> Bool {
+        let path = APIEndpoint.websitesHTTPSUpdate.path
+            .replacingOccurrences(of: ":id", with: String(websiteId))
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            showAlert(message: "HTTPS 配置已保存，正在重载 OpenResty…")
+            return true
+        } catch let err as APIError {
+            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "保存失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    // MARK: - 反向代理路由
+
+    func loadProxies(websiteId: Int) async -> [WebsiteProxy] {
+        let req = WebsiteProxiesListRequest(id: websiteId)
+        do {
+            let resp: WebsiteProxiesResponse = try await client.send(
+                path: APIEndpoint.websitesProxiesList.path,
+                body: req,
+                as: WebsiteProxiesResponse.self
+            )
+            return resp.proxies ?? []
+        } catch let err as APIError {
+            showAlert(message: "加载反向代理失败：\(err.errorDescription ?? "未知错误")")
+            return []
+        } catch {
+            showAlert(message: "加载反向代理失败：\(error.localizedDescription)")
+            return []
+        }
+    }
+
+    func operateProxy(websiteId: Int, operate: WebsiteProxyOperate, req: WebsiteProxyUpdateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesProxiesUpdate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            let action = operate == .create ? "创建" : operate == .edit ? "修改" : "删除"
+            showAlert(message: "反向代理\(action)成功")
+            return true
+        } catch let err as APIError {
+            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "操作失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func saveProxyFile(websiteId: Int, name: String, content: String) async -> Bool {
+        let req = WebsiteProxyFileRequest(name: name, websiteID: websiteId, content: content)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesProxiesFile.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            showAlert(message: "源文已保存")
+            return true
+        } catch let err as APIError {
+            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "保存失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+}
+
+/// 反向代理列表响应包装（data 可能是 null 或数组）
+private struct WebsiteProxiesResponse: Decodable {
+    let proxies: [WebsiteProxy]?
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let arr = try? container.decode([WebsiteProxy].self) {
+            proxies = arr
+        } else {
+            proxies = nil
+        }
     }
 }
 
@@ -995,6 +1131,503 @@ struct WebsiteNginxView: View {
         isSaving = true
         let ok = await vm.updateNginxConfig(id: websiteId, content: content)
         isSaving = false
+        if ok {
+            isEditing = false
+        }
+    }
+}
+
+// MARK: - HTTPS 配置
+
+struct WebsiteHTTPSView: View {
+    let websiteId: Int
+    @ObservedObject var vm: WebsitesViewModel
+
+    @State private var config: WebsiteHTTPS?
+    @State private var isLoading = false
+    @State private var isSaving = false
+
+    // 可编辑状态
+    @State private var enable = false
+    @State private var httpConfig = "HTTPToHTTPS"
+    @State private var hsts = false
+    @State private var hstsIncludeSubDomains = true
+    @State private var http3 = false
+    @State private var sslProtocol: Set<String> = ["TLSv1.3", "TLSv1.2"]
+    @State private var algorithm = ""
+    @State private var selectedSSLId = 0
+    @State private var httpsPort = ""
+
+    private let availableProtocols = ["TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"]
+    private let availableHttpConfigs = [
+        ("HTTPToHTTPS", "HTTP 自动跳转 HTTPS"),
+        ("HTTPOnly",    "仅 HTTP"),
+        ("HTTPSOnly",   "仅 HTTPS"),
+    ]
+
+    var body: some View {
+        Group {
+            if isLoading {
+                ProgressView("加载 HTTPS 配置…")
+            } else {
+                editor
+            }
+        }
+        .navigationTitle("HTTPS")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isSaving { ProgressView() } else { Text("保存").bold() }
+                }
+                .disabled(isSaving)
+            }
+        }
+        .task {
+            await load()
+            if vm.availableSSLs.isEmpty {
+                await vm.loadCreateData(type: .deployment)
+            }
+        }
+    }
+
+    private var editor: some View {
+        Form {
+            Section("基本") {
+                Toggle("启用 HTTPS", isOn: $enable)
+                if enable {
+                    Picker("HTTP 配置", selection: $httpConfig) {
+                        ForEach(availableHttpConfigs, id: \.0) { v in
+                            Text(v.1).tag(v.0)
+                        }
+                    }
+                    HStack {
+                        Text("HTTPS 端口")
+                        Spacer()
+                        TextField("端口", text: $httpsPort)
+                            .keyboardType(.numberPad)
+                            .frame(width: 80)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+            }
+
+            if enable {
+                Section("SSL 证书") {
+                    Picker("选择证书", selection: $selectedSSLId) {
+                        Text("不修改").tag(0)
+                        ForEach(vm.availableSSLs) { ssl in
+                            VStack(alignment: .leading) {
+                                Text(ssl.displayName)
+                                Text("有效期至 \(ssl.displayExpireDate)")
+                                    .font(.caption2)
+                                    .foregroundStyle(ssl.isExpired ? .red : .secondary)
+                            }
+                            .tag(ssl.id)
+                        }
+                    }
+                }
+
+                Section("TLS 协议") {
+                    ForEach(availableProtocols, id: \.self) { p in
+                        Button {
+                            if sslProtocol.contains(p) {
+                                sslProtocol.remove(p)
+                            } else {
+                                sslProtocol.insert(p)
+                            }
+                        } label: {
+                            HStack {
+                                Text(p)
+                                Spacer()
+                                Image(systemName: sslProtocol.contains(p) ? "checkmark" : "")
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Section("高级") {
+                    Toggle("HTTP/3 (QUIC)", isOn: $http3)
+                    Toggle("HSTS", isOn: $hsts)
+                    if hsts {
+                        Toggle("HSTS 包含子域名", isOn: $hstsIncludeSubDomains)
+                    }
+                }
+            }
+        }
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        guard let c = await vm.loadHTTPSConfig(id: websiteId) else { return }
+        config = c
+        enable = c.enable ?? false
+        httpConfig = c.httpConfig ?? "HTTPToHTTPS"
+        hsts = c.hsts ?? false
+        hstsIncludeSubDomains = c.hstsIncludeSubDomains ?? true
+        http3 = c.http3 ?? false
+        sslProtocol = Set(c.sslProtocol ?? ["TLSv1.3", "TLSv1.2"])
+        algorithm = c.algorithm ?? ""
+        httpsPort = c.httpsPort ?? ""
+    }
+
+    private func save() async {
+        isSaving = true
+        defer { isSaving = false }
+        let req = WebsiteHTTPSUpdateRequest(
+            enable: enable,
+            websiteId: websiteId,
+            websiteSSLId: selectedSSLId,
+            httpConfig: httpConfig,
+            hsts: hsts,
+            hstsIncludeSubDomains: hstsIncludeSubDomains,
+            algorithm: algorithm,
+            sslProtocol: Array(sslProtocol)
+        )
+        _ = await vm.updateHTTPSConfig(websiteId: websiteId, sslId: selectedSSLId, req: req)
+        // 重新加载
+        await load()
+    }
+}
+
+// MARK: - 反向代理路由
+
+struct WebsiteProxiesView: View {
+    let websiteId: Int
+    @ObservedObject var vm: WebsitesViewModel
+
+    @State private var proxies: [WebsiteProxy] = []
+    @State private var isLoading = false
+    @State private var showEditSheet = false
+    @State private var editingProxy: WebsiteProxy?
+    @State private var showSourceSheet = false
+    @State private var sourceProxy: WebsiteProxy?
+
+    var body: some View {
+        Group {
+            if isLoading && proxies.isEmpty {
+                ProgressView("加载反向代理…")
+            } else if proxies.isEmpty {
+                ContentUnavailableView(
+                    "暂无反向代理",
+                    systemImage: "arrow.left.arrow.right",
+                    description: Text("点击右上角创建第一个反向代理路由")
+                )
+            } else {
+                list
+            }
+        }
+        .navigationTitle("反向代理")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    editingProxy = nil
+                    showEditSheet = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .task {
+            await load()
+        }
+        .sheet(isPresented: $showEditSheet) {
+            WebsiteProxyEditView(
+                websiteId: websiteId,
+                proxy: editingProxy,
+                vm: vm
+            ) {
+                Task { await load() }
+            }
+        }
+        .sheet(isPresented: $showSourceSheet) {
+            if let p = sourceProxy {
+                WebsiteProxySourceView(websiteId: websiteId, proxy: p, vm: vm)
+            }
+        }
+    }
+
+    private var list: some View {
+        List {
+            ForEach(proxies) { p in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(p.displayName)
+                            .font(.body.bold())
+                        Spacer()
+                        if p.enable == true {
+                            Text("已启用")
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.green.opacity(0.1))
+                                .foregroundStyle(.green)
+                                .clipShape(Capsule())
+                        } else {
+                            Text("已停用")
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.gray.opacity(0.1))
+                                .foregroundStyle(.secondary)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    HStack {
+                        Label(p.displayMatch, systemImage: "arrow.triangle.branch")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(p.displayProxyPass)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.blue)
+                    }
+                }
+                .swipeActions {
+                    Button(role: .destructive) {
+                        Task { await deleteProxy(p) }
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                }
+                .swipeActions(edge: .leading) {
+                    Button {
+                        sourceProxy = p
+                        showSourceSheet = true
+                    } label: {
+                        Label("源文", systemImage: "doc.text")
+                    }
+                    .tint(.blue)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    editingProxy = p
+                    showEditSheet = true
+                }
+            }
+        }
+        .refreshable {
+            await load()
+        }
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        proxies = await vm.loadProxies(websiteId: websiteId)
+    }
+
+    private func deleteProxy(_ p: WebsiteProxy) async {
+        let req = WebsiteProxyUpdateRequest(
+            id: websiteId,
+            operate: WebsiteProxyOperate.delete.rawValue,
+            enable: p.enable ?? true,
+            name: p.name ?? "",
+            match: p.match ?? "",
+            proxyPass: p.proxyPass ?? "",
+            content: p.content ?? "",
+            filePath: p.filePath ?? "",
+            proxyProtocol: "http://",
+            proxyAddress: p.proxyPass ?? ""
+        )
+        let ok = await vm.operateProxy(websiteId: websiteId, operate: .delete, req: req)
+        if ok {
+            await load()
+        }
+    }
+}
+
+/// 反向代理创建/编辑
+struct WebsiteProxyEditView: View {
+    let websiteId: Int
+    let proxy: WebsiteProxy?
+    @ObservedObject var vm: WebsitesViewModel
+    var onDone: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name = ""
+    @State private var match = "/"
+    @State private var proxyProtocol = "http://"
+    @State private var proxyAddress = ""
+    @State private var enable = true
+    @State private var isSaving = false
+
+    private var isEdit: Bool { proxy != nil }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("路由") {
+                    TextField("名称", text: $name)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    TextField("路径 (例如 /api)", text: $match)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+
+                Section {
+                    Picker("协议", selection: $proxyProtocol) {
+                        Text("http://").tag("http://")
+                        Text("https://").tag("https://")
+                    }
+                    TextField("目标地址 (host:port)", text: $proxyAddress)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                } header: {
+                    Text("代理目标")
+                } footer: {
+                    if !proxyAddress.isEmpty {
+                        Text("完整地址：\(proxyProtocol)\(proxyAddress)")
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.blue)
+                    }
+                }
+
+                Section("状态") {
+                    Toggle("启用", isOn: $enable)
+                }
+            }
+            .navigationTitle(isEdit ? "编辑代理" : "创建代理")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .destructiveAction) {
+                    Button(isEdit ? "保存" : "创建") {
+                        Task { await save() }
+                    }
+                    .disabled(!canSubmit || isSaving)
+                }
+            }
+            .onAppear(perform: fillFromProxy)
+        }
+    }
+
+    private var canSubmit: Bool {
+        !name.isEmpty && !match.isEmpty && !proxyAddress.isEmpty
+    }
+
+    private func fillFromProxy() {
+        guard let p = proxy else { return }
+        name = p.name ?? ""
+        match = p.match ?? "/"
+        enable = p.enable ?? true
+        let pass = p.proxyPass ?? ""
+        if pass.hasPrefix("https://") {
+            proxyProtocol = "https://"
+            proxyAddress = String(pass.dropFirst("https://".count))
+        } else if pass.hasPrefix("http://") {
+            proxyProtocol = "http://"
+            proxyAddress = String(pass.dropFirst("http://".count))
+        } else {
+            proxyAddress = pass
+        }
+    }
+
+    private func save() async {
+        isSaving = true
+        defer { isSaving = false }
+        let operate: WebsiteProxyOperate = isEdit ? .edit : .create
+        let req = WebsiteProxyUpdateRequest(
+            id: websiteId,
+            operate: operate.rawValue,
+            enable: enable,
+            name: name,
+            match: match,
+            proxyPass: "\(proxyProtocol)\(proxyAddress)",
+            proxyProtocol: proxyProtocol,
+            proxyAddress: proxyAddress
+        )
+        let ok = await vm.operateProxy(websiteId: websiteId, operate: operate, req: req)
+        if ok {
+            onDone()
+            dismiss()
+        }
+    }
+}
+
+/// 反向代理源文（修改 nginx 配置片段）
+struct WebsiteProxySourceView: View {
+    let websiteId: Int
+    let proxy: WebsiteProxy
+    @ObservedObject var vm: WebsitesViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var content = ""
+    @State private var isSaving = false
+    @State private var isEditing = false
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    if isEditing {
+                        TextEditor(text: $content)
+                            .font(.system(size: 12, design: .monospaced))
+                            .frame(minHeight: 480)
+                            .padding(8)
+                    } else {
+                        Text(content)
+                            .font(.system(size: 12, design: .monospaced))
+                            .padding()
+                            .textSelection(.enabled)
+                    }
+                }
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(8)
+                .padding()
+            }
+            .navigationTitle("源文：\(proxy.displayName)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack {
+                        Button {
+                            isEditing.toggle()
+                            if !isEditing {
+                                content = proxy.content ?? content
+                            }
+                        } label: {
+                            Label(isEditing ? "取消" : "编辑", systemImage: isEditing ? "xmark" : "pencil")
+                        }
+                        if isEditing {
+                            Button {
+                                Task { await save() }
+                            } label: {
+                                if isSaving { ProgressView() } else { Text("保存").bold() }
+                            }
+                            .disabled(isSaving)
+                        }
+                    }
+                }
+            }
+            .onAppear {
+                content = proxy.content ?? ""
+            }
+        }
+    }
+
+    private func save() async {
+        isSaving = true
+        defer { isSaving = false }
+        let ok = await vm.saveProxyFile(
+            websiteId: websiteId,
+            name: proxy.name ?? "",
+            content: content
+        )
         if ok {
             isEditing = false
         }
