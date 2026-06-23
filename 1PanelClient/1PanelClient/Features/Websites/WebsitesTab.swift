@@ -9,6 +9,7 @@ import Combine
 struct WebsitesTab: View {
     @ObservedObject var manager: ServerManager
     @StateObject private var vm: WebsitesViewModel
+    @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
     @State private var showCreateSheet = false
 
@@ -37,18 +38,26 @@ struct WebsitesTab: View {
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "搜索域名")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await vm.refresh() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         showCreateSheet = true
                     } label: {
                         Image(systemName: "plus")
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack {
+                        Button {
+                            Task { await vm.refresh() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
@@ -57,6 +66,9 @@ struct WebsitesTab: View {
             }
             .navigationDestination(for: Website.self) { website in
                 WebsiteDetailView(website: website, vm: vm)
+            }
+            .sheet(isPresented: $showCreateSheet) {
+                CreateWebsiteView(vm: vm)
             }
         }
         .task { await vm.refresh() }
@@ -77,9 +89,6 @@ struct WebsitesTab: View {
         .refreshable {
             await vm.refresh()
         }
-        .sheet(isPresented: $showCreateSheet) {
-            CreateWebsiteView(vm: vm)
-        }
     }
 }
 
@@ -88,6 +97,7 @@ struct WebsitesTab: View {
 struct WebsiteDetailView: View {
     let website: Website
     @ObservedObject var vm: WebsitesViewModel
+    @Environment(\.dismiss) private var dismiss
 
     @State private var detail: WebsiteFull?
     @State private var isLoadingDetail = false
@@ -211,6 +221,11 @@ struct WebsiteDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await loadDetail()
+        }
+        .onReceive(vm.$deletedWebsiteId) { deletedId in
+            if let deletedId = deletedId, deletedId == website.id {
+                dismiss()
+            }
         }
         .sheet(isPresented: $showDeleteSheet) {
             WebsiteDeleteSheet(website: website, vm: vm)
@@ -529,6 +544,7 @@ final class WebsitesViewModel: ObservableObject {
 
     /// 标记列表需要刷新（详情页操作后）
     @Published var needsRefresh = false
+    @Published var deletedWebsiteId: Int?
 
     private(set) var client: APIClient
 
@@ -670,7 +686,8 @@ final class WebsitesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "网站删除请求已提交")
+            deletedWebsiteId = id
+            showAlert(message: "网站删除成功")
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
         } catch let err as APIError {
