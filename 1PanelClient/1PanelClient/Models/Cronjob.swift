@@ -269,7 +269,7 @@ struct CronjobCreateRequest: Encodable {
     var id: Int = 0
     var name: String = ""
     var type: String = "shell"
-    var groupID: Int = 1
+    var groupID: Int = 0
     var specCustom: Bool = false
     var spec: String = ""
     var specs: [String] = []

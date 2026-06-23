@@ -435,7 +435,7 @@ struct CreateCronjobView: View {
     @State private var day = 1         // 每月几号
     // Shell
     @State private var script = "#!/bin/bash\n"
-    @State private var user = "root"
+    @State private var user = ""           // 默认不选（空字符串 = 服务器默认）
     // 备份
     @State private var retainCopies = 7
     @State private var backupAccountID = 0
@@ -504,11 +504,16 @@ struct CreateCronjobView: View {
 
                     Section {
                         Picker("执行用户", selection: $user) {
+                            Text("默认（不指定）").tag("")
                             ForEach(vm.systemUsers, id: \.self) { u in
                                 Text(u).tag(u)
                             }
                         }
-                    } header: { Text("执行设置") }
+                    } header: {
+                        Text("执行设置")
+                    } footer: {
+                        Text("不指定用户时，服务器将以默认用户执行脚本。")
+                    }
 
                 case .app:
                     Section("备份应用") {
@@ -592,6 +597,8 @@ struct CreateCronjobView: View {
         req.name = name
         req.type = type.rawValue
         req.retainCopies = retainCopies
+        // 默认分组（不传则任务会显示在「-」分组）
+        req.groupID = vm.defaultGroupID
 
         // 周期
         var specObj = CronjobSpecObj()
@@ -682,6 +689,10 @@ final class CronjobsViewModel: ObservableObject {
     @Published var backupAccounts: [BackupOption] = []
     @Published var installedApps: [InstalledAppOption] = []
     @Published var websiteOptions: [WebsiteOptionSimple] = []
+
+    /// 默认分组 ID（创建任务时必须填，否则任务会显示在「-」分组）
+    /// 从 POST /api/v2/core/groups/search (type=cronjob) 获取 isDefault=true 的项
+    @Published var defaultGroupID: Int = 0
 
     private(set) var client: APIClient
 
@@ -821,6 +832,24 @@ final class CronjobsViewModel: ObservableObject {
     }
 
     func loadCreateOptions() async {
+        // 默认分组（创建任务必须指定 groupID，否则任务会显示在「-」分组）
+        if defaultGroupID == 0 {
+            do {
+                let groups: [CronjobGroup] = try await client.send(
+                    path: APIEndpoint.cronjobsGroups.path,
+                    body: CronjobGroupRequest(type: "cronjob"),
+                    as: [CronjobGroup].self
+                )
+                // 优先取 isDefault=true 的项，否则取第一个
+                if let def = groups.first(where: { $0.isDefault == true }) {
+                    defaultGroupID = def.id
+                } else if let first = groups.first {
+                    defaultGroupID = first.id
+                }
+            } catch {
+                // 加载失败保持 0，后端会用其默认值
+            }
+        }
         // 系统用户
         if systemUsers.isEmpty {
             do {
