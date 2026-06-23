@@ -542,15 +542,9 @@ struct CreateWebsiteView: View {
         localAlertMessage = nil
         didCreateSucceed = false
         let result = await vm.createWebsite(req: req)
-        switch result {
-        case .success:
-            didCreateSucceed = true
-            localAlertMessage = "网站创建请求已提交，正在后台配置…"
-            showLocalAlert = true
-        case .failure(let msg):
-            localAlertMessage = msg
-            showLocalAlert = true
-        }
+        didCreateSucceed = result.success
+        localAlertMessage = result.message
+        showLocalAlert = true
     }
 }
 
@@ -661,7 +655,7 @@ final class WebsitesViewModel: ObservableObject {
 
     /// 提交创建网站请求
     @discardableResult
-    func createWebsite(req: WebsiteCreateRequest) async -> Result<Bool, String> {
+    func createWebsite(req: WebsiteCreateRequest) async -> (success: Bool, message: String) {
         isCreating = true
         defer { isCreating = false }
 
@@ -673,9 +667,9 @@ final class WebsitesViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
         } catch let err as APIError {
-            return .failure("环境检查失败：\(err.errorDescription ?? "未知错误")")
+            return (false, "环境检查失败：\(err.errorDescription ?? "未知错误")")
         } catch {
-            return .failure("环境检查失败：\(error.localizedDescription)")
+            return (false, "环境检查失败：\(error.localizedDescription)")
         }
 
         // 提交创建
@@ -687,11 +681,11 @@ final class WebsitesViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            return .success(true)
+            return (true, "网站创建请求已提交，正在后台配置…")
         } catch let err as APIError {
-            return .failure("创建失败：\(err.errorDescription ?? "未知错误")")
+            return (false, "创建失败：\(err.errorDescription ?? "未知错误")")
         } catch {
-            return .failure("创建失败：\(error.localizedDescription)")
+            return (false, "创建失败：\(error.localizedDescription)")
         }
     }
 
