@@ -76,10 +76,19 @@ struct DashboardCurrent: Decodable, Sendable {
     let netBytesSent: Int64?
     let netBytesRecv: Int64?
 
-    // 磁盘使用率（部分版本在 currentInfo 中返回）
-    let diskSize: Int64?
-    let diskUsed: Int64?
-    let diskUsedPercent: Double?
+    // 磁盘数据（数组，每个挂载点一项）
+    let diskData: [DiskData]?
+}
+
+/// 单个挂载点的磁盘使用信息
+struct DiskData: Decodable, Sendable {
+    let path: String?
+    let type: String?
+    let device: String?
+    let total: Int64?
+    let free: Int64?
+    let used: Int64?
+    let usedPercent: Double?
 }
 
 /// CPU/内存 TOP 进程（GET /dashboard/current/top/cpu）

@@ -169,7 +169,12 @@ struct OverviewTab: View {
     }
 
     private func monitorCards(cur: DashboardCurrent) -> some View {
-        VStack(spacing: 16) {
+        // 聚合磁盘数据：取所有挂载点的总量/已用（用于概览）
+        let diskTotal = cur.diskData?.reduce(Int64(0)) { $0 + ($1.total ?? 0) } ?? 0
+        let diskUsed = cur.diskData?.reduce(Int64(0)) { $0 + ($1.used ?? 0) } ?? 0
+        let diskPercent = diskTotal > 0 ? Double(diskUsed) / Double(diskTotal) * 100 : 0
+
+        return VStack(spacing: 12) {
             HStack {
                 Image(systemName: "chart.xyaxis.line")
                     .foregroundStyle(.tint)
@@ -183,76 +188,45 @@ struct OverviewTab: View {
                 }
             }
 
-            // 四个圆形指标：负载 / CPU / 内存 / 存储
-            LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: 12),
-                GridItem(.flexible(), spacing: 12)
-            ], spacing: 16) {
+            // 四个圆形指标缩小至一排：负载 / CPU / 内存 / 存储
+            HStack(spacing: 4) {
                 RingStatView(
                     percent: min(cur.loadUsagePercent ?? 0, 100),
                     color: .teal,
-                    topText: String(format: "%.1f%%", cur.loadUsagePercent ?? 0),
+                    topText: String(format: "%.0f%%", cur.loadUsagePercent ?? 0),
                     bottomText: "负载",
-                    footer: "\(format2(cur.load1)) / \(format2(cur.load5)) / \(format2(cur.load15))"
+                    footer: format2(cur.load1),
+                    compact: true
                 )
                 RingStatView(
                     percent: min(cur.cpuUsedPercent ?? 0, 100),
                     color: .blue,
-                    topText: String(format: "%.1f%%", cur.cpuUsedPercent ?? 0),
+                    topText: String(format: "%.0f%%", cur.cpuUsedPercent ?? 0),
                     bottomText: "CPU",
-                    footer: "\(formatCores(cur.cpuUsed)) / \(cur.cpuTotal ?? 0) 核"
+                    footer: "\(cur.cpuTotal ?? 0) 核",
+                    compact: true
                 )
                 RingStatView(
                     percent: min(cur.memoryUsedPercent ?? 0, 100),
                     color: .purple,
-                    topText: String(format: "%.1f%%", cur.memoryUsedPercent ?? 0),
+                    topText: String(format: "%.0f%%", cur.memoryUsedPercent ?? 0),
                     bottomText: "内存",
-                    footer: "\(formatBytes(cur.memoryUsed)) / \(formatBytes(cur.memoryTotal))"
+                    footer: formatBytes(cur.memoryTotal),
+                    compact: true
                 )
                 RingStatView(
-                    percent: min(cur.diskUsedPercent ?? 0, 100),
+                    percent: min(diskPercent, 100),
                     color: .orange,
-                    topText: diskPercentText(cur),
+                    topText: String(format: "%.0f%%", diskPercent),
                     bottomText: "存储",
-                    footer: diskFooterText(cur)
+                    footer: formatBytes(diskTotal),
+                    compact: true
                 )
-            }
-
-            Divider()
-
-            // IO 与网络速率
-            HStack(spacing: 12) {
-                MiniStatCard(title: "磁盘读", icon: "arrow.down.circle",
-                             value: formatBytes(cur.ioReadBytes), color: .green)
-                MiniStatCard(title: "磁盘写", icon: "arrow.up.circle",
-                             value: formatBytes(cur.ioWriteBytes), color: .orange)
-            }
-            HStack(spacing: 12) {
-                MiniStatCard(title: "网络接收", icon: "arrow.down.to.line",
-                             value: formatBytes(cur.netBytesRecv), color: .blue)
-                MiniStatCard(title: "网络发送", icon: "arrow.up.to.line",
-                             value: formatBytes(cur.netBytesSent), color: .pink)
             }
         }
         .padding()
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
-    // 存储百分比文本：后端可能不返回磁盘数据
-    private func diskPercentText(_ cur: DashboardCurrent) -> String {
-        if let p = cur.diskUsedPercent, p >= 0 {
-            return String(format: "%.1f%%", p)
-        }
-        return "—"
-    }
-
-    // 存储详情文本
-    private func diskFooterText(_ cur: DashboardCurrent) -> String {
-        if let used = cur.diskUsed, let total = cur.diskSize, total > 0 {
-            return "\(formatBytes(used)) / \(formatBytes(total))"
-        }
-        return "暂无数据"
     }
 
     private func resourceStatsGrid(_ b: DashboardBase) -> some View {
@@ -341,10 +315,6 @@ struct OverviewTab: View {
     private func format2(_ v: Double?) -> String {
         String(format: "%.2f", v ?? 0)
     }
-
-    private func formatCores(_ v: Double?) -> String {
-        String(format: "%.1f", v ?? 0)
-    }
 }
 
 // MARK: - 子视图
@@ -356,24 +326,31 @@ struct RingStatView: View {
     let topText: String      // 圆心上：百分比文本
     let bottomText: String   // 圆心下：标签（负载/CPU/内存/存储）
     let footer: String       // 圆环下方：具体使用情况/总数
+    var compact: Bool = false // 紧凑模式（一排显示）
 
     var body: some View {
-        VStack(spacing: 8) {
+        let ringSize: CGFloat = compact ? 62 : 88
+        let ringWidth: CGFloat = compact ? 7 : 10
+        let topFont: Font = compact
+            ? .system(size: 13, weight: .bold, design: .rounded)
+            : .system(size: 16, weight: .bold, design: .rounded)
+
+        return VStack(spacing: compact ? 4 : 8) {
             ZStack {
                 // 背景圆环
                 Circle()
-                    .stroke(color.opacity(0.15), lineWidth: 10)
+                    .stroke(color.opacity(0.15), lineWidth: ringWidth)
                 // 进度圆环
                 Circle()
                     .trim(from: 0, to: max(0.001, min(percent, 100) / 100))
                     .stroke(color,
-                            style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                            style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .animation(.easeInOut(duration: 0.4), value: percent)
                 // 圆心文字：上（%）+ 下（标签）
-                VStack(spacing: 2) {
+                VStack(spacing: compact ? 0 : 2) {
                     Text(topText)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(topFont)
                         .monospacedDigit()
                         .foregroundStyle(.primary)
                     Text(bottomText)
@@ -381,44 +358,17 @@ struct RingStatView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .frame(width: 88, height: 88)
+            .frame(width: ringSize, height: ringSize)
 
             // 圆环正下方：具体使用情况/总数
             Text(footer)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-                .frame(height: 28)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(height: compact ? 14 : 28)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-struct MiniStatCard: View {
-    let title: String
-    let icon: String
-    let value: String
-    let color: Color
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .foregroundStyle(color)
-                .font(.title3)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.subheadline.bold())
-                    .monospacedDigit()
-            }
-            Spacer()
-        }
-        .padding(10)
-        .background(.quaternary.opacity(0.3))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
 
