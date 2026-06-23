@@ -14,7 +14,6 @@ struct ToolboxTab: View {
 
     /// 工具入口定义
     private enum ToolItem: String, CaseIterable, Identifiable {
-        case files
         case containers
         case settings
         case terminal
@@ -27,7 +26,6 @@ struct ToolboxTab: View {
 
         var title: String {
             switch self {
-            case .files:      return "文件管理"
             case .containers: return "容器"
             case .settings:   return "设置"
             case .terminal:   return "终端"
@@ -40,7 +38,6 @@ struct ToolboxTab: View {
 
         var icon: String {
             switch self {
-            case .files:      return "folder"
             case .containers: return "shippingbox"
             case .settings:   return "gearshape"
             case .terminal:   return "terminal"
@@ -53,7 +50,6 @@ struct ToolboxTab: View {
 
         var color: Color {
             switch self {
-            case .files:      return .blue
             case .containers: return .indigo
             case .settings:   return .gray
             case .terminal:   return .black
@@ -66,7 +62,7 @@ struct ToolboxTab: View {
 
         var available: Bool {
             switch self {
-            case .files, .containers, .settings, .cronjob: return true
+            case .containers, .settings, .cronjob: return true
             default: return false
             }
         }
@@ -147,8 +143,6 @@ struct ToolboxTab: View {
     @ViewBuilder
     private func destination(for item: ToolItem) -> some View {
         switch item {
-        case .files:
-            FilesTabContent(manager: manager)
         case .settings:
             SettingsTabContent(manager: manager)
         default:

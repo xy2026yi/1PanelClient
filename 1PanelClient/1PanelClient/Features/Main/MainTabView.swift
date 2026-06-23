@@ -7,29 +7,34 @@ import SwiftUI
 
 struct MainTabView: View {
     @StateObject private var manager = ServerManager.shared
+    @State private var selectedTab: AppTab = .overview
 
     var body: some View {
         Group {
             if manager.current == nil {
                 WelcomeView(manager: manager)
             } else {
-                TabView {
-                    OverviewTab(manager: manager)
+                TabView(selection: $selectedTab) {
+                    OverviewTab(manager: manager, selectedTab: $selectedTab)
+                        .tag(AppTab.overview)
                         .tabItem {
                             Label("概览", systemImage: "square.grid.2x2")
                         }
 
                     UnifiedAppsTab(manager: manager)
+                        .tag(AppTab.apps)
                         .tabItem {
                             Label("应用", systemImage: "app.badge")
                         }
 
                     UnifiedWebsitesTab(manager: manager)
+                        .tag(AppTab.websites)
                         .tabItem {
                             Label("网站", systemImage: "globe")
                         }
 
                     ToolboxTab(manager: manager)
+                        .tag(AppTab.toolbox)
                         .tabItem {
                             Label("工具箱", systemImage: "wrench.adjustable")
                         }
@@ -38,6 +43,14 @@ struct MainTabView: View {
             }
         }
     }
+}
+
+/// 主 Tab 枚举（用于概览页卡片跳转）
+enum AppTab: Hashable {
+    case overview
+    case apps
+    case websites
+    case toolbox
 }
 
 /// 首次启动欢迎页（无服务器时显示）

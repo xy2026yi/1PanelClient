@@ -8,12 +8,14 @@ import Combine
 
 struct OverviewTab: View {
     @ObservedObject var manager: ServerManager
+    @Binding var selectedTab: AppTab
     @StateObject private var vm: OverviewViewModel
     @State private var showServerPicker = false
     @State private var showAddSheet = false
 
-    init(manager: ServerManager) {
+    init(manager: ServerManager, selectedTab: Binding<AppTab> = .constant(.overview)) {
         self.manager = manager
+        self._selectedTab = selectedTab
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: OverviewViewModel(server: server))
     }
@@ -171,8 +173,16 @@ struct OverviewTab: View {
             GridItem(.flexible(), spacing: 12),
             GridItem(.flexible(), spacing: 12)
         ], spacing: 12) {
-            StatCard(title: "网站", count: b.websiteNumber, icon: "globe", color: .green)
-            StatCard(title: "容器应用", count: b.appInstalledNumber, icon: "shippingbox", color: .blue)
+            Button { selectedTab = .websites } label: {
+                StatCard(title: "网站", count: b.websiteNumber, icon: "globe", color: .green)
+            }
+            .buttonStyle(.plain)
+
+            Button { selectedTab = .apps } label: {
+                StatCard(title: "应用", count: b.appInstalledNumber, icon: "shippingbox", color: .blue)
+            }
+            .buttonStyle(.plain)
+
             StatCard(title: "数据库", count: b.databaseNumber, icon: "cylinder.split.1x2", color: .purple)
             StatCard(title: "计划任务", count: b.cronjobNumber, icon: "clock.arrow.circlepath", color: .orange)
         }
