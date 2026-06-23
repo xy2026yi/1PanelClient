@@ -44,12 +44,6 @@ struct AppStoreTab: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {
-                        Task { await vm.refresh() }
-                    } label: {
-                        Label("刷新列表", systemImage: "arrow.clockwise")
-                    }
-                    Divider()
-                    Button {
                         Task { await vm.syncRemote() }
                     } label: {
                         Label("更新远程应用", systemImage: "arrow.triangle.pull")
@@ -111,6 +105,9 @@ struct AppStoreTab: View {
             }
         }
         .listStyle(.insetGrouped)
+        .refreshable {
+            await vm.refresh()
+        }
     }
 }
 

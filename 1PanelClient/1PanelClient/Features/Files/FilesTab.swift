@@ -74,6 +74,9 @@ struct FilesTab: View {
             }
         }
         .listStyle(.insetGrouped)
+        .refreshable {
+            await vm.refresh()
+        }
     }
 }
 

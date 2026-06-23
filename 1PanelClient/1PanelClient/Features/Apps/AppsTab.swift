@@ -47,13 +47,6 @@ struct AppsTab: View {
         .navigationTitle("应用")
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $searchText, prompt: "搜索已安装应用")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await vm.refresh() }
-                } label: { Image(systemName: "arrow.clockwise") }
-            }
-        }
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
         }
@@ -112,6 +105,9 @@ struct AppsTab: View {
             }
         }
         .listStyle(.insetGrouped)
+        .refreshable {
+            await vm.refresh()
+        }
     }
 }
 

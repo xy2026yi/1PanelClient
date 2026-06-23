@@ -35,12 +35,10 @@ struct OverviewTab: View {
             }
             .navigationTitle(manager.current?.name ?? "1Panel")
             .navigationBarTitleDisplayMode(.large)
+            .refreshable {
+                await vm.refresh()
+            }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await vm.refresh() }
-                    } label: { Image(systemName: "arrow.clockwise") }
-                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         showServerPicker = true

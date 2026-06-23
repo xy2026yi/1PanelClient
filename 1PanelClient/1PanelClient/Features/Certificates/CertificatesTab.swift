@@ -51,19 +51,12 @@ struct CertificatesTab: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack {
+                    if showCloseButton {
                         Button {
-                            Task { await vm.refresh() }
+                            dismiss()
                         } label: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        if showCloseButton {
-                            Button {
-                                dismiss()
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
