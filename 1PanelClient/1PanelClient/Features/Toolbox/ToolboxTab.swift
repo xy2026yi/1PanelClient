@@ -70,7 +70,7 @@ struct ToolboxTab: View {
 
         var available: Bool {
             switch self {
-            case .files, .websites, .settings: return true
+            case .files, .websites, .settings, .ssl: return true
             default: return false
             }
         }
@@ -82,8 +82,8 @@ struct ToolboxTab: View {
         /// 需要独立 NavigationStack（全屏覆盖）的工具
         var requiresFullScreen: Bool {
             switch self {
-            case .websites: return true
-            default:        return false
+            case .websites, .ssl: return true
+            default:              return false
             }
         }
     }
@@ -140,6 +140,8 @@ struct ToolboxTab: View {
         switch item {
         case .websites:
             WebsitesTab(manager: manager)
+        case .ssl:
+            CertificatesTab(manager: manager)
         default:
             EmptyView()
         }

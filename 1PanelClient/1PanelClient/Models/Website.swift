@@ -525,3 +525,149 @@ struct WebsiteProxyFileRequest: Encodable {
     let websiteID: Int
     let content: String
 }
+
+// MARK: - SSL 证书（独立管理）
+
+/// SSL 证书列表搜索请求
+/// POST /api/v2/websites/ssl/search
+struct WebsiteSSLListRequest: Encodable {
+    var page: Int = 1
+    var pageSize: Int = 20
+    var domain: String = ""
+    var orderBy: String = "expire_date"
+    var order: String = "ascending"
+}
+
+/// SSL 证书列表响应
+struct WebsiteSSLListResponse: Decodable {
+    let total: Int
+    let items: [WebsiteSSLCert]?
+}
+
+/// 完整的 SSL 证书（response.WebsiteSSLDTO）
+/// 供列表 / 详情共用；pem/privateKey 在详情页才会请求并展示
+struct WebsiteSSLCert: Decodable, Identifiable, Hashable {
+    let id: Int
+    let createdAt: String?
+    let updatedAt: String?
+    let primaryDomain: String?
+    let privateKey: String?
+    let pem: String?
+    let domains: String?
+    let certURL: String?
+    let type: String?
+    let provider: String?
+    let organization: String?
+    let autoRenew: Bool?
+    let expireDate: String?
+    let startDate: String?
+    let status: String?
+    let message: String?
+    let description: String?
+    let logPath: String?
+
+    /// 显示名（主域名）
+    var displayName: String { primaryDomain ?? "未知证书" }
+
+    /// 子域名集合
+    var displayDomains: String { domains ?? "—" }
+
+    /// 颁发机构（organization 优先，回退 provider）
+    var displayOrganization: String {
+        let org = organization ?? ""
+        return org.isEmpty ? (provider ?? "—") : org
+    }
+
+    /// 证书类型描述
+    var displayType: String {
+        let t = type ?? ""
+        return t.isEmpty ? "—" : t
+    }
+
+    /// 是否手动导入
+    var isManual: Bool { (provider ?? "").lowercased() == "manual" }
+
+    /// 过期日期格式化（yyyy-MM-dd）
+    var displayExpireDate: String {
+        formatDate(expireDate)
+    }
+
+    /// 开始日期格式化
+    var displayStartDate: String {
+        formatDate(startDate)
+    }
+
+    /// 创建时间格式化
+    var displayCreatedAt: String {
+        formatDate(createdAt)
+    }
+
+    /// 是否已过期
+    var isExpired: Bool {
+        guard let t = expireDate, !t.isEmpty,
+              let date = ISO8601DateFormatter().date(from: t) else {
+            return false
+        }
+        return date < Date()
+    }
+
+    /// 剩余天数（负数表示已过期）
+    var daysRemaining: Int {
+        guard let t = expireDate, !t.isEmpty,
+              let date = ISO8601DateFormatter().date(from: t) else {
+            return Int.max
+        }
+        return Calendar.current.dateComponents([.day], from: Date(), to: date).day ?? 0
+    }
+
+    /// 状态颜色
+    var statusColor: Color {
+        if isExpired { return .red }
+        if daysRemaining <= 14 { return .orange }
+        return .green
+    }
+
+    /// 状态描述
+    var statusDisplay: String {
+        if isExpired { return "已过期" }
+        if daysRemaining <= 0 { return "今天过期" }
+        if daysRemaining <= 14 { return "即将过期（\(daysRemaining)天）" }
+        return "有效（剩余 \(daysRemaining) 天）"
+    }
+
+    private func formatDate(_ str: String?) -> String {
+        guard let s = str, !s.isEmpty else { return "—" }
+        if let date = ISO8601DateFormatter().date(from: s) {
+            let df = DateFormatter()
+            df.dateFormat = "yyyy-MM-dd"
+            return df.string(from: date)
+        }
+        return String(s.prefix(10))
+    }
+}
+
+/// 上传 SSL 证书请求
+/// POST /api/v2/websites/ssl/upload
+/// - type="paste": 粘贴 privateKey + certificate
+/// - type="local": 服务器文件路径 privateKeyPath + certificatePath
+struct WebsiteSSLUploadRequest: Encodable {
+    var privateKey: String = ""
+    var certificate: String = ""
+    var privateKeyPath: String = ""
+    var certificatePath: String = ""
+    var type: String = "paste"      // paste / local
+    var sslID: Int = 0
+    var description: String = ""
+}
+
+/// 删除 SSL 证书请求
+/// POST /api/v2/websites/ssl/del
+struct WebsiteSSLDeleteRequest: Encodable {
+    let ids: [Int]
+}
+
+/// 下载 SSL 证书请求
+/// POST /api/v2/websites/ssl/download
+struct WebsiteSSLDownloadRequest: Encodable {
+    let id: Int
+}

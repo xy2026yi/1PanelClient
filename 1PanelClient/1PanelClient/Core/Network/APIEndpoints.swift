@@ -40,6 +40,13 @@ enum APIEndpoint {
     case websitesProxiesUpdate    // POST 创建/编辑/删除反向代理
     case websitesProxiesFile      // POST 读取/保存反向代理源文
 
+    // MARK: - SSL 证书（独立管理）
+    case websitesSSLList          // POST 分页查询证书
+    case websitesSSLDetail        // GET  证书详情（:id 路径参数）
+    case websitesSSLUpload        // POST 上传证书（粘贴 / 服务器文件 / 文件上传）
+    case websitesSSLDelete        // POST 删除证书
+    case websitesSSLDownload      // POST 下载证书（返回压缩包）
+
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库
 
@@ -88,6 +95,11 @@ enum APIEndpoint {
         case .websitesProxiesList:   return "/api/v2/websites/proxies"
         case .websitesProxiesUpdate: return "/api/v2/websites/proxies/update"
         case .websitesProxiesFile:   return "/api/v2/websites/proxies/file"
+        case .websitesSSLList:       return "/api/v2/websites/ssl/search"
+        case .websitesSSLDetail:     return "/api/v2/websites/ssl/:id"
+        case .websitesSSLUpload:     return "/api/v2/websites/ssl/upload"
+        case .websitesSSLDelete:     return "/api/v2/websites/ssl/del"
+        case .websitesSSLDownload:   return "/api/v2/websites/ssl/download"
         case .databasesSearch:       return "/api/v2/databases/db/search"
         case .filesSearch:           return "/api/v2/files/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
@@ -112,7 +124,8 @@ enum APIEndpoint {
         case .dashboardOS, .dashboardBase, .dashboardTopCPU, .dashboardTopMem,
              .loginSetting, .appsIgnoredList, .appsStoreDetail,
              .appsInstalledDeleteCheck, .appsInstalledParams, .websiteDir,
-             .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead:
+             .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,
+             .websitesSSLDetail:
             return "GET"
         default:
             return "POST"
