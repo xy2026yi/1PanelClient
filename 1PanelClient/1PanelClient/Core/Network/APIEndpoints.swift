@@ -47,6 +47,17 @@ enum APIEndpoint {
     case websitesSSLDelete        // POST 删除证书
     case websitesSSLDownload      // POST 下载证书（返回压缩包）
 
+    // MARK: - 计划任务
+    case cronjobsSearch           // POST 分页查询计划任务
+    case cronjobsCreate           // POST 创建计划任务
+    case cronjobsHandle           // POST 手动执行计划任务
+    case cronjobsDelete           // POST 删除计划任务
+    case cronjobsRecords          // POST 查询计划任务执行记录
+    case cronjobsGroups           // POST 查询计划任务分组
+    case cronjobsBackups          // GET  备份账号列表
+    case cronjobsUsers            // GET  系统用户列表
+    case cronjobsScripts          // GET  内置脚本列表
+
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库
 
@@ -100,6 +111,15 @@ enum APIEndpoint {
         case .websitesSSLUpload:     return "/api/v2/websites/ssl/upload"
         case .websitesSSLDelete:     return "/api/v2/websites/ssl/del"
         case .websitesSSLDownload:   return "/api/v2/websites/ssl/download"
+        case .cronjobsSearch:        return "/api/v2/cronjobs/search"
+        case .cronjobsCreate:        return "/api/v2/cronjobs"
+        case .cronjobsHandle:        return "/api/v2/cronjobs/handle"
+        case .cronjobsDelete:        return "/api/v2/cronjobs/del"
+        case .cronjobsRecords:       return "/api/v2/cronjobs/search/records"
+        case .cronjobsGroups:        return "/api/v2/core/groups/search"
+        case .cronjobsBackups:       return "/api/v2/backups/options"
+        case .cronjobsUsers:         return "/api/v2/toolbox/device/users"
+        case .cronjobsScripts:       return "/api/v2/cronjobs/script/options"
         case .databasesSearch:       return "/api/v2/databases/db/search"
         case .filesSearch:           return "/api/v2/files/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
@@ -125,7 +145,7 @@ enum APIEndpoint {
              .loginSetting, .appsIgnoredList, .appsStoreDetail,
              .appsInstalledDeleteCheck, .appsInstalledParams, .websiteDir,
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,
-             .websitesSSLDetail:
+             .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts:
             return "GET"
         default:
             return "POST"

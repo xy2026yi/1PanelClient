@@ -66,7 +66,7 @@ struct ToolboxTab: View {
 
         var available: Bool {
             switch self {
-            case .files, .containers, .settings: return true
+            case .files, .containers, .settings, .cronjob: return true
             default: return false
             }
         }
@@ -78,8 +78,8 @@ struct ToolboxTab: View {
         /// 需要独立 NavigationStack（全屏覆盖）的工具
         var requiresFullScreen: Bool {
             switch self {
-            case .containers: return true
-            default:          return false
+            case .containers, .cronjob: return true
+            default:                    return false
             }
         }
     }
@@ -136,6 +136,8 @@ struct ToolboxTab: View {
         switch item {
         case .containers:
             ContainersTab(manager: manager)
+        case .cronjob:
+            CronjobsTab(manager: manager)
         default:
             EmptyView()
         }
