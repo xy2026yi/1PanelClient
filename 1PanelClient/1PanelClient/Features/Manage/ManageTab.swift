@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct ManageTab: View {
     @ObservedObject var manager: ServerManager
@@ -201,76 +202,75 @@ final class ManagePrefs: ObservableObject {
 
 // MARK: - 管理项定义
 
-extension ManageTab {
-    enum ManageItem: String, Identifiable {
-        case apps
-        case websites
-        case database
-        case containers
-        case terminal
-        case process
-        case firewall
-        case cronjob
+/// 管理功能项（顶层枚举，供 ManageTab / ManageEditView / ManagePrefs 共用）
+enum ManageItem: String, Identifiable {
+    case apps
+    case websites
+    case database
+    case containers
+    case terminal
+    case process
+    case firewall
+    case cronjob
 
-        var id: String { rawValue }
+    var id: String { rawValue }
 
-        var title: String {
-            switch self {
-            case .apps:       return "应用程序"
-            case .websites:   return "网站"
-            case .database:   return "数据库"
-            case .containers: return "容器"
-            case .terminal:   return "终端"
-            case .process:    return "进程"
-            case .firewall:   return "防火墙"
-            case .cronjob:    return "计划任务"
-            }
+    var title: String {
+        switch self {
+        case .apps:       return "应用程序"
+        case .websites:   return "网站"
+        case .database:   return "数据库"
+        case .containers: return "容器"
+        case .terminal:   return "终端"
+        case .process:    return "进程"
+        case .firewall:   return "防火墙"
+        case .cronjob:    return "计划任务"
         }
+    }
 
-        var subtitle: String {
-            switch self {
-            case .apps:       return "已安装应用 / 应用商店"
-            case .websites:   return "网站 / SSL 证书"
-            case .database:   return "管理数据库实例"
-            case .containers: return "Docker 容器"
-            case .terminal:   return "远程终端连接"
-            case .process:    return "系统进程监控"
-            case .firewall:   return "防火墙规则"
-            case .cronjob:    return "定时备份与脚本"
-            }
+    var subtitle: String {
+        switch self {
+        case .apps:       return "已安装应用 / 应用商店"
+        case .websites:   return "网站 / SSL 证书"
+        case .database:   return "管理数据库实例"
+        case .containers: return "Docker 容器"
+        case .terminal:   return "远程终端连接"
+        case .process:    return "系统进程监控"
+        case .firewall:   return "防火墙规则"
+        case .cronjob:    return "定时备份与脚本"
         }
+    }
 
-        var icon: String {
-            switch self {
-            case .apps:       return "app.badge"
-            case .websites:   return "globe"
-            case .database:   return "cylinder"
-            case .containers: return "shippingbox"
-            case .terminal:   return "terminal"
-            case .process:    return "chart.bar"
-            case .firewall:   return "flame"
-            case .cronjob:    return "clock.badge.checkmark"
-            }
+    var icon: String {
+        switch self {
+        case .apps:       return "app.badge"
+        case .websites:   return "globe"
+        case .database:   return "cylinder"
+        case .containers: return "shippingbox"
+        case .terminal:   return "terminal"
+        case .process:    return "chart.bar"
+        case .firewall:   return "flame"
+        case .cronjob:    return "clock.badge.checkmark"
         }
+    }
 
-        var color: Color {
-            switch self {
-            case .apps:       return .blue
-            case .websites:   return .green
-            case .database:   return .purple
-            case .containers: return .indigo
-            case .terminal:   return .black
-            case .process:    return .pink
-            case .firewall:   return .orange
-            case .cronjob:    return .teal
-            }
+    var color: Color {
+        switch self {
+        case .apps:       return .blue
+        case .websites:   return .green
+        case .database:   return .purple
+        case .containers: return .indigo
+        case .terminal:   return .black
+        case .process:    return .pink
+        case .firewall:   return .orange
+        case .cronjob:    return .teal
         }
+    }
 
-        var available: Bool {
-            switch self {
-            case .apps, .websites, .containers, .cronjob: return true
-            default: return false
-            }
+    var available: Bool {
+        switch self {
+        case .apps, .websites, .containers, .cronjob: return true
+        default: return false
         }
     }
 }
