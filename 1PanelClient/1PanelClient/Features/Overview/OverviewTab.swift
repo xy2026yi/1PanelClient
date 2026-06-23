@@ -35,16 +35,30 @@ struct OverviewTab: View {
                 }
                 .padding()
             }
-            .navigationTitle(manager.current?.name ?? "1Panel")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable {
                 await vm.refresh()
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .principal) {
                     Button {
                         showServerPicker = true
-                    } label: { Image(systemName: "server.rack") }
+                    } label: {
+                        VStack(spacing: 1) {
+                            Text(manager.current?.name ?? "未连接")
+                                .font(.headline)
+                            HStack(spacing: 3) {
+                                Text(manager.current?.normalizedBaseURL ?? "")
+                                    .font(.caption2)
+                                    .lineLimit(1)
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 9, weight: .bold))
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .confirmationDialog("选择服务器", isPresented: $showServerPicker, titleVisibility: .visible) {
@@ -68,13 +82,14 @@ struct OverviewTab: View {
     }
 
     // 完整仪表盘（dashboard/base/all/all 可用时）
+    // 顺序对齐 1Panel 官方：资源卡片 → 实时监控 → 系统信息
     @ViewBuilder
     private func fullDashboard(_ base: DashboardBase) -> some View {
-        systemCard(base)
+        resourceStatsGrid(base)
         if let cur = base.currentInfo {
             monitorCards(cur: cur)
         }
-        resourceStatsGrid(base)
+        systemCard(base)
     }
 
     // 回退视图（dashboard/base/all/all 失败时）
@@ -173,18 +188,25 @@ struct OverviewTab: View {
             GridItem(.flexible(), spacing: 12),
             GridItem(.flexible(), spacing: 12)
         ], spacing: 12) {
-            Button { selectedTab = .websites } label: {
+            Button { selectedTab = .manage } label: {
                 StatCard(title: "网站", count: b.websiteNumber, icon: "globe", color: .green)
             }
             .buttonStyle(.plain)
 
-            Button { selectedTab = .apps } label: {
-                StatCard(title: "应用", count: b.appInstalledNumber, icon: "shippingbox", color: .blue)
+            Button { selectedTab = .manage } label: {
+                StatCard(title: "应用", count: b.appInstalledNumber, icon: "app.badge", color: .blue)
             }
             .buttonStyle(.plain)
 
-            StatCard(title: "数据库", count: b.databaseNumber, icon: "cylinder.split.1x2", color: .purple)
-            StatCard(title: "计划任务", count: b.cronjobNumber, icon: "clock.arrow.circlepath", color: .orange)
+            Button { selectedTab = .manage } label: {
+                StatCard(title: "数据库", count: b.databaseNumber, icon: "cylinder.split.1x2", color: .purple)
+            }
+            .buttonStyle(.plain)
+
+            Button { selectedTab = .manage } label: {
+                StatCard(title: "容器", count: b.appInstalledNumber, icon: "shippingbox", color: .indigo)
+            }
+            .buttonStyle(.plain)
         }
     }
 

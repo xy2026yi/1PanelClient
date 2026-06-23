@@ -12,51 +12,64 @@ struct ContainersTab: View {
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
 
-    /// 是否显示关闭按钮（fullScreen 模式用 true，作为分段内容时用 false）
+    /// 是否显示关闭按钮（fullScreen 模式用 true，作为分段/嵌入内容时用 false）
     var showCloseButton: Bool = true
+    /// true=自带 NavigationStack（独立/fullScreen 用）；false=仅提供内容（嵌入外层栈）
+    var standalone: Bool = true
 
-    init(manager: ServerManager, showCloseButton: Bool = true) {
+    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
         self.manager = manager
         self.showCloseButton = showCloseButton
+        self.standalone = standalone
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: ContainersViewModel(server: server))
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if vm.isLoading && vm.containers.isEmpty {
-                    ProgressView("加载中…")
-                } else if vm.containers.isEmpty {
-                    ContentUnavailableView(
-                        "暂无容器",
-                        systemImage: "shippingbox",
-                        description: Text(vm.errorMessage ?? "这台服务器上没有容器")
-                    )
-                } else {
-                    containerList
-                }
+        if standalone {
+            NavigationStack {
+                rootContent
             }
-            .navigationTitle("容器")
-            .navigationBarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "搜索容器名")
-            .toolbar {
-                if showCloseButton {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
+            .task { await vm.refresh() }
+        } else {
+            rootContent
+                .task { await vm.refresh() }
+        }
+    }
+
+    /// 列表根内容（不含 NavigationStack），供 ManageTab 嵌入复用
+    var rootContent: some View {
+        Group {
+            if vm.isLoading && vm.containers.isEmpty {
+                ProgressView("加载中…")
+            } else if vm.containers.isEmpty {
+                ContentUnavailableView(
+                    "暂无容器",
+                    systemImage: "shippingbox",
+                    description: Text(vm.errorMessage ?? "这台服务器上没有容器")
+                )
+            } else {
+                containerList
+            }
+        }
+        .navigationTitle("容器")
+        .navigationBarTitleDisplayMode(.large)
+        .searchable(text: $searchText, prompt: "搜索容器名")
+        .toolbar {
+            if showCloseButton {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
-            .onChange(of: searchText) { _, newValue in
-                Task { await vm.search(query: newValue) }
-            }
         }
-        .task { await vm.refresh() }
+        .onChange(of: searchText) { _, newValue in
+            Task { await vm.search(query: newValue) }
+        }
     }
 
     private var containerList: some View {
