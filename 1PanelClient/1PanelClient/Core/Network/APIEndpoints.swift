@@ -11,6 +11,7 @@ enum APIEndpoint {
     // MARK: - 仪表盘监控
     case dashboardOS              // GET 操作系统基础信息（os/kernel/distro）
     case dashboardBase            // GET 完整系统信息+CPU+内存+资源统计
+    case dashboardCurrent         // GET 实时监控数据（独立轮询用）
     case dashboardTopCPU          // GET CPU占用TOP进程
     case dashboardTopMem          // GET 内存占用TOP进程
     case settingsSearch           // POST 面板设置（含 systemVersion 面板版本）
@@ -87,6 +88,7 @@ enum APIEndpoint {
         switch self {
         case .dashboardOS:           return "/api/v2/dashboard/base/os"
         case .dashboardBase:         return "/api/v2/dashboard/base/all/all"
+        case .dashboardCurrent:      return "/api/v2/dashboard/current/all/all"
         case .dashboardTopCPU:       return "/api/v2/dashboard/current/top/cpu"
         case .dashboardTopMem:       return "/api/v2/dashboard/current/top/mem"
         case .settingsSearch:        return "/api/v2/core/settings/search"
@@ -143,7 +145,7 @@ enum APIEndpoint {
 
     var method: String {
         switch self {
-        case .dashboardOS, .dashboardBase, .dashboardTopCPU, .dashboardTopMem,
+        case .dashboardOS, .dashboardBase, .dashboardCurrent, .dashboardTopCPU, .dashboardTopMem,
              .loginSetting, .appsIgnoredList, .appsStoreDetail,
              .appsInstalledDeleteCheck, .appsInstalledParams, .websiteDir,
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,

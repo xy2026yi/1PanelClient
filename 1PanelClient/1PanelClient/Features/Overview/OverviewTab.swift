@@ -79,6 +79,15 @@ struct OverviewTab: View {
             }
         }
         .task { await vm.refresh() }
+        // 实时监控独立轮询：页面可见时每 5 秒刷新一次 current 数据
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                if !Task.isCancelled {
+                    await vm.refreshCurrent()
+                }
+            }
+        }
     }
 
     // 完整仪表盘（dashboard/base/all/all 可用时）
@@ -86,7 +95,8 @@ struct OverviewTab: View {
     @ViewBuilder
     private func fullDashboard(_ base: DashboardBase) -> some View {
         resourceStatsGrid(base)
-        if let cur = base.currentInfo {
+        // 实时监控使用独立的 current 接口数据（优先），回退到 base.currentInfo
+        if let cur = vm.currentInfo ?? base.currentInfo {
             monitorCards(cur: cur)
         }
         panelInfoCard
@@ -410,6 +420,7 @@ final class OverviewViewModel: ObservableObject {
     @Published var osInfo: OsInfo?
     @Published var deviceInfo: DeviceInfo?
     @Published var settingInfo: SettingInfo?
+    @Published var currentInfo: DashboardCurrent?   // 实时监控（独立接口）
     @Published var isLoading = false
     @Published var errorMessage: String?
 
@@ -427,6 +438,7 @@ final class OverviewViewModel: ObservableObject {
         osInfo = nil
         deviceInfo = nil
         settingInfo = nil
+        currentInfo = nil
     }
 
     func refresh() async {
@@ -434,7 +446,7 @@ final class OverviewViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
-        // 并行：完整 dashboard + OS 信息 + 设备信息 + 面板设置
+        // 并行：完整 dashboard + OS 信息 + 设备信息 + 面板设置 + 实时监控
         async let baseResp: DashboardBase? = try? await client.send(
             path: APIEndpoint.dashboardBase.path,
             method: APIEndpoint.dashboardBase.method,
@@ -453,15 +465,32 @@ final class OverviewViewModel: ObservableObject {
             path: APIEndpoint.settingsSearch.path,
             as: SettingInfo.self
         )
+        async let current: DashboardCurrent? = try? await client.send(
+            path: APIEndpoint.dashboardCurrent.path,
+            method: APIEndpoint.dashboardCurrent.method,
+            as: DashboardCurrent.self
+        )
 
-        let (b, o, d, s) = await (baseResp, os, dev, settings)
+        let (b, o, d, s, c) = await (baseResp, os, dev, settings, current)
         self.base = b
         self.osInfo = o
         self.deviceInfo = d
         self.settingInfo = s
+        self.currentInfo = c
 
         if b == nil && o == nil && d == nil {
             self.errorMessage = "无法获取服务器信息，请检查 API Key 和网络"
+        }
+    }
+
+    /// 仅刷新实时监控数据（供定时轮询调用，避免全量刷新）
+    func refreshCurrent() async {
+        if let c: DashboardCurrent = try? await client.send(
+            path: APIEndpoint.dashboardCurrent.path,
+            method: APIEndpoint.dashboardCurrent.method,
+            as: DashboardCurrent.self
+        ) {
+            self.currentInfo = c
         }
     }
 }
