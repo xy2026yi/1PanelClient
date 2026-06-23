@@ -987,16 +987,13 @@ struct AppRow: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(app.statusColor.opacity(0.15))
-                    .frame(width: 44, height: 44)
+                IconBadge(systemName: app.statusIcon, color: app.statusColor)
                 if isOperating {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(.thinMaterial)
+                        .frame(width: 44, height: 44)
                     ProgressView()
                         .scaleEffect(0.6)
-                } else {
-                    Image(systemName: app.statusIcon)
-                        .font(.title3)
-                        .foregroundStyle(app.statusColor)
                 }
             }
 
@@ -1007,26 +1004,11 @@ struct AppRow: View {
                         .lineLimit(1)
 
                     if let v = app.version, !v.isEmpty {
-                        Text("v\(v)")
-                            .font(.caption2.monospaced())
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.secondary.opacity(0.15))
-                            .clipShape(Capsule())
-                            .foregroundStyle(.secondary)
+                        StatusBadge(text: "v\(v)", color: .secondary, backgroundOpacity: 0.12)
                     }
 
                     if app.canUpdate == true {
-                        HStack(spacing: 2) {
-                            Image(systemName: "arrow.up.circle.fill")
-                            Text("可更新")
-                        }
-                        .font(.caption2.bold())
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.orange.opacity(0.2))
-                        .clipShape(Capsule())
-                        .foregroundStyle(.orange)
+                        StatusBadge(text: "可更新", color: .orange, icon: "arrow.up.circle.fill")
                     }
                 }
 
@@ -1042,13 +1024,7 @@ struct AppRow: View {
                 }
 
                 HStack(spacing: 8) {
-                    Text((app.status ?? "未知").capitalized)
-                        .font(.caption2.bold())
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(app.statusColor.opacity(0.15))
-                        .foregroundStyle(app.statusColor)
-                        .clipShape(Capsule())
+                    StatusBadge(text: (app.status ?? "未知").capitalized, color: app.statusColor)
 
                     if let port = app.httpPort, port > 0 {
                         Label("\(port)", systemImage: "network")

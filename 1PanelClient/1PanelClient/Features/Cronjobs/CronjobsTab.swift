@@ -129,14 +129,7 @@ struct CronjobRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(job.jobType.color.opacity(0.15))
-                    .frame(width: 44, height: 44)
-                Image(systemName: job.jobType.icon)
-                    .font(.title3)
-                    .foregroundStyle(job.jobType.color)
-            }
+            IconBadge(systemName: job.jobType.icon, color: job.jobType.color)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(job.name ?? "未命名")
@@ -144,21 +137,8 @@ struct CronjobRow: View {
                     .lineLimit(1)
 
                 HStack(spacing: 6) {
-                    Text(job.jobType.displayName)
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(job.jobType.color.opacity(0.1))
-                        .foregroundStyle(job.jobType.color)
-                        .clipShape(Capsule())
-
-                    Text(job.specDisplay)
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.secondary.opacity(0.1))
-                        .foregroundStyle(.secondary)
-                        .clipShape(Capsule())
+                    StatusBadge(text: job.jobType.displayName, color: job.jobType.color, backgroundOpacity: 0.12)
+                    StatusBadge(text: job.specDisplay, color: .secondary, backgroundOpacity: 0.1)
                 }
 
                 if let last = job.lastRecordStatus, !last.isEmpty {
@@ -172,9 +152,7 @@ struct CronjobRow: View {
 
             // 启用/禁用徽标
             if !job.isEnabled {
-                Text("已停用")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                StatusBadge(text: "已停用", color: .secondary, backgroundOpacity: 0.1)
             }
         }
         .padding(.vertical, 4)

@@ -122,19 +122,17 @@ struct CertificateRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(cert.statusColor.opacity(0.15))
-                    .frame(width: 44, height: 44)
-                Image(systemName: cert.isExpired ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
-                    .foregroundStyle(cert.statusColor)
-            }
+            IconBadge(
+                systemName: cert.isExpired ? "exclamationmark.triangle.fill" : "checkmark.seal.fill",
+                color: cert.statusColor,
+                cornerRadius: 22  // 圆形
+            )
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(cert.displayName)
                     .font(.body.bold())
                     .lineLimit(1)
-                HStack(spacing: 6) {
+                HStack(spacing: 4) {
                     Text(cert.displayOrganization)
                         .font(.caption)
                         .foregroundStyle(.secondary)

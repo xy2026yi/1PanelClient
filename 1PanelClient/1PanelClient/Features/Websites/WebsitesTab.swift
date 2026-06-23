@@ -267,14 +267,7 @@ struct WebsiteRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(website.statusColor.opacity(0.15))
-                    .frame(width: 44, height: 44)
-                Image(systemName: website.typeIcon)
-                    .font(.title3)
-                    .foregroundStyle(website.statusColor)
-            }
+            IconBadge(systemName: website.typeIcon, color: website.statusColor)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
@@ -289,22 +282,10 @@ struct WebsiteRow: View {
                 }
 
                 HStack(spacing: 6) {
-                    Text(website.typeDisplayName)
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundStyle(.blue)
-                        .clipShape(Capsule())
+                    StatusBadge(text: website.typeDisplayName, color: .blue, backgroundOpacity: 0.12)
 
                     if let app = website.appName, !app.isEmpty {
-                        Text(app)
-                            .font(.caption2)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.secondary.opacity(0.1))
-                            .foregroundStyle(.secondary)
-                            .clipShape(Capsule())
+                        StatusBadge(text: app, color: .secondary, backgroundOpacity: 0.1)
                     }
                 }
             }

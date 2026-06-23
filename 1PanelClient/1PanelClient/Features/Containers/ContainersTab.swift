@@ -77,10 +77,7 @@ struct ContainerRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: container.stateIcon)
-                .font(.title2)
-                .foregroundStyle(container.stateColor)
-                .frame(width: 32)
+            IconBadge(systemName: container.stateIcon, color: container.stateColor)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(container.displayName)
@@ -92,10 +89,12 @@ struct ContainerRow: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
 
-                HStack(spacing: 8) {
-                    Label(container.state.capitalized, systemImage: "circle.fill")
-                        .font(.caption2)
-                        .foregroundStyle(container.stateColor)
+                HStack(spacing: 6) {
+                    StatusBadge(
+                        text: container.state.capitalized,
+                        color: container.stateColor,
+                        icon: "circle.fill"
+                    )
                     if let runTime = container.runTime {
                         Text("· \(runTime)")
                             .font(.caption2)
