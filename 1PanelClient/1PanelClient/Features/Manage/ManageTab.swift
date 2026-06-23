@@ -29,10 +29,20 @@ struct ManageTab: View {
         NavigationStack {
             List {
                 ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
-                    Section(group.title.isEmpty ? nil : group.title) {
-                        ForEach(group.items) { item in
-                            if prefs.isEnabled(item) {
-                                manageRow(item)
+                    if group.title.isEmpty {
+                        Section {
+                            ForEach(group.items) { item in
+                                if prefs.isEnabled(item) {
+                                    manageRow(item)
+                                }
+                            }
+                        }
+                    } else {
+                        Section(group.title) {
+                            ForEach(group.items) { item in
+                                if prefs.isEnabled(item) {
+                                    manageRow(item)
+                                }
                             }
                         }
                     }
