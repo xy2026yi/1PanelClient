@@ -170,6 +170,7 @@ struct CertificateDetailView: View {
     @State private var detail: WebsiteSSLCert?
     @State private var isLoading = false
     @State private var tab: DetailTab = .info
+    @State private var showUpdateSheet = false
 
     private enum DetailTab: String, CaseIterable, Identifiable {
         case info    = "证书信息"
@@ -199,7 +200,25 @@ struct CertificateDetailView: View {
         }
         .navigationTitle(cert.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showUpdateSheet = true
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                }
+            }
+        }
+        .sheet(isPresented: $showUpdateSheet) {
+            UploadCertificateView(vm: vm, existingCert: detail ?? cert)
+        }
         .task { await loadDetail() }
+        .onChange(of: vm.needsRefresh) { _, refreshed in
+            if refreshed {
+                vm.needsRefresh = false
+                Task { await loadDetail() }
+            }
+        }
     }
 
     private var infoSection: some View {
@@ -257,6 +276,9 @@ struct UploadCertificateView: View {
     @ObservedObject var vm: CertificatesViewModel
     @Environment(\.dismiss) private var dismiss
 
+    /// 传入则进入「更新」模式（覆盖原证书），为 nil 则为「上传」新证书
+    var existingCert: WebsiteSSLCert?
+
     @State private var mode: UploadMode = .paste
     @State private var description = ""
     @State private var privateKey = ""
@@ -270,6 +292,8 @@ struct UploadCertificateView: View {
         var id: String { rawValue }
     }
 
+    private var isUpdate: Bool { existingCert != nil }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -282,6 +306,18 @@ struct UploadCertificateView: View {
                     .pickerStyle(.segmented)
 
                     TextField("备注（可选）", text: $description)
+                } header: {
+                    if isUpdate {
+                        Text("更新证书")
+                    } else {
+                        Text("上传方式")
+                    }
+                } footer: {
+                    if isUpdate {
+                        Text("将用新的证书内容替换「\(existingCert?.displayName ?? "")」。原证书的 ID 保持不变，已绑定该证书的网站会自动生效。")
+                    } else {
+                        EmptyView()
+                    }
                 }
 
                 switch mode {
@@ -310,7 +346,7 @@ struct UploadCertificateView: View {
                     } header: { Text("证书文件路径") }
                 }
             }
-            .navigationTitle("上传证书")
+            .navigationTitle(isUpdate ? "更新证书" : "上传证书")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -323,7 +359,7 @@ struct UploadCertificateView: View {
                         if vm.isUploading {
                             ProgressView()
                         } else {
-                            Text("上传").bold()
+                            Text(isUpdate ? "保存" : "上传").bold()
                         }
                     }
                     .disabled(!canSubmit || vm.isUploading)
@@ -347,7 +383,7 @@ struct UploadCertificateView: View {
         var req = WebsiteSSLUploadRequest()
         req.type = (mode == .paste) ? "paste" : "local"
         req.description = description
-        req.sslID = 0
+        req.sslID = existingCert?.id ?? 0
         switch mode {
         case .paste:
             req.privateKey = privateKey
@@ -357,7 +393,7 @@ struct UploadCertificateView: View {
             req.certificatePath = certificatePath
         }
 
-        if await vm.upload(req: req) {
+        if await vm.upload(req: req, isUpdate: isUpdate) {
             dismiss()
         }
     }
@@ -422,7 +458,7 @@ final class CertificatesViewModel: ObservableObject {
         }
     }
 
-    func upload(req: WebsiteSSLUploadRequest) async -> Bool {
+    func upload(req: WebsiteSSLUploadRequest, isUpdate: Bool = false) async -> Bool {
         isUploading = true
         defer { isUploading = false }
         do {
@@ -431,15 +467,15 @@ final class CertificatesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "证书上传成功")
+            showAlert(message: isUpdate ? "证书已更新" : "证书上传成功")
             await refresh()
             needsRefresh = true
             return true
         } catch let err as APIError {
-            showAlert(message: "上传失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: "\(isUpdate ? "更新" : "上传")失败：\(err.errorDescription ?? "未知错误")")
             return false
         } catch {
-            showAlert(message: "上传失败：\(error.localizedDescription)")
+            showAlert(message: "\(isUpdate ? "更新" : "上传")失败：\(error.localizedDescription)")
             return false
         }
     }
