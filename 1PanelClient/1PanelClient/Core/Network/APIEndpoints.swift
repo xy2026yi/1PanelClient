@@ -13,6 +13,7 @@ enum APIEndpoint {
     case dashboardBase            // GET 完整系统信息+CPU+内存+资源统计
     case dashboardTopCPU          // GET CPU占用TOP进程
     case dashboardTopMem          // GET 内存占用TOP进程
+    case settingsSearch           // POST 面板设置（含 systemVersion 面板版本）
 
     // MARK: - 系统设备信息（toolbox）
     case deviceBase               // POST 设备基础信息
@@ -88,6 +89,7 @@ enum APIEndpoint {
         case .dashboardBase:         return "/api/v2/dashboard/base/all/all"
         case .dashboardTopCPU:       return "/api/v2/dashboard/current/top/cpu"
         case .dashboardTopMem:       return "/api/v2/dashboard/current/top/mem"
+        case .settingsSearch:        return "/api/v2/core/settings/search"
         case .deviceBase:            return "/api/v2/toolbox/device/base"
         case .loginSetting:          return "/api/v2/core/auth/setting"
         case .containersSearch:      return "/api/v2/containers/search"

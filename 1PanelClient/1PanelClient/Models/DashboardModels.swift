@@ -75,6 +75,11 @@ struct DashboardCurrent: Decodable, Sendable {
     let ioWriteBytes: Int64?
     let netBytesSent: Int64?
     let netBytesRecv: Int64?
+
+    // 磁盘使用率（部分版本在 currentInfo 中返回）
+    let diskSize: Int64?
+    let diskUsed: Int64?
+    let diskUsedPercent: Double?
 }
 
 /// CPU/内存 TOP 进程（GET /dashboard/current/top/cpu）
@@ -91,4 +96,24 @@ struct ProcessInfo: Decodable, Identifiable, Sendable {
 
     var displayName: String { name ?? "未知" }
     var displayCmd: String { cmd ?? "" }
+}
+
+/// 面板系统设置信息（POST /core/settings/search）
+/// 用于获取面板版本号等
+struct SettingInfo: Decodable, Sendable {
+    let systemVersion: String?
+    let systemIP: String?
+    let timeZone: String?
+    let localTime: String?
+    let monitorStatus: String?
+    let monitorInterval: String?
+    let monitorStoreDays: String?
+    let appStoreVersion: String?
+    let appStoreSyncStatus: String?
+    let appStoreLastModified: String?
+    let dockerSockPath: String?
+    let defaultIO: String?
+    let defaultNetwork: String?
+    let fileRecycleBin: String?
+    let ntpSite: String?
 }

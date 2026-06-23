@@ -82,14 +82,45 @@ struct OverviewTab: View {
     }
 
     // 完整仪表盘（dashboard/base/all/all 可用时）
-    // 顺序对齐 1Panel 官方：资源卡片 → 实时监控 → 系统信息
+    // 顺序对齐 1Panel 官方：资源卡片 → 实时监控 → 面板信息 → 系统信息
     @ViewBuilder
     private func fullDashboard(_ base: DashboardBase) -> some View {
         resourceStatsGrid(base)
         if let cur = base.currentInfo {
             monitorCards(cur: cur)
         }
+        panelInfoCard
         systemCard(base)
+    }
+
+    // MARK: - 面板信息卡片（版本号等）
+    @ViewBuilder
+    private var panelInfoCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "info.circle")
+                    .foregroundStyle(.tint)
+                Text("面板信息")
+                    .font(.headline)
+            }
+            Divider()
+            InfoRow(key: "版本", value: vm.settingInfo?.systemVersion.flatMap { $0.isEmpty ? nil : $0 } ?? "未知")
+            if let ip = vm.settingInfo?.systemIP, !ip.isEmpty {
+                InfoRow(key: "面板 IP", value: ip)
+            }
+            if let tz = vm.settingInfo?.timeZone, !tz.isEmpty {
+                InfoRow(key: "时区", value: tz)
+            }
+            if let local = vm.settingInfo?.localTime, !local.isEmpty {
+                InfoRow(key: "本地时间", value: local)
+            }
+            if let monitor = vm.settingInfo?.monitorStatus, !monitor.isEmpty {
+                InfoRow(key: "监控", value: monitor == "enable" ? "已启用" : "已停用")
+            }
+        }
+        .padding()
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     // 回退视图（dashboard/base/all/all 失败时）
@@ -138,7 +169,7 @@ struct OverviewTab: View {
     }
 
     private func monitorCards(cur: DashboardCurrent) -> some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             HStack {
                 Image(systemName: "chart.xyaxis.line")
                     .foregroundStyle(.tint)
@@ -152,19 +183,44 @@ struct OverviewTab: View {
                 }
             }
 
-            HStack(spacing: 12) {
-                GaugeCard(title: "CPU",
-                          percent: cur.cpuUsedPercent ?? 0,
-                          color: .blue,
-                          detail: "\(formatCores(cur.cpuUsed)) / \(cur.cpuTotal ?? 0) 核",
-                          loadInfo: "负载 \(format2(cur.load1)) / \(format2(cur.load5)) / \(format2(cur.load15))")
-                GaugeCard(title: "内存",
-                          percent: cur.memoryUsedPercent ?? 0,
-                          color: .purple,
-                          detail: "\(formatBytes(cur.memoryUsed)) / \(formatBytes(cur.memoryTotal))",
-                          loadInfo: "Swap \(formatBytes(cur.swapMemoryUsed)) / \(formatBytes(cur.swapMemoryTotal))")
+            // 四个圆形指标：负载 / CPU / 内存 / 存储
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 12),
+                GridItem(.flexible(), spacing: 12)
+            ], spacing: 16) {
+                RingStatView(
+                    percent: min(cur.loadUsagePercent ?? 0, 100),
+                    color: .teal,
+                    topText: String(format: "%.1f%%", cur.loadUsagePercent ?? 0),
+                    bottomText: "负载",
+                    footer: "\(format2(cur.load1)) / \(format2(cur.load5)) / \(format2(cur.load15))"
+                )
+                RingStatView(
+                    percent: min(cur.cpuUsedPercent ?? 0, 100),
+                    color: .blue,
+                    topText: String(format: "%.1f%%", cur.cpuUsedPercent ?? 0),
+                    bottomText: "CPU",
+                    footer: "\(formatCores(cur.cpuUsed)) / \(cur.cpuTotal ?? 0) 核"
+                )
+                RingStatView(
+                    percent: min(cur.memoryUsedPercent ?? 0, 100),
+                    color: .purple,
+                    topText: String(format: "%.1f%%", cur.memoryUsedPercent ?? 0),
+                    bottomText: "内存",
+                    footer: "\(formatBytes(cur.memoryUsed)) / \(formatBytes(cur.memoryTotal))"
+                )
+                RingStatView(
+                    percent: min(cur.diskUsedPercent ?? 0, 100),
+                    color: .orange,
+                    topText: diskPercentText(cur),
+                    bottomText: "存储",
+                    footer: diskFooterText(cur)
+                )
             }
 
+            Divider()
+
+            // IO 与网络速率
             HStack(spacing: 12) {
                 MiniStatCard(title: "磁盘读", icon: "arrow.down.circle",
                              value: formatBytes(cur.ioReadBytes), color: .green)
@@ -181,6 +237,22 @@ struct OverviewTab: View {
         .padding()
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    // 存储百分比文本：后端可能不返回磁盘数据
+    private func diskPercentText(_ cur: DashboardCurrent) -> String {
+        if let p = cur.diskUsedPercent, p >= 0 {
+            return String(format: "%.1f%%", p)
+        }
+        return "—"
+    }
+
+    // 存储详情文本
+    private func diskFooterText(_ cur: DashboardCurrent) -> String {
+        if let used = cur.diskUsed, let total = cur.diskSize, total > 0 {
+            return "\(formatBytes(used)) / \(formatBytes(total))"
+        }
+        return "暂无数据"
     }
 
     private func resourceStatsGrid(_ b: DashboardBase) -> some View {
@@ -277,41 +349,49 @@ struct OverviewTab: View {
 
 // MARK: - 子视图
 
-struct GaugeCard: View {
-    let title: String
+/// 圆形进度指标：外圈圆环体现使用率，圆心上方显示百分比，下方显示标签，圆环正下方显示详情
+struct RingStatView: View {
     let percent: Double
     let color: Color
-    let detail: String
-    let loadInfo: String
+    let topText: String      // 圆心上：百分比文本
+    let bottomText: String   // 圆心下：标签（负载/CPU/内存/存储）
+    let footer: String       // 圆环下方：具体使用情况/总数
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(String(format: "%.1f", percent))
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                Text("%")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
+        VStack(spacing: 8) {
+            ZStack {
+                // 背景圆环
+                Circle()
+                    .stroke(color.opacity(0.15), lineWidth: 10)
+                // 进度圆环
+                Circle()
+                    .trim(from: 0, to: max(0.001, min(percent, 100) / 100))
+                    .stroke(color,
+                            style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.4), value: percent)
+                // 圆心文字：上（%）+ 下（标签）
+                VStack(spacing: 2) {
+                    Text(topText)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(.primary)
+                    Text(bottomText)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
-            ProgressView(value: min(percent, 100), total: 100)
-                .tint(color)
-            Text(detail)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(loadInfo)
+            .frame(width: 88, height: 88)
+
+            // 圆环正下方：具体使用情况/总数
+            Text(footer)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .frame(height: 28)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.3))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -379,6 +459,7 @@ final class OverviewViewModel: ObservableObject {
     @Published var base: DashboardBase?
     @Published var osInfo: OsInfo?
     @Published var deviceInfo: DeviceInfo?
+    @Published var settingInfo: SettingInfo?
     @Published var isLoading = false
     @Published var errorMessage: String?
 
@@ -395,6 +476,7 @@ final class OverviewViewModel: ObservableObject {
         base = nil
         osInfo = nil
         deviceInfo = nil
+        settingInfo = nil
     }
 
     func refresh() async {
@@ -402,7 +484,7 @@ final class OverviewViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
-        // 并行：尝试完整 dashboard + OS 信息 + 设备信息
+        // 并行：完整 dashboard + OS 信息 + 设备信息 + 面板设置
         async let baseResp: DashboardBase? = try? await client.send(
             path: APIEndpoint.dashboardBase.path,
             method: APIEndpoint.dashboardBase.method,
@@ -417,11 +499,16 @@ final class OverviewViewModel: ObservableObject {
             path: APIEndpoint.deviceBase.path,
             as: DeviceInfo.self
         )
+        async let settings: SettingInfo? = try? await client.send(
+            path: APIEndpoint.settingsSearch.path,
+            as: SettingInfo.self
+        )
 
-        let (b, o, d) = await (baseResp, os, dev)
+        let (b, o, d, s) = await (baseResp, os, dev, settings)
         self.base = b
         self.osInfo = o
         self.deviceInfo = d
+        self.settingInfo = s
 
         if b == nil && o == nil && d == nil {
             self.errorMessage = "无法获取服务器信息，请检查 API Key 和网络"
