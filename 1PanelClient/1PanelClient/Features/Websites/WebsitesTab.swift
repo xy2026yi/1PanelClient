@@ -13,8 +13,12 @@ struct WebsitesTab: View {
     @State private var searchText = ""
     @State private var showCreateSheet = false
 
-    init(manager: ServerManager) {
+    /// 是否显示关闭按钮（fullScreen 模式用 true，作为分段内容时用 false）
+    var showCloseButton: Bool = true
+
+    init(manager: ServerManager, showCloseButton: Bool = true) {
         self.manager = manager
+        self.showCloseButton = showCloseButton
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: WebsitesViewModel(server: server))
     }
@@ -52,11 +56,13 @@ struct WebsitesTab: View {
                         } label: {
                             Image(systemName: "arrow.clockwise")
                         }
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
+                        if showCloseButton {
+                            Button {
+                                dismiss()
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }

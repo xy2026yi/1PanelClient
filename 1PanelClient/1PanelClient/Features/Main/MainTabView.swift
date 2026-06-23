@@ -24,9 +24,9 @@ struct MainTabView: View {
                             Label("应用", systemImage: "app.badge")
                         }
 
-                    ContainersTab(manager: manager)
+                    UnifiedWebsitesTab(manager: manager)
                         .tabItem {
-                            Label("容器", systemImage: "shippingbox")
+                            Label("网站", systemImage: "globe")
                         }
 
                     ToolboxTab(manager: manager)

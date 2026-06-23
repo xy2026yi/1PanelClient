@@ -2,8 +2,8 @@
 //  ToolboxTab.swift
 //  1PanelClient
 //
-//  工具箱：聚合文件管理、设置以及未来的长尾功能
-//  采用九宫格入口 + NavigationLink 推进子页面的形式
+//  工具箱：聚合文件管理、容器、设置以及未来的长尾功能
+//  采用九宫格入口 + NavigationLink / fullScreenCover 推进子页面
 //
 
 import SwiftUI
@@ -15,62 +15,58 @@ struct ToolboxTab: View {
     /// 工具入口定义
     private enum ToolItem: String, CaseIterable, Identifiable {
         case files
-        case websites
+        case containers
         case settings
         case terminal
         case cronjob
         case firewall
         case database
-        case ssl
         case process
 
         var id: String { rawValue }
 
         var title: String {
             switch self {
-            case .files:     return "文件管理"
-            case .websites:  return "网站"
-            case .settings:  return "设置"
-            case .terminal:  return "终端"
-            case .cronjob:   return "计划任务"
-            case .firewall:  return "防火墙"
-            case .database:  return "数据库"
-            case .ssl:       return "SSL 证书"
-            case .process:   return "进程"
+            case .files:      return "文件管理"
+            case .containers: return "容器"
+            case .settings:   return "设置"
+            case .terminal:   return "终端"
+            case .cronjob:    return "计划任务"
+            case .firewall:   return "防火墙"
+            case .database:   return "数据库"
+            case .process:    return "进程"
             }
         }
 
         var icon: String {
             switch self {
-            case .files:     return "folder"
-            case .websites:  return "globe"
-            case .settings:  return "gearshape"
-            case .terminal:  return "terminal"
-            case .cronjob:   return "clock.badge.checkmark"
-            case .firewall:  return "flame"
-            case .database:  return "cylinder"
-            case .ssl:       return "lock.shield"
-            case .process:   return "chart.bar"
+            case .files:      return "folder"
+            case .containers: return "shippingbox"
+            case .settings:   return "gearshape"
+            case .terminal:   return "terminal"
+            case .cronjob:    return "clock.badge.checkmark"
+            case .firewall:   return "flame"
+            case .database:   return "cylinder"
+            case .process:    return "chart.bar"
             }
         }
 
         var color: Color {
             switch self {
-            case .files:     return .blue
-            case .websites:  return .green
-            case .settings:  return .gray
-            case .terminal:  return .black
-            case .cronjob:   return .indigo
-            case .firewall:  return .orange
-            case .database:  return .teal
-            case .ssl:       return .purple
-            case .process:   return .pink
+            case .files:      return .blue
+            case .containers: return .indigo
+            case .settings:   return .gray
+            case .terminal:   return .black
+            case .cronjob:    return .teal
+            case .firewall:   return .orange
+            case .database:   return .purple
+            case .process:    return .pink
             }
         }
 
         var available: Bool {
             switch self {
-            case .files, .websites, .settings, .ssl: return true
+            case .files, .containers, .settings: return true
             default: return false
             }
         }
@@ -82,8 +78,8 @@ struct ToolboxTab: View {
         /// 需要独立 NavigationStack（全屏覆盖）的工具
         var requiresFullScreen: Bool {
             switch self {
-            case .websites, .ssl: return true
-            default:              return false
+            case .containers: return true
+            default:          return false
             }
         }
     }
@@ -138,10 +134,8 @@ struct ToolboxTab: View {
     @ViewBuilder
     private func fullScreenDestination(for item: ToolItem) -> some View {
         switch item {
-        case .websites:
-            WebsitesTab(manager: manager)
-        case .ssl:
-            CertificatesTab(manager: manager)
+        case .containers:
+            ContainersTab(manager: manager)
         default:
             EmptyView()
         }
