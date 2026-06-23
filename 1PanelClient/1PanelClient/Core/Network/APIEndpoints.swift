@@ -29,6 +29,11 @@ enum APIEndpoint {
     case websitesCheck            // POST 创建前环境检查
     case websiteDir               // GET  获取网站默认根目录
     case websitesSSLSearch        // POST 获取 SSL 证书列表（用于创建时选择）
+    case websitesDelete           // POST 删除网站（含选项）
+    case websitesDetail           // GET  网站详情（:id 路径参数）
+    case websitesNginxConfig      // GET  获取 nginx 配置（:id 路径参数）
+    case websitesNginxUpdate      // POST 更新 nginx 配置
+    case websitesLogRead          // POST 读取网站日志（access/error）
 
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库
@@ -68,6 +73,11 @@ enum APIEndpoint {
         case .websitesCheck:         return "/api/v2/websites/check"
         case .websiteDir:            return "/api/v2/files/path/websiteDir"
         case .websitesSSLSearch:     return "/api/v2/websites/ssl/search"
+        case .websitesDelete:        return "/api/v2/websites/del"
+        case .websitesDetail:        return "/api/v2/websites/:id"
+        case .websitesNginxConfig:   return "/api/v2/websites/:id/config/openresty"
+        case .websitesNginxUpdate:   return "/api/v2/websites/nginx/update"
+        case .websitesLogRead:       return "/api/v2/files/read"
         case .databasesSearch:       return "/api/v2/databases/db/search"
         case .filesSearch:           return "/api/v2/files/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
@@ -91,7 +101,8 @@ enum APIEndpoint {
         switch self {
         case .dashboardOS, .dashboardBase, .dashboardTopCPU, .dashboardTopMem,
              .loginSetting, .appsIgnoredList, .appsStoreDetail,
-             .appsInstalledDeleteCheck, .appsInstalledParams, .websiteDir:
+             .appsInstalledDeleteCheck, .appsInstalledParams, .websiteDir,
+             .websitesDetail, .websitesNginxConfig:
             return "GET"
         default:
             return "POST"

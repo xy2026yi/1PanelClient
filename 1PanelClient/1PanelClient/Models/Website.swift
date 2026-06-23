@@ -258,3 +258,124 @@ struct WebsiteDomainBody: Encodable {
 
 /// 创建前检查的空请求体
 struct WebsiteCheckRequest: Encodable {}
+
+// MARK: - 删除网站
+
+/// 删除网站请求（request.WebsiteDel）
+/// 通过 doc/网站管理-1.md 验证字段
+struct WebsiteDeleteRequest: Encodable {
+    let id: Int
+    var deleteApp: Bool = false
+    var deleteBackup: Bool = false
+    var forceDelete: Bool = false
+    var deleteDB: Bool = false
+}
+
+// MARK: - 网站详情（完整）
+
+/// 网站详情（response.WebsiteDTO 完整版）
+/// 来自 GET /api/v2/websites/:id
+struct WebsiteFull: Decodable {
+    let id: Int
+    let createdAt: String?
+    let updatedAt: String?
+    let protocolStr: String?
+    let primaryDomain: String?
+    let type: String?
+    let alias: String?
+    let remark: String?
+    let status: String?
+    let httpConfig: String?
+    let expireDate: String?
+    let proxy: String?
+    let proxyType: String?
+    let errorLog: Bool?
+    let accessLog: Bool?
+    let defaultServer: Bool?
+    let ipv6: Bool?
+    let rewrite: String?
+    let webSiteGroupId: Int?
+    let webSiteSSLId: Int?
+    let runtimeID: Int?
+    let appInstallId: Int?
+    let ftpId: Int?
+    let parentWebsiteID: Int?
+    let user: String?
+    let group: String?
+    let dbType: String?
+    let dbID: Int?
+    let favorite: Bool?
+    let streamPorts: String?
+    let domains: [WebsiteFullDomain]?
+    let errorLogPath: String?
+    let accessLogPath: String?
+    let sitePath: String?
+    let appName: String?
+    let runtimeName: String?
+    let runtimeType: String?
+    let siteDir: String?
+    let openBaseDir: Bool?
+    let algorithm: String?
+    let servers: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case id, createdAt, updatedAt
+        case protocolStr = "protocol"
+        case primaryDomain, type, alias, remark, status, httpConfig, expireDate
+        case proxy, proxyType, errorLog, accessLog, defaultServer
+        case ipv6 = "IPV6"
+        case rewrite, webSiteGroupId, webSiteSSLId
+        case runtimeID, appInstallId, ftpId, parentWebsiteID
+        case user, group, dbType, dbID, favorite, streamPorts, domains
+        case errorLogPath, accessLogPath, sitePath
+        case appName, runtimeName, runtimeType, siteDir, openBaseDir, algorithm, servers
+    }
+}
+
+/// 网站域名（详情中的 domains 数组元素）
+struct WebsiteFullDomain: Decodable, Hashable {
+    let id: Int?
+    let domain: String?
+    let ssl: Bool?
+    let port: Int?
+}
+
+// MARK: - Nginx 配置
+
+/// Nginx 配置文件（response.WebsiteNginxConfig）
+/// 来自 GET /api/v2/websites/:id/config/openresty
+struct WebsiteNginxConfig: Decodable {
+    let path: String?
+    let name: String?
+    let content: String?
+    let size: Int?
+    let modTime: String?
+}
+
+/// 更新 Nginx 配置请求
+struct WebsiteNginxUpdateRequest: Encodable {
+    let id: Int
+    let content: String
+}
+
+// MARK: - 网站日志
+
+/// 读取网站日志请求（request.WebsiteLogRead）
+/// 复用 /api/v2/files/read 接口
+struct WebsiteLogReadRequest: Encodable {
+    let id: Int
+    let type: String          // 固定 "website"
+    let name: String          // "access.log" 或 "error.log"
+    let page: Int
+    let pageSize: Int
+    let latest: Bool
+}
+
+/// 日志响应（response.FileRead）
+struct WebsiteLogResponse: Decodable {
+    let end: Bool?
+    let path: String?
+    let total: Int?
+    let lines: [String]?
+    let totalLines: Int?
+}

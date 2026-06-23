@@ -88,58 +88,104 @@ struct WebsitesTab: View {
 struct WebsiteDetailView: View {
     let website: Website
     @ObservedObject var vm: WebsitesViewModel
-    @State private var showDeleteAlert = false
+
+    @State private var detail: WebsiteFull?
+    @State private var isLoadingDetail = false
+    @State private var showDeleteSheet = false
+    @State private var showNginxSheet = false
+    @State private var showLogSheet = false
+    @State private var logType: WebsiteLogType = .access
 
     var body: some View {
         List {
-            // 基本信息
+            // 基本信息（优先用完整详情）
             Section("基本信息") {
-                LabeledRow("主域名", value: website.primaryDomain ?? "—")
-                if let alias = website.alias, !alias.isEmpty {
-                    LabeledRow("别名", value: alias)
-                }
-                LabeledRow("类型", value: website.typeDisplayName)
-                if let protocolStr = website.protocolStr, !protocolStr.isEmpty {
-                    LabeledRow("协议", value: protocolStr)
-                }
-                if let port = website.port, port > 0 {
-                    LabeledRow("端口", value: "\(port)")
+                if isLoadingDetail && detail == nil {
+                    HStack { ProgressView(); Text("加载中…") }
+                } else if let d = detail {
+                    LabeledRow("主域名", value: d.primaryDomain ?? "—")
+                    if let alias = d.alias, !alias.isEmpty {
+                        LabeledRow("别名", value: alias)
+                    }
+                    LabeledRow("类型", value: website.typeDisplayName)
+                    if let p = d.protocolStr, !p.isEmpty {
+                        LabeledRow("协议", value: p)
+                    }
+                    if let cfg = d.httpConfig, !cfg.isEmpty {
+                        LabeledRow("HTTP 配置", value: httpConfigName(cfg))
+                    }
+                } else {
+                    LabeledRow("主域名", value: website.primaryDomain ?? "—")
+                    LabeledRow("类型", value: website.typeDisplayName)
                 }
             }
 
-            // 反向代理信息
-            if let proxy = website.proxy, !proxy.isEmpty {
-                Section("反向代理") {
-                    LabeledRow("代理地址", value: proxy)
-                    if let addr = website.proxyAddress, !addr.isEmpty {
-                        LabeledRow("目标地址", value: addr)
+            // 域名列表（完整详情）
+            if let domains = detail?.domains, !domains.isEmpty {
+                Section("域名 (\(domains.count))") {
+                    ForEach(domains, id: \.id) { dom in
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack {
+                                Text(dom.domain ?? "—")
+                                    .font(.subheadline.bold())
+                                if dom.ssl == true {
+                                    Image(systemName: "lock.fill")
+                                        .font(.caption2)
+                                        .foregroundStyle(.green)
+                                }
+                            }
+                            if let port = dom.port {
+                                Text("端口 \(port)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
             }
 
-            // 状态
-            Section("状态") {
-                HStack {
-                    Image(systemName: "circle.fill")
-                        .foregroundStyle(website.statusColor)
-                        .font(.caption)
-                    Text(website.status ?? "未知")
-                        .foregroundStyle(website.statusColor)
+            // 反向代理信息
+            if let proxy = detail?.proxy ?? website.proxy, !proxy.isEmpty {
+                Section("反向代理") {
+                    LabeledRow("代理地址", value: proxy)
                 }
-                if let remark = website.remark, !remark.isEmpty {
-                    LabeledRow("备注", value: remark)
+            }
+
+            // 配置中心
+            Section("配置中心") {
+                NavigationLink {
+                    WebsiteNginxView(websiteId: website.id, vm: vm)
+                } label: {
+                    Label("配置文件", systemImage: "doc.text")
                 }
-                if let appName = website.appName, !appName.isEmpty {
-                    LabeledRow("应用", value: appName)
+                Button {
+                    logType = .access
+                    showLogSheet = true
+                } label: {
+                    Label("访问日志", systemImage: "list.bullet.rectangle")
                 }
-                if let runtime = website.runtimeName, !runtime.isEmpty {
-                    LabeledRow("运行环境", value: runtime)
+                Button {
+                    logType = .error
+                    showLogSheet = true
+                } label: {
+                    Label("错误日志", systemImage: "exclamationmark.triangle")
                 }
-                LabeledRow("创建时间", value: website.displayCreatedAt)
             }
 
             // 路径
-            if let dir = website.siteDir, !dir.isEmpty {
+            if let d = detail {
+                Section("路径") {
+                    if let p = d.sitePath, !p.isEmpty {
+                        LabeledRow("网站目录", value: p)
+                    }
+                    if let p = d.accessLogPath, !p.isEmpty {
+                        LabeledRow("访问日志", value: p)
+                    }
+                    if let p = d.errorLogPath, !p.isEmpty {
+                        LabeledRow("错误日志", value: p)
+                    }
+                }
+            } else if let dir = website.siteDir, !dir.isEmpty {
                 Section("路径") {
                     Text(dir)
                         .font(.caption.monospaced())
@@ -151,7 +197,7 @@ struct WebsiteDetailView: View {
             // 危险操作
             Section {
                 Button(role: .destructive) {
-                    showDeleteAlert = true
+                    showDeleteSheet = true
                 } label: {
                     Label("删除网站", systemImage: "trash")
                 }
@@ -163,13 +209,29 @@ struct WebsiteDetailView: View {
         }
         .navigationTitle(website.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .alert("删除网站", isPresented: $showDeleteAlert) {
-            Button("取消", role: .cancel) {}
-            Button("删除", role: .destructive) {
-                Task { await vm.deleteWebsite(id: website.id) }
-            }
-        } message: {
-            Text("确定要删除 \(website.displayName) 吗？此操作不可撤销。")
+        .task {
+            await loadDetail()
+        }
+        .sheet(isPresented: $showDeleteSheet) {
+            WebsiteDeleteSheet(website: website, vm: vm)
+        }
+        .sheet(isPresented: $showLogSheet) {
+            WebsiteLogView(websiteId: website.id, logType: logType, vm: vm)
+        }
+    }
+
+    private func loadDetail() async {
+        isLoadingDetail = true
+        defer { isLoadingDetail = false }
+        detail = await vm.loadDetail(id: website.id)
+    }
+
+    private func httpConfigName(_ cfg: String) -> String {
+        switch cfg {
+        case "HTTPToHTTPS": return "HTTP 自动跳转 HTTPS"
+        case "HTTPOnly":    return "仅 HTTP"
+        case "HTTPSOnly":   return "仅 HTTPS"
+        default:            return cfg
         }
     }
 }
@@ -594,13 +656,394 @@ final class WebsitesViewModel: ObservableObject {
 
     // MARK: - 删除网站
 
-    func deleteWebsite(id: Int) async {
-        // 注意：删除网站的接口暂未提供，这里先弹提示
-        showAlert(message: "删除网站功能暂未接入（待后端接口确认）")
+    func deleteWebsite(id: Int, deleteApp: Bool, deleteBackup: Bool, forceDelete: Bool, deleteDB: Bool) async {
+        let req = WebsiteDeleteRequest(
+            id: id,
+            deleteApp: deleteApp,
+            deleteBackup: deleteBackup,
+            forceDelete: forceDelete,
+            deleteDB: deleteDB
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesDelete.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            showAlert(message: "网站删除请求已提交")
+            try? await Task.sleep(for: .seconds(1))
+            await load(query: "")
+        } catch let err as APIError {
+            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+        } catch {
+            showAlert(message: "删除失败：\(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 网站详情
+
+    func loadDetail(id: Int) async -> WebsiteFull? {
+        let path = APIEndpoint.websitesDetail.path
+            .replacingOccurrences(of: ":id", with: String(id))
+        do {
+            return try await client.send(
+                path: path,
+                method: "GET",
+                as: WebsiteFull.self
+            )
+        } catch let err as APIError {
+            showAlert(message: "加载详情失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "加载详情失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    // MARK: - Nginx 配置
+
+    func loadNginxConfig(id: Int) async -> WebsiteNginxConfig? {
+        let path = APIEndpoint.websitesNginxConfig.path
+            .replacingOccurrences(of: ":id", with: String(id))
+        do {
+            return try await client.send(
+                path: path,
+                method: "GET",
+                as: WebsiteNginxConfig.self
+            )
+        } catch let err as APIError {
+            showAlert(message: "加载配置失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "加载配置失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func updateNginxConfig(id: Int, content: String) async -> Bool {
+        let req = WebsiteNginxUpdateRequest(id: id, content: content)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesNginxUpdate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            showAlert(message: "配置已保存，OpenResty 正在重载…")
+            return true
+        } catch let err as APIError {
+            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "保存失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    // MARK: - 网站日志
+
+    func loadLog(websiteId: Int, name: String) async -> [String] {
+        let req = WebsiteLogReadRequest(
+            id: websiteId,
+            type: "website",
+            name: name,
+            page: 1,
+            pageSize: 500,
+            latest: true
+        )
+        do {
+            let resp: WebsiteLogResponse = try await client.send(
+                path: APIEndpoint.websitesLogRead.path,
+                body: req,
+                as: WebsiteLogResponse.self
+            )
+            return resp.lines ?? []
+        } catch let err as APIError {
+            showAlert(message: "读取日志失败：\(err.errorDescription ?? "未知错误")")
+            return []
+        } catch {
+            showAlert(message: "读取日志失败：\(error.localizedDescription)")
+            return []
+        }
     }
 
     private func showAlert(message: String) {
         alertMessage = message
         showAlert = true
+    }
+}
+
+// MARK: - 日志类型
+
+enum WebsiteLogType {
+    case access, error
+
+    var displayName: String {
+        switch self {
+        case .access: return "访问日志"
+        case .error:  return "错误日志"
+        }
+    }
+
+    var fileName: String {
+        switch self {
+        case .access: return "access.log"
+        case .error:  return "error.log"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .access: return "list.bullet.rectangle"
+        case .error:  return "exclamationmark.triangle"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .access: return .blue
+        case .error:  return .orange
+        }
+    }
+}
+
+// MARK: - 删除网站表单
+
+struct WebsiteDeleteSheet: View {
+    let website: Website
+    @ObservedObject var vm: WebsitesViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var forceDelete = false
+    @State private var deleteBackup = false
+    @State private var deleteApp = false
+    @State private var deleteDB = false
+    @State private var isDeleting = false
+
+    /// 是否为一键部署（关联应用）
+    private var isDeployment: Bool {
+        (website.type ?? "").lowercased() == "deployment"
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                        Text("确定要删除 \(website.displayName) 吗？")
+                            .bold()
+                    }
+                } footer: {
+                    Text("删除操作不可撤销，请谨慎操作")
+                }
+
+                Section("删除选项") {
+                    Toggle("强制删除", isOn: $forceDelete)
+                    Toggle("删除备份", isOn: $deleteBackup)
+                    if isDeployment {
+                        Toggle("删除关联应用", isOn: $deleteApp)
+                    }
+                    Toggle("删除数据库", isOn: $deleteDB)
+                }
+            }
+            .navigationTitle("删除网站")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .destructiveAction) {
+                    Button("删除", role: .destructive) {
+                        Task { await performDelete() }
+                    }
+                    .disabled(isDeleting)
+                }
+            }
+        }
+    }
+
+    private func performDelete() async {
+        isDeleting = true
+        await vm.deleteWebsite(
+            id: website.id,
+            deleteApp: deleteApp,
+            deleteBackup: deleteBackup,
+            forceDelete: forceDelete,
+            deleteDB: deleteDB
+        )
+        dismiss()
+    }
+}
+
+// MARK: - Nginx 配置编辑
+
+struct WebsiteNginxView: View {
+    let websiteId: Int
+    @ObservedObject var vm: WebsitesViewModel
+
+    @State private var config: WebsiteNginxConfig?
+    @State private var content: String = ""
+    @State private var isLoading = false
+    @State private var isSaving = false
+    @State private var isEditing = false
+
+    var body: some View {
+        Group {
+            if isLoading {
+                ProgressView("加载配置…")
+            } else {
+                configEditor
+            }
+        }
+        .navigationTitle("配置文件")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isEditing {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task { await save() }
+                    } label: {
+                        if isSaving { ProgressView() } else { Text("保存").bold() }
+                    }
+                    .disabled(isSaving)
+                }
+            }
+        }
+        .task {
+            await load()
+        }
+    }
+
+    private var configEditor: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                if let cfg = config {
+                    HStack {
+                        Image(systemName: "doc.text")
+                            .foregroundStyle(.secondary)
+                        Text(cfg.name ?? "nginx.conf")
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                }
+
+                if isEditing {
+                    TextEditor(text: $content)
+                        .font(.system(size: 12, design: .monospaced))
+                        .frame(minHeight: 480)
+                        .padding(8)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        Text(content)
+                            .font(.system(size: 12, design: .monospaced))
+                            .padding()
+                            .textSelection(.enabled)
+                    }
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                }
+
+                Button {
+                    isEditing.toggle()
+                    if !isEditing {
+                        // 取消编辑时还原
+                        content = config?.content ?? content
+                    }
+                } label: {
+                    Label(isEditing ? "取消编辑" : "编辑配置", systemImage: isEditing ? "xmark" : "pencil")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .padding(.horizontal)
+            }
+            .padding(.vertical)
+        }
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        config = await vm.loadNginxConfig(id: websiteId)
+        content = config?.content ?? ""
+    }
+
+    private func save() async {
+        isSaving = true
+        let ok = await vm.updateNginxConfig(id: websiteId, content: content)
+        isSaving = false
+        if ok {
+            isEditing = false
+        }
+    }
+}
+
+// MARK: - 网站日志
+
+struct WebsiteLogView: View {
+    let websiteId: Int
+    let logType: WebsiteLogType
+    @ObservedObject var vm: WebsitesViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var lines: [String] = []
+    @State private var isLoading = false
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isLoading && lines.isEmpty {
+                    ProgressView("加载日志…")
+                } else if lines.isEmpty {
+                    ContentUnavailableView(
+                        "暂无日志",
+                        systemImage: logType.icon,
+                        description: Text("暂未产生\(logType.displayName)记录")
+                    )
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                                Text(line)
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .textSelection(.enabled)
+                            }
+                        }
+                        .padding()
+                    }
+                    .background(Color(.systemGroupedBackground))
+                }
+            }
+            .navigationTitle(logType.displayName)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task { await load() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+            }
+            .task {
+                await load()
+            }
+        }
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        lines = await vm.loadLog(websiteId: websiteId, name: logType.fileName)
     }
 }
