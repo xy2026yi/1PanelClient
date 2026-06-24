@@ -56,7 +56,8 @@ enum TerminalTarget {
                 URLQueryItem(name: "user", value: user),
                 URLQueryItem(name: "command", value: command),
                 URLQueryItem(name: "cols", value: "\(cols)"),
-                URLQueryItem(name: "rows", value: "\(rows)")
+                URLQueryItem(name: "rows", value: "\(rows)"),
+                URLQueryItem(name: "operateNode", value: "local")
             ]
         }
     }
@@ -154,6 +155,7 @@ final class TerminalSession: ObservableObject {
         isConnecting = true
         errorMessage = nil
         emulator.feed("正在连接 \(server.name)…\r\n")
+        emulator.feed("\u{1B}[90m\(url.absoluteString)\u{1B}[0m\r\n")
 
         let ws = session.webSocketTask(with: request)
         ws.resume()
@@ -179,12 +181,15 @@ final class TerminalSession: ObservableObject {
 
     // MARK: - 发送输入
 
-    /// 发送用户输入（原始文本，通常含控制字符如 \r）
-    /// 1Panel pty 后端接收原始 stdin 字节，统一用文本帧发送
+    /// 发送用户输入（JSON + base64 包装，匹配 1Panel 终端协议）
+    /// 1Panel 终端后端要求客户端输入用 {"type":"cmd","data":"<base64>"} 格式
     func send(_ text: String) {
         guard let task else { return }
+        let b64 = Data(text.utf8).base64EncodedString()
+        guard let data = try? JSONEncoder().encode(WSPayload(type: "cmd", data: b64)),
+              let str = String(data: data, encoding: .utf8) else { return }
         Task {
-            do { try await task.send(.string(text)) }
+            do { try await task.send(.string(str)) }
             catch { /* 发送失败静默 */ }
         }
     }
