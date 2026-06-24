@@ -9,6 +9,9 @@ xcuserdata/
 *.xcscmblueprint
 DerivedData/
 
+# 打包产物（build-ipa.sh 生成）
+build/
+
 # Logs
 logs/
 *.log

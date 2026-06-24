@@ -19,9 +19,6 @@ enum APIEndpoint {
     // MARK: - 系统设备信息（toolbox）
     case deviceBase               // POST 设备基础信息
 
-    // MARK: - 登录配置（公开接口）
-    case loginSetting
-
     // MARK: - 容器
     case containersSearch         // POST 分页查询容器
 
@@ -29,7 +26,6 @@ enum APIEndpoint {
     case websitesSearch           // POST 分页查询网站
     case websitesCreate           // POST 创建网站（一键部署/反向代理/...）
     case websitesCheck            // POST 创建前环境检查
-    case websiteDir               // GET  获取网站默认根目录
     case websitesSSLSearch        // POST 获取 SSL 证书列表（用于创建时选择）
     case websitesDelete           // POST 删除网站（含选项）
     case websitesDetail           // GET  网站详情（:id 路径参数）
@@ -63,9 +59,6 @@ enum APIEndpoint {
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库
 
-    // MARK: - 文件
-    case filesSearch              // POST 文件搜索
-
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
     case appsInstalledOperate     // POST 操作已安装应用（启动/停止/重启/升级）
@@ -94,12 +87,10 @@ enum APIEndpoint {
         case .dashboardTopMem:       return "/api/v2/dashboard/current/top/mem"
         case .settingsSearch:        return "/api/v2/core/settings/search"
         case .deviceBase:            return "/api/v2/toolbox/device/base"
-        case .loginSetting:          return "/api/v2/core/auth/setting"
         case .containersSearch:      return "/api/v2/containers/search"
         case .websitesSearch:        return "/api/v2/websites/search"
         case .websitesCreate:        return "/api/v2/websites"
         case .websitesCheck:         return "/api/v2/websites/check"
-        case .websiteDir:            return "/api/v2/files/path/websiteDir"
         case .websitesSSLSearch:     return "/api/v2/websites/ssl/search"
         case .websitesDelete:        return "/api/v2/websites/del"
         case .websitesDetail:        return "/api/v2/websites/:id"
@@ -126,7 +117,6 @@ enum APIEndpoint {
         case .cronjobsUsers:         return "/api/v2/toolbox/device/users"
         case .cronjobsScripts:       return "/api/v2/cronjobs/script/options"
         case .databasesSearch:       return "/api/v2/databases/db/search"
-        case .filesSearch:           return "/api/v2/files/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
@@ -148,8 +138,8 @@ enum APIEndpoint {
     var method: String {
         switch self {
         case .dashboardOS, .dashboardBase, .dashboardCurrent, .dashboardTopCPU, .dashboardTopMem,
-             .loginSetting, .appsIgnoredList, .appsStoreDetail,
-             .appsInstalledDeleteCheck, .appsInstalledParams, .websiteDir,
+             .appsIgnoredList, .appsStoreDetail,
+             .appsInstalledDeleteCheck, .appsInstalledParams,
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
              .appsIcon:
