@@ -420,9 +420,9 @@ struct ContainerDetailView: View {
             TerminalView(
                 server: server,
                 target: .container(
-                    containerID: container.name,
-                    user: "root",
-                    command: "bash",
+                    containerID: container.containerID,
+                    user: "",
+                    command: "/bin/sh",
                     cols: 80,
                     rows: 24
                 ),

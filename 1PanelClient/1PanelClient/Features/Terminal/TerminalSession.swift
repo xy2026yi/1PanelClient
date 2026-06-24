@@ -52,11 +52,12 @@ enum TerminalTarget {
             ]
         case .container(let id, let user, let command, let cols, let rows):
             return [
+                URLQueryItem(name: "cols", value: "\(cols)"),
+                URLQueryItem(name: "rows", value: "\(rows)"),
+                URLQueryItem(name: "source", value: "container"),
                 URLQueryItem(name: "containerid", value: id),
                 URLQueryItem(name: "user", value: user),
                 URLQueryItem(name: "command", value: command),
-                URLQueryItem(name: "cols", value: "\(cols)"),
-                URLQueryItem(name: "rows", value: "\(rows)"),
                 URLQueryItem(name: "operateNode", value: "local")
             ]
         }
