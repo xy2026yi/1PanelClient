@@ -9,6 +9,7 @@
 
 import Foundation
 import CryptoKit
+import Combine
 
 // MARK: - 连接目标
 
