@@ -13,9 +13,17 @@ struct OverviewTab: View {
     @State private var showServerPicker = false
     @State private var showAddSheet = false
 
-    init(manager: ServerManager, selectedTab: Binding<AppTab> = .constant(.overview)) {
+    /// 卡片点击回调：传递具体 ManageItem，由 MainTabView 跨 Tab 跳转到管理详情
+    var onSelectManageItem: ((ManageItem) -> Void)? = nil
+
+    init(
+        manager: ServerManager,
+        selectedTab: Binding<AppTab> = .constant(.overview),
+        onSelectManageItem: ((ManageItem) -> Void)? = nil
+    ) {
         self.manager = manager
         self._selectedTab = selectedTab
+        self.onSelectManageItem = onSelectManageItem
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: OverviewViewModel(server: server))
     }
@@ -179,7 +187,7 @@ struct OverviewTab: View {
             HStack {
                 Image(systemName: "chart.xyaxis.line")
                     .foregroundStyle(.tint)
-                Text("实时监控")
+                Text("状态")
                     .font(.headline)
                 Spacer()
                 if let uptime = cur.timeSinceUptime, !uptime.isEmpty {
@@ -235,25 +243,35 @@ struct OverviewTab: View {
             GridItem(.flexible(), spacing: 12),
             GridItem(.flexible(), spacing: 12)
         ], spacing: 12) {
-            Button { selectedTab = .manage } label: {
+            Button { tapManage(.websites) } label: {
                 StatCard(title: "网站", count: b.websiteNumber, icon: "globe", color: .green)
             }
             .buttonStyle(.plain)
 
-            Button { selectedTab = .manage } label: {
+            Button { tapManage(.apps) } label: {
                 StatCard(title: "应用", count: b.appInstalledNumber, icon: "app.badge", color: .blue)
             }
             .buttonStyle(.plain)
 
-            Button { selectedTab = .manage } label: {
+            Button { tapManage(.database) } label: {
                 StatCard(title: "数据库", count: b.databaseNumber, icon: "cylinder.split.1x2", color: .purple)
             }
             .buttonStyle(.plain)
 
-            Button { selectedTab = .manage } label: {
+            Button { tapManage(.containers) } label: {
                 StatCard(title: "容器", count: b.appInstalledNumber, icon: "shippingbox", color: .indigo)
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    /// 点击资源卡片：优先用 onSelectManageItem 跨 Tab 打开管理详情；
+    /// 回退方案：仅切到管理 Tab
+    private func tapManage(_ item: ManageItem) {
+        if let onSelectManageItem {
+            onSelectManageItem(item)
+        } else {
+            selectedTab = .manage
         }
     }
 

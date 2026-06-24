@@ -13,6 +13,8 @@ import SwiftUI
 struct MainTabView: View {
     @StateObject private var manager = ServerManager.shared
     @State private var selectedTab: AppTab = .overview
+    /// OverviewTab 卡片点击待跳转的 ManageItem；ManageTab 监听此值并自动打开 fullScreen
+    @State private var pendingManageItem: ManageItem?
 
     var body: some View {
         Group {
@@ -20,11 +22,18 @@ struct MainTabView: View {
                 WelcomeView(manager: manager)
             } else {
                 TabView(selection: $selectedTab) {
-                    OverviewTab(manager: manager, selectedTab: $selectedTab)
-                        .tag(AppTab.overview)
-                        .tabItem { Label("首页", systemImage: "house") }
+                    OverviewTab(
+                        manager: manager,
+                        selectedTab: $selectedTab,
+                        onSelectManageItem: { item in
+                            pendingManageItem = item
+                            selectedTab = .manage
+                        }
+                    )
+                    .tag(AppTab.overview)
+                    .tabItem { Label("首页", systemImage: "house") }
 
-                    ManageTab(manager: manager)
+                    ManageTab(manager: manager, initialItem: $pendingManageItem)
                         .tag(AppTab.manage)
                         .tabItem { Label("管理", systemImage: "list.bullet.rectangle.portrait") }
 

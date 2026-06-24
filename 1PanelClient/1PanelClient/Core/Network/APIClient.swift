@@ -143,6 +143,47 @@ final class APIClient {
         return data
     }
 
+    /// 获取二进制图片数据（如应用图标）
+    /// 返回原始 Data，调用方需自行包装成 UIImage
+    func fetchImage(path: String, queryItems: [URLQueryItem]? = nil) async throws -> Data {
+        guard var components = URLComponents(string: server.normalizedBaseURL + path) else {
+            throw APIError.invalidURL
+        }
+        if let queryItems, !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        for (k, v) in generateHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw APIError.networkError(error)
+        }
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        // 图标可能返回 html（被安全入口拦截）或 json 错误体
+        if let ct = http.value(forHTTPHeaderField: "Content-Type"), ct.contains("text/html") {
+            throw APIError.htmlBlocked
+        }
+        guard (200...299).contains(http.statusCode) else {
+            throw APIError.httpError(http.statusCode, "图标请求失败")
+        }
+        // 防御：若返回 JSON 错误体（业务错误），抛出
+        if let ct = http.value(forHTTPHeaderField: "Content-Type"), ct.contains("application/json") {
+            throw APIError.businessError(500, "图标接口返回 JSON")
+        }
+        return data
+    }
+
     // MARK: - SSE 流式请求（日志查看）
 
     /// 发起 SSE 流式请求，逐行产出日志内容（已剥离 `data: ` 前缀）

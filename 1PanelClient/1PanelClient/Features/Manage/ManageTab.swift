@@ -15,6 +15,14 @@ struct ManageTab: View {
     @State private var presentedItem: ManageItem?
     @State private var showEditSheet = false
 
+    /// 跨 Tab 跳转入口：外部（如 OverviewTab）设置此值时，自动打开对应 fullScreen
+    @Binding var initialItem: ManageItem?
+
+    init(manager: ServerManager, initialItem: Binding<ManageItem?> = .constant(nil)) {
+        self.manager = manager
+        self._initialItem = initialItem
+    }
+
     /// 所有可管理的功能项，按固定分组排列
     private var groups: [(title: String, items: [ManageItem])] {
         [
@@ -62,6 +70,14 @@ struct ManageTab: View {
         }
         .fullScreenCover(item: $presentedItem) { item in
             destination(for: item)
+        }
+        .onChange(of: initialItem) { _, newItem in
+            guard let newItem else { return }
+            // 仅 available 的项才会真正打开；其它项忽略并清空
+            if newItem.available {
+                presentedItem = newItem
+            }
+            initialItem = nil
         }
         .environmentObject(prefs)
     }
@@ -160,7 +176,6 @@ struct ManageEditView: View {
                                     set: { prefs.setEnabled($0, for: item) }
                                 ))
                                 .labelsHidden()
-                                .disabled(!item.available)
                             }
                             .padding(.vertical, 2)
                         }

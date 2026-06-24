@@ -1031,7 +1031,12 @@ struct AppRow: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                IconBadge(systemName: app.statusIcon, color: app.statusColor)
+                AppIconView(
+                    appID: app.appID,
+                    baseURL: ServerManager.shared.current?.baseURL ?? "",
+                    fallbackIcon: app.statusIcon,
+                    fallbackColor: app.statusColor
+                )
                 if isOperating {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(.thinMaterial)

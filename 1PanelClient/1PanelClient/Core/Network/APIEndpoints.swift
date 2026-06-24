@@ -83,6 +83,7 @@ enum APIEndpoint {
     case appsStoreDetail         // GET  按 key 获取应用详情
     case appsSyncRemote          // POST 同步远程应用商店
     case appsSyncLocal           // POST 同步本地已安装应用
+    case appsIcon                // GET  应用图标（:appID 路径参数，返回二进制图片）
 
     var path: String {
         switch self {
@@ -140,6 +141,7 @@ enum APIEndpoint {
         case .appsStoreDetail:       return "/api/v2/apps/:key"
         case .appsSyncRemote:        return "/api/v2/apps/sync/remote"
         case .appsSyncLocal:         return "/api/v2/apps/sync/local"
+        case .appsIcon:              return "/api/v2/apps/icon/:appID"
         }
     }
 
@@ -149,7 +151,8 @@ enum APIEndpoint {
              .loginSetting, .appsIgnoredList, .appsStoreDetail,
              .appsInstalledDeleteCheck, .appsInstalledParams, .websiteDir,
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,
-             .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts:
+             .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
+             .appsIcon:
             return "GET"
         default:
             return "POST"
