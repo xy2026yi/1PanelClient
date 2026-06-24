@@ -341,6 +341,7 @@ struct ContainerDetailView: View {
     @State private var showMenuAlert = false
     @State private var menuAlertMessage = ""
     @State private var showUpgrade = false
+    @State private var showEdit = false
 
     var body: some View {
         List {
@@ -399,7 +400,7 @@ struct ContainerDetailView: View {
                     Button {
                         showUpgrade = true
                     } label: { Label("升级", systemImage: "arrow.up.circle") }
-                    Button { notify("编辑", message: "编辑容器功能开发中") } label: { Label("编辑", systemImage: "pencil") }
+                    Button { showEdit = true } label: { Label("编辑", systemImage: "pencil") }
                     Button { notify("终端", message: "容器终端功能开发中") } label: { Label("终端", systemImage: "terminal") }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -409,6 +410,9 @@ struct ContainerDetailView: View {
         }
         .navigationDestination(isPresented: $showUpgrade) {
             ContainerUpgradeView(container: container, vm: vm)
+        }
+        .navigationDestination(isPresented: $showEdit) {
+            ContainerEditView(container: container, vm: vm)
         }
         .alert("提示", isPresented: $showMenuAlert) {
             Button("好的", role: .cancel) {}
@@ -594,6 +598,177 @@ struct ContainerUpgradeView: View {
     }
 }
 
+// MARK: - 容器编辑页
+
+struct ContainerEditView: View {
+    let container: Container
+    @ObservedObject var vm: ContainersViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var info: ContainerInfo?
+    @State private var image: String = ""
+    @State private var forcePull = false
+    @State private var publishAllPorts = false
+    @State private var envs: [String] = []
+    @State private var isLoading = false
+    @State private var loadError: String?
+
+    var body: some View {
+        Form {
+            if isLoading {
+                Section {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("加载容器配置…")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+                }
+            } else if let loadError {
+                Section {
+                    Text(loadError)
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
+                }
+            } else if let info {
+                Section("基础") {
+                    HStack {
+                        Text("名称")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(info.name)
+                            .font(.system(.body, design: .monospaced))
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+
+                Section {
+                    TextField("镜像名:标签", text: $image, axis: .horizontal)
+                        .font(.system(.body, design: .monospaced))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    if !vm.imageOptions.isEmpty {
+                        Menu {
+                            ForEach(vm.imageOptions, id: \.self) { opt in
+                                Button(opt) { image = opt }
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "square.stack.3d.up")
+                                Text(image.isEmpty ? "选择镜像" : "选择镜像")
+                                Spacer()
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("镜像")
+                } footer: {
+                    if image.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Text("镜像不能为空")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                Section {
+                    Toggle("强制拉取镜像", isOn: $forcePull)
+                    Toggle("暴露所有端口", isOn: $publishAllPorts)
+                }
+
+                Section("环境变量") {
+                    ForEach(envs.indices, id: \.self) { i in
+                        TextField("KEY=VALUE", text: Binding(
+                            get: { envs[i] },
+                            set: { envs[i] = $0 }
+                        ), axis: .vertical)
+                        .font(.system(.body, design: .monospaced))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .lineLimit(1...4)
+                    }
+                    .onDelete { envs.remove(atOffsets: $0) }
+                    .onMove { envs.move(fromOffsets: $0, toOffset: $1) }
+
+                    Button {
+                        envs.append("")
+                    } label: {
+                        Label("添加环境变量", systemImage: "plus")
+                    }
+                }
+
+                Section {
+                    Button {
+                        Task { await submit(info: info) }
+                    } label: {
+                        HStack {
+                            if vm.containerOperating {
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                            Text("保存")
+                                .frame(maxWidth: .infinity)
+                                .font(.headline)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(image.trimmingCharacters(in: .whitespaces).isEmpty || vm.containerOperating)
+                }
+                .listRowBackground(Color.clear)
+            }
+        }
+        .navigationTitle("编辑容器")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                EditButton()
+                    .disabled(info == nil)
+            }
+        }
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {
+                if vm.alertMessage.contains("已提交") {
+                    dismiss()
+                }
+            }
+        } message: {
+            Text(vm.alertMessage)
+        }
+        .task {
+            await load()
+        }
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        if vm.imageOptions.isEmpty { await vm.loadImageOptions() }
+        guard let i = await vm.loadContainerInfo(name: container.name) else {
+            loadError = vm.alertMessage.isEmpty ? "获取容器配置失败" : vm.alertMessage
+            return
+        }
+        info = i
+        image = i.image
+        forcePull = i.forcePull ?? false
+        publishAllPorts = i.publishAllPorts ?? false
+        envs = i.env ?? []
+    }
+
+    private func submit(info: ContainerInfo) async {
+        await vm.updateContainer(
+            info: info,
+            image: image.trimmingCharacters(in: .whitespaces),
+            forcePull: forcePull,
+            publishAllPorts: publishAllPorts,
+            env: envs.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        )
+    }
+}
+
 // MARK: - 镜像列表页
 
 struct ContainerImageView: View {
@@ -695,6 +870,7 @@ final class ContainersViewModel: ObservableObject {
     @Published var containers: [Container] = []
     @Published var dockerStatus: DockerStatus?
     @Published var images: [ContainerImage] = []
+    @Published var imageOptions: [String] = []
 
     @Published var isLoading = false
     @Published var isLoadingDocker = false
@@ -900,6 +1076,103 @@ final class ContainersViewModel: ObservableObject {
                 URLQueryItem(name: "operateNode", value: "local")
             ]
         )
+    }
+
+    // MARK: - 容器编辑（info / image 选项 / update）
+
+    private struct ContainerInfoRequest: Encodable { let name: String }
+
+    /// 获取容器详情配置（POST /containers/info）
+    /// 失败时弹出 alert，返回 nil
+    func loadContainerInfo(name: String) async -> ContainerInfo? {
+        do {
+            return try await client.send(
+                path: APIEndpoint.containersInfo.path,
+                body: ContainerInfoRequest(name: name),
+                as: ContainerInfo.self
+            )
+        } catch {
+            showAlert(message: "获取容器配置失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// 加载镜像选项（GET /containers/image），用于编辑/升级时下拉选择
+    func loadImageOptions() async {
+        do {
+            let opts = try await client.send(
+                path: APIEndpoint.containersImageOptions.path,
+                method: "GET", as: [ContainerOption].self
+            )
+            self.imageOptions = opts.map { $0.option }
+        } catch {
+            self.imageOptions = []
+        }
+    }
+
+    /// 更新容器配置（POST /containers/update）
+    /// info 来自 /containers/info；image / forcePull / publishAllPorts / env 为用户编辑后的值
+    func updateContainer(
+        info: ContainerInfo,
+        image: String,
+        forcePull: Bool,
+        publishAllPorts: Bool,
+        env: [String]
+    ) async {
+        containerOperating = true
+        defer { containerOperating = false }
+
+        let ports = (info.exposedPorts ?? []).map { p in
+            ContainerUpdatePort(
+                hostIP: p.hostIP,
+                hostPort: p.hostPort,
+                containerPort: p.containerPort,
+                protocolField: p.protocolField,
+                host: "\(p.hostIP):\(p.hostPort)"
+            )
+        }
+        let req = ContainerUpdateRequest(
+            taskID: UUID().uuidString,
+            name: info.name,
+            image: image,
+            imageInput: false,
+            forcePull: forcePull,
+            networks: info.networks ?? [],
+            hostname: info.hostname ?? "",
+            domainName: info.domainName ?? "",
+            dns: info.dns ?? [],
+            cmdStr: "",
+            entrypointStr: (info.entrypoint ?? []).joined(separator: " "),
+            memoryItem: 0,
+            cmd: info.cmd ?? [],
+            workingDir: info.workingDir ?? "",
+            user: info.user ?? "",
+            openStdin: info.openStdin ?? false,
+            tty: info.tty ?? false,
+            entrypoint: info.entrypoint ?? [],
+            publishAllPorts: publishAllPorts,
+            exposedPorts: ports,
+            nanoCPUs: info.nanoCPUs ?? 0,
+            cpuShares: info.cpuShares ?? 0,
+            memory: info.memory ?? 0,
+            volumes: info.volumes ?? [],
+            privileged: info.privileged ?? false,
+            autoRemove: info.autoRemove ?? false,
+            labels: info.labels ?? [],
+            env: env,
+            restartPolicy: info.restartPolicy ?? "always"
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersUpdate.path,
+                body: req, as: EmptyResponse.self
+            )
+            try? await Task.sleep(for: .seconds(1))
+            await load(query: "")
+            showAlert(message: "更新容器「\(info.name)」任务已提交")
+        } catch {
+            showAlert(message: "更新容器失败：\(error.localizedDescription)")
+        }
     }
 
     // MARK: - 镜像列表

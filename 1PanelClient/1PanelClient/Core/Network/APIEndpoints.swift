@@ -30,6 +30,9 @@ enum APIEndpoint {
     case containersOperate        // POST 单个容器操作（stop/start/restart/kill）
     case containersUpgrade        // POST 容器升级
     case containersListByImage    // POST 按镜像查询容器
+    case containersInfo           // POST 容器详情配置
+    case containersImageOptions   // GET  镜像选项（用于编辑/升级）
+    case containersUpdate         // POST 更新容器配置
 
     // MARK: - 网站
     case websitesSearch           // POST 分页查询网站
@@ -106,6 +109,9 @@ enum APIEndpoint {
         case .containersOperate:        return "/api/v2/containers/operate"
         case .containersUpgrade:        return "/api/v2/containers/upgrade"
         case .containersListByImage:    return "/api/v2/containers/list/byimage"
+        case .containersInfo:           return "/api/v2/containers/info"
+        case .containersImageOptions:   return "/api/v2/containers/image"
+        case .containersUpdate:         return "/api/v2/containers/update"
         case .websitesSearch:        return "/api/v2/websites/search"
         case .websitesCreate:        return "/api/v2/websites"
         case .websitesCheck:         return "/api/v2/websites/check"
@@ -161,6 +167,7 @@ enum APIEndpoint {
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
              .containersListStats, .containersDockerStatus, .containersImageAll,
+             .containersImageOptions,
              .appsIcon:
             return "GET"
         default:

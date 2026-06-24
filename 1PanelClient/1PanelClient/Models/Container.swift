@@ -175,3 +175,121 @@ struct ContainerImage: Decodable, Identifiable {
         return "\(bytes) B"
     }
 }
+
+// MARK: - 容器详情配置（POST /containers/info）
+
+/// 容器网络挂载信息（info.networks）
+struct ContainerNetworkInfo: Codable {
+    var network: String
+    var ipv4: String?
+    var ipv6: String?
+    var macAddr: String?
+}
+
+/// 容器端口映射（info.exposedPorts）
+struct ContainerPortInfo: Codable {
+    var hostIP: String
+    var hostPort: String
+    var containerPort: String
+    var protocolField: String
+
+    enum CodingKeys: String, CodingKey {
+        case hostIP, hostPort, containerPort
+        case protocolField = "protocol"
+    }
+}
+
+/// 容器卷映射（info.volumes）
+struct ContainerVolumeInfo: Codable {
+    var type: String
+    var sourceDir: String
+    var containerDir: String
+    var mode: String
+    var shared: String
+}
+
+/// 容器完整配置（POST /containers/info 返回）
+/// 字段名严格对齐 1Panel v2 返回；多数字段用于回写 update 接口
+struct ContainerInfo: Decodable {
+    let taskID: String?
+    let forcePull: Bool?
+    let name: String
+    let image: String
+    let hostname: String?
+    let domainName: String?
+    let dns: [String]?
+    let networks: [ContainerNetworkInfo]?
+    let publishAllPorts: Bool?
+    let exposedPorts: [ContainerPortInfo]?
+    let tty: Bool?
+    let openStdin: Bool?
+    let workingDir: String?
+    let user: String?
+    let cmd: [String]?
+    let entrypoint: [String]?
+    let cpuShares: Int?
+    let nanoCPUs: Double?
+    let memory: Int64?
+    let privileged: Bool?
+    let autoRemove: Bool?
+    let volumes: [ContainerVolumeInfo]?
+    let labels: [String]?
+    let env: [String]?
+    let restartPolicy: String?
+}
+
+// MARK: - 镜像选项（GET /containers/image 返回 [{option:"..."}]）
+
+struct ContainerOption: Decodable {
+    let option: String
+}
+
+// MARK: - 更新端口（update.exposedPorts 比 info 多 host 字段）
+
+struct ContainerUpdatePort: Encodable {
+    let hostIP: String
+    let hostPort: String
+    let containerPort: String
+    let protocolField: String
+    let host: String
+
+    enum CodingKeys: String, CodingKey {
+        case hostIP, hostPort, containerPort
+        case protocolField = "protocol"
+        case host
+    }
+}
+
+// MARK: - 更新容器请求（POST /containers/update）
+
+struct ContainerUpdateRequest: Encodable {
+    let taskID: String
+    let name: String
+    let image: String
+    let imageInput: Bool
+    let forcePull: Bool
+    let networks: [ContainerNetworkInfo]
+    let hostname: String
+    let domainName: String
+    let dns: [String]
+    let cmdStr: String
+    let entrypointStr: String
+    let memoryItem: Int
+    let cmd: [String]
+    let workingDir: String
+    let user: String
+    let openStdin: Bool
+    let tty: Bool
+    let entrypoint: [String]
+    let publishAllPorts: Bool
+    let exposedPorts: [ContainerUpdatePort]
+    let nanoCPUs: Double
+    let cpuShares: Int
+    let memory: Int64
+    let volumes: [ContainerVolumeInfo]
+    let privileged: Bool
+    let autoRemove: Bool
+    let labels: [String]
+    let env: [String]
+    let restartPolicy: String
+}
