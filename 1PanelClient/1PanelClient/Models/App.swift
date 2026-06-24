@@ -160,6 +160,7 @@ struct AppInstalledOperateRequest: Encodable {
 /// start/stop/restart: 基础生命周期
 /// upgrade: 升级到新版本（需要 detailId 指定目标版本）
 /// rebuild: 重建容器（使用当前参数重新创建容器）
+/// reload: 重载配置（OpenResty 等支持）
 /// 注意：up/down 不被支持，会返回 "operate not support"
 enum AppOperation: String {
     case start = "start"
@@ -167,6 +168,18 @@ enum AppOperation: String {
     case restart = "restart"
     case upgrade = "upgrade"
     case rebuild = "rebuild"
+    case reload = "reload"
+
+    var displayName: String {
+        switch self {
+        case .start:    return "启动"
+        case .stop:     return "停止"
+        case .restart:  return "重启"
+        case .upgrade:  return "升级"
+        case .rebuild:  return "重建"
+        case .reload:   return "重载"
+        }
+    }
 }
 
 /// 可用更新版本（dto.AppVersion）

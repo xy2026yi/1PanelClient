@@ -123,7 +123,7 @@ struct ManageTab: View {
         case .apps:
             AppsTab(manager: manager)
         case .websites:
-            UnifiedWebsitesTab(manager: manager)
+            WebsitesTab(manager: manager)
         case .containers:
             ContainersTab(manager: manager)
         case .cronjob:

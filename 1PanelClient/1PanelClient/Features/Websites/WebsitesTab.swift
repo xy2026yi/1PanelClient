@@ -12,81 +12,343 @@ struct WebsitesTab: View {
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
     @State private var showCreateSheet = false
+    @State private var showCerts = false
 
-    /// 是否显示关闭按钮（fullScreen 模式用 true，作为分段内容时用 false）
+    /// 是否显示关闭按钮（fullScreen 模式用 true）
     var showCloseButton: Bool = true
+    /// true=自带 NavigationStack；false=仅提供内容
+    var standalone: Bool = true
 
-    init(manager: ServerManager, showCloseButton: Bool = true) {
+    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
         self.manager = manager
         self.showCloseButton = showCloseButton
+        self.standalone = standalone
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: WebsitesViewModel(server: server))
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if vm.isLoading && vm.websites.isEmpty {
-                    ProgressView("加载中…")
-                } else if vm.websites.isEmpty {
-                    ContentUnavailableView(
-                        "暂无网站",
-                        systemImage: "globe",
-                        description: Text(vm.errorMessage ?? "点击右上角创建第一个网站")
-                    )
-                } else {
-                    websiteList
-                }
+        if standalone {
+            NavigationStack {
+                rootContent
             }
-            .navigationTitle("网站")
-            .navigationBarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "搜索域名")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showCreateSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if showCloseButton {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
+            .fullScreenCover(isPresented: $showCerts) {
+                CertificatesTab(manager: manager, showCloseButton: true, standalone: true)
             }
-            .onChange(of: searchText) { _, newValue in
-                Task { await vm.search(query: newValue) }
+            .alert(vm.alertMessage, isPresented: $vm.showAlert) {
+                Button("好", role: .cancel) {}
             }
-            .navigationDestination(for: Website.self) { website in
-                WebsiteDetailView(website: website, vm: vm)
-            }
-            .sheet(isPresented: $showCreateSheet) {
-                CreateWebsiteView(vm: vm)
+            .task { await vm.refresh() }
+        } else {
+            rootContent
+                .task { await vm.refresh() }
+        }
+    }
+
+    /// 列表根内容（不含 NavigationStack）
+    var rootContent: some View {
+        Group {
+            if vm.isLoading && vm.websites.isEmpty {
+                ProgressView("加载中…")
+            } else {
+                websiteList
             }
         }
-        .task { await vm.refresh() }
-        .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-            Button("好", role: .cancel) {}
+        .navigationTitle("网站")
+        .navigationBarTitleDisplayMode(.large)
+        .searchable(text: $searchText, prompt: "搜索域名")
+        .toolbar {
+            if showCloseButton {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCerts = true
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel("SSL 证书")
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                showCreateSheet = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 56, height: 56)
+                    .background(Color.accentColor, in: Circle())
+                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 20)
+            .accessibilityLabel("创建网站")
+        }
+        .onChange(of: searchText) { _, newValue in
+            Task { await vm.search(query: newValue) }
+        }
+        .navigationDestination(for: Website.self) { website in
+            WebsiteDetailView(website: website, vm: vm)
+        }
+        .sheet(isPresented: $showCreateSheet) {
+            CreateWebsiteView(vm: vm)
         }
     }
 
     private var websiteList: some View {
         List {
-            ForEach(vm.websites) { w in
-                NavigationLink(value: w) {
-                    WebsiteRow(website: w)
+            // 顶部 OpenResty 信息与管理卡片
+            OpenRestyCard(manager: manager)
+
+            if vm.websites.isEmpty {
+                if let err = vm.errorMessage, !err.isEmpty {
+                    Section {
+                        Text(err)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Section {
+                        Text("点击右下角 + 创建第一个网站")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                Section {
+                    ForEach(vm.websites) { w in
+                        NavigationLink(value: w) {
+                            WebsiteRow(website: w)
+                        }
+                    }
                 }
             }
         }
         .listStyle(.insetGrouped)
         .refreshable {
             await vm.refresh()
+        }
+    }
+}
+
+// MARK: - OpenResty 信息与管理卡片
+
+struct OpenRestyCard: View {
+    @ObservedObject var manager: ServerManager
+    @State private var openresty: AppInstall?
+    @State private var isLoading = false
+    @State private var isExpanded = false
+    @State private var operatingId: Int?
+    @State private var showConfigAlert = false
+
+    private let server: ServerConfig
+
+    init(manager: ServerManager) {
+        self.manager = manager
+        self.server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+    }
+
+    var body: some View {
+        Section {
+            if isLoading && openresty == nil {
+                HStack(spacing: 12) {
+                    ProgressView()
+                    Text("加载 OpenResty 状态…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            } else if let app = openresty {
+                headerRow(app)
+                if isExpanded {
+                    actionsRow(app)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text("OpenResty 未安装或加载失败")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+        }
+        .task {
+            await loadOpenResty()
+        }
+        .alert("配置", isPresented: $showConfigAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text("OpenResty 配置编辑暂未开放")
+        }
+    }
+
+    @ViewBuilder
+    private func headerRow(_ app: AppInstall) -> some View {
+        HStack(spacing: 12) {
+            AppIconView(
+                appID: app.appID,
+                baseURL: manager.current?.baseURL ?? "",
+                fallbackIcon: "globe",
+                fallbackColor: app.statusColor,
+                size: 40,
+                cornerRadius: 10
+            )
+            VStack(alignment: .leading, spacing: 3) {
+                Text("OpenResty")
+                    .font(.body.bold())
+                if let v = app.version, !v.isEmpty {
+                    Text("v\(v)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("—")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(app.statusColor)
+                    .frame(width: 6, height: 6)
+                Text(app.status ?? "未知")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+            .disabled(operatingId != nil)
+        }
+        .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private func actionsRow(_ app: AppInstall) -> some View {
+        HStack(spacing: 8) {
+            actionButton(
+                title: app.isRunning ? "停止" : "启动",
+                icon: app.isRunning ? "stop.fill" : "play.fill",
+                color: app.isRunning ? .orange : .green,
+                isLoading: operatingId == app.id
+            ) {
+                Task { await operate(app: app, op: app.isRunning ? .stop : .start) }
+            }
+            actionButton(
+                title: "重启",
+                icon: "arrow.triangle.2.circlepath",
+                color: .blue,
+                isLoading: operatingId == app.id
+            ) {
+                Task { await operate(app: app, op: .restart) }
+            }
+            actionButton(
+                title: "重载",
+                icon: "arrow.clockwise",
+                color: .teal,
+                isLoading: operatingId == app.id
+            ) {
+                Task { await operate(app: app, op: .reload) }
+            }
+            actionButton(
+                title: "配置",
+                icon: "slider.horizontal.3",
+                color: .purple,
+                isLoading: false
+            ) {
+                showConfigAlert = true
+            }
+        }
+        .padding(.top, 4)
+        .padding(.bottom, 2)
+    }
+
+    @ViewBuilder
+    private func actionButton(
+        title: String,
+        icon: String,
+        color: Color,
+        isLoading: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .frame(width: 22, height: 22)
+                } else {
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(color)
+                        .frame(width: 22, height: 22)
+                }
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+    }
+
+    private func loadOpenResty() async {
+        isLoading = true
+        defer { isLoading = false }
+        let client = APIClient(server: server)
+        let req = AppInstalledSearchRequest(
+            page: 1, pageSize: 100, name: "", type: "", tags: [],
+            update: false, all: true, unused: false, sync: false
+        )
+        do {
+            let resp: AppInstalledListResponse = try await client.send(
+                path: APIEndpoint.appsInstalledSearch.path,
+                body: req,
+                as: AppInstalledListResponse.self
+            )
+            self.openresty = (resp.items ?? []).first { $0.appKey?.lowercased() == "openresty" }
+        } catch {
+            self.openresty = nil
+        }
+    }
+
+    private func operate(app: AppInstall, op: AppOperation) async {
+        operatingId = app.id
+        defer { operatingId = nil }
+        let client = APIClient(server: server)
+        let req = AppInstalledOperateRequest(installId: app.id, operate: op.rawValue)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.appsInstalledOperate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            // 等待服务器状态稳定后刷新
+            try? await Task.sleep(for: .seconds(1))
+            await loadOpenResty()
+        } catch {
+            // 静默失败，下次进入页面会重新加载
         }
     }
 }
@@ -265,34 +527,45 @@ struct WebsiteDetailView: View {
 struct WebsiteRow: View {
     let website: Website
 
+    /// 上：主域名:端口；下：类型 [appName]；右：状态
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: website.typeIcon, color: website.statusColor)
-
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(website.displayName)
-                        .font(.body.bold())
-                        .lineLimit(1)
-                    if website.ssl == true {
-                        Image(systemName: "lock.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.green)
-                    }
-                }
+                Text(domainLine)
+                    .font(.body.bold())
+                    .lineLimit(1)
 
-                HStack(spacing: 6) {
-                    StatusBadge(text: website.typeDisplayName, color: .blue, backgroundOpacity: 0.12)
-
+                HStack(spacing: 4) {
+                    Text(website.typeDisplayName)
                     if let app = website.appName, !app.isEmpty {
-                        StatusBadge(text: app, color: .secondary, backgroundOpacity: 0.1)
+                        Text("[\(app)]")
                     }
                 }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
             Spacer()
+
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(website.statusColor)
+                    .frame(width: 6, height: 6)
+                Text(website.status ?? "—")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.vertical, 4)
+    }
+
+    /// 域名:端口 组合显示
+    private var domainLine: String {
+        var line = website.displayName
+        if let port = website.port, port > 0 {
+            line += ":\(port)"
+        }
+        return line
     }
 }
 

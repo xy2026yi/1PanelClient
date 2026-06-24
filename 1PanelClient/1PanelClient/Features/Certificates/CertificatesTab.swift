@@ -15,62 +15,83 @@ struct CertificatesTab: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showUploadSheet = false
 
-    /// 是否显示关闭按钮（fullScreen 模式用 true，作为分段内容时用 false）
+    /// 是否显示关闭按钮（fullScreen 模式用 true）
     var showCloseButton: Bool = true
+    /// true=自带 NavigationStack；false=仅提供内容
+    var standalone: Bool = true
 
-    init(manager: ServerManager, showCloseButton: Bool = true) {
+    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
         self.manager = manager
         self.showCloseButton = showCloseButton
+        self.standalone = standalone
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: CertificatesViewModel(server: server))
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if vm.isLoading && vm.certificates.isEmpty {
-                    ProgressView("加载中…")
-                } else if vm.certificates.isEmpty {
-                    ContentUnavailableView(
-                        "暂无证书",
-                        systemImage: "lock.shield",
-                        description: Text(vm.errorMessage ?? "点击右上角上传第一张证书")
-                    )
-                } else {
-                    certList
-                }
+        if standalone {
+            NavigationStack {
+                rootContent
             }
-            .navigationTitle("SSL 证书")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showUploadSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if showCloseButton {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
+            .task { await vm.refresh() }
+            .alert(vm.alertMessage, isPresented: $vm.showAlert) {
+                Button("好", role: .cancel) {}
             }
-            .navigationDestination(for: WebsiteSSLCert.self) { cert in
-                CertificateDetailView(cert: cert, vm: vm)
-            }
-            .sheet(isPresented: $showUploadSheet) {
-                UploadCertificateView(vm: vm)
+        } else {
+            rootContent
+                .task { await vm.refresh() }
+        }
+    }
+
+    /// 列表根内容（不含 NavigationStack/task）
+    var rootContent: some View {
+        Group {
+            if vm.isLoading && vm.certificates.isEmpty {
+                ProgressView("加载中…")
+            } else if vm.certificates.isEmpty {
+                ContentUnavailableView(
+                    "暂无证书",
+                    systemImage: "lock.shield",
+                    description: Text(vm.errorMessage ?? "点击右下角 + 上传第一张证书")
+                )
+            } else {
+                certList
             }
         }
-        .task { await vm.refresh() }
-        .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-            Button("好", role: .cancel) {}
+        .navigationTitle("SSL 证书")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            if showCloseButton {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                showUploadSheet = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 56, height: 56)
+                    .background(Color.accentColor, in: Circle())
+                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 20)
+            .accessibilityLabel("上传证书")
+        }
+        .navigationDestination(for: WebsiteSSLCert.self) { cert in
+            CertificateDetailView(cert: cert, vm: vm)
+        }
+        .sheet(isPresented: $showUploadSheet) {
+            UploadCertificateView(vm: vm)
         }
     }
 
