@@ -105,7 +105,7 @@ struct ManageTab: View {
     private func destination(for item: ManageItem) -> some View {
         switch item {
         case .apps:
-            UnifiedAppsTab(manager: manager)
+            AppsTab(manager: manager)
         case .websites:
             UnifiedWebsitesTab(manager: manager)
         case .containers:

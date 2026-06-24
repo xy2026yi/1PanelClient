@@ -9,28 +9,45 @@ import Combine
 struct AppsTab: View {
     @ObservedObject var manager: ServerManager
     @StateObject private var vm: AppsViewModel
+    @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @State private var showStore = false
 
-    init(manager: ServerManager) {
+    /// 是否显示关闭按钮（fullScreen 模式用 true）
+    var showCloseButton: Bool = true
+    /// true=自带 NavigationStack；false=仅提供内容（嵌入外层栈）
+    var standalone: Bool = true
+
+    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
         self.manager = manager
+        self.showCloseButton = showCloseButton
+        self.standalone = standalone
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: AppsViewModel(server: server))
     }
 
     var body: some View {
-        NavigationStack {
-            installedRootContent
+        if standalone {
+            NavigationStack {
+                rootContent
+            }
+            .fullScreenCover(isPresented: $showStore) {
+                AppStoreTab(manager: manager, showCloseButton: true, standalone: true)
+            }
+            .alert("提示", isPresented: $vm.showAlert) {
+                Button("好的", role: .cancel) {}
+            } message: {
+                Text(vm.alertMessage)
+            }
+            .task { await vm.refresh() }
+        } else {
+            rootContent
+                .task { await vm.refresh() }
         }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
-        } message: {
-            Text(vm.alertMessage)
-        }
-        .task { await vm.refresh() }
     }
 
-    /// 供统一外壳复用的根内容（不含 NavigationStack/alert/task）
-    var installedRootContent: some View {
+    /// 列表根内容（不含 NavigationStack），供 ManageTab 嵌入复用
+    var rootContent: some View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
                 ProgressView("加载中…")
@@ -47,6 +64,33 @@ struct AppsTab: View {
         .navigationTitle("应用")
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $searchText, prompt: "搜索已安装应用")
+        .toolbar {
+            if showCloseButton {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                showStore = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 56, height: 56)
+                    .background(Color.accentColor, in: Circle())
+                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 20)
+            .accessibilityLabel("进入应用商店")
+        }
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
         }
@@ -998,43 +1042,32 @@ struct AppRow: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
+                Text(app.displayName)
+                    .font(.body.bold())
+                    .lineLimit(1)
+
                 HStack(spacing: 6) {
-                    Text(app.displayName)
-                        .font(.body.bold())
-                        .lineLimit(1)
-
                     if let v = app.version, !v.isEmpty {
-                        StatusBadge(text: "v\(v)", color: .secondary, backgroundOpacity: 0.12)
-                    }
-
-                    if app.canUpdate == true {
-                        StatusBadge(text: "可更新", color: .orange, icon: "arrow.up.circle.fill")
-                    }
-                }
-
-                if let container = app.container, !container.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "cylinder")
-                            .font(.caption2)
-                        Text(container)
-                            .lineLimit(1)
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                }
-
-                HStack(spacing: 8) {
-                    StatusBadge(text: (app.status ?? "未知").capitalized, color: app.statusColor)
-
-                    if let port = app.httpPort, port > 0 {
-                        Label("\(port)", systemImage: "network")
-                            .font(.caption2)
+                        Text("v\(v)")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
+                    }
+                    if app.canUpdate == true {
+                        StatusBadge(text: "有更新", color: .orange, icon: "arrow.up.circle.fill")
                     }
                 }
             }
 
             Spacer()
+
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(app.statusColor)
+                    .frame(width: 6, height: 6)
+                Text(app.isRunning ? "已启动" : (app.status ?? "未知"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.vertical, 4)
     }

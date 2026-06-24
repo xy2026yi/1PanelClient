@@ -11,22 +11,35 @@ import Combine
 struct AppStoreTab: View {
     @ObservedObject var manager: ServerManager
     @StateObject private var vm: AppStoreViewModel
+    @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
 
-    init(manager: ServerManager) {
+    /// 是否显示关闭按钮（fullScreen 模式用 true）
+    var showCloseButton: Bool = true
+    /// true=自带 NavigationStack；false=仅提供内容（嵌入外层栈）
+    var standalone: Bool = true
+
+    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
         self.manager = manager
+        self.showCloseButton = showCloseButton
+        self.standalone = standalone
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: AppStoreViewModel(server: server))
     }
 
     var body: some View {
-        NavigationStack {
+        if standalone {
+            NavigationStack {
+                storeRootContent
+            }
+            .task { await vm.refresh() }
+        } else {
             storeRootContent
+                .task { await vm.refresh() }
         }
-        .task { await vm.refresh() }
     }
 
-    /// 供统一外壳复用的根内容（不含 NavigationStack/task）
+    /// 列表根内容（不含 NavigationStack/task），供外层复用
     var storeRootContent: some View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
@@ -41,6 +54,16 @@ struct AppStoreTab: View {
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $searchText, prompt: "搜索应用商店")
         .toolbar {
+            if showCloseButton {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {
