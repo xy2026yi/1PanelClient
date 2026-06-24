@@ -37,6 +37,7 @@ struct Container: Decodable, Identifiable, Hashable {
     let isFromCompose: Bool?
     let appName: String?
     let appInstallName: String?
+    let websites: [String]?
     let isPinned: Bool?
     let description: String?
 
@@ -48,7 +49,8 @@ struct Container: Decodable, Identifiable, Hashable {
 
     var id: String { containerID }
 
-    var displayName: String { appName ?? name }
+    /// 显示名固定使用 name 字段（如 1Panel-phpmyadmin-fl4L）
+    var displayName: String { name }
 
     var displayImage: String { imageName ?? "unknown" }
 
@@ -58,9 +60,9 @@ struct Container: Decodable, Identifiable, Hashable {
         return String(format: "%.2f%%", v)
     }
 
-    /// 端口映射展示（多行合并）
+    /// 端口映射展示（单行，逗号分隔）
     var portsDisplay: String {
-        (ports ?? []).joined(separator: "\n")
+        (ports ?? []).joined(separator: ", ")
     }
 
     var stateColor: Color {

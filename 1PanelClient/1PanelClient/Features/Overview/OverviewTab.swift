@@ -358,8 +358,8 @@ struct RingStatView: View {
     var compact: Bool = false // 紧凑模式（一排显示）
 
     var body: some View {
-        let ringSize: CGFloat = compact ? 62 : 88
-        let ringWidth: CGFloat = compact ? 7 : 10
+        let ringSize: CGFloat = compact ? 54 : 88
+        let ringWidth: CGFloat = compact ? 6 : 10
         let topFont: Font = compact
             ? .system(size: 13, weight: .bold, design: .rounded)
             : .system(size: 16, weight: .bold, design: .rounded)

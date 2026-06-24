@@ -28,7 +28,7 @@ struct ManageTab: View {
         [
             ("",          [.apps, .websites, .database, .containers]),
             ("",          [.terminal, .process]),
-            ("安全",       [.firewall]),
+            ("",          [.firewall]),
             ("",          [.cronjob])
         ]
     }
@@ -144,10 +144,10 @@ struct ManageEditView: View {
     /// 与 ManageTab 保持一致的分组
     private var groups: [(title: String, items: [ManageItem])] {
         [
-            ("核心功能",  [.apps, .websites, .database, .containers]),
-            ("系统",      [.terminal, .process]),
-            ("安全",      [.firewall]),
-            ("自动化",    [.cronjob])
+            ("",  [.apps, .websites, .database, .containers]),
+            ("",  [.terminal, .process]),
+            ("",  [.firewall]),
+            ("",  [.cronjob])
         ]
     }
 
@@ -161,7 +161,7 @@ struct ManageEditView: View {
                 }
 
                 ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
-                    Section(group.title) {
+                    Section {
                         ForEach(group.items) { item in
                             HStack(spacing: 12) {
                                 IconBadge(systemName: item.icon, color: item.color, size: 34, cornerRadius: 8)

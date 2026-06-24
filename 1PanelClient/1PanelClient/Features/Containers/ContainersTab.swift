@@ -304,25 +304,16 @@ struct ContainerRow: View {
                 }
             }
 
-            // 端口映射
+            // 端口映射（单行，逗号分隔）
             if let ports = container.ports, !ports.isEmpty {
-                VStack(alignment: .leading, spacing: 1) {
-                    ForEach(ports, id: \.self) { p in
-                        Text(p)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
+                Text(ports.joined(separator: ", "))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
-            // 状态 + CPU
+            // CPU 使用率（状态徽标已移除）
             HStack(spacing: 6) {
-                StatusBadge(
-                    text: container.state.capitalized,
-                    color: container.stateColor,
-                    icon: "circle.fill"
-                )
                 Spacer()
                 HStack(spacing: 2) {
                     Image(systemName: "cpu")
@@ -354,14 +345,13 @@ struct ContainerDetailView: View {
                 }
                 LabeledRow("状态", value: container.state.capitalized)
                 if let app = container.appName, !app.isEmpty {
-                    LabeledRow("关联应用", value: app)
-                } else {
-                    LabeledRow("关联应用", value: "无")
+                    LabeledRow("应用程序", value: app)
                 }
-                if container.isFromApp == true, let app = container.appName, !app.isEmpty {
-                    LabeledRow("关联网站", value: "由 \(app) 管理")
-                } else {
-                    LabeledRow("关联网站", value: "无")
+                if let sites = container.websites, !sites.isEmpty {
+                    LabeledRow("网站", value: sites.joined(separator: "\n"))
+                }
+                if let ports = container.ports, !ports.isEmpty {
+                    LabeledRow("端口映射", value: ports.joined(separator: "\n"))
                 }
                 LabeledRow("运行时长", value: container.runTime ?? "—")
                 if let created = container.createTime, !created.isEmpty {
@@ -371,7 +361,7 @@ struct ContainerDetailView: View {
 
             Section {
                 NavigationLink {
-                    ContainerLogPlaceholderView(container: container)
+                    ContainerLogView(container: container, vm: vm)
                 } label: {
                     Label("日志", systemImage: "doc.text")
                 }
@@ -408,17 +398,87 @@ struct ContainerDetailView: View {
 }
 
 /// 容器日志占位页（接口未提供，待开发）
-struct ContainerLogPlaceholderView: View {
+struct ContainerLogView: View {
     let container: Container
+    @ObservedObject var vm: ContainersViewModel
+    @State private var lines: [String] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
 
     var body: some View {
-        ContentUnavailableView(
-            "日志查看开发中",
-            systemImage: "doc.text.magnifyingglass",
-            description: Text("容器「\(container.displayName)」的日志接口待接入")
-        )
-        .navigationTitle("日志")
-        .navigationBarTitleDisplayMode(.inline)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 1) {
+                    if isLoading && lines.isEmpty {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("加载日志…")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                    }
+                    ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
+                        Text(line)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                            .id(idx)
+                    }
+                    if let errorMessage, lines.isEmpty {
+                        Text(errorMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding()
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+            }
+            .background(Color(.secondarySystemBackground))
+            .navigationTitle("日志")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task { await loadLogs() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+            }
+            .onChange(of: lines.count) { _, count in
+                guard count > 0 else { return }
+                withAnimation {
+                    proxy.scrollTo(count - 1, anchor: .bottom)
+                }
+            }
+        }
+        .task {
+            await loadLogs()
+        }
+    }
+
+    private func loadLogs() async {
+        isLoading = true
+        errorMessage = nil
+        lines = []
+        do {
+            isLoading = false
+            for try await line in vm.streamLogs(container: container.name) {
+                lines.append(line)
+                if lines.count > 2000 {
+                    lines.removeFirst(lines.count - 2000)
+                }
+            }
+        } catch {
+            isLoading = false
+            if lines.isEmpty {
+                errorMessage = "加载日志失败：\(error.localizedDescription)"
+            }
+        }
     }
 }
 
@@ -568,10 +628,10 @@ final class ContainersViewModel: ObservableObject {
                 path: APIEndpoint.containersSearch.path,
                 body: req, as: ContainerListResponse.self
             )
-            var items = resp.items ?? []
-            // 合并运行时指标（CPU/内存）
-            await mergeStats(into: &items)
-            self.containers = items
+            // 先显示列表，避免等待 stats 接口导致长时间 loading
+            self.containers = resp.items ?? []
+            // 后台合并运行时指标（CPU/内存），完成后刷新界面
+            await mergeStats()
         } catch let err as APIError {
             self.errorMessage = err.errorDescription
             self.containers = []
@@ -581,7 +641,7 @@ final class ContainersViewModel: ObservableObject {
         }
     }
 
-    private func mergeStats(into items: inout [Container]) async {
+    private func mergeStats() async {
         guard let stats: [ContainerStats] = try? await client.send(
             path: APIEndpoint.containersListStats.path,
             method: "GET", as: [ContainerStats].self
@@ -591,12 +651,12 @@ final class ContainersViewModel: ObservableObject {
             return (id, $0)
         }
         let map = Dictionary(uniqueKeysWithValues: pairs)
-        for i in items.indices {
-            if let s = map[items[i].containerID] {
-                items[i].cpuPercent = s.cpuPercent
-                items[i].memoryUsage = s.memoryUsage
-                items[i].memoryLimit = s.memoryLimit
-                items[i].memoryPercent = s.memoryPercent
+        for i in containers.indices {
+            if let s = map[containers[i].containerID] {
+                containers[i].cpuPercent = s.cpuPercent
+                containers[i].memoryUsage = s.memoryUsage
+                containers[i].memoryLimit = s.memoryLimit
+                containers[i].memoryPercent = s.memoryPercent
             }
         }
     }
@@ -657,6 +717,22 @@ final class ContainersViewModel: ObservableObject {
         } catch {
             showAlert(message: "清理容器失败：\(error.localizedDescription)")
         }
+    }
+
+    // MARK: - 容器日志（SSE 流式）
+
+    /// 返回容器日志的 SSE 流（已剥离 `data: ` 前缀）
+    func streamLogs(container name: String) -> AsyncThrowingStream<String, Error> {
+        client.streamSSELines(
+            path: APIEndpoint.containersSearchLog.path,
+            queryItems: [
+                URLQueryItem(name: "container", value: name),
+                URLQueryItem(name: "since", value: "all"),
+                URLQueryItem(name: "tail", value: "100"),
+                URLQueryItem(name: "follow", value: "true"),
+                URLQueryItem(name: "operateNode", value: "local")
+            ]
+        )
     }
 
     // MARK: - 镜像列表
