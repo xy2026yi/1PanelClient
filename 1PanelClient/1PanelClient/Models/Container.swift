@@ -23,7 +23,7 @@ struct ContainerListResponse: Decodable {
 }
 
 /// 单个容器（1Panel v2 实际返回的字段，已通过 logs/输出11.log 验证）
-struct Container: Decodable, Identifiable {
+struct Container: Decodable, Identifiable, Hashable {
     let containerID: String
     let name: String
     let imageName: String?
@@ -40,11 +40,28 @@ struct Container: Decodable, Identifiable {
     let isPinned: Bool?
     let description: String?
 
+    /// 来自 list/stats 接口的运行时指标（合并后赋值）
+    var cpuPercent: Double?
+    var memoryUsage: Int64?
+    var memoryLimit: Int64?
+    var memoryPercent: Double?
+
     var id: String { containerID }
 
     var displayName: String { appName ?? name }
 
     var displayImage: String { imageName ?? "unknown" }
+
+    /// CPU 使用率展示文本
+    var cpuDisplay: String {
+        guard let v = cpuPercent else { return "—" }
+        return String(format: "%.2f%%", v)
+    }
+
+    /// 端口映射展示（多行合并）
+    var portsDisplay: String {
+        (ports ?? []).joined(separator: "\n")
+    }
 
     var stateColor: Color {
         switch state.lowercased() {
@@ -64,5 +81,67 @@ struct Container: Decodable, Identifiable {
         case "restarting": return "arrow.triangle.2.circlepath.circle.fill"
         default: return "exclamationmark.triangle.fill"
         }
+    }
+}
+
+// MARK: - Docker 服务状态（GET /containers/docker/status）
+
+struct DockerStatus: Decodable {
+    let isActive: Bool?
+    let isExist: Bool?
+}
+
+// MARK: - 容器运行时指标（GET /containers/list/stats）
+
+struct ContainerStats: Decodable {
+    let containerID: String?
+    let cpuPercent: Double?
+    let memoryUsage: Int64?
+    let memoryLimit: Int64?
+    let memoryPercent: Double?
+}
+
+// MARK: - Docker 操作请求（POST /containers/docker/operate）
+
+struct DockerOperateRequest: Encodable {
+    let operation: String  // start / stop / restart
+}
+
+// MARK: - 清理请求（POST /containers/prune）
+
+struct ContainerPruneRequest: Encodable {
+    let taskID: String
+    let pruneType: String  // container / image
+    let withTagAll: Bool
+}
+
+// MARK: - 镜像（GET /containers/image/all）
+
+struct ContainerImage: Decodable, Identifiable {
+    let id: String
+    let createdAt: String?
+    let isUsed: Bool?
+    let tags: [String]?
+    let size: Int64?
+    let isPinned: Bool?
+    let description: String?
+
+    /// 展示名（取第一个 tag，否则截断 id）
+    var displayName: String {
+        if let tag = tags?.first, !tag.isEmpty { return tag }
+        return String(id.dropFirst("sha256:".count).prefix(12))
+    }
+
+    /// 体积展示
+    var sizeDisplay: String {
+        formatImageSize(size ?? 0)
+    }
+
+    private func formatImageSize(_ bytes: Int64) -> String {
+        let f = Double(bytes)
+        if f > 1_073_741_824 { return String(format: "%.2f GB", f / 1_073_741_824) }
+        if f > 1_048_576 { return String(format: "%.2f MB", f / 1_048_576) }
+        if f > 1024 { return String(format: "%.2f KB", f / 1024) }
+        return "\(bytes) B"
     }
 }

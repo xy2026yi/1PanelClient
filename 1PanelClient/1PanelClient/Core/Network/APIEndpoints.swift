@@ -21,6 +21,11 @@ enum APIEndpoint {
 
     // MARK: - 容器
     case containersSearch         // POST 分页查询容器
+    case containersListStats      // GET  容器运行时指标（CPU/内存，按 containerID）
+    case containersDockerStatus   // GET  Docker 服务状态（isActive/isExist）
+    case containersDockerOperate  // POST Docker 服务操作（start/stop/restart）
+    case containersPrune          // POST 清理容器/镜像
+    case containersImageAll       // GET  所有镜像列表
 
     // MARK: - 网站
     case websitesSearch           // POST 分页查询网站
@@ -88,6 +93,11 @@ enum APIEndpoint {
         case .settingsSearch:        return "/api/v2/core/settings/search"
         case .deviceBase:            return "/api/v2/toolbox/device/base"
         case .containersSearch:      return "/api/v2/containers/search"
+        case .containersListStats:      return "/api/v2/containers/list/stats"
+        case .containersDockerStatus:   return "/api/v2/containers/docker/status"
+        case .containersDockerOperate:  return "/api/v2/containers/docker/operate"
+        case .containersPrune:          return "/api/v2/containers/prune"
+        case .containersImageAll:       return "/api/v2/containers/image/all"
         case .websitesSearch:        return "/api/v2/websites/search"
         case .websitesCreate:        return "/api/v2/websites"
         case .websitesCheck:         return "/api/v2/websites/check"
@@ -142,6 +152,7 @@ enum APIEndpoint {
              .appsInstalledDeleteCheck, .appsInstalledParams,
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
+             .containersListStats, .containersDockerStatus, .containersImageAll,
              .appsIcon:
             return "GET"
         default:
