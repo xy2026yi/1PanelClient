@@ -178,11 +178,6 @@ struct OverviewTab: View {
     }
 
     private func monitorCards(cur: DashboardCurrent) -> some View {
-        // 聚合磁盘数据：取所有挂载点的总量/已用（用于概览）
-        let diskTotal = cur.diskData?.reduce(Int64(0)) { $0 + ($1.total ?? 0) } ?? 0
-        let diskUsed = cur.diskData?.reduce(Int64(0)) { $0 + ($1.used ?? 0) } ?? 0
-        let diskPercent = diskTotal > 0 ? Double(diskUsed) / Double(diskTotal) * 100 : 0
-
         return VStack(spacing: 12) {
             HStack {
                 Image(systemName: "chart.xyaxis.line")
@@ -197,7 +192,7 @@ struct OverviewTab: View {
                 }
             }
 
-            // 四个圆形指标缩小至一排：负载 / CPU / 内存 / 存储
+            // 负载 / CPU / 内存 一排
             HStack(spacing: 4) {
                 RingStatView(
                     percent: min(cur.loadUsagePercent ?? 0, 100),
@@ -223,14 +218,27 @@ struct OverviewTab: View {
                     footer: formatBytes(cur.memoryTotal),
                     compact: true
                 )
-                RingStatView(
-                    percent: min(diskPercent, 100),
-                    color: .orange,
-                    topText: String(format: "%.0f%%", diskPercent),
-                    bottomText: "存储",
-                    footer: formatBytes(diskTotal),
-                    compact: true
-                )
+            }
+
+            // 存储：按挂载点单独区分，横向滑动
+            if let disks = cur.diskData, !disks.isEmpty {
+                Divider().padding(.vertical, 2)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(Array(disks.enumerated()), id: \.offset) { _, disk in
+                            let pct = disk.usedPercent ?? 0
+                            RingStatView(
+                                percent: min(pct, 100),
+                                color: .orange,
+                                topText: String(format: "%.0f%%", pct),
+                                bottomText: disk.path?.isEmpty == false ? disk.path! : "存储",
+                                footer: formatBytes(disk.total),
+                                compact: true
+                            )
+                            .frame(width: 76)
+                        }
+                    }
+                }
             }
         }
         .padding()
