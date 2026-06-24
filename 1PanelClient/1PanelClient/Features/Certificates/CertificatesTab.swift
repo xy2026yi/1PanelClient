@@ -59,7 +59,7 @@ struct CertificatesTab: View {
             }
         }
         .navigationTitle("SSL 证书")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if showCloseButton {
                 ToolbarItem(placement: .topBarLeading) {

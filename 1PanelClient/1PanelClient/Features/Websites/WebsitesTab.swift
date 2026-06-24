@@ -55,7 +55,7 @@ struct WebsitesTab: View {
             }
         }
         .navigationTitle("网站")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "搜索域名")
         .toolbar {
             if showCloseButton {

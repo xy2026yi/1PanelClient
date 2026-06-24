@@ -62,7 +62,7 @@ struct AppsTab: View {
             }
         }
         .navigationTitle("应用")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "搜索已安装应用")
         .toolbar {
             if showCloseButton {

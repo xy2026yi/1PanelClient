@@ -53,11 +53,11 @@ struct ContainersTab: View {
             }
         }
         .navigationTitle("容器")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "搜索容器名")
         .toolbar {
             if showCloseButton {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         dismiss()
                     } label: {

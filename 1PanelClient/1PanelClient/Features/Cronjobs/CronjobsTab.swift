@@ -62,17 +62,10 @@ struct CronjobsTab: View {
             }
         }
         .navigationTitle("计划任务")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    showCreateSheet = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                if showCloseButton {
+            if showCloseButton {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         dismiss()
                     } label: {
@@ -84,6 +77,21 @@ struct CronjobsTab: View {
         }
         .navigationDestination(for: Cronjob.self) { job in
             CronjobDetailView(job: job, vm: vm)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                showCreateSheet = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 56, height: 56)
+                    .background(Color.accentColor, in: Circle())
+                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 20)
+            .accessibilityLabel("创建计划任务")
         }
         .sheet(isPresented: $showCreateSheet) {
             CreateCronjobView(vm: vm)

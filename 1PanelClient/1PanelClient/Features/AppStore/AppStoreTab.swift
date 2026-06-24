@@ -51,7 +51,7 @@ struct AppStoreTab: View {
             }
         }
         .navigationTitle("应用商店")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "搜索应用商店")
         .toolbar {
             if showCloseButton {
