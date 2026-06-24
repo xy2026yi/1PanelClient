@@ -378,15 +378,38 @@ struct ContainerDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button { notify("停止容器") } label: { Label("停止", systemImage: "stop.fill") }
-                    Button { notify("重启容器") } label: { Label("重启", systemImage: "arrow.triangle.2.circlepath") }
-                    Button { notify("关闭容器") } label: { Label("关闭", systemImage: "xmark") }
-                    Button { notify("升级容器") } label: { Label("升级", systemImage: "arrow.up.circle") }
-                    Button { notify("编辑容器") } label: { Label("编辑", systemImage: "pencil") }
-                    Button { notify("容器终端") } label: { Label("终端", systemImage: "terminal") }
+                    // 根据状态显示 启动/停止
+                    if container.state.lowercased() == "running" {
+                        Button(role: .destructive) {
+                            Task { await vm.operateContainer(name: container.name, operation: "stop") }
+                        } label: { Label("停止", systemImage: "stop.fill") }
+                    } else {
+                        Button {
+                            Task { await vm.operateContainer(name: container.name, operation: "start") }
+                        } label: { Label("启动", systemImage: "play.fill") }
+                    }
+                    Button {
+                        Task { await vm.operateContainer(name: container.name, operation: "restart") }
+                    } label: { Label("重启", systemImage: "arrow.triangle.2.circlepath") }
+                    Button(role: .destructive) {
+                        Task { await vm.operateContainer(name: container.name, operation: "kill") }
+                    } label: { Label("关闭", systemImage: "xmark") }
+                    Divider()
+                    Button {
+                        Task {
+                            if let img = container.imageName, !img.isEmpty {
+                                await vm.upgradeContainer(name: container.name, image: img)
+                            } else {
+                                notify("升级", message: "缺少镜像信息，无法升级")
+                            }
+                        }
+                    } label: { Label("升级", systemImage: "arrow.up.circle") }
+                    Button { notify("编辑", message: "编辑容器功能开发中") } label: { Label("编辑", systemImage: "pencil") }
+                    Button { notify("终端", message: "容器终端功能开发中") } label: { Label("终端", systemImage: "terminal") }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
+                .disabled(vm.containerOperating)
             }
         }
         .alert("提示", isPresented: $showMenuAlert) {
@@ -396,8 +419,8 @@ struct ContainerDetailView: View {
         }
     }
 
-    private func notify(_ feature: String) {
-        menuAlertMessage = "\(feature)功能开发中，敬请期待。"
+    private func notify(_ feature: String, message: String? = nil) {
+        menuAlertMessage = message ?? "\(feature)功能开发中，敬请期待。"
         showMenuAlert = true
     }
 }
@@ -593,6 +616,7 @@ final class ContainersViewModel: ObservableObject {
     @Published var isLoadingDocker = false
     @Published var isLoadingImages = false
     @Published var dockerOperating = false
+    @Published var containerOperating = false
     @Published var imageOperating = false
     @Published var errorMessage: String?
     @Published var dockerErrorMessage: String?
@@ -727,6 +751,54 @@ final class ContainersViewModel: ObservableObject {
             showAlert(message: "清理容器任务已提交")
         } catch {
             showAlert(message: "清理容器失败：\(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 单个容器操作（stop/start/restart/kill）
+
+    func operateContainer(name: String, operation: String) async {
+        containerOperating = true
+        defer { containerOperating = false }
+        let opName: String
+        switch operation {
+        case "stop": opName = "停止"
+        case "start": opName = "启动"
+        case "restart": opName = "重启"
+        case "kill": opName = "关闭"
+        default: opName = operation
+        }
+        let req = ContainerOperateRequest(names: [name], operation: operation, taskID: UUID().uuidString)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersOperate.path,
+                body: req, as: EmptyResponse.self
+            )
+            try? await Task.sleep(for: .seconds(1))
+            await load(query: "")
+            showAlert(message: "\(opName)容器「\(name)」任务已提交")
+        } catch {
+            showAlert(message: "\(opName)容器失败：\(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 容器升级
+
+    func upgradeContainer(name: String, image: String) async {
+        containerOperating = true
+        defer { containerOperating = false }
+        let req = ContainerUpgradeRequest(
+            taskID: UUID().uuidString, names: [name], image: image, forcePull: false
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersUpgrade.path,
+                body: req, as: EmptyResponse.self
+            )
+            try? await Task.sleep(for: .seconds(1))
+            await load(query: "")
+            showAlert(message: "升级容器「\(name)」任务已提交")
+        } catch {
+            showAlert(message: "升级容器失败：\(error.localizedDescription)")
         }
     }
 

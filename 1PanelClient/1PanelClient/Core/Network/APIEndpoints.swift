@@ -27,6 +27,9 @@ enum APIEndpoint {
     case containersPrune          // POST 清理容器/镜像
     case containersImageAll       // GET  所有镜像列表
     case containersSearchLog      // GET  容器日志（SSE 流式）
+    case containersOperate        // POST 单个容器操作（stop/start/restart/kill）
+    case containersUpgrade        // POST 容器升级
+    case containersListByImage    // POST 按镜像查询容器
 
     // MARK: - 网站
     case websitesSearch           // POST 分页查询网站
@@ -100,6 +103,9 @@ enum APIEndpoint {
         case .containersPrune:          return "/api/v2/containers/prune"
         case .containersImageAll:       return "/api/v2/containers/image/all"
         case .containersSearchLog:      return "/api/v2/containers/search/log"
+        case .containersOperate:        return "/api/v2/containers/operate"
+        case .containersUpgrade:        return "/api/v2/containers/upgrade"
+        case .containersListByImage:    return "/api/v2/containers/list/byimage"
         case .websitesSearch:        return "/api/v2/websites/search"
         case .websitesCreate:        return "/api/v2/websites"
         case .websitesCheck:         return "/api/v2/websites/check"

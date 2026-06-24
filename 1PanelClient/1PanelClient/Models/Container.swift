@@ -117,6 +117,34 @@ struct ContainerPruneRequest: Encodable {
     let withTagAll: Bool
 }
 
+// MARK: - 单容器操作请求（POST /containers/operate）
+
+struct ContainerOperateRequest: Encodable {
+    let names: [String]
+    let operation: String  // stop / start / restart / kill
+    let taskID: String
+}
+
+// MARK: - 按镜像查询容器（POST /containers/list/byimage）
+
+struct ContainerByImageRequest: Encodable {
+    let name: String
+}
+
+struct ContainerByImageItem: Decodable {
+    let name: String?
+    let state: String?
+}
+
+// MARK: - 容器升级请求（POST /containers/upgrade）
+
+struct ContainerUpgradeRequest: Encodable {
+    let taskID: String
+    let names: [String]
+    let image: String
+    let forcePull: Bool
+}
+
 // MARK: - 镜像（GET /containers/image/all）
 
 struct ContainerImage: Decodable, Identifiable {
