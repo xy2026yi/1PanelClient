@@ -11,6 +11,7 @@ struct ContainersTab: View {
     @StateObject private var vm: ContainersViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @State private var isSearching = false
 
     /// 是否显示关闭按钮（fullScreen 模式用 true，作为分段/嵌入内容时用 false）
     var showCloseButton: Bool = true
@@ -52,21 +53,14 @@ struct ContainersTab: View {
                 containerList
             }
         }
-        .navigationTitle("容器")
-        .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "搜索容器名")
-        .toolbar {
-            if showCloseButton {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        }
+        .searchIconMode(
+            text: $searchText,
+            isSearching: $isSearching,
+            title: "容器",
+            prompt: "搜索容器名",
+            showCloseButton: showCloseButton,
+            onClose: { dismiss() }
+        )
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
         }

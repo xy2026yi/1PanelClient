@@ -13,6 +13,7 @@ struct AppStoreTab: View {
     @StateObject private var vm: AppStoreViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @State private var isSearching = false
 
     /// 是否显示关闭按钮（fullScreen 模式用 true）
     var showCloseButton: Bool = true
@@ -50,39 +51,37 @@ struct AppStoreTab: View {
                 appList
             }
         }
-        .navigationTitle("应用商店")
-        .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "搜索应用商店")
+        .searchIconMode(
+            text: $searchText,
+            isSearching: $isSearching,
+            title: "应用商店",
+            prompt: "搜索应用商店",
+            showCloseButton: showCloseButton,
+            onClose: { dismiss() }
+        )
         .toolbar {
-            if showCloseButton {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
+            // 同步菜单：仅非搜索态显示
+            if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            Task { await vm.syncRemote() }
+                        } label: {
+                            Label("更新远程应用", systemImage: "arrow.triangle.pull")
+                        }
+                        .disabled(vm.isSyncing)
+                        Button {
+                            Task { await vm.syncLocal() }
+                        } label: {
+                            Label("同步本地应用", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                        .disabled(vm.isSyncing)
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        Task { await vm.syncRemote() }
-                    } label: {
-                        Label("更新远程应用", systemImage: "arrow.triangle.pull")
-                    }
-                    .disabled(vm.isSyncing)
-                    Button {
-                        Task { await vm.syncLocal() }
-                    } label: {
-                        Label("同步本地应用", systemImage: "arrow.triangle.2.circlepath")
-                    }
-                    .disabled(vm.isSyncing)
-                } label: {
-                    if vm.isSyncing {
-                        ProgressView()
-                    } else {
-                        Image(systemName: "ellipsis.circle")
+                        if vm.isSyncing {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "ellipsis.circle")
+                        }
                     }
                 }
             }

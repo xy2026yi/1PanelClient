@@ -178,6 +178,8 @@ struct OverviewTab: View {
     }
 
     private func monitorCards(cur: DashboardCurrent) -> some View {
+        let disks = cur.diskData ?? []
+
         return VStack(spacing: 12) {
             HStack {
                 Image(systemName: "chart.xyaxis.line")
@@ -192,53 +194,53 @@ struct OverviewTab: View {
                 }
             }
 
-            // 负载 / CPU / 内存 一排
-            HStack(spacing: 4) {
-                RingStatView(
-                    percent: min(cur.loadUsagePercent ?? 0, 100),
-                    color: .teal,
-                    topText: String(format: "%.0f%%", cur.loadUsagePercent ?? 0),
-                    bottomText: "负载",
-                    footer: format2(cur.load1),
-                    compact: true
-                )
-                RingStatView(
-                    percent: min(cur.cpuUsedPercent ?? 0, 100),
-                    color: .blue,
-                    topText: String(format: "%.0f%%", cur.cpuUsedPercent ?? 0),
-                    bottomText: "CPU",
-                    footer: "\(cur.cpuTotal ?? 0) 核",
-                    compact: true
-                )
-                RingStatView(
-                    percent: min(cur.memoryUsedPercent ?? 0, 100),
-                    color: .purple,
-                    topText: String(format: "%.0f%%", cur.memoryUsedPercent ?? 0),
-                    bottomText: "内存",
-                    footer: formatBytes(cur.memoryTotal),
-                    compact: true
-                )
-            }
+            // 负载 / CPU / 内存 / 各存储挂载点 全部一排，超出可左右滑动
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    RingStatView(
+                        percent: min(cur.loadUsagePercent ?? 0, 100),
+                        color: .teal,
+                        topText: String(format: "%.0f%%", cur.loadUsagePercent ?? 0),
+                        bottomText: "负载",
+                        footer: format2(cur.load1),
+                        compact: true
+                    )
+                    .frame(width: 76)
 
-            // 存储：按挂载点单独区分，横向滑动
-            if let disks = cur.diskData, !disks.isEmpty {
-                Divider().padding(.vertical, 2)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        ForEach(Array(disks.enumerated()), id: \.offset) { _, disk in
-                            let pct = disk.usedPercent ?? 0
-                            RingStatView(
-                                percent: min(pct, 100),
-                                color: .orange,
-                                topText: String(format: "%.0f%%", pct),
-                                bottomText: disk.path?.isEmpty == false ? disk.path! : "存储",
-                                footer: formatBytes(disk.total),
-                                compact: true
-                            )
-                            .frame(width: 76)
-                        }
+                    RingStatView(
+                        percent: min(cur.cpuUsedPercent ?? 0, 100),
+                        color: .blue,
+                        topText: String(format: "%.0f%%", cur.cpuUsedPercent ?? 0),
+                        bottomText: "CPU",
+                        footer: "\(cur.cpuTotal ?? 0) 核",
+                        compact: true
+                    )
+                    .frame(width: 76)
+
+                    RingStatView(
+                        percent: min(cur.memoryUsedPercent ?? 0, 100),
+                        color: .purple,
+                        topText: String(format: "%.0f%%", cur.memoryUsedPercent ?? 0),
+                        bottomText: "内存",
+                        footer: formatBytes(cur.memoryTotal),
+                        compact: true
+                    )
+                    .frame(width: 76)
+
+                    ForEach(Array(disks.enumerated()), id: \.offset) { _, disk in
+                        let pct = disk.usedPercent ?? 0
+                        RingStatView(
+                            percent: min(pct, 100),
+                            color: .orange,
+                            topText: String(format: "%.0f%%", pct),
+                            bottomText: disk.path?.isEmpty == false ? disk.path! : "存储",
+                            footer: formatBytes(disk.total),
+                            compact: true
+                        )
+                        .frame(width: 76)
                     }
                 }
+                .padding(.horizontal, 2)
             }
         }
         .padding()

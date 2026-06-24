@@ -11,6 +11,7 @@ struct AppsTab: View {
     @StateObject private var vm: AppsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @State private var isSearching = false
     @State private var showStore = false
 
     /// 是否显示关闭按钮（fullScreen 模式用 true）
@@ -61,21 +62,14 @@ struct AppsTab: View {
                 appList
             }
         }
-        .navigationTitle("应用")
-        .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "搜索已安装应用")
-        .toolbar {
-            if showCloseButton {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        }
+        .searchIconMode(
+            text: $searchText,
+            isSearching: $isSearching,
+            title: "应用",
+            prompt: "搜索已安装应用",
+            showCloseButton: showCloseButton,
+            onClose: { dismiss() }
+        )
         .overlay(alignment: .bottomTrailing) {
             Button {
                 showStore = true
@@ -101,25 +95,6 @@ struct AppsTab: View {
 
     private var appList: some View {
         List {
-            if vm.updatableCount > 0 {
-                Section {
-                    HStack(spacing: 10) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.orange)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(vm.updatableCount) 个应用可更新")
-                                .font(.subheadline.bold())
-                            Text("点击应用进入详情查看升级选项")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-
             Section {
                 ForEach(vm.apps) { app in
                     NavigationLink(value: app) {

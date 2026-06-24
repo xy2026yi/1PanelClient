@@ -123,3 +123,90 @@ struct SectionLabel: View {
         }
     }
 }
+
+// MARK: - 搜索图标模式（右上角放大镜 → 点击展开整行搜索条）
+
+/// 把 `.searchable` 替换为图标触发的搜索模式：
+/// - 非搜索态：正常标题 + 左上角关闭按钮(可选) + 右上角放大镜
+/// - 搜索态：左=返回(退出搜索) / 中=输入框 / 右=取消，占据整行
+struct SearchIconModifier: ViewModifier {
+    @Binding var text: String
+    @Binding var isSearching: Bool
+    let title: String
+    let prompt: String
+    var showCloseButton: Bool = true
+    var onClose: () -> Void = {}
+
+    func body(content: Content) -> some View {
+        content
+            .navigationTitle(isSearching ? "" : title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if isSearching {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            endSearch()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                        }
+                    }
+                    ToolbarItem(placement: .principal) {
+                        TextField(prompt, text: $text)
+                            .textFieldStyle(.plain)
+                            .submitLabel(.search)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            endSearch()
+                        } label: {
+                            Text("取消")
+                        }
+                    }
+                } else {
+                    if showCloseButton {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button(action: onClose) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            isSearching = true
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                        }
+                    }
+                }
+            }
+    }
+
+    private func endSearch() {
+        text = ""
+        isSearching = false
+    }
+}
+
+extension View {
+    /// 应用搜索图标模式
+    func searchIconMode(
+        text: Binding<String>,
+        isSearching: Binding<Bool>,
+        title: String,
+        prompt: String,
+        showCloseButton: Bool = true,
+        onClose: @escaping () -> Void = {}
+    ) -> some View {
+        modifier(SearchIconModifier(
+            text: text,
+            isSearching: isSearching,
+            title: title,
+            prompt: prompt,
+            showCloseButton: showCloseButton,
+            onClose: onClose
+        ))
+    }
+}

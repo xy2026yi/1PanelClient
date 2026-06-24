@@ -11,6 +11,7 @@ struct WebsitesTab: View {
     @StateObject private var vm: WebsitesViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @State private var isSearching = false
     @State private var showCreateSheet = false
     @State private var showCerts = false
 
@@ -54,27 +55,25 @@ struct WebsitesTab: View {
                 websiteList
             }
         }
-        .navigationTitle("网站")
-        .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "搜索域名")
+        .searchIconMode(
+            text: $searchText,
+            isSearching: $isSearching,
+            title: "网站",
+            prompt: "搜索域名",
+            showCloseButton: showCloseButton,
+            onClose: { dismiss() }
+        )
         .toolbar {
-            if showCloseButton {
-                ToolbarItem(placement: .topBarLeading) {
+            // SSL 证书入口：仅非搜索态显示
+            if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        dismiss()
+                        showCerts = true
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                        Image(systemName: "ellipsis.circle")
                     }
+                    .accessibilityLabel("SSL 证书")
                 }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showCerts = true
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .accessibilityLabel("SSL 证书")
             }
         }
         .overlay(alignment: .bottomTrailing) {
