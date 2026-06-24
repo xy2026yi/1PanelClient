@@ -1703,14 +1703,3 @@ final class AppsViewModel: ObservableObject {
     }
 }
 
-extension AppOperation {
-    var displayName: String {
-        switch self {
-        case .start: return "启动"
-        case .stop: return "停止"
-        case .restart: return "重启"
-        case .upgrade: return "升级"
-        case .rebuild: return "重建"
-        }
-    }
-}
