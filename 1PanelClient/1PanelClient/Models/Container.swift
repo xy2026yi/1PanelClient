@@ -244,6 +244,53 @@ struct ContainerOption: Decodable {
     let option: String
 }
 
+// MARK: - CPU/内存上限（GET /containers/limit 返回 {cpu, memory}）
+
+struct ContainerLimit: Decodable {
+    let cpu: Int?
+    let memory: Int64?
+}
+
+// MARK: - 创建容器表单数据
+
+/// 端口映射可编辑行
+struct CreatePortRow: Identifiable {
+    let id = UUID()
+    var host = ""
+    var containerPort = ""
+    var protocolField = "tcp"
+}
+
+/// 存储卷可编辑行
+struct CreateVolumeRow: Identifiable {
+    let id = UUID()
+    var type = "bind"
+    var sourceDir = ""
+    var containerDir = ""
+    var mode = "rw"
+    var shared = "private"
+}
+
+/// 创建容器草稿（表单编辑态，提交时转 ContainerUpdateRequest 发送）
+struct ContainerCreateDraft {
+    var name = ""
+    var image = ""
+    var forcePull = false
+    var network = "bridge"
+    var hostname = ""
+    var publishAllPorts = false
+    var ports: [CreatePortRow] = []
+    var volumes: [CreateVolumeRow] = []
+    var env: [String] = []
+    var restartPolicy = "always"
+    var cpuShares = 1024
+    var memoryMB = 0
+    var privileged = false
+    var autoRemove = false
+    var tty = false
+    var openStdin = false
+}
+
 // MARK: - 更新端口（update.exposedPorts 比 info 多 host 字段）
 
 struct ContainerUpdatePort: Encodable {

@@ -33,6 +33,10 @@ enum APIEndpoint {
     case containersInfo           // POST 容器详情配置
     case containersImageOptions   // GET  镜像选项（用于编辑/升级）
     case containersUpdate         // POST 更新容器配置
+    case containersCreate         // POST 创建容器
+    case containersNetwork        // GET  网络选项（创建容器用）
+    case containersVolume         // GET  存储卷选项（创建容器用）
+    case containersLimit          // GET  CPU/内存上限（创建容器用）
 
     // MARK: - 网站
     case websitesSearch           // POST 分页查询网站
@@ -112,6 +116,10 @@ enum APIEndpoint {
         case .containersInfo:           return "/api/v2/containers/info"
         case .containersImageOptions:   return "/api/v2/containers/image"
         case .containersUpdate:         return "/api/v2/containers/update"
+        case .containersCreate:         return "/api/v2/containers"
+        case .containersNetwork:        return "/api/v2/containers/network"
+        case .containersVolume:         return "/api/v2/containers/volume"
+        case .containersLimit:          return "/api/v2/containers/limit"
         case .websitesSearch:        return "/api/v2/websites/search"
         case .websitesCreate:        return "/api/v2/websites"
         case .websitesCheck:         return "/api/v2/websites/check"
@@ -167,7 +175,7 @@ enum APIEndpoint {
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
              .containersListStats, .containersDockerStatus, .containersImageAll,
-             .containersImageOptions,
+             .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,
              .appsIcon:
             return "GET"
         default:
