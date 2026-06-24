@@ -196,7 +196,7 @@ struct OverviewTab: View {
 
             // 负载 / CPU / 内存 / 各存储挂载点 全部一排，超出可左右滑动
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
+                HStack(alignment: .top, spacing: 4) {
                     RingStatView(
                         percent: min(cur.loadUsagePercent ?? 0, 100),
                         color: .teal,
@@ -240,6 +240,7 @@ struct OverviewTab: View {
                         .frame(width: 76)
                     }
                 }
+                .padding(.vertical, 8)
                 .padding(.horizontal, 2)
             }
         }

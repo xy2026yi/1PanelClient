@@ -94,7 +94,7 @@ final class APIClient {
             if wrapped.code == 200 && T.self == EmptyResponse.self {
                 return EmptyResponse() as! T
             }
-            throw APIError.businessError(wrapped.code, wrapped.message)
+            throw APIError.businessError(wrapped.code, wrapped.message ?? "")
         }
 
         // 裸 JSON

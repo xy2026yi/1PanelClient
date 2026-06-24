@@ -150,12 +150,20 @@ struct DockerStatusCard: View {
                 headerRow(status)
                 if isExpanded { actionsRow }
             } else {
-                HStack(spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                    Text("Docker 未安装或加载失败")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text("Docker 未安装或加载失败")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let msg = vm.dockerErrorMessage, !msg.isEmpty {
+                        Text(msg)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(3)
+                    }
                 }
                 .padding(.vertical, 4)
             }
@@ -312,17 +320,14 @@ struct ContainerRow: View {
                     .lineLimit(1)
             }
 
-            // CPU 使用率（状态徽标已移除）
-            HStack(spacing: 6) {
-                Spacer()
-                HStack(spacing: 2) {
-                    Image(systemName: "cpu")
-                        .font(.system(size: 9))
-                    Text(container.cpuDisplay)
-                        .font(.caption2.monospacedDigit())
-                }
-                .foregroundStyle(.secondary)
+            // CPU 使用率（靠左，状态徽标已移除）
+            HStack(spacing: 2) {
+                Image(systemName: "cpu")
+                    .font(.system(size: 9))
+                Text(container.cpuDisplay)
+                    .font(.caption2.monospacedDigit())
             }
+            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
     }
@@ -590,6 +595,7 @@ final class ContainersViewModel: ObservableObject {
     @Published var dockerOperating = false
     @Published var imageOperating = false
     @Published var errorMessage: String?
+    @Published var dockerErrorMessage: String?
 
     @Published var showAlert = false
     @Published var alertMessage = ""
@@ -674,7 +680,9 @@ final class ContainersViewModel: ObservableObject {
                 method: "GET", as: DockerStatus.self
             )
         } catch {
+            // 解码/网络失败时记录原因，便于排查；不阻断容器列表展示
             self.dockerStatus = nil
+            self.dockerErrorMessage = error.localizedDescription
         }
     }
 
