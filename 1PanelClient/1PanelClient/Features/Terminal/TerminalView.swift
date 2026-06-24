@@ -267,7 +267,7 @@ struct TerminalCommandPicker: View {
         NavigationStack {
             Form {
                 Section("预设命令") {
-                    ForEach(presets, id: \.self) { preset in
+                    ForEach(presets, id: \.self) { (preset: String) in
                         Button {
                             command = preset
                         } label: {
@@ -278,7 +278,7 @@ struct TerminalCommandPicker: View {
                                 Spacer()
                                 if command == preset {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.accentColor)
+                                        .foregroundStyle(Color.accentColor)
                                 }
                             }
                         }
