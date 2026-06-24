@@ -344,6 +344,8 @@ struct ContainerDetailView: View {
     @State private var showUpgrade = false
     @State private var showEdit = false
     @State private var showTerminal = false
+    @State private var showTerminalCommandPicker = false
+    @State private var terminalCommand = "/bin/sh"
 
     var body: some View {
         List {
@@ -403,7 +405,7 @@ struct ContainerDetailView: View {
                         showUpgrade = true
                     } label: { Label("升级", systemImage: "arrow.up.circle") }
                     Button { showEdit = true } label: { Label("编辑", systemImage: "pencil") }
-                    Button { showTerminal = true } label: { Label("终端", systemImage: "terminal") }
+                    Button { showTerminalCommandPicker = true } label: { Label("终端", systemImage: "terminal") }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -422,12 +424,18 @@ struct ContainerDetailView: View {
                 target: .container(
                     containerID: container.containerID,
                     user: "",
-                    command: "/bin/sh",
+                    command: terminalCommand,
                     cols: 80,
                     rows: 24
                 ),
                 title: container.displayName
             )
+        }
+        .sheet(isPresented: $showTerminalCommandPicker) {
+            TerminalCommandPicker(command: $terminalCommand) {
+                showTerminalCommandPicker = false
+                showTerminal = true
+            }
         }
         .alert("提示", isPresented: $showMenuAlert) {
             Button("好的", role: .cancel) {}

@@ -252,3 +252,68 @@ struct TerminalView: View {
         session.send(s)
     }
 }
+
+// MARK: - 容器终端命令选择器
+
+/// 打开容器终端前选择/输入执行命令（默认 /bin/sh、/bin/bash、/bin/ash，支持自定义）
+struct TerminalCommandPicker: View {
+    @Binding var command: String
+    var onConnect: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private let presets = ["/bin/sh", "/bin/bash", "/bin/ash"]
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("预设命令") {
+                    ForEach(presets, id: \.self) { preset in
+                        Button {
+                            command = preset
+                        } label: {
+                            HStack {
+                                Text(preset)
+                                    .font(.system(.body, design: .monospaced))
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if command == preset {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.accentColor)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Section("自定义") {
+                    TextField("命令路径", text: $command)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .font(.system(.body, design: .monospaced))
+                }
+
+                Section {
+                    Button {
+                        onConnect()
+                    } label: {
+                        Text("连接")
+                            .frame(maxWidth: .infinity)
+                            .font(.headline)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(command.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .listRowBackground(Color.clear)
+            }
+            .navigationTitle("终端命令")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("取消") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}
