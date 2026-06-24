@@ -129,6 +129,15 @@ struct ManageTab: View {
             ContainersTab(manager: manager)
         case .cronjob:
             CronjobsTab(manager: manager)
+        case .terminal:
+            NavigationStack {
+                TerminalView(
+                    server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
+                    target: .host(cols: 80, rows: 24),
+                    title: manager.current?.name,
+                    showCloseButton: true
+                )
+            }
         default:
             EmptyView()
         }
@@ -295,7 +304,7 @@ enum ManageItem: String, Identifiable {
 
     var available: Bool {
         switch self {
-        case .apps, .websites, .containers, .cronjob: return true
+        case .apps, .websites, .containers, .terminal, .cronjob: return true
         default: return false
         }
     }

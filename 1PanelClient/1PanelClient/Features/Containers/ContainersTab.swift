@@ -95,7 +95,7 @@ struct ContainersTab: View {
             Task { await vm.search(query: newValue) }
         }
         .navigationDestination(for: Container.self) { c in
-            ContainerDetailView(container: c, vm: vm)
+            ContainerDetailView(container: c, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""), vm: vm)
         }
     }
 
@@ -337,11 +337,13 @@ struct ContainerRow: View {
 
 struct ContainerDetailView: View {
     let container: Container
+    let server: ServerConfig
     @ObservedObject var vm: ContainersViewModel
     @State private var showMenuAlert = false
     @State private var menuAlertMessage = ""
     @State private var showUpgrade = false
     @State private var showEdit = false
+    @State private var showTerminal = false
 
     var body: some View {
         List {
@@ -401,7 +403,7 @@ struct ContainerDetailView: View {
                         showUpgrade = true
                     } label: { Label("升级", systemImage: "arrow.up.circle") }
                     Button { showEdit = true } label: { Label("编辑", systemImage: "pencil") }
-                    Button { notify("终端", message: "容器终端功能开发中") } label: { Label("终端", systemImage: "terminal") }
+                    Button { showTerminal = true } label: { Label("终端", systemImage: "terminal") }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -413,6 +415,19 @@ struct ContainerDetailView: View {
         }
         .navigationDestination(isPresented: $showEdit) {
             ContainerEditView(container: container, vm: vm)
+        }
+        .navigationDestination(isPresented: $showTerminal) {
+            TerminalView(
+                server: server,
+                target: .container(
+                    containerID: container.name,
+                    user: "root",
+                    command: "bash",
+                    cols: 80,
+                    rows: 24
+                ),
+                title: container.displayName
+            )
         }
         .alert("提示", isPresented: $showMenuAlert) {
             Button("好的", role: .cancel) {}
