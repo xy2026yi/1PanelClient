@@ -340,6 +340,7 @@ struct ContainerDetailView: View {
     @ObservedObject var vm: ContainersViewModel
     @State private var showMenuAlert = false
     @State private var menuAlertMessage = ""
+    @State private var showUpgrade = false
 
     var body: some View {
         List {
@@ -396,13 +397,7 @@ struct ContainerDetailView: View {
                     } label: { Label("关闭", systemImage: "xmark") }
                     Divider()
                     Button {
-                        Task {
-                            if let img = container.imageName, !img.isEmpty {
-                                await vm.upgradeContainer(name: container.name, image: img)
-                            } else {
-                                notify("升级", message: "缺少镜像信息，无法升级")
-                            }
-                        }
+                        showUpgrade = true
                     } label: { Label("升级", systemImage: "arrow.up.circle") }
                     Button { notify("编辑", message: "编辑容器功能开发中") } label: { Label("编辑", systemImage: "pencil") }
                     Button { notify("终端", message: "容器终端功能开发中") } label: { Label("终端", systemImage: "terminal") }
@@ -412,10 +407,20 @@ struct ContainerDetailView: View {
                 .disabled(vm.containerOperating)
             }
         }
+        .navigationDestination(isPresented: $showUpgrade) {
+            ContainerUpgradeView(container: container, vm: vm)
+        }
         .alert("提示", isPresented: $showMenuAlert) {
             Button("好的", role: .cancel) {}
         } message: {
             Text(menuAlertMessage)
+        }
+        // 容器操作（停止/启动/重启/关闭/升级）结果走 VM 的 alert，
+        // 详情页也要绑定，否则操作后弹窗只在列表页显示
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
         }
     }
 
@@ -507,6 +512,85 @@ struct ContainerLogView: View {
                 errorMessage = "加载日志失败：\(error.localizedDescription)"
             }
         }
+    }
+}
+
+// MARK: - 容器升级页
+
+struct ContainerUpgradeView: View {
+    let container: Container
+    @ObservedObject var vm: ContainersViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var image: String
+    @State private var forcePull = false
+
+    init(container: Container, vm: ContainersViewModel) {
+        self.container = container
+        self.vm = vm
+        _image = State(initialValue: container.imageName ?? "")
+    }
+
+    var body: some View {
+        Form {
+            Section("目标镜像") {
+                TextField("镜像名:标签", text: $image)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(.body, design: .monospaced))
+                if image.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Text("镜像不能为空")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+
+            Section {
+                Toggle("总是拉取镜像（force pull）", isOn: $forcePull)
+            } footer: {
+                Text("开启后将强制重新拉取镜像，忽略本地缓存。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    HStack {
+                        if vm.containerOperating {
+                            ProgressView()
+                                .tint(.white)
+                        }
+                        Text("升级")
+                            .frame(maxWidth: .infinity)
+                            .font(.headline)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(image.trimmingCharacters(in: .whitespaces).isEmpty || vm.containerOperating)
+            }
+            .listRowBackground(Color.clear)
+        }
+        .navigationTitle("升级 \(container.name)")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {
+                if vm.alertMessage.contains("已提交") {
+                    dismiss()
+                }
+            }
+        } message: {
+            Text(vm.alertMessage)
+        }
+    }
+
+    private func submit() async {
+        await vm.upgradeContainer(
+            name: container.name,
+            image: image.trimmingCharacters(in: .whitespaces),
+            forcePull: forcePull
+        )
     }
 }
 
@@ -783,11 +867,11 @@ final class ContainersViewModel: ObservableObject {
 
     // MARK: - 容器升级
 
-    func upgradeContainer(name: String, image: String) async {
+    func upgradeContainer(name: String, image: String, forcePull: Bool) async {
         containerOperating = true
         defer { containerOperating = false }
         let req = ContainerUpgradeRequest(
-            taskID: UUID().uuidString, names: [name], image: image, forcePull: false
+            taskID: UUID().uuidString, names: [name], image: image, forcePull: forcePull
         )
         do {
             let _: EmptyResponse = try await client.send(
