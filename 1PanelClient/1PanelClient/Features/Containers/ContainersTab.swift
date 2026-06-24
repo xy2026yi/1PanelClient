@@ -610,6 +610,9 @@ final class ContainersViewModel: ObservableObject {
     }
 
     func refresh() async {
+        // 预先标记 Docker 状态加载中，避免容器列表加载期间
+        // （dockerStatus==nil 且未开始加载）误显示"未安装或加载失败"
+        if dockerStatus == nil { isLoadingDocker = true }
         await load(query: "")
         await loadDockerStatus(force: false)
     }
