@@ -106,7 +106,7 @@ struct WebsitesTab: View {
     private var websiteList: some View {
         List {
             // 顶部 OpenResty 信息与管理卡片
-            OpenRestyCard(manager: manager)
+            OpenRestyCard(vm: vm, manager: manager)
 
             if vm.websites.isEmpty {
                 if let err = vm.errorMessage, !err.isEmpty {
@@ -142,23 +142,19 @@ struct WebsitesTab: View {
 // MARK: - OpenResty 信息与管理卡片
 
 struct OpenRestyCard: View {
+    @ObservedObject var vm: WebsitesViewModel
     @ObservedObject var manager: ServerManager
-    @State private var openresty: AppInstall?
-    @State private var isLoading = false
     @State private var isExpanded = false
-    @State private var operatingId: Int?
     @State private var showConfigAlert = false
 
-    private let server: ServerConfig
-
-    init(manager: ServerManager) {
+    init(vm: WebsitesViewModel, manager: ServerManager) {
+        self.vm = vm
         self.manager = manager
-        self.server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
     }
 
     var body: some View {
         Section {
-            if isLoading && openresty == nil {
+            if vm.isLoadingOpenResty && vm.openresty == nil {
                 HStack(spacing: 12) {
                     ProgressView()
                     Text("加载 OpenResty 状态…")
@@ -166,7 +162,7 @@ struct OpenRestyCard: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
-            } else if let app = openresty {
+            } else if let app = vm.openresty {
                 headerRow(app)
                 if isExpanded {
                     actionsRow(app)
@@ -181,9 +177,6 @@ struct OpenRestyCard: View {
                 }
                 .padding(.vertical, 4)
             }
-        }
-        .task {
-            await loadOpenResty()
         }
         .alert("配置", isPresented: $showConfigAlert) {
             Button("好的", role: .cancel) {}
@@ -236,7 +229,7 @@ struct OpenRestyCard: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .disabled(operatingId != nil)
+            .disabled(vm.openRestyOperating)
         }
         .padding(.vertical, 2)
     }
@@ -247,32 +240,28 @@ struct OpenRestyCard: View {
             actionButton(
                 title: app.isRunning ? "停止" : "启动",
                 icon: app.isRunning ? "stop.fill" : "play.fill",
-                color: app.isRunning ? .orange : .green,
-                isLoading: operatingId == app.id
+                color: app.isRunning ? .orange : .green
             ) {
-                Task { await operate(app: app, op: app.isRunning ? .stop : .start) }
+                Task { await vm.operateOpenResty(op: app.isRunning ? .stop : .start) }
             }
             actionButton(
                 title: "重启",
                 icon: "arrow.triangle.2.circlepath",
-                color: .blue,
-                isLoading: operatingId == app.id
+                color: .blue
             ) {
-                Task { await operate(app: app, op: .restart) }
+                Task { await vm.operateOpenResty(op: .restart) }
             }
             actionButton(
                 title: "重载",
                 icon: "arrow.clockwise",
-                color: .teal,
-                isLoading: operatingId == app.id
+                color: .teal
             ) {
-                Task { await operate(app: app, op: .reload) }
+                Task { await vm.operateOpenResty(op: .reload) }
             }
             actionButton(
                 title: "配置",
                 icon: "slider.horizontal.3",
-                color: .purple,
-                isLoading: false
+                color: .purple
             ) {
                 showConfigAlert = true
             }
@@ -286,12 +275,11 @@ struct OpenRestyCard: View {
         title: String,
         icon: String,
         color: Color,
-        isLoading: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                if isLoading {
+                if vm.openRestyOperating {
                     ProgressView()
                         .scaleEffect(0.7)
                         .frame(width: 22, height: 22)
@@ -310,46 +298,7 @@ struct OpenRestyCard: View {
             .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
-        .disabled(isLoading)
-    }
-
-    private func loadOpenResty() async {
-        isLoading = true
-        defer { isLoading = false }
-        let client = APIClient(server: server)
-        let req = AppInstalledSearchRequest(
-            page: 1, pageSize: 100, name: "", type: "", tags: [],
-            update: false, all: true, unused: false, sync: false
-        )
-        do {
-            let resp: AppInstalledListResponse = try await client.send(
-                path: APIEndpoint.appsInstalledSearch.path,
-                body: req,
-                as: AppInstalledListResponse.self
-            )
-            self.openresty = (resp.items ?? []).first { $0.appKey?.lowercased() == "openresty" }
-        } catch {
-            self.openresty = nil
-        }
-    }
-
-    private func operate(app: AppInstall, op: AppOperation) async {
-        operatingId = app.id
-        defer { operatingId = nil }
-        let client = APIClient(server: server)
-        let req = AppInstalledOperateRequest(installId: app.id, operate: op.rawValue)
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.appsInstalledOperate.path,
-                body: req,
-                as: EmptyResponse.self
-            )
-            // 等待服务器状态稳定后刷新
-            try? await Task.sleep(for: .seconds(1))
-            await loadOpenResty()
-        } catch {
-            // 静默失败，下次进入页面会重新加载
-        }
+        .disabled(vm.openRestyOperating)
     }
 }
 
@@ -828,6 +777,13 @@ final class WebsitesViewModel: ObservableObject {
     @Published var needsRefresh = false
     @Published var deletedWebsiteId: Int?
 
+    // OpenResty 应用状态
+    @Published var openresty: AppInstall?
+    @Published var isLoadingOpenResty = false
+    @Published var openRestyOperating = false
+    /// 是否已尝试加载过（避免 List 重绘时 .task 反复触发）
+    private var openRestyLoaded = false
+
     private(set) var client: APIClient
 
     init(server: ServerConfig) {
@@ -836,6 +792,7 @@ final class WebsitesViewModel: ObservableObject {
 
     func refresh() async {
         await load(query: "")
+        await loadOpenResty(force: false)
     }
 
     func search(query: String) async {
@@ -971,6 +928,51 @@ final class WebsitesViewModel: ObservableObject {
             showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
         } catch {
             showAlert(message: "删除失败：\(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - OpenResty 状态
+
+    /// 加载 OpenResty 应用信息
+    /// - Parameter force: true 强制刷新（如操作后）；false 仅首次加载
+    func loadOpenResty(force: Bool) async {
+        if !force && openRestyLoaded { return }
+        openRestyLoaded = true
+        isLoadingOpenResty = true
+        defer { isLoadingOpenResty = false }
+
+        let req = AppInstalledSearchRequest(
+            page: 1, pageSize: 100, name: "", type: "", tags: [],
+            update: false, all: true, unused: false, sync: false
+        )
+        do {
+            let resp: AppInstalledListResponse = try await client.send(
+                path: APIEndpoint.appsInstalledSearch.path,
+                body: req,
+                as: AppInstalledListResponse.self
+            )
+            self.openresty = (resp.items ?? []).first { $0.appKey?.lowercased() == "openresty" }
+        } catch {
+            self.openresty = nil
+        }
+    }
+
+    /// 操作 OpenResty（start/stop/restart/reload）
+    func operateOpenResty(op: AppOperation) async {
+        guard let app = openresty else { return }
+        openRestyOperating = true
+        defer { openRestyOperating = false }
+        let req = AppInstalledOperateRequest(installId: app.id, operate: op.rawValue)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.appsInstalledOperate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            try? await Task.sleep(for: .seconds(1))
+            await loadOpenResty(force: true)
+        } catch {
+            showAlert(message: "\(op.displayName)失败：\(error.localizedDescription)")
         }
     }
 
