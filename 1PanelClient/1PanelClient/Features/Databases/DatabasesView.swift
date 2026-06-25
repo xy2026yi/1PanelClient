@@ -263,7 +263,7 @@ final class DatabaseSystemViewModel: ObservableObject {
     func deleteDatabase(_ db: DatabaseItem) async {
         let checkReq = DelCheckRequest(id: db.id, type: db.type ?? system.type, database: system.database)
         do {
-            let _: EmptyResponse? = try await client.send(path: APIEndpoint.databasesDelCheck.path, body: checkReq, as: EmptyResponse?.self)
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesDelCheck.path, body: checkReq, as: EmptyResponse.self)
             let delReq = DelDBRequest(id: db.id, type: db.type ?? system.type, database: system.database, deleteBackup: false, forceDelete: false)
             let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesDel.path, body: delReq, as: EmptyResponse.self)
             await loadDatabases()
