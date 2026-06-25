@@ -12,6 +12,7 @@ struct OverviewTab: View {
     @StateObject private var vm: OverviewViewModel
     @State private var showServerPicker = false
     @State private var showAddSheet = false
+    @State private var showUpgradeLog = false
 
     /// 卡片点击回调：传递具体 ManageItem，由 MainTabView 跨 Tab 跳转到管理详情
     var onSelectManageItem: ((ManageItem) -> Void)? = nil
@@ -85,6 +86,11 @@ struct OverviewTab: View {
             .sheet(isPresented: $showAddSheet) {
                 ServerEditView(manager: manager)
             }
+            .navigationDestination(isPresented: $showUpgradeLog) {
+                if let server = manager.current {
+                    PanelUpgradeView(server: server, currentVersion: vm.settingInfo?.systemVersion, upgradeInfo: vm.upgradeInfo)
+                }
+            }
         }
         .task { await vm.refresh() }
         // 实时监控独立轮询：页面可见时每 5 秒刷新一次 current 数据
@@ -121,7 +127,30 @@ struct OverviewTab: View {
                     .font(.headline)
             }
             Divider()
-            InfoRow(key: "版本", value: vm.settingInfo?.systemVersion.flatMap { $0.isEmpty ? nil : $0 } ?? "未知")
+            // 版本号行：可点击跳转版本更新日志
+            HStack {
+                Text("版本")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(vm.settingInfo?.systemVersion.flatMap { $0.isEmpty ? nil : $0 } ?? "未知")
+                    .foregroundStyle(.primary)
+                if vm.upgradeInfo?.hasUpdate == true {
+                    Text("有更新")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.orange, in: Capsule())
+                }
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                showUpgradeLog = true
+            }
             if let ip = vm.settingInfo?.systemIP, !ip.isEmpty {
                 InfoRow(key: "面板 IP", value: ip)
             }
@@ -452,6 +481,7 @@ final class OverviewViewModel: ObservableObject {
     @Published var settingInfo: SettingInfo?
     @Published var currentInfo: DashboardCurrent?   // 实时监控（独立接口）
     @Published var appUpdateCount: Int?              // 可更新应用数
+    @Published var upgradeInfo: PanelUpgradeInfo?     // 面板版本更新信息
     @Published var isLoading = false
     @Published var errorMessage: String?
 
@@ -471,6 +501,7 @@ final class OverviewViewModel: ObservableObject {
         settingInfo = nil
         currentInfo = nil
         appUpdateCount = nil
+        upgradeInfo = nil
     }
 
     func refresh() async {
@@ -507,14 +538,20 @@ final class OverviewViewModel: ObservableObject {
             body: AppInstalledSearchRequest(page: 1, pageSize: 1, name: "", type: "", tags: [], update: true, all: false, unused: false, sync: false),
             as: AppInstalledListResponse.self
         )
+        async let upgrade: PanelUpgradeInfo? = try? await client.send(
+            path: APIEndpoint.settingsUpgradeCheck.path,
+            method: APIEndpoint.settingsUpgradeCheck.method,
+            as: PanelUpgradeInfo.self
+        )
 
-        let (b, o, d, s, c, au) = await (baseResp, os, dev, settings, current, appUpdates)
+        let (b, o, d, s, c, au, up) = await (baseResp, os, dev, settings, current, appUpdates, upgrade)
         self.base = b
         self.osInfo = o
         self.deviceInfo = d
         self.settingInfo = s
         self.currentInfo = c
         self.appUpdateCount = au?.total
+        self.upgradeInfo = up
 
         if b == nil && o == nil && d == nil {
             self.errorMessage = "无法获取服务器信息，请检查 API Key 和网络"
@@ -530,5 +567,193 @@ final class OverviewViewModel: ObservableObject {
         ) {
             self.currentInfo = c
         }
+    }
+}
+
+// MARK: - 面板版本更新日志
+
+struct PanelUpgradeView: View {
+    let server: ServerConfig
+    let currentVersion: String?
+    let upgradeInfo: PanelUpgradeInfo?
+
+    @State private var releases: [PanelRelease] = []
+    @State private var isLoading = false
+    @State private var isUpgrading = false
+    @State private var errorMessage: String?
+    @State private var successMessage: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, currentVersion: String?, upgradeInfo: PanelUpgradeInfo?) {
+        self.server = server
+        self.currentVersion = currentVersion
+        self.upgradeInfo = upgradeInfo
+        self.client = APIClient(server: server)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                if isLoading && releases.isEmpty {
+                    ProgressView("加载中…")
+                        .frame(maxWidth: .infinity, minHeight: 200)
+                } else if releases.isEmpty {
+                    ContentUnavailableView("暂无更新日志", systemImage: "doc.text.magnifyingglass")
+                } else {
+                    if upgradeInfo?.hasUpdate == true, let latest = upgradeInfo?.latestVersion {
+                        updateBanner(latestVersion: latest)
+                    }
+
+                    ForEach(Array(releases.enumerated()), id: \.element.id) { index, release in
+                        releaseCard(release, isExpanded: index == 0)
+                    }
+                }
+            }
+            .padding()
+        }
+        .navigationTitle("版本更新日志")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await loadReleases() }
+        .alert("提示", isPresented: Binding(
+            get: { successMessage != nil || errorMessage != nil },
+            set: { _ in successMessage = nil; errorMessage = nil }
+        )) {
+            Button("好的") { successMessage = nil; errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? successMessage ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private func updateBanner(latestVersion: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("发现新版本")
+                        .font(.headline)
+                    Text("当前 \(currentVersion ?? "未知") → 最新 \(latestVersion)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button {
+                    Task { await upgrade(to: latestVersion) }
+                } label: {
+                    Label(isUpgrading ? "更新中…" : "更新", systemImage: "arrow.down.circle.fill")
+                        .font(.callout)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+                .disabled(isUpgrading)
+            }
+        }
+        .padding()
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.blue.opacity(0.3), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private func releaseCard(_ release: PanelRelease, isExpanded: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(release.version)
+                        .font(.headline)
+                    if let date = release.createdAt {
+                        Text(date)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                if let newCount = release.newCount, newCount > 0 {
+                    ReleaseTag(text: "新增 \(newCount)", color: .green)
+                }
+                if let optCount = release.optimizationCount, optCount > 0 {
+                    ReleaseTag(text: "优化 \(optCount)", color: .blue)
+                }
+                if let fixCount = release.fixCount, fixCount > 0 {
+                    ReleaseTag(text: "修复 \(fixCount)", color: .orange)
+                }
+            }
+
+            if isExpanded, let content = release.content {
+                Text(stripHTML(content))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(4)
+            } else if !isExpanded {
+                Text("点击查看详情")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding()
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func loadReleases() async {
+        isLoading = true
+        do {
+            let resp: [PanelRelease] = try await client.send(
+                path: APIEndpoint.settingsUpgradeReleases.path,
+                method: APIEndpoint.settingsUpgradeReleases.method,
+                as: [PanelRelease].self
+            )
+            releases = resp
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    private func upgrade(to version: String) async {
+        isUpgrading = true
+        let req = PanelUpgradeRequest(version: version)
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.settingsUpgrade.path, body: req, as: EmptyResponse.self)
+            successMessage = "更新任务已提交，请稍后查看面板状态"
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isUpgrading = false
+    }
+
+    private func stripHTML(_ html: String) -> String {
+        var text = html
+        text = text.replacingOccurrences(of: "<br\\s*/?>", with: "\n", options: .regularExpression)
+        text = text.replacingOccurrences(of: "<p>", with: "", options: .caseInsensitive)
+        text = text.replacingOccurrences(of: "</p>", with: "\n", options: .caseInsensitive)
+        text = text.replacingOccurrences(of: "<li>", with: "• ", options: .caseInsensitive)
+        text = text.replacingOccurrences(of: "</li>", with: "\n", options: .caseInsensitive)
+        text = text.replacingOccurrences(of: "<ul>", with: "", options: .caseInsensitive)
+        text = text.replacingOccurrences(of: "</ul>", with: "", options: .caseInsensitive)
+        text = text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        text = text.replacingOccurrences(of: "&nbsp;", with: " ")
+        text = text.replacingOccurrences(of: "&amp;", with: "&")
+        text = text.replacingOccurrences(of: "&lt;", with: "<")
+        text = text.replacingOccurrences(of: "&gt;", with: ">")
+        let lines = text.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        return lines.joined(separator: "\n")
+    }
+}
+
+private struct ReleaseTag: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        Text(text)
+            .font(.caption2)
+            .foregroundStyle(color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.12), in: Capsule())
     }
 }

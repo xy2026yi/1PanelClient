@@ -15,6 +15,9 @@ enum APIEndpoint {
     case dashboardTopCPU          // GET CPU占用TOP进程
     case dashboardTopMem          // GET 内存占用TOP进程
     case settingsSearch           // POST 面板设置（含 systemVersion 面板版本）
+    case settingsUpgradeCheck     // GET  检查面板更新
+    case settingsUpgrade          // POST 面板版本升级
+    case settingsUpgradeReleases  // GET  版本更新日志列表
 
     // MARK: - 系统设备信息（toolbox）
     case deviceBase               // POST 设备基础信息
@@ -184,6 +187,9 @@ enum APIEndpoint {
         case .dashboardTopCPU:       return "/api/v2/dashboard/current/top/cpu"
         case .dashboardTopMem:       return "/api/v2/dashboard/current/top/mem"
         case .settingsSearch:        return "/api/v2/core/settings/search"
+        case .settingsUpgradeCheck:  return "/api/v2/core/settings/upgrade"
+        case .settingsUpgrade:       return "/api/v2/core/settings/upgrade"
+        case .settingsUpgradeReleases: return "/api/v2/core/settings/upgrade/releases"
         case .deviceBase:            return "/api/v2/toolbox/device/base"
         case .containersSearch:      return "/api/v2/containers/search"
         case .containersListStats:      return "/api/v2/containers/list/stats"
@@ -321,7 +327,8 @@ enum APIEndpoint {
              .appsIcon, .databasesRedisCheck,
              .fail2banBase, .fail2banLoadConf,
              .wafStatus, .wafConfigGlobal,
-             .settingsBaseDir:
+             .settingsBaseDir,
+             .settingsUpgradeCheck, .settingsUpgradeReleases:
             return "GET"
         default:
             return "POST"

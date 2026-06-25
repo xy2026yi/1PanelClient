@@ -126,3 +126,33 @@ struct SettingInfo: Decodable, Sendable {
     let fileRecycleBin: String?
     let ntpSite: String?
 }
+
+/// 面板版本更新检查结果
+/// 对应 GET /api/v2/core/settings/upgrade
+struct PanelUpgradeInfo: Decodable {
+    let latestVersion: String?
+    let releaseNote: String?
+
+    var hasUpdate: Bool {
+        guard let v = latestVersion, !v.isEmpty else { return false }
+        return true
+    }
+}
+
+/// 版本更新日志条目
+/// 对应 GET /api/v2/core/settings/upgrade/releases 返回数组中的元素
+struct PanelRelease: Decodable, Identifiable {
+    let version: String
+    let createdAt: String?
+    let content: String?
+    let newCount: Int?
+    let optimizationCount: Int?
+    let fixCount: Int?
+
+    var id: String { version }
+}
+
+/// 面板版本升级请求
+struct PanelUpgradeRequest: Encodable {
+    let version: String
+}
