@@ -782,6 +782,9 @@ struct Fail2banFullConfigView: View {
             .navigationTitle("全部配置")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("关闭") { dismiss() }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("保存") {
                         Task { await save() }
