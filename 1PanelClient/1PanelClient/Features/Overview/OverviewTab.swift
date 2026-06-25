@@ -110,7 +110,6 @@ struct OverviewTab: View {
         panelInfoCard
         systemCard(base)
     }
-
     // MARK: - 面板信息卡片（版本号等）
     @ViewBuilder
     private var panelInfoCard: some View {
@@ -255,7 +254,7 @@ struct OverviewTab: View {
             .buttonStyle(.plain)
 
             Button { tapManage(.apps) } label: {
-                StatCard(title: "应用", count: b.appInstalledNumber, icon: "app.badge", color: .blue)
+                StatCard(title: "应用", count: b.appInstalledNumber, icon: "app.badge", color: .blue, updateCount: vm.appUpdateCount)
             }
             .buttonStyle(.plain)
 
@@ -449,6 +448,7 @@ final class OverviewViewModel: ObservableObject {
     @Published var deviceInfo: DeviceInfo?
     @Published var settingInfo: SettingInfo?
     @Published var currentInfo: DashboardCurrent?   // 实时监控（独立接口）
+    @Published var appUpdateCount: Int?              // 可更新应用数
     @Published var isLoading = false
     @Published var errorMessage: String?
 
@@ -467,6 +467,7 @@ final class OverviewViewModel: ObservableObject {
         deviceInfo = nil
         settingInfo = nil
         currentInfo = nil
+        appUpdateCount = nil
     }
 
     func refresh() async {
@@ -498,13 +499,19 @@ final class OverviewViewModel: ObservableObject {
             method: APIEndpoint.dashboardCurrent.method,
             as: DashboardCurrent.self
         )
+        async let appUpdates: AppInstalledListResponse? = try? await client.send(
+            path: APIEndpoint.appsInstalledSearch.path,
+            body: AppInstalledSearchRequest(page: 1, pageSize: 1, name: "", type: "", tags: [], update: true, all: false, unused: false, sync: false),
+            as: AppInstalledListResponse.self
+        )
 
-        let (b, o, d, s, c) = await (baseResp, os, dev, settings, current)
+        let (b, o, d, s, c, au) = await (baseResp, os, dev, settings, current, appUpdates)
         self.base = b
         self.osInfo = o
         self.deviceInfo = d
         self.settingInfo = s
         self.currentInfo = c
+        self.appUpdateCount = au?.total
 
         if b == nil && o == nil && d == nil {
             self.errorMessage = "无法获取服务器信息，请检查 API Key 和网络"
