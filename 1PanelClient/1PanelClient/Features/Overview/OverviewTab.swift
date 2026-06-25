@@ -451,13 +451,12 @@ struct StatCard: View {
 
             Spacer(minLength: 4)
 
-            Text(count.map { "\($0)" } ?? "—")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .monospacedDigit()
-
-            if let updates = updateCount, updates > 0 {
-                HStack {
-                    Spacer()
+            HStack(alignment: .firstTextBaseline) {
+                Text(count.map { "\($0)" } ?? "—")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                Spacer()
+                if let updates = updateCount, updates > 0 {
                     Text("\(updates)个更新")
                         .font(.caption)
                         .foregroundStyle(.orange)
