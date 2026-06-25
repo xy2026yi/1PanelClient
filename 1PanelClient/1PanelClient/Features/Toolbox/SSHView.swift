@@ -351,7 +351,6 @@ struct SSHFieldSheet: View {
 struct SSHFullConfigView: View {
     let server: ServerConfig
 
-    @Environment(\.dismiss) private var dismiss
     @State private var configText = ""
     @State private var isLoading = false
     @State private var isSaving = false
@@ -379,9 +378,6 @@ struct SSHFullConfigView: View {
         .navigationTitle("sshd_config")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("关闭") { dismiss() }
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("保存") {
                     Task { await save() }

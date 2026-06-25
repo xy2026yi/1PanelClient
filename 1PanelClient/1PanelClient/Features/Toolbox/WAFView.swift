@@ -382,16 +382,6 @@ struct WAFView: View {
                     ruleRow(icon: "hand.raised", color: .red, title: "IP", item: config.ipBlack, scope: "IPBlack")
                 }
                 NavigationLink {
-                    WAFIPGroupsView(server: server)
-                } label: {
-                    HStack(spacing: 12) {
-                        IconBadge(systemName: "rectangle.group", color: .indigo, size: 34, cornerRadius: 8)
-                        Text("IP 组")
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                NavigationLink {
                     WAFCommonRulesView(server: server, scope: "urlBlack", title: "URL")
                 } label: {
                     ruleRow(icon: "link.badge.plus", color: .orange, title: "URL", item: config.urlBlack, scope: "UrlBlack")
@@ -426,22 +416,19 @@ struct WAFView: View {
                 SectionLabel(title: "白名单", systemImage: "checkmark.shield")
             }
 
-            // 防护规则
+            // IP 组
             Section {
-                toggleRow(title: "XSS 攻击", item: config.xss, scope: "XSS")
-                toggleRow(title: "SQL 注入", item: config.sql, scope: "SQL")
-                toggleRow(title: "参数过滤", item: config.args, scope: "ARGS")
-                toggleRow(title: "Cookie 校验", item: config.cookie, scope: "COOKIE")
-                toggleRow(title: "Header 校验", item: config.header, scope: "HEADER")
-                toggleRow(title: "文件扩展名", item: config.fileExt, scope: "FILEEXTCHECK")
-                toggleRow(title: "漏洞防护", item: config.vuln, scope: "VULNCHECK")
-                toggleRow(title: "严格模式", item: config.strict, scope: "STRICT")
-                toggleRow(title: "未知网站拦截", item: config.unknownWebsite, scope: "UNKNOWNWEBSITE")
-            } header: {
-                SectionLabel(title: "防护规则", systemImage: "lock.shield")
+                NavigationLink {
+                    WAFIPGroupsView(server: server)
+                } label: {
+                    HStack(spacing: 12) {
+                        IconBadge(systemName: "rectangle.group", color: .indigo, size: 34, cornerRadius: 8)
+                        Text("IP 组")
+                    }
+                }
             }
 
-            // 全局设置
+            // 频率限制
             Section {
                 NavigationLink {
                     WAFCcSettingsView(server: server, config: config.cc, scope: "Cc", title: "访问频率限制")
@@ -464,16 +451,22 @@ struct WAFView: View {
 
             // 配置
             Section {
-                toggleRow(title: "恶意 IP 组", item: config.defaultIpBlack, scope: "DefaultIpBlack")
-                toggleRow(title: "蜘蛛 IP 池", item: config.allowSpider, scope: "AllowSpider")
+                NavigationLink {
+                    WAFConfigItemView(server: server, title: "恶意 IP 组", scope: "DefaultIpBlack", updateType: "blackIP", item: config.defaultIpBlack)
+                } label: {
+                    toggleRow(title: "恶意 IP 组", item: config.defaultIpBlack, scope: "DefaultIpBlack")
+                }
+                NavigationLink {
+                    WAFConfigItemView(server: server, title: "蜘蛛 IP 池", scope: "AllowSpider", updateType: "spiderIP", item: config.allowSpider)
+                } label: {
+                    toggleRow(title: "蜘蛛 IP 池", item: config.allowSpider, scope: "AllowSpider")
+                }
                 NavigationLink {
                     WAFLocationUpdateView(server: server)
                 } label: {
                     HStack(spacing: 12) {
                         IconBadge(systemName: "globe.asia.australia", color: .blue, size: 34, cornerRadius: 8)
                         Text("IP 地址库")
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
                     }
                 }
             } header: {
@@ -1399,7 +1392,6 @@ struct WAFCcSettingsView: View {
     let scope: String
     let title: String
 
-    @Environment(\.dismiss) private var dismiss
     @State private var mode = "global"
     @State private var duration = "10"
     @State private var threshold = "100"
@@ -1460,9 +1452,6 @@ struct WAFCcSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { loadConfig() }
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("关闭") { dismiss() }
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button("保存默认") { Task { await save(applyWebsite: nil) } }
@@ -1524,7 +1513,6 @@ struct WAFAttackCountSettingsView: View {
     let scope: String
     let title: String
 
-    @Environment(\.dismiss) private var dismiss
     @State private var duration = "60"
     @State private var threshold = "10"
     @State private var ipBlockTime = "3000"
@@ -1580,9 +1568,6 @@ struct WAFAttackCountSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { loadConfig() }
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("关闭") { dismiss() }
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("保存") { Task { await save() } }
                     .disabled(isSaving)
@@ -1687,6 +1672,93 @@ struct WAFLocationUpdateView: View {
     private func update(type: String) async {
         isUpdating = true
         let req = WAFLocationUpdateRequest(type: type)
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafLocationUpdate.path, body: req, as: EmptyResponse.self)
+            successMessage = "更新成功"
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isUpdating = false
+    }
+}
+
+// MARK: - 配置项（开关 + 更新）
+
+struct WAFConfigItemView: View {
+    let server: ServerConfig
+    let title: String
+    let scope: String
+    let updateType: String
+    let item: WAFRuleItem?
+
+    @State private var isUpdating = false
+    @State private var successMessage: String?
+    @State private var errorMessage: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, title: String, scope: String, updateType: String, item: WAFRuleItem?) {
+        self.server = server
+        self.title = title
+        self.scope = scope
+        self.updateType = updateType
+        self.item = item
+        self.client = APIClient(server: server)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(isOn: Binding(
+                    get: { item?.isOn ?? false },
+                    set: { newVal in
+                        Task { await toggle(newVal) }
+                    }
+                )) {
+                    Text("启用")
+                }
+            } header: {
+                Text(title)
+            }
+
+            Section {
+                Button {
+                    Task { await update() }
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Text("更新")
+                        Spacer()
+                        if isUpdating { ProgressView() }
+                    }
+                }
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("提示", isPresented: Binding(
+            get: { successMessage != nil || errorMessage != nil },
+            set: { _ in successMessage = nil; errorMessage = nil }
+        )) {
+            Button("好的") { successMessage = nil; errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? successMessage ?? "")
+        }
+    }
+
+    private func toggle(_ on: Bool) async {
+        let req = WAFGlobalStateRequest(scope: scope, state: on ? "on" : "off")
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafConfigGlobalState.path, body: req, as: EmptyResponse.self)
+            successMessage = on ? "已启用" : "已禁用"
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func update() async {
+        isUpdating = true
+        let req = WAFLocationUpdateRequest(type: updateType)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafLocationUpdate.path, body: req, as: EmptyResponse.self)
             successMessage = "更新成功"
