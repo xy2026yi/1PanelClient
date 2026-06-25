@@ -79,6 +79,7 @@ enum APIEndpoint {
     case firewallSearch           // POST 端口规则列表
     case firewallPort             // POST 创建端口规则
     case firewallBatch            // POST 批量删除端口规则
+    case firewallUpdatePort       // POST 修改端口规则
 
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库
@@ -162,6 +163,7 @@ enum APIEndpoint {
         case .firewallSearch:        return "/api/v2/hosts/firewall/search"
         case .firewallPort:          return "/api/v2/hosts/firewall/port"
         case .firewallBatch:         return "/api/v2/hosts/firewall/batch"
+        case .firewallUpdatePort:    return "/api/v2/hosts/firewall/update/port"
         case .databasesSearch:       return "/api/v2/databases/db/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"

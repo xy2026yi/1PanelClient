@@ -117,6 +117,38 @@ final class FirewallViewModel: ObservableObject {
             self.errorMessage = error.localizedDescription
         }
     }
+
+    /// 修改端口规则：oldRule(remove) + newRule(add)
+    func updateRule(
+        old: FirewallRule,
+        port: String, proto: String, strategy: String,
+        address: String, description: String
+    ) async -> Bool {
+        let oldFull = FirewallRuleFull(from: old, operation: "remove")
+        let newAddr = address.isEmpty ? "Anywhere" : address
+        let newRule = FirewallRule(
+            address: newAddr,
+            port: port,
+            protocolField: proto,
+            strategy: strategy,
+            usedStatus: old.usedStatus,
+            description: description,
+            family: old.family,
+            chain: old.chain
+        )
+        let newFull = FirewallRuleFull(from: newRule, operation: "add")
+        let req = FirewallUpdatePortRequest(oldRule: oldFull, newRule: newFull)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallUpdatePort.path, body: req, as: EmptyResponse.self
+            )
+            await loadRules()
+            return true
+        } catch {
+            self.errorMessage = error.localizedDescription
+            return false
+        }
+    }
 }
 
 // MARK: - 主视图
@@ -125,6 +157,7 @@ struct FirewallView: View {
     @StateObject private var vm: FirewallViewModel
     @State private var showAdd = false
     @State private var pendingUFWOp: String?
+    @State private var editingRule: FirewallRule?
 
     init(server: ServerConfig) {
         _vm = StateObject(wrappedValue: FirewallViewModel(server: server))
@@ -147,11 +180,16 @@ struct FirewallView: View {
                 Section {
                     ForEach(vm.rules) { rule in
                         FirewallRuleRow(rule: rule)
-                    }
-                    .onDelete { indexSet in
-                        Task {
-                            for i in indexSet { await vm.deleteRule(vm.rules[i]) }
-                        }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    Task { await vm.deleteRule(rule) }
+                                } label: { Label("删除", systemImage: "trash") }
+
+                                Button {
+                                    editingRule = rule
+                                } label: { Label("修改", systemImage: "pencil") }
+                                .tint(.blue)
+                            }
                     }
                 } header: {
                     SectionLabel(title: "端口规则（\(vm.rules.count)）", systemImage: "list.bullet.rectangle")
@@ -185,6 +223,9 @@ struct FirewallView: View {
         }
         .sheet(isPresented: $showAdd) {
             FirewallAddRuleView(vm: vm)
+        }
+        .sheet(item: $editingRule) { rule in
+            FirewallEditRuleView(vm: vm, rule: rule)
         }
         .confirmationDialog(
             pendingUFWOp.map { opTitle($0) } ?? "",
@@ -404,6 +445,100 @@ struct FirewallAddRuleView: View {
                     .disabled(!isValid || saving)
                 }
             }
+        }
+    }
+}
+
+// MARK: - 修改规则
+
+struct FirewallEditRuleView: View {
+    @ObservedObject var vm: FirewallViewModel
+    let rule: FirewallRule
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var port = ""
+    @State private var proto = "tcp"
+    @State private var strategy = "accept"
+    @State private var address = ""
+    @State private var description = ""
+    @State private var saving = false
+
+    private let protos = ["tcp", "udp"]
+    private let strategies = [("accept", "允许"), ("drop", "拒绝")]
+
+    private var isValid: Bool {
+        !port.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("端口", text: $port)
+                        .keyboardType(.numbersAndPunctuation)
+                        .autocorrectionDisabled()
+                    Text("单个端口如 8080，或范围如 3000-3100。")
+                        .font(.caption).foregroundStyle(.secondary)
+                } header: { SectionLabel(title: "端口", systemImage: "number") }
+
+                Section {
+                    Picker("协议", selection: $proto) {
+                        ForEach(protos, id: \.self) { Text($0.uppercased()).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                } header: { SectionLabel(title: "协议", systemImage: "network") }
+
+                Section {
+                    Picker("策略", selection: $strategy) {
+                        ForEach(strategies, id: \.0) { Text($1).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                } header: { SectionLabel(title: "策略", systemImage: "hand.raised") }
+
+                Section {
+                    TextField("IP / CIDR，留空=任意", text: $address)
+                        .keyboardType(.numbersAndPunctuation)
+                        .autocorrectionDisabled()
+                    Text("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。")
+                        .font(.caption).foregroundStyle(.secondary)
+                } header: { SectionLabel(title: "来源地址", systemImage: "location") }
+
+                Section {
+                    TextField("备注（可选）", text: $description)
+                } header: { SectionLabel(title: "备注", systemImage: "text.alignleft") }
+            }
+            .navigationTitle("修改端口规则")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        Task {
+                            saving = true
+                            let ok = await vm.updateRule(
+                                old: rule,
+                                port: port.trimmingCharacters(in: .whitespaces),
+                                proto: proto, strategy: strategy,
+                                address: address.trimmingCharacters(in: .whitespaces),
+                                description: description
+                            )
+                            saving = false
+                            if ok { dismiss() }
+                        }
+                    }
+                    .disabled(!isValid || saving)
+                }
+            }
+        }
+        .onAppear {
+            port = rule.port ?? ""
+            proto = rule.protocolField ?? "tcp"
+            strategy = rule.strategy ?? "accept"
+            let addr = rule.address ?? ""
+            address = (addr == "Anywhere") ? "" : addr
+            description = rule.description ?? ""
         }
     }
 }

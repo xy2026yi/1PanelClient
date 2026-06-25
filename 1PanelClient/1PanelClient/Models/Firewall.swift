@@ -102,3 +102,63 @@ struct FirewallBatchRequest: Encodable {
     let type: String        // port
     let rules: [FirewallBatchRule]
 }
+
+/// 修改端口规则时的完整规则对象（oldRule/newRule 共用）
+struct FirewallRuleFull: Encodable {
+    let id: Int
+    let chain: String
+    let family: String
+    let address: String
+    let port: String
+    let protocolField: String
+    let strategy: String
+    let num: String
+    let targetIP: String
+    let targetPort: String
+    let interface: String
+    let usedStatus: String
+    let description: String
+    let usedPorts: [String]
+    let source: String
+    let operation: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, chain, family, address, port, strategy, num
+        case targetIP, targetPort, interface, usedStatus, description
+        case usedPorts, source, operation
+        case protocolField = "protocol"
+    }
+}
+
+/// 修改端口规则请求（/firewall/update/port）
+struct FirewallUpdatePortRequest: Encodable {
+    let oldRule: FirewallRuleFull
+    let newRule: FirewallRuleFull
+}
+
+extension FirewallRuleFull {
+    /// 由搜索结果 FirewallRule 构造完整规则对象
+    /// - operation: "remove"（旧规则）或 "add"（新规则）
+    init(from rule: FirewallRule, operation: String) {
+        let addr = rule.address ?? ""
+        let source = (addr.isEmpty || addr == "Anywhere") ? "anyWhere" : addr
+        self.init(
+            id: 0,
+            chain: rule.chain ?? "",
+            family: rule.family ?? "ipv4",
+            address: addr,
+            port: rule.port ?? "",
+            protocolField: rule.protocolField ?? "tcp",
+            strategy: rule.strategy ?? "accept",
+            num: "",
+            targetIP: "",
+            targetPort: "",
+            interface: "",
+            usedStatus: rule.usedStatus ?? "",
+            description: rule.description ?? "",
+            usedPorts: [],
+            source: source,
+            operation: operation
+        )
+    }
+}
