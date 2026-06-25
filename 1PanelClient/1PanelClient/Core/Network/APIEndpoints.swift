@@ -71,6 +71,7 @@ enum APIEndpoint {
     case cronjobsBackups          // GET  备份账号列表
     case cronjobsUsers            // GET  系统用户列表
     case cronjobsScripts          // GET  内置脚本列表
+    case scriptSearch             // POST 脚本库搜索（core/script/search）
 
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库
@@ -148,6 +149,7 @@ enum APIEndpoint {
         case .cronjobsBackups:       return "/api/v2/backups/options"
         case .cronjobsUsers:         return "/api/v2/toolbox/device/users"
         case .cronjobsScripts:       return "/api/v2/cronjobs/script/options"
+        case .scriptSearch:          return "/api/v2/core/script/search"
         case .databasesSearch:       return "/api/v2/databases/db/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"

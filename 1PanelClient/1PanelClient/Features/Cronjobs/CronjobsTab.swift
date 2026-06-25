@@ -74,6 +74,14 @@ struct CronjobsTab: View {
                     }
                 }
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    ScriptLibraryView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+                } label: {
+                    Image(systemName: "books.vertical")
+                }
+                .accessibilityLabel("脚本库")
+            }
         }
         .navigationDestination(for: Cronjob.self) { job in
             CronjobDetailView(job: job, vm: vm)
@@ -94,7 +102,7 @@ struct CronjobsTab: View {
             .accessibilityLabel("创建计划任务")
         }
         .sheet(isPresented: $showCreateSheet) {
-            CreateCronjobView(vm: vm)
+            CreateCronjobView(vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
     }
 
@@ -418,6 +426,7 @@ struct CronjobLogView: View {
 
 struct CreateCronjobView: View {
     @ObservedObject var vm: CronjobsViewModel
+    let server: ServerConfig
     @Environment(\.dismiss) private var dismiss
 
     @State private var type: CronjobType = .shell
@@ -431,6 +440,7 @@ struct CreateCronjobView: View {
     // Shell
     @State private var script = "#!/bin/bash\n"
     @State private var user = ""           // 默认不选（空字符串 = 服务器默认）
+    @State private var showScriptPicker = false
     // 备份
     @State private var retainCopies = 7
     @State private var backupAccountID = 0
@@ -492,6 +502,12 @@ struct CreateCronjobView: View {
                 switch type {
                 case .shell:
                     Section {
+                        Button {
+                            showScriptPicker = true
+                        } label: {
+                            Label("从脚本库选择", systemImage: "books.vertical")
+                                .foregroundStyle(Color.accentColor)
+                        }
                         TextEditor(text: $script)
                             .font(.system(.caption, design: .monospaced))
                             .frame(minHeight: 160)
@@ -565,6 +581,21 @@ struct CreateCronjobView: View {
             }
             .task {
                 await vm.loadCreateOptions()
+            }
+            .sheet(isPresented: $showScriptPicker) {
+                NavigationStack {
+                    ScriptLibraryView(server: server) { picked in
+                        if let code = picked.script, !code.isEmpty {
+                            script = code
+                        }
+                        showScriptPicker = false
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("取消") { showScriptPicker = false }
+                        }
+                    }
+                }
             }
         }
     }

@@ -344,6 +344,7 @@ struct ContainerDetailView: View {
     @State private var showTerminal = false
     @State private var showTerminalCommandPicker = false
     @State private var terminalCommand = "/bin/sh"
+    @State private var pendingDelete = false
 
     var body: some View {
         List {
@@ -404,6 +405,15 @@ struct ContainerDetailView: View {
                     } label: { Label("升级", systemImage: "arrow.up.circle") }
                     Button { showEdit = true } label: { Label("编辑", systemImage: "pencil") }
                     Button { showTerminalCommandPicker = true } label: { Label("终端", systemImage: "terminal") }
+                    Divider()
+                    Button(role: .destructive) {
+                        if container.isFromApp == true {
+                            menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
+                            showMenuAlert = true
+                        } else {
+                            pendingDelete = true
+                        }
+                    } label: { Label("删除", systemImage: "trash") }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -439,6 +449,14 @@ struct ContainerDetailView: View {
             Button("好的", role: .cancel) {}
         } message: {
             Text(menuAlertMessage)
+        }
+        .alert("删除容器", isPresented: $pendingDelete) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) {
+                Task { await vm.operateContainer(name: container.name, operation: "remove") }
+            }
+        } message: {
+            Text("确定删除容器「\(container.displayName)」吗？删除后不可恢复。")
         }
         // 容器操作（停止/启动/重启/关闭/升级）结果走 VM 的 alert，
         // 详情页也要绑定，否则操作后弹窗只在列表页显示
@@ -1051,6 +1069,7 @@ final class ContainersViewModel: ObservableObject {
         case "start": opName = "启动"
         case "restart": opName = "重启"
         case "kill": opName = "关闭"
+        case "remove": opName = "删除"
         default: opName = operation
         }
         let req = ContainerOperateRequest(names: [name], operation: operation, taskID: UUID().uuidString)
