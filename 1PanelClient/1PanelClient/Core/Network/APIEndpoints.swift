@@ -133,6 +133,16 @@ enum APIEndpoint {
     case wafRuleIPDelete         // POST IP规则删除
     case wafRuleIPUpdate         // POST IP规则编辑/启禁
 
+    // MARK: - WAF 通用规则 (URL / UA)
+    case wafRuleCommonSearch     // POST 通用规则搜索 {scope, websiteID}
+    case wafRuleCommonCreate     // POST 通用规则创建
+    case wafRuleCommonUpdate     // POST 通用规则编辑/启禁
+    case wafRuleCommonDelete     // POST 通用规则删除
+
+    // MARK: - WAF 频率限制 / 位置更新
+    case wafRuleCc               // POST CC/攻击/404 频率限制保存
+    case wafLocationUpdate       // POST IP地址库/恶意IP组/蜘蛛IP池更新
+
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
     case appsInstalledOperate     // POST 操作已安装应用（启动/停止/重启/升级）
@@ -251,6 +261,12 @@ enum APIEndpoint {
         case .wafRuleIPCreate:       return "/api/v2/xpack/waf/rule/ip/create"
         case .wafRuleIPDelete:       return "/api/v2/xpack/waf/rule/ip/delete"
         case .wafRuleIPUpdate:       return "/api/v2/xpack/waf/rule/ip/update"
+        case .wafRuleCommonSearch:   return "/api/v2/xpack/waf/rule/common/search"
+        case .wafRuleCommonCreate:   return "/api/v2/xpack/waf/rule/common/create"
+        case .wafRuleCommonUpdate:   return "/api/v2/xpack/waf/rule/common/update"
+        case .wafRuleCommonDelete:   return "/api/v2/xpack/waf/rule/common/delete"
+        case .wafRuleCc:             return "/api/v2/xpack/waf/rule/cc"
+        case .wafLocationUpdate:     return "/api/v2/xpack/waf/location/update"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"

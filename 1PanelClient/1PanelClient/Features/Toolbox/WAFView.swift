@@ -26,7 +26,9 @@ struct WAFConfig: Decodable {
     let uaBlack: WAFRuleItem?
     let xss: WAFRuleItem?
     let sql: WAFRuleItem?
-    let cc: WAFRuleItem?
+    let cc: WAFCcRuleConfig?
+    let attackCount: WAFCcRuleConfig?
+    let notFoundCount: WAFCcRuleConfig?
     let args: WAFRuleItem?
     let cookie: WAFRuleItem?
     let header: WAFRuleItem?
@@ -162,6 +164,105 @@ struct WAFIPGroupDeleteRequest: Encodable {
     let name: String
 }
 
+// MARK: - 通用规则 (URL / UA)
+
+struct WAFCommonRuleSearchRequest: Encodable {
+    let page: Int
+    let pageSize: Int
+    let scope: String
+    let websiteID: Int
+}
+
+struct WAFCommonRuleItem: Decodable, Identifiable, Hashable {
+    let name: String
+    let state: String
+    let rule: String
+    let type: String?
+    let description: String?
+
+    var id: String { name }
+}
+
+struct WAFCommonRuleCreateRequest: Encodable {
+    let name: String
+    let state: String
+    let description: String
+    let scope: String
+    let rule: String
+    let websiteID: Int
+}
+
+struct WAFCommonRuleUpdateRequest: Encodable {
+    let name: String
+    let state: String
+    let rule: String
+    let type: String
+    let description: String
+    let scope: String
+    let websiteID: Int
+}
+
+struct WAFCommonRuleDeleteRequest: Encodable {
+    let name: String
+    let scope: String
+    let websiteID: Int
+}
+
+// MARK: - CC / 频率限制配置
+
+struct WAFCcRuleConfig: Decodable {
+    let state: String?
+    let code: Int?
+    let action: String?
+    let type: String?
+    let duration: Int?
+    let threshold: Int?
+    let ipBlockTime: Int?
+    let mode: String?
+    let ipBlock: String?
+
+    var isOn: Bool { state == "on" }
+}
+
+struct WAFCcRuleSaveRequest: Encodable {
+    let state: String
+    let code: Int
+    let action: String
+    let type: String
+    let res: String
+    let ipBlock: String
+    let ipBlockTime: Int
+    let threshold: Int
+    let duration: Int
+    let mode: String
+    let scope: String
+    let applyWebsite: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case state, code, action, type, res, ipBlock, ipBlockTime, threshold, duration, mode, scope, applyWebsite
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(state, forKey: .state)
+        try c.encode(code, forKey: .code)
+        try c.encode(action, forKey: .action)
+        try c.encode(type, forKey: .type)
+        try c.encode(res, forKey: .res)
+        try c.encode(ipBlock, forKey: .ipBlock)
+        try c.encode(ipBlockTime, forKey: .ipBlockTime)
+        try c.encode(threshold, forKey: .threshold)
+        try c.encode(duration, forKey: .duration)
+        try c.encode(mode, forKey: .mode)
+        try c.encode(scope, forKey: .scope)
+        try c.encodeIfPresent(applyWebsite, forKey: .applyWebsite)
+    }
+}
+
+struct WAFLocationUpdateRequest: Encodable {
+    let type: String
+}
+
 // MARK: - WAF ViewModel
 
 @MainActor
@@ -273,17 +374,12 @@ struct WAFView: View {
                 }
             }
 
-            // 黑白名单
+            // 黑名单
             Section {
                 NavigationLink {
-                    WAFIPRulesView(server: server, scope: "ipBlack", title: "IP 黑名单")
+                    WAFIPRulesView(server: server, scope: "ipBlack", title: "IP")
                 } label: {
-                    ruleRow(icon: "hand.raised", color: .red, title: "IP 黑名单", item: config.ipBlack, scope: "IPBlack")
-                }
-                NavigationLink {
-                    WAFIPRulesView(server: server, scope: "ipWhite", title: "IP 白名单")
-                } label: {
-                    ruleRow(icon: "checkmark.shield", color: .green, title: "IP 白名单", item: config.ipWhite, scope: "IPWhite")
+                    ruleRow(icon: "hand.raised", color: .red, title: "IP", item: config.ipBlack, scope: "IPBlack")
                 }
                 NavigationLink {
                     WAFIPGroupsView(server: server)
@@ -291,30 +387,97 @@ struct WAFView: View {
                     HStack(spacing: 12) {
                         IconBadge(systemName: "rectangle.group", color: .indigo, size: 34, cornerRadius: 8)
                         Text("IP 组")
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
                     }
                 }
+                NavigationLink {
+                    WAFCommonRulesView(server: server, scope: "urlBlack", title: "URL")
+                } label: {
+                    ruleRow(icon: "link.badge.plus", color: .orange, title: "URL", item: config.urlBlack, scope: "UrlBlack")
+                }
+                NavigationLink {
+                    WAFCommonRulesView(server: server, scope: "uaBlack", title: "User-Agent")
+                } label: {
+                    ruleRow(icon: "person.crop.square", color: .pink, title: "User-Agent", item: config.uaBlack, scope: "UaBlack")
+                }
             } header: {
-                SectionLabel(title: "黑白名单", systemImage: "shield")
+                SectionLabel(title: "黑名单", systemImage: "hand.raised")
+            }
+
+            // 白名单
+            Section {
+                NavigationLink {
+                    WAFIPRulesView(server: server, scope: "ipWhite", title: "IP")
+                } label: {
+                    ruleRow(icon: "checkmark.shield", color: .green, title: "IP", item: config.ipWhite, scope: "IPWhite")
+                }
+                NavigationLink {
+                    WAFCommonRulesView(server: server, scope: "urlWhite", title: "URL")
+                } label: {
+                    ruleRow(icon: "link.badge.plus", color: .teal, title: "URL", item: config.urlWhite, scope: "UrlWhite")
+                }
+                NavigationLink {
+                    WAFCommonRulesView(server: server, scope: "uaWhite", title: "User-Agent")
+                } label: {
+                    ruleRow(icon: "person.crop.square", color: .mint, title: "User-Agent", item: config.uaWhite, scope: "UaWhite")
+                }
+            } header: {
+                SectionLabel(title: "白名单", systemImage: "checkmark.shield")
             }
 
             // 防护规则
             Section {
                 toggleRow(title: "XSS 攻击", item: config.xss, scope: "XSS")
                 toggleRow(title: "SQL 注入", item: config.sql, scope: "SQL")
-                toggleRow(title: "CC 攻击", item: config.cc, scope: "CC")
                 toggleRow(title: "参数过滤", item: config.args, scope: "ARGS")
                 toggleRow(title: "Cookie 校验", item: config.cookie, scope: "COOKIE")
                 toggleRow(title: "Header 校验", item: config.header, scope: "HEADER")
                 toggleRow(title: "文件扩展名", item: config.fileExt, scope: "FILEEXTCHECK")
                 toggleRow(title: "漏洞防护", item: config.vuln, scope: "VULNCHECK")
                 toggleRow(title: "严格模式", item: config.strict, scope: "STRICT")
-                toggleRow(title: "允许爬虫", item: config.allowSpider, scope: "SPIDER")
-                toggleRow(title: "默认 IP 黑名单", item: config.defaultIpBlack, scope: "DEFAULTIPBLACK")
-                toggleRow(title: "默认 UA 黑名单", item: config.defaultUaBlack, scope: "DEFAULTUABLACK")
-                toggleRow(title: "默认 URL 黑名单", item: config.defaultUrlBlack, scope: "DEFAULTURLBLACK")
                 toggleRow(title: "未知网站拦截", item: config.unknownWebsite, scope: "UNKNOWNWEBSITE")
             } header: {
                 SectionLabel(title: "防护规则", systemImage: "lock.shield")
+            }
+
+            // 全局设置
+            Section {
+                NavigationLink {
+                    WAFCcSettingsView(server: server, config: config.cc, scope: "Cc", title: "访问频率限制")
+                } label: {
+                    ccToggleRow(title: "访问频率限制", item: config.cc, scope: "Cc")
+                }
+                NavigationLink {
+                    WAFAttackCountSettingsView(server: server, config: config.attackCount, scope: "AttackCount", title: "攻击频率限制")
+                } label: {
+                    ccToggleRow(title: "攻击频率限制", item: config.attackCount, scope: "AttackCount")
+                }
+                NavigationLink {
+                    WAFAttackCountSettingsView(server: server, config: config.notFoundCount, scope: "NotFoundCount", title: "404 频率限制")
+                } label: {
+                    ccToggleRow(title: "404 频率限制", item: config.notFoundCount, scope: "NotFoundCount")
+                }
+            } header: {
+                SectionLabel(title: "频率限制", systemImage: "gauge.with.dots.needle.67percent")
+            }
+
+            // 配置
+            Section {
+                toggleRow(title: "恶意 IP 组", item: config.defaultIpBlack, scope: "DefaultIpBlack")
+                toggleRow(title: "蜘蛛 IP 池", item: config.allowSpider, scope: "AllowSpider")
+                NavigationLink {
+                    WAFLocationUpdateView(server: server)
+                } label: {
+                    HStack(spacing: 12) {
+                        IconBadge(systemName: "globe.asia.australia", color: .blue, size: 34, cornerRadius: 8)
+                        Text("IP 地址库")
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                SectionLabel(title: "配置", systemImage: "gearshape")
             }
         }
     }
@@ -345,6 +508,21 @@ struct WAFView: View {
             Text(title)
         }
         .disabled(vm.isOperating)
+    }
+
+    private func ccToggleRow(title: String, item: WAFCcRuleConfig?, scope: String) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Toggle("", isOn: Binding(
+                get: { item?.isOn ?? false },
+                set: { newVal in
+                    Task { await vm.toggleRule(scope: scope, state: newVal ? "on" : "off") }
+                }
+            ))
+            .labelsHidden()
+            .disabled(vm.isOperating)
+        }
     }
 }
 
@@ -909,5 +1087,612 @@ struct WAFIPGroupEditView: View {
             errorMessage = error.localizedDescription
         }
         isSaving = false
+    }
+}
+
+// MARK: - URL / User-Agent 通用规则视图
+
+struct WAFCommonRulesView: View {
+    let server: ServerConfig
+    let scope: String
+    let title: String
+
+    @State private var items: [WAFCommonRuleItem] = []
+    @State private var isLoading = false
+    @State private var showCreate = false
+    @State private var editingItem: WAFCommonRuleItem?
+    @State private var successMessage: String?
+    @State private var errorMessage: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, scope: String, title: String) {
+        self.server = server
+        self.scope = scope
+        self.title = title
+        self.client = APIClient(server: server)
+    }
+
+    var body: some View {
+        List {
+            if isLoading && items.isEmpty {
+                ProgressView()
+            } else if items.isEmpty {
+                Text("暂无数据").foregroundStyle(.secondary)
+            } else {
+                ForEach(items) { item in
+                    WAFCommonRuleRow(item: item, onToggle: {
+                        Task { await toggleState(item) }
+                    })
+                    .swipeActions {
+                        Button(role: .destructive) {
+                            Task { await deleteItem(item) }
+                        } label: {
+                            Label("删除", systemImage: "trash")
+                        }
+                        Button {
+                            editingItem = item
+                        } label: {
+                            Label("编辑", systemImage: "pencil")
+                        }
+                        .tint(.blue)
+                    }
+                }
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .refreshable { await loadItems() }
+        .task { await loadItems() }
+        .sheet(isPresented: $showCreate) {
+            WAFCreateCommonRuleView(server: server, scope: scope) {
+                Task { await loadItems() }
+            }
+        }
+        .sheet(item: $editingItem) { item in
+            WAFEditCommonRuleView(server: server, scope: scope, item: item) {
+                Task { await loadItems() }
+            }
+        }
+        .alert("提示", isPresented: Binding(
+            get: { successMessage != nil || errorMessage != nil },
+            set: { _ in successMessage = nil; errorMessage = nil }
+        )) {
+            Button("好的") { successMessage = nil; errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? successMessage ?? "")
+        }
+    }
+
+    private func loadItems() async {
+        isLoading = true
+        let req = WAFCommonRuleSearchRequest(page: 1, pageSize: 100, scope: scope, websiteID: 0)
+        do {
+            let resp: PageResponse<WAFCommonRuleItem> = try await client.send(
+                path: APIEndpoint.wafRuleCommonSearch.path, body: req,
+                as: PageResponse<WAFCommonRuleItem>.self
+            )
+            items = resp.items ?? []
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    private func toggleState(_ item: WAFCommonRuleItem) async {
+        let newState = item.state == "on" ? "off" : "on"
+        let req = WAFCommonRuleUpdateRequest(
+            name: item.name, state: newState, rule: item.rule,
+            type: item.type ?? "", description: item.description ?? "",
+            scope: scope, websiteID: 0
+        )
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonUpdate.path, body: req, as: EmptyResponse.self)
+            successMessage = newState == "on" ? "已启用" : "已禁用"
+            await loadItems()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteItem(_ item: WAFCommonRuleItem) async {
+        let req = WAFCommonRuleDeleteRequest(name: item.name, scope: scope, websiteID: 0)
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonDelete.path, body: req, as: EmptyResponse.self)
+            successMessage = "已删除"
+            await loadItems()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
+struct WAFCommonRuleRow: View {
+    let item: WAFCommonRuleItem
+    let onToggle: () -> Void
+
+    var body: some View {
+        Toggle(isOn: Binding(get: { item.state == "on" }, set: { _ in onToggle() })) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.rule)
+                    .font(.system(.body, design: .monospaced))
+                if let desc = item.description, !desc.isEmpty {
+                    Text(desc).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .tint(item.state == "on" ? .green : .gray)
+    }
+}
+
+// MARK: - 创建通用规则
+
+struct WAFCreateCommonRuleView: View {
+    let server: ServerConfig
+    let scope: String
+    let onCreated: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var rule = ""
+    @State private var description = ""
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, scope: String, onCreated: @escaping () -> Void) {
+        self.server = server
+        self.scope = scope
+        self.onCreated = onCreated
+        self.client = APIClient(server: server)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("规则内容") {
+                    TextField("输入规则", text: $rule)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                }
+                Section("备注") {
+                    TextField("描述(可选)", text: $description)
+                }
+            }
+            .navigationTitle("添加规则")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("创建") {
+                        Task { await create() }
+                    }
+                    .disabled(isSaving || rule.isEmpty)
+                }
+            }
+            .alert("错误", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("好的") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+    }
+
+    private func create() async {
+        isSaving = true
+        let req = WAFCommonRuleCreateRequest(
+            name: "", state: "on", description: description,
+            scope: scope, rule: rule, websiteID: 0
+        )
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonCreate.path, body: req, as: EmptyResponse.self)
+            onCreated()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSaving = false
+    }
+}
+
+// MARK: - 编辑通用规则
+
+struct WAFEditCommonRuleView: View {
+    let server: ServerConfig
+    let scope: String
+    let item: WAFCommonRuleItem
+    let onUpdated: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var rule = ""
+    @State private var description = ""
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, scope: String, item: WAFCommonRuleItem, onUpdated: @escaping () -> Void) {
+        self.server = server
+        self.scope = scope
+        self.item = item
+        self.onUpdated = onUpdated
+        self.client = APIClient(server: server)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("规则内容") {
+                    TextField("输入规则", text: $rule)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                }
+                Section("备注") {
+                    TextField("描述(可选)", text: $description)
+                }
+            }
+            .navigationTitle("编辑规则")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                rule = item.rule
+                description = item.description ?? ""
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        Task { await save() }
+                    }
+                    .disabled(isSaving || rule.isEmpty)
+                }
+            }
+            .alert("错误", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("好的") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+    }
+
+    private func save() async {
+        isSaving = true
+        let req = WAFCommonRuleUpdateRequest(
+            name: item.name, state: item.state, rule: rule,
+            type: item.type ?? "", description: description,
+            scope: scope, websiteID: 0
+        )
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonUpdate.path, body: req, as: EmptyResponse.self)
+            onUpdated()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSaving = false
+    }
+}
+
+// MARK: - CC 访问频率限制设置
+
+struct WAFCcSettingsView: View {
+    let server: ServerConfig
+    let config: WAFCcRuleConfig?
+    let scope: String
+    let title: String
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var mode = "global"
+    @State private var duration = "10"
+    @State private var threshold = "100"
+    @State private var ipBlockTime = "600"
+    @State private var isSaving = false
+    @State private var successMessage: String?
+    @State private var errorMessage: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, config: WAFCcRuleConfig?, scope: String, title: String) {
+        self.server = server
+        self.config = config
+        self.scope = scope
+        self.title = title
+        self.client = APIClient(server: server)
+    }
+
+    var body: some View {
+        Form {
+            Section("模式") {
+                Picker("模式", selection: $mode) {
+                    Text("URL 模式").tag("uri")
+                    Text("全局模式").tag("global")
+                }
+            }
+            Section("参数") {
+                HStack {
+                    Text("周期")
+                    Spacer()
+                    TextField("", text: $duration)
+                        .keyboardType(.numberPad)
+                        .frame(width: 80)
+                        .multilineTextAlignment(.trailing)
+                    Text("秒").foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("频率")
+                    Spacer()
+                    TextField("", text: $threshold)
+                        .keyboardType(.numberPad)
+                        .frame(width: 80)
+                        .multilineTextAlignment(.trailing)
+                    Text("次").foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("封禁时间")
+                    Spacer()
+                    TextField("", text: $ipBlockTime)
+                        .keyboardType(.numberPad)
+                        .frame(width: 80)
+                        .multilineTextAlignment(.trailing)
+                    Text("秒").foregroundStyle(.secondary)
+                }
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { loadConfig() }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("关闭") { dismiss() }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("保存默认") { Task { await save(applyWebsite: nil) } }
+                    Button("应用到网站") { Task { await save(applyWebsite: true) } }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .alert("提示", isPresented: Binding(
+            get: { successMessage != nil || errorMessage != nil },
+            set: { _ in successMessage = nil; errorMessage = nil }
+        )) {
+            Button("好的") { successMessage = nil; errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? successMessage ?? "")
+        }
+    }
+
+    private func loadConfig() {
+        guard let c = config else { return }
+        mode = c.mode ?? "global"
+        duration = String(c.duration ?? 10)
+        threshold = String(c.threshold ?? 100)
+        ipBlockTime = String(c.ipBlockTime ?? 600)
+    }
+
+    private func save(applyWebsite: Bool?) async {
+        isSaving = true
+        let req = WAFCcRuleSaveRequest(
+            state: config?.state ?? "off",
+            code: config?.code ?? 0,
+            action: config?.action ?? "deny",
+            type: "cc",
+            res: "",
+            ipBlock: config?.ipBlock ?? "on",
+            ipBlockTime: Int(ipBlockTime) ?? 600,
+            threshold: Int(threshold) ?? 100,
+            duration: Int(duration) ?? 10,
+            mode: mode,
+            scope: scope,
+            applyWebsite: applyWebsite
+        )
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCc.path, body: req, as: EmptyResponse.self)
+            successMessage = applyWebsite == true ? "已应用到网站" : "已保存"
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSaving = false
+    }
+}
+
+// MARK: - 攻击频率 / 404 频率限制设置
+
+struct WAFAttackCountSettingsView: View {
+    let server: ServerConfig
+    let config: WAFCcRuleConfig?
+    let scope: String
+    let title: String
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var duration = "60"
+    @State private var threshold = "10"
+    @State private var ipBlockTime = "3000"
+    @State private var isSaving = false
+    @State private var successMessage: String?
+    @State private var errorMessage: String?
+
+    private let client: APIClient
+    private var ruleType: String { scope == "NotFoundCount" ? "notFoundCount" : "attackCount" }
+    private var defaultCode: Int { scope == "NotFoundCount" ? 403 : 0 }
+
+    init(server: ServerConfig, config: WAFCcRuleConfig?, scope: String, title: String) {
+        self.server = server
+        self.config = config
+        self.scope = scope
+        self.title = title
+        self.client = APIClient(server: server)
+    }
+
+    var body: some View {
+        Form {
+            Section("参数") {
+                HStack {
+                    Text("周期")
+                    Spacer()
+                    TextField("", text: $duration)
+                        .keyboardType(.numberPad)
+                        .frame(width: 80)
+                        .multilineTextAlignment(.trailing)
+                    Text("秒").foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("频率")
+                    Spacer()
+                    TextField("", text: $threshold)
+                        .keyboardType(.numberPad)
+                        .frame(width: 80)
+                        .multilineTextAlignment(.trailing)
+                    Text("次").foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("封禁时间")
+                    Spacer()
+                    TextField("", text: $ipBlockTime)
+                        .keyboardType(.numberPad)
+                        .frame(width: 80)
+                        .multilineTextAlignment(.trailing)
+                    Text("秒").foregroundStyle(.secondary)
+                }
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { loadConfig() }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("关闭") { dismiss() }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("保存") { Task { await save() } }
+                    .disabled(isSaving)
+            }
+        }
+        .alert("提示", isPresented: Binding(
+            get: { successMessage != nil || errorMessage != nil },
+            set: { _ in successMessage = nil; errorMessage = nil }
+        )) {
+            Button("好的") { successMessage = nil; errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? successMessage ?? "")
+        }
+    }
+
+    private func loadConfig() {
+        guard let c = config else { return }
+        duration = String(c.duration ?? 60)
+        threshold = String(c.threshold ?? 10)
+        ipBlockTime = String(c.ipBlockTime ?? 3000)
+    }
+
+    private func save() async {
+        isSaving = true
+        let req = WAFCcRuleSaveRequest(
+            state: config?.state ?? "off",
+            code: config?.code ?? defaultCode,
+            action: config?.action ?? "deny",
+            type: ruleType,
+            res: "",
+            ipBlock: config?.ipBlock ?? "on",
+            ipBlockTime: Int(ipBlockTime) ?? 3000,
+            threshold: Int(threshold) ?? 10,
+            duration: Int(duration) ?? 60,
+            mode: "",
+            scope: scope,
+            applyWebsite: nil
+        )
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCc.path, body: req, as: EmptyResponse.self)
+            successMessage = "已保存"
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSaving = false
+    }
+}
+
+// MARK: - IP 地址库更新
+
+struct WAFLocationUpdateView: View {
+    let server: ServerConfig
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var isUpdating = false
+    @State private var successMessage: String?
+    @State private var errorMessage: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig) {
+        self.server = server
+        self.client = APIClient(server: server)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Button {
+                    Task { await update(type: "geoIP") }
+                } label: {
+                    HStack {
+                        Image(systemName: "globe.asia.australia")
+                        Text("更新 IP 地址库")
+                        Spacer()
+                        if isUpdating { ProgressView() }
+                    }
+                }
+            } header: {
+                Text("IP 地址库")
+            } footer: {
+                Text("更新 GeoIP 数据库以支持基于地理位置的访问控制")
+            }
+        }
+        .navigationTitle("IP 地址库")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("关闭") { dismiss() }
+            }
+        }
+        .alert("提示", isPresented: Binding(
+            get: { successMessage != nil || errorMessage != nil },
+            set: { _ in successMessage = nil; errorMessage = nil }
+        )) {
+            Button("好的") { successMessage = nil; errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? successMessage ?? "")
+        }
+    }
+
+    private func update(type: String) async {
+        isUpdating = true
+        let req = WAFLocationUpdateRequest(type: type)
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafLocationUpdate.path, body: req, as: EmptyResponse.self)
+            successMessage = "更新成功"
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isUpdating = false
     }
 }
