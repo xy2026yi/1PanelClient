@@ -187,11 +187,6 @@ struct OverviewTab: View {
                 Text("状态")
                     .font(.headline)
                 Spacer()
-                if let uptime = cur.timeSinceUptime, !uptime.isEmpty {
-                    Text("运行 \(uptime)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
 
             // 负载 / CPU / 内存 / 各存储挂载点 全部一排，超出可左右滑动

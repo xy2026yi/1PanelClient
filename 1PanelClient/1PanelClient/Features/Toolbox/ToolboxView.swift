@@ -55,6 +55,17 @@ struct ToolboxView: View {
                     subtitle: "SSH 服务管理"
                 )
             }
+
+            NavigationLink {
+                ProcessView(server: server)
+            } label: {
+                toolRow(
+                    icon: "chart.bar",
+                    color: .pink,
+                    title: "进程",
+                    subtitle: "系统进程监控"
+                )
+            }
         }
         .navigationTitle("工具箱")
         .navigationBarTitleDisplayMode(.inline)

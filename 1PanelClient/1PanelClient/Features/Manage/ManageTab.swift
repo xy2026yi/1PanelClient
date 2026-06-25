@@ -27,9 +27,7 @@ struct ManageTab: View {
     private var groups: [(title: String, items: [ManageItem])] {
         [
             ("",          [.apps, .websites, .database, .containers]),
-            ("",          [.terminal, .process]),
-            ("",          [.firewall, .toolbox]),
-            ("",          [.cronjob])
+            ("",          [.terminal, .firewall, .toolbox, .cronjob])
         ]
     }
 
@@ -170,9 +168,7 @@ struct ManageEditView: View {
     private var groups: [(title: String, items: [ManageItem])] {
         [
             ("",  [.apps, .websites, .database, .containers]),
-            ("",  [.terminal, .process]),
-            ("",  [.firewall, .toolbox]),
-            ("",  [.cronjob])
+            ("",  [.terminal, .firewall, .toolbox, .cronjob])
         ]
     }
 
