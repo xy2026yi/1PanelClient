@@ -565,6 +565,7 @@ struct ChangePasswordSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var newPassword = ""
     @State private var showCurrent = false
+    @State private var showNew = false
 
     var body: some View {
         NavigationStack {
@@ -585,13 +586,26 @@ struct ChangePasswordSheet: View {
                     }
                 }
                 Section("新密码") {
-                    TextField("输入或生成新密码", text: $newPassword)
-                        .textFieldStyle(.roundedBorder)
+                    HStack {
+                        Group {
+                            if showNew {
+                                TextField("输入或生成新密码", text: $newPassword)
+                            } else {
+                                SecureField("输入或生成新密码", text: $newPassword)
+                            }
+                        }
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .font(.system(.body, design: .monospaced))
+
+                        Button { showNew.toggle() } label: {
+                            Image(systemName: showNew ? "eye.slash" : "eye")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     Button {
                         newPassword = randomPassword()
+                        showNew = true
                     } label: {
                         Label("生成随机密码", systemImage: "shuffle")
                     }
