@@ -82,7 +82,18 @@ enum APIEndpoint {
     case firewallUpdatePort       // POST 修改端口规则
 
     // MARK: - 数据库
-    case databasesSearch          // POST 分页查询数据库
+    case databasesSearch          // POST 分页查询数据库(MySQL)
+    case databasesPgSearch        // POST 分页查询数据库(PostgreSQL)
+    case databasesFormatOptions   // POST 字符集/排序规则选项
+    case databasesCreate          // POST 创建数据库
+    case databasesDelCheck        // POST 删除前检查
+    case databasesDel             // POST 删除数据库
+    case databasesRemote          // POST 远程访问状态
+    case databasesChangeAccess    // POST 修改访问权限/远程访问
+    case databasesChangePassword  // POST 修改密码
+    case databasesRedisCheck      // GET  Redis 状态检查
+    case appsInstalledCheck       // POST 已安装应用检查(状态/端口)
+    case appsInstalledConnInfo    // POST 已安装应用连接信息
 
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
@@ -164,7 +175,18 @@ enum APIEndpoint {
         case .firewallPort:          return "/api/v2/hosts/firewall/port"
         case .firewallBatch:         return "/api/v2/hosts/firewall/batch"
         case .firewallUpdatePort:    return "/api/v2/hosts/firewall/update/port"
-        case .databasesSearch:       return "/api/v2/databases/db/search"
+        case .databasesSearch:       return "/api/v2/databases/search"
+        case .databasesPgSearch:     return "/api/v2/databases/pg/search"
+        case .databasesFormatOptions: return "/api/v2/databases/format/options"
+        case .databasesCreate:       return "/api/v2/databases"
+        case .databasesDelCheck:     return "/api/v2/databases/del/check"
+        case .databasesDel:          return "/api/v2/databases/del"
+        case .databasesRemote:       return "/api/v2/databases/remote"
+        case .databasesChangeAccess: return "/api/v2/databases/change/access"
+        case .databasesChangePassword: return "/api/v2/databases/change/password"
+        case .databasesRedisCheck:   return "/api/v2/databases/redis/check"
+        case .appsInstalledCheck:    return "/api/v2/apps/installed/check"
+        case .appsInstalledConnInfo: return "/api/v2/apps/installed/conninfo"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
@@ -192,7 +214,7 @@ enum APIEndpoint {
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
              .containersListStats, .containersDockerStatus, .containersImageAll,
              .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,
-             .appsIcon:
+             .appsIcon, .databasesRedisCheck:
             return "GET"
         default:
             return "POST"
