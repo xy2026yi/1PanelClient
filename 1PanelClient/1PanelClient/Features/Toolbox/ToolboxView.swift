@@ -38,13 +38,26 @@ struct ToolboxView: View {
                         subtitle: "Web 应用防火墙"
                     )
                 }
-                toolRow(
-                    icon: "folder.fill",
-                    color: .yellow,
-                    title: "文件",
-                    subtitle: "服务器文件管理",
-                    available: false
-                )
+                NavigationLink {
+                    FilesView(server: server)
+                } label: {
+                    toolRow(
+                        icon: "folder.fill",
+                        color: .yellow,
+                        title: "文件",
+                        subtitle: "服务器文件管理"
+                    )
+                }
+                NavigationLink {
+                    SSHView(server: server)
+                } label: {
+                    toolRow(
+                        icon: "terminal.fill",
+                        color: .gray,
+                        title: "SSH",
+                        subtitle: "SSH 服务管理"
+                    )
+                }
             }
         }
         .navigationTitle("工具箱")

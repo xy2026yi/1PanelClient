@@ -63,8 +63,13 @@ struct FileItem: Decodable, Identifiable, Hashable {
     let name: String
     let isDir: Bool
     let isSymlink: Bool?
+    let isHidden: Bool?
     let size: Int64?
     let modTime: String?
+    let user: String?
+    let group: String?
+    let mode: String?
+    let linkPath: String?
 
     var id: String { path }
 }

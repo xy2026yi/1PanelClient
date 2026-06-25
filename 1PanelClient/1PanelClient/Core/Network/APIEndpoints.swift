@@ -143,6 +143,20 @@ enum APIEndpoint {
     case wafRuleCc               // POST CC/攻击/404 频率限制保存
     case wafLocationUpdate       // POST IP地址库/恶意IP组/蜘蛛IP池更新
 
+    // MARK: - 文件管理
+    case settingsBaseDir         // GET  基础目录
+    case filesUserGroup          // POST 用户/用户组列表
+    case filesCreate             // POST 创建文件/文件夹
+    case filesDel                // POST 删除文件/文件夹
+    case filesRename             // POST 重命名
+
+    // MARK: - SSH 管理
+    case sshOperate              // POST SSH服务操作(start/stop/restart/enable/disable)
+    case sshSearch               // POST SSH基础配置查询
+    case sshUpdate               // POST SSH单项配置修改
+    case sshFile                 // POST SSH完整配置文件读取
+    case sshFileUpdate           // POST SSH完整配置文件保存
+
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
     case appsInstalledOperate     // POST 操作已安装应用（启动/停止/重启/升级）
@@ -267,6 +281,16 @@ enum APIEndpoint {
         case .wafRuleCommonDelete:   return "/api/v2/xpack/waf/rule/common/delete"
         case .wafRuleCc:             return "/api/v2/xpack/waf/rule/cc"
         case .wafLocationUpdate:     return "/api/v2/xpack/waf/location/update"
+        case .settingsBaseDir:       return "/api/v2/settings/basedir"
+        case .filesUserGroup:        return "/api/v2/files/user/group"
+        case .filesCreate:           return "/api/v2/files"
+        case .filesDel:              return "/api/v2/files/del"
+        case .filesRename:           return "/api/v2/files/rename"
+        case .sshOperate:            return "/api/v2/hosts/ssh/operate"
+        case .sshSearch:             return "/api/v2/hosts/ssh/search"
+        case .sshUpdate:             return "/api/v2/hosts/ssh/update"
+        case .sshFile:               return "/api/v2/hosts/ssh/file"
+        case .sshFileUpdate:         return "/api/v2/hosts/ssh/file/update"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
@@ -296,7 +320,8 @@ enum APIEndpoint {
              .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,
              .appsIcon, .databasesRedisCheck,
              .fail2banBase, .fail2banLoadConf,
-             .wafStatus, .wafConfigGlobal:
+             .wafStatus, .wafConfigGlobal,
+             .settingsBaseDir:
             return "GET"
         default:
             return "POST"
