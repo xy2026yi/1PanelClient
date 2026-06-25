@@ -168,6 +168,12 @@ final class DatabaseSystemViewModel: ObservableObject {
         return t != "redis" && t != "redis-cluster"
     }
 
+    /// 是否支持远程访问开关（仅 MySQL/MariaDB）
+    var supportsRemoteAccess: Bool {
+        let t = system.type.lowercased()
+        return t == "mysql" || t == "mariadb" || t == "mysql-cluster"
+    }
+
     var searchPath: String {
         let t = system.type.lowercased()
         if t.contains("postgresql") { return APIEndpoint.databasesPgSearch.path }
@@ -255,10 +261,11 @@ final class DatabaseSystemViewModel: ObservableObject {
     }
 
     func deleteDatabase(_ db: DatabaseItem) async {
-        let checkReq = DelDBRequest(id: db.id, type: db.type ?? system.type, database: system.database, deleteBackup: false, forceDelete: false)
+        let checkReq = DelCheckRequest(id: db.id, type: db.type ?? system.type, database: system.database)
         do {
             let _: EmptyResponse? = try await client.send(path: APIEndpoint.databasesDelCheck.path, body: checkReq, as: EmptyResponse?.self)
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesDel.path, body: checkReq, as: EmptyResponse.self)
+            let delReq = DelDBRequest(id: db.id, type: db.type ?? system.type, database: system.database, deleteBackup: false, forceDelete: false)
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesDel.path, body: delReq, as: EmptyResponse.self)
             await loadDatabases()
         } catch { errorMessage = error.localizedDescription }
     }
@@ -272,6 +279,7 @@ struct DatabaseSystemView: View {
     @State private var showCreate = false
     @State private var showPassword = false
     @State private var showServicePasswordSheet = false
+    @State private var showRedisTerminal = false
 
     init(system: DatabaseSystem) {
         _vm = StateObject(wrappedValue: DatabaseSystemViewModel(system: system, server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")))
@@ -314,6 +322,15 @@ struct DatabaseSystemView: View {
                 Task { await vm.changeServicePassword(newPassword) }
             }
         }
+        .fullScreenCover(isPresented: $showRedisTerminal) {
+            NavigationStack {
+                TerminalView(
+                    server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
+                    target: .redis(name: vm.system.database, cols: 80, rows: 24),
+                    showCloseButton: true
+                )
+            }
+        }
     }
 
     // MARK: 状态卡片
@@ -341,20 +358,22 @@ struct DatabaseSystemView: View {
                 }
 
                 HStack(spacing: 12) {
-                    Button { Task { await vm.operate("start") } } label: {
-                        Label("启动", systemImage: "play.fill")
+                    if !check.isRunning {
+                        Button { Task { await vm.operate("start") } } label: {
+                            Label("启动", systemImage: "play.fill")
+                        }
+                        .disabled(vm.isOperating)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    } else {
+                        Button { Task { await vm.operate("stop") } } label: {
+                            Label("停止", systemImage: "stop.fill")
+                        }
+                        .disabled(vm.isOperating)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(.red)
                     }
-                    .disabled(vm.isOperating || check.isRunning)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-
-                    Button { Task { await vm.operate("stop") } } label: {
-                        Label("停止", systemImage: "stop.fill")
-                    }
-                    .disabled(vm.isOperating || !check.isRunning)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(.red)
 
                     Button { Task { await vm.operate("restart") } } label: {
                         Label("重启", systemImage: "arrow.clockwise")
@@ -384,17 +403,19 @@ struct DatabaseSystemView: View {
                     InfoRow(key: "用户名", value: user)
                 }
 
-                Toggle(isOn: Binding(
-                    get: { vm.remoteAccess },
-                    set: { on in Task { await vm.toggleRemote(on) } }
-                )) {
-                    Label("远程访问", systemImage: "network")
+                if vm.supportsRemoteAccess {
+                    Toggle(isOn: Binding(
+                        get: { vm.remoteAccess },
+                        set: { on in Task { await vm.toggleRemote(on) } }
+                    )) {
+                        Label("远程访问", systemImage: "network")
+                    }
+                    .disabled(vm.isOperating)
                 }
-                .disabled(vm.isOperating)
 
                 if let pwd = ci.password, !pwd.isEmpty {
                     HStack {
-                        Text("root密码").foregroundStyle(.secondary)
+                        Text("密码").foregroundStyle(.secondary)
                         Spacer()
                         Text(showPassword ? pwd : String(repeating: "•", count: min(pwd.count, 12)))
                             .font(.system(.subheadline, design: .monospaced))
@@ -413,6 +434,14 @@ struct DatabaseSystemView: View {
                         showServicePasswordSheet = true
                     } label: {
                         Label("修改密码", systemImage: "key")
+                    }
+                }
+
+                if !vm.supportsDatabaseList {
+                    Button {
+                        showRedisTerminal = true
+                    } label: {
+                        Label("Redis 终端", systemImage: "terminal")
                     }
                 }
             } else {

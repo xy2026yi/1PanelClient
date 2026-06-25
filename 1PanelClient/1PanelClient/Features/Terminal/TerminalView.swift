@@ -35,6 +35,8 @@ struct TerminalView: View {
             _ = id
         case .scriptRun:
             self.title = title ?? "执行脚本"
+        case .redis:
+            self.title = title ?? "Redis 终端"
         }
     }
 

@@ -10,11 +10,10 @@ import Combine
 
 @MainActor
 final class DatabaseDetailViewModel: ObservableObject {
-    @Published var isLoading = false
+    @Published var database: DatabaseItem
     @Published var isOperating = false
     @Published var errorMessage: String?
 
-    let database: DatabaseItem
     let system: DatabaseSystem
     private let client: APIClient
 
@@ -22,6 +21,23 @@ final class DatabaseDetailViewModel: ObservableObject {
         self.database = database
         self.system = system
         self.client = APIClient(server: server)
+    }
+
+    private var searchPath: String {
+        let t = system.type.lowercased()
+        if t.contains("postgresql") { return APIEndpoint.databasesPgSearch.path }
+        return APIEndpoint.databasesSearch.path
+    }
+
+    /// 修改后重新拉取最新数据
+    func reloadDetail() async {
+        let req = DBSearchRequest(page: 1, pageSize: 200, database: system.database, orderBy: "createdAt", order: "null")
+        do {
+            let resp: PageResponse<DatabaseItem> = try await client.send(path: searchPath, body: req, as: PageResponse<DatabaseItem>.self)
+            if let updated = resp.items?.first(where: { $0.id == database.id }) {
+                database = updated
+            }
+        } catch { /* 静默 */ }
     }
 
     func changePassword(_ password: String) async {
@@ -36,6 +52,7 @@ final class DatabaseDetailViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.databasesChangePassword.path, body: req, as: EmptyResponse.self
             )
+            await reloadDetail()
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -50,20 +67,22 @@ final class DatabaseDetailViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.databasesChangeAccess.path, body: req, as: EmptyResponse.self
             )
+            await reloadDetail()
         } catch { errorMessage = error.localizedDescription }
     }
 
     func delete(forceDelete: Bool, deleteBackup: Bool) async -> Bool {
-        let req = DelDBRequest(
-            id: database.id, type: system.type,
-            database: system.database, deleteBackup: deleteBackup, forceDelete: forceDelete
-        )
+        let checkReq = DelCheckRequest(id: database.id, type: system.type, database: system.database)
         do {
             let _: EmptyResponse? = try await client.send(
-                path: APIEndpoint.databasesDelCheck.path, body: req, as: EmptyResponse?.self
+                path: APIEndpoint.databasesDelCheck.path, body: checkReq, as: EmptyResponse?.self
+            )
+            let delReq = DelDBRequest(
+                id: database.id, type: system.type,
+                database: system.database, deleteBackup: deleteBackup, forceDelete: forceDelete
             )
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.databasesDel.path, body: req, as: EmptyResponse.self
+                path: APIEndpoint.databasesDel.path, body: delReq, as: EmptyResponse.self
             )
             return true
         } catch {
@@ -81,17 +100,14 @@ struct DatabaseDetailView: View {
     @State private var showPassword = false
     @State private var showChangePassword = false
     @State private var showAccessSheet = false
-    @State private var showDeleteAlert = false
-    @State private var deleteNameConfirm = ""
-    @State private var forceDelete = false
-    @State private var deleteBackup = false
+    @State private var showDeleteSheet = false
 
-    let onDeleted: () async -> Void
+    let onChanged: () async -> Void
 
-    init(database: DatabaseItem, system: DatabaseSystem, onDeleted: @escaping () async -> Void) {
+    init(database: DatabaseItem, system: DatabaseSystem, onChanged: @escaping () async -> Void) {
         let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: DatabaseDetailViewModel(database: database, system: system, server: server))
-        self.onDeleted = onDeleted
+        self.onChanged = onChanged
     }
 
     var body: some View {
@@ -109,7 +125,7 @@ struct DatabaseDetailView: View {
             ) { newPwd in
                 Task {
                     await vm.changePassword(newPwd)
-                    await onDeleted()
+                    await onChanged()
                 }
             }
         }
@@ -117,28 +133,20 @@ struct DatabaseDetailView: View {
             ChangeAccessSheet(database: vm.database) { value in
                 Task {
                     await vm.changeAccess(value: value)
-                    await onDeleted()
+                    await onChanged()
                 }
             }
         }
-        .alert("删除数据库", isPresented: $showDeleteAlert) {
-            TextField("请输入数据库名称", text: $deleteNameConfirm)
-                .textInputAutocapitalization(.never)
-            Toggle("强制删除", isOn: $forceDelete)
-            Toggle("删除备份", isOn: $deleteBackup)
-            Button("取消", role: .cancel) {}
-            Button("确认删除", role: .destructive) {
+        .sheet(isPresented: $showDeleteSheet) {
+            DeleteDatabaseSheet(database: vm.database) { forceDelete, deleteBackup in
                 Task {
                     let ok = await vm.delete(forceDelete: forceDelete, deleteBackup: deleteBackup)
                     if ok {
-                        await onDeleted()
+                        await onChanged()
                         dismiss()
                     }
                 }
             }
-            .disabled(deleteNameConfirm != (vm.database.name ?? ""))
-        } message: {
-            Text("此操作不可恢复，请输入「\(vm.database.name ?? "")」确认删除。")
         }
     }
 
@@ -204,14 +212,63 @@ struct DatabaseDetailView: View {
     private var deleteSection: some View {
         Section {
             Button(role: .destructive) {
-                deleteNameConfirm = ""
-                forceDelete = false
-                deleteBackup = false
-                showDeleteAlert = true
+                showDeleteSheet = true
             } label: {
                 Label("删除数据库", systemImage: "trash")
             }
         }
+    }
+}
+
+// MARK: - 删除确认 Sheet
+
+struct DeleteDatabaseSheet: View {
+    let database: DatabaseItem
+    let onConfirm: (_ forceDelete: Bool, _ deleteBackup: Bool) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var nameConfirm = ""
+    @State private var forceDelete = false
+    @State private var deleteBackup = false
+
+    private var canDelete: Bool {
+        nameConfirm.trimmingCharacters(in: .whitespaces) == (database.name ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("此操作不可恢复。请输入数据库名称「\(database.name ?? "")」以确认删除。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section("确认名称") {
+                    TextField("数据库名称", text: $nameConfirm)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+                Section("选项") {
+                    Toggle("强制删除", isOn: $forceDelete)
+                    Toggle("删除备份", isOn: $deleteBackup)
+                }
+            }
+            .navigationTitle("删除数据库")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("删除", role: .destructive) {
+                        onConfirm(forceDelete, deleteBackup)
+                        dismiss()
+                    }
+                    .disabled(!canDelete)
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

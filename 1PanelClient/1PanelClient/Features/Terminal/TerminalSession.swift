@@ -20,12 +20,15 @@ enum TerminalTarget {
     case container(containerID: String, user: String, command: String, cols: Int, rows: Int)
     /// 执行脚本库脚本（后端按 script_id 启动 PTY 运行脚本）
     case scriptRun(scriptID: Int, cols: Int, rows: Int)
+    /// Redis CLI 终端
+    case redis(name: String, cols: Int, rows: Int)
 
     var cols: Int {
         switch self {
         case .host(let c, _): return c
         case .container(_, _, _, let c, _): return c
         case .scriptRun(_, let c, _): return c
+        case .redis(_, let c, _): return c
         }
     }
 
@@ -34,6 +37,7 @@ enum TerminalTarget {
         case .host(_, let r): return r
         case .container(_, _, _, _, let r): return r
         case .scriptRun(_, _, let r): return r
+        case .redis(_, _, let r): return r
         }
     }
 
@@ -43,6 +47,7 @@ enum TerminalTarget {
         case .host: return "/api/v2/hosts/terminal"
         case .container: return "/api/v2/containers/exec"
         case .scriptRun: return "/api/v2/core/script/run"
+        case .redis: return "/api/v2/containers/exec"
         }
     }
 
@@ -71,6 +76,15 @@ enum TerminalTarget {
                 URLQueryItem(name: "rows", value: "\(rows)"),
                 URLQueryItem(name: "script_id", value: "\(scriptID)"),
                 URLQueryItem(name: "current_node", value: "local"),
+                URLQueryItem(name: "operateNode", value: "local")
+            ]
+        case .redis(let name, let cols, let rows):
+            return [
+                URLQueryItem(name: "cols", value: "\(cols)"),
+                URLQueryItem(name: "rows", value: "\(rows)"),
+                URLQueryItem(name: "source", value: "redis"),
+                URLQueryItem(name: "name", value: name),
+                URLQueryItem(name: "from", value: "local"),
                 URLQueryItem(name: "operateNode", value: "local")
             ]
         }

@@ -165,6 +165,12 @@ struct CreateDBRequest: Encodable {
     let description: String
 }
 
+struct DelCheckRequest: Encodable {
+    let id: Int
+    let type: String
+    let database: String
+}
+
 struct DelDBRequest: Encodable {
     let id: Int
     let type: String
