@@ -73,6 +73,13 @@ enum APIEndpoint {
     case cronjobsScripts          // GET  内置脚本列表
     case scriptSearch             // POST 脚本库搜索（core/script/search）
 
+    // MARK: - 防火墙
+    case firewallBase             // POST 防火墙基础状态
+    case firewallOperate          // POST 防火墙操作（start/stop/restart/ping）
+    case firewallSearch           // POST 端口规则列表
+    case firewallPort             // POST 创建端口规则
+    case firewallBatch            // POST 批量删除端口规则
+
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库
 
@@ -150,6 +157,11 @@ enum APIEndpoint {
         case .cronjobsUsers:         return "/api/v2/toolbox/device/users"
         case .cronjobsScripts:       return "/api/v2/cronjobs/script/options"
         case .scriptSearch:          return "/api/v2/core/script/search"
+        case .firewallBase:          return "/api/v2/hosts/firewall/base"
+        case .firewallOperate:       return "/api/v2/hosts/firewall/operate"
+        case .firewallSearch:        return "/api/v2/hosts/firewall/search"
+        case .firewallPort:          return "/api/v2/hosts/firewall/port"
+        case .firewallBatch:         return "/api/v2/hosts/firewall/batch"
         case .databasesSearch:       return "/api/v2/databases/db/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"

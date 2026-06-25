@@ -129,6 +129,10 @@ struct ManageTab: View {
             ContainersTab(manager: manager)
         case .cronjob:
             CronjobsTab(manager: manager)
+        case .firewall:
+            NavigationStack {
+                FirewallView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+            }
         case .terminal:
             NavigationStack {
                 TerminalView(
@@ -304,7 +308,7 @@ enum ManageItem: String, Identifiable {
 
     var available: Bool {
         switch self {
-        case .apps, .websites, .containers, .terminal, .cronjob: return true
+        case .apps, .websites, .containers, .terminal, .cronjob, .firewall: return true
         default: return false
         }
     }
