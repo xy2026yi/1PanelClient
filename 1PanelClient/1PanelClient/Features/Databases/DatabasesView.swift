@@ -174,6 +174,15 @@ final class DatabaseSystemViewModel: ObservableObject {
         return t == "mysql" || t == "mariadb" || t == "mysql-cluster"
     }
 
+    var isPostgreSQL: Bool {
+        system.type.lowercased().contains("postgresql")
+    }
+
+    var isRedis: Bool {
+        let t = system.type.lowercased()
+        return t == "redis" || t == "redis-cluster"
+    }
+
     var searchPath: String {
         let t = system.type.lowercased()
         if t.contains("postgresql") { return APIEndpoint.databasesPgSearch.path }
@@ -254,18 +263,34 @@ final class DatabaseSystemViewModel: ObservableObject {
     func changeServicePassword(_ password: String) async {
         let value = Data(password.utf8).base64EncodedString()
         let req = ChangePasswordRequest(id: 0, from: "local", type: system.type, database: system.database, value: value)
+        let path = isPostgreSQL ? APIEndpoint.databasesPgPassword.path : APIEndpoint.databasesChangePassword.path
         do {
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesChangePassword.path, body: req, as: EmptyResponse.self)
+            let _: EmptyResponse = try await client.send(path: path, body: req, as: EmptyResponse.self)
             await loadConnInfo()
         } catch { errorMessage = error.localizedDescription }
     }
 
-    func deleteDatabase(_ db: DatabaseItem) async {
-        let checkReq = DelCheckRequest(id: db.id, type: db.type ?? system.type, database: system.database)
+    func changeRedisPassword(_ password: String) async -> Bool {
+        let value = Data(password.utf8).base64EncodedString()
+        let req = RedisPasswordRequest(database: system.database, value: value)
         do {
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesDelCheck.path, body: checkReq, as: EmptyResponse.self)
-            let delReq = DelDBRequest(id: db.id, type: db.type ?? system.type, database: system.database, deleteBackup: false, forceDelete: false)
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesDel.path, body: delReq, as: EmptyResponse.self)
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesRedisPassword.path, body: req, as: EmptyResponse.self)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func deleteDatabase(_ db: DatabaseItem) async {
+        let dbType = db.type ?? system.type
+        let checkReq = DelCheckRequest(id: db.id, type: dbType, database: system.database)
+        let delReq = DelDBRequest(id: db.id, type: dbType, database: system.database, deleteBackup: false, forceDelete: false)
+        let checkPath = isPostgreSQL ? APIEndpoint.databasesPgDelCheck.path : APIEndpoint.databasesDelCheck.path
+        let delPath = isPostgreSQL ? APIEndpoint.databasesPgDel.path : APIEndpoint.databasesDel.path
+        do {
+            let _: EmptyResponse = try await client.send(path: checkPath, body: checkReq, as: EmptyResponse.self)
+            let _: EmptyResponse = try await client.send(path: delPath, body: delReq, as: EmptyResponse.self)
             await loadDatabases()
         } catch { errorMessage = error.localizedDescription }
     }
@@ -280,6 +305,7 @@ struct DatabaseSystemView: View {
     @State private var showPassword = false
     @State private var showServicePasswordSheet = false
     @State private var showRedisTerminal = false
+    @State private var showRedisPasswordSheet = false
 
     init(system: DatabaseSystem) {
         _vm = StateObject(wrappedValue: DatabaseSystemViewModel(system: system, server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")))
@@ -329,6 +355,19 @@ struct DatabaseSystemView: View {
                     target: .redis(name: vm.system.database, cols: 80, rows: 24),
                     showCloseButton: true
                 )
+            }
+        }
+        .sheet(isPresented: $showRedisPasswordSheet) {
+            RedisPasswordSheet(
+                currentPassword: vm.connInfo?.password
+            ) { newPassword in
+                Task {
+                    let ok = await vm.changeRedisPassword(newPassword)
+                    if ok {
+                        await vm.operate("restart")
+                        await vm.loadConnInfo()
+                    }
+                }
             }
         }
     }
@@ -431,7 +470,11 @@ struct DatabaseSystemView: View {
                         }
                     }
                     Button {
-                        showServicePasswordSheet = true
+                        if vm.isRedis {
+                            showRedisPasswordSheet = true
+                        } else {
+                            showServicePasswordSheet = true
+                        }
                     } label: {
                         Label("修改密码", systemImage: "key")
                     }
@@ -567,6 +610,107 @@ struct ChangePasswordSheet: View {
                     }
                     .disabled(newPassword.isEmpty)
                 }
+            }
+        }
+    }
+
+    private func randomPassword() -> String {
+        let chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        return String((0..<16).map { _ in chars.randomElement()! })
+    }
+}
+
+// MARK: - Redis 密码修改 Sheet（两步：输入密码 → 确认重启）
+
+struct RedisPasswordSheet: View {
+    let currentPassword: String?
+    let onConfirm: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var newPassword = ""
+    @State private var showCurrent = false
+    @State private var step: Step = .input
+    @State private var restartConfirm = ""
+
+    enum Step { case input, confirm }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                switch step {
+                case .input: inputStep
+                case .confirm: confirmStep
+                }
+            }
+            .navigationTitle("修改 Redis 密码")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if step == .input {
+                        Button("下一步") {
+                            step = .confirm
+                        }
+                        .disabled(newPassword.isEmpty)
+                    } else {
+                        Button("立即重启", role: .destructive) {
+                            onConfirm(newPassword)
+                            dismiss()
+                        }
+                        .disabled(restartConfirm != "立即重启")
+                    }
+                }
+            }
+        }
+    }
+
+    private var inputStep: some View {
+        Form {
+            if let cur = currentPassword, !cur.isEmpty {
+                Section("当前密码") {
+                    HStack {
+                        Text(showCurrent ? cur : String(repeating: "•", count: min(cur.count, 12)))
+                            .font(.system(.body, design: .monospaced))
+                        Spacer()
+                        Button { showCurrent.toggle() } label: {
+                            Image(systemName: showCurrent ? "eye.slash" : "eye")
+                        }
+                        Button { UIPasteboard.general.string = cur } label: {
+                            Image(systemName: "doc.on.doc")
+                        }
+                    }
+                }
+            }
+            Section("新密码") {
+                TextField("输入或生成新密码", text: $newPassword)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .font(.system(.body, design: .monospaced))
+                Button {
+                    newPassword = randomPassword()
+                } label: {
+                    Label("生成随机密码", systemImage: "shuffle")
+                }
+            }
+        }
+    }
+
+    private var confirmStep: some View {
+        Form {
+            Section {
+                Label("修改密码后需要重启 Redis 才能生效", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text("请输入「立即重启」以确认操作。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Section("确认重启") {
+                TextField("请输入「立即重启」", text: $restartConfirm)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
             }
         }
     }

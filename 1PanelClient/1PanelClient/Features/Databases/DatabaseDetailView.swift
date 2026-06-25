@@ -29,6 +29,10 @@ final class DatabaseDetailViewModel: ObservableObject {
         return APIEndpoint.databasesSearch.path
     }
 
+    var isPostgreSQL: Bool {
+        system.type.lowercased().contains("postgresql")
+    }
+
     /// 修改后重新拉取最新数据
     func reloadDetail() async {
         let req = DBSearchRequest(page: 1, pageSize: 200, database: system.database, orderBy: "createdAt", order: "null")
@@ -44,14 +48,20 @@ final class DatabaseDetailViewModel: ObservableObject {
         isOperating = true
         defer { isOperating = false }
         let value = Data(password.utf8).base64EncodedString()
-        let req = ChangePasswordRequest(
-            id: database.id, from: database.from ?? "local",
-            type: system.type, database: system.database, value: value
-        )
+        let dbType = system.type
+        let dbFrom = database.from ?? "local"
+        let dbName = system.database
+
         do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.databasesChangePassword.path, body: req, as: EmptyResponse.self
-            )
+            if isPostgreSQL {
+                let checkReq = ChangePasswordRequest(id: database.id, from: dbFrom, type: dbType, database: dbName, value: "")
+                let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesPgDelCheck.path, body: checkReq, as: EmptyResponse.self)
+                let pwdReq = ChangePasswordRequest(id: database.id, from: dbFrom, type: dbType, database: dbName, value: value)
+                let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesPgPassword.path, body: pwdReq, as: EmptyResponse.self)
+            } else {
+                let req = ChangePasswordRequest(id: database.id, from: dbFrom, type: dbType, database: dbName, value: value)
+                let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesChangePassword.path, body: req, as: EmptyResponse.self)
+            }
             await reloadDetail()
         } catch { errorMessage = error.localizedDescription }
     }
@@ -71,19 +81,34 @@ final class DatabaseDetailViewModel: ObservableObject {
         } catch { errorMessage = error.localizedDescription }
     }
 
-    func delete(forceDelete: Bool, deleteBackup: Bool) async -> Bool {
-        let checkReq = DelCheckRequest(id: database.id, type: system.type, database: system.database)
+    func changePrivileges(superUser: Bool) async {
+        isOperating = true
+        defer { isOperating = false }
+        let req = PGPrivilegesRequest(
+            name: database.name ?? "",
+            database: system.database,
+            username: database.username ?? "",
+            superUser: superUser
+        )
         do {
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.databasesDelCheck.path, body: checkReq, as: EmptyResponse.self
+                path: APIEndpoint.databasesPgPrivileges.path, body: req, as: EmptyResponse.self
             )
-            let delReq = DelDBRequest(
-                id: database.id, type: system.type,
-                database: system.database, deleteBackup: deleteBackup, forceDelete: forceDelete
-            )
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.databasesDel.path, body: delReq, as: EmptyResponse.self
-            )
+            await reloadDetail()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func delete(forceDelete: Bool, deleteBackup: Bool) async -> Bool {
+        let checkReq = DelCheckRequest(id: database.id, type: system.type, database: system.database)
+        let delReq = DelDBRequest(
+            id: database.id, type: system.type,
+            database: system.database, deleteBackup: deleteBackup, forceDelete: forceDelete
+        )
+        let checkPath = isPostgreSQL ? APIEndpoint.databasesPgDelCheck.path : APIEndpoint.databasesDelCheck.path
+        let delPath = isPostgreSQL ? APIEndpoint.databasesPgDel.path : APIEndpoint.databasesDel.path
+        do {
+            let _: EmptyResponse = try await client.send(path: checkPath, body: checkReq, as: EmptyResponse.self)
+            let _: EmptyResponse = try await client.send(path: delPath, body: delReq, as: EmptyResponse.self)
             return true
         } catch {
             errorMessage = error.localizedDescription
@@ -100,6 +125,7 @@ struct DatabaseDetailView: View {
     @State private var showPassword = false
     @State private var showChangePassword = false
     @State private var showAccessSheet = false
+    @State private var showPrivilegesSheet = false
     @State private var showDeleteSheet = false
 
     let onChanged: () async -> Void
@@ -113,7 +139,11 @@ struct DatabaseDetailView: View {
     var body: some View {
         List {
             infoSection
-            accessSection
+            if vm.isPostgreSQL {
+                privilegesSection
+            } else {
+                accessSection
+            }
             deleteSection
         }
         .navigationTitle(vm.database.name ?? "数据库")
@@ -133,6 +163,14 @@ struct DatabaseDetailView: View {
             ChangeAccessSheet(database: vm.database) { value in
                 Task {
                     await vm.changeAccess(value: value)
+                    await onChanged()
+                }
+            }
+        }
+        .sheet(isPresented: $showPrivilegesSheet) {
+            PGPrivilegesSheet(database: vm.database) { superUser in
+                Task {
+                    await vm.changePrivileges(superUser: superUser)
                     await onChanged()
                 }
             }
@@ -192,7 +230,7 @@ struct DatabaseDetailView: View {
         }
     }
 
-    // MARK: 访问权限
+    // MARK: 访问权限 (MySQL)
 
     private var accessSection: some View {
         Section {
@@ -204,6 +242,24 @@ struct DatabaseDetailView: View {
             }
         } header: {
             SectionLabel(title: "访问权限", systemImage: "lock.shield")
+        }
+    }
+
+    // MARK: 权限 (PostgreSQL - 超级用户)
+
+    private var privilegesSection: some View {
+        Section {
+            if let u = vm.database.username, !u.isEmpty {
+                InfoRow(key: "绑定用户", value: u)
+            }
+            InfoRow(key: "当前角色", value: vm.database.permissionDisplay)
+            Button {
+                showPrivilegesSheet = true
+            } label: {
+                Label("修改权限", systemImage: "person.badge.shield.checkmark")
+            }
+        } header: {
+            SectionLabel(title: "权限", systemImage: "lock.shield")
         }
     }
 
@@ -351,5 +407,50 @@ struct ChangeAccessSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - PostgreSQL 权限修改 Sheet（超级用户开关）
+
+struct PGPrivilegesSheet: View {
+    let database: DatabaseItem
+    let onConfirm: (Bool) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var superUser: Bool
+
+    init(database: DatabaseItem, onConfirm: @escaping (Bool) -> Void) {
+        self.database = database
+        self.onConfirm = onConfirm
+        _superUser = State(initialValue: database.isSuperUser)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("为用户「\(database.username ?? "-")」设置数据库权限。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section("权限") {
+                    Toggle("超级用户", isOn: $superUser)
+                }
+            }
+            .navigationTitle("修改权限")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("确认") {
+                        onConfirm(superUser)
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.height(250)])
     }
 }

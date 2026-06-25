@@ -93,17 +93,33 @@ struct DatabaseItem: Decodable, Identifiable, Hashable {
     let from: String?
     let type: String?
     let database: String?
+    let postgresqlName: String?   // PG 专用（替代 database）
     let format: String?
     let collation: String?
     let username: String?
     let password: String?
-    let permission: String?       // "%" = 所有人 / "ip" = 指定IP
+    let permission: String?       // MySQL: "%" = 所有人 / "ip" = 指定IP
     let permissionIPs: String?
+    let superUser: Bool?          // PG 专用
+    let isDelete: Bool?
     let description: String?
     let createdAt: String?
 
+    /// 统一的服务名（PG 用 postgresqlName，MySQL 用 database）
+    var databaseName: String {
+        postgresqlName ?? database ?? ""
+    }
+
+    /// 是否为超级用户（PG）
+    var isSuperUser: Bool {
+        superUser ?? false
+    }
+
     /// 权限显示文本
     var permissionDisplay: String {
+        if superUser != nil {
+            return isSuperUser ? "超级用户" : "普通用户"
+        }
         let perm = permission ?? ""
         let ips = permissionIPs ?? ""
         if perm == "%" || perm.isEmpty {
@@ -191,6 +207,34 @@ struct ChangePasswordRequest: Encodable {
     let id: Int
     let from: String
     let type: String
+    let database: String
+    let value: String           // base64
+}
+
+// MARK: - PostgreSQL 专用请求体
+
+struct CreatePGDBRequest: Encodable {
+    let name: String
+    let from: String
+    let type: String
+    let database: String
+    let format: String
+    let username: String
+    let password: String        // base64
+    let superUser: Bool
+    let description: String
+}
+
+struct PGPrivilegesRequest: Encodable {
+    let name: String
+    let database: String
+    let username: String
+    let superUser: Bool
+}
+
+// MARK: - Redis 专用请求体
+
+struct RedisPasswordRequest: Encodable {
     let database: String
     let value: String           // base64
 }

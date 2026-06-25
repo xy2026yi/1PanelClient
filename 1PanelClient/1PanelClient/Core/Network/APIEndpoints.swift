@@ -95,6 +95,16 @@ enum APIEndpoint {
     case appsInstalledCheck       // POST 已安装应用检查(状态/端口)
     case appsInstalledConnInfo    // POST 已安装应用连接信息
 
+    // MARK: - PostgreSQL 专用端点
+    case databasesPgCreate        // POST 创建PG数据库
+    case databasesPgPassword      // POST PG密码修改(服务级+数据库级)
+    case databasesPgDelCheck      // POST PG删除前检查
+    case databasesPgDel           // POST PG删除数据库
+    case databasesPgPrivileges    // POST PG权限(超级用户)修改
+
+    // MARK: - Redis 专用端点
+    case databasesRedisPassword   // POST Redis密码修改
+
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
     case appsInstalledOperate     // POST 操作已安装应用（启动/停止/重启/升级）
@@ -187,6 +197,12 @@ enum APIEndpoint {
         case .databasesRedisCheck:   return "/api/v2/databases/redis/check"
         case .appsInstalledCheck:    return "/api/v2/apps/installed/check"
         case .appsInstalledConnInfo: return "/api/v2/apps/installed/conninfo"
+        case .databasesPgCreate:     return "/api/v2/databases/pg"
+        case .databasesPgPassword:   return "/api/v2/databases/pg/password"
+        case .databasesPgDelCheck:   return "/api/v2/databases/pg/del/check"
+        case .databasesPgDel:        return "/api/v2/databases/pg/del"
+        case .databasesPgPrivileges: return "/api/v2/databases/pg/privileges"
+        case .databasesRedisPassword: return "/api/v2/databases/redis/password"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"

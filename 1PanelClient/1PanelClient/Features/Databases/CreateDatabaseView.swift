@@ -3,6 +3,7 @@
 //  1PanelClient
 //
 //  创建数据库：名称 / 用户名 / 密码 / 字符集 / 排序规则 / 权限 / 备注
+//  PostgreSQL: 名称 / 用户名(自动同步) / 密码 / 字符集 / 超级用户 / 备注
 //
 
 import SwiftUI
@@ -17,6 +18,10 @@ final class CreateDatabaseViewModel: ObservableObject {
 
     let system: DatabaseSystem
     private let client: APIClient
+
+    var isPostgreSQL: Bool {
+        system.type.lowercased().contains("postgresql")
+    }
 
     init(system: DatabaseSystem, server: ServerConfig) {
         self.system = system
@@ -34,7 +39,7 @@ final class CreateDatabaseViewModel: ObservableObject {
         } catch { errorMessage = error.localizedDescription }
     }
 
-    func create(
+    func createMySQL(
         name: String, username: String, password: String,
         format: String, collation: String,
         permission: String, permissionIPs: String,
@@ -60,6 +65,30 @@ final class CreateDatabaseViewModel: ObservableObject {
             return false
         }
     }
+
+    func createPG(
+        name: String, username: String, password: String,
+        format: String, superUser: Bool, description: String
+    ) async -> Bool {
+        isCreating = true
+        defer { isCreating = false }
+        let pwdBase64 = Data(password.utf8).base64EncodedString()
+        let req = CreatePGDBRequest(
+            name: name, from: "local", type: system.type,
+            database: system.database, format: format,
+            username: username, password: pwdBase64,
+            superUser: superUser, description: description
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesPgCreate.path, body: req, as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
 }
 
 // MARK: - 创建视图
@@ -76,6 +105,7 @@ struct CreateDatabaseView: View {
     @State private var selectedCollation = ""
     @State private var permissionMode: PermissionMode = .all
     @State private var permissionIPs = ""
+    @State private var superUser = true
     @State private var description = ""
 
     let onCreated: () async -> Void
@@ -97,10 +127,14 @@ struct CreateDatabaseView: View {
     }
 
     private var canCreate: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !username.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !password.isEmpty &&
-        (permissionMode == .all || !permissionIPs.trimmingCharacters(in: .whitespaces).isEmpty)
+        let nameOk = !name.trimmingCharacters(in: .whitespaces).isEmpty
+        let userOk = !username.trimmingCharacters(in: .whitespaces).isEmpty
+        let pwdOk = !password.isEmpty
+        if vm.isPostgreSQL {
+            return nameOk && userOk && pwdOk
+        }
+        let permOk = permissionMode == .all || !permissionIPs.trimmingCharacters(in: .whitespaces).isEmpty
+        return nameOk && userOk && pwdOk && permOk
     }
 
     var body: some View {
@@ -110,6 +144,9 @@ struct CreateDatabaseView: View {
                     TextField("数据库名称", text: $name)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .onChange(of: name) { _, newValue in
+                            if vm.isPostgreSQL { username = newValue }
+                        }
                     TextField("用户名", text: $username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -130,7 +167,7 @@ struct CreateDatabaseView: View {
                             selectedCollation = ""
                         }
 
-                        if !availableCollations.isEmpty {
+                        if !vm.isPostgreSQL && !availableCollations.isEmpty {
                             Picker("排序规则", selection: $selectedCollation) {
                                 Text("默认").tag("")
                                 ForEach(availableCollations, id: \.self) { c in
@@ -141,21 +178,27 @@ struct CreateDatabaseView: View {
                     }
                 }
 
-                Section("访问权限") {
-                    Picker("权限", selection: $permissionMode) {
-                        ForEach(PermissionMode.allCases) { m in
-                            Text(m.rawValue).tag(m)
-                        }
+                if vm.isPostgreSQL {
+                    Section("权限") {
+                        Toggle("超级用户", isOn: $superUser)
                     }
-                    .pickerStyle(.segmented)
+                } else {
+                    Section("访问权限") {
+                        Picker("权限", selection: $permissionMode) {
+                            ForEach(PermissionMode.allCases) { m in
+                                Text(m.rawValue).tag(m)
+                            }
+                        }
+                        .pickerStyle(.segmented)
 
-                    if permissionMode == .ip {
-                        TextField("IP 地址（逗号分隔）", text: $permissionIPs, axis: .vertical)
-                            .textFieldStyle(.roundedBorder)
-                            .lineLimit(2...4)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .font(.system(.body, design: .monospaced))
+                        if permissionMode == .ip {
+                            TextField("IP 地址（逗号分隔）", text: $permissionIPs, axis: .vertical)
+                                .textFieldStyle(.roundedBorder)
+                                .lineLimit(2...4)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .font(.system(.body, design: .monospaced))
+                        }
                     }
                 }
 
@@ -213,25 +256,34 @@ struct CreateDatabaseView: View {
     }
 
     private func submit() async {
-        let perm: String
-        let ips: String
-        if permissionMode == .all {
-            perm = "%"
-            ips = ""
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedUser = username.trimmingCharacters(in: .whitespaces)
+
+        let ok: Bool
+        if vm.isPostgreSQL {
+            ok = await vm.createPG(
+                name: trimmedName, username: trimmedUser,
+                password: password, format: selectedFormat,
+                superUser: superUser, description: description
+            )
         } else {
-            perm = "%"
-            ips = permissionIPs
+            let perm: String
+            let ips: String
+            if permissionMode == .all {
+                perm = "%"
+                ips = ""
+            } else {
+                perm = "%"
+                ips = permissionIPs
+            }
+            ok = await vm.createMySQL(
+                name: trimmedName, username: trimmedUser,
+                password: password, format: selectedFormat,
+                collation: selectedCollation,
+                permission: perm, permissionIPs: ips,
+                description: description
+            )
         }
-        let ok = await vm.create(
-            name: name.trimmingCharacters(in: .whitespaces),
-            username: username.trimmingCharacters(in: .whitespaces),
-            password: password,
-            format: selectedFormat,
-            collation: selectedCollation,
-            permission: perm,
-            permissionIPs: ips,
-            description: description
-        )
         if ok {
             await onCreated()
             dismiss()
