@@ -153,25 +153,27 @@ struct CreateDatabaseView: View {
                     passwordRow
                 }
 
-                Section("字符集") {
-                    if vm.formats.isEmpty {
-                        if vm.isLoading { HStack { ProgressView(); Text("加载中…") } }
-                        else { Text("无法加载字符集选项").foregroundStyle(.secondary) }
-                    } else {
-                        Picker("字符集", selection: $selectedFormat) {
-                            ForEach(vm.formats) { f in
-                                Text(f.format).tag(f.format)
+                if !vm.isPostgreSQL {
+                    Section("字符集") {
+                        if vm.formats.isEmpty {
+                            if vm.isLoading { HStack { ProgressView(); Text("加载中…") } }
+                            else { Text("无法加载字符集选项").foregroundStyle(.secondary) }
+                        } else {
+                            Picker("字符集", selection: $selectedFormat) {
+                                ForEach(vm.formats) { f in
+                                    Text(f.format).tag(f.format)
+                                }
                             }
-                        }
-                        .onChange(of: selectedFormat) { _, _ in
-                            selectedCollation = ""
-                        }
+                            .onChange(of: selectedFormat) { _, _ in
+                                selectedCollation = ""
+                            }
 
-                        if !vm.isPostgreSQL && !availableCollations.isEmpty {
-                            Picker("排序规则", selection: $selectedCollation) {
-                                Text("默认").tag("")
-                                ForEach(availableCollations, id: \.self) { c in
-                                    Text(c).tag(c)
+                            if !availableCollations.isEmpty {
+                                Picker("排序规则", selection: $selectedCollation) {
+                                    Text("默认").tag("")
+                                    ForEach(availableCollations, id: \.self) { c in
+                                        Text(c).tag(c)
+                                    }
                                 }
                             }
                         }
@@ -227,7 +229,7 @@ struct CreateDatabaseView: View {
                 }
             }
             .task {
-                if vm.formats.isEmpty { await vm.loadFormats() }
+                if !vm.isPostgreSQL && vm.formats.isEmpty { await vm.loadFormats() }
             }
         }
     }
@@ -263,7 +265,7 @@ struct CreateDatabaseView: View {
         if vm.isPostgreSQL {
             ok = await vm.createPG(
                 name: trimmedName, username: trimmedUser,
-                password: password, format: selectedFormat,
+                password: password, format: "UTF8",
                 superUser: superUser, description: description
             )
         } else {

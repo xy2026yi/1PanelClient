@@ -46,6 +46,7 @@ final class DatabaseDetailViewModel: ObservableObject {
 
     func changePassword(_ password: String) async {
         isOperating = true
+        errorMessage = nil
         defer { isOperating = false }
         let value = Data(password.utf8).base64EncodedString()
         let dbType = system.type
@@ -68,6 +69,7 @@ final class DatabaseDetailViewModel: ObservableObject {
 
     func changeAccess(value: String) async {
         isOperating = true
+        errorMessage = nil
         defer { isOperating = false }
         let req = ChangeAccessRequest(
             id: database.id, from: database.from ?? "local",
@@ -83,6 +85,7 @@ final class DatabaseDetailViewModel: ObservableObject {
 
     func changePrivileges(superUser: Bool) async {
         isOperating = true
+        errorMessage = nil
         defer { isOperating = false }
         let req = PGPrivilegesRequest(
             name: database.name ?? "",
@@ -123,10 +126,15 @@ struct DatabaseDetailView: View {
     @StateObject private var vm: DatabaseDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showPassword = false
-    @State private var showChangePassword = false
-    @State private var showAccessSheet = false
-    @State private var showPrivilegesSheet = false
-    @State private var showDeleteSheet = false
+    @State private var activeSheet: DetailSheet?
+
+    enum DetailSheet: Identifiable {
+        case changePassword
+        case changeAccess
+        case changePrivileges
+        case delete
+        var id: Self { self }
+    }
 
     let onChanged: () async -> Void
 
@@ -138,6 +146,13 @@ struct DatabaseDetailView: View {
 
     var body: some View {
         List {
+            if let msg = vm.errorMessage {
+                Section {
+                    Label(msg, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .font(.caption)
+                }
+            }
             infoSection
             if vm.isPostgreSQL {
                 privilegesSection
@@ -148,40 +163,40 @@ struct DatabaseDetailView: View {
         }
         .navigationTitle(vm.database.name ?? "数据库")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showChangePassword) {
-            ChangePasswordSheet(
-                title: "修改密码",
-                currentPassword: vm.database.password
-            ) { newPwd in
-                Task {
-                    await vm.changePassword(newPwd)
-                    await onChanged()
-                }
-            }
-        }
-        .sheet(isPresented: $showAccessSheet) {
-            ChangeAccessSheet(database: vm.database) { value in
-                Task {
-                    await vm.changeAccess(value: value)
-                    await onChanged()
-                }
-            }
-        }
-        .sheet(isPresented: $showPrivilegesSheet) {
-            PGPrivilegesSheet(database: vm.database) { superUser in
-                Task {
-                    await vm.changePrivileges(superUser: superUser)
-                    await onChanged()
-                }
-            }
-        }
-        .sheet(isPresented: $showDeleteSheet) {
-            DeleteDatabaseSheet(database: vm.database) { forceDelete, deleteBackup in
-                Task {
-                    let ok = await vm.delete(forceDelete: forceDelete, deleteBackup: deleteBackup)
-                    if ok {
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .changePassword:
+                ChangePasswordSheet(
+                    title: "修改密码",
+                    currentPassword: vm.database.password
+                ) { newPwd in
+                    Task {
+                        await vm.changePassword(newPwd)
                         await onChanged()
-                        dismiss()
+                    }
+                }
+            case .changeAccess:
+                ChangeAccessSheet(database: vm.database) { value in
+                    Task {
+                        await vm.changeAccess(value: value)
+                        await onChanged()
+                    }
+                }
+            case .changePrivileges:
+                PGPrivilegesSheet(database: vm.database) { superUser in
+                    Task {
+                        await vm.changePrivileges(superUser: superUser)
+                        await onChanged()
+                    }
+                }
+            case .delete:
+                DeleteDatabaseSheet(database: vm.database) { forceDelete, deleteBackup in
+                    Task {
+                        let ok = await vm.delete(forceDelete: forceDelete, deleteBackup: deleteBackup)
+                        if ok {
+                            await onChanged()
+                            dismiss()
+                        }
                     }
                 }
             }
@@ -221,7 +236,7 @@ struct DatabaseDetailView: View {
             }
 
             Button {
-                showChangePassword = true
+                activeSheet = .changePassword
             } label: {
                 Label("修改密码", systemImage: "key")
             }
@@ -236,7 +251,7 @@ struct DatabaseDetailView: View {
         Section {
             InfoRow(key: "当前权限", value: vm.database.permissionDisplay)
             Button {
-                showAccessSheet = true
+                activeSheet = .changeAccess
             } label: {
                 Label("修改访问权限", systemImage: "network")
             }
@@ -254,7 +269,7 @@ struct DatabaseDetailView: View {
             }
             InfoRow(key: "当前角色", value: vm.database.permissionDisplay)
             Button {
-                showPrivilegesSheet = true
+                activeSheet = .changePrivileges
             } label: {
                 Label("修改权限", systemImage: "person.badge.shield.checkmark")
             }
@@ -268,7 +283,7 @@ struct DatabaseDetailView: View {
     private var deleteSection: some View {
         Section {
             Button(role: .destructive) {
-                showDeleteSheet = true
+                activeSheet = .delete
             } label: {
                 Label("删除数据库", systemImage: "trash")
             }
