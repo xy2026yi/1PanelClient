@@ -74,7 +74,7 @@ struct FileItem: Decodable, Identifiable, Hashable {
 @MainActor
 final class Fail2banViewModel: ObservableObject {
     @Published var base: Fail2banBase?
-    @Published var isLoading = false
+    @Published var isLoading = true
     @Published var isOperating = false
     @Published var errorMessage: String?
     @Published var successMessage: String?
