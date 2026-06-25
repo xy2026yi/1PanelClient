@@ -137,6 +137,8 @@ struct WAFRuleIPDeleteRequest: Encodable {
 struct WAFIPGroupSearchRequest: Encodable {
     let page: Int
     let pageSize: Int
+    let type: String
+    let name: String
     let all: Bool
 }
 
@@ -238,12 +240,12 @@ struct WAFView: View {
         .refreshable { await vm.loadAll() }
         .task { await vm.loadAll() }
         .alert("提示", isPresented: Binding(
-            get: { vm.successMessage != nil },
-            set: { if !$0 { vm.successMessage = nil } }
+            get: { vm.successMessage != nil || vm.errorMessage != nil },
+            set: { _ in vm.successMessage = nil; vm.errorMessage = nil }
         )) {
-            Button("好的") { vm.successMessage = nil }
+            Button("好的") { vm.successMessage = nil; vm.errorMessage = nil }
         } message: {
-            Text(vm.successMessage ?? "")
+            Text(vm.errorMessage ?? vm.successMessage ?? "")
         }
     }
 
@@ -260,11 +262,14 @@ struct WAFView: View {
                         }
                     }
                     Spacer()
-                    StatusBadge(
-                        text: vm.status?.open == true ? "运行中" : "已关闭",
-                        color: vm.status?.open == true ? .green : .red,
-                        backgroundOpacity: 0.15
-                    )
+                    Toggle("", isOn: Binding(
+                        get: { vm.status?.open ?? false },
+                        set: { newVal in
+                            Task { await vm.toggleRule(scope: "Waf", state: newVal ? "on" : "off") }
+                        }
+                    ))
+                    .labelsHidden()
+                    .disabled(vm.isOperating)
                 }
             }
 
@@ -406,12 +411,12 @@ struct WAFIPRulesView: View {
             }
         }
         .alert("提示", isPresented: Binding(
-            get: { successMessage != nil },
-            set: { if !$0 { successMessage = nil } }
+            get: { successMessage != nil || errorMessage != nil },
+            set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil }
+            Button("好的") { successMessage = nil; errorMessage = nil }
         } message: {
-            Text(successMessage ?? "")
+            Text(errorMessage ?? successMessage ?? "")
         }
     }
 
@@ -607,7 +612,7 @@ struct WAFCreateIPRuleView: View {
     }
 
     private func loadGroups() async {
-        let req = WAFIPGroupSearchRequest(page: 1, pageSize: 100, all: true)
+        let req = WAFIPGroupSearchRequest(page: 1, pageSize: 100, type: "", name: "", all: false)
         do {
             let resp: PageResponse<WAFIPGroupItem> = try await client.send(
                 path: APIEndpoint.wafIPGroupSearch.path, body: req,
@@ -708,18 +713,18 @@ struct WAFIPGroupsView: View {
             }
         }
         .alert("提示", isPresented: Binding(
-            get: { successMessage != nil },
-            set: { if !$0 { successMessage = nil } }
+            get: { successMessage != nil || errorMessage != nil },
+            set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil }
+            Button("好的") { successMessage = nil; errorMessage = nil }
         } message: {
-            Text(successMessage ?? "")
+            Text(errorMessage ?? successMessage ?? "")
         }
     }
 
     private func loadItems() async {
         isLoading = true
-        let req = WAFIPGroupSearchRequest(page: 1, pageSize: 100, all: false)
+        let req = WAFIPGroupSearchRequest(page: 1, pageSize: 100, type: "", name: "", all: false)
         do {
             let resp: PageResponse<WAFIPGroupItem> = try await client.send(
                 path: APIEndpoint.wafIPGroupSearch.path, body: req,
