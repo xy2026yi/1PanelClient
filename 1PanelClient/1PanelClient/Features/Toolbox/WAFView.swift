@@ -273,27 +273,23 @@ struct WAFView: View {
                 NavigationLink {
                     WAFIPRulesView(server: server, scope: "ipBlack", title: "IP 黑名单")
                 } label: {
-                    ruleRow(icon: "hand.raised", color: .red, title: "IP 黑名单", item: config.ipBlack)
+                    ruleRow(icon: "hand.raised", color: .red, title: "IP 黑名单", item: config.ipBlack, scope: "IPBlack")
                 }
                 NavigationLink {
                     WAFIPRulesView(server: server, scope: "ipWhite", title: "IP 白名单")
                 } label: {
-                    ruleRow(icon: "checkmark.shield", color: .green, title: "IP 白名单", item: config.ipWhite)
+                    ruleRow(icon: "checkmark.shield", color: .green, title: "IP 白名单", item: config.ipWhite, scope: "IPWhite")
                 }
-            } header: {
-                SectionLabel(title: "黑白名单", systemImage: "shield")
-            }
-
-            // IP 组
-            Section {
                 NavigationLink {
                     WAFIPGroupsView(server: server)
                 } label: {
                     HStack(spacing: 12) {
                         IconBadge(systemName: "rectangle.group", color: .indigo, size: 34, cornerRadius: 8)
-                        Text("IP 组管理")
+                        Text("IP 组")
                     }
                 }
+            } header: {
+                SectionLabel(title: "黑白名单", systemImage: "shield")
             }
 
             // 防护规则
@@ -318,19 +314,19 @@ struct WAFView: View {
         }
     }
 
-    private func ruleRow(icon: String, color: Color, title: String, item: WAFRuleItem?) -> some View {
+    private func ruleRow(icon: String, color: Color, title: String, item: WAFRuleItem?, scope: String) -> some View {
         HStack(spacing: 12) {
             IconBadge(systemName: icon, color: color, size: 34, cornerRadius: 8)
             Text(title)
             Spacer()
-            if let item, item.isOn {
-                StatusBadge(text: "开启", color: .green, backgroundOpacity: 0.15)
-            } else {
-                StatusBadge(text: "关闭", color: .secondary, backgroundOpacity: 0.1)
-            }
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            Toggle("", isOn: Binding(
+                get: { item?.isOn ?? false },
+                set: { newVal in
+                    Task { await vm.toggleRule(scope: scope, state: newVal ? "on" : "off") }
+                }
+            ))
+            .labelsHidden()
+            .disabled(vm.isOperating)
         }
     }
 
