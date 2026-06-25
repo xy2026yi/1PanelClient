@@ -427,9 +427,12 @@ struct StatCard: View {
                 .monospacedDigit()
 
             if let updates = updateCount, updates > 0 {
-                Text("\(updates)个更新")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                HStack {
+                    Spacer()
+                    Text("\(updates)个更新")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
