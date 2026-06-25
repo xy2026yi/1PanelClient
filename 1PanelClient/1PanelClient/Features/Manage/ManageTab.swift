@@ -146,6 +146,10 @@ struct ManageTab: View {
                     showCloseButton: true
                 )
             }
+        case .process:
+            NavigationStack {
+                ProcessView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+            }
         default:
             EmptyView()
         }
@@ -312,7 +316,7 @@ enum ManageItem: String, Identifiable {
 
     var available: Bool {
         switch self {
-        case .apps, .websites, .containers, .terminal, .cronjob, .firewall, .database: return true
+        case .apps, .websites, .containers, .terminal, .cronjob, .firewall, .database, .process: return true
         default: return false
         }
     }
