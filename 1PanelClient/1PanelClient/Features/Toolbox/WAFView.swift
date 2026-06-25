@@ -613,7 +613,7 @@ struct WAFCreateIPRuleView: View {
     private func loadGroups() async {
         let req = WAFIPGroupSearchRequest(page: 1, pageSize: 100, all: true)
         do {
-            let resp: PaginatedResponse<WAFIPGroupItem> = try await client.send(
+            let resp: PageResponse<WAFIPGroupItem> = try await client.send(
                 path: APIEndpoint.wafIPGroupSearch.path, body: req,
                 as: PaginatedResponse<WAFIPGroupItem>.self
             )
@@ -725,7 +725,7 @@ struct WAFIPGroupsView: View {
         isLoading = true
         let req = WAFIPGroupSearchRequest(page: 1, pageSize: 100, all: false)
         do {
-            let resp: PaginatedResponse<WAFIPGroupItem> = try await client.send(
+            let resp: PageResponse<WAFIPGroupItem> = try await client.send(
                 path: APIEndpoint.wafIPGroupSearch.path, body: req,
                 as: PaginatedResponse<WAFIPGroupItem>.self
             )
@@ -886,7 +886,7 @@ struct WAFIPGroupEditView: View {
         }
         .alert("提示", isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
-            set: { successMessage = nil; errorMessage = nil }
+            set: { _ in successMessage = nil; errorMessage = nil }
         )) {
             Button("好的") { successMessage = nil; errorMessage = nil }
         } message: {
