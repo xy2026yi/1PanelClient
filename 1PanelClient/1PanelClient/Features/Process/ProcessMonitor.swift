@@ -5,11 +5,14 @@
 //  系统进程监控：通过 WebSocket 连接 1Panel 进程接口
 //  ws://host/api/v2/process/ws?operateNode=local
 //  发送 {"type":"ps","username":"","name":""} → 接收进程列表 JSON
+//  发送 {"type":"net","processName":""} → 接收网络连接列表 JSON
+//  POST /api/v2/process/stop {"PID":123} → 结束进程
 //
 
 import Foundation
 import CryptoKit
 import Combine
+import SwiftUI
 
 // MARK: - 进程数据模型
 
@@ -39,25 +42,58 @@ struct ProcessItem: Decodable, Identifiable, Hashable {
     }
 
     var id: Int { pid }
+}
 
-    var statusColor: String {
-        switch status.lowercased() {
-        case "running": return "green"
-        case "sleep", "sleeping": return "blue"
-        case "idle": return "secondary"
-        case "zombie": return "red"
-        case "stop", "stopped": return "orange"
-        default: return "secondary"
+// MARK: - 网络连接模型
+
+struct NetworkConnection: Decodable, Identifiable, Hashable {
+    let type: String       // tcp / tcp6 / udp / udp6
+    let status: String     // LISTEN / ESTABLISHED / NONE
+    let localaddr: Addr
+    let remoteaddr: Addr
+    let pid: Int
+    let name: String
+
+    struct Addr: Decodable, Hashable {
+        let ip: String
+        let port: Int
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case type, status, localaddr, remoteaddr
+        case pid = "PID"
+        case name
+    }
+
+    var id: String { "\(type)-\(pid)-\(localaddr.ip):\(localaddr.port)-\(remoteaddr.ip):\(remoteaddr.port)" }
+
+    var typeColor: Color {
+        switch type {
+        case "tcp":  return .blue
+        case "tcp6": return .indigo
+        case "udp":  return .teal
+        case "udp6": return .mint
+        default:     return .secondary
         }
     }
 }
 
 // MARK: - WebSocket 请求
 
-private struct PSRequest: Encodable {
+private struct WSRequest: Encodable {
     let type: String
-    let username: String
-    let name: String
+    let username: String?
+    let name: String?
+    let processName: String?
+}
+
+// MARK: - 结束进程请求
+
+struct StopProcessRequest: Encodable {
+    let pid: Int
+    enum CodingKeys: String, CodingKey {
+        case pid = "PID"
+    }
 }
 
 // MARK: - 进程监控会话
@@ -65,23 +101,36 @@ private struct PSRequest: Encodable {
 @MainActor
 final class ProcessMonitor: ObservableObject {
     @Published private(set) var processes: [ProcessItem] = []
+    @Published private(set) var connections: [NetworkConnection] = []
     @Published private(set) var isConnected = false
     @Published private(set) var isConnecting = false
+    @Published private(set) var isStopping = false
+    @Published var mode: MonitorMode = .processes {
+        didSet { requestCurrent() }
+    }
     @Published var isAutoRefresh = true
     @Published var errorMessage: String?
+    @Published var successMessage: String?
+
+    enum MonitorMode: String, CaseIterable, Identifiable {
+        case processes = "进程"
+        case network = "网络"
+        var id: String { rawValue }
+    }
 
     private let server: ServerConfig
+    private let apiClient: APIClient
     private var task: URLSessionWebSocketTask?
     private var session: URLSession!
     private var receiveTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
     private var pingTask: Task<Void, Never>?
 
-    /// 刷新间隔（秒）
     private let refreshInterval: UInt64 = 3
 
     init(server: ServerConfig) {
         self.server = server
+        self.apiClient = APIClient(server: server)
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         config.waitsForConnectivity = false
@@ -140,7 +189,6 @@ final class ProcessMonitor: ObservableObject {
         ws.resume()
         task = ws
 
-        // 用 ping 探测连接是否就绪，就绪后立即发送 ps 请求
         ws.sendPing { [weak self] error in
             Task { @MainActor in
                 guard let self else { return }
@@ -150,7 +198,7 @@ final class ProcessMonitor: ObservableObject {
                 }
                 self.isConnecting = false
                 self.isConnected = true
-                self.requestProcesses()
+                self.requestCurrent()
                 self.startAutoRefresh()
             }
         }
@@ -172,13 +220,31 @@ final class ProcessMonitor: ObservableObject {
         isConnected = false
         isConnecting = false
         processes = []
+        connections = []
     }
 
-    // MARK: - 发送 ps 请求
+    // MARK: - 发送请求
+
+    func requestCurrent() {
+        switch mode {
+        case .processes: requestProcesses()
+        case .network:   requestNetwork()
+        }
+    }
 
     func requestProcesses(username: String = "", name: String = "") {
         guard let task else { return }
-        let req = PSRequest(type: "ps", username: username, name: name)
+        let req = WSRequest(type: "ps", username: username, name: name, processName: nil)
+        sendWS(task, req)
+    }
+
+    func requestNetwork(processName: String = "") {
+        guard let task else { return }
+        let req = WSRequest(type: "net", username: nil, name: nil, processName: processName)
+        sendWS(task, req)
+    }
+
+    private func sendWS(_ task: URLSessionWebSocketTask, _ req: WSRequest) {
         guard let data = try? JSONEncoder().encode(req),
               let str = String(data: data, encoding: .utf8) else { return }
         Task {
@@ -187,21 +253,32 @@ final class ProcessMonitor: ObservableObject {
         }
     }
 
+    // MARK: - 结束进程
+
+    func stopProcess(pid: Int) async {
+        isStopping = true
+        errorMessage = nil
+        successMessage = nil
+        defer { isStopping = false }
+        let req = StopProcessRequest(pid: pid)
+        do {
+            let _: EmptyResponse = try await apiClient.send(
+                path: APIEndpoint.processStop.path, body: req, as: EmptyResponse.self
+            )
+            successMessage = "进程 \(pid) 已结束"
+            requestCurrent()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - 接收循环
 
     private func receiveLoop() async {
         guard let task else { return }
-        var firstPacket = true
         while !Task.isCancelled {
             do {
                 let msg = try await task.receive()
-                if firstPacket {
-                    firstPacket = false
-                    isConnecting = false
-                    isConnected = true
-                    requestProcesses()
-                    startAutoRefresh()
-                }
                 handleMessage(msg)
             } catch {
                 if !Task.isCancelled {
@@ -215,23 +292,30 @@ final class ProcessMonitor: ObservableObject {
     private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
         switch message {
         case .string(let text):
-            parseProcesses(text)
+            parseResponse(text)
         case .data(let data):
             if let text = String(data: data, encoding: .utf8) {
-                parseProcesses(text)
+                parseResponse(text)
             }
         @unknown default:
             break
         }
     }
 
-    private func parseProcesses(_ text: String) {
+    /// 区分进程列表 vs 网络连接：检查首元素是否含 "type" 键
+    private func parseResponse(_ text: String) {
         guard let jsonData = text.data(using: .utf8) else { return }
-        do {
-            let decoded = try JSONDecoder().decode([ProcessItem].self, from: jsonData)
-            processes = decoded.sorted { ($0.cpuValue ?? 0) > ($1.cpuValue ?? 0) }
-        } catch {
-            // 非 JSON 数组帧（如心跳），忽略
+        guard let array = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]],
+              let first = array.first else { return }
+
+        if first["type"] != nil {
+            if let decoded = try? JSONDecoder().decode([NetworkConnection].self, from: jsonData) {
+                connections = decoded.sorted { $0.name < $1.name }
+            }
+        } else {
+            if let decoded = try? JSONDecoder().decode([ProcessItem].self, from: jsonData) {
+                processes = decoded.sorted { ($0.cpuValue ?? 0) > ($1.cpuValue ?? 0) }
+            }
         }
     }
 
@@ -264,7 +348,7 @@ final class ProcessMonitor: ObservableObject {
                 try? await Task.sleep(for: .seconds(self?.refreshInterval ?? 3))
                 guard !Task.isCancelled else { break }
                 await MainActor.run {
-                    self?.requestProcesses()
+                    self?.requestCurrent()
                 }
             }
         }

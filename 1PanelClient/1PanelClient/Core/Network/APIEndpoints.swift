@@ -105,6 +105,9 @@ enum APIEndpoint {
     // MARK: - Redis 专用端点
     case databasesRedisPassword   // POST Redis密码修改
 
+    // MARK: - 进程
+    case processStop             // POST 结束指定进程
+
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
     case appsInstalledOperate     // POST 操作已安装应用（启动/停止/重启/升级）
@@ -203,6 +206,7 @@ enum APIEndpoint {
         case .databasesPgDel:        return "/api/v2/databases/pg/del"
         case .databasesPgPrivileges: return "/api/v2/databases/pg/privileges"
         case .databasesRedisPassword: return "/api/v2/databases/redis/password"
+        case .processStop:           return "/api/v2/process/stop"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
