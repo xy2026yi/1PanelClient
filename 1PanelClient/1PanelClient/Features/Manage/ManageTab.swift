@@ -152,7 +152,7 @@ struct ManageTab: View {
             }
         case .toolbox:
             NavigationStack {
-                Fail2banView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+                ToolboxView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
             }
         default:
             EmptyView()

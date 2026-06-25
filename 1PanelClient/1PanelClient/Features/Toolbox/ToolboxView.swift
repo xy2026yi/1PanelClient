@@ -1,0 +1,73 @@
+//
+//  ToolboxView.swift
+//  1PanelClient
+//
+//  工具箱入口列表：Fail2ban / WAF / 文件 等
+//
+
+import SwiftUI
+
+struct ToolboxView: View {
+    let server: ServerConfig
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            Section {
+                NavigationLink {
+                    Fail2banView(server: server)
+                } label: {
+                    toolRow(
+                        icon: "shield.lefthalf.filled",
+                        color: .blue,
+                        title: "Fail2ban",
+                        subtitle: "SSH 防暴力破解"
+                    )
+                }
+            }
+
+            Section {
+                toolRow(
+                    icon: "flame.fill",
+                    color: .red,
+                    title: "WAF",
+                    subtitle: "Web 应用防火墙",
+                    available: false
+                )
+                toolRow(
+                    icon: "folder.fill",
+                    color: .yellow,
+                    title: "文件",
+                    subtitle: "服务器文件管理",
+                    available: false
+                )
+            }
+        }
+        .navigationTitle("工具箱")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("关闭") { dismiss() }
+            }
+        }
+    }
+
+    private func toolRow(icon: String, color: Color, title: String, subtitle: String, available: Bool = true) -> some View {
+        HStack(spacing: 14) {
+            IconBadge(systemName: icon, color: color, size: 38, cornerRadius: 10)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .foregroundStyle(available ? .primary : .secondary)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if !available {
+                StatusBadge(text: "敬请期待", color: .secondary, backgroundOpacity: 0.1)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
