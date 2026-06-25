@@ -425,7 +425,7 @@ struct WAFIPRulesView: View {
         do {
             let resp: PageResponse<WAFRuleIPItem> = try await client.send(
                 path: APIEndpoint.wafRuleIPSearch.path, body: req,
-                as: PaginatedResponse<WAFRuleIPItem>.self
+                as: PageResponse<WAFRuleIPItem>.self
             )
             items = resp.items ?? []
         } catch {
@@ -615,7 +615,7 @@ struct WAFCreateIPRuleView: View {
         do {
             let resp: PageResponse<WAFIPGroupItem> = try await client.send(
                 path: APIEndpoint.wafIPGroupSearch.path, body: req,
-                as: PaginatedResponse<WAFIPGroupItem>.self
+                as: PageResponse<WAFIPGroupItem>.self
             )
             ipGroups = resp.items ?? []
         } catch { }
@@ -727,7 +727,7 @@ struct WAFIPGroupsView: View {
         do {
             let resp: PageResponse<WAFIPGroupItem> = try await client.send(
                 path: APIEndpoint.wafIPGroupSearch.path, body: req,
-                as: PaginatedResponse<WAFIPGroupItem>.self
+                as: PageResponse<WAFIPGroupItem>.self
             )
             items = resp.items ?? []
         } catch {
