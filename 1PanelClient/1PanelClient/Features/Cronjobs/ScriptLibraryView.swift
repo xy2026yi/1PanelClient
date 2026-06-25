@@ -125,11 +125,11 @@ struct ScriptRow: View {
             IconBadge(systemName: "terminal", color: .purple, size: 36, cornerRadius: 9)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(script.name)
+                Text(script.displayName)
                     .font(.body.bold())
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-                if let desc = script.description, !desc.isEmpty {
+                if let desc = script.displayDescription, !desc.isEmpty {
                     Text(desc)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -160,8 +160,8 @@ struct ScriptDetailView: View {
     var body: some View {
         List {
             Section("基本信息") {
-                LabeledRow("名称", value: script.name)
-                if let desc = script.description, !desc.isEmpty {
+                LabeledRow("名称", value: script.displayName)
+                if let desc = script.displayDescription, !desc.isEmpty {
                     LabeledRow("描述", value: desc)
                 }
                 if script.isInteractive == true {
@@ -190,14 +190,14 @@ struct ScriptDetailView: View {
             }
             .listRowBackground(Color.clear)
         }
-        .navigationTitle(script.name)
+        .navigationTitle(script.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $showTerminal) {
             NavigationStack {
                 TerminalView(
                     server: server,
                     target: .scriptRun(scriptID: script.id, cols: 80, rows: 24),
-                    title: script.name,
+                    title: script.displayName,
                     showCloseButton: true
                 )
             }

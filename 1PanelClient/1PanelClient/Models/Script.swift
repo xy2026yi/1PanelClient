@@ -25,4 +25,8 @@ struct ScriptItem: Decodable, Identifiable, Hashable {
     let isSystem: Bool?
     let description: String?
     let createdAt: String?
+
+    /// name/description 可能是 1Panel i18n 映射字符串（"{en:..., zh-hant:...}"），解析为中文
+    var displayName: String { resolveI18n(name) }
+    var displayDescription: String? { description.map { resolveI18n($0) } }
 }
