@@ -18,11 +18,14 @@ enum TerminalTarget {
     case host(cols: Int, rows: Int)
     /// 容器内终端
     case container(containerID: String, user: String, command: String, cols: Int, rows: Int)
+    /// 执行脚本库脚本（后端按 script_id 启动 PTY 运行脚本）
+    case scriptRun(scriptID: Int, cols: Int, rows: Int)
 
     var cols: Int {
         switch self {
         case .host(let c, _): return c
         case .container(_, _, _, let c, _): return c
+        case .scriptRun(_, let c, _): return c
         }
     }
 
@@ -30,6 +33,7 @@ enum TerminalTarget {
         switch self {
         case .host(_, let r): return r
         case .container(_, _, _, _, let r): return r
+        case .scriptRun(_, _, let r): return r
         }
     }
 
@@ -38,6 +42,7 @@ enum TerminalTarget {
         switch self {
         case .host: return "/api/v2/hosts/terminal"
         case .container: return "/api/v2/containers/exec"
+        case .scriptRun: return "/api/v2/core/script/run"
         }
     }
 
@@ -58,6 +63,14 @@ enum TerminalTarget {
                 URLQueryItem(name: "containerid", value: id),
                 URLQueryItem(name: "user", value: user),
                 URLQueryItem(name: "command", value: command),
+                URLQueryItem(name: "operateNode", value: "local")
+            ]
+        case .scriptRun(let scriptID, let cols, let rows):
+            return [
+                URLQueryItem(name: "cols", value: "\(cols)"),
+                URLQueryItem(name: "rows", value: "\(rows)"),
+                URLQueryItem(name: "script_id", value: "\(scriptID)"),
+                URLQueryItem(name: "current_node", value: "local"),
                 URLQueryItem(name: "operateNode", value: "local")
             ]
         }

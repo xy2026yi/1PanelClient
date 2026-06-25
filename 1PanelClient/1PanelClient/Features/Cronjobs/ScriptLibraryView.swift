@@ -2,8 +2,9 @@
 //  ScriptLibraryView.swift
 //  1PanelClient
 //
-//  脚本库：列表 / 搜索 / 查看脚本内容 / 选择脚本填充计划任务
+//  脚本库：列表 / 搜索 / 查看脚本内容 / 执行脚本 / 选择脚本填充计划任务
 //  POST /api/v2/core/script/search
+//  执行：WS /api/v2/core/script/run?script_id=N
 //
 
 import SwiftUI
@@ -47,11 +48,14 @@ struct ScriptLibraryView: View {
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
 
+    private let server: ServerConfig
+
     /// 选择模式：非 nil 时，点击脚本行调用 onPick 并返回（用于创建计划任务填充脚本）
     var onPick: ((ScriptItem) -> Void)?
 
     init(server: ServerConfig, onPick: ((ScriptItem) -> Void)? = nil) {
         _vm = StateObject(wrappedValue: ScriptLibraryViewModel(server: server))
+        self.server = server
         self.onPick = onPick
     }
 
@@ -85,9 +89,6 @@ struct ScriptLibraryView: View {
                 if !Task.isCancelled { await vm.load(query: newValue) }
             }
         }
-        .navigationDestination(for: ScriptItem.self) { script in
-            ScriptDetailView(script: script)
-        }
     }
 
     private var scriptList: some View {
@@ -101,7 +102,9 @@ struct ScriptLibraryView: View {
                     }
                     .buttonStyle(.plain)
                 } else {
-                    NavigationLink(value: script) {
+                    NavigationLink {
+                        ScriptDetailView(script: script, server: server)
+                    } label: {
                         ScriptRow(script: script)
                     }
                 }
@@ -124,6 +127,7 @@ struct ScriptRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(script.name)
                     .font(.body.bold())
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 if let desc = script.description, !desc.isEmpty {
                     Text(desc)
@@ -150,6 +154,8 @@ struct ScriptRow: View {
 
 struct ScriptDetailView: View {
     let script: ScriptItem
+    let server: ServerConfig
+    @State private var showTerminal = false
 
     var body: some View {
         List {
@@ -173,18 +179,27 @@ struct ScriptDetailView: View {
                         .textSelection(.enabled)
                 }
             }
+
+            Section {
+                Button {
+                    showTerminal = true
+                } label: {
+                    Label("执行脚本", systemImage: "play.fill")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .listRowBackground(Color.clear)
         }
         .navigationTitle(script.name)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                if let code = script.script {
-                    Button {
-                        UIPasteboard.general.string = code
-                    } label: {
-                        Image(systemName: "doc.on.doc")
-                    }
-                }
+        .fullScreenCover(isPresented: $showTerminal) {
+            NavigationStack {
+                TerminalView(
+                    server: server,
+                    target: .scriptRun(scriptID: script.id, cols: 80, rows: 24),
+                    title: script.name,
+                    showCloseButton: true
+                )
             }
         }
     }

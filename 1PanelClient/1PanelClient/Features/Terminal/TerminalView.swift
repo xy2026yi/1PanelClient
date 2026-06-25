@@ -33,6 +33,8 @@ struct TerminalView: View {
         case .container(let id, _, _, _, _):
             self.title = title ?? "容器终端"
             _ = id
+        case .scriptRun:
+            self.title = title ?? "执行脚本"
         }
     }
 
