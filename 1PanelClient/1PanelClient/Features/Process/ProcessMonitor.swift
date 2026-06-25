@@ -140,6 +140,21 @@ final class ProcessMonitor: ObservableObject {
         ws.resume()
         task = ws
 
+        // 用 ping 探测连接是否就绪，就绪后立即发送 ps 请求
+        ws.sendPing { [weak self] error in
+            Task { @MainActor in
+                guard let self else { return }
+                if let error {
+                    self.handleDisconnect(error: error)
+                    return
+                }
+                self.isConnecting = false
+                self.isConnected = true
+                self.requestProcesses()
+                self.startAutoRefresh()
+            }
+        }
+
         receiveTask = Task { [weak self] in
             await self?.receiveLoop()
         }
