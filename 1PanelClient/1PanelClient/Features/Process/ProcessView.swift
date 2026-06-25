@@ -75,21 +75,18 @@ struct ProcessView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                if monitor.mode == .processes {
-                    Menu {
+                Menu {
+                    if monitor.mode == .processes {
                         Picker("排序", selection: $sortOption) {
                             ForEach(SortOption.allCases) { opt in
                                 Text(opt.rawValue).tag(opt)
                             }
                         }
                         Divider()
-                        Toggle("自动刷新", isOn: $monitor.isAutoRefresh)
-                    } label: {
-                        Image(systemName: "arrow.up.arrow.down.circle")
                     }
-                } else {
                     Toggle("自动刷新", isOn: $monitor.isAutoRefresh)
-                        .toggleStyle(.switch)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
             }
         }
