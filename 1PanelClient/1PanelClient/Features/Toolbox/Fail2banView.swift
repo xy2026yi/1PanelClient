@@ -166,6 +166,7 @@ struct Fail2banView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var activeSheet: Fail2banSheet?
+    @State private var isServiceExpanded = false
 
     enum Fail2banSheet: Identifiable {
         case port, maxRetry, banTime, findTime, banAction, logPath
@@ -253,18 +254,22 @@ struct Fail2banView: View {
     private func content(base: Fail2banBase) -> some View {
         List {
             serviceSection(base: base)
-            configSection(base: base)
             Section {
-                Button { activeSheet = .whitelist } label: {
-                    Label("白名单", systemImage: "checkmark.shield")
-                }
-                Button { activeSheet = .blacklist } label: {
-                    Label("黑名单", systemImage: "hand.raised")
+                HStack(spacing: 12) {
+                    Button { activeSheet = .whitelist } label: {
+                        Label("白名单", systemImage: "checkmark.shield")
+                            .frame(maxWidth: .infinity)
+                    }
+                    Button { activeSheet = .blacklist } label: {
+                        Label("黑名单", systemImage: "hand.raised")
+                            .frame(maxWidth: .infinity)
+                    }
                 }
                 Button { activeSheet = .fullConfig } label: {
                     Label("全部配置", systemImage: "doc.text")
                 }
             }
+            configSection(base: base)
         }
     }
 
@@ -285,48 +290,58 @@ struct Fail2banView: View {
                     color: base.isActive ? .green : .red,
                     backgroundOpacity: 0.15
                 )
-            }
-
-            HStack(spacing: 12) {
-                if base.isActive {
-                    Button {
-                        Task { await vm.operate("stop") }
-                    } label: {
-                        Label("停止", systemImage: "stop.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
-                } else {
-                    Button {
-                        Task { await vm.operate("start") }
-                    } label: {
-                        Label("启动", systemImage: "play.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.green)
-                }
-
                 Button {
-                    Task { await vm.operate("restart") }
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isServiceExpanded.toggle()
+                    }
                 } label: {
-                    Label("重启", systemImage: "arrow.clockwise")
-                        .frame(maxWidth: .infinity)
+                    Image(systemName: isServiceExpanded ? "chevron.up" : "chevron.down")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.bordered)
-                .tint(.orange)
+                .buttonStyle(.plain)
             }
 
-            Toggle("开机自启", isOn: Binding(
-                get: { base.isEnable },
-                set: { newVal in
-                    Task { await vm.operate(newVal ? "enable" : "disable") }
+            if isServiceExpanded {
+                HStack(spacing: 12) {
+                    if base.isActive {
+                        Button {
+                            Task { await vm.operate("stop") }
+                        } label: {
+                            Label("停止", systemImage: "stop.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                    } else {
+                        Button {
+                            Task { await vm.operate("start") }
+                        } label: {
+                            Label("启动", systemImage: "play.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.green)
+                    }
+
+                    Button {
+                        Task { await vm.operate("restart") }
+                    } label: {
+                        Label("重启", systemImage: "arrow.clockwise")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.orange)
                 }
-            ))
-            .disabled(vm.isOperating)
-        } header: {
-            SectionLabel(title: "服务管理", systemImage: "gear")
+
+                Toggle("开机自启", isOn: Binding(
+                    get: { base.isEnable },
+                    set: { newVal in
+                        Task { await vm.operate(newVal ? "enable" : "disable") }
+                    }
+                ))
+                .disabled(vm.isOperating)
+            }
         }
     }
 
