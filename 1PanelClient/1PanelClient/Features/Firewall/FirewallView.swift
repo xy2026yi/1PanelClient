@@ -99,7 +99,8 @@ final class FirewallViewModel: ObservableObject {
 
     func deleteRule(_ rule: FirewallRule) async {
         let br = FirewallBatchRule(
-            operation: "remove", chain: "",
+            operation: "remove",
+            chain: rule.chain ?? "",
             address: rule.address ?? "",
             port: rule.port ?? "",
             source: rule.address ?? "",

@@ -27,18 +27,26 @@ struct FirewallBase: Decodable {
 }
 
 /// 防火墙端口规则（/firewall/search 返回 items）
+/// 注意：API 返回的 id 恒为 0，无法用于唯一标识，
+/// 改用 port/protocol/address/strategy/family 组合做 Identifiable.id
 struct FirewallRule: Decodable, Identifiable, Hashable {
-    let id: Int
     let address: String?
     let port: String?
     let protocolField: String?
     let strategy: String?
     let usedStatus: String?
     let description: String?
+    let family: String?
+    let chain: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, address, port, strategy, usedStatus, description
+        case address, port, strategy, usedStatus, description, family, chain
         case protocolField = "protocol"
+    }
+
+    /// 组合唯一键（API 的 id 全为 0 无意义）
+    var id: String {
+        "\(port ?? "")|\(protocolField ?? "")|\(address ?? "")|\(strategy ?? "")|\(family ?? "")"
     }
 }
 
