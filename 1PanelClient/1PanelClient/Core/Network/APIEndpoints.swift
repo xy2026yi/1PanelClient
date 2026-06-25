@@ -108,6 +108,18 @@ enum APIEndpoint {
     // MARK: - 进程
     case processStop             // POST 结束指定进程
 
+    // MARK: - Fail2ban
+    case fail2banBase            // GET  基础配置
+    case fail2banUpdate          // POST 修改单项配置 {key, value}
+    case fail2banLoadConf        // GET  加载完整配置文本
+    case fail2banUpdateByConf    // POST 保存完整配置文本 {file}
+    case fail2banOperate         // POST 服务操作 {operation}
+    case fail2banSearch          // POST 查询白/黑名单 {status}
+    case fail2banOperateSSHD     // POST 增删IP {operate, ips}
+
+    // MARK: - 文件
+    case filesSearch             // POST 文件浏览 {path, expand, page, pageSize, showHidden}
+
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
     case appsInstalledOperate     // POST 操作已安装应用（启动/停止/重启/升级）
@@ -207,6 +219,14 @@ enum APIEndpoint {
         case .databasesPgPrivileges: return "/api/v2/databases/pg/privileges"
         case .databasesRedisPassword: return "/api/v2/databases/redis/password"
         case .processStop:           return "/api/v2/process/stop"
+        case .fail2banBase:          return "/api/v2/toolbox/fail2ban/base"
+        case .fail2banUpdate:        return "/api/v2/toolbox/fail2ban/update"
+        case .fail2banLoadConf:      return "/api/v2/toolbox/fail2ban/load/conf"
+        case .fail2banUpdateByConf:  return "/api/v2/toolbox/fail2ban/update/byconf"
+        case .fail2banOperate:       return "/api/v2/toolbox/fail2ban/operate"
+        case .fail2banSearch:        return "/api/v2/toolbox/fail2ban/search"
+        case .fail2banOperateSSHD:   return "/api/v2/toolbox/fail2ban/operate/sshd"
+        case .filesSearch:           return "/api/v2/files/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
@@ -234,7 +254,8 @@ enum APIEndpoint {
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
              .containersListStats, .containersDockerStatus, .containersImageAll,
              .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,
-             .appsIcon, .databasesRedisCheck:
+             .appsIcon, .databasesRedisCheck,
+             .fail2banBase, .fail2banLoadConf:
             return "GET"
         default:
             return "POST"

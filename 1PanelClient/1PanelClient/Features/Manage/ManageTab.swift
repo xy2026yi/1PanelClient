@@ -28,7 +28,7 @@ struct ManageTab: View {
         [
             ("",          [.apps, .websites, .database, .containers]),
             ("",          [.terminal, .process]),
-            ("",          [.firewall]),
+            ("",          [.firewall, .toolbox]),
             ("",          [.cronjob])
         ]
     }
@@ -150,6 +150,10 @@ struct ManageTab: View {
             NavigationStack {
                 ProcessView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
             }
+        case .toolbox:
+            NavigationStack {
+                Fail2banView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+            }
         default:
             EmptyView()
         }
@@ -167,7 +171,7 @@ struct ManageEditView: View {
         [
             ("",  [.apps, .websites, .database, .containers]),
             ("",  [.terminal, .process]),
-            ("",  [.firewall]),
+            ("",  [.firewall, .toolbox]),
             ("",  [.cronjob])
         ]
     }
@@ -259,6 +263,7 @@ enum ManageItem: String, Identifiable {
     case process
     case firewall
     case cronjob
+    case toolbox
 
     var id: String { rawValue }
 
@@ -272,6 +277,7 @@ enum ManageItem: String, Identifiable {
         case .process:    return "进程"
         case .firewall:   return "防火墙"
         case .cronjob:    return "计划任务"
+        case .toolbox:    return "工具箱"
         }
     }
 
@@ -285,6 +291,7 @@ enum ManageItem: String, Identifiable {
         case .process:    return "系统进程监控"
         case .firewall:   return "防火墙规则"
         case .cronjob:    return "定时备份与脚本"
+        case .toolbox:    return "Fail2ban 等系统工具"
         }
     }
 
@@ -298,6 +305,7 @@ enum ManageItem: String, Identifiable {
         case .process:    return "chart.bar"
         case .firewall:   return "flame"
         case .cronjob:    return "clock.badge.checkmark"
+        case .toolbox:    return "wrench.and.screwdriver"
         }
     }
 
@@ -311,12 +319,13 @@ enum ManageItem: String, Identifiable {
         case .process:    return .pink
         case .firewall:   return .orange
         case .cronjob:    return .teal
+        case .toolbox:    return .brown
         }
     }
 
     var available: Bool {
         switch self {
-        case .apps, .websites, .containers, .terminal, .cronjob, .firewall, .database, .process: return true
+        case .apps, .websites, .containers, .terminal, .cronjob, .firewall, .database, .process, .toolbox: return true
         default: return false
         }
     }
