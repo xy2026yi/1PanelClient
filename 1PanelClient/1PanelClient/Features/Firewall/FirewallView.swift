@@ -155,6 +155,7 @@ final class FirewallViewModel: ObservableObject {
 
 struct FirewallView: View {
     @StateObject private var vm: FirewallViewModel
+    @Environment(\.dismiss) private var dismiss
     @State private var showAdd = false
     @State private var pendingUFWOp: String?
     @State private var editingRule: FirewallRule?
@@ -199,11 +200,11 @@ struct FirewallView: View {
         .navigationTitle("防火墙")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showAdd = true } label: {
-                    Image(systemName: "plus")
+            ToolbarItem(placement: .topBarLeading) {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
                 }
-                .disabled(vm.base?.isExist != true)
             }
         }
         .refreshable { await vm.refresh() }
@@ -220,6 +221,20 @@ struct FirewallView: View {
             } else if let msg = vm.errorMessage, vm.base == nil {
                 ErrorBanner(message: msg) { Task { await vm.refresh() } }
             }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button { showAdd = true } label: {
+                Image(systemName: "plus")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .background(Color.accentColor, in: Circle())
+                    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+            }
+            .disabled(vm.base?.isExist != true)
+            .opacity(vm.base?.isExist == true ? 1 : 0.4)
+            .padding(.trailing, 20)
+            .padding(.bottom, 20)
         }
         .sheet(isPresented: $showAdd) {
             FirewallAddRuleView(vm: vm)
