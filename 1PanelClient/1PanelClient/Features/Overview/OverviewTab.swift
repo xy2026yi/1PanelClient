@@ -407,25 +407,38 @@ struct StatCard: View {
     let count: Int?
     let icon: String
     let color: Color
+    var updateCount: Int? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: icon)
                     .foregroundStyle(color)
+                    .font(.title3)
                 Spacer()
                 if count == nil {
                     ProgressView()
                         .scaleEffect(0.7)
+                } else {
+                    Text(title)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
             }
+
+            Spacer(minLength: 4)
+
             Text(count.map { "\($0)" } ?? "—")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .monospacedDigit()
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+
+            if let updates = updateCount, updates > 0 {
+                Text("\(updates)个更新")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))

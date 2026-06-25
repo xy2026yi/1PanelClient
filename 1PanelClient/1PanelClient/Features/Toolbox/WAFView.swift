@@ -1621,7 +1621,6 @@ struct WAFAttackCountSettingsView: View {
 struct WAFLocationUpdateView: View {
     let server: ServerConfig
 
-    @Environment(\.dismiss) private var dismiss
     @State private var isUpdating = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
@@ -1654,11 +1653,6 @@ struct WAFLocationUpdateView: View {
         }
         .navigationTitle("IP 地址库")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("关闭") { dismiss() }
-            }
-        }
         .alert("提示", isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }

@@ -237,6 +237,7 @@ struct SSHView: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
 
@@ -251,6 +252,7 @@ struct SSHView: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
 

@@ -14,50 +14,46 @@ struct ToolboxView: View {
 
     var body: some View {
         List {
-            Section {
-                NavigationLink {
-                    Fail2banView(server: server)
-                } label: {
-                    toolRow(
-                        icon: "shield.lefthalf.filled",
-                        color: .blue,
-                        title: "Fail2ban",
-                        subtitle: "SSH 防暴力破解"
-                    )
-                }
+            NavigationLink {
+                Fail2banView(server: server)
+            } label: {
+                toolRow(
+                    icon: "shield.lefthalf.filled",
+                    color: .blue,
+                    title: "Fail2ban",
+                    subtitle: "SSH 防暴力破解"
+                )
             }
 
-            Section {
-                NavigationLink {
-                    WAFView(server: server)
-                } label: {
-                    toolRow(
-                        icon: "flame.fill",
-                        color: .red,
-                        title: "WAF",
-                        subtitle: "Web 应用防火墙"
-                    )
-                }
-                NavigationLink {
-                    FilesView(server: server)
-                } label: {
-                    toolRow(
-                        icon: "folder.fill",
-                        color: .yellow,
-                        title: "文件",
-                        subtitle: "服务器文件管理"
-                    )
-                }
-                NavigationLink {
-                    SSHView(server: server)
-                } label: {
-                    toolRow(
-                        icon: "terminal.fill",
-                        color: .gray,
-                        title: "SSH",
-                        subtitle: "SSH 服务管理"
-                    )
-                }
+            NavigationLink {
+                WAFView(server: server)
+            } label: {
+                toolRow(
+                    icon: "flame.fill",
+                    color: .red,
+                    title: "WAF",
+                    subtitle: "Web 应用防火墙"
+                )
+            }
+            NavigationLink {
+                FilesView(server: server)
+            } label: {
+                toolRow(
+                    icon: "folder.fill",
+                    color: .yellow,
+                    title: "文件",
+                    subtitle: "服务器文件管理"
+                )
+            }
+            NavigationLink {
+                SSHView(server: server)
+            } label: {
+                toolRow(
+                    icon: "terminal.fill",
+                    color: .gray,
+                    title: "SSH",
+                    subtitle: "SSH 服务管理"
+                )
             }
         }
         .navigationTitle("工具箱")
