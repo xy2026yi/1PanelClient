@@ -28,13 +28,16 @@ struct ToolboxView: View {
             }
 
             Section {
-                toolRow(
-                    icon: "flame.fill",
-                    color: .red,
-                    title: "WAF",
-                    subtitle: "Web 应用防火墙",
-                    available: false
-                )
+                NavigationLink {
+                    WAFView(server: server)
+                } label: {
+                    toolRow(
+                        icon: "flame.fill",
+                        color: .red,
+                        title: "WAF",
+                        subtitle: "Web 应用防火墙"
+                    )
+                }
                 toolRow(
                     icon: "folder.fill",
                     color: .yellow,

@@ -120,6 +120,19 @@ enum APIEndpoint {
     // MARK: - 文件
     case filesSearch             // POST 文件浏览 {path, expand, page, pageSize, showHidden}
 
+    // MARK: - WAF
+    case wafStatus               // GET  WAF状态
+    case wafConfigGlobal         // GET  全局配置
+    case wafConfigGlobalState    // POST 切换规则开关 {scope, state}
+    case wafIPGroupSearch        // POST IP组搜索
+    case wafIPGroupCreate        // POST IP组创建
+    case wafIPGroupDelete        // POST IP组删除
+    case wafIPGroupUpdate        // POST IP组编辑
+    case wafRuleIPSearch         // POST IP规则搜索
+    case wafRuleIPCreate         // POST IP规则创建
+    case wafRuleIPDelete         // POST IP规则删除
+    case wafRuleIPUpdate         // POST IP规则编辑/启禁
+
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
     case appsInstalledOperate     // POST 操作已安装应用（启动/停止/重启/升级）
@@ -227,6 +240,17 @@ enum APIEndpoint {
         case .fail2banSearch:        return "/api/v2/toolbox/fail2ban/search"
         case .fail2banOperateSSHD:   return "/api/v2/toolbox/fail2ban/operate/sshd"
         case .filesSearch:           return "/api/v2/files/search"
+        case .wafStatus:             return "/api/v2/xpack/waf/status"
+        case .wafConfigGlobal:       return "/api/v2/xpack/waf/config/global"
+        case .wafConfigGlobalState:  return "/api/v2/xpack/waf/config/global/state"
+        case .wafIPGroupSearch:      return "/api/v2/xpack/waf/ip/group/search"
+        case .wafIPGroupCreate:      return "/api/v2/xpack/waf/ip/group/create"
+        case .wafIPGroupDelete:      return "/api/v2/xpack/waf/ip/group/delete"
+        case .wafIPGroupUpdate:      return "/api/v2/xpack/waf/ip/group/update"
+        case .wafRuleIPSearch:       return "/api/v2/xpack/waf/rule/ip/search"
+        case .wafRuleIPCreate:       return "/api/v2/xpack/waf/rule/ip/create"
+        case .wafRuleIPDelete:       return "/api/v2/xpack/waf/rule/ip/delete"
+        case .wafRuleIPUpdate:       return "/api/v2/xpack/waf/rule/ip/update"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
@@ -255,7 +279,8 @@ enum APIEndpoint {
              .containersListStats, .containersDockerStatus, .containersImageAll,
              .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,
              .appsIcon, .databasesRedisCheck,
-             .fail2banBase, .fail2banLoadConf:
+             .fail2banBase, .fail2banLoadConf,
+             .wafStatus, .wafConfigGlobal:
             return "GET"
         default:
             return "POST"
