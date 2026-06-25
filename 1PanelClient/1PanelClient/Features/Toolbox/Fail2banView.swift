@@ -260,13 +260,20 @@ struct Fail2banView: View {
                         Label("白名单", systemImage: "checkmark.shield")
                             .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.borderless)
+
+                    Divider()
+                        .frame(height: 24)
+
                     Button { activeSheet = .blacklist } label: {
                         Label("黑名单", systemImage: "hand.raised")
                             .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.borderless)
                 }
                 Button { activeSheet = .fullConfig } label: {
                     Label("全部配置", systemImage: "doc.text")
+                        .frame(maxWidth: .infinity)
                 }
             }
             configSection(base: base)
