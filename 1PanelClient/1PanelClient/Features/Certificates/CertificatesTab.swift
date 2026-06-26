@@ -88,9 +88,6 @@ struct CertificatesTab: View {
             .padding(.bottom, 20)
             .accessibilityLabel("上传证书")
         }
-        .navigationDestination(for: WebsiteSSLCert.self) { cert in
-            CertificateDetailView(cert: cert, vm: vm)
-        }
         .navigationDestination(isPresented: $showUploadSheet) {
             UploadCertificateView(vm: vm)
         }
@@ -99,7 +96,9 @@ struct CertificatesTab: View {
     private var certList: some View {
         List {
             ForEach(vm.certificates) { cert in
-                NavigationLink(value: cert) {
+                NavigationLink {
+                    CertificateDetailView(cert: cert, vm: vm)
+                } label: {
                     CertificateRow(cert: cert)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {

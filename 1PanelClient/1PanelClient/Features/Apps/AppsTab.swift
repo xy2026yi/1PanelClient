@@ -138,21 +138,19 @@ struct AppDetailView: View {
     @ObservedObject var vm: AppsViewModel
     @State private var showUninstallSheet = false
     @State private var showUpdateParamsSheet = false
+    @State private var isExpanded = false
+    @State private var pendingAction: String?
 
     var body: some View {
         List {
-            // 基本信息
+            // 可展开状态区
+            Section {
+                statusHeaderRow
+                if isExpanded { actionButtonsRow }
+            }
+
+            // 应用信息（精简）
             Section("应用信息") {
-                LabeledRow("名称", value: app.displayName)
-                if let n = app.name, !n.isEmpty {
-                    LabeledRow("内部名称", value: n)
-                }
-                if let key = app.appKey, !key.isEmpty {
-                    LabeledRow("App Key", value: key)
-                }
-                if let v = app.version, !v.isEmpty {
-                    LabeledRow("版本", value: "v\(v)")
-                }
                 if let port = app.httpPort, port > 0 {
                     LabeledRow("HTTP 端口", value: "\(port)")
                 }
@@ -167,116 +165,14 @@ struct AppDetailView: View {
                 }
             }
 
-            // 状态
-            Section("状态") {
-                HStack {
-                    Image(systemName: app.statusIcon)
-                        .foregroundStyle(app.statusColor)
-                    Text((app.status ?? "未知").capitalized)
-                        .foregroundStyle(app.statusColor)
-                }
-                if let msg = app.message, !msg.isEmpty {
-                    LabeledRow("消息", value: msg)
-                }
-            }
-
-            // 操作
-            Section("操作") {
-                if app.isRunning {
-                    Button {
-                        Task { await vm.operate(app: app, op: .stop) }
-                    } label: {
-                        Label("停止应用", systemImage: "stop.fill")
-                    }
-                } else {
-                    Button {
-                        Task { await vm.operate(app: app, op: .start) }
-                    } label: {
-                        Label("启动应用", systemImage: "play.fill")
-                    }
-                }
-                Button {
-                    Task { await vm.operate(app: app, op: .restart) }
-                } label: {
-                    Label("重启应用", systemImage: "arrow.triangle.2.circlepath")
-                }
-                Button {
-                    Task { await vm.operate(app: app, op: .rebuild) }
-                } label: {
-                    Label("重建应用", systemImage: "hammer")
-                }
-                Button {
-                    showUpdateParamsSheet = true
-                } label: {
-                    Label("更新参数", systemImage: "slider.horizontal.3")
-                }
+            // 日志
+            Section {
                 NavigationLink {
                     AppLogView(app: app, vm: vm)
                 } label: {
                     Label("查看日志", systemImage: "doc.text.magnifyingglass")
                 }
                 .buttonStyle(.plain)
-            }
-
-            // 升级区（有可更新 OR 已忽略升级时显示）
-            if app.canUpdate == true || app.ignoredRecordID != nil {
-                Section {
-                    if app.canUpdate == true {
-                        Button {
-                            Task { await vm.loadVersions(for: app) }
-                        } label: {
-                            HStack {
-                                Image(systemName: "arrow.up.circle.fill")
-                                    .foregroundStyle(.orange)
-                                VStack(alignment: .leading) {
-                                    Text("检查更新")
-                                        .foregroundStyle(.primary)
-                                    Text("查看可用的新版本")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        .buttonStyle(.plain)
-
-                        Button(role: .destructive) {
-                            Task { await vm.ignoreUpgrade(app: app) }
-                        } label: {
-                            Label("忽略所有升级", systemImage: "eye.slash")
-                        }
-                    }
-
-                    // 已忽略时显示「取消忽略升级」
-                    if app.ignoredRecordID != nil {
-                        Button {
-                            Task { await vm.cancelIgnoreUpgrade(app: app) }
-                        } label: {
-                            Label("取消忽略升级", systemImage: "eye")
-                        }
-                    }
-                } header: {
-                    HStack(spacing: 4) {
-                        Text("升级")
-                        if app.canUpdate == true {
-                            Text("NEW")
-                                .font(.caption2.bold())
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(Color.orange.opacity(0.2))
-                                .clipShape(Capsule())
-                                .foregroundStyle(.orange)
-                        }
-                    }
-                } footer: {
-                    if app.ignoredRecordID != nil && app.canUpdate != true {
-                        Text("该应用的升级提示已被忽略，取消后可恢复更新检查。")
-                    } else {
-                        Text("升级将替换 docker-compose.yml，建议查看文件对比。")
-                    }
-                }
             }
 
             // 相关链接
@@ -293,23 +189,27 @@ struct AppDetailView: View {
                     }
                 }
             }
-
-            // 危险区：卸载
-            Section {
-                Button {
-                    showUninstallSheet = true
-                } label: {
-                    Label("卸载应用", systemImage: "trash")
-                }
-            } header: {
-                Text("危险操作")
-            } footer: {
-                Text("卸载将删除容器及相关数据，请谨慎操作。")
-            }
         }
         .navigationTitle(app.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $vm.showUpgradeSheet) {
+        .overlay(alignment: .bottomTrailing) {
+            if app.canUpdate == true {
+                Button {
+                    Task { await vm.loadVersions(for: app) }
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.white, .orange)
+                        .background(Circle().fill(.orange).frame(width: 52, height: 52))
+                        .frame(width: 52, height: 52)
+                        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+                }
+                .padding(.trailing, 20)
+                .padding(.bottom, 20)
+                .accessibilityLabel("升级")
+            }
+        }
+        .navigationDestination(isPresented: $vm.showUpgradeSheet) {
             UpgradeSheetView(app: app, vm: vm)
         }
         .sheet(isPresented: $showUninstallSheet) {
@@ -318,9 +218,20 @@ struct AppDetailView: View {
         .sheet(isPresented: $showUpdateParamsSheet) {
             UpdateParamsSheetView(app: app, vm: vm)
         }
+        .confirmationDialog(
+            pendingAction ?? "",
+            isPresented: Binding(
+                get: { pendingAction != nil },
+                set: { if !$0 { pendingAction = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("确认", role: .destructive) {
+                executePendingAction()
+            }
+            Button("取消", role: .cancel) {}
+        }
         .onDisappear {
-            // 返回列表时，如有待刷新（忽略升级/升级完成），重新加载
-            // 延迟到导航动画结束后执行，避免破坏 NavigationStack 环境树
             if vm.needsRefresh {
                 vm.needsRefresh = false
                 Task {
@@ -328,6 +239,134 @@ struct AppDetailView: View {
                     await vm.refresh()
                 }
             }
+        }
+    }
+
+    // MARK: - 状态头行
+
+    private var statusHeaderRow: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(app.displayName)
+                        .font(.system(.headline, design: .default))
+                    if let v = app.version, !v.isEmpty {
+                        Text("v\(v)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(app.statusColor)
+                        .frame(width: 6, height: 6)
+                    Text((app.status ?? "未知").capitalized)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 2)
+    }
+
+    // MARK: - 展开操作按钮
+
+    private var actionButtonsRow: some View {
+        HStack(spacing: 8) {
+            actionButton(
+                title: app.isRunning ? "停止" : "启动",
+                icon: app.isRunning ? "stop.fill" : "play.fill",
+                color: app.isRunning ? .orange : .green
+            ) {
+                pendingAction = app.isRunning ? "stop" : "start"
+            }
+            actionButton(
+                title: "重启",
+                icon: "arrow.triangle.2.circlepath",
+                color: .blue
+            ) {
+                pendingAction = "restart"
+            }
+            actionButton(
+                title: "重建",
+                icon: "hammer",
+                color: .indigo
+            ) {
+                pendingAction = "rebuild"
+            }
+            actionButton(
+                title: "编辑",
+                icon: "slider.horizontal.3",
+                color: .teal
+            ) {
+                pendingAction = "edit"
+            }
+            actionButton(
+                title: "卸载",
+                icon: "trash",
+                color: .red
+            ) {
+                pendingAction = "uninstall"
+            }
+        }
+        .padding(.top, 2)
+        .padding(.bottom, 2)
+    }
+
+    @ViewBuilder
+    private func actionButton(
+        title: String,
+        icon: String,
+        color: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(color)
+                    .frame(width: 22, height: 22)
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func executePendingAction() {
+        let action = pendingAction
+        pendingAction = nil
+        switch action {
+        case "stop":
+            Task { await vm.operate(app: app, op: .stop) }
+        case "start":
+            Task { await vm.operate(app: app, op: .start) }
+        case "restart":
+            Task { await vm.operate(app: app, op: .restart) }
+        case "rebuild":
+            Task { await vm.operate(app: app, op: .rebuild) }
+        case "edit":
+            showUpdateParamsSheet = true
+        case "uninstall":
+            showUninstallSheet = true
+        default:
+            break
         }
     }
 }
@@ -361,36 +400,29 @@ struct UpgradeSheetView: View {
     @State private var showComposeEditor = false
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if vm.isLoadingVersions {
-                    ProgressView("查询可用版本…")
-                } else if vm.availableVersions.isEmpty {
-                    ContentUnavailableView(
-                        "无可用版本",
-                        systemImage: "arrow.up.circle.slash",
-                        description: Text("该应用暂无更高版本可供升级")
-                    )
-                } else {
-                    versionList
-                }
+        Group {
+            if vm.isLoadingVersions {
+                ProgressView("查询可用版本…")
+            } else if vm.availableVersions.isEmpty {
+                ContentUnavailableView(
+                    "无可用版本",
+                    systemImage: "arrow.up.circle.slash",
+                    description: Text("该应用暂无更高版本可供升级")
+                )
+            } else {
+                versionList
             }
-            .navigationTitle("升级 \(app.displayName)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { vm.showUpgradeSheet = false }
-                }
-            }
-            .navigationDestination(isPresented: $showComposeEditor) {
-                if let version = vm.selectedVersion {
-                    ComposeEditorView(
-                        app: app,
-                        version: version,
-                        vm: vm,
-                        onBack: { showComposeEditor = false }
-                    )
-                }
+        }
+        .navigationTitle("升级 \(app.displayName)")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showComposeEditor) {
+            if let version = vm.selectedVersion {
+                ComposeEditorView(
+                    app: app,
+                    version: version,
+                    vm: vm,
+                    onBack: { showComposeEditor = false }
+                )
             }
         }
     }
@@ -406,7 +438,7 @@ struct UpgradeSheetView: View {
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("当前版本")
+                Text("提示")
             }
 
             Section("可升级到") {
@@ -456,6 +488,23 @@ struct UpgradeSheetView: View {
                         } label: {
                             Label("忽略此版本", systemImage: "eye.slash")
                         }
+                    }
+                }
+            }
+
+            // 忽略所有升级
+            Section {
+                Button(role: .destructive) {
+                    Task { await vm.ignoreUpgrade(app: app) }
+                } label: {
+                    Label("忽略所有升级", systemImage: "eye.slash")
+                }
+
+                if app.ignoredRecordID != nil {
+                    Button {
+                        Task { await vm.cancelIgnoreUpgrade(app: app) }
+                    } label: {
+                        Label("取消忽略升级", systemImage: "eye")
                     }
                 }
             }

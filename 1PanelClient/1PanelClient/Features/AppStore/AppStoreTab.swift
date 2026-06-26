@@ -155,6 +155,16 @@ struct AppStoreDetailView: View {
         }
         .navigationTitle(detail?.name ?? "应用详情")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let d = detail, d.installed != true {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("安装") {
+                        vm.showInstallSheet(for: d)
+                    }
+                    .bold()
+                }
+            }
+        }
         .task { await loadDetail() }
     }
 
@@ -202,29 +212,15 @@ struct AppStoreDetailView: View {
                 .padding(.vertical, 4)
             }
 
-            // 可用版本
-            if let versions = detail.versions, !versions.isEmpty {
-                Section {
-                    ForEach(versions, id: \.self) { version in
-                        HStack {
-                            Image(systemName: "tag")
-                                .foregroundStyle(.tint)
-                            Text(version)
-                                .font(.subheadline.monospaced())
-                            if version == detail.latestVersion {
-                                Spacer()
-                                Text("最新")
-                                    .font(.caption2.bold())
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.blue.opacity(0.15))
-                                    .foregroundStyle(.blue)
-                                    .clipShape(Capsule())
-                            }
-                        }
+            // 最新版本
+            if let latest = detail.latestVersion, !latest.isEmpty {
+                Section("最新版本") {
+                    HStack {
+                        Image(systemName: "tag")
+                            .foregroundStyle(.tint)
+                        Text(latest)
+                            .font(.subheadline.monospaced())
                     }
-                } header: {
-                    Text("可用版本（\(versions.count)）")
                 }
             }
 
@@ -258,32 +254,6 @@ struct AppStoreDetailView: View {
                     }
                     if let github = detail.github, let url = URL(string: github) {
                         Link(destination: url) { Label("GitHub", systemImage: "network") }
-                    }
-                }
-            }
-
-            // 安装按钮
-            if detail.installed != true {
-                Section {
-                    Button {
-                        vm.showInstallSheet(for: detail)
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Label("安装此应用", systemImage: "square.and.arrow.down")
-                            Spacer()
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.blue)
-                }
-            } else {
-                Section {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                        Text("此应用已安装")
-                            .foregroundStyle(.secondary)
                     }
                 }
             }
