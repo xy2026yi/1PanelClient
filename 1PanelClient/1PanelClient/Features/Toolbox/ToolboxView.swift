@@ -70,8 +70,8 @@ struct ToolboxView: View {
         .navigationTitle("工具箱")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("关闭") { dismiss() }
+            ToolbarItem(placement: .topBarLeading) {
+                Button("返回") { dismiss() }
             }
         }
     }

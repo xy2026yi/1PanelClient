@@ -56,10 +56,22 @@ struct ManageTab: View {
             }
             .navigationTitle("管理")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("编辑") { showEditSheet = true }
+            .safeAreaInset(edge: .bottom) {
+                HStack {
+                    Spacer()
+                    Button {
+                        showEditSheet = true
+                    } label: {
+                        Text("编辑")
+                            .font(.body)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    Spacer()
                 }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(.bar)
             }
             .sheet(isPresented: $showEditSheet) {
                 ManageEditView(prefs: prefs)

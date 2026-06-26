@@ -86,13 +86,10 @@ struct SettingsTab: View {
 
             // MARK: - 关于
             Section("关于") {
-                LabeledContent("版本", value: "1.0.0")
+                LabeledContent("版本", value: "0.1.0")
                 LabeledContent("API 版本", value: "v2")
                 Link(destination: URL(string: "https://1panel.cn")!) {
                     Label("1Panel 官网", systemImage: "safari")
-                }
-                Link(destination: URL(string: "https://github.com/xy")!) {
-                    Label("项目源码", systemImage: "swift")
                 }
             }
         }
@@ -180,13 +177,10 @@ struct SettingsTabContent: View {
             }
 
             Section("关于") {
-                LabeledContent("版本", value: "1.0.0")
+                LabeledContent("版本", value: "0.1.0")
                 LabeledContent("API 版本", value: "v2")
                 Link(destination: URL(string: "https://1panel.cn")!) {
                     Label("1Panel 官网", systemImage: "safari")
-                }
-                Link(destination: URL(string: "https://github.com/xy")!) {
-                    Label("项目源码", systemImage: "swift")
                 }
             }
         }
