@@ -158,6 +158,7 @@ struct FirewallView: View {
     @State private var showAdd = false
     @State private var pendingUFWOp: String?
     @State private var editingRule: FirewallRule?
+    @State private var statusExpanded = false
 
     init(server: ServerConfig) {
         _vm = StateObject(wrappedValue: FirewallViewModel(server: server))
@@ -260,32 +261,66 @@ struct FirewallView: View {
         Section {
             if let base = vm.base {
                 if base.isExist == true {
+                    // 状态行：版本（上）+ 状态（下）+ 展开箭头
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text((base.name ?? "ufw").uppercased())
-                                .font(.system(.headline, design: .monospaced))
-                            if let v = base.version, !v.isEmpty {
-                                Text("v\(v)").font(.caption).foregroundStyle(.secondary)
+                            HStack(spacing: 4) {
+                                Text((base.name ?? "ufw").uppercased())
+                                    .font(.system(.headline, design: .monospaced))
+                                if let v = base.version, !v.isEmpty {
+                                    Text("v\(v)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill((base.isActive ?? false) ? Color.green : Color.gray)
+                                    .frame(width: 6, height: 6)
+                                Text((base.isActive ?? false) ? "Running" : "Stopped")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                         Spacer()
-                        Toggle("", isOn: Binding(
-                            get: { base.isActive ?? false },
-                            set: { active in
-                                pendingUFWOp = active ? "start" : "stop"
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                statusExpanded.toggle()
                             }
-                        ))
-                        .labelsHidden()
+                        } label: {
+                            Image(systemName: statusExpanded ? "chevron.up" : "chevron.down")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 24, height: 24)
+                        }
+                        .buttonStyle(.plain)
                         .disabled(vm.isOperating)
                     }
+                    .padding(.vertical, 2)
 
-                    Button {
-                        pendingUFWOp = "restart"
-                    } label: {
-                        Label("重启防火墙", systemImage: "arrow.clockwise")
+                    // 展开后显示：关闭/开启 + 重启
+                    if statusExpanded {
+                        HStack(spacing: 8) {
+                            firewallActionButton(
+                                title: (base.isActive ?? false) ? "关闭" : "开启",
+                                icon: (base.isActive ?? false) ? "stop.fill" : "play.fill",
+                                color: (base.isActive ?? false) ? .orange : .green
+                            ) {
+                                pendingUFWOp = (base.isActive ?? false) ? "stop" : "start"
+                            }
+                            firewallActionButton(
+                                title: "重启",
+                                icon: "arrow.triangle.2.circlepath",
+                                color: .blue
+                            ) {
+                                pendingUFWOp = "restart"
+                            }
+                        }
+                        .padding(.top, 2)
+                        .padding(.bottom, 2)
                     }
-                    .disabled(vm.isOperating || (base.isActive != true))
 
+                    // 禁 ping
                     Toggle(isOn: Binding(
                         get: { base.pingBlocked },
                         set: { block in Task { await vm.togglePing(block) } }
@@ -322,6 +357,31 @@ struct FirewallView: View {
         case "restart": return "重启防火墙"
         default:        return "操作防火墙"
         }
+    }
+
+    @ViewBuilder
+    private func firewallActionButton(
+        title: String,
+        icon: String,
+        color: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(color)
+                    .frame(width: 22, height: 22)
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+        .disabled(vm.isOperating)
     }
 }
 

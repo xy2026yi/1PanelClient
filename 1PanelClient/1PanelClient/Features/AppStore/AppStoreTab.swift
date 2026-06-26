@@ -288,7 +288,7 @@ struct AppStoreDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $vm.showInstall) {
+        .navigationDestination(isPresented: $vm.showInstall) {
             if let installDetail = vm.installDetail {
                 AppInstallView(detail: installDetail, vm: vm)
             }
@@ -347,48 +347,48 @@ struct AppInstallView: View {
     private let memoryUnits = ["M", "G"]
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if isLoadingDetail {
-                    ProgressView("加载安装参数…")
-                } else if let appDetail {
-                    installForm(appDetail)
-                } else {
-                    ContentUnavailableView {
-                        Label("无法加载安装参数", systemImage: "exclamationmark.triangle")
-                    } description: {
-                        Text(loadError ?? "请稍后重试，或尝试其他版本")
-                    } actions: {
-                        Button("重试") {
-                            Task { await loadDetail() }
-                        }
+        Group {
+            if isLoadingDetail {
+                ProgressView("加载安装参数…")
+            } else if let appDetail {
+                installForm(appDetail)
+            } else {
+                ContentUnavailableView {
+                    Label("无法加载安装参数", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(loadError ?? "请稍后重试，或尝试其他版本")
+                } actions: {
+                    Button("重试") {
+                        Task { await loadDetail() }
                     }
                 }
             }
-            .navigationTitle("安装 \(detail.name ?? "")")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { vm.showInstall = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("安装") {
-                        Task { await performInstall() }
-                    }
-                    .disabled(installName.isEmpty || vm.isInstalling)
-                }
-            }
-            .task { await loadDetail() }
-            // 安装结果的 alert 绑定在 sheet 自身，避免回到主页才弹
-            .alert("提示", isPresented: $showResultAlert) {
-                Button("好的", role: .cancel) {
-                    if installSuccess {
-                        vm.showInstall = false
+        }
+        .navigationTitle("安装 \(detail.name ?? "")")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await performInstall() }
+                } label: {
+                    if vm.isInstalling {
+                        ProgressView()
+                    } else {
+                        Text("安装").bold()
                     }
                 }
-            } message: {
-                Text(resultMessage)
+                .disabled(installName.isEmpty || vm.isInstalling)
             }
+        }
+        .task { await loadDetail() }
+        .alert("提示", isPresented: $showResultAlert) {
+            Button("好的", role: .cancel) {
+                if installSuccess {
+                    vm.showInstall = false
+                }
+            }
+        } message: {
+            Text(resultMessage)
         }
     }
 

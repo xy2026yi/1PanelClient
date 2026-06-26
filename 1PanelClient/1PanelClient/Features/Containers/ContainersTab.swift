@@ -1380,10 +1380,23 @@ struct ContainerCreateView: View {
             restartSection
             resourceSection
             advancedSection
-            createActionSection
         }
         .navigationTitle("创建容器")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await vm.createContainer(draft: draft) }
+                } label: {
+                    if vm.containerOperating {
+                        ProgressView()
+                    } else {
+                        Text("创建").bold()
+                    }
+                }
+                .disabled(vm.containerOperating || draft.name.isEmpty || draft.image.isEmpty)
+            }
+        }
         .task { await vm.loadCreateOptions() }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {
@@ -1611,30 +1624,6 @@ struct ContainerCreateView: View {
             Toggle("TTY", isOn: $draft.tty)
             Toggle("标准输入", isOn: $draft.openStdin)
         }
-    }
-
-    // MARK: 创建按钮
-
-    private var createActionSection: some View {
-        Section {
-            Button {
-                Task { await vm.createContainer(draft: draft) }
-            } label: {
-                HStack {
-                    Spacer()
-                    if vm.containerOperating {
-                        ProgressView().tint(.white)
-                    } else {
-                        Text("创建容器")
-                            .font(.headline)
-                    }
-                    Spacer()
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(vm.containerOperating || draft.name.isEmpty || draft.image.isEmpty)
-        }
-        .listRowBackground(Color.clear)
     }
 
     // MARK: 辅助

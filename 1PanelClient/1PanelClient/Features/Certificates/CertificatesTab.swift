@@ -91,7 +91,7 @@ struct CertificatesTab: View {
         .navigationDestination(for: WebsiteSSLCert.self) { cert in
             CertificateDetailView(cert: cert, vm: vm)
         }
-        .sheet(isPresented: $showUploadSheet) {
+        .navigationDestination(isPresented: $showUploadSheet) {
             UploadCertificateView(vm: vm)
         }
     }
@@ -228,7 +228,7 @@ struct CertificateDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showUpdateSheet) {
+        .navigationDestination(isPresented: $showUpdateSheet) {
             UploadCertificateView(vm: vm, existingCert: detail ?? cert)
         }
         .task { await loadDetail() }
@@ -314,75 +314,70 @@ struct UploadCertificateView: View {
     private var isUpdate: Bool { existingCert != nil }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Picker("上传方式", selection: $mode) {
-                        ForEach(UploadMode.allCases) { m in
-                            Text(m.rawValue).tag(m)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-
-                    TextField("备注（可选）", text: $description)
-                } header: {
-                    if isUpdate {
-                        Text("更新证书")
-                    } else {
-                        Text("上传方式")
-                    }
-                } footer: {
-                    if isUpdate {
-                        Text("将用新的证书内容替换「\(existingCert?.displayName ?? "")」。原证书的 ID 保持不变，已绑定该证书的网站会自动生效。")
-                    } else {
-                        EmptyView()
+        Form {
+            Section {
+                Picker("上传方式", selection: $mode) {
+                    ForEach(UploadMode.allCases) { m in
+                        Text(m.rawValue).tag(m)
                     }
                 }
+                .pickerStyle(.segmented)
 
-                switch mode {
-                case .paste:
-                    Section {
-                        TextEditor(text: $privateKey)
-                            .font(.system(.caption, design: .monospaced))
-                            .frame(minHeight: 120)
-                    } header: { Text("私钥（PRIVATE KEY）") }
-                    footer: { Text("粘贴以 -----BEGIN PRIVATE KEY----- 开头的完整内容") }
-
-                    Section {
-                        TextEditor(text: $certificate)
-                            .font(.system(.caption, design: .monospaced))
-                            .frame(minHeight: 120)
-                    } header: { Text("证书（CERTIFICATE）") }
-                    footer: { Text("粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容") }
-
-                case .local:
-                    Section {
-                        TextField("如 /home/user/privkey.pem", text: $privateKeyPath)
-                    } header: { Text("私钥文件路径") }
-
-                    Section {
-                        TextField("如 /home/user/fullchain.pem", text: $certificatePath)
-                    } header: { Text("证书文件路径") }
+                TextField("备注（可选）", text: $description)
+            } header: {
+                if isUpdate {
+                    Text("更新证书")
+                } else {
+                    Text("上传方式")
+                }
+            } footer: {
+                if isUpdate {
+                    Text("将用新的证书内容替换「\(existingCert?.displayName ?? "")」。原证书的 ID 保持不变，已绑定该证书的网站会自动生效。")
+                } else {
+                    EmptyView()
                 }
             }
-            .navigationTitle(isUpdate ? "更新证书" : "上传证书")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await submit() }
-                    } label: {
-                        if vm.isUploading {
-                            ProgressView()
-                        } else {
-                            Text(isUpdate ? "保存" : "上传").bold()
-                        }
+
+            switch mode {
+            case .paste:
+                Section {
+                    TextEditor(text: $privateKey)
+                        .font(.system(.caption, design: .monospaced))
+                        .frame(minHeight: 120)
+                } header: { Text("私钥（PRIVATE KEY）") }
+                footer: { Text("粘贴以 -----BEGIN PRIVATE KEY----- 开头的完整内容") }
+
+                Section {
+                    TextEditor(text: $certificate)
+                        .font(.system(.caption, design: .monospaced))
+                        .frame(minHeight: 120)
+                } header: { Text("证书（CERTIFICATE）") }
+                footer: { Text("粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容") }
+
+            case .local:
+                Section {
+                    TextField("如 /home/user/privkey.pem", text: $privateKeyPath)
+                } header: { Text("私钥文件路径") }
+
+                Section {
+                    TextField("如 /home/user/fullchain.pem", text: $certificatePath)
+                } header: { Text("证书文件路径") }
+            }
+        }
+        .navigationTitle(isUpdate ? "更新证书" : "上传证书")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if vm.isUploading {
+                        ProgressView()
+                    } else {
+                        Text(isUpdate ? "保存" : "上传").bold()
                     }
-                    .disabled(!canSubmit || vm.isUploading)
                 }
+                .disabled(!canSubmit || vm.isUploading)
             }
         }
     }

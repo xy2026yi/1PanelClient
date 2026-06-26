@@ -101,7 +101,7 @@ struct CronjobsTab: View {
             .padding(.bottom, 20)
             .accessibilityLabel("创建计划任务")
         }
-        .sheet(isPresented: $showCreateSheet) {
+        .navigationDestination(isPresented: $showCreateSheet) {
             CreateCronjobView(vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
     }
@@ -465,135 +465,130 @@ struct CreateCronjobView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("基本信息") {
-                    TextField("任务名称", text: $name)
+        Form {
+            Section("基本信息") {
+                TextField("任务名称", text: $name)
 
-                    Picker("任务类型", selection: $type) {
-                        ForEach(CronjobType.allCases) { t in
-                            Label(t.displayName, systemImage: t.icon).tag(t)
-                        }
+                Picker("任务类型", selection: $type) {
+                    ForEach(CronjobType.allCases) { t in
+                        Label(t.displayName, systemImage: t.icon).tag(t)
                     }
-                }
-
-                Section("执行周期") {
-                    Picker("周期", selection: $specType) {
-                        ForEach(SpecType.allCases) { s in
-                            Text(s.rawValue).tag(s)
-                        }
-                    }
-
-                    Stepper("小时：\(hour) 时", value: $hour, in: 0...23)
-                    Stepper("分钟：\(minute) 分", value: $minute, in: 0...59)
-
-                    if specType == .perWeek {
-                        Picker("星期", selection: $week) {
-                            ForEach(0..<7) { w in
-                                Text(weekDay(w)).tag(w)
-                            }
-                        }
-                    }
-                    if specType == .perMonth {
-                        Stepper("日期：\(day) 号", value: $day, in: 1...28)
-                    }
-                }
-
-                switch type {
-                case .shell:
-                    Section {
-                        Button {
-                            showScriptPicker = true
-                        } label: {
-                            Label("从脚本库选择", systemImage: "books.vertical")
-                                .foregroundStyle(Color.accentColor)
-                        }
-                        TextEditor(text: $script)
-                            .font(.system(.caption, design: .monospaced))
-                            .frame(minHeight: 160)
-                    } header: { Text("脚本内容") }
-
-                    Section {
-                        Picker("执行用户", selection: $user) {
-                            Text("默认（不指定）").tag("")
-                            ForEach(vm.systemUsers, id: \.self) { u in
-                                Text(u).tag(u)
-                            }
-                        }
-                    } header: {
-                        Text("执行设置")
-                    } footer: {
-                        Text("不指定用户时，服务器将以默认用户执行脚本。")
-                    }
-
-                case .app:
-                    Section("备份应用") {
-                        Picker("范围", selection: $appSelection) {
-                            Text("全部应用").tag("all")
-                            ForEach(vm.installedApps, id: \.id) { app in
-                                Text(app.name ?? "—").tag(app.key ?? "")
-                            }
-                        }
-                    }
-                    backupSection
-
-                case .website:
-                    Section("备份网站") {
-                        Picker("范围", selection: $websiteSelection) {
-                            Text("全部网站").tag("all")
-                            ForEach(vm.websiteOptions, id: \.id) { site in
-                                Text(site.alias ?? site.primaryDomain ?? "—").tag(String(site.id))
-                            }
-                        }
-                    }
-                    backupSection
-
-                case .database:
-                    Section("备份数据库") {
-                        Picker("范围", selection: $dbSelection) {
-                            Text("全部数据库").tag("all")
-                        }
-                    }
-                    backupSection
-
-                case .snapshot:
-                    backupSection
                 }
             }
-            .navigationTitle("创建计划任务")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") { dismiss() }
+
+            Section("执行周期") {
+                Picker("周期", selection: $specType) {
+                    ForEach(SpecType.allCases) { s in
+                        Text(s.rawValue).tag(s)
+                    }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+
+                Stepper("小时：\(hour) 时", value: $hour, in: 0...23)
+                Stepper("分钟：\(minute) 分", value: $minute, in: 0...59)
+
+                if specType == .perWeek {
+                    Picker("星期", selection: $week) {
+                        ForEach(0..<7) { w in
+                            Text(weekDay(w)).tag(w)
+                        }
+                    }
+                }
+                if specType == .perMonth {
+                    Stepper("日期：\(day) 号", value: $day, in: 1...28)
+                }
+            }
+
+            switch type {
+            case .shell:
+                Section {
                     Button {
-                        Task { await submit() }
+                        showScriptPicker = true
                     } label: {
-                        if vm.isCreating {
-                            ProgressView()
-                        } else {
-                            Text("创建").bold()
+                        Label("从脚本库选择", systemImage: "books.vertical")
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    TextEditor(text: $script)
+                        .font(.system(.caption, design: .monospaced))
+                        .frame(minHeight: 160)
+                } header: { Text("脚本内容") }
+
+                Section {
+                    Picker("执行用户", selection: $user) {
+                        Text("默认（不指定）").tag("")
+                        ForEach(vm.systemUsers, id: \.self) { u in
+                            Text(u).tag(u)
                         }
                     }
-                    .disabled(name.isEmpty || vm.isCreating)
+                } header: {
+                    Text("执行设置")
+                } footer: {
+                    Text("不指定用户时，服务器将以默认用户执行脚本。")
                 }
-            }
-            .task {
-                await vm.loadCreateOptions()
-            }
-            .sheet(isPresented: $showScriptPicker) {
-                NavigationStack {
-                    ScriptLibraryView(server: server) { picked in
-                        if let code = picked.script, !code.isEmpty {
-                            script = code
+
+            case .app:
+                Section("备份应用") {
+                    Picker("范围", selection: $appSelection) {
+                        Text("全部应用").tag("all")
+                        ForEach(vm.installedApps, id: \.id) { app in
+                            Text(app.name ?? "—").tag(app.key ?? "")
                         }
-                        showScriptPicker = false
                     }
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button("取消") { showScriptPicker = false }
+                }
+                backupSection
+
+            case .website:
+                Section("备份网站") {
+                    Picker("范围", selection: $websiteSelection) {
+                        Text("全部网站").tag("all")
+                        ForEach(vm.websiteOptions, id: \.id) { site in
+                            Text(site.alias ?? site.primaryDomain ?? "—").tag(String(site.id))
                         }
+                    }
+                }
+                backupSection
+
+            case .database:
+                Section("备份数据库") {
+                    Picker("范围", selection: $dbSelection) {
+                        Text("全部数据库").tag("all")
+                    }
+                }
+                backupSection
+
+            case .snapshot:
+                backupSection
+            }
+        }
+        .navigationTitle("创建计划任务")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if vm.isCreating {
+                        ProgressView()
+                    } else {
+                        Text("创建").bold()
+                    }
+                }
+                .disabled(name.isEmpty || vm.isCreating)
+            }
+        }
+        .task {
+            await vm.loadCreateOptions()
+        }
+        .sheet(isPresented: $showScriptPicker) {
+            NavigationStack {
+                ScriptLibraryView(server: server) { picked in
+                    if let code = picked.script, !code.isEmpty {
+                        script = code
+                    }
+                    showScriptPicker = false
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("取消") { showScriptPicker = false }
                     }
                 }
             }
