@@ -445,7 +445,12 @@ struct UpgradeSheetView: View {
         .navigationTitle("升级 \(app.displayName)")
         .navigationBarTitleDisplayMode(.inline)
         .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+            Button("好的", role: .cancel) {
+                if vm.pendingDismissUpgrade {
+                    vm.pendingDismissUpgrade = false
+                    vm.showUpgradeSheet = false
+                }
+            }
         } message: {
             Text(vm.alertMessage)
         }
@@ -1479,6 +1484,8 @@ final class AppsViewModel: ObservableObject {
     // 操作提示
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// alert 确认后自动返回上一层（用于忽略升级成功后）
+    @Published var pendingDismissUpgrade = false
 
     // 卸载相关
     @Published var isUninstalling = false
@@ -1701,9 +1708,8 @@ final class AppsViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showUpgradeSheet = false
-            // 延迟显示 alert，避免 sheet 关闭动画"吞掉" alert 状态
-            try? await Task.sleep(for: .milliseconds(300))
+            // 先弹窗提示，确认后再返回上一层
+            pendingDismissUpgrade = true
             showAlert(message: successMsg)
             // 不立即修改 apps 数组（会破坏 NavigationStack），标记返回列表时再刷新
             needsRefresh = true
