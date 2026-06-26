@@ -146,6 +146,7 @@ struct OpenRestyCard: View {
     @ObservedObject var manager: ServerManager
     @State private var isExpanded = false
     @State private var showConfigAlert = false
+    @State private var pendingAction: String?
 
     init(vm: WebsitesViewModel, manager: ServerManager) {
         self.vm = vm
@@ -183,6 +184,45 @@ struct OpenRestyCard: View {
         } message: {
             Text("OpenResty 配置编辑暂未开放")
         }
+        .alert(
+            pendingAction.map { openRestyActionDisplayName($0) } ?? "",
+            isPresented: Binding(
+                get: { pendingAction != nil },
+                set: { if !$0 { pendingAction = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingAction = nil }
+            Button("确认", role: .destructive) { executeOpenRestyAction() }
+        } message: {
+            if let action = pendingAction {
+                Text("将对 OpenResty 进行 \(openRestyActionDisplayName(action)) 操作，是否继续？")
+            }
+        }
+    }
+
+    private func openRestyActionDisplayName(_ action: String) -> String {
+        switch action {
+        case "stop":    return "停止"
+        case "start":   return "启动"
+        case "restart": return "重启"
+        case "reload":  return "重载"
+        default:        return action
+        }
+    }
+
+    private func executeOpenRestyAction() {
+        let action = pendingAction
+        pendingAction = nil
+        guard let action else { return }
+        let op: AppOperation
+        switch action {
+        case "stop":    op = .stop
+        case "start":   op = .start
+        case "restart": op = .restart
+        case "reload":  op = .reload
+        default:        return
+        }
+        Task { await vm.operateOpenResty(op: op) }
     }
 
     @ViewBuilder
@@ -242,21 +282,21 @@ struct OpenRestyCard: View {
                 icon: app.isRunning ? "stop.fill" : "play.fill",
                 color: app.isRunning ? .orange : .green
             ) {
-                Task { await vm.operateOpenResty(op: app.isRunning ? .stop : .start) }
+                pendingAction = app.isRunning ? "stop" : "start"
             }
             actionButton(
                 title: "重启",
                 icon: "arrow.triangle.2.circlepath",
                 color: .blue
             ) {
-                Task { await vm.operateOpenResty(op: .restart) }
+                pendingAction = "restart"
             }
             actionButton(
                 title: "重载",
                 icon: "arrow.clockwise",
                 color: .teal
             ) {
-                Task { await vm.operateOpenResty(op: .reload) }
+                pendingAction = "reload"
             }
             actionButton(
                 title: "配置",
@@ -313,6 +353,7 @@ struct WebsiteDetailView: View {
     @State private var isLoadingDetail = false
     @State private var showDeleteSheet = false
     @State private var isOperating = false
+    @State private var pendingToggle: Bool?
 
     var body: some View {
         List {
@@ -332,7 +373,7 @@ struct WebsiteDetailView: View {
                     Toggle("操作", isOn: Binding(
                         get: { (d.status ?? "").lowercased() == "running" },
                         set: { newVal in
-                            Task { await toggleStatus(current: d.status, to: newVal) }
+                            pendingToggle = newVal
                         }
                     ))
                     .disabled(isOperating)
@@ -410,6 +451,23 @@ struct WebsiteDetailView: View {
         }
         .sheet(isPresented: $showDeleteSheet) {
             WebsiteDeleteSheet(website: website, vm: vm)
+        }
+        .alert(
+            (pendingToggle == true) ? "启动" : "停止",
+            isPresented: Binding(
+                get: { pendingToggle != nil },
+                set: { if !$0 { pendingToggle = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingToggle = nil }
+            Button("确认", role: .destructive) {
+                let target = pendingToggle
+                pendingToggle = nil
+                guard let target else { return }
+                Task { await toggleStatus(current: detail?.status, to: target) }
+            }
+        } message: {
+            Text("将对网站「\(website.displayName)」进行 \(pendingToggle == true ? "启动" : "停止") 操作，是否继续？")
         }
     }
 

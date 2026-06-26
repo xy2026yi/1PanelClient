@@ -38,9 +38,6 @@ struct ContainersTab: View {
                 rootContent
             }
         }
-        .fullScreenCover(isPresented: $showImages) {
-            ContainerImageView(vm: vm, showCloseButton: true)
-        }
         .task { await vm.refresh() }
     }
 
@@ -96,6 +93,9 @@ struct ContainersTab: View {
         .navigationDestination(isPresented: $showCreate) {
             ContainerCreateView(vm: vm)
         }
+        .navigationDestination(isPresented: $showImages) {
+            ContainerImageView(vm: vm)
+        }
     }
 
     private var containerList: some View {
@@ -134,6 +134,7 @@ struct DockerStatusCard: View {
     @ObservedObject var vm: ContainersViewModel
     var onShowImages: () -> Void = {}
     @State private var isExpanded = false
+    @State private var pendingAction: String?
 
     var body: some View {
         Section {
@@ -165,6 +166,43 @@ struct DockerStatusCard: View {
                     }
                 }
                 .padding(.vertical, 4)
+            }
+        }
+        .alert(
+            pendingAction.map { actionDisplayName($0) } ?? "",
+            isPresented: Binding(
+                get: { pendingAction != nil },
+                set: { if !$0 { pendingAction = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingAction = nil }
+            Button("确认", role: .destructive) { executePendingAction() }
+        } message: {
+            if let action = pendingAction {
+                Text("将对 Docker 进行 \(actionDisplayName(action)) 操作，是否继续？")
+            }
+        }
+    }
+
+    private func actionDisplayName(_ action: String) -> String {
+        switch action {
+        case "stop":   return "停止"
+        case "start":  return "启动"
+        case "restart":return "重启"
+        case "prune":  return "清理容器"
+        default:       return action
+        }
+    }
+
+    private func executePendingAction() {
+        let action = pendingAction
+        pendingAction = nil
+        guard let action else { return }
+        Task {
+            if action == "prune" {
+                await vm.pruneContainers()
+            } else {
+                await vm.operateDocker(operation: action)
             }
         }
     }
@@ -215,21 +253,21 @@ struct DockerStatusCard: View {
                 icon: isRunning ? "stop.fill" : "play.fill",
                 color: isRunning ? .orange : .green
             ) {
-                Task { await vm.operateDocker(operation: isRunning ? "stop" : "start") }
+                pendingAction = isRunning ? "stop" : "start"
             }
             actionButton(
                 title: "重启",
                 icon: "arrow.triangle.2.circlepath",
                 color: .blue
             ) {
-                Task { await vm.operateDocker(operation: "restart") }
+                pendingAction = "restart"
             }
             actionButton(
                 title: "清理容器",
                 icon: "trash",
                 color: .pink
             ) {
-                Task { await vm.pruneContainers() }
+                pendingAction = "prune"
             }
             actionButton(
                 title: "镜像",
@@ -346,6 +384,7 @@ struct ContainerDetailView: View {
     @State private var showTerminalCommandPicker = false
     @State private var terminalCommand = "/bin/sh"
     @State private var pendingDelete = false
+    @State private var pendingAction: String?
 
     var body: some View {
         List {
@@ -384,21 +423,20 @@ struct ContainerDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    // 根据状态显示 启动/停止
                     if container.state.lowercased() == "running" {
                         Button(role: .destructive) {
-                            Task { await vm.operateContainer(name: container.name, operation: "stop") }
+                            pendingAction = "stop"
                         } label: { Label("停止", systemImage: "stop.fill") }
                     } else {
                         Button {
-                            Task { await vm.operateContainer(name: container.name, operation: "start") }
+                            pendingAction = "start"
                         } label: { Label("启动", systemImage: "play.fill") }
                     }
                     Button {
-                        Task { await vm.operateContainer(name: container.name, operation: "restart") }
+                        pendingAction = "restart"
                     } label: { Label("重启", systemImage: "arrow.triangle.2.circlepath") }
                     Button(role: .destructive) {
-                        Task { await vm.operateContainer(name: container.name, operation: "kill") }
+                        pendingAction = "kill"
                     } label: { Label("关闭", systemImage: "xmark") }
                     Divider()
                     Button {
@@ -459,6 +497,20 @@ struct ContainerDetailView: View {
         } message: {
             Text("确定删除容器「\(container.displayName)」吗？删除后不可恢复。")
         }
+        .alert(
+            pendingAction.map { containerActionDisplayName($0) } ?? "",
+            isPresented: Binding(
+                get: { pendingAction != nil },
+                set: { if !$0 { pendingAction = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingAction = nil }
+            Button("确认", role: .destructive) { executeContainerAction() }
+        } message: {
+            if let action = pendingAction {
+                Text("将对容器进行 \(containerActionDisplayName(action)) 操作，是否继续？")
+            }
+        }
         // 容器操作（停止/启动/重启/关闭/升级）结果走 VM 的 alert，
         // 详情页也要绑定，否则操作后弹窗只在列表页显示
         .alert("提示", isPresented: $vm.showAlert) {
@@ -466,6 +518,23 @@ struct ContainerDetailView: View {
         } message: {
             Text(vm.alertMessage)
         }
+    }
+
+    private func containerActionDisplayName(_ action: String) -> String {
+        switch action {
+        case "stop":    return "停止"
+        case "start":   return "启动"
+        case "restart": return "重启"
+        case "kill":    return "关闭"
+        default:        return action
+        }
+    }
+
+    private func executeContainerAction() {
+        let action = pendingAction
+        pendingAction = nil
+        guard let action else { return }
+        Task { await vm.operateContainer(name: container.name, operation: action) }
     }
 
     private func notify(_ feature: String, message: String? = nil) {
@@ -813,62 +882,51 @@ struct ContainerEditView: View {
 
 struct ContainerImageView: View {
     @ObservedObject var vm: ContainersViewModel
-    @Environment(\.dismiss) private var dismiss
-    var showCloseButton: Bool = true
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if vm.isLoadingImages && vm.images.isEmpty {
-                    ProgressView("加载镜像…")
-                } else if vm.images.isEmpty {
-                    ContentUnavailableView(
-                        "暂无镜像",
-                        systemImage: "square.stack.3d.up",
-                        description: Text(vm.errorMessage ?? "这台服务器上没有镜像")
-                    )
-                } else {
-                    List {
-                        ForEach(vm.images) { img in
-                            ImageRow(image: img)
-                        }
-                    }
-                    .listStyle(.insetGrouped)
-                    .refreshable { await vm.loadImages() }
-                }
-            }
-            .navigationTitle("镜像")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if showCloseButton {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { dismiss() } label: {
-                            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                        }
+        Group {
+            if vm.isLoadingImages && vm.images.isEmpty {
+                ProgressView("加载镜像…")
+            } else if vm.images.isEmpty {
+                ContentUnavailableView(
+                    "暂无镜像",
+                    systemImage: "square.stack.3d.up",
+                    description: Text(vm.errorMessage ?? "这台服务器上没有镜像")
+                )
+            } else {
+                List {
+                    ForEach(vm.images) { img in
+                        ImageRow(image: img)
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            Task { await vm.pruneImages(withTagAll: false) }
-                        } label: { Label("清理未标签镜像", systemImage: "trash") }
-                        Button {
-                            Task { await vm.pruneImages(withTagAll: true) }
-                        } label: { Label("清理未使用镜像", systemImage: "trash.slash") }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                    .disabled(vm.imageOperating)
+                .listStyle(.insetGrouped)
+                .refreshable { await vm.loadImages() }
+            }
+        }
+        .navigationTitle("镜像")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        Task { await vm.pruneImages(withTagAll: false) }
+                    } label: { Label("清理未标签镜像", systemImage: "trash") }
+                    Button {
+                        Task { await vm.pruneImages(withTagAll: true) }
+                    } label: { Label("清理未使用镜像", systemImage: "trash.slash") }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
+                .disabled(vm.imageOperating)
             }
-            .alert("提示", isPresented: $vm.showAlert) {
-                Button("好的", role: .cancel) {}
-            } message: {
-                Text(vm.alertMessage)
-            }
-            .task {
-                if vm.images.isEmpty { await vm.loadImages() }
-            }
+        }
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
+        .task {
+            if vm.images.isEmpty { await vm.loadImages() }
         }
     }
 }
