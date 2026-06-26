@@ -28,23 +28,24 @@ struct AppsTab: View {
     }
 
     var body: some View {
-        if standalone {
-            NavigationStack {
+        Group {
+            if standalone {
+                NavigationStack {
+                    rootContent
+                }
+            } else {
                 rootContent
             }
-            .fullScreenCover(isPresented: $showStore) {
-                AppStoreTab(manager: manager, showCloseButton: true, standalone: true)
-            }
-            .alert("提示", isPresented: $vm.showAlert) {
-                Button("好的", role: .cancel) {}
-            } message: {
-                Text(vm.alertMessage)
-            }
-            .task { await vm.refresh() }
-        } else {
-            rootContent
-                .task { await vm.refresh() }
         }
+        .fullScreenCover(isPresented: $showStore) {
+            AppStoreTab(manager: manager, showCloseButton: true, standalone: true)
+        }
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
+        .task { await vm.refresh() }
     }
 
     /// 列表根内容（不含 NavigationStack），供 ManageTab 嵌入复用

@@ -29,18 +29,19 @@ struct ContainersTab: View {
     }
 
     var body: some View {
-        if standalone {
-            NavigationStack {
+        Group {
+            if standalone {
+                NavigationStack {
+                    rootContent
+                }
+            } else {
                 rootContent
             }
-            .fullScreenCover(isPresented: $showImages) {
-                ContainerImageView(vm: vm, showCloseButton: true)
-            }
-            .task { await vm.refresh() }
-        } else {
-            rootContent
-                .task { await vm.refresh() }
         }
+        .fullScreenCover(isPresented: $showImages) {
+            ContainerImageView(vm: vm, showCloseButton: true)
+        }
+        .task { await vm.refresh() }
     }
 
     /// 列表根内容（不含 NavigationStack），供 ManageTab 嵌入复用

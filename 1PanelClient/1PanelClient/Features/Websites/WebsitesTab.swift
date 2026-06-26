@@ -29,21 +29,22 @@ struct WebsitesTab: View {
     }
 
     var body: some View {
-        if standalone {
-            NavigationStack {
+        Group {
+            if standalone {
+                NavigationStack {
+                    rootContent
+                }
+            } else {
                 rootContent
             }
-            .fullScreenCover(isPresented: $showCerts) {
-                CertificatesTab(manager: manager, showCloseButton: true, standalone: true)
-            }
-            .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-                Button("好", role: .cancel) {}
-            }
-            .task { await vm.refresh() }
-        } else {
-            rootContent
-                .task { await vm.refresh() }
         }
+        .fullScreenCover(isPresented: $showCerts) {
+            CertificatesTab(manager: manager, showCloseButton: true, standalone: true)
+        }
+        .alert(vm.alertMessage, isPresented: $vm.showAlert) {
+            Button("好", role: .cancel) {}
+        }
+        .task { await vm.refresh() }
     }
 
     /// 列表根内容（不含 NavigationStack）

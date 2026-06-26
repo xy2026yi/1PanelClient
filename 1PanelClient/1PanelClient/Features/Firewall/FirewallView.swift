@@ -155,7 +155,6 @@ final class FirewallViewModel: ObservableObject {
 
 struct FirewallView: View {
     @StateObject private var vm: FirewallViewModel
-    @Environment(\.dismiss) private var dismiss
     @State private var showAdd = false
     @State private var pendingUFWOp: String?
     @State private var editingRule: FirewallRule?
@@ -199,14 +198,6 @@ struct FirewallView: View {
         }
         .navigationTitle("防火墙")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
         .refreshable { await vm.refresh() }
         .task {
             if vm.base == nil {

@@ -56,7 +56,6 @@ final class DatabasesViewModel: ObservableObject {
 
 struct DatabasesView: View {
     @StateObject private var vm: DatabasesViewModel
-    @Environment(\.dismiss) private var dismiss
 
     init(server: ServerConfig) {
         _vm = StateObject(wrappedValue: DatabasesViewModel(server: server))
@@ -74,13 +73,6 @@ struct DatabasesView: View {
         }
         .navigationTitle("数据库")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-            }
-        }
         .refreshable { await vm.loadSystems() }
         .task {
             if vm.systems.isEmpty { await vm.loadSystems() }

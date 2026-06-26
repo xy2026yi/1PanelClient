@@ -12,10 +12,10 @@ import Combine
 struct ManageTab: View {
     @ObservedObject var manager: ServerManager
     @StateObject private var prefs = ManagePrefs()
-    @State private var presentedItem: ManageItem?
+    @State private var navPath = NavigationPath()
     @State private var showEditSheet = false
 
-    /// 跨 Tab 跳转入口：外部（如 OverviewTab）设置此值时，自动打开对应 fullScreen
+    /// 跨 Tab 跳转入口：外部（如 OverviewTab）设置此值时，自动 push 到对应页面
     @Binding var initialItem: ManageItem?
 
     init(manager: ServerManager, initialItem: Binding<ManageItem?> = .constant(nil)) {
@@ -32,23 +32,13 @@ struct ManageTab: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             List {
                 ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
-                    if group.title.isEmpty {
-                        Section {
-                            ForEach(group.items) { item in
-                                if prefs.isEnabled(item) {
-                                    manageRow(item)
-                                }
-                            }
-                        }
-                    } else {
-                        Section(group.title) {
-                            ForEach(group.items) { item in
-                                if prefs.isEnabled(item) {
-                                    manageRow(item)
-                                }
+                    Section {
+                        ForEach(group.items) { item in
+                            if prefs.isEnabled(item) {
+                                manageRow(item)
                             }
                         }
                     }
@@ -69,19 +59,18 @@ struct ManageTab: View {
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: ManageItem.self) { item in
+                destination(for: item)
+            }
             .sheet(isPresented: $showEditSheet) {
                 ManageEditView(prefs: prefs)
                     .presentationDetents([.medium])
             }
         }
-        .fullScreenCover(item: $presentedItem) { item in
-            destination(for: item)
-        }
         .onChange(of: initialItem) { _, newItem in
             guard let newItem else { return }
-            // 仅 available 的项才会真正打开；其它项忽略并清空
             if newItem.available {
-                presentedItem = newItem
+                navPath.append(newItem)
             }
             initialItem = nil
         }
@@ -90,11 +79,7 @@ struct ManageTab: View {
 
     @ViewBuilder
     private func manageRow(_ item: ManageItem) -> some View {
-        Button {
-            if item.available {
-                presentedItem = item
-            }
-        } label: {
+        NavigationLink(value: item) {
             HStack(spacing: 14) {
                 IconBadge(systemName: item.icon, color: item.color, size: 38, cornerRadius: 10)
 
@@ -108,58 +93,43 @@ struct ManageTab: View {
 
                 Spacer()
 
-                if item.available {
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                } else {
+                if !item.available {
                     StatusBadge(text: "敬请期待", color: .secondary, backgroundOpacity: 0.1)
                 }
             }
             .padding(.vertical, 2)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
         .disabled(!item.available)
     }
 
-    /// fullScreen 目标（每个功能自带 NavigationStack）
+    /// push 目标（由外层 NavigationStack 提供导航栏与返回按钮）
     @ViewBuilder
     private func destination(for item: ManageItem) -> some View {
+        let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         switch item {
         case .apps:
-            AppsTab(manager: manager)
+            AppsTab(manager: manager, showCloseButton: false, standalone: false)
         case .websites:
-            WebsitesTab(manager: manager)
+            WebsitesTab(manager: manager, showCloseButton: false, standalone: false)
         case .containers:
-            ContainersTab(manager: manager)
+            ContainersTab(manager: manager, showCloseButton: false, standalone: false)
         case .cronjob:
-            CronjobsTab(manager: manager)
+            CronjobsTab(manager: manager, showCloseButton: false, standalone: false)
         case .firewall:
-            NavigationStack {
-                FirewallView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
-            }
+            FirewallView(server: server)
         case .database:
-            NavigationStack {
-                DatabasesView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
-            }
+            DatabasesView(server: server)
         case .terminal:
-            NavigationStack {
-                TerminalView(
-                    server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
-                    target: .host(cols: 80, rows: 24),
-                    title: manager.current?.name,
-                    showCloseButton: true
-                )
-            }
+            TerminalView(
+                server: server,
+                target: .host(cols: 80, rows: 24),
+                title: manager.current?.name,
+                showCloseButton: false
+            )
         case .process:
-            NavigationStack {
-                ProcessView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
-            }
+            ProcessView(server: server)
         case .toolbox:
-            NavigationStack {
-                ToolboxView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
-            }
+            ToolboxView(server: server)
         default:
             EmptyView()
         }

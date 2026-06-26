@@ -10,8 +10,6 @@ import SwiftUI
 struct ToolboxView: View {
     let server: ServerConfig
 
-    @Environment(\.dismiss) private var dismiss
-
     var body: some View {
         List {
             NavigationLink {
@@ -69,11 +67,6 @@ struct ToolboxView: View {
         }
         .navigationTitle("工具箱")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("返回") { dismiss() }
-            }
-        }
     }
 
     private func toolRow(icon: String, color: Color, title: String, subtitle: String, available: Bool = true) -> some View {
