@@ -47,6 +47,7 @@ enum APIEndpoint {
     case websitesCheck            // POST 创建前环境检查
     case websitesSSLSearch        // POST 获取 SSL 证书列表（用于创建时选择）
     case websitesDelete           // POST 删除网站（含选项）
+    case websitesOperate          // POST 网站操作（start/stop）
     case websitesDetail           // GET  网站详情（:id 路径参数）
     case websitesNginxConfig      // GET  获取 nginx 配置（:id 路径参数）
     case websitesNginxUpdate      // POST 更新 nginx 配置
@@ -213,6 +214,7 @@ enum APIEndpoint {
         case .websitesCheck:         return "/api/v2/websites/check"
         case .websitesSSLSearch:     return "/api/v2/websites/ssl/search"
         case .websitesDelete:        return "/api/v2/websites/del"
+        case .websitesOperate:       return "/api/v2/websites/operate"
         case .websitesDetail:        return "/api/v2/websites/:id"
         case .websitesNginxConfig:   return "/api/v2/websites/:id/config/openresty"
         case .websitesNginxUpdate:   return "/api/v2/websites/nginx/update"

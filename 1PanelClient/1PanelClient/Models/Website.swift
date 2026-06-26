@@ -155,6 +155,7 @@ struct WebsiteSSL: Decodable, Identifiable, Hashable, Sendable {
 enum WebsiteType: String, CaseIterable, Identifiable {
     case deployment = "deployment"
     case proxy = "proxy"
+    case staticSite = "static"
 
     var id: String { rawValue }
 
@@ -162,6 +163,7 @@ enum WebsiteType: String, CaseIterable, Identifiable {
         switch self {
         case .deployment: return "一键部署"
         case .proxy:      return "反向代理"
+        case .staticSite: return "静态网站"
         }
     }
 
@@ -169,6 +171,7 @@ enum WebsiteType: String, CaseIterable, Identifiable {
         switch self {
         case .deployment: return "square.and.arrow.down"
         case .proxy:      return "arrow.left.arrow.right"
+        case .staticSite: return "folder"
         }
     }
 
@@ -176,6 +179,7 @@ enum WebsiteType: String, CaseIterable, Identifiable {
         switch self {
         case .deployment: return "部署已安装的网站类应用（WordPress 等）"
         case .proxy:      return "将域名反向代理到指定地址"
+        case .staticSite: return "提供静态文件托管（HTML/CSS/JS）"
         }
     }
 }

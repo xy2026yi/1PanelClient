@@ -312,133 +312,94 @@ struct WebsiteDetailView: View {
     @State private var detail: WebsiteFull?
     @State private var isLoadingDetail = false
     @State private var showDeleteSheet = false
-    @State private var showNginxSheet = false
-    @State private var showLogSheet = false
-    @State private var logType: WebsiteLogType = .access
+    @State private var isOperating = false
 
     var body: some View {
         List {
-            // 基本信息（优先用完整详情）
-            Section("基本信息") {
-                if isLoadingDetail && detail == nil {
-                    HStack { ProgressView(); Text("加载中…") }
-                } else if let d = detail {
-                    LabeledRow("主域名", value: d.primaryDomain ?? "—")
+            if isLoadingDetail && detail == nil {
+                Section { HStack { ProgressView(); Text("加载中…") } }
+            } else if let d = detail {
+                Section {
                     if let alias = d.alias, !alias.isEmpty {
                         LabeledRow("别名", value: alias)
                     }
-                    LabeledRow("类型", value: website.typeDisplayName)
-                    if let p = d.protocolStr, !p.isEmpty {
-                        LabeledRow("协议", value: p)
+                    HStack {
+                        Text("状态").foregroundStyle(.secondary)
+                        Spacer()
+                        Text(d.status ?? "—")
+                            .foregroundStyle(statusColor(d.status))
                     }
-                    if let cfg = d.httpConfig, !cfg.isEmpty {
-                        LabeledRow("HTTP 配置", value: httpConfigName(cfg))
+                    Toggle("操作", isOn: Binding(
+                        get: { (d.status ?? "").lowercased() == "running" },
+                        set: { newVal in
+                            Task { await toggleStatus(current: d.status, to: newVal) }
+                        }
+                    ))
+                    .disabled(isOperating)
+                    if let port = d.primaryDomain, !port.isEmpty {
+                        LabeledRow("主域名", value: port)
                     }
-                } else {
+                    NavigationLink {
+                        WebsiteHTTPSView(websiteId: website.id, vm: vm)
+                    } label: {
+                        HStack {
+                            Text("HTTPS").foregroundStyle(.secondary)
+                            Spacer()
+                            if d.webSiteSSLId ?? 0 > 0 {
+                                Image(systemName: "lock.fill")
+                                    .foregroundStyle(.green)
+                                    .font(.caption)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    LabeledRow("类型", value: d.type ?? website.typeDisplayName)
+                    NavigationLink {
+                        WebsiteLogPage(websiteId: website.id, vm: vm)
+                    } label: {
+                        Text("日志").foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    if let p = d.sitePath, !p.isEmpty {
+                        LabeledRow("根目录", value: p)
+                    }
+                    if let created = d.createdAt, !created.isEmpty {
+                        LabeledRow("创建时间", value: String(created.prefix(19)))
+                    }
+                }
+            } else {
+                Section {
                     LabeledRow("主域名", value: website.primaryDomain ?? "—")
                     LabeledRow("类型", value: website.typeDisplayName)
                 }
             }
-
-            // 域名列表（完整详情）
-            if let domains = detail?.domains, !domains.isEmpty {
-                Section("域名 (\(domains.count))") {
-                    ForEach(domains, id: \.id) { dom in
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack {
-                                Text(dom.domain ?? "—")
-                                    .font(.subheadline.bold())
-                                if dom.ssl == true {
-                                    Image(systemName: "lock.fill")
-                                        .font(.caption2)
-                                        .foregroundStyle(.green)
-                                }
-                            }
-                            if let port = dom.port {
-                                Text("端口 \(port)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 反向代理信息
-            if let proxy = detail?.proxy ?? website.proxy, !proxy.isEmpty {
-                Section("反向代理") {
-                    LabeledRow("代理地址", value: proxy)
-                }
-            }
-
-            // 配置中心
-            Section("配置中心") {
-                NavigationLink {
-                    WebsiteNginxView(websiteId: website.id, vm: vm)
-                } label: {
-                    Label("配置文件", systemImage: "doc.text")
-                }
-                NavigationLink {
-                    WebsiteHTTPSView(websiteId: website.id, vm: vm)
-                } label: {
-                    Label("HTTPS", systemImage: "lock.shield")
-                }
-                NavigationLink {
-                    WebsiteProxiesView(websiteId: website.id, vm: vm)
-                } label: {
-                    Label("反向代理", systemImage: "arrow.left.arrow.right")
-                }
-                Button {
-                    logType = .access
-                    showLogSheet = true
-                } label: {
-                    Label("访问日志", systemImage: "list.bullet.rectangle")
-                }
-                Button {
-                    logType = .error
-                    showLogSheet = true
-                } label: {
-                    Label("错误日志", systemImage: "exclamationmark.triangle")
-                }
-            }
-
-            // 路径
-            if let d = detail {
-                Section("路径") {
-                    if let p = d.sitePath, !p.isEmpty {
-                        LabeledRow("网站目录", value: p)
-                    }
-                    if let p = d.accessLogPath, !p.isEmpty {
-                        LabeledRow("访问日志", value: p)
-                    }
-                    if let p = d.errorLogPath, !p.isEmpty {
-                        LabeledRow("错误日志", value: p)
-                    }
-                }
-            } else if let dir = website.siteDir, !dir.isEmpty {
-                Section("路径") {
-                    Text(dir)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                }
-            }
-
-            // 危险操作
-            Section {
-                Button(role: .destructive) {
-                    showDeleteSheet = true
-                } label: {
-                    Label("删除网站", systemImage: "trash")
-                }
-            } header: {
-                Text("危险操作")
-            } footer: {
-                Text("删除将移除网站配置及相关文件")
-            }
         }
         .navigationTitle(website.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    NavigationLink {
+                        WebsiteProxiesView(websiteId: website.id, vm: vm)
+                    } label: {
+                        Label("反向代理", systemImage: "arrow.left.arrow.right")
+                    }
+                    NavigationLink {
+                        WebsiteNginxView(websiteId: website.id, vm: vm)
+                    } label: {
+                        Label("配置文件", systemImage: "doc.text")
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                        showDeleteSheet = true
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
         .task {
             await loadDetail()
         }
@@ -450,9 +411,6 @@ struct WebsiteDetailView: View {
         .sheet(isPresented: $showDeleteSheet) {
             WebsiteDeleteSheet(website: website, vm: vm)
         }
-        .sheet(isPresented: $showLogSheet) {
-            WebsiteLogView(websiteId: website.id, logType: logType, vm: vm)
-        }
     }
 
     private func loadDetail() async {
@@ -461,13 +419,20 @@ struct WebsiteDetailView: View {
         detail = await vm.loadDetail(id: website.id)
     }
 
-    private func httpConfigName(_ cfg: String) -> String {
-        switch cfg {
-        case "HTTPToHTTPS": return "HTTP 自动跳转 HTTPS"
-        case "HTTPOnly":    return "仅 HTTP"
-        case "HTTPSOnly":   return "仅 HTTPS"
-        default:            return cfg
+    private func statusColor(_ status: String?) -> Color {
+        guard let s = status?.lowercased() else { return .secondary }
+        return s == "running" ? .green : .orange
+    }
+
+    private func toggleStatus(current: String?, to running: Bool) async {
+        isOperating = true
+        let op = running ? "start" : "stop"
+        let ok = await vm.operateWebsite(id: website.id, operate: op)
+        if ok {
+            try? await Task.sleep(for: .seconds(1))
+            await loadDetail()
         }
+        isOperating = false
     }
 }
 
@@ -585,10 +550,13 @@ struct CreateWebsiteView: View {
                 }
 
                 // 类型特定字段
-                if selectedType == .deployment {
+                switch selectedType {
+                case .deployment:
                     deploymentSection
-                } else {
+                case .proxy:
                     proxySection
+                case .staticSite:
+                    EmptyView()
                 }
 
                 // SSL
@@ -704,6 +672,8 @@ struct CreateWebsiteView: View {
             return selectedAppInstallId != nil
         case .proxy:
             return !proxyAddress.isEmpty
+        case .staticSite:
+            return true
         }
     }
 
@@ -734,6 +704,8 @@ struct CreateWebsiteView: View {
             req.proxy = "\(proxyProtocol)\(proxyAddress)"
             req.proxyProtocol = proxyProtocol
             req.proxyAddress = proxyAddress
+        case .staticSite:
+            break
         }
 
         localAlertMessage = nil
@@ -835,6 +807,7 @@ final class WebsitesViewModel: ObservableObject {
         switch type {
         case .deployment: appType = "website"
         case .proxy:      appType = "proxy"
+        case .staticSite: appType = "static"
         }
 
         let appReq = WebsiteAppSearchRequest(
@@ -988,6 +961,24 @@ final class WebsitesViewModel: ObservableObject {
         } catch {
             showAlert(message: "加载详情失败：\(error.localizedDescription)")
             return nil
+        }
+    }
+
+    func operateWebsite(id: Int, operate: String) async -> Bool {
+        struct Req: Encodable { let id: Int; let operate: String }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesOperate.path,
+                body: Req(id: id, operate: operate),
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "操作失败：\(error.localizedDescription)")
+            return false
         }
     }
 
@@ -1390,6 +1381,52 @@ struct WebsiteNginxView: View {
     }
 }
 
+// MARK: - TLS 协议 Pills
+
+struct FlowingTLSPills: View {
+    @Binding var selected: Set<String>
+
+    private let allProtocols: [(key: String, label: String)] = [
+        ("TLSv1.3", "TLS 1.3"),
+        ("TLSv1.2", "TLS 1.2"),
+        ("TLSv1.1", "TLS 1.1"),
+        ("TLSv1",   "TLS 1.0"),
+    ]
+
+    var body: some View {
+        FlowLayout(spacing: 8) {
+            ForEach(allProtocols, id: \.key) { p in
+                let isEnabled = selected.contains(p.key)
+                Button {
+                    if isEnabled {
+                        selected.remove(p.key)
+                    } else {
+                        selected.insert(p.key)
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        if isEnabled {
+                            Image(systemName: "checkmark")
+                                .font(.caption2.weight(.bold))
+                        }
+                        Text(p.label)
+                            .font(.caption.bold())
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        isEnabled ? Color.blue.opacity(0.15) : Color.secondary.opacity(0.1)
+                    )
+                    .foregroundStyle(isEnabled ? .blue : .secondary)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 // MARK: - HTTPS 配置
 
 struct WebsiteHTTPSView: View {
@@ -1485,24 +1522,8 @@ struct WebsiteHTTPSView: View {
                     }
                 }
 
-                Section("TLS 协议") {
-                    ForEach(availableProtocols, id: \.self) { p in
-                        Button {
-                            if sslProtocol.contains(p) {
-                                sslProtocol.remove(p)
-                            } else {
-                                sslProtocol.insert(p)
-                            }
-                        } label: {
-                            HStack {
-                                Text(p)
-                                Spacer()
-                                Image(systemName: sslProtocol.contains(p) ? "checkmark" : "")
-                                    .foregroundStyle(.blue)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
+                Section("支持的协议版本") {
+                    FlowingTLSPills(selected: $sslProtocol)
                 }
 
                 Section("高级") {
@@ -1895,7 +1916,75 @@ struct WebsiteProxySourceView: View {
     }
 }
 
-// MARK: - 网站日志
+// MARK: - 网站日志（合并页）
+
+struct WebsiteLogPage: View {
+    let websiteId: Int
+    @ObservedObject var vm: WebsitesViewModel
+
+    @State private var selectedTab: WebsiteLogType = .access
+    @State private var lines: [String] = []
+    @State private var isLoading = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $selectedTab) {
+                Text("访问日志").tag(WebsiteLogType.access)
+                Text("错误日志").tag(WebsiteLogType.error)
+            }
+            .pickerStyle(.segmented)
+            .padding()
+
+            Divider()
+
+            if isLoading && lines.isEmpty {
+                ProgressView("加载日志…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if lines.isEmpty {
+                ContentUnavailableView(
+                    "暂无日志",
+                    systemImage: selectedTab.icon,
+                    description: Text("暂未产生\(selectedTab.displayName)记录")
+                )
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                            Text(line)
+                                .font(.system(size: 11, design: .monospaced))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    .padding()
+                }
+            }
+        }
+        .navigationTitle("日志")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await load() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+            }
+        }
+        .task { await load() }
+        .onChange(of: selectedTab) { _, _ in
+            Task { await load() }
+        }
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        lines = await vm.loadLog(websiteId: websiteId, name: selectedTab.fileName)
+    }
+}
+
+// MARK: - 网站日志（单类型）
 
 struct WebsiteLogView: View {
     let websiteId: Int
