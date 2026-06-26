@@ -83,6 +83,18 @@ struct AppsTab: View {
             .padding(.bottom, 20)
             .accessibilityLabel("进入应用商店")
         }
+        .toolbar {
+            if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        IgnoredAppsView(vm: vm)
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("查看忽略应用")
+                }
+            }
+        }
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
         }
@@ -218,18 +230,23 @@ struct AppDetailView: View {
         .sheet(isPresented: $showUpdateParamsSheet) {
             UpdateParamsSheetView(app: app, vm: vm)
         }
-        .confirmationDialog(
+        .alert(
             pendingAction ?? "",
             isPresented: Binding(
                 get: { pendingAction != nil },
                 set: { if !$0 { pendingAction = nil } }
-            ),
-            titleVisibility: .visible
+            )
         ) {
+            Button("取消", role: .cancel) {
+                pendingAction = nil
+            }
             Button("确认", role: .destructive) {
                 executePendingAction()
             }
-            Button("取消", role: .cancel) {}
+        } message: {
+            if let action = pendingAction {
+                Text("将对选中应用程序进行 \(actionDisplayName(action)) 操作，是否继续？")
+            }
         }
         .onDisappear {
             if vm.needsRefresh {
@@ -369,6 +386,18 @@ struct AppDetailView: View {
             break
         }
     }
+
+    private func actionDisplayName(_ action: String) -> String {
+        switch action {
+        case "stop":     return "停止"
+        case "start":    return "启动"
+        case "restart":  return "重启"
+        case "rebuild":  return "重建"
+        case "edit":     return "编辑"
+        case "uninstall": return "卸载"
+        default:         return action
+        }
+    }
 }
 
 struct LabeledRow: View {
@@ -415,6 +444,11 @@ struct UpgradeSheetView: View {
         }
         .navigationTitle("升级 \(app.displayName)")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
         .navigationDestination(isPresented: $showComposeEditor) {
             if let version = vm.selectedVersion {
                 ComposeEditorView(
@@ -508,6 +542,109 @@ struct UpgradeSheetView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - 忽略升级列表
+
+struct IgnoredAppsView: View {
+    @ObservedObject var vm: AppsViewModel
+
+    @State private var ignored: [AppIgnoreUpgrade] = []
+    @State private var isLoading = false
+
+    var body: some View {
+        Group {
+            if isLoading && ignored.isEmpty {
+                ProgressView("加载中…")
+            } else if ignored.isEmpty {
+                ContentUnavailableView(
+                    "暂无忽略记录",
+                    systemImage: "eye.slash",
+                    description: Text("没有被忽略升级的应用")
+                )
+            } else {
+                List {
+                    Section {
+                        ForEach(ignored) { item in
+                            HStack {
+                                Image(systemName: "shippingbox")
+                                    .foregroundStyle(.secondary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.name ?? "未知应用")
+                                        .font(.body.bold())
+                                    if item.scope == "all" {
+                                        Text("忽略所有版本")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    } else if let v = item.version, !v.isEmpty {
+                                        Text("忽略版本 \(v)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                Spacer()
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    Task { await cancelIgnore(recordId: item.id) }
+                                } label: {
+                                    Label("取消忽略", systemImage: "eye")
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("已忽略升级 (\(ignored.count))")
+                    } footer: {
+                        Text("左滑可取消忽略，恢复升级检查")
+                    }
+                }
+                .listStyle(.insetGrouped)
+            }
+        }
+        .navigationTitle("忽略升级")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await load() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+            }
+        }
+        .task { await load() }
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            ignored = try await vm.client.send(
+                path: APIEndpoint.appsIgnoredList.path,
+                method: APIEndpoint.appsIgnoredList.method,
+                as: [AppIgnoreUpgrade].self
+            )
+        } catch {
+            vm.alertMessage = "加载失败：\(error.localizedDescription)"
+            vm.showAlert = true
+        }
+    }
+
+    private func cancelIgnore(recordId: Int) async {
+        struct Req: Encodable { let id: Int }
+        do {
+            let _: EmptyResponse = try await vm.client.send(
+                path: APIEndpoint.appsIgnoredCancel.path,
+                body: Req(id: recordId),
+                as: EmptyResponse.self
+            )
+            ignored.removeAll { $0.id == recordId }
+            vm.needsRefresh = true
+        } catch {
+            vm.alertMessage = "取消忽略失败：\(error.localizedDescription)"
+            vm.showAlert = true
         }
     }
 }

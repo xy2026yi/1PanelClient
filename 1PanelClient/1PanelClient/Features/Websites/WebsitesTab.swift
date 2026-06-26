@@ -1040,10 +1040,12 @@ final class WebsitesViewModel: ObservableObject {
             )
             return resp.lines ?? []
         } catch let err as APIError {
-            showAlert(message: "读取日志失败：\(err.errorDescription ?? "未知错误")")
+            // 404 表示日志文件尚未产生，静默返回空数组
+            if case .httpError(let code, _) = err, code == 404 {
+                return []
+            }
             return []
         } catch {
-            showAlert(message: "读取日志失败：\(error.localizedDescription)")
             return []
         }
     }
@@ -1509,7 +1511,6 @@ struct WebsiteHTTPSView: View {
             if enable {
                 Section("SSL 证书") {
                     Picker("选择证书", selection: $selectedSSLId) {
-                        Text("不修改").tag(0)
                         ForEach(vm.availableSSLs) { ssl in
                             VStack(alignment: .leading) {
                                 Text(ssl.displayName)
@@ -1552,13 +1553,13 @@ struct WebsiteHTTPSView: View {
         httpsPort = c.httpsPort ?? ""
         // 关键：保存响应里的当前证书 ID，保存时若用户未改证书则用它
         originalSSLId = c.currentSSLId
-        selectedSSLId = 0
+        // 默认显示当前使用证书
+        selectedSSLId = c.currentSSLId
     }
 
     private func save() async {
         isSaving = true
         defer { isSaving = false }
-        // selectedSSLId == 0 表示「不修改」，用原始证书 ID
         let sslId = selectedSSLId == 0 ? originalSSLId : selectedSSLId
         let req = WebsiteHTTPSUpdateRequest(
             enable: enable,
@@ -1619,7 +1620,7 @@ struct WebsiteProxiesView: View {
         .task {
             await load()
         }
-        .sheet(isPresented: $showEditSheet) {
+        .navigationDestination(isPresented: $showEditSheet) {
             WebsiteProxyEditView(
                 websiteId: websiteId,
                 proxy: editingProxy,
@@ -1744,55 +1745,50 @@ struct WebsiteProxyEditView: View {
     private var isEdit: Bool { proxy != nil }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("路由") {
-                    TextField("名称", text: $name)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("路径 (例如 /api)", text: $match)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
+        Form {
+            Section("路由") {
+                TextField("名称", text: $name)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                TextField("路径 (例如 /api)", text: $match)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
 
-                Section {
-                    Picker("协议", selection: $proxyProtocol) {
-                        Text("http://").tag("http://")
-                        Text("https://").tag("https://")
-                    }
-                    TextField("目标地址 (host:port)", text: $proxyAddress)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                } header: {
-                    Text("代理目标")
-                } footer: {
-                    if !proxyAddress.isEmpty {
-                        Text("完整地址：\(proxyProtocol)\(proxyAddress)")
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.blue)
-                    }
+            Section {
+                Picker("协议", selection: $proxyProtocol) {
+                    Text("http://").tag("http://")
+                    Text("https://").tag("https://")
                 }
-
-                Section("状态") {
-                    Toggle("启用", isOn: $enable)
+                TextField("目标地址 (host:port)", text: $proxyAddress)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            } header: {
+                Text("代理目标")
+            } footer: {
+                if !proxyAddress.isEmpty {
+                    Text("完整地址：\(proxyProtocol)\(proxyAddress)")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.blue)
                 }
             }
-            .navigationTitle(isEdit ? "编辑代理" : "创建代理")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .destructiveAction) {
-                    Button(isEdit ? "保存" : "创建") {
-                        Task { await save() }
-                    }
-                    .disabled(!canSubmit || isSaving)
-                }
+
+            Section("状态") {
+                Toggle("启用", isOn: $enable)
             }
-            .onAppear(perform: fillFromProxy)
         }
+        .navigationTitle(isEdit ? "编辑代理" : "创建代理")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(isEdit ? "保存" : "创建") {
+                    Task { await save() }
+                }
+                .disabled(!canSubmit || isSaving)
+            }
+        }
+        .onAppear(perform: fillFromProxy)
     }
 
     private var canSubmit: Bool {

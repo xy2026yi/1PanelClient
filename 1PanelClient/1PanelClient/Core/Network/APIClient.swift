@@ -234,9 +234,9 @@ final class APIClient {
                             if !payload.isEmpty {
                                 continuation.yield(payload)
                             }
-                        } else {
-                            // 非 SSE 格式，直接输出原行
-                            continuation.yield(line)
+                        } else if line.hasPrefix("{") {
+                            // JSON API 响应信封（如 {"code":200,...}），跳过
+                            continue
                         }
                     }
                     continuation.finish()
