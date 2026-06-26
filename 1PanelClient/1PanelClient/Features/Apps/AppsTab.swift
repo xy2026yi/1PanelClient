@@ -37,9 +37,6 @@ struct AppsTab: View {
                 rootContent
             }
         }
-        .fullScreenCover(isPresented: $showStore) {
-            AppStoreTab(manager: manager, showCloseButton: true, standalone: true)
-        }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
         } message: {
@@ -91,6 +88,9 @@ struct AppsTab: View {
         }
         .navigationDestination(for: AppInstall.self) { app in
             AppDetailView(app: app, vm: vm)
+        }
+        .navigationDestination(isPresented: $showStore) {
+            AppStoreTab(manager: manager, showCloseButton: false, standalone: false)
         }
     }
 

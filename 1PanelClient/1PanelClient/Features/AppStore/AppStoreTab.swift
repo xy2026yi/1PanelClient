@@ -29,15 +29,16 @@ struct AppStoreTab: View {
     }
 
     var body: some View {
-        if standalone {
-            NavigationStack {
+        Group {
+            if standalone {
+                NavigationStack {
+                    storeRootContent
+                }
+            } else {
                 storeRootContent
             }
-            .task { await vm.refresh() }
-        } else {
-            storeRootContent
-                .task { await vm.refresh() }
         }
+        .task { await vm.refresh() }
     }
 
     /// 列表根内容（不含 NavigationStack/task），供外层复用

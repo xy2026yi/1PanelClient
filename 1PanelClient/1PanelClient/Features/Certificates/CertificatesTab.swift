@@ -29,17 +29,18 @@ struct CertificatesTab: View {
     }
 
     var body: some View {
-        if standalone {
-            NavigationStack {
+        Group {
+            if standalone {
+                NavigationStack {
+                    rootContent
+                }
+            } else {
                 rootContent
             }
-            .task { await vm.refresh() }
-            .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-                Button("好", role: .cancel) {}
-            }
-        } else {
-            rootContent
-                .task { await vm.refresh() }
+        }
+        .task { await vm.refresh() }
+        .alert(vm.alertMessage, isPresented: $vm.showAlert) {
+            Button("好", role: .cancel) {}
         }
     }
 

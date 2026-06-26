@@ -38,9 +38,6 @@ struct WebsitesTab: View {
                 rootContent
             }
         }
-        .fullScreenCover(isPresented: $showCerts) {
-            CertificatesTab(manager: manager, showCloseButton: true, standalone: true)
-        }
         .alert(vm.alertMessage, isPresented: $vm.showAlert) {
             Button("好", role: .cancel) {}
         }
@@ -98,7 +95,10 @@ struct WebsitesTab: View {
         .navigationDestination(for: Website.self) { website in
             WebsiteDetailView(website: website, vm: vm)
         }
-        .sheet(isPresented: $showCreateSheet) {
+        .navigationDestination(isPresented: $showCerts) {
+            CertificatesTab(manager: manager, showCloseButton: false, standalone: false)
+        }
+        .navigationDestination(isPresented: $showCreateSheet) {
             CreateWebsiteView(vm: vm)
         }
     }
@@ -546,11 +546,10 @@ struct CreateWebsiteView: View {
     @State private var didCreateSucceed = false
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("类型") {
-                    Picker("网站类型", selection: $selectedType) {
-                        ForEach(WebsiteType.allCases) { t in
+        Form {
+            Section("类型") {
+                Picker("网站类型", selection: $selectedType) {
+                    ForEach(WebsiteType.allCases) { t in
                             Label(t.displayName, systemImage: t.icon).tag(t)
                         }
                     }
@@ -626,10 +625,7 @@ struct CreateWebsiteView: View {
             .navigationTitle("创建网站")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .destructiveAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("创建") {
                         Task { await performCreate() }
                     }
@@ -649,7 +645,6 @@ struct CreateWebsiteView: View {
                     }
                 }
             }
-        }
     }
 
     /// 一键部署的应用选择

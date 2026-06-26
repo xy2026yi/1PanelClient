@@ -227,11 +227,16 @@ struct FirewallView: View {
             .padding(.trailing, 20)
             .padding(.bottom, 20)
         }
-        .sheet(isPresented: $showAdd) {
+        .navigationDestination(isPresented: $showAdd) {
             FirewallAddRuleView(vm: vm)
         }
-        .sheet(item: $editingRule) { rule in
-            FirewallEditRuleView(vm: vm, rule: rule)
+        .navigationDestination(isPresented: Binding(
+            get: { editingRule != nil },
+            set: { if !$0 { editingRule = nil } }
+        )) {
+            if let rule = editingRule {
+                FirewallEditRuleView(vm: vm, rule: rule)
+            }
         }
         .confirmationDialog(
             pendingUFWOp.map { opTitle($0) } ?? "",
@@ -307,8 +312,6 @@ struct FirewallView: View {
                 HStack { Spacer(); ProgressView(); Spacer() }
                     .padding(.vertical, 8)
             }
-        } header: {
-            SectionLabel(title: "状态", systemImage: "shield")
         }
     }
 
@@ -392,64 +395,59 @@ struct FirewallAddRuleView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("端口", text: $port)
-                        .keyboardType(.numbersAndPunctuation)
-                        .autocorrectionDisabled()
-                    Text("单个端口如 8080，或范围如 3000-3100。")
-                        .font(.caption).foregroundStyle(.secondary)
-                } header: { SectionLabel(title: "端口", systemImage: "number") }
+        Form {
+            Section {
+                TextField("端口", text: $port)
+                    .keyboardType(.numbersAndPunctuation)
+                    .autocorrectionDisabled()
+                Text("单个端口如 8080，或范围如 3000-3100。")
+                    .font(.caption).foregroundStyle(.secondary)
+            } header: { SectionLabel(title: "端口", systemImage: "number") }
 
-                Section {
-                    Picker("协议", selection: $proto) {
-                        ForEach(protos, id: \.self) { Text($0.uppercased()).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                } header: { SectionLabel(title: "协议", systemImage: "network") }
-
-                Section {
-                    Picker("策略", selection: $strategy) {
-                        ForEach(strategies, id: \.0) { Text($1).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                } header: { SectionLabel(title: "策略", systemImage: "hand.raised") }
-
-                Section {
-                    TextField("IP / CIDR，留空=任意", text: $address)
-                        .keyboardType(.numbersAndPunctuation)
-                        .autocorrectionDisabled()
-                    Text("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。")
-                        .font(.caption).foregroundStyle(.secondary)
-                } header: { SectionLabel(title: "来源地址", systemImage: "location") }
-
-                Section {
-                    TextField("备注（可选）", text: $description)
-                } header: { SectionLabel(title: "备注", systemImage: "text.alignleft") }
-            }
-            .navigationTitle("添加端口规则")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+            Section {
+                Picker("协议", selection: $proto) {
+                    ForEach(protos, id: \.self) { Text($0.uppercased()).tag($0) }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("添加") {
-                        Task {
-                            saving = true
-                            let ok = await vm.addRule(
-                                port: port.trimmingCharacters(in: .whitespaces),
-                                proto: proto, strategy: strategy,
-                                address: address.trimmingCharacters(in: .whitespaces),
-                                description: description
-                            )
-                            saving = false
-                            if ok { dismiss() }
-                        }
-                    }
-                    .disabled(!isValid || saving)
+                .pickerStyle(.segmented)
+            } header: { SectionLabel(title: "协议", systemImage: "network") }
+
+            Section {
+                Picker("策略", selection: $strategy) {
+                    ForEach(strategies, id: \.0) { Text($1).tag($0) }
                 }
+                .pickerStyle(.segmented)
+            } header: { SectionLabel(title: "策略", systemImage: "hand.raised") }
+
+            Section {
+                TextField("IP / CIDR，留空=任意", text: $address)
+                    .keyboardType(.numbersAndPunctuation)
+                    .autocorrectionDisabled()
+                Text("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。")
+                    .font(.caption).foregroundStyle(.secondary)
+            } header: { SectionLabel(title: "来源地址", systemImage: "location") }
+
+            Section {
+                TextField("备注（可选）", text: $description)
+            } header: { SectionLabel(title: "备注", systemImage: "text.alignleft") }
+        }
+        .navigationTitle("添加端口规则")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("添加") {
+                    Task {
+                        saving = true
+                        let ok = await vm.addRule(
+                            port: port.trimmingCharacters(in: .whitespaces),
+                            proto: proto, strategy: strategy,
+                            address: address.trimmingCharacters(in: .whitespaces),
+                            description: description
+                        )
+                        saving = false
+                        if ok { dismiss() }
+                    }
+                }
+                .disabled(!isValid || saving)
             }
         }
     }
@@ -477,65 +475,60 @@ struct FirewallEditRuleView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("端口", text: $port)
-                        .keyboardType(.numbersAndPunctuation)
-                        .autocorrectionDisabled()
-                    Text("单个端口如 8080，或范围如 3000-3100。")
-                        .font(.caption).foregroundStyle(.secondary)
-                } header: { SectionLabel(title: "端口", systemImage: "number") }
+        Form {
+            Section {
+                TextField("端口", text: $port)
+                    .keyboardType(.numbersAndPunctuation)
+                    .autocorrectionDisabled()
+                Text("单个端口如 8080，或范围如 3000-3100。")
+                    .font(.caption).foregroundStyle(.secondary)
+            } header: { SectionLabel(title: "端口", systemImage: "number") }
 
-                Section {
-                    Picker("协议", selection: $proto) {
-                        ForEach(protos, id: \.self) { Text($0.uppercased()).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                } header: { SectionLabel(title: "协议", systemImage: "network") }
-
-                Section {
-                    Picker("策略", selection: $strategy) {
-                        ForEach(strategies, id: \.0) { Text($1).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                } header: { SectionLabel(title: "策略", systemImage: "hand.raised") }
-
-                Section {
-                    TextField("IP / CIDR，留空=任意", text: $address)
-                        .keyboardType(.numbersAndPunctuation)
-                        .autocorrectionDisabled()
-                    Text("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。")
-                        .font(.caption).foregroundStyle(.secondary)
-                } header: { SectionLabel(title: "来源地址", systemImage: "location") }
-
-                Section {
-                    TextField("备注（可选）", text: $description)
-                } header: { SectionLabel(title: "备注", systemImage: "text.alignleft") }
-            }
-            .navigationTitle("修改端口规则")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+            Section {
+                Picker("协议", selection: $proto) {
+                    ForEach(protos, id: \.self) { Text($0.uppercased()).tag($0) }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
-                        Task {
-                            saving = true
-                            let ok = await vm.updateRule(
-                                old: rule,
-                                port: port.trimmingCharacters(in: .whitespaces),
-                                proto: proto, strategy: strategy,
-                                address: address.trimmingCharacters(in: .whitespaces),
-                                description: description
-                            )
-                            saving = false
-                            if ok { dismiss() }
-                        }
-                    }
-                    .disabled(!isValid || saving)
+                .pickerStyle(.segmented)
+            } header: { SectionLabel(title: "协议", systemImage: "network") }
+
+            Section {
+                Picker("策略", selection: $strategy) {
+                    ForEach(strategies, id: \.0) { Text($1).tag($0) }
                 }
+                .pickerStyle(.segmented)
+            } header: { SectionLabel(title: "策略", systemImage: "hand.raised") }
+
+            Section {
+                TextField("IP / CIDR，留空=任意", text: $address)
+                    .keyboardType(.numbersAndPunctuation)
+                    .autocorrectionDisabled()
+                Text("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。")
+                    .font(.caption).foregroundStyle(.secondary)
+            } header: { SectionLabel(title: "来源地址", systemImage: "location") }
+
+            Section {
+                TextField("备注（可选）", text: $description)
+            } header: { SectionLabel(title: "备注", systemImage: "text.alignleft") }
+        }
+        .navigationTitle("修改端口规则")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("保存") {
+                    Task {
+                        saving = true
+                        let ok = await vm.updateRule(
+                            old: rule,
+                            port: port.trimmingCharacters(in: .whitespaces),
+                            proto: proto, strategy: strategy,
+                            address: address.trimmingCharacters(in: .whitespaces),
+                            description: description
+                        )
+                        saving = false
+                        if ok { dismiss() }
+                    }
+                }
+                .disabled(!isValid || saving)
             }
         }
         .onAppear {

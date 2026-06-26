@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ProcessView: View {
     @StateObject private var monitor: ProcessMonitor
-    @Environment(\.dismiss) private var dismiss
 
     @State private var searchText = ""
     @State private var sortOption: SortOption = .cpu
@@ -69,11 +68,6 @@ struct ProcessView: View {
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: searchTextPrompt)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     if monitor.mode == .processes {
