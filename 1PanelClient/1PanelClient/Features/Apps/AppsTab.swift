@@ -1429,6 +1429,7 @@ struct AppLogView: View {
             URLQueryItem(name: "since", value: sinceMode),
             URLQueryItem(name: "tail", value: String(tail)),
             URLQueryItem(name: "follow", value: "true"),
+            URLQueryItem(name: "timestamp", value: "false"),
             URLQueryItem(name: "operateNode", value: "local")
         ]
 

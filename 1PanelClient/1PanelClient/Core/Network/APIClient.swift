@@ -9,6 +9,8 @@ import CryptoKit
 final class APIClient {
     let server: ServerConfig
     private let session: URLSession
+    /// SSE 流式专用 session（无超时，用于日志查看等长连接）
+    private let streamSession: URLSession
 
     init(server: ServerConfig) {
         self.server = server
@@ -19,6 +21,12 @@ final class APIClient {
         config.httpShouldSetCookies = true
         config.httpCookieStorage = nil
         self.session = URLSession(configuration: config)
+
+        let streamConfig = URLSessionConfiguration.default
+        streamConfig.timeoutIntervalForRequest = .infinity
+        streamConfig.timeoutIntervalForResource = .infinity
+        streamConfig.httpCookieAcceptPolicy = .always
+        self.streamSession = URLSession(configuration: streamConfig)
     }
 
     // MARK: - Token 签名
@@ -206,13 +214,15 @@ final class APIClient {
         for (k, v) in generateHeaders() {
             request.setValue(v, forHTTPHeaderField: k)
         }
+        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        request.setValue("zh-CN,zh;q=0.9", forHTTPHeaderField: "Accept-Language")
 
         return AsyncThrowingStream<String, Error> { continuation in
             let task = Task {
                 do {
                     let (bytes, response): (URLSession.AsyncBytes, URLResponse)
                     do {
-                        (bytes, response) = try await session.bytes(for: request)
+                        (bytes, response) = try await streamSession.bytes(for: request)
                     } catch {
                         continuation.finish(throwing: APIError.networkError(error))
                         return
@@ -231,6 +241,7 @@ final class APIClient {
                         if line.isEmpty { continue }
                         if line.hasPrefix("data:") {
                             let payload = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+                            if payload == "[DONE]" { break }
                             if !payload.isEmpty {
                                 continuation.yield(payload)
                             }
