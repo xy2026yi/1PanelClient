@@ -212,7 +212,7 @@ enum APIEndpoint {
         case .websitesSearch:        return "/api/v2/websites/search"
         case .websitesCreate:        return "/api/v2/websites"
         case .websitesCheck:         return "/api/v2/websites/check"
-        case .websitesSSLSearch:     return "/api/v2/websites/ssl/search"
+        case .websitesSSLSearch:     return "/api/v2/websites/ssl/list"
         case .websitesDelete:        return "/api/v2/websites/del"
         case .websitesOperate:       return "/api/v2/websites/operate"
         case .websitesDetail:        return "/api/v2/websites/:id"
