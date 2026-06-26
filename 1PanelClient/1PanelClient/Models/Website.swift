@@ -550,25 +550,39 @@ struct WebsiteSSLListResponse: Decodable {
 
 /// 完整的 SSL 证书（response.WebsiteSSLDTO）
 /// 供列表 / 详情共用；pem/privateKey 在详情页才会请求并展示
-struct WebsiteSSLCert: Decodable, Identifiable, Hashable {
-    let id: Int
-    let createdAt: String?
-    let updatedAt: String?
-    let primaryDomain: String?
-    let privateKey: String?
-    let pem: String?
-    let domains: String?
-    let certURL: String?
-    let type: String?
-    let provider: String?
-    let organization: String?
-    let autoRenew: Bool?
-    let expireDate: String?
-    let startDate: String?
-    let status: String?
-    let message: String?
-    let description: String?
-    let logPath: String?
+struct WebsiteSSLCert: Codable, Identifiable, Hashable {
+    var id: Int
+    var createdAt: String?
+    var updatedAt: String?
+    var primaryDomain: String?
+    var privateKey: String?
+    var pem: String?
+    var domains: String?
+    var certURL: String?
+    var type: String?
+    var provider: String?
+    var organization: String?
+    var autoRenew: Bool?
+    var expireDate: String?
+    var startDate: String?
+    var status: String?
+    var message: String?
+    var description: String?
+    var logPath: String?
+    var acmeAccountId: Int?
+    var dnsAccountId: Int?
+    var keyType: String?
+    var pushDir: Bool?
+    var dir: String?
+    var disableCNAME: Bool?
+    var skipDNS: Bool?
+    var nameserver1: String?
+    var nameserver2: String?
+    var execShell: Bool?
+    var shell: String?
+    var otherDomains: String?
+    var acmeAccount: AcmeAccount?
+    var dnsAccount: DNSAccount?
 
     /// 显示名（主域名）
     var displayName: String { primaryDomain ?? "未知证书" }
@@ -674,4 +688,218 @@ struct WebsiteSSLDeleteRequest: Encodable {
 /// POST /api/v2/websites/ssl/download
 struct WebsiteSSLDownloadRequest: Encodable {
     let id: Int
+}
+
+// MARK: - ACME 账户
+
+/// Acme 账户搜索请求
+struct AcmeSearchRequest: Encodable {
+    var page: Int = 1
+    var pageSize: Int = 20
+}
+
+/// Acme 账户列表项（response.WebsiteAcmeDTO）
+struct AcmeAccount: Codable, Identifiable, Hashable {
+    let id: Int
+    let createdAt: String?
+    let updatedAt: String?
+    var email: String = ""
+    var url: String?
+    var type: String = "letsencrypt"
+    var eabKid: String = ""
+    var eabHmacKey: String = ""
+    var keyType: String = "EC256"
+    var useProxy: Bool = false
+    var caDirURL: String = ""
+    var useEAB: Bool = false
+}
+
+/// 创建/更新 Acme 账户请求
+struct AcmeCreateRequest: Codable {
+    var email: String
+    var type: String
+    var eabKid: String
+    var eabHmacKey: String
+    var keyType: String
+    var useProxy: Bool
+    var caDirURL: String
+    var useEAB: Bool
+}
+
+/// Acme 账户类型
+enum AcmeType: String, CaseIterable, Identifiable {
+    case letsencrypt = "letsencrypt"
+    case zerossl = "zerossl"
+    case buypass = "buypass"
+    case googlecloud = "googlecloud"
+    case custom = "custom"
+
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .letsencrypt: return "Let's Encrypt"
+        case .zerossl:     return "ZeroSSL"
+        case .buypass:     return "Buypass"
+        case .googlecloud: return "Google Cloud"
+        case .custom:      return "自定义 ACME 服务"
+        }
+    }
+}
+
+/// 密钥算法
+enum SSLKeyType: String, CaseIterable, Identifiable {
+    case EC256 = "EC256"
+    case EC384 = "EC384"
+    case RSA2048 = "RSA2048"
+    case RSA3072 = "RSA3072"
+    case RSA4096 = "RSA4096"
+
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .EC256:  return "EC 256"
+        case .EC384:  return "EC 384"
+        case .RSA2048: return "RSA 2048"
+        case .RSA3072: return "RSA 3072"
+        case .RSA4096: return "RSA 4096"
+        }
+    }
+}
+
+// MARK: - DNS 账户
+
+/// DNS 账户搜索请求
+struct DnsSearchRequest: Encodable {
+    var page: Int = 1
+    var pageSize: Int = 20
+}
+
+/// DNS 账户列表项（response.WebsiteDNSDTO）
+struct DNSAccount: Codable, Identifiable, Hashable {
+    let id: Int
+    let createdAt: String?
+    let updatedAt: String?
+    var name: String = ""
+    var type: String = "AliYun"
+    var authorization: DNSAuth?
+}
+
+/// DNS 账户的授权信息（灵活键值对）
+struct DNSAuth: Codable, Hashable {
+    var accessKey: String?
+    var secretKey: String?
+    var apiKey: String?
+    var apiUser: String?
+    var secretID: String?
+    var region: String?
+    var email: String?
+    var clientID: String?
+    var password: String?
+
+    /// 构造 authorization 字典（仅包含非空字段）
+    func encodeToDict() -> [String: String] {
+        var dict: [String: String] = [:]
+        if let v = accessKey, !v.isEmpty { dict["accessKey"] = v }
+        if let v = secretKey, !v.isEmpty { dict["secretKey"] = v }
+        if let v = apiKey, !v.isEmpty { dict["apiKey"] = v }
+        if let v = apiUser, !v.isEmpty { dict["apiUser"] = v }
+        if let v = secretID, !v.isEmpty { dict["secretID"] = v }
+        if let v = region, !v.isEmpty { dict["region"] = v }
+        if let v = email, !v.isEmpty { dict["email"] = v }
+        if let v = clientID, !v.isEmpty { dict["clientID"] = v }
+        if let v = password, !v.isEmpty { dict["password"] = v }
+        return dict
+    }
+}
+
+/// DNS 服务商类型
+enum DnsType: String, CaseIterable, Identifiable {
+    case AliYun = "AliYun"
+    case CloudFlare = "CloudFlare"
+    case TencentCloud = "TencentCloud"
+    case HuaweiCloud = "HuaweiCloud"
+    case CloudDns = "CloudDns"
+    case NameSilo = "NameSilo"
+    case NameCheap = "NameCheap"
+
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .AliYun:       return "阿里云"
+        case .CloudFlare:   return "Cloudflare"
+        case .TencentCloud: return "腾讯云"
+        case .HuaweiCloud:  return "华为云"
+        case .CloudDns:     return "CloudDNS"
+        case .NameSilo:     return "NameSilo"
+        case .NameCheap:    return "NameCheap"
+        }
+    }
+}
+
+// MARK: - 申请证书
+
+/// SSL 证书验证方式
+enum SSLProvider: String, CaseIterable, Identifiable {
+    case dnsAccount = "dnsAccount"
+    case dnsManual = "dnsManual"
+    case http = "http"
+
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .dnsAccount: return "DNS 账户"
+        case .dnsManual:  return "手动解析"
+        case .http:       return "HTTP"
+        }
+    }
+}
+
+/// 申请证书请求（request.WebsiteSSLCreate）
+struct WebsiteSSLCreateRequest: Codable {
+    var id: Int = 0
+    var primaryDomain: String = ""
+    var otherDomains: String = ""
+    var provider: String = "dnsAccount"
+    var websiteId: Int = 0
+    var acmeAccountId: Int = 0
+    var dnsAccountId: Int = 0
+    var autoRenew: Bool = true
+    var keyType: String = "EC256"
+    var pushDir: Bool = false
+    var dir: String = ""
+    var description: String = ""
+    var disableCNAME: Bool = false
+    var skipDNS: Bool = false
+    var nameserver1: String = ""
+    var nameserver2: String = ""
+    var execShell: Bool = false
+    var shell: String = ""
+    var pushNode: Bool = false
+    var pushNodes: [Int] = []
+    var nodes: String = ""
+    var isIP: Bool = false
+}
+
+/// 重新申请证书请求
+struct WebsiteSSLObtainRequest: Encodable {
+    let id: Int
+}
+
+/// SSL 日志读取请求
+struct WebsiteSSLLogRequest: Encodable {
+    let id: Int
+    let type: String = "ssl"
+    let page: Int
+    let pageSize: Int
+    let latest: Bool
+}
+
+/// SSL 日志响应（response.FileRead）
+struct WebsiteSSLLogResponse: Decodable {
+    let end: Bool?
+    let path: String?
+    let total: Int?
+    let lines: [String]?
+    let totalLines: Int?
+    let taskStatus: String?
 }

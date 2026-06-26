@@ -64,6 +64,25 @@ enum APIEndpoint {
     case websitesSSLUpload        // POST 上传证书（粘贴 / 服务器文件 / 文件上传）
     case websitesSSLDelete        // POST 删除证书
     case websitesSSLDownload      // POST 下载证书（返回压缩包）
+    case websitesSSLCreate        // POST 申请证书
+    case websitesSSLObtain        // POST 获取/重新申请证书
+    case websitesSSLUpdate        // POST 更新证书（自动续签等）
+    case websitesSSLLog           // POST 读取证书申请日志
+
+    // MARK: - ACME 账户
+    case websitesAcmeSearch       // POST 查询 Acme 账户列表
+    case websitesAcmeCreate       // POST 创建 Acme 账户
+    case websitesAcmeDelete       // POST 删除 Acme 账户
+
+    // MARK: - DNS 账户
+    case websitesDnsSearch        // POST 查询 DNS 账户列表
+    case websitesDnsCreate        // POST 创建 DNS 账户
+    case websitesDnsDelete        // POST 删除 DNS 账户
+
+    // MARK: - OpenResty 全局配置
+    case openrestyConfig          // GET  读取 OpenResty 主配置
+    case openrestyFile            // POST 保存 OpenResty 主配置
+    case openrestyReset           // POST 还原默认配置
 
     // MARK: - 计划任务
     case cronjobsSearch           // POST 分页查询计划任务
@@ -229,6 +248,19 @@ enum APIEndpoint {
         case .websitesSSLUpload:     return "/api/v2/websites/ssl/upload"
         case .websitesSSLDelete:     return "/api/v2/websites/ssl/del"
         case .websitesSSLDownload:   return "/api/v2/websites/ssl/download"
+        case .websitesSSLCreate:     return "/api/v2/websites/ssl"
+        case .websitesSSLObtain:     return "/api/v2/websites/ssl/obtain"
+        case .websitesSSLUpdate:     return "/api/v2/websites/ssl/update"
+        case .websitesSSLLog:        return "/api/v2/files/read/ssl"
+        case .websitesAcmeSearch:    return "/api/v2/websites/acme/search"
+        case .websitesAcmeCreate:    return "/api/v2/websites/acme"
+        case .websitesAcmeDelete:    return "/api/v2/websites/acme/del"
+        case .websitesDnsSearch:     return "/api/v2/websites/dns/search"
+        case .websitesDnsCreate:     return "/api/v2/websites/dns"
+        case .websitesDnsDelete:     return "/api/v2/websites/dns/del"
+        case .openrestyConfig:       return "/api/v2/openresty"
+        case .openrestyFile:         return "/api/v2/openresty/file"
+        case .openrestyReset:        return "/api/v2/apps/installed/conf"
         case .cronjobsSearch:        return "/api/v2/cronjobs/search"
         case .cronjobsCreate:        return "/api/v2/cronjobs"
         case .cronjobsHandle:        return "/api/v2/cronjobs/handle"
@@ -330,7 +362,8 @@ enum APIEndpoint {
              .fail2banBase, .fail2banLoadConf,
              .wafStatus, .wafConfigGlobal,
              .settingsBaseDir,
-             .settingsUpgradeCheck, .settingsUpgradeReleases:
+             .settingsUpgradeCheck, .settingsUpgradeReleases,
+             .openrestyConfig:
             return "GET"
         default:
             return "POST"

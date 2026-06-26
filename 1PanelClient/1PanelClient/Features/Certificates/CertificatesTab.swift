@@ -13,7 +13,10 @@ struct CertificatesTab: View {
     @ObservedObject var manager: ServerManager
     @StateObject private var vm: CertificatesViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var showUploadSheet = false
+    @State private var showUpload = false
+    @State private var showApply = false
+    @State private var showAcme = false
+    @State private var showDns = false
 
     /// 是否显示关闭按钮（fullScreen 模式用 true）
     var showCloseButton: Bool = true
@@ -53,7 +56,7 @@ struct CertificatesTab: View {
                 ContentUnavailableView(
                     "暂无证书",
                     systemImage: "lock.shield",
-                    description: Text(vm.errorMessage ?? "点击右下角 + 上传第一张证书")
+                    description: Text(vm.errorMessage ?? "点击右下角「申请」创建第一张证书")
                 )
             } else {
                 certList
@@ -62,6 +65,28 @@ struct CertificatesTab: View {
         .navigationTitle("SSL 证书")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        showAcme = true
+                    } label: {
+                        Label("Acme 账户", systemImage: "person.badge.key")
+                    }
+                    Button {
+                        showDns = true
+                    } label: {
+                        Label("DNS 账户", systemImage: "globe.asia.australia")
+                    }
+                    Divider()
+                    Button {
+                        showUpload = true
+                    } label: {
+                        Label("上传证书", systemImage: "icloud.and.arrow.up")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
             if showCloseButton {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -75,21 +100,35 @@ struct CertificatesTab: View {
         }
         .overlay(alignment: .bottomTrailing) {
             Button {
-                showUploadSheet = true
+                showApply = true
             } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.accentColor, in: Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                    Text("申请证书")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 14)
+                .background(Color.accentColor, in: Capsule())
+                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
             }
             .padding(.trailing, 20)
             .padding(.bottom, 20)
-            .accessibilityLabel("上传证书")
+            .accessibilityLabel("申请证书")
         }
-        .navigationDestination(isPresented: $showUploadSheet) {
+        .navigationDestination(isPresented: $showUpload) {
             UploadCertificateView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showApply) {
+            ApplyCertificateView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showAcme) {
+            AcmeAccountListView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showDns) {
+            DNSAccountListView(vm: vm)
         }
     }
 
@@ -189,19 +228,30 @@ struct CertificateDetailView: View {
     @State private var isLoading = false
     @State private var tab: DetailTab = .info
     @State private var showUpdateSheet = false
+    @State private var showEditView = false
+    @State private var pendingRenew = false
+    @State private var isRenewing = false
+    @State private var logLines: [String] = []
+    @State private var isLoadingLog = false
 
     private enum DetailTab: String, CaseIterable, Identifiable {
         case info    = "证书信息"
         case cert    = "证书"
         case privKey = "私钥"
+        case log     = "日志"
         var id: String { rawValue }
+    }
+
+    /// 是否通过 ACME 申请（非手动导入），用于显示日志标签
+    private var isAcmeCert: Bool {
+        !(detail ?? cert).isManual
     }
 
     var body: some View {
         List {
             Section {
                 Picker("", selection: $tab) {
-                    ForEach(DetailTab.allCases) { t in
+                    ForEach(visibleTabs) { t in
                         Text(t.rawValue).tag(t)
                     }
                 }
@@ -211,24 +261,52 @@ struct CertificateDetailView: View {
             }
 
             switch tab {
-            case .info:  infoSection
-            case .cert:  pemSection(title: "证书内容", content: (detail ?? cert).pem)
-            case .privKey: pemSection(title: "私钥内容", content: (detail ?? cert).privateKey)
+            case .info:     infoSection
+            case .cert:     pemSection(title: "证书内容", content: (detail ?? cert).pem)
+            case .privKey:  pemSection(title: "私钥内容", content: (detail ?? cert).privateKey)
+            case .log:      logSection
             }
         }
         .navigationTitle(cert.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showUpdateSheet = true
+                Menu {
+                    if isAcmeCert {
+                        Button {
+                            showEditView = true
+                        } label: {
+                            Label("编辑", systemImage: "pencil")
+                        }
+                        Button {
+                            pendingRenew = true
+                        } label: {
+                            Label("重新申请", systemImage: "arrow.clockwise")
+                        }
+                    }
+                    Button {
+                        showUpdateSheet = true
+                    } label: {
+                        Label("更新证书内容", systemImage: "arrow.triangle.2.circlepath")
+                    }
                 } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Image(systemName: "ellipsis.circle")
                 }
             }
         }
         .navigationDestination(isPresented: $showUpdateSheet) {
             UploadCertificateView(vm: vm, existingCert: detail ?? cert)
+        }
+        .navigationDestination(isPresented: $showEditView) {
+            ApplyCertificateView(vm: vm, existingCert: detail ?? cert)
+        }
+        .alert("重新申请", isPresented: $pendingRenew) {
+            Button("取消", role: .cancel) {}
+            Button("确认申请", role: .destructive) {
+                Task { await renewCert() }
+            }
+        } message: {
+            Text("将重新申请证书「\((detail ?? cert).displayName)」，是否继续？")
         }
         .task { await loadDetail() }
         .onChange(of: vm.needsRefresh) { _, refreshed in
@@ -237,6 +315,18 @@ struct CertificateDetailView: View {
                 Task { await loadDetail() }
             }
         }
+        .onChange(of: tab) { _, newTab in
+            if newTab == .log && logLines.isEmpty {
+                Task { await loadLog() }
+            }
+        }
+    }
+
+    private var visibleTabs: [DetailTab] {
+        if isAcmeCert {
+            return [.info, .cert, .privKey, .log]
+        }
+        return [.info, .cert, .privKey]
     }
 
     private var infoSection: some View {
@@ -247,8 +337,32 @@ struct CertificateDetailView: View {
             LabeledRow("证书类型", value: (detail ?? cert).displayType)
             LabeledRow("来源", value: (detail ?? cert).isManual ? "手动导入" : "自动申请")
             LabeledRow("状态", value: (detail ?? cert).statusDisplay)
+            if let msg = (detail ?? cert).message, !msg.isEmpty {
+                LabeledRow("状态详情", value: msg)
+            }
             LabeledRow("开始日期", value: (detail ?? cert).displayStartDate)
             LabeledRow("过期日期", value: (detail ?? cert).displayExpireDate)
+            if isAcmeCert {
+                if let acc = (detail ?? cert).acmeAccount {
+                    LabeledRow("Acme 账户", value: acc.email)
+                }
+                if let dns = (detail ?? cert).dnsAccount {
+                    LabeledRow("DNS 账户", value: dns.name)
+                }
+                if let kt = (detail ?? cert).keyType {
+                    LabeledRow("密钥算法", value: SSLKeyType(rawValue: kt)?.displayName ?? kt)
+                }
+                LabeledRow("验证方式", value: SSLProvider(rawValue: (detail ?? cert).provider ?? "")?.displayName ?? "—")
+                Toggle("自动续签", isOn: Binding(
+                    get: { (detail ?? cert).autoRenew ?? false },
+                    set: { newVal in
+                        Task {
+                            await vm.updateSSLAutoRenew(cert: detail ?? cert, autoRenew: newVal)
+                            detail?.autoRenew = newVal
+                        }
+                    }
+                ))
+            }
             if let desc = (detail ?? cert).description, !desc.isEmpty {
                 LabeledRow("备注", value: desc)
             }
@@ -258,6 +372,12 @@ struct CertificateDetailView: View {
             }
         } header: {
             Text("证书信息")
+        } footer: {
+            if isAcmeCert {
+                EmptyView()
+            } else {
+                Text("手动导入的证书不支持自动续签和重新申请")
+            }
         }
     }
 
@@ -280,10 +400,57 @@ struct CertificateDetailView: View {
         }
     }
 
+    private var logSection: some View {
+        Section {
+            if isLoadingLog && logLines.isEmpty {
+                HStack {
+                    ProgressView()
+                    Text("加载日志…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } else if logLines.isEmpty {
+                Text("暂无日志")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(Array(logLines.enumerated()), id: \.offset) { _, line in
+                    Text(line)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+                        .listRowSeparator(.hidden)
+                }
+            }
+        } header: {
+            Text("申请日志")
+        } footer: {
+            if let path = (detail ?? cert).logPath, !path.isEmpty {
+                Text(path)
+                    .font(.system(size: 9))
+            }
+        }
+    }
+
     private func loadDetail() async {
         isLoading = true; defer { isLoading = false }
         if let full = await vm.loadDetail(id: cert.id) {
             detail = full
+        }
+    }
+
+    private func loadLog() async {
+        isLoadingLog = true
+        defer { isLoadingLog = false }
+        logLines = await vm.loadSSLLog(id: cert.id)
+    }
+
+    private func renewCert() async {
+        isRenewing = true
+        defer { isRenewing = false }
+        if await vm.obtainSSL(id: cert.id) {
+            tab = .log
+            logLines = []
+            await loadLog()
         }
     }
 }
@@ -507,6 +674,193 @@ final class CertificatesViewModel: ObservableObject {
             showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
         } catch {
             showAlert(message: "删除失败：\(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 申请证书
+
+    func applySSL(req: WebsiteSSLCreateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesSSLCreate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            showAlert(message: "证书申请已提交")
+            await refresh()
+            return true
+        } catch let err as APIError {
+            showAlert(message: "申请失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "申请失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func obtainSSL(id: Int) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesSSLObtain.path,
+                body: WebsiteSSLObtainRequest(id: id),
+                as: EmptyResponse.self
+            )
+            showAlert(message: "已重新提交申请")
+            return true
+        } catch let err as APIError {
+            showAlert(message: "申请失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "申请失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func updateSSLAutoRenew(cert: WebsiteSSLCert, autoRenew: Bool) async {
+        var updated = cert
+        updated.autoRenew = autoRenew
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesSSLUpdate.path,
+                body: updated,
+                as: EmptyResponse.self
+            )
+        } catch let err as APIError {
+            showAlert(message: "更新失败：\(err.errorDescription ?? "未知错误")")
+        } catch {
+            showAlert(message: "更新失败：\(error.localizedDescription)")
+        }
+    }
+
+    func loadSSLLog(id: Int) async -> [String] {
+        let req = WebsiteSSLLogRequest(id: id, page: 1, pageSize: 500, latest: true)
+        do {
+            let resp: WebsiteSSLLogResponse = try await client.send(
+                path: APIEndpoint.websitesSSLLog.path,
+                body: req,
+                as: WebsiteSSLLogResponse.self
+            )
+            return resp.lines ?? []
+        } catch {
+            return []
+        }
+    }
+
+    // MARK: - Acme 账户
+
+    func loadAcmeAccounts() async -> [AcmeAccount] {
+        do {
+            let resp: PageResponse<AcmeAccount> = try await client.send(
+                path: APIEndpoint.websitesAcmeSearch.path,
+                body: AcmeSearchRequest(),
+                as: PageResponse<AcmeAccount>.self
+            )
+            return resp.items ?? []
+        } catch let err as APIError {
+            showAlert(message: "加载失败：\(err.errorDescription ?? "未知错误")")
+            return []
+        } catch {
+            showAlert(message: "加载失败：\(error.localizedDescription)")
+            return []
+        }
+    }
+
+    func createAcmeAccount(req: AcmeCreateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesAcmeCreate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            showAlert(message: "Acme 账户创建成功")
+            return true
+        } catch let err as APIError {
+            showAlert(message: "创建失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "创建失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func deleteAcmeAccount(id: Int) async -> Bool {
+        struct Req: Encodable { let id: Int }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesAcmeDelete.path,
+                body: Req(id: id),
+                as: EmptyResponse.self
+            )
+            showAlert(message: "Acme 账户已删除")
+            return true
+        } catch let err as APIError {
+            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "删除失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    // MARK: - DNS 账户
+
+    func loadDnsAccounts() async -> [DNSAccount] {
+        do {
+            let resp: PageResponse<DNSAccount> = try await client.send(
+                path: APIEndpoint.websitesDnsSearch.path,
+                body: DnsSearchRequest(),
+                as: PageResponse<DNSAccount>.self
+            )
+            return resp.items ?? []
+        } catch let err as APIError {
+            showAlert(message: "加载失败：\(err.errorDescription ?? "未知错误")")
+            return []
+        } catch {
+            showAlert(message: "加载失败：\(error.localizedDescription)")
+            return []
+        }
+    }
+
+    func createDnsAccount(name: String, type: String, auth: [String: String]) async -> Bool {
+        struct Req: Encodable {
+            let id: Int
+            let name: String
+            let type: String
+            let authorization: [String: String]
+        }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesDnsCreate.path,
+                body: Req(id: 0, name: name, type: type, authorization: auth),
+                as: EmptyResponse.self
+            )
+            showAlert(message: "DNS 账户创建成功")
+            return true
+        } catch let err as APIError {
+            showAlert(message: "创建失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "创建失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func deleteDnsAccount(id: Int) async -> Bool {
+        struct Req: Encodable { let id: Int }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesDnsDelete.path,
+                body: Req(id: id),
+                as: EmptyResponse.self
+            )
+            showAlert(message: "DNS 账户已删除")
+            return true
+        } catch let err as APIError {
+            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "删除失败：\(error.localizedDescription)")
+            return false
         }
     }
 

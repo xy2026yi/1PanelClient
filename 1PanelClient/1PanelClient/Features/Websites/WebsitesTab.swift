@@ -145,7 +145,7 @@ struct OpenRestyCard: View {
     @ObservedObject var vm: WebsitesViewModel
     @ObservedObject var manager: ServerManager
     @State private var isExpanded = false
-    @State private var showConfigAlert = false
+    @State private var showConfig = false
     @State private var pendingAction: String?
 
     init(vm: WebsitesViewModel, manager: ServerManager) {
@@ -179,10 +179,8 @@ struct OpenRestyCard: View {
                 .padding(.vertical, 4)
             }
         }
-        .alert("配置", isPresented: $showConfigAlert) {
-            Button("好的", role: .cancel) {}
-        } message: {
-            Text("OpenResty 配置编辑暂未开放")
+        .navigationDestination(isPresented: $showConfig) {
+            OpenRestyConfigView(vm: vm)
         }
         .alert(
             pendingAction.map { openRestyActionDisplayName($0) } ?? "",
@@ -303,7 +301,7 @@ struct OpenRestyCard: View {
                 icon: "slider.horizontal.3",
                 color: .purple
             ) {
-                showConfigAlert = true
+                showConfig = true
             }
         }
         .padding(.top, 4)
@@ -1126,6 +1124,63 @@ final class WebsitesViewModel: ObservableObject {
     private func showAlert(message: String) {
         alertMessage = message
         showAlert = true
+    }
+
+    // MARK: - OpenResty 全局配置
+
+    func loadOpenRestyConfig() async -> String? {
+        do {
+            struct Resp: Decodable { let content: String? }
+            let resp: Resp = try await client.send(
+                path: APIEndpoint.openrestyConfig.path,
+                method: APIEndpoint.openrestyConfig.method,
+                as: Resp.self
+            )
+            return resp.content ?? ""
+        } catch let err as APIError {
+            showAlert(message: "读取配置失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "读取配置失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func saveOpenRestyConfig(content: String, backup: Bool) async -> Bool {
+        struct Req: Encodable { let content: String; let backup: Bool }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.openrestyFile.path,
+                body: Req(content: content, backup: backup),
+                as: EmptyResponse.self
+            )
+            showAlert(message: "配置保存成功")
+            return true
+        } catch let err as APIError {
+            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "保存失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func resetOpenRestyConfig() async -> String? {
+        struct Req: Encodable { let type: String; let name: String }
+        do {
+            let content: String = try await client.send(
+                path: APIEndpoint.openrestyReset.path,
+                body: Req(type: "openresty", name: ""),
+                as: String.self
+            )
+            return content
+        } catch let err as APIError {
+            showAlert(message: "还原失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "还原失败：\(error.localizedDescription)")
+            return nil
+        }
     }
 
     // MARK: - HTTPS 配置
@@ -2109,5 +2164,89 @@ struct WebsiteLogView: View {
         isLoading = true
         defer { isLoading = false }
         lines = await vm.loadLog(websiteId: websiteId, name: logType.fileName)
+    }
+}
+
+// MARK: - OpenResty 全局配置编辑
+
+struct OpenRestyConfigView: View {
+    @ObservedObject var vm: WebsitesViewModel
+
+    @State private var configText = ""
+    @State private var originalText = ""
+    @State private var isLoading = false
+    @State private var isSaving = false
+    @State private var showResetConfirm = false
+
+    var body: some View {
+        Group {
+            if isLoading {
+                ProgressView("加载中…")
+            } else {
+                TextEditor(text: $configText)
+                    .font(.system(.caption, design: .monospaced))
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+            }
+        }
+        .navigationTitle("nginx.conf")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        Task { await save() }
+                    } label: {
+                        Label("保存", systemImage: "checkmark.circle")
+                    }
+                    .disabled(isSaving || isLoading || configText == originalText)
+
+                    Button(role: .destructive) {
+                        showResetConfirm = true
+                    } label: {
+                        Label("还原默认配置", systemImage: "arrow.counterclockwise")
+                    }
+                    .disabled(isSaving || isLoading)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .task { await loadConfig() }
+        .alert("还原默认配置", isPresented: $showResetConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("确认还原", role: .destructive) {
+                Task { await resetConfig() }
+            }
+        } message: {
+            Text("将用默认配置覆盖当前内容，是否继续？")
+        }
+    }
+
+    private func loadConfig() async {
+        isLoading = true
+        defer { isLoading = false }
+        if let content = await vm.loadOpenRestyConfig() {
+            configText = content
+            originalText = content
+        }
+    }
+
+    private func save() async {
+        isSaving = true
+        defer { isSaving = false }
+        let ok = await vm.saveOpenRestyConfig(content: configText, backup: false)
+        if ok {
+            originalText = configText
+        }
+    }
+
+    private func resetConfig() async {
+        isLoading = true
+        defer { isLoading = false }
+        if let content = await vm.resetOpenRestyConfig() {
+            configText = content
+            originalText = content
+        }
     }
 }

@@ -631,6 +631,14 @@ struct IgnoredAppsView: View {
                 method: APIEndpoint.appsIgnoredList.method,
                 as: [AppIgnoreUpgrade].self
             )
+        } catch let err as APIError {
+            // code=200 但 data=null 表示没有忽略记录
+            if case .businessError(let code, _) = err, code == 200 {
+                ignored = []
+            } else {
+                vm.alertMessage = "加载失败：\(err.errorDescription ?? "未知错误")"
+                vm.showAlert = true
+            }
         } catch {
             vm.alertMessage = "加载失败：\(error.localizedDescription)"
             vm.showAlert = true
