@@ -231,7 +231,7 @@ struct AppDetailView: View {
             UpdateParamsSheetView(app: app, vm: vm)
         }
         .alert(
-            pendingAction ?? "",
+            pendingAction.map { actionDisplayName($0) } ?? "",
             isPresented: Binding(
                 get: { pendingAction != nil },
                 set: { if !$0 { pendingAction = nil } }
