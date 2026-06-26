@@ -299,7 +299,7 @@ struct DatabaseSystemView: View {
     @State private var showRedisTerminal = false
     @State private var showRedisPasswordSheet = false
     @State private var pendingAction: String?
-    @State private var pendingDeleteDb: Database?
+    @State private var pendingDeleteDb: DatabaseItem?
 
     init(system: DatabaseSystem) {
         _vm = StateObject(wrappedValue: DatabaseSystemViewModel(system: system, server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")))
