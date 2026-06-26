@@ -836,6 +836,21 @@ final class WebsitesViewModel: ObservableObject {
         }
     }
 
+    /// 仅加载 SSL 证书列表（用于 HTTPS 配置页，不依赖应用搜索）
+    func loadSSLCerts() async {
+        let sslReq = WebsiteSSLSearchRequest(acmeAccountID: "0")
+        do {
+            let ssls: [WebsiteSSL] = try await client.send(
+                path: APIEndpoint.websitesSSLSearch.path,
+                body: sslReq,
+                as: [WebsiteSSL].self
+            )
+            self.availableSSLs = ssls
+        } catch {
+            self.availableSSLs = []
+        }
+    }
+
     /// 提交创建网站请求
     @discardableResult
     func createWebsite(req: WebsiteCreateRequest) async -> (success: Bool, message: String) {
@@ -1481,10 +1496,8 @@ struct WebsiteHTTPSView: View {
         }
         .task {
             await load()
-            if vm.availableSSLs.isEmpty {
-                await vm.loadCreateData(type: .deployment)
-            }
-            // 证书列表加载完成后重新选中当前证书，避免 Picker 因选项延迟加载而重置选中
+            await vm.loadSSLCerts()
+            // 证书列表加载完成后选中当前证书
             selectedSSLId = originalSSLId
         }
     }
