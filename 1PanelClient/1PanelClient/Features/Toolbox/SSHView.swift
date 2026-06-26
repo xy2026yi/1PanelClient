@@ -106,6 +106,7 @@ struct SSHView: View {
 
     @State private var isServiceExpanded = false
     @State private var editingField: SSHField?
+    @State private var pendingAction: String?
 
     enum SSHField: Identifiable {
         case port, listenAddress
@@ -144,6 +145,24 @@ struct SSHView: View {
         } message: {
             Text(vm.errorMessage ?? vm.successMessage ?? "")
         }
+        .alert(
+            pendingAction.map { sshActionDisplayName($0) } ?? "",
+            isPresented: Binding(
+                get: { pendingAction != nil },
+                set: { if !$0 { pendingAction = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingAction = nil }
+            Button("确认", role: .destructive) {
+                let op = pendingAction
+                pendingAction = nil
+                if let op { Task { await vm.operate(op) } }
+            }
+        } message: {
+            if let action = pendingAction {
+                Text("将对 SSH 进行 \(sshActionDisplayName(action)) 操作，是否继续？")
+            }
+        }
         .sheet(item: $editingField) { field in
             switch field {
             case .port:
@@ -155,6 +174,17 @@ struct SSHView: View {
                     Task { await vm.update(key: "ListenAddress", oldValue: vm.config?.listenAddress ?? "", newValue: newVal) }
                 }
             }
+        }
+    }
+
+    private func sshActionDisplayName(_ action: String) -> String {
+        switch action {
+        case "stop":    return "停止"
+        case "start":   return "启动"
+        case "restart": return "重启"
+        case "enable":  return "开启自启"
+        case "disable": return "关闭自启"
+        default:        return action
         }
     }
 
@@ -187,7 +217,7 @@ struct SSHView: View {
                     HStack(spacing: 12) {
                         if config.isActive {
                             Button {
-                                Task { await vm.operate("stop") }
+                                pendingAction = "stop"
                             } label: {
                                 Label("停止", systemImage: "stop.fill")
                                     .frame(maxWidth: .infinity)
@@ -196,7 +226,7 @@ struct SSHView: View {
                             .tint(.red)
                         } else {
                             Button {
-                                Task { await vm.operate("start") }
+                                pendingAction = "start"
                             } label: {
                                 Label("启动", systemImage: "play.fill")
                                     .frame(maxWidth: .infinity)
@@ -206,7 +236,7 @@ struct SSHView: View {
                         }
 
                         Button {
-                            Task { await vm.operate("restart") }
+                            pendingAction = "restart"
                         } label: {
                             Label("重启", systemImage: "arrow.clockwise")
                                 .frame(maxWidth: .infinity)
@@ -218,7 +248,7 @@ struct SSHView: View {
                     Toggle("开机自启", isOn: Binding(
                         get: { config.autoStart },
                         set: { newVal in
-                            Task { await vm.operate(newVal ? "enable" : "disable") }
+                            pendingAction = newVal ? "enable" : "disable"
                         }
                     ))
                     .disabled(vm.isOperating)

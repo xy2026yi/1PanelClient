@@ -314,6 +314,7 @@ final class WAFViewModel: ObservableObject {
 struct WAFView: View {
     @StateObject private var vm: WAFViewModel
     let server: ServerConfig
+    @State private var pendingAction: String?
 
     init(server: ServerConfig) {
         self.server = server
@@ -348,6 +349,24 @@ struct WAFView: View {
         } message: {
             Text(vm.errorMessage ?? vm.successMessage ?? "")
         }
+        .alert(
+            pendingAction == "on" ? "启动" : "停止",
+            isPresented: Binding(
+                get: { pendingAction != nil },
+                set: { if !$0 { pendingAction = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingAction = nil }
+            Button("确认", role: .destructive) {
+                let action = pendingAction
+                pendingAction = nil
+                if let action = action {
+                    Task { await vm.toggleRule(scope: "Waf", state: action) }
+                }
+            }
+        } message: {
+            Text("将对 WAF 进行 \(pendingAction == "on" ? "启动" : "停止") 操作，是否继续？")
+        }
     }
 
     @ViewBuilder
@@ -366,7 +385,7 @@ struct WAFView: View {
                     Toggle("", isOn: Binding(
                         get: { vm.status?.open ?? false },
                         set: { newVal in
-                            Task { await vm.toggleRule(scope: "Waf", state: newVal ? "on" : "off") }
+                            pendingAction = newVal ? "on" : "off"
                         }
                     ))
                     .labelsHidden()
@@ -532,6 +551,7 @@ struct WAFIPRulesView: View {
     @State private var showCreate = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
+    @State private var pendingDeleteIP: WAFRuleIPItem?
 
     private let client: APIClient
 
@@ -555,7 +575,7 @@ struct WAFIPRulesView: View {
                     })
                     .swipeActions {
                         Button(role: .destructive) {
-                            Task { await deleteItem(item) }
+                            pendingDeleteIP = item
                         } label: {
                             Label("删除", systemImage: "trash")
                         }
@@ -588,6 +608,25 @@ struct WAFIPRulesView: View {
             Button("好的") { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
+        }
+        .alert(
+            "删除",
+            isPresented: Binding(
+                get: { pendingDeleteIP != nil },
+                set: { if !$0 { pendingDeleteIP = nil } }
+            ),
+            presenting: pendingDeleteIP
+        ) { _ in
+            Button("取消", role: .cancel) { pendingDeleteIP = nil }
+            Button("确认", role: .destructive) {
+                let item = pendingDeleteIP
+                pendingDeleteIP = nil
+                if let item = item {
+                    Task { await deleteItem(item) }
+                }
+            }
+        } message: { item in
+            Text("将对 \"\(item.displayValue.isEmpty ? item.name : item.displayValue)\" 进行删除操作，是否继续？")
         }
     }
 
@@ -821,6 +860,7 @@ struct WAFIPGroupsView: View {
     @State private var showCreate = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
+    @State private var pendingDeleteGroup: WAFIPGroupItem?
 
     private let client: APIClient
 
@@ -857,7 +897,7 @@ struct WAFIPGroupsView: View {
                     }
                     .swipeActions {
                         Button(role: .destructive) {
-                            Task { await deleteItem(item) }
+                            pendingDeleteGroup = item
                         } label: {
                             Label("删除", systemImage: "trash")
                         }
@@ -890,6 +930,25 @@ struct WAFIPGroupsView: View {
             Button("好的") { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
+        }
+        .alert(
+            "删除",
+            isPresented: Binding(
+                get: { pendingDeleteGroup != nil },
+                set: { if !$0 { pendingDeleteGroup = nil } }
+            ),
+            presenting: pendingDeleteGroup
+        ) { _ in
+            Button("取消", role: .cancel) { pendingDeleteGroup = nil }
+            Button("确认", role: .destructive) {
+                let item = pendingDeleteGroup
+                pendingDeleteGroup = nil
+                if let item = item {
+                    Task { await deleteItem(item) }
+                }
+            }
+        } message: { item in
+            Text("将对 \"\(item.name)\" 进行删除操作，是否继续？")
         }
     }
 
@@ -1096,6 +1155,7 @@ struct WAFCommonRulesView: View {
     @State private var editingItem: WAFCommonRuleItem?
     @State private var successMessage: String?
     @State private var errorMessage: String?
+    @State private var pendingDeleteRule: WAFCommonRuleItem?
 
     private let client: APIClient
 
@@ -1119,7 +1179,7 @@ struct WAFCommonRulesView: View {
                     })
                     .swipeActions {
                         Button(role: .destructive) {
-                            Task { await deleteItem(item) }
+                            pendingDeleteRule = item
                         } label: {
                             Label("删除", systemImage: "trash")
                         }
@@ -1163,6 +1223,25 @@ struct WAFCommonRulesView: View {
             Button("好的") { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
+        }
+        .alert(
+            "删除",
+            isPresented: Binding(
+                get: { pendingDeleteRule != nil },
+                set: { if !$0 { pendingDeleteRule = nil } }
+            ),
+            presenting: pendingDeleteRule
+        ) { _ in
+            Button("取消", role: .cancel) { pendingDeleteRule = nil }
+            Button("确认", role: .destructive) {
+                let item = pendingDeleteRule
+                pendingDeleteRule = nil
+                if let item = item {
+                    Task { await deleteItem(item) }
+                }
+            }
+        } message: { item in
+            Text("将对 \"\(item.name)\" 进行删除操作，是否继续？")
         }
     }
 

@@ -298,6 +298,8 @@ struct DatabaseSystemView: View {
     @State private var showServicePasswordSheet = false
     @State private var showRedisTerminal = false
     @State private var showRedisPasswordSheet = false
+    @State private var pendingAction: String?
+    @State private var pendingDeleteDb: Database?
 
     init(system: DatabaseSystem) {
         _vm = StateObject(wrappedValue: DatabaseSystemViewModel(system: system, server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")))
@@ -340,14 +342,11 @@ struct DatabaseSystemView: View {
                 Task { await vm.changeServicePassword(newPassword) }
             }
         }
-        .fullScreenCover(isPresented: $showRedisTerminal) {
-            NavigationStack {
-                TerminalView(
-                    server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
-                    target: .redis(name: vm.system.database, cols: 80, rows: 24),
-                    showCloseButton: true
-                )
-            }
+        .navigationDestination(isPresented: $showRedisTerminal) {
+            TerminalView(
+                server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
+                target: .redis(name: vm.system.database, cols: 80, rows: 24)
+            )
         }
         .sheet(isPresented: $showRedisPasswordSheet) {
             RedisPasswordSheet(
@@ -361,6 +360,51 @@ struct DatabaseSystemView: View {
                     }
                 }
             }
+        }
+        .alert(
+            pendingAction.map { dbActionDisplayName($0) } ?? "",
+            isPresented: Binding(
+                get: { pendingAction != nil },
+                set: { if !$0 { pendingAction = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingAction = nil }
+            Button("确认", role: .destructive) {
+                let op = pendingAction
+                pendingAction = nil
+                if let op { Task { await vm.operate(op) } }
+            }
+        } message: {
+            if let action = pendingAction {
+                Text("将对 \(vm.system.displayName) 进行 \(dbActionDisplayName(action)) 操作，是否继续？")
+            }
+        }
+        .alert(
+            "删除数据库",
+            isPresented: Binding(
+                get: { pendingDeleteDb != nil },
+                set: { if !$0 { pendingDeleteDb = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingDeleteDb = nil }
+            Button("删除", role: .destructive) {
+                let db = pendingDeleteDb
+                pendingDeleteDb = nil
+                if let db { Task { await vm.deleteDatabase(db) } }
+            }
+        } message: {
+            if let db = pendingDeleteDb {
+                Text("确定删除数据库「\(db.name)」吗？删除后不可恢复。")
+            }
+        }
+    }
+
+    private func dbActionDisplayName(_ action: String) -> String {
+        switch action {
+        case "stop":    return "停止"
+        case "start":   return "启动"
+        case "restart": return "重启"
+        default:        return action
         }
     }
 
@@ -390,14 +434,14 @@ struct DatabaseSystemView: View {
 
                 HStack(spacing: 12) {
                     if !check.isRunning {
-                        Button { Task { await vm.operate("start") } } label: {
+                        Button { pendingAction = "start" } label: {
                             Label("启动", systemImage: "play.fill")
                         }
                         .disabled(vm.isOperating)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                     } else {
-                        Button { Task { await vm.operate("stop") } } label: {
+                        Button { pendingAction = "stop" } label: {
                             Label("停止", systemImage: "stop.fill")
                         }
                         .disabled(vm.isOperating)
@@ -406,7 +450,7 @@ struct DatabaseSystemView: View {
                         .tint(.red)
                     }
 
-                    Button { Task { await vm.operate("restart") } } label: {
+                    Button { pendingAction = "restart" } label: {
                         Label("重启", systemImage: "arrow.clockwise")
                     }
                     .disabled(vm.isOperating)
@@ -504,7 +548,7 @@ struct DatabaseSystemView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
-                            Task { await vm.deleteDatabase(db) }
+                            pendingDeleteDb = db
                         } label: { Label("删除", systemImage: "trash") }
                     }
                 }

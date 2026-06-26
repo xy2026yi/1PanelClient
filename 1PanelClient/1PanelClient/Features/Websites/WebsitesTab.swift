@@ -1702,7 +1702,7 @@ struct WebsiteProxiesView: View {
                 Task { await load() }
             }
         }
-        .sheet(isPresented: $showSourceSheet) {
+        .navigationDestination(isPresented: $showSourceSheet) {
             if let p = sourceProxy {
                 WebsiteProxySourceView(websiteId: websiteId, proxy: p, vm: vm)
             }
@@ -1919,55 +1919,50 @@ struct WebsiteProxySourceView: View {
     @State private var isEditing = false
 
     var body: some View {
-        NavigationStack {
-            Group {
-                ScrollView(.horizontal, showsIndicators: false) {
+        Group {
+            ScrollView(.horizontal, showsIndicators: false) {
+                if isEditing {
+                    TextEditor(text: $content)
+                        .font(.system(size: 12, design: .monospaced))
+                        .frame(minHeight: 480)
+                        .padding(8)
+                } else {
+                    Text(content)
+                        .font(.system(size: 12, design: .monospaced))
+                        .padding()
+                        .textSelection(.enabled)
+                }
+            }
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(8)
+            .padding()
+        }
+        .navigationTitle("源文：\(proxy.displayName)")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack {
+                    Button {
+                        isEditing.toggle()
+                        if !isEditing {
+                            content = proxy.content ?? content
+                        }
+                    } label: {
+                        Label(isEditing ? "取消" : "编辑", systemImage: isEditing ? "xmark" : "pencil")
+                    }
                     if isEditing {
-                        TextEditor(text: $content)
-                            .font(.system(size: 12, design: .monospaced))
-                            .frame(minHeight: 480)
-                            .padding(8)
-                    } else {
-                        Text(content)
-                            .font(.system(size: 12, design: .monospaced))
-                            .padding()
-                            .textSelection(.enabled)
-                    }
-                }
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(8)
-                .padding()
-            }
-            .navigationTitle("源文：\(proxy.displayName)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack {
                         Button {
-                            isEditing.toggle()
-                            if !isEditing {
-                                content = proxy.content ?? content
-                            }
+                            Task { await save() }
                         } label: {
-                            Label(isEditing ? "取消" : "编辑", systemImage: isEditing ? "xmark" : "pencil")
+                            if isSaving { ProgressView() } else { Text("保存").bold() }
                         }
-                        if isEditing {
-                            Button {
-                                Task { await save() }
-                            } label: {
-                                if isSaving { ProgressView() } else { Text("保存").bold() }
-                            }
-                            .disabled(isSaving)
-                        }
+                        .disabled(isSaving)
                     }
                 }
             }
-            .onAppear {
-                content = proxy.content ?? ""
-            }
+        }
+        .onAppear {
+            content = proxy.content ?? ""
         }
     }
 

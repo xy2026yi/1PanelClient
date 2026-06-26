@@ -86,10 +86,15 @@ struct ProcessView: View {
         }
         .onAppear { monitor.connect() }
         .onDisappear { monitor.disconnect() }
-        .sheet(item: $selectedProcess) { proc in
-            ProcessDetailView(process: proc) {
-                stopTarget = proc
-                showStopConfirm = true
+        .navigationDestination(isPresented: Binding(
+            get: { selectedProcess != nil },
+            set: { if !$0 { selectedProcess = nil } }
+        )) {
+            if let proc = selectedProcess {
+                ProcessDetailView(process: proc) {
+                    stopTarget = proc
+                    showStopConfirm = true
+                }
             }
         }
         .alert("结束进程", isPresented: $showStopConfirm) {
@@ -374,72 +379,64 @@ private struct ProcessDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section("基本信息") {
-                    InfoRow(key: "PID", value: "\(process.pid)")
-                    InfoRow(key: "名称", value: process.name)
-                    InfoRow(key: "父进程 PID", value: "\(process.ppid)")
-                    InfoRow(key: "用户", value: process.username)
-                    InfoRow(key: "状态", value: process.status)
-                }
+        List {
+            Section("基本信息") {
+                InfoRow(key: "PID", value: "\(process.pid)")
+                InfoRow(key: "名称", value: process.name)
+                InfoRow(key: "父进程 PID", value: "\(process.ppid)")
+                InfoRow(key: "用户", value: process.username)
+                InfoRow(key: "状态", value: process.status)
+            }
 
-                Section("资源使用") {
-                    if let cpu = process.cpuPercent, !cpu.isEmpty {
-                        InfoRow(key: "CPU", value: cpu)
-                    }
-                    if let mem = process.rss, !mem.isEmpty {
-                        InfoRow(key: "内存 (RSS)", value: mem)
-                    }
-                    if let threads = process.numThreads {
-                        InfoRow(key: "线程数", value: "\(threads)")
-                    }
-                    if let conns = process.numConnections {
-                        InfoRow(key: "连接数", value: "\(conns)")
-                    }
-                    if let dr = process.diskRead, !dr.isEmpty {
-                        InfoRow(key: "磁盘读", value: dr)
-                    }
-                    if let dw = process.diskWrite, !dw.isEmpty {
-                        InfoRow(key: "磁盘写", value: dw)
-                    }
+            Section("资源使用") {
+                if let cpu = process.cpuPercent, !cpu.isEmpty {
+                    InfoRow(key: "CPU", value: cpu)
                 }
-
-                if let time = process.startTime, !time.isEmpty {
-                    Section("时间") {
-                        InfoRow(key: "启动时间", value: time)
-                    }
+                if let mem = process.rss, !mem.isEmpty {
+                    InfoRow(key: "内存 (RSS)", value: mem)
                 }
-
-                if let cmd = process.cmdLine, !cmd.isEmpty {
-                    Section("命令行") {
-                        Text(cmd)
-                            .font(.caption.monospaced())
-                            .textSelection(.enabled)
-                    }
+                if let threads = process.numThreads {
+                    InfoRow(key: "线程数", value: "\(threads)")
                 }
-
-                Section {
-                    Button(role: .destructive) {
-                        onStop()
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Label("结束进程", systemImage: "xmark.octagon")
-                            Spacer()
-                        }
-                    }
+                if let conns = process.numConnections {
+                    InfoRow(key: "连接数", value: "\(conns)")
+                }
+                if let dr = process.diskRead, !dr.isEmpty {
+                    InfoRow(key: "磁盘读", value: dr)
+                }
+                if let dw = process.diskWrite, !dw.isEmpty {
+                    InfoRow(key: "磁盘写", value: dw)
                 }
             }
-            .navigationTitle(process.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("关闭") { dismiss() }
+
+            if let time = process.startTime, !time.isEmpty {
+                Section("时间") {
+                    InfoRow(key: "启动时间", value: time)
+                }
+            }
+
+            if let cmd = process.cmdLine, !cmd.isEmpty {
+                Section("命令行") {
+                    Text(cmd)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                }
+            }
+
+            Section {
+                Button(role: .destructive) {
+                    onStop()
+                    dismiss()
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label("结束进程", systemImage: "xmark.octagon")
+                        Spacer()
+                    }
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .navigationTitle(process.name)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

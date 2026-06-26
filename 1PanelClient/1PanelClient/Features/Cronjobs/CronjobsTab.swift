@@ -335,8 +335,11 @@ struct CronjobRecordsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.loadRecords(jobId: job.id) }
         .refreshable { await vm.loadRecords(jobId: job.id) }
-        .sheet(item: $selectedRecord) { record in
-            if let taskID = record.taskID {
+        .navigationDestination(isPresented: Binding(
+            get: { selectedRecord != nil },
+            set: { if !$0 { selectedRecord = nil } }
+        )) {
+            if let record = selectedRecord, let taskID = record.taskID {
                 CronjobLogView(taskID: taskID, record: record, vm: vm)
             }
         }
@@ -387,38 +390,31 @@ struct CronjobLogView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if vm.isLoadingLog && vm.logLines.isEmpty {
-                        ProgressView("加载中…")
-                            .padding()
-                    } else if vm.logLines.isEmpty {
-                        Text("暂无日志")
-                            .foregroundStyle(.secondary)
-                            .padding()
-                    } else {
-                        ForEach(Array(vm.logLines.enumerated()), id: \.offset) { _, line in
-                            Text(line)
-                                .font(.system(.caption, design: .monospaced))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal)
-                                .padding(.vertical, 2)
-                        }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                if vm.isLoadingLog && vm.logLines.isEmpty {
+                    ProgressView("加载中…")
+                        .padding()
+                } else if vm.logLines.isEmpty {
+                    Text("暂无日志")
+                        .foregroundStyle(.secondary)
+                        .padding()
+                } else {
+                    ForEach(Array(vm.logLines.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(.system(.caption, design: .monospaced))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+                            .padding(.vertical, 2)
                     }
                 }
-                .padding(.vertical, 8)
             }
-            .background(Color(.systemBackground))
-            .navigationTitle("执行日志")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("关闭") { dismiss() }
-                }
-            }
-            .task { await vm.loadLog(taskID: taskID) }
+            .padding(.vertical, 8)
         }
+        .background(Color(.systemBackground))
+        .navigationTitle("执行日志")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await vm.loadLog(taskID: taskID) }
     }
 }
 

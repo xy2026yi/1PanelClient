@@ -172,6 +172,7 @@ struct Fail2banView: View {
 
     @State private var activeSheet: Fail2banSheet?
     @State private var isServiceExpanded = false
+    @State private var pendingAction: String?
 
     enum Fail2banSheet: Identifiable {
         case port, maxRetry, banTime, findTime, banAction, logPath
@@ -218,6 +219,24 @@ struct Fail2banView: View {
             Button("好的") { vm.successMessage = nil }
         } message: {
             Text(vm.successMessage ?? "")
+        }
+        .alert(
+            pendingAction.map { fail2banActionDisplayName($0) } ?? "",
+            isPresented: Binding(
+                get: { pendingAction != nil },
+                set: { if !$0 { pendingAction = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingAction = nil }
+            Button("确认", role: .destructive) {
+                let op = pendingAction
+                pendingAction = nil
+                if let op { Task { await vm.operate(op) } }
+            }
+        } message: {
+            if let action = pendingAction {
+                Text("将对 Fail2ban 进行 \(fail2banActionDisplayName(action)) 操作，是否继续？")
+            }
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
@@ -318,7 +337,7 @@ struct Fail2banView: View {
                 HStack(spacing: 12) {
                     if base.isActive {
                         Button {
-                            Task { await vm.operate("stop") }
+                            pendingAction = "stop"
                         } label: {
                             Label("停止", systemImage: "stop.fill")
                                 .frame(maxWidth: .infinity)
@@ -327,7 +346,7 @@ struct Fail2banView: View {
                         .tint(.red)
                     } else {
                         Button {
-                            Task { await vm.operate("start") }
+                            pendingAction = "start"
                         } label: {
                             Label("启动", systemImage: "play.fill")
                                 .frame(maxWidth: .infinity)
@@ -337,7 +356,7 @@ struct Fail2banView: View {
                     }
 
                     Button {
-                        Task { await vm.operate("restart") }
+                        pendingAction = "restart"
                     } label: {
                         Label("重启", systemImage: "arrow.clockwise")
                             .frame(maxWidth: .infinity)
@@ -349,7 +368,7 @@ struct Fail2banView: View {
                 Toggle("开机自启", isOn: Binding(
                     get: { base.isEnable },
                     set: { newVal in
-                        Task { await vm.operate(newVal ? "enable" : "disable") }
+                        pendingAction = newVal ? "enable" : "disable"
                     }
                 ))
                 .disabled(vm.isOperating)
@@ -358,6 +377,17 @@ struct Fail2banView: View {
     }
 
     // MARK: - 基础配置
+
+    private func fail2banActionDisplayName(_ action: String) -> String {
+        switch action {
+        case "stop":    return "停止"
+        case "start":   return "启动"
+        case "restart": return "重启"
+        case "enable":  return "开启自启"
+        case "disable": return "关闭自启"
+        default:        return action
+        }
+    }
 
     private func configSection(base: Fail2banBase) -> some View {
         Section {

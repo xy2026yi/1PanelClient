@@ -192,15 +192,12 @@ struct ScriptDetailView: View {
         }
         .navigationTitle(script.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $showTerminal) {
-            NavigationStack {
-                TerminalView(
-                    server: server,
-                    target: .scriptRun(scriptID: script.id, cols: 80, rows: 24),
-                    title: script.displayName,
-                    showCloseButton: true
-                )
-            }
+        .navigationDestination(isPresented: $showTerminal) {
+            TerminalView(
+                server: server,
+                target: .scriptRun(scriptID: script.id, cols: 80, rows: 24),
+                title: script.displayName
+            )
         }
     }
 }

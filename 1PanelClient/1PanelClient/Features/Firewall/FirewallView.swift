@@ -157,6 +157,7 @@ struct FirewallView: View {
     @StateObject private var vm: FirewallViewModel
     @State private var showAdd = false
     @State private var pendingUFWOp: String?
+    @State private var pendingDeleteRule: FirewallRule?
     @State private var editingRule: FirewallRule?
     @State private var statusExpanded = false
 
@@ -183,7 +184,7 @@ struct FirewallView: View {
                         FirewallRuleRow(rule: rule)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
-                                    Task { await vm.deleteRule(rule) }
+                                    pendingDeleteRule = rule
                                 } label: { Label("删除", systemImage: "trash") }
 
                                 Button {
@@ -239,19 +240,37 @@ struct FirewallView: View {
                 FirewallEditRuleView(vm: vm, rule: rule)
             }
         }
-        .confirmationDialog(
+        .alert(
+            pendingDeleteRule.map { "删除端口规则 \($0.port ?? "") ？" } ?? "删除端口规则？",
+            isPresented: Binding(
+                get: { pendingDeleteRule != nil },
+                set: { if !$0 { pendingDeleteRule = nil } }
+            )
+        ) {
+            Button("删除", role: .destructive) {
+                if let rule = pendingDeleteRule {
+                    pendingDeleteRule = nil
+                    Task { await vm.deleteRule(rule) }
+                }
+            }
+            Button("取消", role: .cancel) { pendingDeleteRule = nil }
+        }
+        .alert(
             pendingUFWOp.map { opTitle($0) } ?? "",
             isPresented: Binding(
                 get: { pendingUFWOp != nil },
                 set: { if !$0 { pendingUFWOp = nil } }
-            ),
-            titleVisibility: .visible
+            )
         ) {
-            if let op = pendingUFWOp {
-                Button("立即重启 Docker") { Task { await vm.operateUFW(op, withDockerRestart: true) } }
-                Button("稍后手动重启") { Task { await vm.operateUFW(op, withDockerRestart: false) } }
-                Button("取消", role: .cancel) {}
+            Button("立即重启 Docker") {
+                let op = pendingUFWOp; pendingUFWOp = nil
+                if let op { Task { await vm.operateUFW(op, withDockerRestart: true) } }
             }
+            Button("稍后手动重启") {
+                let op = pendingUFWOp; pendingUFWOp = nil
+                if let op { Task { await vm.operateUFW(op, withDockerRestart: false) } }
+            }
+            Button("取消", role: .cancel) { pendingUFWOp = nil }
         } message: {
             Text("启用/停用防火墙可能影响 Docker 网络连通性。是否立即重启 Docker？")
         }
