@@ -29,6 +29,8 @@ actor AppIconCache {
 struct AppIconView: View {
     let appID: Int?
     let baseURL: String
+    /// 应用 key（如 "mysql"），用于 appID 缺失时按 key 拉取图标
+    var appKey: String? = nil
     /// 回退用的状态图标和颜色
     let fallbackIcon: String
     let fallbackColor: Color
@@ -39,8 +41,13 @@ struct AppIconView: View {
     @State private var didFail = false
 
     private var cacheKey: String? {
-        guard let appID, appID > 0 else { return nil }
-        return "\(baseURL)#\(appID)"
+        if let appID, appID > 0 {
+            return "\(baseURL)#id:\(appID)"
+        }
+        if let appKey, !appKey.isEmpty {
+            return "\(baseURL)#key:\(appKey)"
+        }
+        return nil
     }
 
     var body: some View {
@@ -75,8 +82,18 @@ struct AppIconView: View {
             image = cached
             return
         }
-        // 用临时 APIClient 拉取图标
-        let path = APIEndpoint.appsIcon.path.replacingOccurrences(of: ":appID", with: String(appID ?? 0))
+        // 确定路径参数：优先用 appID，其次用 appKey
+        let pathParam: String
+        if let appID, appID > 0 {
+            pathParam = String(appID)
+        } else if let appKey, !appKey.isEmpty {
+            pathParam = appKey
+        } else {
+            image = nil
+            didFail = true
+            return
+        }
+        let path = APIEndpoint.appsIcon.path.replacingOccurrences(of: ":appID", with: pathParam)
         let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: baseURL, apiKey: "")
         let client = APIClient(server: server)
         do {

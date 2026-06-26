@@ -143,11 +143,13 @@ struct SearchIconModifier: ViewModifier {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if isSearching {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            endSearch()
-                        } label: {
-                            Image(systemName: "chevron.left")
+                    if showCloseButton {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button {
+                                endSearch()
+                            } label: {
+                                Image(systemName: "chevron.left")
+                            }
                         }
                     }
                     ToolbarItem(placement: .principal) {

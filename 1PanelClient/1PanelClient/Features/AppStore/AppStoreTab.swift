@@ -90,9 +90,6 @@ struct AppStoreTab: View {
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
         }
-        .navigationDestination(for: AppStoreApp.self) { app in
-            AppStoreDetailView(appKey: app.key ?? "", vm: vm)
-        }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
         } message: {
@@ -107,7 +104,9 @@ struct AppStoreTab: View {
             if !recommended.isEmpty {
                 Section {
                     ForEach(recommended) { app in
-                        NavigationLink(value: app) {
+                        NavigationLink {
+                            AppStoreDetailView(appKey: app.key ?? "", vm: vm)
+                        } label: {
                             AppStoreRow(app: app, highlightRecommend: true)
                         }
                     }
@@ -119,7 +118,9 @@ struct AppStoreTab: View {
             // 全部应用
             Section {
                 ForEach(vm.apps.filter { ($0.recommend ?? 0) == 0 }) { app in
-                    NavigationLink(value: app) {
+                    NavigationLink {
+                        AppStoreDetailView(appKey: app.key ?? "", vm: vm)
+                    } label: {
                         AppStoreRow(app: app, highlightRecommend: false)
                     }
                 }
@@ -164,9 +165,15 @@ struct AppStoreDetailView: View {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "app.dashed")
-                            .font(.largeTitle)
-                            .foregroundStyle(.tint)
+                        AppIconView(
+                            appID: nil,
+                            baseURL: ServerManager.shared.current?.baseURL ?? "",
+                            appKey: detail.key,
+                            fallbackIcon: "app.dashed",
+                            fallbackColor: .accentColor,
+                            size: 56,
+                            cornerRadius: 12
+                        )
                         VStack(alignment: .leading) {
                             Text(detail.name ?? "")
                                 .font(.title3.bold())
@@ -673,14 +680,15 @@ struct AppStoreRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.blue.opacity(0.1))
-                    .frame(width: 44, height: 44)
-                Image(systemName: app.typeIcon)
-                    .font(.title3)
-                    .foregroundStyle(.blue)
-            }
+            AppIconView(
+                appID: nil,
+                baseURL: ServerManager.shared.current?.baseURL ?? "",
+                appKey: app.key,
+                fallbackIcon: app.typeIcon,
+                fallbackColor: .blue,
+                size: 44,
+                cornerRadius: 10
+            )
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
