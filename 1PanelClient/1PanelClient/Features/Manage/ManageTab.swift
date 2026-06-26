@@ -53,26 +53,22 @@ struct ManageTab: View {
                         }
                     }
                 }
-            }
-            .navigationTitle("管理")
-            .navigationBarTitleDisplayMode(.large)
-            .safeAreaInset(edge: .bottom) {
-                HStack {
-                    Spacer()
+
+                Section {
                     Button {
                         showEditSheet = true
                     } label: {
-                        Text("编辑")
-                            .font(.body)
-                            .frame(maxWidth: .infinity)
+                        HStack {
+                            Spacer()
+                            Text("编辑")
+                            Spacer()
+                        }
                     }
-                    .buttonStyle(.bordered)
-                    Spacer()
+                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .background(.bar)
             }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showEditSheet) {
                 ManageEditView(prefs: prefs)
                     .presentationDetents([.medium])
