@@ -1484,6 +1484,8 @@ struct WebsiteHTTPSView: View {
             if vm.availableSSLs.isEmpty {
                 await vm.loadCreateData(type: .deployment)
             }
+            // 证书列表加载完成后重新选中当前证书，避免 Picker 因选项延迟加载而重置选中
+            selectedSSLId = originalSSLId
         }
     }
 
