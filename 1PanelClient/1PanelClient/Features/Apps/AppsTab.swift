@@ -148,6 +148,7 @@ struct AppsTab: View {
 struct AppDetailView: View {
     let app: AppInstall
     @ObservedObject var vm: AppsViewModel
+    @Environment(\.dismiss) private var dismiss
     @State private var showUninstall = false
     @State private var showEdit = false
     @State private var isExpanded = false
@@ -178,10 +179,18 @@ struct AppDetailView: View {
                 taskID: uninstallTaskID,
                 title: "卸载 \(app.displayName)",
                 onComplete: {
-                    // 完成后自动返回上一层（从详情页 pop 回列表）
                     vm.needsRefresh = true
                 }
             )
+        }
+        .onChange(of: showUninstallProgress) { _, isShowing in
+            // 进度视图被 dismiss 后，若卸载已完成则自动 pop 回应用列表
+            if !isShowing && vm.uninstallDone {
+                Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    dismiss()
+                }
+            }
         }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
