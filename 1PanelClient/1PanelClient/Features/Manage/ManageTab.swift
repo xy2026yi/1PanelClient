@@ -17,10 +17,13 @@ struct ManageTab: View {
 
     /// 跨 Tab 跳转入口：外部（如 OverviewTab）设置此值时，自动 push 到对应页面
     @Binding var initialItem: ManageItem?
+    /// 向 MainTabView 同步导航深度：true=根列表，false=子页面（隐藏 Tab 栏）
+    @Binding var atRoot: Bool
 
-    init(manager: ServerManager, initialItem: Binding<ManageItem?> = .constant(nil)) {
+    init(manager: ServerManager, initialItem: Binding<ManageItem?> = .constant(nil), atRoot: Binding<Bool> = .constant(true)) {
         self.manager = manager
         self._initialItem = initialItem
+        self._atRoot = atRoot
     }
 
     /// 所有可管理的功能项，按固定分组排列
@@ -73,6 +76,9 @@ struct ManageTab: View {
                 navPath.append(newItem)
             }
             initialItem = nil
+        }
+        .onChange(of: navPath.count) { _, count in
+            atRoot = count == 0
         }
         .onReceive(NotificationCenter.default.publisher(for: .popAppDetail)) { _ in
             // 收到通知后 pop 最后一个元素（AppInstall），回到应用列表
