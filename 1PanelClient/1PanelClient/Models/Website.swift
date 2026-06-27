@@ -530,6 +530,14 @@ struct WebsiteProxyFileRequest: Encodable {
     let content: String
 }
 
+/// 反向代理启用/停用请求
+/// POST /api/v2/websites/proxies/status  {id, name, status}
+struct WebsiteProxyStatusRequest: Encodable {
+    let id: Int
+    let name: String
+    let status: String    // "enable" / "disable"
+}
+
 // MARK: - SSL 证书（独立管理）
 
 /// SSL 证书列表搜索请求

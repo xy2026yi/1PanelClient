@@ -1266,36 +1266,21 @@ final class WebsitesViewModel: ObservableObject {
         }
     }
 
-    /// 启用/停用反向代理（toggle enable）
+    /// 启用/停用反向代理
     @discardableResult
     func toggleProxy(websiteId: Int, proxy: WebsiteProxy, enable: Bool) async -> Bool {
-        let req = WebsiteProxyUpdateRequest(
+        let req = WebsiteProxyStatusRequest(
             id: websiteId,
-            operate: WebsiteProxyOperate.edit.rawValue,
-            enable: enable,
             name: proxy.name ?? "",
-            match: proxy.match ?? "",
-            proxyPass: proxy.proxyPass ?? "",
-            content: proxy.content ?? "",
-            filePath: proxy.filePath ?? "",
-            proxyProtocol: "http://",
-            proxyAddress: proxy.proxyPass ?? ""
+            status: enable ? "enable" : "disable"
         )
-        let ok = await operateProxyQuiet(websiteId: websiteId, req: req)
-        if ok {
-            showAlert(message: enable ? "反向代理已启用" : "反向代理已停用")
-        }
-        return ok
-    }
-
-    /// 静默操作反向代理（不弹提示，供 toggleProxy 内部调用）
-    private func operateProxyQuiet(websiteId: Int, req: WebsiteProxyUpdateRequest) async -> Bool {
         do {
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.websitesProxiesUpdate.path,
+                path: APIEndpoint.websitesProxiesStatus.path,
                 body: req,
                 as: EmptyResponse.self
             )
+            showAlert(message: enable ? "反向代理已启用" : "反向代理已停用")
             return true
         } catch let err as APIError {
             showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
@@ -1759,6 +1744,7 @@ struct WebsiteProxiesView: View {
     @State private var showSourceSheet = false
     @State private var sourceProxy: WebsiteProxy?
     @State private var togglingProxyId: String?
+    @State private var actionProxy: WebsiteProxy?
 
     var body: some View {
         Group {
@@ -1813,32 +1799,22 @@ struct WebsiteProxiesView: View {
                         Text(p.displayName)
                             .font(.body.bold())
                         Spacer()
-                        if togglingProxyId == p.id {
-                            ProgressView()
-                                .scaleEffect(0.7)
+                        if p.enable == true {
+                            Text("已启用")
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.green.opacity(0.1))
+                                .foregroundStyle(.green)
+                                .clipShape(Capsule())
                         } else {
-                            Button {
-                                Task { await toggleProxy(p) }
-                            } label: {
-                                if p.enable == true {
-                                    Text("已启用")
-                                        .font(.caption2)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.green.opacity(0.1))
-                                        .foregroundStyle(.green)
-                                        .clipShape(Capsule())
-                                } else {
-                                    Text("已停用")
-                                        .font(.caption2)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.gray.opacity(0.1))
-                                        .foregroundStyle(.secondary)
-                                        .clipShape(Capsule())
-                                }
-                            }
-                            .buttonStyle(.plain)
+                            Text("已停用")
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.gray.opacity(0.1))
+                                .foregroundStyle(.secondary)
+                                .clipShape(Capsule())
                         }
                     }
                     HStack {
@@ -1851,6 +1827,10 @@ struct WebsiteProxiesView: View {
                             .foregroundStyle(.blue)
                     }
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    actionProxy = p
+                }
                 .swipeActions {
                     Button(role: .destructive) {
                         Task { await deleteProxy(p) }
@@ -1858,50 +1838,36 @@ struct WebsiteProxiesView: View {
                         Label("删除", systemImage: "trash")
                     }
                 }
-                .swipeActions(edge: .leading) {
-                    Button {
-                        Task { await toggleProxy(p) }
-                    } label: {
-                        Label(p.enable == true ? "停止" : "启动",
-                              systemImage: p.enable == true ? "stop.fill" : "play.fill")
-                    }
-                    .tint(p.enable == true ? .orange : .green)
-                }
-                .contextMenu {
-                    Button {
-                        Task { await toggleProxy(p) }
-                    } label: {
-                        Label(p.enable == true ? "停止" : "启动",
-                              systemImage: p.enable == true ? "stop.fill" : "play.fill")
-                    }
-                    Button {
-                        editingProxy = p
-                        showEditSheet = true
-                    } label: {
-                        Label("编辑", systemImage: "pencil")
-                    }
-                    Button {
-                        sourceProxy = p
-                        showSourceSheet = true
-                    } label: {
-                        Label("源文", systemImage: "doc.text")
-                    }
-                    Divider()
-                    Button(role: .destructive) {
-                        Task { await deleteProxy(p) }
-                    } label: {
-                        Label("删除", systemImage: "trash")
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    editingProxy = p
-                    showEditSheet = true
-                }
             }
         }
         .refreshable {
             await load()
+        }
+        .confirmationDialog(
+            actionProxy?.displayName ?? "",
+            isPresented: Binding(
+                get: { actionProxy != nil },
+                set: { if !$0 { actionProxy = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let p = actionProxy {
+                Button(p.enable == true ? "关闭" : "开启") {
+                    Task { await toggleProxy(p) }
+                }
+                Button("编辑") {
+                    editingProxy = p
+                    showEditSheet = true
+                }
+                Button("源文") {
+                    sourceProxy = p
+                    showSourceSheet = true
+                }
+                Button("取消", role: .cancel) {}
+                Button("删除", role: .destructive) {
+                    Task { await deleteProxy(p) }
+                }
+            }
         }
     }
 
@@ -1933,6 +1899,7 @@ struct WebsiteProxiesView: View {
     private func toggleProxy(_ p: WebsiteProxy) async {
         togglingProxyId = p.id
         defer { togglingProxyId = nil }
+        actionProxy = nil
         let newEnable = !(p.enable ?? true)
         let ok = await vm.toggleProxy(websiteId: websiteId, proxy: p, enable: newEnable)
         if ok {
@@ -2103,6 +2070,7 @@ struct WebsiteProxySourceView: View {
         )
         if ok {
             originalContent = content
+            dismiss()
         }
     }
 }

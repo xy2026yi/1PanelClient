@@ -57,6 +57,7 @@ enum APIEndpoint {
     case websitesProxiesList      // POST 获取反向代理列表
     case websitesProxiesUpdate    // POST 创建/编辑/删除反向代理
     case websitesProxiesFile      // POST 读取/保存反向代理源文
+    case websitesProxiesStatus    // POST 启用/停用反向代理
 
     // MARK: - SSL 证书（独立管理）
     case websitesSSLList          // POST 分页查询证书
@@ -248,6 +249,7 @@ enum APIEndpoint {
         case .websitesProxiesList:   return "/api/v2/websites/proxies"
         case .websitesProxiesUpdate: return "/api/v2/websites/proxies/update"
         case .websitesProxiesFile:   return "/api/v2/websites/proxies/file"
+        case .websitesProxiesStatus: return "/api/v2/websites/proxies/status"
         case .websitesSSLList:       return "/api/v2/websites/ssl/search"
         case .websitesSSLDetail:     return "/api/v2/websites/ssl/:id"
         case .websitesSSLUpload:     return "/api/v2/websites/ssl/upload"
