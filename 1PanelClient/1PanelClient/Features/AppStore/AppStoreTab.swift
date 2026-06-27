@@ -395,13 +395,30 @@ struct AppInstallView: View {
                 Section {
                     ForEach(Array(fields.enumerated()), id: \.offset) { _, field in
                         if let envKey = field.envKey {
-                            ParamFieldRow(
-                                field: field,
-                                value: Binding(
-                                    get: { paramValues[envKey] ?? "" },
-                                    set: { paramValues[envKey] = $0 }
+                            // service 类型字段由系统自动填充（DB_HOST 等），不展示给用户
+                            if (field.type ?? "text") == "service" {
+                                EmptyView()
+                            } else if (field.type ?? "text") == "apps" {
+                                ParamFieldRow(
+                                    field: field,
+                                    value: Binding(
+                                        get: { paramValues[envKey] ?? "" },
+                                        set: { newValue in
+                                            paramValues[envKey] = newValue
+                                            // 数据库类型变更时自动获取可用服务并填充子字段
+                                            Task { await fetchDbServices(dbType: newValue, childEnvKey: field.child?.envKey) }
+                                        }
+                                    )
                                 )
-                            )
+                            } else {
+                                ParamFieldRow(
+                                    field: field,
+                                    value: Binding(
+                                        get: { paramValues[envKey] ?? "" },
+                                        set: { paramValues[envKey] = $0 }
+                                    )
+                                )
+                            }
                         }
                     }
                 } header: {
@@ -534,6 +551,12 @@ struct AppInstallView: View {
                         paramValues[key] = def.stringValue
                     }
                 }
+                // 对 apps 类型字段（数据库服务选择），自动获取服务并填充子字段
+                for f in fields where (f.type ?? "") == "apps" {
+                    if let key = f.envKey, let defaultVal = paramValues[key], !defaultVal.isEmpty {
+                        await fetchDbServices(dbType: defaultVal, childEnvKey: f.child?.envKey)
+                    }
+                }
             }
             // 初始化自定义 compose 为默认值
             if customCompose.isEmpty {
@@ -545,6 +568,24 @@ struct AppInstallView: View {
         } catch {
             loadError = error.localizedDescription
             self.appDetail = nil
+        }
+    }
+
+    /// 获取数据库服务列表并自动填充子字段（如 PANEL_DB_HOST）
+    private func fetchDbServices(dbType: String, childEnvKey: String?) async {
+        guard !dbType.isEmpty, let childKey = childEnvKey else { return }
+        let path = APIEndpoint.appsServices.path.replacingOccurrences(of: ":type", with: dbType)
+        do {
+            let services: [AppServiceItem] = try await vm.client.send(
+                path: path, method: "GET", as: [AppServiceItem].self
+            )
+            // 自动选择第一个运行中的服务
+            let selected = services.first(where: { ($0.status ?? "").lowercased() == "running" }) ?? services.first
+            if let svc = selected {
+                paramValues[childKey] = svc.value ?? svc.label ?? ""
+            }
+        } catch {
+            // 静默忽略，不影响表单加载
         }
     }
 
@@ -560,6 +601,13 @@ struct AppInstallView: View {
             } else {
                 params[k] = .string(v)
             }
+        }
+        // 数据库关联应用需要 format/collation 参数（网页端始终携带）
+        if !params.keys.contains(where: { $0 == "format" }) {
+            params["format"] = .string("")
+        }
+        if !params.keys.contains(where: { $0 == "collation" }) {
+            params["collation"] = .string("")
         }
 
         let compose = editCompose ? customCompose : (appDetail.dockerCompose ?? "")
@@ -624,10 +672,20 @@ struct ParamFieldRow: View {
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
             }
-        case "select":
+        case "password":
+            HStack {
+                Text(field.displayLabel)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                SecureField("", text: $value)
+                    .multilineTextAlignment(.trailing)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+            }
+        case "select", "apps":
             Picker(field.displayLabel, selection: $value) {
-                ForEach(field.values ?? [], id: \.self) { v in
-                    Text(v).tag(v)
+                ForEach(field.values ?? [], id: \.actualValue) { item in
+                    Text(item.displayLabel).tag(item.actualValue)
                 }
             }
         default:
@@ -637,6 +695,8 @@ struct ParamFieldRow: View {
                 Spacer()
                 TextField("", text: $value)
                     .multilineTextAlignment(.trailing)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
             }
         }
     }

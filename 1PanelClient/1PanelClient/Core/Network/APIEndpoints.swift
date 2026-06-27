@@ -198,6 +198,7 @@ enum APIEndpoint {
     case appsSyncRemote          // POST 同步远程应用商店
     case appsSyncLocal           // POST 同步本地已安装应用
     case appsIcon                // GET  应用图标（:appID 路径参数，返回二进制图片）
+    case appsServices            // GET  获取数据库服务列表（:type 路径参数，如 mysql/postgres）
 
     var path: String {
         switch self {
@@ -346,6 +347,7 @@ enum APIEndpoint {
         case .appsSyncRemote:        return "/api/v2/apps/sync/remote"
         case .appsSyncLocal:         return "/api/v2/apps/sync/local"
         case .appsIcon:              return "/api/v2/apps/icon/:appID"
+        case .appsServices:          return "/api/v2/apps/services/:type"
         }
     }
 
@@ -359,6 +361,7 @@ enum APIEndpoint {
              .containersListStats, .containersDockerStatus, .containersImageAll,
              .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,
              .appsIcon, .databasesRedisCheck,
+             .appsServices,
              .fail2banBase, .fail2banLoadConf,
              .wafStatus, .wafConfigGlobal,
              .settingsBaseDir,

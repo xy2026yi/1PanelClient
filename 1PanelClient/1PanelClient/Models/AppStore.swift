@@ -159,20 +159,60 @@ struct AppFormParams: Decodable, Hashable, Sendable {
 }
 
 /// 单个表单字段定义
+/// 支持多种字段类型：number / text / select / apps / password / service
 struct AppFormField: Decodable, Hashable, Sendable {
     let envKey: String?
-    let type: String?          // "number" / "text" / "select" 等
+    let type: String?          // "number" / "text" / "select" / "apps" / "password" / "service"
     let labelZh: String?
     let labelEn: String?
     let required: Bool?
     let `default`: FormFieldValue?
-    let values: [String]?      // select 类型的候选值
-    // 注意：JSON 里还有 label/description，它们是多语言对象 {en:..., zh:...}，
-    // 此处不声明这两个字段（Decodable 会自动忽略多余字段），避免类型不匹配导致 decode 失败。
+    let values: [FormFieldValueItem]?   // select/apps 候选项（可能是 ["v1"] 或 [{label,value}]）
+    let child: AppFormFieldChild?       // apps 类型字段的关联子字段（如 PANEL_DB_HOST）
+    let random: Bool?                   // 是否支持随机生成（密码、用户名等）
+    let rule: String?                   // 验证规则名（paramPort / paramCommon 等）
 
     /// 显示标签（优先中文）
     var displayLabel: String {
         labelZh ?? labelEn ?? envKey ?? "参数"
+    }
+}
+
+/// apps 类型字段的关联子字段（如数据库应用选择后需要填充 DB_HOST）
+struct AppFormFieldChild: Decodable, Hashable, Sendable {
+    let envKey: String?
+    let `default`: String?
+    let required: Bool?
+    let type: String?       // "service"
+}
+
+/// select/apps 候选项值
+/// 可能是简单字符串 "mysql"，也可能是对象 {label:"MySQL", value:"mysql"}
+struct FormFieldValueItem: Decodable, Hashable, Sendable {
+    let label: String?
+    let value: String?
+
+    /// 用于 Picker 显示
+    var displayLabel: String { label ?? value ?? "" }
+    /// 实际值
+    var actualValue: String { value ?? "" }
+
+    /// 从 JSON 解码：兼容字符串和对象两种格式
+    init(from decoder: Decoder) throws {
+        // 尝试作为纯字符串解码
+        if let str = try? decoder.singleValueContainer().decode(String.self) {
+            self.label = str
+            self.value = str
+            return
+        }
+        // 作为对象解码 {label, value}
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.label = try container.decodeIfPresent(String.self, forKey: .label)
+        self.value = try container.decodeIfPresent(String.self, forKey: .value)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case label, value
     }
 }
 
@@ -278,4 +318,17 @@ struct ReqWithID: Encodable {
 /// 带 taskID 的请求（应用商店同步接口使用）
 struct ReqWithTaskID: Encodable {
     let taskID: String
+}
+
+// MARK: - 数据库服务（安装关联数据库应用时使用）
+
+/// 数据库服务项（GET /api/v2/apps/services/:type 返回）
+struct AppServiceItem: Decodable, Identifiable, Hashable, Sendable {
+    let label: String?
+    let value: String?
+    let config: [String: String]?
+    let from: String?
+    let status: String?
+
+    var id: String { value ?? label ?? UUID().uuidString }
 }
