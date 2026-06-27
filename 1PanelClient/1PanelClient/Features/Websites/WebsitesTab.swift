@@ -2057,54 +2057,39 @@ struct WebsiteProxySourceView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var content = ""
+    @State private var originalContent = ""
     @State private var isSaving = false
-    @State private var isEditing = false
+
+    private var hasChanges: Bool { content != originalContent }
 
     var body: some View {
-        Group {
-            ScrollView(.horizontal, showsIndicators: false) {
-                if isEditing {
-                    TextEditor(text: $content)
-                        .font(.system(size: 12, design: .monospaced))
-                        .frame(minHeight: 480)
-                        .padding(8)
-                } else {
-                    Text(content)
-                        .font(.system(size: 12, design: .monospaced))
-                        .padding()
-                        .textSelection(.enabled)
-                }
-            }
+        TextEditor(text: $content)
+            .font(.system(size: 12, design: .monospaced))
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+            .padding(.horizontal, 4)
             .background(Color(.secondarySystemBackground))
-            .cornerRadius(8)
-            .padding()
-        }
         .navigationTitle("源文：\(proxy.displayName)")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                HStack {
-                    Button {
-                        isEditing.toggle()
-                        if !isEditing {
-                            content = proxy.content ?? content
-                        }
-                    } label: {
-                        Label(isEditing ? "取消" : "编辑", systemImage: isEditing ? "xmark" : "pencil")
-                    }
-                    if isEditing {
-                        Button {
-                            Task { await save() }
-                        } label: {
-                            if isSaving { ProgressView() } else { Text("保存").bold() }
-                        }
-                        .disabled(isSaving)
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Text("保存").bold()
                     }
                 }
+                .disabled(isSaving || !hasChanges)
             }
         }
         .onAppear {
-            content = proxy.content ?? ""
+            if content.isEmpty {
+                content = proxy.content ?? ""
+                originalContent = content
+            }
         }
     }
 
@@ -2117,7 +2102,7 @@ struct WebsiteProxySourceView: View {
             content: content
         )
         if ok {
-            isEditing = false
+            originalContent = content
         }
     }
 }
