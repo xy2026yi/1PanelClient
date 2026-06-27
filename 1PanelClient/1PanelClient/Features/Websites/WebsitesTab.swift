@@ -1266,6 +1266,46 @@ final class WebsitesViewModel: ObservableObject {
         }
     }
 
+    /// 启用/停用反向代理（toggle enable）
+    @discardableResult
+    func toggleProxy(websiteId: Int, proxy: WebsiteProxy, enable: Bool) async -> Bool {
+        let req = WebsiteProxyUpdateRequest(
+            id: websiteId,
+            operate: WebsiteProxyOperate.edit.rawValue,
+            enable: enable,
+            name: proxy.name ?? "",
+            match: proxy.match ?? "",
+            proxyPass: proxy.proxyPass ?? "",
+            content: proxy.content ?? "",
+            filePath: proxy.filePath ?? "",
+            proxyProtocol: "http://",
+            proxyAddress: proxy.proxyPass ?? ""
+        )
+        let ok = await operateProxyQuiet(websiteId: websiteId, req: req)
+        if ok {
+            showAlert(message: enable ? "反向代理已启用" : "反向代理已停用")
+        }
+        return ok
+    }
+
+    /// 静默操作反向代理（不弹提示，供 toggleProxy 内部调用）
+    private func operateProxyQuiet(websiteId: Int, req: WebsiteProxyUpdateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesProxiesUpdate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "操作失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
     func saveProxyFile(websiteId: Int, name: String, content: String) async -> Bool {
         let req = WebsiteProxyFileRequest(name: name, websiteID: websiteId, content: content)
         do {
@@ -1718,6 +1758,7 @@ struct WebsiteProxiesView: View {
     @State private var editingProxy: WebsiteProxy?
     @State private var showSourceSheet = false
     @State private var sourceProxy: WebsiteProxy?
+    @State private var togglingProxyId: String?
 
     var body: some View {
         Group {
@@ -1772,22 +1813,32 @@ struct WebsiteProxiesView: View {
                         Text(p.displayName)
                             .font(.body.bold())
                         Spacer()
-                        if p.enable == true {
-                            Text("已启用")
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.green.opacity(0.1))
-                                .foregroundStyle(.green)
-                                .clipShape(Capsule())
+                        if togglingProxyId == p.id {
+                            ProgressView()
+                                .scaleEffect(0.7)
                         } else {
-                            Text("已停用")
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.gray.opacity(0.1))
-                                .foregroundStyle(.secondary)
-                                .clipShape(Capsule())
+                            Button {
+                                Task { await toggleProxy(p) }
+                            } label: {
+                                if p.enable == true {
+                                    Text("已启用")
+                                        .font(.caption2)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.green.opacity(0.1))
+                                        .foregroundStyle(.green)
+                                        .clipShape(Capsule())
+                                } else {
+                                    Text("已停用")
+                                        .font(.caption2)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.gray.opacity(0.1))
+                                        .foregroundStyle(.secondary)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     HStack {
@@ -1809,12 +1860,38 @@ struct WebsiteProxiesView: View {
                 }
                 .swipeActions(edge: .leading) {
                     Button {
+                        Task { await toggleProxy(p) }
+                    } label: {
+                        Label(p.enable == true ? "停止" : "启动",
+                              systemImage: p.enable == true ? "stop.fill" : "play.fill")
+                    }
+                    .tint(p.enable == true ? .orange : .green)
+                }
+                .contextMenu {
+                    Button {
+                        Task { await toggleProxy(p) }
+                    } label: {
+                        Label(p.enable == true ? "停止" : "启动",
+                              systemImage: p.enable == true ? "stop.fill" : "play.fill")
+                    }
+                    Button {
+                        editingProxy = p
+                        showEditSheet = true
+                    } label: {
+                        Label("编辑", systemImage: "pencil")
+                    }
+                    Button {
                         sourceProxy = p
                         showSourceSheet = true
                     } label: {
                         Label("源文", systemImage: "doc.text")
                     }
-                    .tint(.blue)
+                    Divider()
+                    Button(role: .destructive) {
+                        Task { await deleteProxy(p) }
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -1848,6 +1925,16 @@ struct WebsiteProxiesView: View {
             proxyAddress: p.proxyPass ?? ""
         )
         let ok = await vm.operateProxy(websiteId: websiteId, operate: .delete, req: req)
+        if ok {
+            await load()
+        }
+    }
+
+    private func toggleProxy(_ p: WebsiteProxy) async {
+        togglingProxyId = p.id
+        defer { togglingProxyId = nil }
+        let newEnable = !(p.enable ?? true)
+        let ok = await vm.toggleProxy(websiteId: websiteId, proxy: p, enable: newEnable)
         if ok {
             await load()
         }
@@ -2044,6 +2131,7 @@ struct WebsiteLogPage: View {
     @State private var selectedTab: WebsiteLogType = .access
     @State private var lines: [String] = []
     @State private var isLoading = false
+    @State private var isTracking = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -2066,16 +2154,24 @@ struct WebsiteLogPage: View {
                     description: Text("暂未产生\(selectedTab.displayName)记录")
                 )
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                            Text(line)
-                                .font(.system(size: 11, design: .monospaced))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .textSelection(.enabled)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
+                                Text(line)
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .textSelection(.enabled)
+                                    .id(idx)
+                            }
+                        }
+                        .padding()
+                    }
+                    .onChange(of: lines.count) { _, _ in
+                        withAnimation {
+                            proxy.scrollTo(lines.count - 1, anchor: .bottom)
                         }
                     }
-                    .padding()
                 }
             }
         }
@@ -2083,16 +2179,25 @@ struct WebsiteLogPage: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await load() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
+                Toggle(isOn: $isTracking) {
+                    Label("追踪", systemImage: "waveform.badge.eye")
                 }
+                .toggleStyle(.button)
+                .tint(isTracking ? .green : .secondary)
             }
         }
         .task { await load() }
         .onChange(of: selectedTab) { _, _ in
+            lines = []
             Task { await load() }
+        }
+        .onChange(of: isTracking) { _, tracking in
+            if tracking {
+                Task { await startTracking() }
+            }
+        }
+        .onDisappear {
+            isTracking = false
         }
     }
 
@@ -2100,6 +2205,25 @@ struct WebsiteLogPage: View {
         isLoading = true
         defer { isLoading = false }
         lines = await vm.loadLog(websiteId: websiteId, name: selectedTab.fileName)
+    }
+
+    private func startTracking() async {
+        while isTracking {
+            try? await Task.sleep(for: .seconds(2))
+            guard isTracking else { break }
+            let fresh = await vm.loadLog(websiteId: websiteId, name: selectedTab.fileName)
+            guard isTracking else { break }
+            if fresh.isEmpty { continue }
+            let overlap = min(lines.count, fresh.count)
+            let tail = Array(lines.suffix(overlap))
+            let freshTail = Array(fresh.suffix(overlap))
+            if tail == freshTail, fresh.count > lines.count {
+                let newLines = Array(fresh.dropFirst(lines.count))
+                lines.append(contentsOf: newLines)
+            } else if fresh != lines {
+                lines = fresh
+            }
+        }
     }
 }
 

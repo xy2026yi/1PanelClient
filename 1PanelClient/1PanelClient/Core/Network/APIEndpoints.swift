@@ -242,7 +242,7 @@ enum APIEndpoint {
         case .websitesDetail:        return "/api/v2/websites/:id"
         case .websitesNginxConfig:   return "/api/v2/websites/:id/config/openresty"
         case .websitesNginxUpdate:   return "/api/v2/websites/nginx/update"
-        case .websitesLogRead:       return "/api/v2/files/read"
+        case .websitesLogRead:       return "/api/v2/files/read/website?operateNode=local"
         case .websitesHTTPSRead:     return "/api/v2/websites/:id/https"
         case .websitesHTTPSUpdate:   return "/api/v2/websites/:id/https"
         case .websitesProxiesList:   return "/api/v2/websites/proxies"
