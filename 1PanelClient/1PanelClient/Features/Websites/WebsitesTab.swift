@@ -1872,11 +1872,12 @@ struct WebsiteProxiesView: View {
                 .padding(.top, 4)
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 20)
+            .padding(.bottom, 8)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16)
                     .fill(Color(.systemBackground))
                     .shadow(color: .black.opacity(0.15), radius: 10, y: -2)
+                    .ignoresSafeArea(edges: .bottom)
             )
             .gesture(
                 DragGesture()
