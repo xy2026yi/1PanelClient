@@ -43,11 +43,11 @@ struct AppIconView: View {
     @State private var didFail = false
 
     private var cacheKey: String? {
-        if let appID, appID > 0 {
-            return "\(baseURL)#id:\(appID)"
-        }
         if let appKey, !appKey.isEmpty {
             return "\(baseURL)#key:\(appKey)"
+        }
+        if let appID, appID > 0 {
+            return "\(baseURL)#id:\(appID)"
         }
         return nil
     }
@@ -100,12 +100,13 @@ struct AppIconView: View {
             image = cached
             return
         }
-        // 确定路径参数：优先用 appID，其次用 appKey
+        // 确定路径参数：优先用 appKey（name），其次用 appID
+        // API 格式: /api/v2/apps/icon/{name}?operateNode=local （name = app key 如 "gitea"）
         let pathParam: String
-        if let appID, appID > 0 {
-            pathParam = String(appID)
-        } else if let appKey, !appKey.isEmpty {
+        if let appKey, !appKey.isEmpty {
             pathParam = appKey
+        } else if let appID, appID > 0 {
+            pathParam = String(appID)
         } else {
             image = nil
             didFail = true

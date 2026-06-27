@@ -130,8 +130,32 @@ struct AppDetail: Decodable, Identifiable, Hashable, Sendable {
 
 /// 参数表单定义（AppDetail.params）
 /// 1Panel 后端返回的结构：{ formFields: [...] }
+/// 部分应用可能返回 [] 或 null，自定义解码器兼容多种格式
 struct AppFormParams: Decodable, Hashable, Sendable {
     let formFields: [AppFormField]?
+
+    init(formFields: [AppFormField]? = nil) {
+        self.formFields = formFields
+    }
+
+    init(from decoder: Decoder) throws {
+        // 尝试作为对象解码 { formFields: [...] }
+        if let container = try? decoder.container(keyedBy: CodingKeys.self) {
+            self.formFields = try container.decodeIfPresent([AppFormField].self, forKey: .formFields)
+            return
+        }
+        // 尝试作为数组直接解码 [...]
+        if let array = try? decoder.singleValueContainer().decode([AppFormField].self) {
+            self.formFields = array
+            return
+        }
+        // 兜底：无参数
+        self.formFields = nil
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case formFields
+    }
 }
 
 /// 单个表单字段定义

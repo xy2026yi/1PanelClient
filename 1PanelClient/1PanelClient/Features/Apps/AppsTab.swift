@@ -161,6 +161,22 @@ struct AppDetailView: View {
     @State private var uninstallConfirmName = ""
 
     var body: some View {
+        ZStack {
+            listContent
+            if showUninstall {
+                uninstallConfirmDialog
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: showUninstall)
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
+    }
+
+    private var listContent: some View {
         List {
             // 可展开状态区
             Section {
@@ -233,12 +249,6 @@ struct AppDetailView: View {
         }
         .navigationDestination(isPresented: $showEdit) {
             UpdateParamsView(app: app, vm: vm)
-        }
-        // 卸载居中确认弹窗
-        .overlay {
-            if showUninstall {
-                uninstallConfirmDialog
-            }
         }
         .alert(
             pendingAction.map { actionDisplayName($0) } ?? "",
