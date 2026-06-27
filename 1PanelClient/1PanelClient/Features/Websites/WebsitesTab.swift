@@ -1743,6 +1743,7 @@ struct WebsiteProxiesView: View {
     @State private var sourceProxy: WebsiteProxy?
     @State private var togglingProxyId: String?
     @State private var actionProxy: WebsiteProxy?
+    @State private var pendingDeleteProxy: WebsiteProxy?
 
     var body: some View {
         ZStack {
@@ -1793,6 +1794,25 @@ struct WebsiteProxiesView: View {
         .navigationDestination(isPresented: $showSourceSheet) {
             if let p = sourceProxy {
                 WebsiteProxySourceView(websiteId: websiteId, proxy: p, vm: vm)
+            }
+        }
+        .alert(
+            "删除",
+            isPresented: Binding(
+                get: { pendingDeleteProxy != nil },
+                set: { if !$0 { pendingDeleteProxy = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingDeleteProxy = nil }
+            Button("确认", role: .destructive) {
+                if let proxy = pendingDeleteProxy {
+                    Task { await deleteProxy(proxy) }
+                }
+                pendingDeleteProxy = nil
+            }
+        } message: {
+            if let proxy = pendingDeleteProxy {
+                Text("将对以下反向代理进行 删除 操作，是否继续？\n\n\(proxy.displayName)")
             }
         }
     }
@@ -1857,9 +1877,8 @@ struct WebsiteProxiesView: View {
                         icon: "trash",
                         color: .red
                     ) {
-                        let proxy = p
+                        pendingDeleteProxy = p
                         closeSheet()
-                        Task { await deleteProxy(proxy) }
                     }
                 }
 
