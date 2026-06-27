@@ -42,6 +42,11 @@ struct AppsTab: View {
         } message: {
             Text(vm.alertMessage)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
+            // 安装完成：关闭应用商店（连带所有子页面），刷新应用列表
+            showStore = false
+            Task { await vm.refresh() }
+        }
         .task { await vm.refresh() }
     }
 

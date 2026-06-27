@@ -232,4 +232,6 @@ extension EnvironmentValues {
 extension Notification.Name {
     /// 请求 pop 应用详情页，回到应用列表
     static let popAppDetail = Notification.Name("1PanelClient.popAppDetail")
+    /// 安装完成：pop 回应用列表并刷新
+    static let installCompleted = Notification.Name("1PanelClient.installCompleted")
 }

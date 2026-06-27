@@ -357,8 +357,12 @@ struct AppInstallView: View {
             TaskProgressView(
                 taskID: installTaskID,
                 title: "安装 \(detail.name ?? "")",
-                onComplete: { _ in
-                    vm.showInstall = false
+                onComplete: { isDone in
+                    if isDone {
+                        // 通知 AppsTab 关闭 AppStoreTab（连带所有子页面）并刷新列表
+                        NotificationCenter.default.post(name: .installCompleted, object: nil)
+                        return true
+                    }
                     return false
                 }
             )
