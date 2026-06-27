@@ -1299,7 +1299,6 @@ final class WebsitesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "源文已保存")
             return true
         } catch let err as APIError {
             showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
@@ -1747,19 +1746,27 @@ struct WebsiteProxiesView: View {
     @State private var actionProxy: WebsiteProxy?
 
     var body: some View {
-        Group {
-            if isLoading && proxies.isEmpty {
-                ProgressView("加载反向代理…")
-            } else if proxies.isEmpty {
-                ContentUnavailableView(
-                    "暂无反向代理",
-                    systemImage: "arrow.left.arrow.right",
-                    description: Text("点击右上角创建第一个反向代理路由")
-                )
-            } else {
-                list
+        ZStack {
+            Group {
+                if isLoading && proxies.isEmpty {
+                    ProgressView("加载反向代理…")
+                } else if proxies.isEmpty {
+                    ContentUnavailableView(
+                        "暂无反向代理",
+                        systemImage: "arrow.left.arrow.right",
+                        description: Text("点击右上角创建第一个反向代理路由")
+                    )
+                } else {
+                    list
+                }
+            }
+
+            if actionProxy != nil {
+                proxyActionSheet
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: actionProxy)
         .navigationTitle("反向代理")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -1788,6 +1795,128 @@ struct WebsiteProxiesView: View {
             if let p = sourceProxy {
                 WebsiteProxySourceView(websiteId: websiteId, proxy: p, vm: vm)
             }
+        }
+    }
+
+    // MARK: - 底部操作面板
+
+    private var proxyActionSheet: some View {
+        ZStack(alignment: .bottom) {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        actionProxy = nil
+                    }
+                }
+
+            VStack(spacing: 0) {
+                // 拖拽手柄
+                Capsule()
+                    .fill(Color.secondary.opacity(0.4))
+                    .frame(width: 36, height: 5)
+                    .padding(.top, 10)
+                    .padding(.bottom, 6)
+
+                if let p = actionProxy {
+                    Text(p.displayName)
+                        .font(.headline)
+                        .padding(.bottom, 4)
+
+                    actionSheetButton(
+                        title: p.enable == true ? "关闭" : "开启",
+                        icon: p.enable == true ? "stop.fill" : "play.fill",
+                        color: p.enable == true ? .orange : .green
+                    ) {
+                        let proxy = p
+                        closeSheet()
+                        Task { await toggleProxy(proxy) }
+                    }
+                    actionSheetButton(
+                        title: "编辑",
+                        icon: "pencil",
+                        color: .blue
+                    ) {
+                        editingProxy = p
+                        closeSheet()
+                        showEditSheet = true
+                    }
+                    actionSheetButton(
+                        title: "源文",
+                        icon: "doc.text",
+                        color: .teal
+                    ) {
+                        sourceProxy = p
+                        closeSheet()
+                        showSourceSheet = true
+                    }
+
+                    Divider().padding(.vertical, 4)
+
+                    actionSheetButton(
+                        title: "删除",
+                        icon: "trash",
+                        color: .red
+                    ) {
+                        let proxy = p
+                        closeSheet()
+                        Task { await deleteProxy(proxy) }
+                    }
+                }
+
+                Button {
+                    closeSheet()
+                } label: {
+                    Text("取消")
+                        .font(.body.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .padding(.top, 4)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: .black.opacity(0.15), radius: 10, y: -2)
+            )
+            .gesture(
+                DragGesture()
+                    .onEnded { value in
+                        if value.translation.height > 50 {
+                            closeSheet()
+                        }
+                    }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func actionSheetButton(
+        title: String,
+        icon: String,
+        color: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .foregroundStyle(color)
+                    .frame(width: 22)
+                Text(title)
+                    .foregroundStyle(.primary)
+                Spacer()
+            }
+            .padding(.vertical, 13)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func closeSheet() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            actionProxy = nil
         }
     }
 
@@ -1842,32 +1971,6 @@ struct WebsiteProxiesView: View {
         }
         .refreshable {
             await load()
-        }
-        .confirmationDialog(
-            actionProxy?.displayName ?? "",
-            isPresented: Binding(
-                get: { actionProxy != nil },
-                set: { if !$0 { actionProxy = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            if let p = actionProxy {
-                Button(p.enable == true ? "关闭" : "开启") {
-                    Task { await toggleProxy(p) }
-                }
-                Button("编辑") {
-                    editingProxy = p
-                    showEditSheet = true
-                }
-                Button("源文") {
-                    sourceProxy = p
-                    showSourceSheet = true
-                }
-                Button("取消", role: .cancel) {}
-                Button("删除", role: .destructive) {
-                    Task { await deleteProxy(p) }
-                }
-            }
         }
     }
 
