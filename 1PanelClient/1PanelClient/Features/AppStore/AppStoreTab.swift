@@ -357,7 +357,7 @@ struct AppInstallView: View {
             TaskProgressView(
                 taskID: installTaskID,
                 title: "安装 \(detail.name ?? "")",
-                onComplete: {
+                onComplete: { _ in
                     vm.showInstall = false
                 }
             )

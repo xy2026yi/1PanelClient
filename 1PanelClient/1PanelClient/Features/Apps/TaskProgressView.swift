@@ -34,7 +34,8 @@ struct TaskLogResponse: Decodable {
 struct TaskProgressView: View {
     let taskID: String
     let title: String
-    var onComplete: (() -> Void)? = nil
+    /// 参数 isDone=true 表示任务已完成，isDone=false 表示用户选择后台运行
+    var onComplete: ((Bool) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var lines: [String] = []
@@ -106,7 +107,7 @@ struct TaskProgressView: View {
             HStack {
                 if isDone {
                     Button {
-                        onComplete?()
+                        onComplete?(true)
                         dismiss()
                     } label: {
                         Text("完成")
@@ -116,7 +117,7 @@ struct TaskProgressView: View {
                     .buttonStyle(.borderedProminent)
                 } else {
                     Button {
-                        onComplete?()
+                        onComplete?(false)
                         dismiss()
                     } label: {
                         Text("后台运行")

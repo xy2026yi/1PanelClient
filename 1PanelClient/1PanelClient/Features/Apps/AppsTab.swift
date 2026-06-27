@@ -178,19 +178,14 @@ struct AppDetailView: View {
             TaskProgressView(
                 taskID: uninstallTaskID,
                 title: "卸载 \(app.displayName)",
-                onComplete: {
+                onComplete: { isDone in
                     vm.needsRefresh = true
+                    if isDone {
+                        // 任务完成后直接 pop 详情页（TaskProgressView 随之一并消失）
+                        dismiss()
+                    }
                 }
             )
-        }
-        .onChange(of: showUninstallProgress) { _, isShowing in
-            // 进度视图被 dismiss 后，若卸载已完成则自动 pop 回应用列表
-            if !isShowing && vm.uninstallDone {
-                Task {
-                    try? await Task.sleep(for: .milliseconds(300))
-                    dismiss()
-                }
-            }
         }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
