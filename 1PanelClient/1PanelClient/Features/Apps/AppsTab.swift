@@ -171,6 +171,11 @@ struct AppDetailView: View {
     @State private var uninstallForceDelete = false
     @State private var uninstallConfirmName = ""
 
+    /// 从 VM 实时查找最新应用数据（操作后状态自动刷新）
+    private var currentApp: AppInstall {
+        vm.apps.first(where: { $0.id == app.id }) ?? app
+    }
+
     var body: some View {
         ZStack {
             listContent
@@ -252,6 +257,9 @@ struct AppDetailView: View {
                 }
             }
         }
+        .refreshable {
+            await vm.refresh()
+        }
         .navigationTitle(app.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
@@ -312,9 +320,9 @@ struct AppDetailView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
-                    Text(app.displayName)
+                    Text(currentApp.displayName)
                         .font(.system(.headline, design: .default))
-                    if let v = app.version, !v.isEmpty {
+                    if let v = currentApp.version, !v.isEmpty {
                         Text("v\(v)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -322,9 +330,9 @@ struct AppDetailView: View {
                 }
                 HStack(spacing: 4) {
                     Circle()
-                        .fill(app.statusColor)
+                        .fill(currentApp.statusColor)
                         .frame(width: 6, height: 6)
-                    Text((app.status ?? "未知").capitalized)
+                    Text((currentApp.status ?? "未知").capitalized)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -350,11 +358,11 @@ struct AppDetailView: View {
     private var actionButtonsRow: some View {
         HStack(spacing: 8) {
             actionButton(
-                title: app.isRunning ? "停止" : "启动",
-                icon: app.isRunning ? "stop.fill" : "play.fill",
-                color: app.isRunning ? .orange : .green
+                title: currentApp.isRunning ? "停止" : "启动",
+                icon: currentApp.isRunning ? "stop.fill" : "play.fill",
+                color: currentApp.isRunning ? .orange : .green
             ) {
-                pendingAction = app.isRunning ? "stop" : "start"
+                pendingAction = currentApp.isRunning ? "stop" : "start"
             }
             actionButton(
                 title: "重启",
@@ -1670,10 +1678,10 @@ final class AppsViewModel: ObservableObject {
             if op == .rebuild {
                 showAlert(message: "\(app.displayName) 重建请求已提交，容器正在后台重建…")
                 needsRefresh = true
-            } else {
-                try? await Task.sleep(for: .seconds(1))
-                await load(query: "")
             }
+            // 所有操作都刷新列表，让详情页 currentApp 能反映最新状态
+            try? await Task.sleep(for: .seconds(1))
+            await load(query: "")
         } catch let err as APIError {
             showAlert(message: "\(op.displayName)失败：\(err.errorDescription ?? "未知错误")")
         } catch {
