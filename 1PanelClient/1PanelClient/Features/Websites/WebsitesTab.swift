@@ -1254,8 +1254,6 @@ final class WebsitesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            let action = operate == .create ? "创建" : operate == .edit ? "修改" : "删除"
-            showAlert(message: "反向代理\(action)成功")
             return true
         } catch let err as APIError {
             showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
@@ -1280,7 +1278,6 @@ final class WebsitesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: enable ? "反向代理已启用" : "反向代理已停用")
             return true
         } catch let err as APIError {
             showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
