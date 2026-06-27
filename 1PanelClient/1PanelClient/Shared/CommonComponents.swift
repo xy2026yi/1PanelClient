@@ -226,3 +226,10 @@ extension EnvironmentValues {
         set { self[PopDetailKey.self] = newValue }
     }
 }
+
+// MARK: - 跨组件导航通知（environment 无法穿透 navigationDestination 时的可靠方案）
+
+extension Notification.Name {
+    /// 请求 pop 应用详情页，回到应用列表
+    static let popAppDetail = Notification.Name("1PanelClient.popAppDetail")
+}

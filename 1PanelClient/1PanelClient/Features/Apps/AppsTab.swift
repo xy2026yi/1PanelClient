@@ -182,14 +182,12 @@ struct AppDetailView: View {
                 onComplete: { isDone in
                     vm.needsRefresh = true
                     if isDone {
-                        // 直接操作 NavigationPath 移除当前详情页，
-                        // TaskProgressView（isPresented）随父视图一并消失
-                        if let popDetail {
-                            popDetail()
-                        } else {
-                            dismiss()
-                        }
+                        // 通过通知操作 ManageTab 的 NavigationPath，
+                        // 一次性 pop AppDetailView + TaskProgressView
+                        NotificationCenter.default.post(name: .popAppDetail, object: nil)
+                        return true
                     }
+                    return false
                 }
             )
         }

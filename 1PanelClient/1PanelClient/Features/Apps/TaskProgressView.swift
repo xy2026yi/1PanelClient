@@ -35,7 +35,8 @@ struct TaskProgressView: View {
     let taskID: String
     let title: String
     /// 参数 isDone=true 表示任务已完成，isDone=false 表示用户选择后台运行
-    var onComplete: ((Bool) -> Void)? = nil
+    /// 返回 true 表示调用方已自行处理导航，TaskProgressView 不再调用 dismiss()
+    var onComplete: ((Bool) -> Bool)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var lines: [String] = []
@@ -107,8 +108,8 @@ struct TaskProgressView: View {
             HStack {
                 if isDone {
                     Button {
-                        onComplete?(true)
-                        dismiss()
+                        let handled = onComplete?(true) ?? false
+                        if !handled { dismiss() }
                     } label: {
                         Text("完成")
                             .frame(maxWidth: .infinity)
@@ -117,8 +118,8 @@ struct TaskProgressView: View {
                     .buttonStyle(.borderedProminent)
                 } else {
                     Button {
-                        onComplete?(false)
-                        dismiss()
+                        let handled = onComplete?(false) ?? false
+                        if !handled { dismiss() }
                     } label: {
                         Text("后台运行")
                             .frame(maxWidth: .infinity)

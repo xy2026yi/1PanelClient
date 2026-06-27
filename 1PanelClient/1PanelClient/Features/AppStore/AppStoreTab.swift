@@ -359,6 +359,7 @@ struct AppInstallView: View {
                 title: "安装 \(detail.name ?? "")",
                 onComplete: { _ in
                     vm.showInstall = false
+                    return false
                 }
             )
         }

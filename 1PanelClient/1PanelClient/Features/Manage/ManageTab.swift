@@ -74,6 +74,10 @@ struct ManageTab: View {
             }
             initialItem = nil
         }
+        .onReceive(NotificationCenter.default.publisher(for: .popAppDetail)) { _ in
+            // 收到通知后 pop 最后一个元素（AppInstall），回到应用列表
+            if !navPath.isEmpty { navPath.removeLast() }
+        }
         .environmentObject(prefs)
     }
 
