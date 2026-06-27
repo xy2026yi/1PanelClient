@@ -14,6 +14,7 @@ struct WebsitesTab: View {
     @State private var isSearching = false
     @State private var showCreateSheet = false
     @State private var showCerts = false
+    @State private var showOpenRestyConfig = false
 
     /// 是否显示关闭按钮（fullScreen 模式用 true）
     var showCloseButton: Bool = true
@@ -101,12 +102,15 @@ struct WebsitesTab: View {
         .navigationDestination(isPresented: $showCreateSheet) {
             CreateWebsiteView(vm: vm)
         }
+        .navigationDestination(isPresented: $showOpenRestyConfig) {
+            OpenRestyConfigView(vm: vm)
+        }
     }
 
     private var websiteList: some View {
         List {
             // 顶部 OpenResty 信息与管理卡片
-            OpenRestyCard(vm: vm, manager: manager)
+            OpenRestyCard(vm: vm, manager: manager, showConfig: $showOpenRestyConfig)
 
             if vm.websites.isEmpty {
                 if let err = vm.errorMessage, !err.isEmpty {
@@ -145,12 +149,13 @@ struct OpenRestyCard: View {
     @ObservedObject var vm: WebsitesViewModel
     @ObservedObject var manager: ServerManager
     @State private var isExpanded = false
-    @State private var showConfig = false
+    @Binding var showConfig: Bool
     @State private var pendingAction: String?
 
-    init(vm: WebsitesViewModel, manager: ServerManager) {
+    init(vm: WebsitesViewModel, manager: ServerManager, showConfig: Binding<Bool>) {
         self.vm = vm
         self.manager = manager
+        self._showConfig = showConfig
     }
 
     var body: some View {
@@ -178,9 +183,6 @@ struct OpenRestyCard: View {
                 }
                 .padding(.vertical, 4)
             }
-        }
-        .navigationDestination(isPresented: $showConfig) {
-            OpenRestyConfigView(vm: vm)
         }
         .alert(
             pendingAction.map { openRestyActionDisplayName($0) } ?? "",
