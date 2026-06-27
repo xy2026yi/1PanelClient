@@ -298,7 +298,7 @@ struct AppInstallView: View {
     // 高级设置（默认值参考抓包日志）
     @State private var advancedEnabled = true
     @State private var containerName = ""
-    @State private var allowPort = false
+    @State private var allowPort = true
     @State private var specifyIP = ""
     @State private var restartPolicy = "always"
     @State private var cpuQuota = 0
@@ -592,19 +592,31 @@ struct AppInstallView: View {
     private func performInstall() async {
         guard let appDetail = appDetail else { return }
 
+        // 判断是否为数据库关联应用（包含 type=apps 字段）
+        let hasDbField = (appDetail.params?.formFields ?? []).contains { ($0.type ?? "") == "apps" }
+
+        // 对 random=true 的字段生成随机后缀（数据库用户名/密码/库名需要唯一性）
+        if let fields = appDetail.params?.formFields {
+            for f in fields where f.random == true {
+                if let key = f.envKey, let val = paramValues[key], !val.isEmpty {
+                    paramValues[key] = val + "_" + randomSuffix()
+                }
+            }
+        }
+
         // 构建 params：保留原始类型（number → Int，text → String）
         var params: [String: AnyCodableValue] = [:]
         for (k, v) in paramValues {
-            // 端口等数字参数保持 Int 类型
             if let intVal = Int(v) {
                 params[k] = .int(intVal)
             } else {
                 params[k] = .string(v)
             }
         }
-        // 数据库关联应用需要 format/collation 参数（网页端始终携带）
+        // 数据库关联应用的 format/collation（网页端始终携带）
+        let dbFormat = hasDbField ? "utf8mb4" : ""
         if !params.keys.contains(where: { $0 == "format" }) {
-            params["format"] = .string("")
+            params["format"] = .string(dbFormat)
         }
         if !params.keys.contains(where: { $0 == "collation" }) {
             params["collation"] = .string("")
@@ -628,8 +640,12 @@ struct AppInstallView: View {
             pullImage: pullImage,
             taskID: UUID().uuidString,
             gpuConfig: false,
-            specifyIP: "",
-            restartPolicy: restartPolicy
+            specifyIP: specifyIP,
+            format: dbFormat,
+            collation: "",
+            restartPolicy: restartPolicy,
+            pushNode: false,
+            nodes: []
         )
 
         vm.isInstalling = true
@@ -651,6 +667,12 @@ struct AppInstallView: View {
             resultMessage = "安装失败：\(error.localizedDescription)"
         }
         showResultAlert = true
+    }
+
+    /// 生成 6 位随机后缀（字母+数字，与网页端行为一致）
+    private func randomSuffix() -> String {
+        let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return String((0..<6).compactMap { _ in chars.randomElement() })
     }
 }
 

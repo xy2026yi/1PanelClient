@@ -246,7 +246,7 @@ enum FormFieldValue: Decodable, Hashable, Sendable {
 // MARK: - 安装请求
 
 /// 应用安装请求（request.AppInstallCreate）
-/// 通过 doc/网页安装app请求抓取.log 完整抓包验证字段
+/// 通过 doc/网页安装app请求抓取.log + doc/安装应用修复.md 完整抓包验证字段
 struct AppInstallCreateRequest: Encodable {
     let appDetailId: Int
     let params: [String: AnyCodableValue]
@@ -265,7 +265,11 @@ struct AppInstallCreateRequest: Encodable {
     let taskID: String
     let gpuConfig: Bool
     let specifyIP: String
+    let format: String           // 顶层 format（数据库应用为 utf8mb4，其余为空）
+    let collation: String        // 顶层 collation
     let restartPolicy: String
+    let pushNode: Bool           // 是否推送到其他节点
+    let nodes: [String]          // 目标节点列表（本地安装为空）
 }
 
 /// 通用值类型（params 可能是 Int 或 String，需要保持原类型）
