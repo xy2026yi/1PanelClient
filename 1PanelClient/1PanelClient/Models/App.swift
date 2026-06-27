@@ -136,6 +136,8 @@ struct AppInstalledOperateRequest: Encodable {
     var deleteImage: Bool? = nil
     var forceDelete: Bool? = nil
     var deleteBackup: Bool? = nil
+    /// 任务 ID（用于跟踪安装/卸载进度）
+    var taskID: String? = nil
 
     // 跳过空值的自定义编码，让请求更干净
     func encode(to encoder: Encoder) throws {
@@ -150,11 +152,12 @@ struct AppInstalledOperateRequest: Encodable {
         try c.encodeIfPresent(deleteImage, forKey: .deleteImage)
         try c.encodeIfPresent(forceDelete, forKey: .forceDelete)
         try c.encodeIfPresent(deleteBackup, forKey: .deleteBackup)
+        try c.encodeIfPresent(taskID, forKey: .taskID)
     }
 
     enum CodingKeys: String, CodingKey {
         case installId, operate, detailId, backup, pullImage, dockerCompose
-        case deleteDB, deleteImage, forceDelete, deleteBackup
+        case deleteDB, deleteImage, forceDelete, deleteBackup, taskID
     }
 }
 

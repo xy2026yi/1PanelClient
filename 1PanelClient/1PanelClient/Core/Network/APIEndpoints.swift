@@ -200,6 +200,10 @@ enum APIEndpoint {
     case appsIcon                // GET  应用图标（:appID 路径参数，返回二进制图片）
     case appsServices            // GET  获取数据库服务列表（:type 路径参数，如 mysql/postgres）
 
+    // MARK: - 任务日志（安装/卸载进度）
+    case logsTaskRead            // POST 读取任务日志（轮询 taskID）
+    case logsTaskCount           // GET  正在执行的任务数量
+
     var path: String {
         switch self {
         case .dashboardOS:           return "/api/v2/dashboard/base/os"
@@ -348,6 +352,8 @@ enum APIEndpoint {
         case .appsSyncLocal:         return "/api/v2/apps/sync/local"
         case .appsIcon:              return "/api/v2/apps/icon/:appID"
         case .appsServices:          return "/api/v2/apps/services/:type"
+        case .logsTaskRead:          return "/api/v2/logs/tasks/read"
+        case .logsTaskCount:         return "/api/v2/logs/tasks/executing/count"
         }
     }
 
@@ -362,6 +368,7 @@ enum APIEndpoint {
              .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,
              .appsIcon, .databasesRedisCheck,
              .appsServices,
+             .logsTaskCount,
              .fail2banBase, .fail2banLoadConf,
              .wafStatus, .wafConfigGlobal,
              .settingsBaseDir,

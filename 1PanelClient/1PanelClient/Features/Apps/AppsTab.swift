@@ -153,6 +153,10 @@ struct AppDetailView: View {
     @State private var isExpanded = false
     @State private var pendingAction: String?
 
+    // 卸载进度
+    @State private var showUninstallProgress = false
+    @State private var uninstallTaskID = ""
+
     // 卸载弹窗状态
     @State private var uninstallDeleteDB = false
     @State private var uninstallDeleteImage = false
@@ -169,6 +173,16 @@ struct AppDetailView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: showUninstall)
+        .navigationDestination(isPresented: $showUninstallProgress) {
+            TaskProgressView(
+                taskID: uninstallTaskID,
+                title: "卸载 \(app.displayName)",
+                onComplete: {
+                    // 完成后自动返回上一层（从详情页 pop 回列表）
+                    vm.needsRefresh = true
+                }
+            )
+        }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
         } message: {
@@ -514,15 +528,19 @@ struct AppDetailView: View {
     }
 
     private func performUninstall() async {
+        let taskID = UUID().uuidString
         await vm.uninstall(
             app: app,
             deleteDB: uninstallDeleteDB,
             deleteImage: uninstallDeleteImage,
             deleteBackup: uninstallDeleteBackup,
-            forceDelete: uninstallForceDelete
+            forceDelete: uninstallForceDelete,
+            taskID: taskID
         )
         if vm.uninstallDone {
             showUninstall = false
+            uninstallTaskID = taskID
+            showUninstallProgress = true
         }
     }
 }
@@ -1832,7 +1850,8 @@ final class AppsViewModel: ObservableObject {
                    deleteDB: Bool,
                    deleteImage: Bool,
                    deleteBackup: Bool,
-                   forceDelete: Bool) async {
+                   forceDelete: Bool,
+                   taskID: String) async {
         isUninstalling = true
         uninstallDone = false
         defer { isUninstalling = false }
@@ -1886,7 +1905,8 @@ final class AppsViewModel: ObservableObject {
             deleteDB: deleteDB,
             deleteImage: deleteImage,
             forceDelete: forceDelete,
-            deleteBackup: deleteBackup
+            deleteBackup: deleteBackup,
+            taskID: taskID
         )
         do {
             let _: EmptyResponse = try await client.send(
@@ -1895,7 +1915,6 @@ final class AppsViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             uninstallDone = true
-            showAlert(message: "卸载请求已提交，应用正在后台清理…")
             needsRefresh = true
         } catch let err as APIError {
             showAlert(message: "卸载失败：\(err.errorDescription ?? "未知错误")")

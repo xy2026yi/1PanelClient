@@ -308,7 +308,9 @@ struct AppInstallView: View {
     @State private var editCompose = false
     @State private var customCompose = ""
 
-    // 安装结果（本地弹窗，避免回到主页才弹）
+    // 安装结果（进度视图）
+    @State private var showProgress = false
+    @State private var installTaskID = ""
     @State private var showResultAlert = false
     @State private var resultMessage = ""
     @State private var installSuccess = false
@@ -351,6 +353,15 @@ struct AppInstallView: View {
             }
         }
         .task { await loadDetail() }
+        .navigationDestination(isPresented: $showProgress) {
+            TaskProgressView(
+                taskID: installTaskID,
+                title: "安装 \(detail.name ?? "")",
+                onComplete: {
+                    vm.showInstall = false
+                }
+            )
+        }
         .alert("提示", isPresented: $showResultAlert) {
             Button("好的", role: .cancel) {
                 if installSuccess {
@@ -623,6 +634,7 @@ struct AppInstallView: View {
         }
 
         let compose = editCompose ? customCompose : (appDetail.dockerCompose ?? "")
+        let taskID = UUID().uuidString
         let req = AppInstallCreateRequest(
             appDetailId: appDetail.id,
             params: params,
@@ -638,7 +650,7 @@ struct AppInstallView: View {
             version: selectedVersion.isEmpty ? (detail.latestVersion ?? "") : selectedVersion,
             appID: "",
             pullImage: pullImage,
-            taskID: UUID().uuidString,
+            taskID: taskID,
             gpuConfig: false,
             specifyIP: specifyIP,
             format: dbFormat,
@@ -657,16 +669,18 @@ struct AppInstallView: View {
                 body: req,
                 as: EmptyResponse.self
             )
-            installSuccess = true
-            resultMessage = "安装请求已提交，应用正在后台部署中…"
+            // 跳转到进度视图
+            installTaskID = taskID
+            showProgress = true
         } catch let err as APIError {
             installSuccess = false
             resultMessage = "安装失败：\(err.errorDescription ?? "未知错误")"
+            showResultAlert = true
         } catch {
             installSuccess = false
             resultMessage = "安装失败：\(error.localizedDescription)"
+            showResultAlert = true
         }
-        showResultAlert = true
     }
 
     /// 生成 6 位随机后缀（字母+数字，与网页端行为一致）
