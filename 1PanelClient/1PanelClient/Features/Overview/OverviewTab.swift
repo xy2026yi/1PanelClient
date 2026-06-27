@@ -544,15 +544,16 @@ final class OverviewViewModel: ObservableObject {
         )
 
         let (b, o, d, s, c, au, up) = await (baseResp, os, dev, settings, current, appUpdates, upgrade)
-        self.base = b
-        self.osInfo = o
-        self.deviceInfo = d
-        self.settingInfo = s
-        self.currentInfo = c
-        self.appUpdateCount = au?.total
-        self.upgradeInfo = up
+        if let b { self.base = b }
+        if let o { self.osInfo = o }
+        if let d { self.deviceInfo = d }
+        if let s { self.settingInfo = s }
+        if let c { self.currentInfo = c }
+        if let au { self.appUpdateCount = au.total }
+        if let up { self.upgradeInfo = up }
 
-        if b == nil && o == nil && d == nil {
+        // 仅在完全无数据时才显示错误（刷新失败时保留旧数据）
+        if base == nil && osInfo == nil && deviceInfo == nil {
             self.errorMessage = "无法获取服务器信息，请检查 API Key 和网络"
         }
     }

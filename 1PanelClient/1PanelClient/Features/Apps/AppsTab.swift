@@ -148,10 +148,17 @@ struct AppsTab: View {
 struct AppDetailView: View {
     let app: AppInstall
     @ObservedObject var vm: AppsViewModel
-    @State private var showUninstallSheet = false
-    @State private var showUpdateParamsSheet = false
+    @State private var showUninstall = false
+    @State private var showEdit = false
     @State private var isExpanded = false
     @State private var pendingAction: String?
+
+    // 卸载弹窗状态
+    @State private var uninstallDeleteDB = false
+    @State private var uninstallDeleteImage = false
+    @State private var uninstallDeleteBackup = false
+    @State private var uninstallForceDelete = false
+    @State private var uninstallConfirmName = ""
 
     var body: some View {
         List {
@@ -224,11 +231,14 @@ struct AppDetailView: View {
         .navigationDestination(isPresented: $vm.showUpgradeSheet) {
             UpgradeSheetView(app: app, vm: vm)
         }
-        .sheet(isPresented: $showUninstallSheet) {
-            UninstallSheetView(app: app, vm: vm)
+        .navigationDestination(isPresented: $showEdit) {
+            UpdateParamsView(app: app, vm: vm)
         }
-        .sheet(isPresented: $showUpdateParamsSheet) {
-            UpdateParamsSheetView(app: app, vm: vm)
+        // 卸载居中确认弹窗
+        .overlay {
+            if showUninstall {
+                uninstallConfirmDialog
+            }
         }
         .alert(
             pendingAction.map { actionDisplayName($0) } ?? "",
@@ -328,14 +338,14 @@ struct AppDetailView: View {
                 icon: "slider.horizontal.3",
                 color: .teal
             ) {
-                pendingAction = "edit"
+                showEdit = true
             }
             actionButton(
                 title: "卸载",
                 icon: "trash",
                 color: .red
             ) {
-                pendingAction = "uninstall"
+                showUninstall = true
             }
         }
         .padding(.top, 2)
@@ -378,10 +388,6 @@ struct AppDetailView: View {
             Task { await vm.operate(app: app, op: .restart) }
         case "rebuild":
             Task { await vm.operate(app: app, op: .rebuild) }
-        case "edit":
-            showUpdateParamsSheet = true
-        case "uninstall":
-            showUninstallSheet = true
         default:
             break
         }
@@ -393,9 +399,120 @@ struct AppDetailView: View {
         case "start":    return "启动"
         case "restart":  return "重启"
         case "rebuild":  return "重建"
-        case "edit":     return "编辑"
-        case "uninstall": return "卸载"
         default:         return action
+        }
+    }
+
+    // MARK: - 卸载居中确认弹窗
+
+    private var uninstallConfirmDialog: some View {
+        ZStack {
+            // 半透明背景
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    showUninstall = false
+                }
+
+            // 弹窗卡片
+            VStack(spacing: 16) {
+                // 标题
+                Text("卸载 - \(app.displayName)")
+                    .font(.headline)
+                    .foregroundStyle(.red)
+
+                // 勾选项
+                VStack(spacing: 10) {
+                    if app.linkDB == true {
+                        HStack {
+                            Image(systemName: uninstallDeleteDB ? "checkmark.square.fill" : "square")
+                                .foregroundStyle(uninstallDeleteDB ? .blue : .secondary)
+                            Text("同时删除数据库")
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture { uninstallDeleteDB.toggle() }
+                    }
+                    HStack {
+                        Image(systemName: uninstallDeleteBackup ? "checkmark.square.fill" : "square")
+                            .foregroundStyle(uninstallDeleteBackup ? .blue : .secondary)
+                        Text("删除备份")
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { uninstallDeleteBackup.toggle() }
+                    HStack {
+                        Image(systemName: uninstallDeleteImage ? "checkmark.square.fill" : "square")
+                            .foregroundStyle(uninstallDeleteImage ? .blue : .secondary)
+                        Text("删除镜像")
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { uninstallDeleteImage.toggle() }
+                    HStack {
+                        Image(systemName: uninstallForceDelete ? "checkmark.square.fill" : "square")
+                            .foregroundStyle(uninstallForceDelete ? .blue : .secondary)
+                        Text("强制删除")
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { uninstallForceDelete.toggle() }
+                }
+
+                // 输入框
+                TextField("输入应用名称以确认", text: $uninstallConfirmName)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+
+                // 按钮
+                HStack(spacing: 12) {
+                    Button {
+                        showUninstall = false
+                    } label: {
+                        Text("取消")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button {
+                        Task { await performUninstall() }
+                    } label: {
+                        Group {
+                            if vm.isUninstalling {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text("确认")
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                    .disabled(uninstallConfirmName != (app.name ?? "") && uninstallConfirmName != app.displayName || vm.isUninstalling)
+                }
+            }
+            .padding(20)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 40)
+        }
+        .transition(.opacity)
+    }
+
+    private func performUninstall() async {
+        await vm.uninstall(
+            app: app,
+            deleteDB: uninstallDeleteDB,
+            deleteImage: uninstallDeleteImage,
+            deleteBackup: uninstallDeleteBackup,
+            forceDelete: uninstallForceDelete
+        )
+        if vm.uninstallDone {
+            showUninstall = false
         }
     }
 }
@@ -662,115 +779,11 @@ struct IgnoredAppsView: View {
     }
 }
 
-// MARK: - 卸载应用 Sheet
+// MARK: - 更新参数（重建应用）push 导航
 
-struct UninstallSheetView: View {
+struct UpdateParamsView: View {
     let app: AppInstall
     @ObservedObject var vm: AppsViewModel
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var deleteDB = true
-    @State private var deleteImage = false
-    @State private var deleteBackup = false
-    @State private var forceDelete = false
-    @State private var confirmName = ""
-
-    private var nameMatches: Bool {
-        confirmName == (app.name ?? "") || confirmName == app.displayName
-    }
-
-    private var canSubmit: Bool {
-        nameMatches && !vm.isUninstalling
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    HStack(spacing: 10) {
-                        Image(systemName: "exclamationmark.octagon.fill")
-                            .font(.title2)
-                            .foregroundStyle(.red)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("即将卸载 \(app.displayName)")
-                                .font(.subheadline.bold())
-                            Text("该操作不可撤销，容器和数据将被删除")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-
-                Section {
-                    Toggle("同时删除数据库", isOn: $deleteDB)
-                    Toggle("删除镜像", isOn: $deleteImage)
-                    Toggle("删除备份", isOn: $deleteBackup)
-                    Toggle("强制删除", isOn: $forceDelete)
-                } header: {
-                    Text("清理选项")
-                } footer: {
-                    Text("默认勾选「删除数据库」与网页端行为一致。")
-                }
-
-                Section {
-                    TextField("输入应用名称以确认", text: $confirmName)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                } header: {
-                    Text("确认操作")
-                } footer: {
-                    Text("请输入 \(app.name ?? app.displayName) 以开启卸载按钮。")
-                }
-
-                if vm.isUninstalling {
-                    Section {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                            Text("正在卸载…")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            .navigationTitle("卸载应用")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .destructiveAction) {
-                    Button("卸载", role: .destructive) {
-                        Task { await performUninstall() }
-                    }
-                    .disabled(!canSubmit)
-                }
-            }
-        }
-    }
-
-    private func performUninstall() async {
-        await vm.uninstall(
-            app: app,
-            deleteDB: deleteDB,
-            deleteImage: deleteImage,
-            deleteBackup: deleteBackup,
-            forceDelete: forceDelete
-        )
-        // 失败时 vm.alertMessage 已携带错误，成功时则携带成功消息
-        // 无论成功失败都关闭 sheet，alert 会在详情页/列表上展示
-        if vm.uninstallDone {
-            dismiss()
-        }
-    }
-}
-
-// MARK: - 更新参数 Sheet（重建应用）
-
-struct UpdateParamsSheetView: View {
-    let app: AppInstall
-    @ObservedObject var vm: AppsViewModel
-    @Environment(\.dismiss) private var dismiss
 
     @State private var paramsResp: InstalledParamsResponse?
     @State private var isLoading = true
@@ -793,41 +806,34 @@ struct UpdateParamsSheetView: View {
     private var hasLoaded: Bool { paramsResp != nil }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if isLoading {
-                    ProgressView("加载参数…")
-                } else if let resp = paramsResp {
-                    paramsForm(resp)
-                } else {
-                    ContentUnavailableView {
-                        Label("无法加载参数", systemImage: "exclamationmark.triangle")
-                    } description: {
-                        Text(loadError ?? "请稍后重试")
-                    } actions: {
-                        Button("重试") { Task { await load() } }
-                    }
+        Group {
+            if isLoading {
+                ProgressView("加载参数…")
+            } else if let resp = paramsResp {
+                paramsForm(resp)
+            } else {
+                ContentUnavailableView {
+                    Label("无法加载参数", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(loadError ?? "请稍后重试")
+                } actions: {
+                    Button("重试") { Task { await load() } }
                 }
             }
-            .navigationTitle("更新参数")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+        }
+        .navigationTitle("更新参数")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .destructiveAction) {
+                Button("更新") {
+                    Task { await performUpdate() }
                 }
-                ToolbarItem(placement: .destructiveAction) {
-                    Button("更新") {
-                        Task { await performUpdate() }
-                    }
-                    .disabled(!hasLoaded || vm.isUpdatingParams)
-                }
+                .disabled(!hasLoaded || vm.isUpdatingParams)
             }
         }
         .task { await load() }
         .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {
-                if vm.paramsUpdated { dismiss() }
-            }
+            Button("好的", role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
@@ -1209,8 +1215,10 @@ struct AppRow: View {
                 AppIconView(
                     appID: app.appID,
                     baseURL: ServerManager.shared.current?.baseURL ?? "",
+                    appKey: app.appKey,
                     fallbackIcon: app.statusIcon,
-                    fallbackColor: app.statusColor
+                    fallbackColor: app.statusColor,
+                    fallbackText: app.displayName
                 )
                 if isOperating {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -1411,6 +1419,13 @@ struct AppLogView: View {
                 }
                 .onChange(of: logLines.count) { _, _ in
                     if isFollowing {
+                        withAnimation {
+                            proxy.scrollTo(logLines.count - 1, anchor: .bottom)
+                        }
+                    }
+                }
+                .onChange(of: isFollowing) { _, following in
+                    if following && !logLines.isEmpty {
                         withAnimation {
                             proxy.scrollTo(logLines.count - 1, anchor: .bottom)
                         }
@@ -1837,22 +1852,22 @@ final class AppsViewModel: ObservableObject {
             // 网站查询失败时不阻塞卸载，继续走原有流程
         }
 
-        // 1. 删除前检查（若后端返回错误，会在 catch 里展示；返回 null 视为允许删除）
+        // 1. 删除前检查（后端返回关联资源列表，非空则禁止删除）
         let checkPath = APIEndpoint.appsInstalledDeleteCheck.path
             .replacingOccurrences(of: ":installId", with: String(app.id))
         do {
-            // 后端 data 为 null，使用 EmptyResponse 解析（APIClient 对其容忍 null）
-            let _: EmptyResponse = try await client.send(
+            let linked: [AppDeleteCheckItem] = try await client.send(
                 path: checkPath,
                 method: "GET",
-                as: EmptyResponse.self
+                as: [AppDeleteCheckItem].self
             )
-        } catch let err as APIError {
-            showAlert(message: "无法卸载：\(err.errorDescription ?? "未知错误")")
-            return
+            if !linked.isEmpty {
+                let names = linked.map { "\($0.name ?? "未知")" }.joined(separator: "、")
+                showAlert(message: "应用已经关联以下资源，请检查后重试！\n应用 \(names)")
+                return
+            }
         } catch {
-            showAlert(message: "无法卸载：\(error.localizedDescription)")
-            return
+            // data 为 null 或空数组时可能解码失败，继续执行删除
         }
         // 2. 执行删除
         let req = AppInstalledOperateRequest(

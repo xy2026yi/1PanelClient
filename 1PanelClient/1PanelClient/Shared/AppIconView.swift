@@ -34,6 +34,8 @@ struct AppIconView: View {
     /// 回退用的状态图标和颜色
     let fallbackIcon: String
     let fallbackColor: Color
+    /// 图标加载失败时的字母回退（取首字母），优先级高于 fallbackIcon
+    var fallbackText: String? = nil
     var size: CGFloat = 44
     var cornerRadius: CGFloat = 12
 
@@ -50,6 +52,13 @@ struct AppIconView: View {
         return nil
     }
 
+    /// 用于字母回退的首字母（大写）
+    private var fallbackLetter: String? {
+        guard let text = fallbackText?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let first = text.first else { return nil }
+        return String(first).uppercased()
+    }
+
     var body: some View {
         ZStack {
             if let image {
@@ -58,6 +67,15 @@ struct AppIconView: View {
                     .scaledToFill()
                     .frame(width: size, height: size)
                     .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            } else if let letter = fallbackLetter {
+                ZStack {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(fallbackColor.opacity(0.18))
+                        .frame(width: size, height: size)
+                    Text(letter)
+                        .font(.system(size: size * 0.45, weight: .bold))
+                        .foregroundStyle(fallbackColor)
+                }
             } else {
                 IconBadge(
                     systemName: fallbackIcon,

@@ -52,6 +52,8 @@ struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
     let total: Int?
     let createdAt: String?
     let app: AppLinks?
+    let isEdit: Bool?
+    let linkDB: Bool?
 
     /// 从 update=true 的可更新列表合并过来的当前 docker-compose 内容
     /// （list 接口里的 dockerCompose 字段通常为空，只有可更新时才填充）
@@ -71,7 +73,7 @@ struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
         case id, name, version, status, message, path, container, serviceName
         case appID, appDetailID, appKey, appName, appType
         case httpPort, httpsPort, dockerCompose, webUI, icon, canUpdate
-        case favorite, ready, total, createdAt, app
+        case favorite, ready, total, createdAt, app, isEdit, linkDB
     }
 
     /// 显示名（优先 appName，其次 name，最后 serviceName）
@@ -267,4 +269,11 @@ struct AppParamsUpdateRequest: Encodable {
     let editCompose: Bool
     let dockerCompose: String
     let restartPolicy: String
+}
+
+/// 卸载前检查返回的关联资源项
+struct AppDeleteCheckItem: Decodable, Identifiable, Hashable, Sendable {
+    let type: String?
+    let name: String?
+    var id: String { "\(type ?? "")-\(name ?? "")" }
 }
