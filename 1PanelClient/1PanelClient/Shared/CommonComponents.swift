@@ -212,3 +212,17 @@ extension View {
         ))
     }
 }
+
+// MARK: - popDetail 环境值
+
+/// 用于从详情页直接 pop 回列表页（操作 NavigationPath 而非依赖 dismiss）
+private struct PopDetailKey: EnvironmentKey {
+    static let defaultValue: (() -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    var popDetail: (() -> Void)? {
+        get { self[PopDetailKey.self] }
+        set { self[PopDetailKey.self] = newValue }
+    }
+}

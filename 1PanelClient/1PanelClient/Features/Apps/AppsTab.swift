@@ -149,6 +149,7 @@ struct AppDetailView: View {
     let app: AppInstall
     @ObservedObject var vm: AppsViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.popDetail) private var popDetail
     @State private var showUninstall = false
     @State private var showEdit = false
     @State private var isExpanded = false
@@ -181,8 +182,13 @@ struct AppDetailView: View {
                 onComplete: { isDone in
                     vm.needsRefresh = true
                     if isDone {
-                        // 任务完成后直接 pop 详情页（TaskProgressView 随之一并消失）
-                        dismiss()
+                        // 直接操作 NavigationPath 移除当前详情页，
+                        // TaskProgressView（isPresented）随父视图一并消失
+                        if let popDetail {
+                            popDetail()
+                        } else {
+                            dismiss()
+                        }
                     }
                 }
             )

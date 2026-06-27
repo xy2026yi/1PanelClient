@@ -109,6 +109,9 @@ struct ManageTab: View {
         switch item {
         case .apps:
             AppsTab(manager: manager, showCloseButton: false, standalone: false)
+                .environment(\.popDetail, {
+                    if !navPath.isEmpty { navPath.removeLast() }
+                })
         case .websites:
             WebsitesTab(manager: manager, showCloseButton: false, standalone: false)
         case .containers:
