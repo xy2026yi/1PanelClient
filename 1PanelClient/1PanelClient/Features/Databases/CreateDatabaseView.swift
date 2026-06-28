@@ -145,39 +145,12 @@ struct CreateDatabaseView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .onChange(of: name) { _, newValue in
-                            if vm.isPostgreSQL { username = newValue }
+                            username = newValue
                         }
                     TextField("用户名", text: $username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     passwordRow
-                }
-
-                if !vm.isPostgreSQL {
-                    Section("字符集") {
-                        if vm.formats.isEmpty {
-                            if vm.isLoading { HStack { ProgressView(); Text("加载中…") } }
-                            else { Text("无法加载字符集选项").foregroundStyle(.secondary) }
-                        } else {
-                            Picker("字符集", selection: $selectedFormat) {
-                                ForEach(vm.formats) { f in
-                                    Text(f.format).tag(f.format)
-                                }
-                            }
-                            .onChange(of: selectedFormat) { _, _ in
-                                selectedCollation = ""
-                            }
-
-                            if !availableCollations.isEmpty {
-                                Picker("排序规则", selection: $selectedCollation) {
-                                    Text("默认").tag("")
-                                    ForEach(availableCollations, id: \.self) { c in
-                                        Text(c).tag(c)
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
 
                 if vm.isPostgreSQL {
@@ -229,7 +202,10 @@ struct CreateDatabaseView: View {
                 }
             }
             .task {
-                if !vm.isPostgreSQL && vm.formats.isEmpty { await vm.loadFormats() }
+                if password.isEmpty {
+                    password = randomPassword()
+                    showPassword = true
+                }
             }
         }
     }

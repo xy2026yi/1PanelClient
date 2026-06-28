@@ -13,7 +13,6 @@ final class DatabaseDetailViewModel: ObservableObject {
     @Published var database: DatabaseItem
     @Published var isOperating = false
     @Published var errorMessage: String?
-    @Published var successMessage: String?
 
     let system: DatabaseSystem
     private let client: APIClient
@@ -48,7 +47,6 @@ final class DatabaseDetailViewModel: ObservableObject {
     func changePassword(_ password: String) async {
         isOperating = true
         errorMessage = nil
-        successMessage = nil
         defer { isOperating = false }
         let value = Data(password.utf8).base64EncodedString()
         let dbType = system.type
@@ -66,14 +64,12 @@ final class DatabaseDetailViewModel: ObservableObject {
                 let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesChangePassword.path, body: req, as: EmptyResponse.self)
             }
             await reloadDetail()
-            successMessage = "密码修改成功"
         } catch { errorMessage = error.localizedDescription }
     }
 
     func changeAccess(value: String) async {
         isOperating = true
         errorMessage = nil
-        successMessage = nil
         defer { isOperating = false }
         let req = ChangeAccessRequest(
             id: database.id, from: database.from ?? "local",
@@ -84,14 +80,12 @@ final class DatabaseDetailViewModel: ObservableObject {
                 path: APIEndpoint.databasesChangeAccess.path, body: req, as: EmptyResponse.self
             )
             await reloadDetail()
-            successMessage = "访问权限修改成功"
         } catch { errorMessage = error.localizedDescription }
     }
 
     func changePrivileges(superUser: Bool) async {
         isOperating = true
         errorMessage = nil
-        successMessage = nil
         defer { isOperating = false }
         let req = PGPrivilegesRequest(
             name: database.name ?? "",
@@ -104,7 +98,6 @@ final class DatabaseDetailViewModel: ObservableObject {
                 path: APIEndpoint.databasesPgPrivileges.path, body: req, as: EmptyResponse.self
             )
             await reloadDetail()
-            successMessage = "权限修改成功"
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -132,7 +125,6 @@ final class DatabaseDetailViewModel: ObservableObject {
 struct DatabaseDetailView: View {
     @StateObject private var vm: DatabaseDetailViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var showPassword = false
     @State private var activeSheet: DetailSheet?
 
     enum DetailSheet: Identifiable {
@@ -170,14 +162,6 @@ struct DatabaseDetailView: View {
         }
         .navigationTitle(vm.database.name ?? "数据库")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("操作成功", isPresented: Binding(
-            get: { vm.successMessage != nil },
-            set: { if !$0 { vm.successMessage = nil } }
-        )) {
-            Button("好的") { vm.successMessage = nil }
-        } message: {
-            Text(vm.successMessage ?? "")
-        }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .changePassword:

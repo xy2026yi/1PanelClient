@@ -293,7 +293,6 @@ struct DatabaseSystemView: View {
     @StateObject private var vm: DatabaseSystemViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showCreate = false
-    @State private var showPassword = false
     @State private var showServicePasswordSheet = false
     @State private var showRedisTerminal = false
     @State private var showRedisPasswordSheet = false
