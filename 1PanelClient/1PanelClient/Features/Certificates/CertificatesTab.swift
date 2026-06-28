@@ -325,45 +325,52 @@ struct CertificateDetailView: View {
     }
 
     private var infoSection: some View {
-        Section {
-            LabeledRow("主域名", value: (detail ?? cert).displayName)
-            LabeledRow("子域名", value: (detail ?? cert).displayDomains)
-            LabeledRow("颁发机构", value: (detail ?? cert).displayOrganization)
-            LabeledRow("证书类型", value: (detail ?? cert).displayType)
-            LabeledRow("来源", value: (detail ?? cert).isManual ? "手动导入" : "自动申请")
-            LabeledRow("状态", value: (detail ?? cert).statusDisplay)
-            if let msg = (detail ?? cert).message, !msg.isEmpty {
+        let d = detail ?? cert
+        return Section {
+            LabeledRow("主域名", value: d.primaryDomain ?? "—")
+            LabeledRow("其他域名", value: d.displayDomains)
+            LabeledRow("证书主体名称(CN)", value: d.displayType)
+            LabeledRow("颁发组织", value: d.displayOrganization)
+            LabeledRow("申请方式", value: d.providerDisplay)
+
+            if (d.provider ?? "").lowercased() == "dnsaccount" {
+                if let dns = d.dnsAccount, !dns.name.isEmpty {
+                    LabeledRow("DNS 账号", value: dns.name)
+                }
+                if let acc = d.acmeAccount, !acc.email.isEmpty {
+                    LabeledRow("Acme 账号", value: acc.email)
+                }
+            }
+
+            LabeledRow("生效时间", value: d.displayStartDate)
+            LabeledRow("过期时间", value: d.displayExpireDate)
+
+            if d.pushDir == true {
+                LabeledRow("推送证书到本地目录", value: d.dir ?? "")
+            }
+            if d.execShell == true {
+                LabeledRow("申请证书之后执行脚本", value: d.shell ?? "")
+            }
+
+            LabeledRow("状态", value: d.statusDisplay)
+            if let msg = d.message, !msg.isEmpty {
                 LabeledRow("状态详情", value: msg)
             }
-            LabeledRow("开始日期", value: (detail ?? cert).displayStartDate)
-            LabeledRow("过期日期", value: (detail ?? cert).displayExpireDate)
+
             if isAcmeCert {
-                if let acc = (detail ?? cert).acmeAccount {
-                    LabeledRow("Acme 账户", value: acc.email)
-                }
-                if let dns = (detail ?? cert).dnsAccount {
-                    LabeledRow("DNS 账户", value: dns.name)
-                }
-                if let kt = (detail ?? cert).keyType {
-                    LabeledRow("密钥算法", value: SSLKeyType(rawValue: kt)?.displayName ?? kt)
-                }
-                LabeledRow("验证方式", value: SSLProvider(rawValue: (detail ?? cert).provider ?? "")?.displayName ?? "—")
                 Toggle("自动续签", isOn: Binding(
-                    get: { (detail ?? cert).autoRenew ?? false },
+                    get: { d.autoRenew ?? false },
                     set: { newVal in
                         Task {
-                            await vm.updateSSLAutoRenew(cert: detail ?? cert, autoRenew: newVal)
+                            await vm.updateSSLAutoRenew(cert: d, autoRenew: newVal)
                             detail?.autoRenew = newVal
                         }
                     }
                 ))
             }
-            if let desc = (detail ?? cert).description, !desc.isEmpty {
+
+            if let desc = d.description, !desc.isEmpty {
                 LabeledRow("备注", value: desc)
-            }
-            let created = (detail ?? cert).displayCreatedAt
-            if created != "—" {
-                LabeledRow("创建时间", value: created)
             }
         } header: {
             Text("证书信息")

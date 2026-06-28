@@ -613,6 +613,17 @@ struct WebsiteSSLCert: Codable, Identifiable, Hashable {
     /// 是否手动导入
     var isManual: Bool { (provider ?? "").lowercased() == "manual" }
 
+    /// 申请方式显示名
+    var providerDisplay: String {
+        switch (provider ?? "").lowercased() {
+        case "manual":     return "手动创建"
+        case "dnsaccount": return "DNS 账号"
+        case "dnsmanual":  return "手动解析"
+        case "http":       return "HTTP"
+        default:           return provider ?? "—"
+        }
+    }
+
     /// 过期日期格式化（yyyy-MM-dd）
     var displayExpireDate: String {
         formatDate(expireDate)
