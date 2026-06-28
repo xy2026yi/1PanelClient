@@ -133,7 +133,6 @@ struct DatabaseSystemRow: View {
                 }
             }
             Spacer()
-            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
         }
         .padding(.vertical, 2)
     }
@@ -300,6 +299,7 @@ struct DatabaseSystemView: View {
     @State private var showRedisPasswordSheet = false
     @State private var pendingAction: String?
     @State private var pendingDeleteDb: DatabaseItem?
+    @State private var isStatusExpanded = false
 
     init(system: DatabaseSystem) {
         _vm = StateObject(wrappedValue: DatabaseSystemViewModel(system: system, server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")))
@@ -408,61 +408,73 @@ struct DatabaseSystemView: View {
         }
     }
 
-    // MARK: 状态卡片
+    // MARK: 状态卡片（可折叠面板）
 
     private var statusSection: some View {
         Section {
             if let check = vm.check {
-                HStack(spacing: 12) {
-                    IconBadge(systemName: check.isRunning ? "play.circle.fill" : "stop.circle.fill",
-                              color: check.isRunning ? .green : .red, size: 40)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(check.app ?? vm.system.displayName).font(.headline)
-                        HStack(spacing: 6) {
-                            StatusBadge(
-                                text: check.isRunning ? "运行中" : "已停止",
-                                color: check.isRunning ? .green : .red,
-                                icon: check.isRunning ? "checkmark.circle" : "exclamationmark.triangle"
-                            )
-                            if let v = check.version, !v.isEmpty {
-                                Text("v\(v)").font(.caption).foregroundStyle(.secondary)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isStatusExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        IconBadge(systemName: check.isRunning ? "play.circle.fill" : "stop.circle.fill",
+                                  color: check.isRunning ? .green : .red, size: 40)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(check.app ?? vm.system.displayName).font(.headline)
+                            HStack(spacing: 6) {
+                                StatusBadge(
+                                    text: check.isRunning ? "运行中" : "已停止",
+                                    color: check.isRunning ? .green : .red,
+                                    icon: check.isRunning ? "checkmark.circle" : "exclamationmark.triangle"
+                                )
+                                if let v = check.version, !v.isEmpty {
+                                    Text("v\(v)").font(.caption).foregroundStyle(.secondary)
+                                }
                             }
                         }
+                        Spacer()
+                        Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
                     }
-                    Spacer()
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
 
-                HStack(spacing: 12) {
-                    if !check.isRunning {
-                        Button { pendingAction = "start" } label: {
-                            Label("启动", systemImage: "play.fill")
+                if isStatusExpanded {
+                    HStack(spacing: 12) {
+                        if !check.isRunning {
+                            Button { pendingAction = "start" } label: {
+                                Label("启动", systemImage: "play.fill")
+                            }
+                            .disabled(vm.isOperating)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        } else {
+                            Button { pendingAction = "stop" } label: {
+                                Label("停止", systemImage: "stop.fill")
+                            }
+                            .disabled(vm.isOperating)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .tint(.red)
+                        }
+
+                        Button { pendingAction = "restart" } label: {
+                            Label("重启", systemImage: "arrow.clockwise")
                         }
                         .disabled(vm.isOperating)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
-                    } else {
-                        Button { pendingAction = "stop" } label: {
-                            Label("停止", systemImage: "stop.fill")
-                        }
-                        .disabled(vm.isOperating)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(.red)
                     }
-
-                    Button { pendingAction = "restart" } label: {
-                        Label("重启", systemImage: "arrow.clockwise")
-                    }
-                    .disabled(vm.isOperating)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                    .padding(.vertical, 2)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-                .padding(.vertical, 2)
             } else {
                 HStack { Spacer(); ProgressView(); Spacer() }
             }
-        } header: {
-            SectionLabel(title: "服务状态", systemImage: "server.rack")
         }
     }
 
@@ -492,12 +504,8 @@ struct DatabaseSystemView: View {
                     HStack {
                         Text("密码").foregroundStyle(.secondary)
                         Spacer()
-                        Text(showPassword ? pwd : String(repeating: "•", count: min(pwd.count, 12)))
+                        Text(String(repeating: "•", count: min(pwd.count, 12)))
                             .font(.system(.subheadline, design: .monospaced))
-                        Button { showPassword.toggle() } label: {
-                            Image(systemName: showPassword ? "eye.slash" : "eye")
-                                .foregroundStyle(.secondary)
-                        }
                         Button {
                             UIPasteboard.general.string = pwd
                         } label: {

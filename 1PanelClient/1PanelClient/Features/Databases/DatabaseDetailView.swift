@@ -230,11 +230,8 @@ struct DatabaseDetailView: View {
                 HStack {
                     Text("密码").foregroundStyle(.secondary)
                     Spacer()
-                    Text(showPassword ? pwd : String(repeating: "•", count: min(pwd.count, 12)))
+                    Text(String(repeating: "•", count: min(pwd.count, 12)))
                         .font(.system(.subheadline, design: .monospaced))
-                    Button { showPassword.toggle() } label: {
-                        Image(systemName: showPassword ? "eye.slash" : "eye").foregroundStyle(.secondary)
-                    }
                     Button { UIPasteboard.general.string = pwd } label: {
                         Image(systemName: "doc.on.doc").foregroundStyle(.secondary)
                     }
