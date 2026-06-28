@@ -1320,6 +1320,7 @@ struct AppLogView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var isFollowing = true
+    @State private var scrollToBottomTrigger = 0
     @State private var tail: Int = 200
     @State private var sinceMode = "all"
     @State private var streamTask: Task<Void, Never>?
@@ -1431,12 +1432,18 @@ struct AppLogView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Toggle(isOn: $isFollowing) {
+            Button {
+                isFollowing = true
+                scrollToBottomTrigger += 1
+            } label: {
                 Label("跟随最新", systemImage: "arrow.down")
                     .font(.caption)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(isFollowing ? Color.accentColor.opacity(0.15) : Color.clear, in: Capsule())
+                    .foregroundStyle(isFollowing ? Color.accentColor : .secondary)
             }
-            .toggleStyle(.button)
-            .tint(.blue)
+            .buttonStyle(.plain)
         }
     }
 
@@ -1468,6 +1475,13 @@ struct AppLogView: View {
                 }
                 .onChange(of: logLines.count) { _, _ in
                     if isFollowing {
+                        withAnimation {
+                            proxy.scrollTo(logLines.count - 1, anchor: .bottom)
+                        }
+                    }
+                }
+                .onChange(of: scrollToBottomTrigger) { _, _ in
+                    if !logLines.isEmpty {
                         withAnimation {
                             proxy.scrollTo(logLines.count - 1, anchor: .bottom)
                         }
