@@ -375,6 +375,8 @@ struct SSHFieldSheet: View {
                 }
             }
         }
+        .presentationDetents([.height(200)])
+        .presentationDragIndicator(.visible)
     }
 }
 
