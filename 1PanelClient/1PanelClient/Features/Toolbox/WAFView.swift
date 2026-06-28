@@ -619,9 +619,15 @@ struct WAFIPRulesView: View {
                 Task { await loadItems() }
             }
         }
-        .sheet(item: $editingItem) { item in
-            WAFEditIPRuleView(server: server, scope: scope, item: item) {
-                Task { await loadItems() }
+        .navigationDestination(isPresented: Binding(
+            get: { editingItem != nil },
+            set: { if !$0 { editingItem = nil } }
+        )) {
+            if let item = editingItem {
+                WAFEditIPRuleView(server: server, scope: scope, item: item) {
+                    Task { await loadItems() }
+                }
+                .onDisappear { Task { await loadItems() } }
             }
         }
         .sheet(isPresented: Binding(
@@ -938,8 +944,7 @@ struct WAFEditIPRuleView: View {
     ]
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Form {
                 Section("类型") {
                     Picker("IP 类型", selection: $ipType) {
                         ForEach(typeOptions, id: \.value) { Text($0.label).tag($0.value) }
@@ -1001,12 +1006,15 @@ struct WAFEditIPRuleView: View {
             .navigationTitle("编辑 IP 规则")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         Task { await save() }
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                        } else {
+                            Text("保存").fontWeight(.medium)
+                        }
                     }
                     .disabled(isSaving || !isValid)
                 }
@@ -1022,7 +1030,6 @@ struct WAFEditIPRuleView: View {
             } message: {
                 Text(errorMessage ?? "")
             }
-        }
     }
 
     private var isValid: Bool {
@@ -1434,9 +1441,15 @@ struct WAFCommonRulesView: View {
                 Task { await loadItems() }
             }
         }
-        .sheet(item: $editingItem) { item in
-            WAFEditCommonRuleView(server: server, scope: scope, item: item) {
-                Task { await loadItems() }
+        .navigationDestination(isPresented: Binding(
+            get: { editingItem != nil },
+            set: { if !$0 { editingItem = nil } }
+        )) {
+            if let item = editingItem {
+                WAFEditCommonRuleView(server: server, scope: scope, item: item) {
+                    Task { await loadItems() }
+                }
+                .onDisappear { Task { await loadItems() } }
             }
         }
         .sheet(isPresented: Binding(
@@ -1648,8 +1661,7 @@ struct WAFEditCommonRuleView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Form {
                 Section("规则内容") {
                     TextField("输入规则", text: $rule)
                         .autocorrectionDisabled()
@@ -1666,12 +1678,15 @@ struct WAFEditCommonRuleView: View {
                 description = item.description ?? ""
             }
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         Task { await save() }
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                        } else {
+                            Text("保存").fontWeight(.medium)
+                        }
                     }
                     .disabled(isSaving || rule.isEmpty)
                 }
@@ -1684,7 +1699,6 @@ struct WAFEditCommonRuleView: View {
             } message: {
                 Text(errorMessage ?? "")
             }
-        }
     }
 
     private func save() async {

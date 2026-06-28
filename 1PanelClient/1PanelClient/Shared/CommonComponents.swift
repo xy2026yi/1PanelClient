@@ -288,8 +288,8 @@ struct ActionBottomSheet: View {
             ForEach(items) { item in
                 Button {
                     let act = item.action
-                    onDismiss()
                     act()
+                    onDismiss()
                 } label: {
                     HStack(spacing: 14) {
                         if let icon = item.icon {
