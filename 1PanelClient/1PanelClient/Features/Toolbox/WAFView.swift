@@ -552,6 +552,8 @@ struct WAFIPRulesView: View {
     @State private var successMessage: String?
     @State private var errorMessage: String?
     @State private var pendingDeleteIP: WAFRuleIPItem?
+    @State private var actionItem: WAFRuleIPItem?
+    @State private var editingItem: WAFRuleIPItem?
 
     private let client: APIClient
 
@@ -570,15 +572,31 @@ struct WAFIPRulesView: View {
                 Text("暂无数据").foregroundStyle(.secondary)
             } else {
                 ForEach(items) { item in
-                    WAFIPRuleRow(item: item, onToggle: {
-                        Task { await toggleState(item) }
-                    })
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            pendingDeleteIP = item
+                    HStack {
+                        Button {
+                            actionItem = item
                         } label: {
-                            Label("删除", systemImage: "trash")
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.displayValue)
+                                    .font(.system(.body, design: .monospaced))
+                                HStack(spacing: 8) {
+                                    StatusBadge(text: item.typeLabel, color: .blue, backgroundOpacity: 0.1)
+                                    if let desc = item.description, !desc.isEmpty {
+                                        Text(desc).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
+
+                        Toggle(isOn: Binding(
+                            get: { item.state == "on" },
+                            set: { _ in Task { await toggleState(item) } }
+                        )) {}
+                        .labelsHidden()
+                        .tint(item.state == "on" ? .green : .gray)
                     }
                 }
             }
@@ -600,6 +618,30 @@ struct WAFIPRulesView: View {
             WAFCreateIPRuleView(server: server, scope: scope) {
                 Task { await loadItems() }
             }
+        }
+        .sheet(item: $editingItem) { item in
+            WAFEditIPRuleView(server: server, scope: scope, item: item) {
+                Task { await loadItems() }
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { actionItem != nil },
+            set: { if !$0 { actionItem = nil } }
+        )) {
+            ActionBottomSheet(
+                title: actionItem?.displayValue ?? "IP 规则",
+                items: [
+                    ActionMenuItem(title: "编辑", icon: "pencil", color: .blue) {
+                        editingItem = actionItem
+                    },
+                    ActionMenuItem(title: "删除", icon: "trash", color: .red, role: .destructive) {
+                        pendingDeleteIP = actionItem
+                    },
+                ],
+                onDismiss: { actionItem = nil }
+            )
+            .presentationDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
         }
         .alert("提示", isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
@@ -841,6 +883,179 @@ struct WAFCreateIPRuleView: View {
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleIPCreate.path, body: req, as: EmptyResponse.self)
             onCreated()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSaving = false
+    }
+}
+
+// MARK: - 编辑 IP 规则
+
+struct WAFEditIPRuleView: View {
+    let server: ServerConfig
+    let scope: String
+    let item: WAFRuleIPItem
+    let onSaved: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var ipType: String
+    @State private var ipv4: String
+    @State private var ipStart: String
+    @State private var ipEnd: String
+    @State private var ipv6: String
+    @State private var ipGroup: String
+    @State private var description: String
+    @State private var state: String
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+    @State private var ipGroups: [WAFIPGroupItem] = []
+
+    private let client: APIClient
+
+    init(server: ServerConfig, scope: String, item: WAFRuleIPItem, onSaved: @escaping () -> Void) {
+        self.server = server
+        self.scope = scope
+        self.item = item
+        self.onSaved = onSaved
+        self.client = APIClient(server: server)
+        _ipType = State(initialValue: item.type)
+        _ipv4 = State(initialValue: item.ipv4 ?? "")
+        _ipStart = State(initialValue: item.ipStart ?? "")
+        _ipEnd = State(initialValue: item.ipEnd ?? "")
+        _ipv6 = State(initialValue: item.ipv6 ?? "")
+        _ipGroup = State(initialValue: item.ipGroup ?? "")
+        _description = State(initialValue: item.description ?? "")
+        _state = State(initialValue: item.state)
+    }
+
+    private let typeOptions: [(value: String, label: String)] = [
+        ("ipv4", "IPv4"),
+        ("ipArr", "IPv4 范围"),
+        ("ipv6", "IPv6"),
+        ("ipGroup", "IP 组"),
+    ]
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("类型") {
+                    Picker("IP 类型", selection: $ipType) {
+                        ForEach(typeOptions, id: \.value) { Text($0.label).tag($0.value) }
+                    }
+                    .onChange(of: ipType) { _, _ in
+                        if ipType == "ipGroup" { Task { await loadGroups() } }
+                    }
+                }
+
+                switch ipType {
+                case "ipv4":
+                    Section("IPv4 地址") {
+                        TextField("例: 192.168.1.1", text: $ipv4)
+                            .keyboardType(.decimalPad)
+                            .autocorrectionDisabled()
+                    }
+                case "ipArr":
+                    Section("IPv4 范围") {
+                        TextField("起始 IP", text: $ipStart)
+                            .keyboardType(.decimalPad)
+                            .autocorrectionDisabled()
+                        TextField("结束 IP", text: $ipEnd)
+                            .keyboardType(.decimalPad)
+                            .autocorrectionDisabled()
+                    }
+                case "ipv6":
+                    Section("IPv6 地址") {
+                        TextField("例: 2001:db8::1", text: $ipv6)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                    }
+                case "ipGroup":
+                    Section("IP 组") {
+                        if ipGroups.isEmpty {
+                            Text("请先创建 IP 组").foregroundStyle(.secondary)
+                        } else {
+                            Picker("选择 IP 组", selection: $ipGroup) {
+                                ForEach(ipGroups) { group in
+                                    Text(group.name).tag(group.name)
+                                }
+                            }
+                        }
+                    }
+                default:
+                    EmptyView()
+                }
+
+                Section("状态") {
+                    Toggle("启用", isOn: Binding(
+                        get: { state == "on" },
+                        set: { state = $0 ? "on" : "off" }
+                    ))
+                }
+
+                Section("备注") {
+                    TextField("描述(可选)", text: $description)
+                }
+            }
+            .navigationTitle("编辑 IP 规则")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        Task { await save() }
+                    }
+                    .disabled(isSaving || !isValid)
+                }
+            }
+            .onAppear {
+                if ipType == "ipGroup" { Task { await loadGroups() } }
+            }
+            .alert("错误", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("好的") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+    }
+
+    private var isValid: Bool {
+        switch ipType {
+        case "ipv4": return !ipv4.isEmpty
+        case "ipArr": return !ipStart.isEmpty && !ipEnd.isEmpty
+        case "ipv6": return !ipv6.isEmpty
+        case "ipGroup": return !ipGroup.isEmpty
+        default: return false
+        }
+    }
+
+    private func loadGroups() async {
+        let req = WAFIPGroupSearchRequest(page: 1, pageSize: 100, type: "", name: "", all: false)
+        do {
+            let resp: PageResponse<WAFIPGroupItem> = try await client.send(
+                path: APIEndpoint.wafIPGroupSearch.path, body: req,
+                as: PageResponse<WAFIPGroupItem>.self
+            )
+            ipGroups = resp.items ?? []
+        } catch { }
+    }
+
+    private func save() async {
+        isSaving = true
+        let req = WAFRuleIPUpdateRequest(
+            name: item.name, state: state, type: ipType,
+            ipv4: ipv4, ipv6: ipv6, ipStart: ipStart, ipEnd: ipEnd,
+            ipGroup: ipGroup, description: description, scope: scope
+        )
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleIPUpdate.path, body: req, as: EmptyResponse.self)
+            onSaved()
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
@@ -1156,6 +1371,7 @@ struct WAFCommonRulesView: View {
     @State private var successMessage: String?
     @State private var errorMessage: String?
     @State private var pendingDeleteRule: WAFCommonRuleItem?
+    @State private var actionItem: WAFCommonRuleItem?
 
     private let client: APIClient
 
@@ -1174,21 +1390,28 @@ struct WAFCommonRulesView: View {
                 Text("暂无数据").foregroundStyle(.secondary)
             } else {
                 ForEach(items) { item in
-                    WAFCommonRuleRow(item: item, onToggle: {
-                        Task { await toggleState(item) }
-                    })
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            pendingDeleteRule = item
-                        } label: {
-                            Label("删除", systemImage: "trash")
-                        }
+                    HStack {
                         Button {
-                            editingItem = item
+                            actionItem = item
                         } label: {
-                            Label("编辑", systemImage: "pencil")
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.rule)
+                                    .font(.system(.body, design: .monospaced))
+                                if let desc = item.description, !desc.isEmpty {
+                                    Text(desc).font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
-                        .tint(.blue)
+                        .buttonStyle(.plain)
+
+                        Toggle(isOn: Binding(
+                            get: { item.state == "on" },
+                            set: { _ in Task { await toggleState(item) } }
+                        )) {}
+                        .labelsHidden()
+                        .tint(item.state == "on" ? .green : .gray)
                     }
                 }
             }
@@ -1215,6 +1438,25 @@ struct WAFCommonRulesView: View {
             WAFEditCommonRuleView(server: server, scope: scope, item: item) {
                 Task { await loadItems() }
             }
+        }
+        .sheet(isPresented: Binding(
+            get: { actionItem != nil },
+            set: { if !$0 { actionItem = nil } }
+        )) {
+            ActionBottomSheet(
+                title: actionItem?.rule ?? "规则",
+                items: [
+                    ActionMenuItem(title: "编辑", icon: "pencil", color: .blue) {
+                        editingItem = actionItem
+                    },
+                    ActionMenuItem(title: "删除", icon: "trash", color: .red, role: .destructive) {
+                        pendingDeleteRule = actionItem
+                    },
+                ],
+                onDismiss: { actionItem = nil }
+            )
+            .presentationDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
         }
         .alert("提示", isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
