@@ -187,6 +187,7 @@ struct FirewallView: View {
                                 actionRule = rule
                             } label: {
                                 FirewallRuleRow(rule: rule)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
