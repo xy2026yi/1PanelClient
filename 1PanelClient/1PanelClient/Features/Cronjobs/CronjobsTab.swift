@@ -745,7 +745,6 @@ final class CronjobsViewModel: ObservableObject {
                 body: CronjobHandleRequest(id: job.id),
                 as: EmptyResponse.self
             )
-            showAlert(message: "任务「\(job.name ?? "")」已开始执行")
             await refresh()
         } catch let err as APIError {
             showAlert(message: "执行失败：\(err.errorDescription ?? "未知错误")")
@@ -785,7 +784,6 @@ final class CronjobsViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "计划任务创建成功")
             await refresh()
             return true
         } catch let err as APIError {
