@@ -77,7 +77,25 @@ struct FilesView: View {
         .navigationTitle(currentPath == "/" ? "根目录" : (currentPath as NSString).lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    let parent = (currentPath as NSString).deletingLastPathComponent
+                    if parent.isEmpty || parent == currentPath {
+                        Task { await loadDir("/") }
+                    } else {
+                        Task { await loadDir(parent) }
+                    }
+                } label: {
+                    Image(systemName: "arrow.up")
+                }
+                .disabled(currentPath == "/")
+            }
             ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    Task { await loadDir(currentPath) }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
                 Menu {
                     Button {
                         createIsDir = true
