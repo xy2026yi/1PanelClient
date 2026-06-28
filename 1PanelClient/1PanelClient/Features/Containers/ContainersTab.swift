@@ -486,116 +486,149 @@ struct ContainerDetailView: View {
 
     private var statusSection: some View {
         Section {
+            headerRow
+
+            if isStatusExpanded {
+                operationsRow1
+                    .padding(.top, 4)
+                operationsRow2
+                    .padding(.top, 4)
+                    .padding(.bottom, 2)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var headerRow: some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: "shippingbox.fill", color: .indigo, size: 40, cornerRadius: 10)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(container.displayName)
+                    .font(.body.bold())
+                    .lineLimit(1)
+                Text(isRunning ? "Running" : "Stopped")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(isRunning ? Color.green : Color.gray)
+                    .frame(width: 6, height: 6)
+                Text(isRunning ? "运行中" : "已停止")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isStatusExpanded.toggle()
                 }
             } label: {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(container.displayName)
-                            .font(.body.bold())
-                            .lineLimit(1)
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(isRunning ? Color.green : Color.gray)
-                                .frame(width: 6, height: 6)
-                            Text(isRunning ? "运行中" : "已停止")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                    Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 24, height: 24)
-                }
-                .contentShape(Rectangle())
+                Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
+            .disabled(vm.containerOperating)
+        }
+        .padding(.vertical, 2)
+    }
 
-            if isStatusExpanded {
-                HStack(spacing: 8) {
-                    if isRunning {
-                        Button { pendingAction = "stop" } label: {
-                            Label("停止", systemImage: "stop.fill")
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(.orange)
-                    } else {
-                        Button { pendingAction = "start" } label: {
-                            Label("启动", systemImage: "play.fill")
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(.green)
-                    }
+    private var operationsRow1: some View {
+        HStack(spacing: 8) {
+            actionButton(
+                title: isRunning ? "停止" : "启动",
+                icon: isRunning ? "stop.fill" : "play.fill",
+                color: isRunning ? .orange : .green
+            ) {
+                pendingAction = isRunning ? "stop" : "start"
+            }
+            actionButton(
+                title: "重启",
+                icon: "arrow.triangle.2.circlepath",
+                color: .blue
+            ) {
+                pendingAction = "restart"
+            }
+            actionButton(
+                title: "关闭",
+                icon: "xmark",
+                color: .red
+            ) {
+                pendingAction = "kill"
+            }
+            actionButton(
+                title: "终端",
+                icon: "terminal",
+                color: .teal
+            ) {
+                showTerminalCommandPicker = true
+            }
+        }
+    }
 
-                    Button { pendingAction = "restart" } label: {
-                        Label("重启", systemImage: "arrow.triangle.2.circlepath")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .disabled(!isRunning)
-
-                    Button { pendingAction = "kill" } label: {
-                        Label("关闭", systemImage: "xmark")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(.red)
-                    .disabled(!isRunning)
-                }
-                .disabled(vm.containerOperating)
-
-                HStack(spacing: 8) {
-                    Button { showUpgrade = true } label: {
-                        Label("升级", systemImage: "arrow.up.circle")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-
-                    Button { showEdit = true } label: {
-                        Label("编辑", systemImage: "pencil")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-
-                    Button { showTerminalCommandPicker = true } label: {
-                        Label("终端", systemImage: "terminal")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .disabled(!isRunning)
-                }
-
-                Button(role: .destructive) {
-                    if container.isFromApp == true {
-                        menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
-                        showMenuAlert = true
-                    } else {
-                        pendingDelete = true
-                    }
-                } label: {
-                    Label("删除", systemImage: "trash")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-
-                if vm.containerOperating {
-                    HStack(spacing: 6) {
-                        ProgressView().scaleEffect(0.7)
-                        Text("操作中…")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+    private var operationsRow2: some View {
+        HStack(spacing: 8) {
+            actionButton(
+                title: "升级",
+                icon: "arrow.up.circle",
+                color: .purple
+            ) {
+                showUpgrade = true
+            }
+            actionButton(
+                title: "编辑",
+                icon: "pencil",
+                color: .cyan
+            ) {
+                showEdit = true
+            }
+            actionButton(
+                title: "删除",
+                icon: "trash",
+                color: .pink
+            ) {
+                if container.isFromApp == true {
+                    menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
+                    showMenuAlert = true
+                } else {
+                    pendingDelete = true
                 }
             }
         }
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
+    }
+
+    @ViewBuilder
+    private func actionButton(
+        title: String,
+        icon: String,
+        color: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                if vm.containerOperating {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .frame(width: 22, height: 22)
+                } else {
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(color)
+                        .frame(width: 22, height: 22)
+                }
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+        .disabled(vm.containerOperating)
     }
 
     private func containerActionDisplayName(_ action: String) -> String {
