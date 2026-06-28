@@ -385,15 +385,18 @@ struct ContainerDetailView: View {
     @State private var terminalCommand = "/bin/sh"
     @State private var pendingDelete = false
     @State private var pendingAction: String?
+    @State private var isStatusExpanded = false
+
+    private var isRunning: Bool { container.state.lowercased() == "running" }
 
     var body: some View {
         List {
+            statusSection
+
             Section("基本信息") {
-                LabeledRow("名称", value: container.displayName)
                 if let img = container.imageName, !img.isEmpty {
                     LabeledRow("镜像", value: img)
                 }
-                LabeledRow("状态", value: container.state.capitalized)
                 if let app = container.appName, !app.isEmpty {
                     LabeledRow("应用程序", value: app)
                 }
@@ -420,45 +423,6 @@ struct ContainerDetailView: View {
         }
         .navigationTitle(container.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    if container.state.lowercased() == "running" {
-                        Button(role: .destructive) {
-                            pendingAction = "stop"
-                        } label: { Label("停止", systemImage: "stop.fill") }
-                    } else {
-                        Button {
-                            pendingAction = "start"
-                        } label: { Label("启动", systemImage: "play.fill") }
-                    }
-                    Button {
-                        pendingAction = "restart"
-                    } label: { Label("重启", systemImage: "arrow.triangle.2.circlepath") }
-                    Button(role: .destructive) {
-                        pendingAction = "kill"
-                    } label: { Label("关闭", systemImage: "xmark") }
-                    Divider()
-                    Button {
-                        showUpgrade = true
-                    } label: { Label("升级", systemImage: "arrow.up.circle") }
-                    Button { showEdit = true } label: { Label("编辑", systemImage: "pencil") }
-                    Button { showTerminalCommandPicker = true } label: { Label("终端", systemImage: "terminal") }
-                    Divider()
-                    Button(role: .destructive) {
-                        if container.isFromApp == true {
-                            menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
-                            showMenuAlert = true
-                        } else {
-                            pendingDelete = true
-                        }
-                    } label: { Label("删除", systemImage: "trash") }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .disabled(vm.containerOperating)
-            }
-        }
         .navigationDestination(isPresented: $showUpgrade) {
             ContainerUpgradeView(container: container, vm: vm)
         }
@@ -511,13 +475,127 @@ struct ContainerDetailView: View {
                 Text("将对容器进行 \(containerActionDisplayName(action)) 操作，是否继续？")
             }
         }
-        // 容器操作（停止/启动/重启/关闭/升级）结果走 VM 的 alert，
-        // 详情页也要绑定，否则操作后弹窗只在列表页显示
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
+    }
+
+    // MARK: - 可折叠状态面板
+
+    private var statusSection: some View {
+        Section {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isStatusExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(container.displayName)
+                            .font(.body.bold())
+                            .lineLimit(1)
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(isRunning ? Color.green : Color.gray)
+                                .frame(width: 6, height: 6)
+                            Text(isRunning ? "运行中" : "已停止")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isStatusExpanded {
+                HStack(spacing: 8) {
+                    if isRunning {
+                        Button { pendingAction = "stop" } label: {
+                            Label("停止", systemImage: "stop.fill")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(.orange)
+                    } else {
+                        Button { pendingAction = "start" } label: {
+                            Label("启动", systemImage: "play.fill")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(.green)
+                    }
+
+                    Button { pendingAction = "restart" } label: {
+                        Label("重启", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(!isRunning)
+
+                    Button { pendingAction = "kill" } label: {
+                        Label("关闭", systemImage: "xmark")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.red)
+                    .disabled(!isRunning)
+                }
+                .disabled(vm.containerOperating)
+
+                HStack(spacing: 8) {
+                    Button { showUpgrade = true } label: {
+                        Label("升级", systemImage: "arrow.up.circle")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    Button { showEdit = true } label: {
+                        Label("编辑", systemImage: "pencil")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    Button { showTerminalCommandPicker = true } label: {
+                        Label("终端", systemImage: "terminal")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(!isRunning)
+                }
+
+                Button(role: .destructive) {
+                    if container.isFromApp == true {
+                        menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
+                        showMenuAlert = true
+                    } else {
+                        pendingDelete = true
+                    }
+                } label: {
+                    Label("删除", systemImage: "trash")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                if vm.containerOperating {
+                    HStack(spacing: 6) {
+                        ProgressView().scaleEffect(0.7)
+                        Text("操作中…")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
     }
 
     private func containerActionDisplayName(_ action: String) -> String {
@@ -535,11 +613,6 @@ struct ContainerDetailView: View {
         pendingAction = nil
         guard let action else { return }
         Task { await vm.operateContainer(name: container.name, operation: action) }
-    }
-
-    private func notify(_ feature: String, message: String? = nil) {
-        menuAlertMessage = message ?? "\(feature)功能开发中，敬请期待。"
-        showMenuAlert = true
     }
 }
 
