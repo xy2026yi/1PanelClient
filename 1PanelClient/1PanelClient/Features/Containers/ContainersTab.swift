@@ -907,7 +907,6 @@ struct ContainerEditView: View {
                         .lineLimit(1...4)
                     }
                     .onDelete { envs.remove(atOffsets: $0) }
-                    .onMove { envs.move(fromOffsets: $0, toOffset: $1) }
 
                     Button {
                         envs.append("")
@@ -915,33 +914,22 @@ struct ContainerEditView: View {
                         Label("添加环境变量", systemImage: "plus")
                     }
                 }
-
-                Section {
-                    Button {
-                        Task { await submit(info: info) }
-                    } label: {
-                        HStack {
-                            if vm.containerOperating {
-                                ProgressView()
-                                    .tint(.white)
-                            }
-                            Text("保存")
-                                .frame(maxWidth: .infinity)
-                                .font(.headline)
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(image.trimmingCharacters(in: .whitespaces).isEmpty || vm.containerOperating)
-                }
-                .listRowBackground(Color.clear)
             }
         }
         .navigationTitle("编辑容器")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                EditButton()
-                    .disabled(info == nil)
+                Button {
+                    if let info { Task { await submit(info: info) } }
+                } label: {
+                    if vm.containerOperating {
+                        ProgressView()
+                    } else {
+                        Text("保存").fontWeight(.medium)
+                    }
+                }
+                .disabled(info == nil || image.trimmingCharacters(in: .whitespaces).isEmpty || vm.containerOperating)
             }
         }
         .alert("提示", isPresented: $vm.showAlert) {
