@@ -66,12 +66,15 @@ struct WebsitesTab: View {
             // SSL 证书入口：仅非搜索态显示
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showCerts = true
+                    Menu {
+                        Button {
+                            showCerts = true
+                        } label: {
+                            Label("SSL 证书", systemImage: "lock.shield")
+                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
-                    .accessibilityLabel("SSL 证书")
                 }
             }
         }

@@ -47,17 +47,12 @@ struct AcmeAccountListView: View {
             Button {
                 showCreate = true
             } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                    Text("创建账户")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 14)
-                .background(Color.accentColor, in: Capsule())
-                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+                Image(systemName: "plus")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 56, height: 56)
+                    .background(Color.accentColor, in: Circle())
+                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
             }
             .padding(.trailing, 20)
             .padding(.bottom, 20)
@@ -323,17 +318,12 @@ struct DNSAccountListView: View {
             Button {
                 showCreate = true
             } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                    Text("创建账户")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 14)
-                .background(Color.accentColor, in: Capsule())
-                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+                Image(systemName: "plus")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 56, height: 56)
+                    .background(Color.accentColor, in: Circle())
+                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
             }
             .padding(.trailing, 20)
             .padding(.bottom, 20)
