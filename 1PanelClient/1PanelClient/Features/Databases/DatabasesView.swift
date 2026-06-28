@@ -294,6 +294,7 @@ struct DatabaseSystemView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showCreate = false
     @State private var showServicePasswordSheet = false
+    @State private var showPassword = false
     @State private var showRedisTerminal = false
     @State private var showRedisPasswordSheet = false
     @State private var showDatabaseTerminal = false
@@ -520,8 +521,14 @@ struct DatabaseSystemView: View {
                     HStack {
                         Text("密码").foregroundStyle(.secondary)
                         Spacer()
-                        Text(String(repeating: "•", count: min(pwd.count, 12)))
+                        Text(showPassword ? pwd : String(repeating: "•", count: min(pwd.count, 12)))
                             .font(.system(.subheadline, design: .monospaced))
+                        Button {
+                            showPassword.toggle()
+                        } label: {
+                            Image(systemName: showPassword ? "eye.slash" : "eye")
+                                .foregroundStyle(.secondary)
+                        }
                         Button {
                             UIPasteboard.general.string = pwd
                         } label: {
