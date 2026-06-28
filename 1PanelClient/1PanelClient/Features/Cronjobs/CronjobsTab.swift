@@ -299,6 +299,7 @@ struct CronjobDetailView: View {
                 Toggle("同时删除备份文件", isOn: $vm.deleteCleanData)
             }
         }
+        .toastOverlay(message: $vm.toastMessage)
     }
 }
 
