@@ -395,6 +395,11 @@ struct CronjobLogView: View {
                 if vm.isLoadingLog && vm.logLines.isEmpty {
                     ProgressView("加载中…")
                         .padding()
+                } else if let err = vm.logError {
+                    Text(err)
+                        .foregroundStyle(.red)
+                        .font(.callout)
+                        .padding()
                 } else if vm.logLines.isEmpty {
                     Text("暂无日志")
                         .foregroundStyle(.secondary)
@@ -700,6 +705,7 @@ final class CronjobsViewModel: ObservableObject {
     /// 日志
     @Published var logLines: [String] = []
     @Published var isLoadingLog = false
+    @Published var logError: String?
 
     /// 创建表单所需选项
     @Published var systemUsers: [String] = []
@@ -829,20 +835,19 @@ final class CronjobsViewModel: ObservableObject {
     func loadLog(taskID: String) async {
         isLoadingLog = true
         logLines = []
+        logError = nil
         defer { isLoadingLog = false }
 
         let req = CronjobLogRequest(page: 1, pageSize: 500, latest: true, taskID: taskID)
         do {
             let resp: CronjobLogResponse = try await client.send(
-                path: APIEndpoint.websitesLogRead.path,
+                path: APIEndpoint.logsTaskRead.path,
                 body: req,
                 as: CronjobLogResponse.self
             )
             logLines = resp.lines ?? []
-        } catch let err as APIError {
-            showAlert(message: "日志加载失败：\(err.errorDescription ?? "未知错误")")
         } catch {
-            showAlert(message: "日志加载失败：\(error.localizedDescription)")
+            logError = error.localizedDescription
         }
     }
 
