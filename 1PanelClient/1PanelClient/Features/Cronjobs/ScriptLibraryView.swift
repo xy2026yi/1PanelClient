@@ -179,19 +179,18 @@ struct ScriptDetailView: View {
                         .textSelection(.enabled)
                 }
             }
-
-            Section {
-                Button {
-                    showTerminal = true
-                } label: {
-                    Label("执行脚本", systemImage: "play.fill")
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .listRowBackground(Color.clear)
         }
         .navigationTitle(script.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showTerminal = true
+                } label: {
+                    Text("安装").fontWeight(.medium)
+                }
+            }
+        }
         .navigationDestination(isPresented: $showTerminal) {
             TerminalView(
                 server: server,
