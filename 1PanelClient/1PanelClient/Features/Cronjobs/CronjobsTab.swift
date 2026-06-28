@@ -37,12 +37,14 @@ struct CronjobsTab: View {
             .alert(vm.alertMessage, isPresented: $vm.showAlert) {
                 Button("好", role: .cancel) {}
             }
+            .toastOverlay(message: $vm.toastMessage)
         } else {
             rootContent
                 .task { await vm.refresh() }
                 .alert(vm.alertMessage, isPresented: $vm.showAlert) {
                     Button("好", role: .cancel) {}
                 }
+                .toastOverlay(message: $vm.toastMessage)
         }
     }
 
@@ -695,6 +697,10 @@ final class CronjobsViewModel: ObservableObject {
     @Published var showAlert = false
     @Published var alertMessage = ""
 
+    /// 轻量提示（自动消失，无需确认）
+    @Published var toastMessage: String?
+    private var toastTask: Task<Void, Never>?
+
     /// 列表删除确认
     @Published var pendingDeleteJob: Cronjob?
     @Published var deleteCleanData = false
@@ -753,6 +759,7 @@ final class CronjobsViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             await refresh()
+            showToast("任务「\(job.name ?? "")」已开始执行")
         } catch let err as APIError {
             showAlert(message: "执行失败：\(err.errorDescription ?? "未知错误")")
         } catch {
@@ -924,6 +931,15 @@ final class CronjobsViewModel: ObservableObject {
     private func showAlert(message: String) {
         alertMessage = message
         showAlert = true
+    }
+
+    func showToast(_ message: String) {
+        toastTask?.cancel()
+        toastMessage = message
+        toastTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run { self?.toastMessage = nil }
+        }
     }
 }
 

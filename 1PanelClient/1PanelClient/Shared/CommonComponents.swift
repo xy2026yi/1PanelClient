@@ -7,6 +7,39 @@
 
 import SwiftUI
 
+// MARK: - 轻量提示（自动消失 Toast）
+
+struct ToastOverlay: ViewModifier {
+    @Binding var message: String?
+
+    func body(content: Content) -> some View {
+        content.overlay(alignment: .top) {
+            if let msg = message {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text(msg)
+                        .font(.subheadline.weight(.medium))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.regularMaterial, in: Capsule())
+                .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: message)
+    }
+}
+
+extension View {
+    /// 显示自动消失的轻量提示（2 秒后自动消失，无需用户确认）
+    func toastOverlay(message: Binding<String?>) -> some View {
+        modifier(ToastOverlay(message: message))
+    }
+}
+
 // MARK: - 信息行（详情页 key-value 列表）
 
 struct InfoRow: View {
