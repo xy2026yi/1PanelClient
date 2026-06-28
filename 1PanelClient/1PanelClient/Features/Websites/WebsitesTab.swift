@@ -1791,38 +1791,37 @@ struct WebsiteProxiesView: View {
                 WebsiteProxySourceView(websiteId: websiteId, proxy: p, vm: vm)
             }
         }
-        .confirmationDialog(
-            actionProxy?.displayName ?? "反向代理",
-            isPresented: Binding(
-                get: { actionProxy != nil },
-                set: { if !$0 { actionProxy = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            if let p = actionProxy {
-                Button(p.enable == true ? "关闭" : "开启") {
-                    let proxy = p
-                    actionProxy = nil
-                    Task { await toggleProxy(proxy) }
-                }
-                Button("编辑") {
-                    editingProxy = p
-                    actionProxy = nil
-                    showEditSheet = true
-                }
-                Button("源文") {
-                    sourceProxy = p
-                    actionProxy = nil
-                    showSourceSheet = true
-                }
-                Button("删除", role: .destructive) {
-                    pendingDeleteProxy = p
-                    actionProxy = nil
-                }
-                Button("取消", role: .cancel) {
-                    actionProxy = nil
-                }
-            }
+        .sheet(isPresented: Binding(
+            get: { actionProxy != nil },
+            set: { if !$0 { actionProxy = nil } }
+        )) {
+            ActionBottomSheet(
+                title: actionProxy?.displayName ?? "反向代理",
+                items: [
+                    ActionMenuItem(
+                        title: actionProxy?.enable == true ? "关闭" : "开启",
+                        icon: actionProxy?.enable == true ? "stop.fill" : "play.fill",
+                        color: actionProxy?.enable == true ? .orange : .green
+                    ) {
+                        let proxy = actionProxy
+                        Task { if let proxy { await toggleProxy(proxy) } }
+                    },
+                    ActionMenuItem(title: "编辑", icon: "pencil", color: .blue) {
+                        editingProxy = actionProxy
+                        showEditSheet = true
+                    },
+                    ActionMenuItem(title: "源文", icon: "doc.text", color: .teal) {
+                        sourceProxy = actionProxy
+                        showSourceSheet = true
+                    },
+                    ActionMenuItem(title: "删除", icon: "trash", color: .red, role: .destructive) {
+                        pendingDeleteProxy = actionProxy
+                    },
+                ],
+                onDismiss: { actionProxy = nil }
+            )
+            .presentationDetents([.height(ActionBottomSheet.height(for: 4))])
+            .presentationDragIndicator(.visible)
         }
         .alert(
             "删除",

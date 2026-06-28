@@ -237,27 +237,25 @@ struct FirewallView: View {
                 FirewallEditRuleView(vm: vm, rule: rule)
             }
         }
-        .confirmationDialog(
-            actionRule?.port ?? "端口规则",
-            isPresented: Binding(
-                get: { actionRule != nil },
-                set: { if !$0 { actionRule = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("修改") {
-                let r = actionRule
-                actionRule = nil
-                editingRule = r
-            }
-            Button("删除", role: .destructive) {
-                let r = actionRule
-                actionRule = nil
-                pendingDeleteRule = r
-            }
-            Button("取消", role: .cancel) {
-                actionRule = nil
-            }
+        .sheet(isPresented: Binding(
+            get: { actionRule != nil },
+            set: { if !$0 { actionRule = nil } }
+        )) {
+            ActionBottomSheet(
+                title: actionRule?.port ?? "端口规则",
+                items: [
+                    ActionMenuItem(title: "修改", icon: "pencil", color: .blue) {
+                        let r = actionRule
+                        editingRule = r
+                    },
+                    ActionMenuItem(title: "删除", icon: "trash", color: .red, role: .destructive) {
+                        pendingDeleteRule = actionRule
+                    },
+                ],
+                onDismiss: { actionRule = nil }
+            )
+            .presentationDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
         }
         .alert(
             pendingDeleteRule.map { "删除端口规则 \($0.port ?? "") ？" } ?? "删除端口规则？",

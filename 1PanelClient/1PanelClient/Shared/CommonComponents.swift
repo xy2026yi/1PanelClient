@@ -235,3 +235,97 @@ extension Notification.Name {
     /// 安装完成：pop 回应用列表并刷新
     static let installCompleted = Notification.Name("1PanelClient.installCompleted")
 }
+
+// MARK: - 底部操作菜单（.sheet + presentationDetents，与 Fail2ban 弹窗风格一致）
+
+/// 底部弹出操作菜单项
+struct ActionMenuItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let icon: String?
+    let color: Color
+    let role: ActionRole?
+    let action: () -> Void
+
+    init(title: String, icon: String? = nil, color: Color = .accentColor, role: ActionRole? = nil, action: @escaping () -> Void) {
+        self.title = title
+        self.icon = icon
+        self.color = color
+        self.role = role
+        self.action = action
+    }
+}
+
+enum ActionRole {
+    case destructive
+    case cancel
+}
+
+/// 底部操作菜单视图（配合 `.sheet` + `.presentationDetents` 使用）
+/// 使用方式：
+/// ```
+/// .sheet(isPresented: $showSheet) {
+///     ActionBottomSheet(title: "标题", items: [...]) { selectedItem = nil }
+///     .presentationDetents([.height(ActionBottomSheet.height(for: 3))])
+///     .presentationDragIndicator(.visible)
+/// }
+/// ```
+struct ActionBottomSheet: View {
+    let title: String
+    let items: [ActionMenuItem]
+    var onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text(title)
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
+                .padding(.bottom, 8)
+
+            Divider()
+
+            ForEach(items) { item in
+                Button {
+                    let act = item.action
+                    onDismiss()
+                    act()
+                } label: {
+                    HStack(spacing: 14) {
+                        if let icon = item.icon {
+                            Image(systemName: icon)
+                                .foregroundStyle(item.color)
+                                .frame(width: 24)
+                        }
+                        Text(item.title)
+                            .foregroundStyle(item.role == .destructive ? .red : .primary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 15)
+                    .padding(.horizontal, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+            }
+
+            Button {
+                onDismiss()
+            } label: {
+                Text("取消")
+                    .font(.body.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 15)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
+    }
+
+    /// 根据 items 数量计算 sheet 高度
+    static func height(for itemCount: Int) -> CGFloat {
+        CGFloat(72 + itemCount * 52 + 52)
+    }
+}
