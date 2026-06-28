@@ -440,10 +440,7 @@ struct WAFView: View {
                 NavigationLink {
                     WAFIPGroupsView(server: server)
                 } label: {
-                    HStack(spacing: 12) {
-                        IconBadge(systemName: "rectangle.group", color: .indigo, size: 34, cornerRadius: 8)
-                        Text("IP 组")
-                    }
+                    Text("IP 组")
                 }
             }
 
@@ -483,10 +480,7 @@ struct WAFView: View {
                 NavigationLink {
                     WAFLocationUpdateView(server: server)
                 } label: {
-                    HStack(spacing: 12) {
-                        IconBadge(systemName: "globe.asia.australia", color: .blue, size: 34, cornerRadius: 8)
-                        Text("IP 地址库")
-                    }
+                    Text("IP 地址库")
                 }
             } header: {
                 SectionLabel(title: "配置", systemImage: "gearshape")
