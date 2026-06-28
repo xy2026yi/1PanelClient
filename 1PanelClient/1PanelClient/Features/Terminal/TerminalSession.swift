@@ -187,6 +187,7 @@ final class TerminalSession: ObservableObject {
         guard !isConnecting, !isConnected else { return }
         guard let url = makeWebSocketURL() else {
             errorMessage = "无法构造终端连接地址"
+            emulator.feed("\u{1B}[31m无法构造终端连接地址\u{1B}[0m\r\n")
             return
         }
         var request = URLRequest(url: url)
@@ -202,6 +203,19 @@ final class TerminalSession: ObservableObject {
         let ws = session.webSocketTask(with: request)
         ws.resume()
         task = ws
+
+        // 诊断：3 秒后检查连接状态
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+            await MainActor.run {
+                guard let self else { return }
+                if self.isConnecting && !self.isConnected {
+                    let state = self.task?.state.rawValue ?? -1
+                    let closeCode = self.task?.closeCode.rawValue ?? -1
+                    self.emulator.feed("\r\n\u{1B}[33m[诊断] 3秒未收到数据\r\nWS状态: \(state) (0=running 3=completed)\r\n关闭码: \(closeCode)\u{1B}[0m\r\n")
+                }
+            }
+        }
 
         // 发送初始 resize（触发服务端 PTY 启动并推送数据）
         sendResize(cols: target.cols, rows: target.rows)
@@ -321,18 +335,9 @@ final class TerminalSession: ObservableObject {
     private func handleDisconnect(error: Error) {
         isConnected = false
         isConnecting = false
-        let msg: String
+        var msg: String
         if let urlErr = error as? URLError {
-            switch urlErr.code {
-            case .cannotConnectToHost:
-                msg = "无法连接到主机（接口可能需要安全入口或 API 鉴权）"
-            case .timedOut:
-                msg = "连接超时"
-            case .networkConnectionLost:
-                msg = "网络连接已断开"
-            default:
-                msg = "连接已断开：\(urlErr.localizedDescription)"
-            }
+            msg = "连接已断开 [code: \(urlErr.code.rawValue)]\n\(urlErr.localizedDescription)"
         } else {
             msg = "连接已断开：\(error.localizedDescription)"
         }
