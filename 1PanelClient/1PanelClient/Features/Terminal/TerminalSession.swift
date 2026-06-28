@@ -49,7 +49,7 @@ enum TerminalTarget {
     var path: String {
         switch self {
         case .host: return "/api/v2/hosts/terminal"
-        case .container: return "/api/v2/containers/exec"
+        case .container: return "/api/v2/hosts/terminal/container"
         case .scriptRun: return "/api/v2/core/script/run"
         case .redis: return "/api/v2/hosts/terminal/container"
         case .database: return "/api/v2/hosts/terminal/container"
