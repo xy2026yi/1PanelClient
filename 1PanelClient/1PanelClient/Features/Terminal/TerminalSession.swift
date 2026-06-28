@@ -3,7 +3,7 @@
 //  1PanelClient
 //
 //  通过 WebSocket 连接 1Panel 终端（主机 SSH / 容器 Exec）
-//  协议参考：1Panel 后端 /api/v2/hosts/terminal、/api/v2/containers/exec
+//  协议参考：1Panel 后端 /api/v2/hosts/terminal、/api/v2/hosts/terminal/container
 //  兼容两种帧格式：原始文本字节 / JSON {type:"cmd",data:base64}
 //
 
@@ -51,7 +51,7 @@ enum TerminalTarget {
         case .host: return "/api/v2/hosts/terminal"
         case .container: return "/api/v2/containers/exec"
         case .scriptRun: return "/api/v2/core/script/run"
-        case .redis: return "/api/v2/containers/exec"
+        case .redis: return "/api/v2/hosts/terminal/container"
         case .database: return "/api/v2/hosts/terminal/container"
         }
     }
