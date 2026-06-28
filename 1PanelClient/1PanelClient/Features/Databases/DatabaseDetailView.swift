@@ -220,9 +220,11 @@ struct DatabaseDetailView: View {
                     Button { showPassword.toggle() } label: {
                         Image(systemName: showPassword ? "eye.slash" : "eye").foregroundStyle(.secondary)
                     }
+                    .buttonStyle(.borderless)
                     Button { UIPasteboard.general.string = pwd } label: {
                         Image(systemName: "doc.on.doc").foregroundStyle(.secondary)
                     }
+                    .buttonStyle(.borderless)
                 }
             }
             if let f = vm.database.format, !f.isEmpty {

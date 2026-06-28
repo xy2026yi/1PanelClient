@@ -529,12 +529,14 @@ struct DatabaseSystemView: View {
                             Image(systemName: showPassword ? "eye.slash" : "eye")
                                 .foregroundStyle(.secondary)
                         }
+                        .buttonStyle(.borderless)
                         Button {
                             UIPasteboard.general.string = pwd
                         } label: {
                             Image(systemName: "doc.on.doc")
                                 .foregroundStyle(.secondary)
                         }
+                        .buttonStyle(.borderless)
                     }
                     Button {
                         if vm.isRedis {
