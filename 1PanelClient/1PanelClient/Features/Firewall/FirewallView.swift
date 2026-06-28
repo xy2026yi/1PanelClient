@@ -167,77 +167,98 @@ struct FirewallView: View {
     }
 
     var body: some View {
-        ZStack {
-            List {
-                statusSection
-                if vm.rules.isEmpty {
-                    if vm.isLoading {
-                        EmptyView()
-                    } else {
-                        Section {
-                            Text("暂无端口规则")
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                        }
-                    }
+        List {
+            statusSection
+            if vm.rules.isEmpty {
+                if vm.isLoading {
+                    EmptyView()
                 } else {
                     Section {
-                        ForEach(vm.rules) { rule in
-                            Button {
-                                actionRule = rule
-                            } label: {
-                                FirewallRuleRow(rule: rule)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    } header: {
-                        SectionLabel(title: "端口规则（\(vm.rules.count)）", systemImage: "list.bullet.rectangle")
+                        Text("暂无端口规则")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
                     }
                 }
-            }
-            .navigationTitle("防火墙")
-            .navigationBarTitleDisplayMode(.inline)
-            .refreshable { await vm.refresh() }
-            .task {
-                if vm.base == nil {
-                    vm.isLoading = true
-                    await vm.refresh()
-                    vm.isLoading = false
+            } else {
+                Section {
+                    ForEach(vm.rules) { rule in
+                        Button {
+                            actionRule = rule
+                        } label: {
+                            FirewallRuleRow(rule: rule)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    SectionLabel(title: "端口规则（\(vm.rules.count)）", systemImage: "list.bullet.rectangle")
                 }
             }
-            .overlay {
-                if vm.isLoading && vm.base == nil {
-                    ProgressView()
-                } else if let msg = vm.errorMessage, vm.base == nil {
-                    ErrorBanner(message: msg) { Task { await vm.refresh() } }
-                }
+        }
+        .navigationTitle("防火墙")
+        .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await vm.refresh() }
+        .task {
+            if vm.base == nil {
+                vm.isLoading = true
+                await vm.refresh()
+                vm.isLoading = false
             }
-            .overlay(alignment: .bottomTrailing) {
-                Button { showAdd = true } label: {
-                    Image(systemName: "plus")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 52, height: 52)
-                        .background(Color.accentColor, in: Circle())
-                        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-                }
-                .disabled(vm.base?.isExist != true)
-                .opacity(vm.base?.isExist == true ? 1 : 0.4)
-                .padding(.trailing, 20)
-                .padding(.bottom, 20)
+        }
+        .overlay {
+            if vm.isLoading && vm.base == nil {
+                ProgressView()
+            } else if let msg = vm.errorMessage, vm.base == nil {
+                ErrorBanner(message: msg) { Task { await vm.refresh() } }
             }
-            .navigationDestination(isPresented: $showAdd) {
-                FirewallAddRuleView(vm: vm)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button { showAdd = true } label: {
+                Image(systemName: "plus")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .background(Color.accentColor, in: Circle())
+                    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
             }
-            .navigationDestination(isPresented: Binding(
-                get: { editingRule != nil },
-                set: { if !$0 { editingRule = nil } }
-            )) {
-                if let rule = editingRule {
-                    FirewallEditRuleView(vm: vm, rule: rule)
-                }
+            .disabled(vm.base?.isExist != true)
+            .opacity(vm.base?.isExist == true ? 1 : 0.4)
+            .padding(.trailing, 20)
+            .padding(.bottom, 20)
+        }
+        .navigationDestination(isPresented: $showAdd) {
+            FirewallAddRuleView(vm: vm)
+        }
+        .navigationDestination(isPresented: Binding(
+            get: { editingRule != nil },
+            set: { if !$0 { editingRule = nil } }
+        )) {
+            if let rule = editingRule {
+                FirewallEditRuleView(vm: vm, rule: rule)
             }
+        }
+        .confirmationDialog(
+            actionRule?.port ?? "端口规则",
+            isPresented: Binding(
+                get: { actionRule != nil },
+                set: { if !$0 { actionRule = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("修改") {
+                let r = actionRule
+                actionRule = nil
+                editingRule = r
+            }
+            Button("删除", role: .destructive) {
+                let r = actionRule
+                actionRule = nil
+                pendingDeleteRule = r
+            }
+            Button("取消", role: .cancel) {
+                actionRule = nil
+            }
+        }
         .alert(
             pendingDeleteRule.map { "删除端口规则 \($0.port ?? "") ？" } ?? "删除端口规则？",
             isPresented: Binding(
@@ -271,117 +292,6 @@ struct FirewallView: View {
             Button("取消", role: .cancel) { pendingUFWOp = nil }
         } message: {
             Text("启用/停用防火墙可能影响 Docker 网络连通性。是否立即重启 Docker？")
-        }
-
-            // MARK: - 底部操作面板
-
-            if actionRule != nil {
-                ruleActionSheet
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(.easeInOut(duration: 0.25), value: actionRule)
-    }
-
-    // MARK: - 底部操作面板
-
-    private var ruleActionSheet: some View {
-        ZStack(alignment: .bottom) {
-            Color.black.opacity(0.4)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    closeActionSheet()
-                }
-
-            VStack(spacing: 0) {
-                Capsule()
-                    .fill(Color.secondary.opacity(0.4))
-                    .frame(width: 36, height: 5)
-                    .padding(.top, 10)
-                    .padding(.bottom, 6)
-
-                if let rule = actionRule {
-                    Text(rule.port ?? "端口规则")
-                        .font(.headline)
-                        .padding(.bottom, 4)
-
-                    actionSheetButton(
-                        title: "修改",
-                        icon: "pencil",
-                        color: .blue
-                    ) {
-                        let r = rule
-                        closeActionSheet()
-                        editingRule = r
-                    }
-
-                    Divider().padding(.vertical, 4)
-
-                    actionSheetButton(
-                        title: "删除",
-                        icon: "trash",
-                        color: .red
-                    ) {
-                        let r = rule
-                        closeActionSheet()
-                        pendingDeleteRule = r
-                    }
-                }
-
-                Button {
-                    closeActionSheet()
-                } label: {
-                    Text("取消")
-                        .font(.body.weight(.medium))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                }
-                .padding(.top, 4)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
-            .background(
-                UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: .black.opacity(0.15), radius: 10, y: -2)
-                    .ignoresSafeArea(edges: .bottom)
-            )
-            .gesture(
-                DragGesture()
-                    .onEnded { value in
-                        if value.translation.height > 50 {
-                            closeActionSheet()
-                        }
-                    }
-            )
-        }
-    }
-
-    @ViewBuilder
-    private func actionSheetButton(
-        title: String,
-        icon: String,
-        color: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .foregroundStyle(color)
-                    .frame(width: 22)
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-            }
-            .padding(.vertical, 13)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func closeActionSheet() {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            actionRule = nil
         }
     }
 
