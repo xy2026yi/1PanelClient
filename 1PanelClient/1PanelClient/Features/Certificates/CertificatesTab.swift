@@ -767,7 +767,6 @@ final class CertificatesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "Acme 账户创建成功")
             return true
         } catch let err as APIError {
             showAlert(message: "创建失败：\(err.errorDescription ?? "未知错误")")
@@ -786,7 +785,6 @@ final class CertificatesViewModel: ObservableObject {
                 body: Req(id: id),
                 as: EmptyResponse.self
             )
-            showAlert(message: "Acme 账户已删除")
             return true
         } catch let err as APIError {
             showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
@@ -829,7 +827,6 @@ final class CertificatesViewModel: ObservableObject {
                 body: Req(id: 0, name: name, type: type, authorization: auth),
                 as: EmptyResponse.self
             )
-            showAlert(message: "DNS 账户创建成功")
             return true
         } catch let err as APIError {
             showAlert(message: "创建失败：\(err.errorDescription ?? "未知错误")")
@@ -848,7 +845,6 @@ final class CertificatesViewModel: ObservableObject {
                 body: Req(id: id),
                 as: EmptyResponse.self
             )
-            showAlert(message: "DNS 账户已删除")
             return true
         } catch let err as APIError {
             showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")

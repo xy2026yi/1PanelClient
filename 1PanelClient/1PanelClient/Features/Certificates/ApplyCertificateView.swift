@@ -47,7 +47,7 @@ struct ApplyCertificateView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 TextField("其他域名（可选，一行一个）", text: $otherDomains, axis: .vertical)
-                    .lineLimit(2...4)
+                    .lineLimit(3, reservesSpace: true)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 TextField("备注（可选）", text: $description_)
@@ -84,6 +84,12 @@ struct ApplyCertificateView: View {
             Section {
                 Toggle("禁用 CNAME", isOn: $disableCNAME)
                 Toggle("跳过 DNS 校验", isOn: $skipDNS)
+                TextField("DNS 服务器 1（可选）", text: $nameserver1)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                TextField("DNS 服务器 2（可选）", text: $nameserver2)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
             } header: {
                 Text("高级设置")
             } footer: {
@@ -100,7 +106,7 @@ struct ApplyCertificateView: View {
                 Toggle("申请证书之后执行脚本", isOn: $execShell)
                 if execShell {
                     TextField("脚本内容", text: $shell, axis: .vertical)
-                        .lineLimit(3...6)
+                        .lineLimit(5, reservesSpace: true)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }

@@ -630,8 +630,9 @@ struct WebsiteSSLCert: Codable, Identifiable, Hashable {
 
     /// 是否已过期
     var isExpired: Bool {
+        if (status ?? "").lowercased() == "applyerror" { return true }
         guard let t = expireDate, !t.isEmpty,
-              let date = ISO8601DateFormatter().date(from: t) else {
+              let date = parseISODate(t) else {
             return false
         }
         return date < Date()
@@ -640,7 +641,7 @@ struct WebsiteSSLCert: Codable, Identifiable, Hashable {
     /// 剩余天数（负数表示已过期）
     var daysRemaining: Int {
         guard let t = expireDate, !t.isEmpty,
-              let date = ISO8601DateFormatter().date(from: t) else {
+              let date = parseISODate(t) else {
             return Int.max
         }
         return Calendar.current.dateComponents([.day], from: Date(), to: date).day ?? 0
@@ -648,6 +649,7 @@ struct WebsiteSSLCert: Codable, Identifiable, Hashable {
 
     /// 状态颜色
     var statusColor: Color {
+        if (status ?? "").lowercased() == "applyerror" { return .red }
         if isExpired { return .red }
         if daysRemaining <= 14 { return .orange }
         return .green
@@ -655,15 +657,24 @@ struct WebsiteSSLCert: Codable, Identifiable, Hashable {
 
     /// 状态描述
     var statusDisplay: String {
+        if (status ?? "").lowercased() == "applyerror" { return "申请失败" }
         if isExpired { return "已过期" }
         if daysRemaining <= 0 { return "今天过期" }
         if daysRemaining <= 14 { return "即将过期（\(daysRemaining)天）" }
         return "有效（剩余 \(daysRemaining) 天）"
     }
 
+    private func parseISODate(_ str: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: str) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: str)
+    }
+
     private func formatDate(_ str: String?) -> String {
         guard let s = str, !s.isEmpty else { return "—" }
-        if let date = ISO8601DateFormatter().date(from: s) {
+        if let date = parseISODate(s) {
             let df = DateFormatter()
             df.dateFormat = "yyyy-MM-dd"
             return df.string(from: date)
