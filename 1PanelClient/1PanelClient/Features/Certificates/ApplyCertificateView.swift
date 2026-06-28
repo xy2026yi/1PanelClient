@@ -40,7 +40,80 @@ struct ApplyCertificateView: View {
 
     private var isEdit: Bool { existingCert != nil }
 
+    /// 编辑自签证书时使用简化表单
+    private var isSelfSignedEdit: Bool {
+        (existingCert?.provider ?? "").lowercased() == "selfsigned"
+    }
+
     var body: some View {
+        Group {
+            if isSelfSignedEdit {
+                selfSignedForm
+            } else {
+                acmeForm
+            }
+        }
+        .navigationTitle(isEdit ? "编辑证书" : "申请证书")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSubmitting {
+                        ProgressView()
+                    } else {
+                        Text(isEdit ? "保存" : "申请").bold()
+                    }
+                }
+                .disabled(primaryDomain.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting)
+            }
+        }
+        .task {
+            if !isSelfSignedEdit { await loadAccounts() }
+            if let existing = existingCert { prefill(from: existing) }
+        }
+    }
+
+    // MARK: - 自签证书编辑表单
+
+    private var selfSignedForm: some View {
+        Form {
+            Section {
+                TextField("主域名", text: $primaryDomain)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            } header: {
+                Text("域名")
+            }
+
+            Section {
+                TextField("其他域名（一行一个）", text: $otherDomains, axis: .vertical)
+                    .lineLimit(3, reservesSpace: true)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            } header: {
+                Text("其他域名")
+            }
+
+            Section {
+                TextField("备注", text: $description_)
+            } header: {
+                Text("备注")
+            }
+
+            Section {
+                LabeledRow("密钥算法", value: selectedKeyType.displayName)
+                Toggle("自动续签", isOn: $autoRenew)
+            } header: {
+                Text("配置")
+            }
+        }
+    }
+
+    // MARK: - ACME 申请表单
+
+    private var acmeForm: some View {
         Form {
             Section("域名") {
                 TextField("主域名（必填）", text: $primaryDomain)
@@ -114,26 +187,6 @@ struct ApplyCertificateView: View {
                 Text("其他选项")
             }
         }
-        .navigationTitle(existingCert == nil ? "申请证书" : "编辑证书")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await submit() }
-                } label: {
-                    if isSubmitting {
-                        ProgressView()
-                    } else {
-                        Text(isEdit ? "保存" : "申请").bold()
-                    }
-                }
-                .disabled(primaryDomain.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting)
-            }
-        }
-        .task {
-            await loadAccounts()
-            if let existing = existingCert { prefill(from: existing) }
-        }
     }
 
     // MARK: - 数据加载
@@ -151,8 +204,18 @@ struct ApplyCertificateView: View {
     /// 编辑模式下用原证书数据回填表单
     private func prefill(from cert: WebsiteSSLCert) {
         primaryDomain = cert.primaryDomain ?? ""
-        otherDomains = cert.otherDomains ?? ""
-        description_ = cert.description ?? ""
+        if isSelfSignedEdit {
+            // 自签证书：domains（逗号分隔）转为换行显示
+            otherDomains = (cert.domains ?? "")
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                .joined(separator: "\n")
+            description_ = cert.message ?? ""
+        } else {
+            otherDomains = cert.otherDomains ?? ""
+            description_ = cert.description ?? ""
+        }
         if let id = cert.acmeAccountId, id != 0 { selectedAcmeId = id }
         if let id = cert.dnsAccountId, id != 0 { selectedDnsId = id }
         if let kt = cert.keyType, let type = SSLKeyType(rawValue: kt) { selectedKeyType = type }
@@ -178,21 +241,28 @@ struct ApplyCertificateView: View {
         var req = WebsiteSSLCreateRequest()
         if let existing = existingCert { req.id = existing.id }
         req.primaryDomain = primaryDomain
-        req.otherDomains = otherDomains
-        req.description = description_
-        req.acmeAccountId = selectedAcmeId
         req.keyType = selectedKeyType.rawValue
-        req.provider = selectedProvider.rawValue
-        req.dnsAccountId = selectedDnsId
         req.autoRenew = autoRenew
-        req.disableCNAME = disableCNAME
-        req.skipDNS = skipDNS
-        req.nameserver1 = nameserver1
-        req.nameserver2 = nameserver2
-        req.pushDir = pushDir
-        req.dir = dir
-        req.execShell = execShell
-        req.shell = shell
+
+        if isSelfSignedEdit {
+            req.provider = "selfSigned"
+            req.otherDomains = otherDomains
+            req.message = description_
+        } else {
+            req.otherDomains = otherDomains
+            req.description = description_
+            req.acmeAccountId = selectedAcmeId
+            req.provider = selectedProvider.rawValue
+            req.dnsAccountId = selectedDnsId
+            req.disableCNAME = disableCNAME
+            req.skipDNS = skipDNS
+            req.nameserver1 = nameserver1
+            req.nameserver2 = nameserver2
+            req.pushDir = pushDir
+            req.dir = dir
+            req.execShell = execShell
+            req.shell = shell
+        }
 
         let success = await vm.applySSL(req: req)
         if success { dismiss() }

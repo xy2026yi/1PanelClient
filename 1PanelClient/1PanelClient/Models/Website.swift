@@ -620,6 +620,7 @@ struct WebsiteSSLCert: Codable, Identifiable, Hashable {
         case "dnsaccount": return "DNS 账号"
         case "dnsmanual":  return "手动解析"
         case "http":       return "HTTP"
+        case "selfsigned": return "自签证书"
         default:           return provider ?? "—"
         }
     }
@@ -671,8 +672,8 @@ struct WebsiteSSLCert: Codable, Identifiable, Hashable {
         if (status ?? "").lowercased() == "applyerror" { return "申请失败" }
         if isExpired { return "已过期" }
         if daysRemaining <= 0 { return "今天过期" }
-        if daysRemaining <= 14 { return "即将过期（\(daysRemaining)天）" }
-        return "有效（剩余 \(daysRemaining) 天）"
+        if daysRemaining <= 14 { return "即将过期" }
+        return "有效"
     }
 
     private func parseISODate(_ str: String) -> Date? {
@@ -898,6 +899,7 @@ struct WebsiteSSLCreateRequest: Codable {
     var pushDir: Bool = false
     var dir: String = ""
     var description: String = ""
+    var message: String = ""
     var disableCNAME: Bool = false
     var skipDNS: Bool = false
     var nameserver1: String = ""

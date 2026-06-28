@@ -251,6 +251,11 @@ struct CertificateDetailView: View {
         !(detail ?? cert).isManual
     }
 
+    /// 是否手动导入（仅手动导入才显示"更新证书内容"）
+    private var isManualCert: Bool {
+        (detail ?? cert).isManual
+    }
+
     var body: some View {
         List {
             Section {
@@ -288,10 +293,12 @@ struct CertificateDetailView: View {
                             Label("重新申请", systemImage: "arrow.clockwise")
                         }
                     }
-                    Button {
-                        showUpdateSheet = true
-                    } label: {
-                        Label("更新证书内容", systemImage: "arrow.triangle.2.circlepath")
+                    if isManualCert {
+                        Button {
+                            showUpdateSheet = true
+                        } label: {
+                            Label("更新证书内容", systemImage: "arrow.triangle.2.circlepath")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
