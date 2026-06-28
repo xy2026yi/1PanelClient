@@ -134,6 +134,7 @@ final class TerminalSession: ObservableObject {
     private var session: URLSession!
     private var receiveTask: Task<Void, Never>?
     private var pingTask: Task<Void, Never>?
+    private var emulatorCancellable: AnyCancellable?
 
     /// 收到原始字节时是否直接当文本喂入（true）；否则解析 JSON+base64
     private var rawFrameMode = false
@@ -146,6 +147,10 @@ final class TerminalSession: ObservableObject {
         config.waitsForConnectivity = false
         self.session = URLSession(configuration: config)
         emulator.resize(cols: target.cols, rows: target.rows)
+        emulatorCancellable = emulator.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
     }
 
     deinit {

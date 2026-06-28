@@ -9,8 +9,9 @@ import SwiftUI
 
 struct TerminalView: View {
     @StateObject private var session: TerminalSession
-    @ObservedObject private var emulator: TerminalEmulator
     @Environment(\.dismiss) private var dismiss
+
+    private var emulator: TerminalEmulator { session.emulator }
 
     @State private var inputText = ""
     @State private var autoScroll = true
@@ -25,7 +26,6 @@ struct TerminalView: View {
     init(server: ServerConfig, target: TerminalTarget, title: String? = nil, showCloseButton: Bool = false) {
         let s = TerminalSession(server: server, target: target)
         _session = StateObject(wrappedValue: s)
-        _emulator = ObservedObject(wrappedValue: s.emulator)
         self.showCloseButton = showCloseButton
         switch target {
         case .host:
