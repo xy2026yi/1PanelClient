@@ -480,7 +480,13 @@ struct DatabaseSystemView: View {
                         .buttonStyle(.bordered)
                         .controlSize(.small)
 
-                        Button { showDatabaseTerminal = true } label: {
+                        Button {
+                            if vm.isRedis {
+                                showRedisTerminal = true
+                            } else {
+                                showDatabaseTerminal = true
+                            }
+                        } label: {
                             Label("终端", systemImage: "terminal")
                         }
                         .buttonStyle(.bordered)
@@ -546,14 +552,6 @@ struct DatabaseSystemView: View {
                         }
                     } label: {
                         Label("修改密码", systemImage: "key")
-                    }
-                }
-
-                if !vm.supportsDatabaseList {
-                    Button {
-                        showRedisTerminal = true
-                    } label: {
-                        Label("Redis 终端", systemImage: "terminal")
                     }
                 }
             } else {
