@@ -203,6 +203,9 @@ final class TerminalSession: ObservableObject {
         ws.resume()
         task = ws
 
+        // 发送初始 resize（触发服务端 PTY 启动并推送数据）
+        sendResize(cols: target.cols, rows: target.rows)
+
         // 启动接收与心跳循环
         receiveTask = Task { [weak self] in
             await self?.receiveLoop()
