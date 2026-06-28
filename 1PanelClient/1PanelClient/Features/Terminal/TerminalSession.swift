@@ -22,6 +22,8 @@ enum TerminalTarget {
     case scriptRun(scriptID: Int, cols: Int, rows: Int)
     /// Redis CLI 终端
     case redis(name: String, cols: Int, rows: Int)
+    /// 数据库终端（MySQL / PostgreSQL CLI）
+    case database(databaseType: String, database: String, cols: Int, rows: Int)
 
     var cols: Int {
         switch self {
@@ -29,6 +31,7 @@ enum TerminalTarget {
         case .container(_, _, _, let c, _): return c
         case .scriptRun(_, let c, _): return c
         case .redis(_, let c, _): return c
+        case .database(_, _, let c, _): return c
         }
     }
 
@@ -38,6 +41,7 @@ enum TerminalTarget {
         case .container(_, _, _, _, let r): return r
         case .scriptRun(_, _, let r): return r
         case .redis(_, _, let r): return r
+        case .database(_, _, _, let r): return r
         }
     }
 
@@ -48,6 +52,7 @@ enum TerminalTarget {
         case .container: return "/api/v2/containers/exec"
         case .scriptRun: return "/api/v2/core/script/run"
         case .redis: return "/api/v2/containers/exec"
+        case .database: return "/api/v2/hosts/terminal/container"
         }
     }
 
@@ -85,6 +90,15 @@ enum TerminalTarget {
                 URLQueryItem(name: "source", value: "redis"),
                 URLQueryItem(name: "name", value: name),
                 URLQueryItem(name: "from", value: "local"),
+                URLQueryItem(name: "operateNode", value: "local")
+            ]
+        case .database(let dbType, let database, let cols, let rows):
+            return [
+                URLQueryItem(name: "cols", value: "\(cols)"),
+                URLQueryItem(name: "rows", value: "\(rows)"),
+                URLQueryItem(name: "source", value: "database"),
+                URLQueryItem(name: "databaseType", value: dbType),
+                URLQueryItem(name: "database", value: database),
                 URLQueryItem(name: "operateNode", value: "local")
             ]
         }
@@ -327,8 +341,11 @@ final class TerminalSession: ObservableObject {
 
     private func pingLoop() async {
         while !Task.isCancelled {
-            try? await Task.sleep(for: .seconds(25))
+            try? await Task.sleep(for: .seconds(10))
             guard !Task.isCancelled, let task else { break }
+            let ts = String(Int(Date().timeIntervalSince1970 * 1000))
+            let heartbeat = "{\"type\":\"heartbeat\",\"timestamp\":\"\(ts)\"}"
+            try? await task.send(.string(heartbeat))
             task.sendPing { [weak self] err in
                 if let err {
                     Task { @MainActor in

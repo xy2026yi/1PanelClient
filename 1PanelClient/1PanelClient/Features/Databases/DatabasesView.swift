@@ -296,6 +296,7 @@ struct DatabaseSystemView: View {
     @State private var showServicePasswordSheet = false
     @State private var showRedisTerminal = false
     @State private var showRedisPasswordSheet = false
+    @State private var showDatabaseTerminal = false
     @State private var pendingAction: String?
     @State private var pendingDeleteDb: DatabaseItem?
     @State private var isStatusExpanded = false
@@ -345,6 +346,16 @@ struct DatabaseSystemView: View {
             TerminalView(
                 server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
                 target: .redis(name: vm.system.database, cols: 80, rows: 24)
+            )
+        }
+        .navigationDestination(isPresented: $showDatabaseTerminal) {
+            TerminalView(
+                server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
+                target: .database(
+                    databaseType: vm.system.type,
+                    database: vm.system.database,
+                    cols: 80, rows: 24
+                )
             )
         }
         .sheet(isPresented: $showRedisPasswordSheet) {
@@ -465,6 +476,12 @@ struct DatabaseSystemView: View {
                             Label("重启", systemImage: "arrow.clockwise")
                         }
                         .disabled(vm.isOperating)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+
+                        Button { showDatabaseTerminal = true } label: {
+                            Label("终端", systemImage: "terminal")
+                        }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                     }

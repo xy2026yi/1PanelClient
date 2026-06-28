@@ -37,6 +37,8 @@ struct TerminalView: View {
             self.title = title ?? "执行脚本"
         case .redis:
             self.title = title ?? "Redis 终端"
+        case .database:
+            self.title = title ?? "数据库终端"
         }
     }
 
