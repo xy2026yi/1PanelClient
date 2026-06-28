@@ -40,6 +40,9 @@ enum APIEndpoint {
     case containersNetwork        // GET  网络选项（创建容器用）
     case containersVolume         // GET  存储卷选项（创建容器用）
     case containersLimit          // GET  CPU/内存上限（创建容器用）
+    case containersImagePull      // POST 拉取镜像
+    case containersImageDelete    // POST 删除镜像
+    case containersRepoSearch     // POST 查询已配置的仓库
 
     // MARK: - 网站
     case websitesSearch           // POST 分页查询网站
@@ -242,6 +245,9 @@ enum APIEndpoint {
         case .containersNetwork:        return "/api/v2/containers/network"
         case .containersVolume:         return "/api/v2/containers/volume"
         case .containersLimit:          return "/api/v2/containers/limit"
+        case .containersImagePull:      return "/api/v2/containers/image/pull"
+        case .containersImageDelete:    return "/api/v2/containers/image/delete"
+        case .containersRepoSearch:     return "/api/v2/containers/repo/search"
         case .websitesSearch:        return "/api/v2/websites/search"
         case .websitesCreate:        return "/api/v2/websites"
         case .websitesCheck:         return "/api/v2/websites/check"

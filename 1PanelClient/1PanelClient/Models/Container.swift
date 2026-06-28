@@ -145,6 +145,45 @@ struct ContainerUpgradeRequest: Encodable {
     let forcePull: Bool
 }
 
+// MARK: - 镜像仓库（POST /containers/repo/search）
+
+struct ContainerRepo: Decodable, Identifiable {
+    let id: Int
+    let name: String?
+    let downloadUrl: String?
+    let protocolField: String?
+    let username: String?
+    let auth: Bool?
+    let status: String?
+    let message: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, downloadUrl, username, auth, status, message
+        case protocolField = "protocol"
+    }
+}
+
+// MARK: - 拉取镜像请求（POST /containers/image/pull）
+
+struct ImagePullRequest: Encodable {
+    let taskID: String
+    let fromRepo: Bool
+    let repoID: Int
+    let imageName: [String]
+}
+
+// MARK: - 删除镜像请求（POST /containers/image/delete）
+
+struct ImageDeleteRequest: Encodable {
+    let names: [String]
+    let user: String
+
+    init(names: [String], user: String = "") {
+        self.names = names
+        self.user = user
+    }
+}
+
 // MARK: - 镜像（GET /containers/image/all）
 
 struct ContainerImage: Decodable, Identifiable {

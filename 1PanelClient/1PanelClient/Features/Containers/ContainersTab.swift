@@ -988,6 +988,10 @@ struct ContainerEditView: View {
 
 struct ContainerImageView: View {
     @ObservedObject var vm: ContainersViewModel
+    @State private var showPull = false
+    @State private var showRepos = false
+    @State private var showPruneSelect = false
+    @State private var pruneMode = false  // false=未使用, true=未标签
 
     var body: some View {
         Group {
@@ -1014,17 +1018,39 @@ struct ContainerImageView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button { showPull = true } label: {
+                        Label("拉取镜像", systemImage: "arrow.down.circle")
+                    }
+                    Button { showRepos = true } label: {
+                        Label("仓库", systemImage: "shippingbox")
+                    }
+                    Divider()
                     Button {
-                        Task { await vm.pruneImages(withTagAll: false) }
-                    } label: { Label("清理未标签镜像", systemImage: "trash") }
+                        pruneMode = false
+                        showPruneSelect = true
+                    } label: {
+                        Label("清理未使用镜像", systemImage: "trash.slash")
+                    }
                     Button {
-                        Task { await vm.pruneImages(withTagAll: true) }
-                    } label: { Label("清理未使用镜像", systemImage: "trash.slash") }
+                        pruneMode = true
+                        showPruneSelect = true
+                    } label: {
+                        Label("清理未标签镜像", systemImage: "trash")
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
                 .disabled(vm.imageOperating)
             }
+        }
+        .navigationDestination(isPresented: $showPull) {
+            PullImageView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showRepos) {
+            RepoListView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showPruneSelect) {
+            ImagePruneSelectView(vm: vm, isUntaggedMode: pruneMode)
         }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
@@ -1064,6 +1090,326 @@ struct ImageRow: View {
             Spacer()
         }
         .padding(.vertical, 2)
+    }
+}
+
+// MARK: - 拉取镜像
+
+struct PullImageView: View {
+    @ObservedObject var vm: ContainersViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var fromRepo = true
+    @State private var repos: [ContainerRepo] = []
+    @State private var selectedRepoID: Int = 0
+    @State private var imageNameInput = ""
+    @State private var imageNames: [String] = []
+    @State private var isPulling = false
+    @State private var pullTaskID: String?
+    @State private var showTaskProgress = false
+
+    private var canPull: Bool {
+        !imageNames.isEmpty && (!fromRepo || selectedRepoID > 0)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("镜像仓库", isOn: $fromRepo)
+
+                if fromRepo {
+                    if repos.isEmpty {
+                        Text("暂无已配置的仓库")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Picker("仓库名", selection: $selectedRepoID) {
+                            ForEach(repos) { repo in
+                                Text(repo.name ?? "未知").tag(repo.id)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Section {
+                ForEach(imageNames.indices, id: \.self) { idx in
+                    HStack {
+                        Image(systemName: "square.stack.3d.up")
+                            .foregroundStyle(.teal)
+                        Text(imageNames[idx])
+                            .font(.system(.subheadline, design: .monospaced))
+                        Spacer()
+                        Button {
+                            imageNames.remove(at: idx)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundStyle(.red.opacity(0.7))
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+
+                HStack {
+                    Image(systemName: "plus.circle")
+                        .foregroundStyle(.secondary)
+                    TextField("镜像名（回车添加）", text: $imageNameInput)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onSubmit {
+                            addImage()
+                        }
+                    if !imageNameInput.isEmpty {
+                        Button("添加") {
+                            addImage()
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+            } header: {
+                Text("镜像名")
+            } footer: {
+                Text("输入镜像名后回车继续添加，支持同时拉取多个镜像。")
+            }
+
+            Section {
+                Button {
+                    Task { await startPull() }
+                } label: {
+                    HStack {
+                        if isPulling { ProgressView().scaleEffect(0.8) }
+                        Text(isPulling ? "拉取中…" : "确认拉取")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .disabled(!canPull || isPulling)
+            }
+        }
+        .navigationTitle("拉取镜像")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            repos = await vm.loadRepos()
+            if let first = repos.first { selectedRepoID = first.id }
+        }
+        .navigationDestination(isPresented: $showTaskProgress) {
+            if let taskID = pullTaskID {
+                TaskProgressView(taskID: taskID, title: "拉取镜像") { _ in
+                    Task { await vm.loadImages() }
+                    return false
+                }
+            }
+        }
+    }
+
+    private func addImage() {
+        let trimmed = imageNameInput.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        imageNames.append(trimmed)
+        imageNameInput = ""
+    }
+
+    private func startPull() async {
+        isPulling = true
+        let taskID = await vm.pullImage(
+            fromRepo: fromRepo,
+            repoID: fromRepo ? selectedRepoID : 0,
+            imageNames: imageNames
+        )
+        isPulling = false
+        if let taskID {
+            pullTaskID = taskID
+            showTaskProgress = true
+        }
+    }
+}
+
+// MARK: - 仓库列表
+
+struct RepoListView: View {
+    @ObservedObject var vm: ContainersViewModel
+    @State private var repos: [ContainerRepo] = []
+    @State private var isLoading = false
+
+    var body: some View {
+        Group {
+            if isLoading && repos.isEmpty {
+                ProgressView("加载仓库…")
+            } else if repos.isEmpty {
+                ContentUnavailableView(
+                    "暂无仓库",
+                    systemImage: "shippingbox",
+                    description: Text("这台服务器上没有配置镜像仓库")
+                )
+            } else {
+                List {
+                    ForEach(repos) { repo in
+                        RepoRow(repo: repo)
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .refreshable { await loadRepos() }
+            }
+        }
+        .navigationTitle("仓库")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await loadRepos() }
+    }
+
+    private func loadRepos() async {
+        isLoading = true
+        repos = await vm.loadRepos()
+        isLoading = false
+    }
+}
+
+struct RepoRow: View {
+    let repo: ContainerRepo
+
+    var body: some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: "shippingbox.fill", color: .indigo, size: 38, cornerRadius: 10)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(repo.name ?? "未知")
+                    .font(.subheadline.bold())
+                if let url = repo.downloadUrl, !url.isEmpty {
+                    Text(url)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                HStack(spacing: 6) {
+                    if repo.auth == true {
+                        StatusBadge(text: "已认证", color: .green, backgroundOpacity: 0.12)
+                    } else {
+                        StatusBadge(text: "公开", color: .gray, backgroundOpacity: 0.1)
+                    }
+                    if let status = repo.status, !status.isEmpty {
+                        let isSuccess = status.lowercased() == "success"
+                        StatusBadge(
+                            text: isSuccess ? "正常" : status,
+                            color: isSuccess ? .green : .orange,
+                            backgroundOpacity: 0.12
+                        )
+                    }
+                }
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+// MARK: - 镜像清理选择
+
+struct ImagePruneSelectView: View {
+    @ObservedObject var vm: ContainersViewModel
+    let isUntaggedMode: Bool
+
+    @State private var selectedIDs: Set<String> = []
+    @State private var isDeleting = false
+
+    private var filteredImages: [ContainerImage] {
+        if isUntaggedMode {
+            return vm.images.filter { ($0.tags ?? []).isEmpty }
+        } else {
+            return vm.images.filter { $0.isUsed != true }
+        }
+    }
+
+    private var selectedImageNames: [String] {
+        filteredImages
+            .filter { selectedIDs.contains($0.id) }
+            .compactMap { img -> String? in
+                if let tag = img.tags?.first, !tag.isEmpty { return tag }
+                return nil
+            }
+    }
+
+    private var allSelected: Bool {
+        !filteredImages.isEmpty && filteredImages.allSatisfy { selectedIDs.contains($0.id) }
+    }
+
+    var body: some View {
+        Group {
+            if filteredImages.isEmpty {
+                ContentUnavailableView(
+                    isUntaggedMode ? "暂无未标签镜像" : "暂无未使用镜像",
+                    systemImage: "checkmark.seal",
+                    description: Text("没有可清理的镜像")
+                )
+            } else {
+                List(selection: $selectedIDs) {
+                    Section {
+                        ForEach(filteredImages) { img in
+                            HStack {
+                                if let tag = img.tags?.first, !tag.isEmpty {
+                                    Text(tag)
+                                        .font(.system(.subheadline, design: .monospaced))
+                                } else {
+                                    Text("<none>")
+                                        .font(.system(.subheadline, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text(img.sizeDisplay)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .tag(img.id)
+                        }
+                    } header: {
+                        HStack {
+                            Text(isUntaggedMode ? "未标签镜像（\(filteredImages.count)）" : "未使用镜像（\(filteredImages.count)）")
+                            Spacer()
+                            Button {
+                                if allSelected {
+                                    selectedIDs.removeAll()
+                                } else {
+                                    selectedIDs = Set(filteredImages.map(\.id))
+                                }
+                            } label: {
+                                Text(allSelected ? "取消全选" : "全选")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                }
+                .environment(\.editMode, .constant(.active))
+                .listStyle(.insetGrouped)
+            }
+        }
+        .navigationTitle(isUntaggedMode ? "清理未标签镜像" : "清理未使用镜像")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await deleteSelected() }
+                } label: {
+                    if isDeleting {
+                        ProgressView()
+                    } else {
+                        Text("删除（\(selectedIDs.count)）")
+                            .fontWeight(.medium)
+                    }
+                }
+                .disabled(selectedIDs.isEmpty || isDeleting)
+            }
+        }
+        .task {
+            if vm.images.isEmpty { await vm.loadImages() }
+        }
+    }
+
+    private func deleteSelected() async {
+        let names = selectedImageNames
+        guard !names.isEmpty else { return }
+        isDeleting = true
+        let ok = await vm.deleteImages(names: names)
+        isDeleting = false
+        if ok {
+            selectedIDs.removeAll()
+        }
     }
 }
 
@@ -1511,6 +1857,68 @@ final class ContainersViewModel: ObservableObject {
             showAlert(message: "清理\(type)镜像任务已提交")
         } catch {
             showAlert(message: "清理\(type)镜像失败：\(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 拉取镜像
+
+    func pullImage(fromRepo: Bool, repoID: Int, imageNames: [String]) async -> String? {
+        imageOperating = true
+        defer { imageOperating = false }
+        let req = ImagePullRequest(
+            taskID: UUID().uuidString,
+            fromRepo: fromRepo,
+            repoID: repoID,
+            imageName: imageNames
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersImagePull.path,
+                body: req, as: EmptyResponse.self
+            )
+            return req.taskID
+        } catch {
+            showAlert(message: "拉取镜像失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    // MARK: - 查询仓库
+
+    private struct RepoSearchRequest: Encodable {
+        let page: Int
+        let pageSize: Int
+    }
+
+    func loadRepos() async -> [ContainerRepo] {
+        let req = RepoSearchRequest(page: 1, pageSize: 100)
+        do {
+            let resp: PageResponse<ContainerRepo> = try await client.send(
+                path: APIEndpoint.containersRepoSearch.path,
+                body: req, as: PageResponse<ContainerRepo>.self
+            )
+            return resp.items ?? []
+        } catch {
+            return []
+        }
+    }
+
+    // MARK: - 删除镜像
+
+    func deleteImages(names: [String]) async -> Bool {
+        imageOperating = true
+        defer { imageOperating = false }
+        let req = ImageDeleteRequest(names: names)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersImageDelete.path,
+                body: req, as: EmptyResponse.self
+            )
+            await loadImages()
+            return true
+        } catch {
+            showAlert(message: "删除镜像失败：\(error.localizedDescription)")
+            return false
         }
     }
 
