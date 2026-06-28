@@ -17,6 +17,7 @@ struct CertificatesTab: View {
     @State private var showApply = false
     @State private var showAcme = false
     @State private var showDns = false
+    @State private var showCA = false
 
     /// 是否显示关闭按钮（fullScreen 模式用 true）
     var showCloseButton: Bool = true
@@ -83,6 +84,11 @@ struct CertificatesTab: View {
                     } label: {
                         Label("上传证书", systemImage: "icloud.and.arrow.up")
                     }
+                    Button {
+                        showCA = true
+                    } label: {
+                        Label("自签证书", systemImage: "certificate")
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -124,6 +130,9 @@ struct CertificatesTab: View {
         }
         .navigationDestination(isPresented: $showDns) {
             DNSAccountListView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showCA) {
+            CAListView(vm: vm)
         }
     }
 
@@ -875,6 +884,92 @@ final class CertificatesViewModel: ObservableObject {
             return false
         } catch {
             showAlert(message: "保存失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    // MARK: - 自签证书（CA 机构）
+
+    func loadCAs() async -> [CertificateAuthority] {
+        do {
+            let resp: PageResponse<CertificateAuthority> = try await client.send(
+                path: APIEndpoint.websitesCaSearch.path,
+                body: CASearchRequest(),
+                as: PageResponse<CertificateAuthority>.self
+            )
+            return resp.items ?? []
+        } catch let err as APIError {
+            showAlert(message: "加载失败：\(err.errorDescription ?? "未知错误")")
+            return []
+        } catch {
+            showAlert(message: "加载失败：\(error.localizedDescription)")
+            return []
+        }
+    }
+
+    func loadCADetail(id: Int) async -> CertificateAuthority? {
+        let path = APIEndpoint.websitesCaDetail.path
+            .replacingOccurrences(of: ":id", with: String(id))
+        do {
+            return try await client.send(
+                path: path,
+                method: "GET",
+                as: CertificateAuthority.self
+            )
+        } catch {
+            showAlert(message: "加载详情失败：\((error as? APIError)?.errorDescription ?? error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func createCA(req: CACreateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesCaCreate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "创建失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "创建失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func deleteCA(id: Int) async -> Bool {
+        struct Req: Encodable { let id: Int }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesCaDelete.path,
+                body: Req(id: id),
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "删除失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func obtainCA(req: CAObtainRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesCaObtain.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "签发失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "签发失败：\(error.localizedDescription)")
             return false
         }
     }

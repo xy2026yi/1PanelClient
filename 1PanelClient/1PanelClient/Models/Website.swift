@@ -933,3 +933,52 @@ struct WebsiteSSLLogResponse: Decodable {
     let totalLines: Int?
     let taskStatus: String?
 }
+
+// MARK: - 自签证书（CA 机构）
+
+/// 自签证书机构
+struct CertificateAuthority: Codable, Identifiable, Hashable {
+    let id: Int
+    let createdAt: String?
+    let updatedAt: String?
+    var name: String = ""
+    var keyType: String = "EC256"
+    var csr: String?
+    var privateKey: String?
+    var commonName: String?
+    var country: String?
+    var organization: String?
+    var organizationUint: String?
+    var province: String?
+    var city: String?
+}
+
+struct CASearchRequest: Encodable {
+    var page: Int = 1
+    var pageSize: Int = 20
+}
+
+struct CACreateRequest: Encodable {
+    var name: String
+    var keyType: String
+    var commonName: String
+    var country: String
+    var organization: String
+    var organizationUint: String
+    var province: String
+    var city: String
+}
+
+struct CAObtainRequest: Encodable {
+    var keyType: String
+    var domains: String
+    var id: Int
+    var time: Int
+    var unit: String
+    var pushDir: Bool
+    var dir: String
+    var autoRenew: Bool
+    var description: String
+    var execShell: Bool
+    var shell: String
+}

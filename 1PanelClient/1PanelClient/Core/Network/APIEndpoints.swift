@@ -70,6 +70,13 @@ enum APIEndpoint {
     case websitesSSLUpdate        // POST 更新证书（自动续签等）
     case websitesSSLLog           // POST 读取证书申请日志
 
+    // MARK: - 自签证书（CA 机构）
+    case websitesCaSearch         // POST 查询 CA 列表
+    case websitesCaDetail         // GET  CA 详情（:id 路径参数）
+    case websitesCaCreate         // POST 创建 CA
+    case websitesCaDelete         // POST 删除 CA
+    case websitesCaObtain         // POST 签发证书
+
     // MARK: - ACME 账户
     case websitesAcmeSearch       // POST 查询 Acme 账户列表
     case websitesAcmeCreate       // POST 创建 Acme 账户
@@ -260,6 +267,11 @@ enum APIEndpoint {
         case .websitesSSLObtain:     return "/api/v2/websites/ssl/obtain"
         case .websitesSSLUpdate:     return "/api/v2/websites/ssl/update"
         case .websitesSSLLog:        return "/api/v2/files/read/ssl"
+        case .websitesCaSearch:      return "/api/v2/websites/ca/search"
+        case .websitesCaDetail:      return "/api/v2/websites/ca/:id"
+        case .websitesCaCreate:      return "/api/v2/websites/ca"
+        case .websitesCaDelete:      return "/api/v2/websites/ca/del"
+        case .websitesCaObtain:      return "/api/v2/websites/ca/obtain"
         case .websitesAcmeSearch:    return "/api/v2/websites/acme/search"
         case .websitesAcmeCreate:    return "/api/v2/websites/acme"
         case .websitesAcmeDelete:    return "/api/v2/websites/acme/del"
