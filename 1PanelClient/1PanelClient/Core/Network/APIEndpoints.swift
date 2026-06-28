@@ -79,6 +79,7 @@ enum APIEndpoint {
     case websitesDnsSearch        // POST 查询 DNS 账户列表
     case websitesDnsCreate        // POST 创建 DNS 账户
     case websitesDnsDelete        // POST 删除 DNS 账户
+    case websitesDnsUpdate        // POST 更新 DNS 账户
 
     // MARK: - OpenResty 全局配置
     case openrestyConfig          // GET  读取 OpenResty 主配置
@@ -265,6 +266,7 @@ enum APIEndpoint {
         case .websitesDnsSearch:     return "/api/v2/websites/dns/search"
         case .websitesDnsCreate:     return "/api/v2/websites/dns"
         case .websitesDnsDelete:     return "/api/v2/websites/dns/del"
+        case .websitesDnsUpdate:     return "/api/v2/websites/dns/update"
         case .openrestyConfig:       return "/api/v2/openresty"
         case .openrestyFile:         return "/api/v2/openresty/file"
         case .openrestyReset:        return "/api/v2/apps/installed/conf"

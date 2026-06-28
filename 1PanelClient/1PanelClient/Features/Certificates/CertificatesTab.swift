@@ -862,6 +862,23 @@ final class CertificatesViewModel: ObservableObject {
         }
     }
 
+    func updateDnsAccount(account: DNSAccount) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesDnsUpdate.path,
+                body: account,
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "保存失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
     private func showAlert(message: String) {
         alertMessage = message
         showAlert = true

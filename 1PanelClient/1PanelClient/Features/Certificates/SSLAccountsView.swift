@@ -359,14 +359,20 @@ struct DNSAccountListView: View {
     private var accountList: some View {
         List {
             ForEach(accounts) { account in
-                DNSAccountRow(account: account)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            pendingDelete = account
-                        } label: {
-                            Label("删除", systemImage: "trash")
-                        }
+                NavigationLink {
+                    CreateDNSAccountView(vm: vm, existingAccount: account) {
+                        Task { await load() }
                     }
+                } label: {
+                    DNSAccountRow(account: account)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        pendingDelete = account
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                }
             }
         }
         .listStyle(.insetGrouped)
@@ -413,6 +419,11 @@ struct CreateDNSAccountView: View {
     @ObservedObject var vm: CertificatesViewModel
     @Environment(\.dismiss) private var dismiss
 
+    /// 传入则进入「编辑」模式，为 nil 则为「创建」
+    var existingAccount: DNSAccount?
+    /// 返回时回调（用于刷新列表）
+    var onComplete: (() -> Void)? = nil
+
     @State private var name = ""
     @State private var type: DnsType = .AliYun
 
@@ -430,6 +441,8 @@ struct CreateDNSAccountView: View {
     @State private var isSubmitting = false
     @State private var showValidationAlert = false
     @State private var validationMessage = ""
+
+    private var isEdit: Bool { existingAccount != nil }
 
     var body: some View {
         Form {
@@ -454,7 +467,7 @@ struct CreateDNSAccountView: View {
 
             dynamicFields
         }
-        .navigationTitle("创建 DNS 账户")
+        .navigationTitle(isEdit ? "编辑 DNS 账户" : "创建 DNS 账户")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -464,7 +477,7 @@ struct CreateDNSAccountView: View {
                     if isSubmitting {
                         ProgressView()
                     } else {
-                        Text("创建").bold()
+                        Text(isEdit ? "保存" : "创建").bold()
                     }
                 }
                 .disabled(isSubmitting)
@@ -473,6 +486,25 @@ struct CreateDNSAccountView: View {
         .alert(validationMessage, isPresented: $showValidationAlert) {
             Button("好", role: .cancel) {}
         }
+        .task {
+            if let account = existingAccount { prefill(from: account) }
+        }
+        .onDisappear { onComplete?() }
+    }
+
+    private func prefill(from account: DNSAccount) {
+        name = account.name
+        if let t = DnsType(rawValue: account.type) { type = t }
+        let auth = account.authorization
+        accessKey = auth?.accessKey ?? ""
+        secretKey = auth?.secretKey ?? ""
+        secretID = auth?.secretID ?? ""
+        apiKey = auth?.apiKey ?? ""
+        apiUser = auth?.apiUser ?? ""
+        email = auth?.email ?? ""
+        region = auth?.region ?? ""
+        clientID = auth?.clientID ?? ""
+        password = auth?.password ?? ""
     }
 
     @ViewBuilder
@@ -577,8 +609,29 @@ struct CreateDNSAccountView: View {
         }
 
         isSubmitting = true; defer { isSubmitting = false }
-        if await vm.createDnsAccount(name: trimmedName, type: type.rawValue, auth: auth) {
-            dismiss()
+
+        if let account = existingAccount {
+            var updated = account
+            updated.name = trimmedName
+            updated.type = type.rawValue
+            updated.authorization = DNSAuth(
+                accessKey: auth["accessKey"],
+                secretKey: auth["secretKey"],
+                apiKey: auth["apiKey"],
+                apiUser: auth["apiUser"],
+                secretID: auth["secretID"],
+                region: auth["region"],
+                email: auth["email"],
+                clientID: auth["clientID"],
+                password: auth["password"]
+            )
+            if await vm.updateDnsAccount(account: updated) {
+                dismiss()
+            }
+        } else {
+            if await vm.createDnsAccount(name: trimmedName, type: type.rawValue, auth: auth) {
+                dismiss()
+            }
         }
     }
 
