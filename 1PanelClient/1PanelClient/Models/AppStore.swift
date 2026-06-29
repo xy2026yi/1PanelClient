@@ -217,7 +217,7 @@ nonisolated struct FormFieldValueItem: Decodable, Hashable, Sendable {
 }
 
 /// 表单字段值（可能是数字、字符串等多种类型）
-enum FormFieldValue: Decodable, Hashable, Sendable {
+nonisolated enum FormFieldValue: Decodable, Hashable, Sendable {
     case int(Int)
     case double(Double)
     case string(String)

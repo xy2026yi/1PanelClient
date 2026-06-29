@@ -10,13 +10,13 @@ import Combine
 
 // MARK: - 数据模型
 
-struct WAFStatus: Decodable {
+nonisolated struct WAFStatus: Decodable {
     let healthy: Bool
     let openrestyVersion: String?
     let open: Bool
 }
 
-struct WAFConfig: Decodable {
+nonisolated struct WAFConfig: Decodable {
     let waf: WAFCore?
     let ipWhite: WAFRuleItem?
     let ipBlack: WAFRuleItem?
@@ -42,12 +42,12 @@ struct WAFConfig: Decodable {
     let unknownWebsite: WAFRuleItem?
 }
 
-struct WAFCore: Decodable {
+nonisolated struct WAFCore: Decodable {
     let state: String?
     let mode: String?
 }
 
-struct WAFRuleItem: Decodable {
+nonisolated struct WAFRuleItem: Decodable {
     let state: String?
     let code: Int?
     let action: String?
@@ -56,20 +56,20 @@ struct WAFRuleItem: Decodable {
     var isOn: Bool { state == "on" }
 }
 
-struct WAFGlobalStateRequest: Encodable {
+nonisolated struct WAFGlobalStateRequest: Encodable {
     let scope: String
     let state: String
 }
 
 // MARK: IP 规则
 
-struct WAFRuleIPSearchRequest: Encodable {
+nonisolated struct WAFRuleIPSearchRequest: Encodable {
     let page: Int
     let pageSize: Int
     let type: String
 }
 
-struct WAFRuleIPItem: Decodable, Identifiable, Hashable {
+nonisolated struct WAFRuleIPItem: Decodable, Identifiable, Hashable {
     let name: String
     let state: String
     let type: String       // ipv4 / ipArr / ipv6 / ipGroup
@@ -103,7 +103,7 @@ struct WAFRuleIPItem: Decodable, Identifiable, Hashable {
     }
 }
 
-struct WAFRuleIPCreateRequest: Encodable {
+nonisolated struct WAFRuleIPCreateRequest: Encodable {
     let name: String
     let type: String
     let ipv4: String
@@ -116,7 +116,7 @@ struct WAFRuleIPCreateRequest: Encodable {
     let ipGroup: String
 }
 
-struct WAFRuleIPUpdateRequest: Encodable {
+nonisolated struct WAFRuleIPUpdateRequest: Encodable {
     let name: String
     let state: String
     let type: String
@@ -129,14 +129,14 @@ struct WAFRuleIPUpdateRequest: Encodable {
     let scope: String
 }
 
-struct WAFRuleIPDeleteRequest: Encodable {
+nonisolated struct WAFRuleIPDeleteRequest: Encodable {
     let name: String
     let scope: String
 }
 
 // MARK: IP 组
 
-struct WAFIPGroupSearchRequest: Encodable {
+nonisolated struct WAFIPGroupSearchRequest: Encodable {
     let page: Int
     let pageSize: Int
     let type: String
@@ -144,7 +144,7 @@ struct WAFIPGroupSearchRequest: Encodable {
     let all: Bool
 }
 
-struct WAFIPGroupItem: Decodable, Identifiable, Hashable {
+nonisolated struct WAFIPGroupItem: Decodable, Identifiable, Hashable {
     let name: String
     let content: String?
     let source: String?
@@ -153,27 +153,27 @@ struct WAFIPGroupItem: Decodable, Identifiable, Hashable {
     var id: String { name }
 }
 
-struct WAFIPGroupCreateRequest: Encodable {
+nonisolated struct WAFIPGroupCreateRequest: Encodable {
     let name: String
     let content: String
     let source: String
     let remoteURL: String
 }
 
-struct WAFIPGroupDeleteRequest: Encodable {
+nonisolated struct WAFIPGroupDeleteRequest: Encodable {
     let name: String
 }
 
 // MARK: - 通用规则 (URL / UA)
 
-struct WAFCommonRuleSearchRequest: Encodable {
+nonisolated struct WAFCommonRuleSearchRequest: Encodable {
     let page: Int
     let pageSize: Int
     let scope: String
     let websiteID: Int
 }
 
-struct WAFCommonRuleItem: Decodable, Identifiable, Hashable {
+nonisolated struct WAFCommonRuleItem: Decodable, Identifiable, Hashable {
     let name: String
     let state: String
     let rule: String
@@ -183,7 +183,7 @@ struct WAFCommonRuleItem: Decodable, Identifiable, Hashable {
     var id: String { name }
 }
 
-struct WAFCommonRuleCreateRequest: Encodable {
+nonisolated struct WAFCommonRuleCreateRequest: Encodable {
     let name: String
     let state: String
     let description: String
@@ -192,7 +192,7 @@ struct WAFCommonRuleCreateRequest: Encodable {
     let websiteID: Int
 }
 
-struct WAFCommonRuleUpdateRequest: Encodable {
+nonisolated struct WAFCommonRuleUpdateRequest: Encodable {
     let name: String
     let state: String
     let rule: String
@@ -202,7 +202,7 @@ struct WAFCommonRuleUpdateRequest: Encodable {
     let websiteID: Int
 }
 
-struct WAFCommonRuleDeleteRequest: Encodable {
+nonisolated struct WAFCommonRuleDeleteRequest: Encodable {
     let name: String
     let scope: String
     let websiteID: Int
@@ -210,7 +210,7 @@ struct WAFCommonRuleDeleteRequest: Encodable {
 
 // MARK: - CC / 频率限制配置
 
-struct WAFCcRuleConfig: Decodable {
+nonisolated struct WAFCcRuleConfig: Decodable {
     let state: String?
     let code: Int?
     let action: String?
@@ -224,7 +224,7 @@ struct WAFCcRuleConfig: Decodable {
     var isOn: Bool { state == "on" }
 }
 
-struct WAFCcRuleSaveRequest: Encodable {
+nonisolated struct WAFCcRuleSaveRequest: Encodable {
     let state: String
     let code: Int
     let action: String
@@ -259,7 +259,7 @@ struct WAFCcRuleSaveRequest: Encodable {
     }
 }
 
-struct WAFLocationUpdateRequest: Encodable {
+nonisolated struct WAFLocationUpdateRequest: Encodable {
     let type: String
 }
 

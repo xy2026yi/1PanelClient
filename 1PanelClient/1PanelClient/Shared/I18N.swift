@@ -11,7 +11,7 @@ import Foundation
 
 /// 解析 1Panel i18n 映射字符串，提取中文（优先简体），无中文时回退英文。
 /// 非 i18n 格式的纯文本直接原样返回。
-func resolveI18n(_ raw: String) -> String {
+nonisolated func resolveI18n(_ raw: String) -> String {
     let s = raw.trimmingCharacters(in: .whitespaces)
     guard s.hasPrefix("{") && s.hasSuffix("}") else { return raw }
 
