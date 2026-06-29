@@ -7,7 +7,7 @@ import Foundation
 import SwiftUI
 
 /// 已安装应用搜索请求（request.AppInstalledSearch）
-struct AppInstalledSearchRequest: Encodable, Sendable {
+nonisolated struct AppInstalledSearchRequest: Encodable, Sendable {
     let page: Int
     let pageSize: Int
     let name: String
@@ -20,14 +20,14 @@ struct AppInstalledSearchRequest: Encodable, Sendable {
 }
 
 /// 已安装应用列表响应（dto.PageResult 包装）
-struct AppInstalledListResponse: Decodable, Sendable {
+nonisolated struct AppInstalledListResponse: Decodable, Sendable {
     let total: Int
     let items: [AppInstall]?
 }
 
 /// 已安装应用
 /// 字段已通过 logs/输出16.log 实际返回数据验证
-struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
     let id: Int
     let name: String?
     let appID: Int?
@@ -63,7 +63,7 @@ struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
     /// 非 nil 表示该应用已被忽略升级，nil 表示未忽略
     var ignoredRecordID: Int?
 
-    struct AppLinks: Decodable, Hashable, Sendable {
+    nonisolated struct AppLinks: Decodable, Hashable, Sendable {
         let website: String?
         let document: String?
         let github: String?
@@ -122,7 +122,7 @@ struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
 
 /// 应用操作请求（request.AppInstalledOperate）
 /// 同一个接口支持多种操作（已通过 logs/输出16.log + 输出22.log 验证）
-struct AppInstalledOperateRequest: Encodable {
+nonisolated struct AppInstalledOperateRequest: Encodable {
     let installId: Int
     let operate: String
     // 升级专用
@@ -188,7 +188,7 @@ enum AppOperation: String {
 }
 
 /// 可用更新版本（dto.AppVersion）
-struct AppVersion: Decodable, Identifiable, Sendable {
+nonisolated struct AppVersion: Decodable, Identifiable, Sendable {
     let detailId: Int
     let version: String?
     let dockerCompose: String?
@@ -197,7 +197,7 @@ struct AppVersion: Decodable, Identifiable, Sendable {
 }
 
 /// 查询可用更新版本的请求 body
-struct AppUpdateVersionsRequest: Encodable {
+nonisolated struct AppUpdateVersionsRequest: Encodable {
     let appInstallId: Int
 }
 
@@ -205,7 +205,7 @@ struct AppUpdateVersionsRequest: Encodable {
 
 /// 已安装应用参数查询响应（GET /apps/installed/params/:installId）
 /// 通过 doc/更新已安装应用参数重建应用抓取信息.log 验证字段
-struct InstalledParamsResponse: Decodable, Sendable {
+nonisolated struct InstalledParamsResponse: Decodable, Sendable {
     let params: [InstalledParamField]?
     /// 当前生效的 compose（用户上次保存的）
     let rawCompose: String?
@@ -228,7 +228,7 @@ struct InstalledParamsResponse: Decodable, Sendable {
 }
 
 /// 已安装应用的参数字段（带当前值，区别于 AppFormField 的「安装表单定义」）
-struct InstalledParamField: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct InstalledParamField: Decodable, Identifiable, Hashable, Sendable {
     /// 是否可编辑（false 表示只读展示）
     let edit: Bool?
     let key: String?
@@ -259,7 +259,7 @@ struct InstalledParamField: Decodable, Identifiable, Hashable, Sendable {
 
 /// 更新已安装应用参数请求（POST /apps/installed/params/update）
 /// 通过抓包日志验证字段
-struct AppParamsUpdateRequest: Encodable {
+nonisolated struct AppParamsUpdateRequest: Encodable {
     let webUI: String
     let installId: Int
     let params: [String: AnyCodableValue]
@@ -275,7 +275,7 @@ struct AppParamsUpdateRequest: Encodable {
 }
 
 /// 卸载前检查返回的关联资源项
-struct AppDeleteCheckItem: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct AppDeleteCheckItem: Decodable, Identifiable, Hashable, Sendable {
     let type: String?
     let name: String?
     var id: String { "\(type ?? "")-\(name ?? "")" }

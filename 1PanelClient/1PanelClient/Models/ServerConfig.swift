@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct ServerConfig: Identifiable, Codable, Hashable {
+nonisolated struct ServerConfig: Identifiable, Codable, Hashable, Sendable {
     var id: UUID
     var name: String
     var baseURL: String

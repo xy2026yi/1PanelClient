@@ -11,7 +11,7 @@ import Foundation
 // MARK: - 数据库系统（已安装实例）
 
 /// GET /api/v2/databases/db/list/<types> 返回的数据库系统
-struct DatabaseSystem: Decodable, Identifiable, Hashable {
+nonisolated struct DatabaseSystem: Decodable, Identifiable, Hashable {
     let id: Int
     let type: String          // "mysql" / "postgresql" / "redis"
     let from: String          // "local"
@@ -54,7 +54,7 @@ struct DatabaseSystem: Decodable, Identifiable, Hashable {
 // MARK: - 应用安装检查
 
 /// POST /api/v2/apps/installed/check {key, name}
-struct AppInstallCheck: Decodable {
+nonisolated struct AppInstallCheck: Decodable {
     let isExist: Bool?
     let name: String?
     let app: String?
@@ -75,7 +75,7 @@ struct AppInstallCheck: Decodable {
 // MARK: - 连接信息
 
 /// POST /api/v2/apps/installed/conninfo {type, name}
-struct ConnInfo: Decodable {
+nonisolated struct ConnInfo: Decodable {
     let status: String?
     let username: String?
     let password: String?
@@ -87,7 +87,7 @@ struct ConnInfo: Decodable {
 // MARK: - 数据库条目（search 结果）
 
 /// POST /api/v2/databases/search 或 /api/v2/databases/pg/search 返回的 items
-struct DatabaseItem: Decodable, Identifiable, Hashable {
+nonisolated struct DatabaseItem: Decodable, Identifiable, Hashable {
     let id: Int
     let name: String?
     let from: String?
@@ -132,7 +132,7 @@ struct DatabaseItem: Decodable, Identifiable, Hashable {
 // MARK: - 字符集 / 排序规则
 
 /// POST /api/v2/databases/format/options {name}
-struct FormatOption: Decodable, Identifiable, Hashable {
+nonisolated struct FormatOption: Decodable, Identifiable, Hashable {
     let format: String
     let collations: [String]
     var id: String { format }
@@ -140,22 +140,22 @@ struct FormatOption: Decodable, Identifiable, Hashable {
 
 // MARK: - 请求体
 
-struct AppCheckRequest: Encodable {
+nonisolated struct AppCheckRequest: Encodable {
     let key: String
     let name: String
 }
 
-struct AppOpRequest: Encodable {
+nonisolated struct AppOpRequest: Encodable {
     let installId: Int
     let operate: String
 }
 
-struct ConnInfoRequest: Encodable {
+nonisolated struct ConnInfoRequest: Encodable {
     let type: String
     let name: String
 }
 
-struct DBSearchRequest: Encodable {
+nonisolated struct DBSearchRequest: Encodable {
     let page: Int
     let pageSize: Int
     let database: String
@@ -163,11 +163,11 @@ struct DBSearchRequest: Encodable {
     let order: String
 }
 
-struct FormatOptionsRequest: Encodable {
+nonisolated struct FormatOptionsRequest: Encodable {
     let name: String
 }
 
-struct CreateDBRequest: Encodable {
+nonisolated struct CreateDBRequest: Encodable {
     let name: String
     let from: String
     let type: String
@@ -181,13 +181,13 @@ struct CreateDBRequest: Encodable {
     let description: String
 }
 
-struct DelCheckRequest: Encodable {
+nonisolated struct DelCheckRequest: Encodable {
     let id: Int
     let type: String
     let database: String
 }
 
-struct DelDBRequest: Encodable {
+nonisolated struct DelDBRequest: Encodable {
     let id: Int
     let type: String
     let database: String
@@ -195,7 +195,7 @@ struct DelDBRequest: Encodable {
     let forceDelete: Bool
 }
 
-struct ChangeAccessRequest: Encodable {
+nonisolated struct ChangeAccessRequest: Encodable {
     let id: Int
     let from: String
     let type: String
@@ -203,7 +203,7 @@ struct ChangeAccessRequest: Encodable {
     let value: String
 }
 
-struct ChangePasswordRequest: Encodable {
+nonisolated struct ChangePasswordRequest: Encodable {
     let id: Int
     let from: String
     let type: String
@@ -213,7 +213,7 @@ struct ChangePasswordRequest: Encodable {
 
 // MARK: - PostgreSQL 专用请求体
 
-struct CreatePGDBRequest: Encodable {
+nonisolated struct CreatePGDBRequest: Encodable {
     let name: String
     let from: String
     let type: String
@@ -225,7 +225,7 @@ struct CreatePGDBRequest: Encodable {
     let description: String
 }
 
-struct PGPrivilegesRequest: Encodable {
+nonisolated struct PGPrivilegesRequest: Encodable {
     let name: String
     let database: String
     let username: String
@@ -234,7 +234,7 @@ struct PGPrivilegesRequest: Encodable {
 
 // MARK: - Redis 专用请求体
 
-struct RedisPasswordRequest: Encodable {
+nonisolated struct RedisPasswordRequest: Encodable {
     let database: String
     let value: String           // base64
 }

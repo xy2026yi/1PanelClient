@@ -360,10 +360,10 @@ final class TerminalSession: ObservableObject {
             let heartbeat = "{\"type\":\"heartbeat\",\"timestamp\":\"\(ts)\"}"
             try? await task.send(.string(heartbeat))
             task.sendPing { [weak self] err in
-                if let err {
-                    Task { @MainActor in
-                        self?.emulator.feed("\r\n\u{1B}[33mping 失败：\(err.localizedDescription)\u{1B}[0m\r\n")
-                    }
+                guard let self, let err else { return }
+                let msg = "\r\n\u{1B}[33mping 失败：\(err.localizedDescription)\u{1B}[0m\r\n"
+                Task { @MainActor in
+                    self.emulator.feed(msg)
                 }
             }
         }

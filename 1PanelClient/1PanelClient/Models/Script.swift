@@ -8,7 +8,7 @@
 import Foundation
 
 /// 脚本库搜索请求
-struct ScriptSearchRequest: Encodable {
+nonisolated struct ScriptSearchRequest: Encodable {
     let info: String
     let groupID: Int
     let page: Int
@@ -16,7 +16,7 @@ struct ScriptSearchRequest: Encodable {
 }
 
 /// 脚本库列表项（/core/script/search 返回 items）
-struct ScriptItem: Decodable, Identifiable, Hashable {
+nonisolated struct ScriptItem: Decodable, Identifiable, Hashable {
     let id: Int
     let name: String
     let isInteractive: Bool?

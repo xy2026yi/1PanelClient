@@ -10,7 +10,7 @@ import SwiftUI
 
 /// 网站搜索请求（request.WebsiteSearch）
 /// 通过 doc/网站功能-1.md 验证字段（注意 websiteGroupId、orderBy、order 默认值）
-struct WebsiteSearchRequest: Encodable {
+nonisolated struct WebsiteSearchRequest: Encodable {
     let name: String
     let page: Int
     let pageSize: Int
@@ -21,13 +21,13 @@ struct WebsiteSearchRequest: Encodable {
 }
 
 /// 网站列表响应（dto.PageResult 包装）
-struct WebsiteListResponse: Decodable {
+nonisolated struct WebsiteListResponse: Decodable {
     let total: Int
     let items: [Website]?
 }
 
 /// 单个网站（response.WebsiteDTO）
-struct Website: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
     let id: Int
     let primaryDomain: String?
     let type: String?
@@ -109,13 +109,13 @@ struct Website: Decodable, Identifiable, Hashable, Sendable {
 // MARK: - SSL 证书（创建网站时选择用）
 
 /// SSL 搜索请求（request.WebsiteSSLSearch）
-struct WebsiteSSLSearchRequest: Encodable {
+nonisolated struct WebsiteSSLSearchRequest: Encodable {
     let acmeAccountID: String
 }
 
 /// SSL 证书（response.WebsiteSSLDTO）
 /// 仅声明创建网站列表所需字段，pem/privateKey 等大字段不解析
-struct WebsiteSSL: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct WebsiteSSL: Decodable, Identifiable, Hashable, Sendable {
     let id: Int
     let primaryDomain: String?
     let domains: String?
@@ -185,7 +185,7 @@ enum WebsiteType: String, CaseIterable, Identifiable {
 }
 
 /// 已安装应用搜索请求（创建网站时筛选可用应用）
-struct WebsiteAppSearchRequest: Encodable {
+nonisolated struct WebsiteAppSearchRequest: Encodable {
     let type: String       // "website" / "proxy" 等
     let unused: Bool       // true = 未被其他网站使用
     let all: Bool
@@ -195,7 +195,7 @@ struct WebsiteAppSearchRequest: Encodable {
 
 /// 创建网站请求（request.WebsiteCreate）
 /// 通过 doc/网站功能-1.md 验证字段
-struct WebsiteCreateRequest: Encodable {
+nonisolated struct WebsiteCreateRequest: Encodable {
     var primaryDomain: String = ""
     var type: String = "deployment"
     var alias: String = ""
@@ -235,7 +235,7 @@ struct WebsiteCreateRequest: Encodable {
 }
 
 /// 创建网站时附属的应用安装信息（保持空对象结构）
-struct WebsiteAppInstallBody: Encodable {
+nonisolated struct WebsiteAppInstallBody: Encodable {
     var appId: Int = 0
     var name: String = ""
     var appDetailId: Int = 0
@@ -253,7 +253,7 @@ struct WebsiteAppInstallBody: Encodable {
 }
 
 /// 创建网站时的域名条目
-struct WebsiteDomainBody: Encodable {
+nonisolated struct WebsiteDomainBody: Encodable {
     var domain: String
     var host: String
     var port: Int
@@ -261,13 +261,13 @@ struct WebsiteDomainBody: Encodable {
 }
 
 /// 创建前检查的空请求体
-struct WebsiteCheckRequest: Encodable {}
+nonisolated struct WebsiteCheckRequest: Encodable {}
 
 // MARK: - 删除网站
 
 /// 删除网站请求（request.WebsiteDel）
 /// 通过 doc/网站管理-1.md 验证字段
-struct WebsiteDeleteRequest: Encodable {
+nonisolated struct WebsiteDeleteRequest: Encodable {
     let id: Int
     var deleteApp: Bool = false
     var deleteBackup: Bool = false
@@ -279,7 +279,7 @@ struct WebsiteDeleteRequest: Encodable {
 
 /// 网站详情（response.WebsiteDTO 完整版）
 /// 来自 GET /api/v2/websites/:id
-struct WebsiteFull: Decodable {
+nonisolated struct WebsiteFull: Decodable {
     let id: Int
     let createdAt: String?
     let updatedAt: String?
@@ -337,7 +337,7 @@ struct WebsiteFull: Decodable {
 }
 
 /// 网站域名（详情中的 domains 数组元素）
-struct WebsiteFullDomain: Decodable, Hashable {
+nonisolated struct WebsiteFullDomain: Decodable, Hashable {
     let id: Int?
     let domain: String?
     let ssl: Bool?
@@ -348,7 +348,7 @@ struct WebsiteFullDomain: Decodable, Hashable {
 
 /// Nginx 配置文件（response.WebsiteNginxConfig）
 /// 来自 GET /api/v2/websites/:id/config/openresty
-struct WebsiteNginxConfig: Decodable {
+nonisolated struct WebsiteNginxConfig: Decodable {
     let path: String?
     let name: String?
     let content: String?
@@ -357,7 +357,7 @@ struct WebsiteNginxConfig: Decodable {
 }
 
 /// 更新 Nginx 配置请求
-struct WebsiteNginxUpdateRequest: Encodable {
+nonisolated struct WebsiteNginxUpdateRequest: Encodable {
     let id: Int
     let content: String
 }
@@ -366,7 +366,7 @@ struct WebsiteNginxUpdateRequest: Encodable {
 
 /// 读取网站日志请求（request.WebsiteLogRead）
 /// 复用 /api/v2/files/read 接口
-struct WebsiteLogReadRequest: Encodable {
+nonisolated struct WebsiteLogReadRequest: Encodable {
     let id: Int
     let type: String          // 固定 "website"
     let name: String          // "access.log" 或 "error.log"
@@ -376,7 +376,7 @@ struct WebsiteLogReadRequest: Encodable {
 }
 
 /// 日志响应（response.FileRead）
-struct WebsiteLogResponse: Decodable {
+nonisolated struct WebsiteLogResponse: Decodable {
     let end: Bool?
     let path: String?
     let total: Int?
@@ -388,7 +388,7 @@ struct WebsiteLogResponse: Decodable {
 
 /// HTTPS 配置读取响应（response.WebsiteHTTPS）
 /// 来自 GET /api/v2/websites/:id/https
-struct WebsiteHTTPS: Decodable {
+nonisolated struct WebsiteHTTPS: Decodable {
     let enable: Bool?
     let httpConfig: String?
     let ssl: WebsiteHTTPSSSL?
@@ -422,14 +422,14 @@ struct WebsiteHTTPS: Decodable {
 }
 
 /// HTTPS 响应中嵌入的 SSL 证书（仅需 id 即可）
-struct WebsiteHTTPSSSL: Decodable {
+nonisolated struct WebsiteHTTPSSSL: Decodable {
     let id: Int
     let primaryDomain: String?
 }
 
 /// HTTPS 配置更新请求（request.WebsiteHTTPSUpdate）
 /// 发送到 POST /api/v2/websites/:id/https
-struct WebsiteHTTPSUpdateRequest: Encodable {
+nonisolated struct WebsiteHTTPSUpdateRequest: Encodable {
     var acmeAccountID: Int = 0
     var enable: Bool
     var websiteId: Int
@@ -461,12 +461,12 @@ struct WebsiteHTTPSUpdateRequest: Encodable {
 // MARK: - 反向代理路由
 
 /// 反向代理列表请求（request.WebsiteProxyList）
-struct WebsiteProxiesListRequest: Encodable {
+nonisolated struct WebsiteProxiesListRequest: Encodable {
     let id: Int
 }
 
 /// 反向代理项（response.WebsiteProxy）
-struct WebsiteProxy: Decodable, Identifiable, Hashable {
+nonisolated struct WebsiteProxy: Decodable, Identifiable, Hashable {
     let name: String?
     let match: String?
     let proxyPass: String?
@@ -493,7 +493,7 @@ enum WebsiteProxyOperate: String {
 
 /// 反向代理更新请求（request.WebsiteProxyUpdate）
 /// 用于创建/编辑/删除（operate 决定行为）
-struct WebsiteProxyUpdateRequest: Encodable {
+nonisolated struct WebsiteProxyUpdateRequest: Encodable {
     var id: Int
     var operate: String          // create / edit / delete
     var enable: Bool
@@ -524,7 +524,7 @@ struct WebsiteProxyUpdateRequest: Encodable {
 }
 
 /// 反向代理源文（content）读写请求
-struct WebsiteProxyFileRequest: Encodable {
+nonisolated struct WebsiteProxyFileRequest: Encodable {
     let name: String
     let websiteID: Int
     let content: String
@@ -532,7 +532,7 @@ struct WebsiteProxyFileRequest: Encodable {
 
 /// 反向代理启用/停用请求
 /// POST /api/v2/websites/proxies/status  {id, name, status}
-struct WebsiteProxyStatusRequest: Encodable {
+nonisolated struct WebsiteProxyStatusRequest: Encodable {
     let id: Int
     let name: String
     let status: String    // "enable" / "disable"
@@ -542,7 +542,7 @@ struct WebsiteProxyStatusRequest: Encodable {
 
 /// SSL 证书列表搜索请求
 /// POST /api/v2/websites/ssl/search
-struct WebsiteSSLListRequest: Encodable {
+nonisolated struct WebsiteSSLListRequest: Encodable {
     var page: Int = 1
     var pageSize: Int = 20
     var domain: String = ""
@@ -551,14 +551,14 @@ struct WebsiteSSLListRequest: Encodable {
 }
 
 /// SSL 证书列表响应
-struct WebsiteSSLListResponse: Decodable {
+nonisolated struct WebsiteSSLListResponse: Decodable {
     let total: Int
     let items: [WebsiteSSLCert]?
 }
 
 /// 完整的 SSL 证书（response.WebsiteSSLDTO）
 /// 供列表 / 详情共用；pem/privateKey 在详情页才会请求并展示
-struct WebsiteSSLCert: Codable, Identifiable, Hashable {
+nonisolated struct WebsiteSSLCert: Codable, Identifiable, Hashable {
     var id: Int
     var createdAt: String?
     var updatedAt: String?
@@ -699,7 +699,7 @@ struct WebsiteSSLCert: Codable, Identifiable, Hashable {
 /// POST /api/v2/websites/ssl/upload
 /// - type="paste": 粘贴 privateKey + certificate
 /// - type="local": 服务器文件路径 privateKeyPath + certificatePath
-struct WebsiteSSLUploadRequest: Encodable {
+nonisolated struct WebsiteSSLUploadRequest: Encodable {
     var privateKey: String = ""
     var certificate: String = ""
     var privateKeyPath: String = ""
@@ -711,26 +711,26 @@ struct WebsiteSSLUploadRequest: Encodable {
 
 /// 删除 SSL 证书请求
 /// POST /api/v2/websites/ssl/del
-struct WebsiteSSLDeleteRequest: Encodable {
+nonisolated struct WebsiteSSLDeleteRequest: Encodable {
     let ids: [Int]
 }
 
 /// 下载 SSL 证书请求
 /// POST /api/v2/websites/ssl/download
-struct WebsiteSSLDownloadRequest: Encodable {
+nonisolated struct WebsiteSSLDownloadRequest: Encodable {
     let id: Int
 }
 
 // MARK: - ACME 账户
 
 /// Acme 账户搜索请求
-struct AcmeSearchRequest: Encodable {
+nonisolated struct AcmeSearchRequest: Encodable {
     var page: Int = 1
     var pageSize: Int = 20
 }
 
 /// Acme 账户列表项（response.WebsiteAcmeDTO）
-struct AcmeAccount: Codable, Identifiable, Hashable {
+nonisolated struct AcmeAccount: Codable, Identifiable, Hashable {
     let id: Int
     let createdAt: String?
     let updatedAt: String?
@@ -746,7 +746,7 @@ struct AcmeAccount: Codable, Identifiable, Hashable {
 }
 
 /// 创建/更新 Acme 账户请求
-struct AcmeCreateRequest: Codable {
+nonisolated struct AcmeCreateRequest: Codable {
     var email: String
     var type: String
     var eabKid: String
@@ -800,13 +800,13 @@ enum SSLKeyType: String, CaseIterable, Identifiable {
 // MARK: - DNS 账户
 
 /// DNS 账户搜索请求
-struct DnsSearchRequest: Encodable {
+nonisolated struct DnsSearchRequest: Encodable {
     var page: Int = 1
     var pageSize: Int = 20
 }
 
 /// DNS 账户列表项（response.WebsiteDNSDTO）
-struct DNSAccount: Codable, Identifiable, Hashable {
+nonisolated struct DNSAccount: Codable, Identifiable, Hashable {
     let id: Int
     let createdAt: String?
     let updatedAt: String?
@@ -816,7 +816,7 @@ struct DNSAccount: Codable, Identifiable, Hashable {
 }
 
 /// DNS 账户的授权信息（灵活键值对）
-struct DNSAuth: Codable, Hashable {
+nonisolated struct DNSAuth: Codable, Hashable {
     var accessKey: String?
     var secretKey: String?
     var apiKey: String?
@@ -886,7 +886,7 @@ enum SSLProvider: String, CaseIterable, Identifiable {
 }
 
 /// 申请证书请求（request.WebsiteSSLCreate）
-struct WebsiteSSLCreateRequest: Codable {
+nonisolated struct WebsiteSSLCreateRequest: Codable {
     var id: Int = 0
     var primaryDomain: String = ""
     var otherDomains: String = ""
@@ -913,12 +913,12 @@ struct WebsiteSSLCreateRequest: Codable {
 }
 
 /// 重新申请证书请求
-struct WebsiteSSLObtainRequest: Encodable {
+nonisolated struct WebsiteSSLObtainRequest: Encodable {
     let id: Int
 }
 
 /// SSL 日志读取请求
-struct WebsiteSSLLogRequest: Encodable {
+nonisolated struct WebsiteSSLLogRequest: Encodable {
     let id: Int
     let type: String = "ssl"
     let page: Int
@@ -927,7 +927,7 @@ struct WebsiteSSLLogRequest: Encodable {
 }
 
 /// SSL 日志响应（response.FileRead）
-struct WebsiteSSLLogResponse: Decodable {
+nonisolated struct WebsiteSSLLogResponse: Decodable {
     let end: Bool?
     let path: String?
     let total: Int?
@@ -939,7 +939,7 @@ struct WebsiteSSLLogResponse: Decodable {
 // MARK: - 自签证书（CA 机构）
 
 /// 自签证书机构
-struct CertificateAuthority: Codable, Identifiable, Hashable {
+nonisolated struct CertificateAuthority: Codable, Identifiable, Hashable {
     let id: Int
     let createdAt: String?
     let updatedAt: String?
@@ -955,12 +955,12 @@ struct CertificateAuthority: Codable, Identifiable, Hashable {
     var city: String?
 }
 
-struct CASearchRequest: Encodable {
+nonisolated struct CASearchRequest: Encodable {
     var page: Int = 1
     var pageSize: Int = 20
 }
 
-struct CACreateRequest: Encodable {
+nonisolated struct CACreateRequest: Encodable {
     var name: String
     var keyType: String
     var commonName: String
@@ -971,7 +971,7 @@ struct CACreateRequest: Encodable {
     var city: String
 }
 
-struct CAObtainRequest: Encodable {
+nonisolated struct CAObtainRequest: Encodable {
     var keyType: String
     var domains: String
     var id: Int

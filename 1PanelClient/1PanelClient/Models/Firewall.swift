@@ -9,7 +9,7 @@
 import Foundation
 
 /// 防火墙基础状态（POST /firewall/base，body {name:"base"}）
-struct FirewallBase: Decodable {
+nonisolated struct FirewallBase: Decodable {
     let name: String?
     let isExist: Bool?
     let isActive: Bool?
@@ -29,7 +29,7 @@ struct FirewallBase: Decodable {
 /// 防火墙端口规则（/firewall/search 返回 items）
 /// 注意：API 返回的 id 恒为 0，无法用于唯一标识，
 /// 改用 port/protocol/address/strategy/family 组合做 Identifiable.id
-struct FirewallRule: Decodable, Identifiable, Hashable {
+nonisolated struct FirewallRule: Decodable, Identifiable, Hashable {
     let address: String?
     let port: String?
     let protocolField: String?
@@ -51,13 +51,13 @@ struct FirewallRule: Decodable, Identifiable, Hashable {
 }
 
 /// 操作请求（/firewall/operate）：start / stop / restart / enablePing / disablePing
-struct FirewallOperateRequest: Encodable {
+nonisolated struct FirewallOperateRequest: Encodable {
     let operation: String
     let withDockerRestart: Bool
 }
 
 /// 端口规则搜索请求（/firewall/search）
-struct FirewallSearchRequest: Encodable {
+nonisolated struct FirewallSearchRequest: Encodable {
     let type: String       // port
     let status: String
     let strategy: String
@@ -66,7 +66,7 @@ struct FirewallSearchRequest: Encodable {
 }
 
 /// 创建端口规则请求（/firewall/port）
-struct FirewallPortRequest: Encodable {
+nonisolated struct FirewallPortRequest: Encodable {
     let protocolField: String
     let source: String
     let strategy: String
@@ -82,7 +82,7 @@ struct FirewallPortRequest: Encodable {
 }
 
 /// 批量操作单条规则（/firewall/batch 的 rules 元素）
-struct FirewallBatchRule: Encodable {
+nonisolated struct FirewallBatchRule: Encodable {
     let operation: String   // remove
     let chain: String
     let address: String
@@ -98,13 +98,13 @@ struct FirewallBatchRule: Encodable {
 }
 
 /// 批量操作请求（/firewall/batch）
-struct FirewallBatchRequest: Encodable {
+nonisolated struct FirewallBatchRequest: Encodable {
     let type: String        // port
     let rules: [FirewallBatchRule]
 }
 
 /// 修改端口规则时的完整规则对象（oldRule/newRule 共用）
-struct FirewallRuleFull: Encodable {
+nonisolated struct FirewallRuleFull: Encodable {
     let id: Int
     let chain: String
     let family: String
@@ -131,7 +131,7 @@ struct FirewallRuleFull: Encodable {
 }
 
 /// 修改端口规则请求（/firewall/update/port）
-struct FirewallUpdatePortRequest: Encodable {
+nonisolated struct FirewallUpdatePortRequest: Encodable {
     let oldRule: FirewallRuleFull
     let newRule: FirewallRuleFull
 }

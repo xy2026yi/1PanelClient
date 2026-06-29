@@ -405,7 +405,7 @@ struct DatabaseSystemView: View {
             }
         } message: {
             if let db = pendingDeleteDb {
-                Text("确定删除数据库「\(db.name)」吗？删除后不可恢复。")
+                Text("确定删除数据库「\(db.name ?? "")」吗？删除后不可恢复。")
             }
         }
     }

@@ -7,7 +7,7 @@ import Foundation
 import SwiftUI
 
 /// 容器搜索请求（dto.PageContainer）
-struct ContainerSearchRequest: Encodable {
+nonisolated struct ContainerSearchRequest: Encodable {
     let page: Int
     let pageSize: Int
     let name: String
@@ -17,13 +17,13 @@ struct ContainerSearchRequest: Encodable {
 }
 
 /// 容器列表响应
-struct ContainerListResponse: Decodable {
+nonisolated struct ContainerListResponse: Decodable {
     let total: Int
     let items: [Container]?
 }
 
 /// 单个容器（1Panel v2 实际返回的字段，已通过 logs/输出11.log 验证）
-struct Container: Decodable, Identifiable, Hashable {
+nonisolated struct Container: Decodable, Identifiable, Hashable {
     let containerID: String
     let name: String
     let imageName: String?
@@ -88,14 +88,14 @@ struct Container: Decodable, Identifiable, Hashable {
 
 // MARK: - Docker 服务状态（GET /containers/docker/status）
 
-struct DockerStatus: Decodable {
+nonisolated struct DockerStatus: Decodable {
     let isActive: Bool?
     let isExist: Bool?
 }
 
 // MARK: - 容器运行时指标（GET /containers/list/stats）
 
-struct ContainerStats: Decodable {
+nonisolated struct ContainerStats: Decodable {
     let containerID: String?
     let cpuPercent: Double?
     let memoryUsage: Int64?
@@ -105,13 +105,13 @@ struct ContainerStats: Decodable {
 
 // MARK: - Docker 操作请求（POST /containers/docker/operate）
 
-struct DockerOperateRequest: Encodable {
+nonisolated struct DockerOperateRequest: Encodable {
     let operation: String  // start / stop / restart
 }
 
 // MARK: - 清理请求（POST /containers/prune）
 
-struct ContainerPruneRequest: Encodable {
+nonisolated struct ContainerPruneRequest: Encodable {
     let taskID: String
     let pruneType: String  // container / image
     let withTagAll: Bool
@@ -119,7 +119,7 @@ struct ContainerPruneRequest: Encodable {
 
 // MARK: - 单容器操作请求（POST /containers/operate）
 
-struct ContainerOperateRequest: Encodable {
+nonisolated struct ContainerOperateRequest: Encodable {
     let names: [String]
     let operation: String  // stop / start / restart / kill
     let taskID: String
@@ -127,18 +127,18 @@ struct ContainerOperateRequest: Encodable {
 
 // MARK: - 按镜像查询容器（POST /containers/list/byimage）
 
-struct ContainerByImageRequest: Encodable {
+nonisolated struct ContainerByImageRequest: Encodable {
     let name: String
 }
 
-struct ContainerByImageItem: Decodable {
+nonisolated struct ContainerByImageItem: Decodable {
     let name: String?
     let state: String?
 }
 
 // MARK: - 容器升级请求（POST /containers/upgrade）
 
-struct ContainerUpgradeRequest: Encodable {
+nonisolated struct ContainerUpgradeRequest: Encodable {
     let taskID: String
     let names: [String]
     let image: String
@@ -147,7 +147,7 @@ struct ContainerUpgradeRequest: Encodable {
 
 // MARK: - 镜像仓库（POST /containers/repo/search）
 
-struct ContainerRepo: Decodable, Identifiable {
+nonisolated struct ContainerRepo: Decodable, Identifiable {
     let id: Int
     let name: String?
     let downloadUrl: String?
@@ -165,7 +165,7 @@ struct ContainerRepo: Decodable, Identifiable {
 
 // MARK: - 拉取镜像请求（POST /containers/image/pull）
 
-struct ImagePullRequest: Encodable {
+nonisolated struct ImagePullRequest: Encodable {
     let taskID: String
     let fromRepo: Bool
     let repoID: Int
@@ -174,7 +174,7 @@ struct ImagePullRequest: Encodable {
 
 // MARK: - 删除镜像请求（POST /containers/image/delete）
 
-struct ImageDeleteRequest: Encodable {
+nonisolated struct ImageDeleteRequest: Encodable {
     let names: [String]
     let user: String
 
@@ -186,7 +186,7 @@ struct ImageDeleteRequest: Encodable {
 
 // MARK: - 镜像（GET /containers/image/all）
 
-struct ContainerImage: Decodable, Identifiable {
+nonisolated struct ContainerImage: Decodable, Identifiable {
     let id: String
     let createdAt: String?
     let isUsed: Bool?
@@ -218,7 +218,7 @@ struct ContainerImage: Decodable, Identifiable {
 // MARK: - 容器详情配置（POST /containers/info）
 
 /// 容器网络挂载信息（info.networks）
-struct ContainerNetworkInfo: Codable {
+nonisolated struct ContainerNetworkInfo: Codable {
     var network: String
     var ipv4: String?
     var ipv6: String?
@@ -226,7 +226,7 @@ struct ContainerNetworkInfo: Codable {
 }
 
 /// 容器端口映射（info.exposedPorts）
-struct ContainerPortInfo: Codable {
+nonisolated struct ContainerPortInfo: Codable {
     var hostIP: String
     var hostPort: String
     var containerPort: String
@@ -239,7 +239,7 @@ struct ContainerPortInfo: Codable {
 }
 
 /// 容器卷映射（info.volumes）
-struct ContainerVolumeInfo: Codable {
+nonisolated struct ContainerVolumeInfo: Codable {
     var type: String
     var sourceDir: String
     var containerDir: String
@@ -249,7 +249,7 @@ struct ContainerVolumeInfo: Codable {
 
 /// 容器完整配置（POST /containers/info 返回）
 /// 字段名严格对齐 1Panel v2 返回；多数字段用于回写 update 接口
-struct ContainerInfo: Decodable {
+nonisolated struct ContainerInfo: Decodable {
     let taskID: String?
     let forcePull: Bool?
     let name: String
@@ -279,13 +279,13 @@ struct ContainerInfo: Decodable {
 
 // MARK: - 镜像选项（GET /containers/image 返回 [{option:"..."}]）
 
-struct ContainerOption: Decodable {
+nonisolated struct ContainerOption: Decodable {
     let option: String
 }
 
 // MARK: - CPU/内存上限（GET /containers/limit 返回 {cpu, memory}）
 
-struct ContainerLimit: Decodable {
+nonisolated struct ContainerLimit: Decodable {
     let cpu: Int?
     let memory: Int64?
 }
@@ -293,7 +293,7 @@ struct ContainerLimit: Decodable {
 // MARK: - 创建容器表单数据
 
 /// 端口映射可编辑行
-struct CreatePortRow: Identifiable {
+nonisolated struct CreatePortRow: Identifiable {
     let id = UUID()
     var host = ""
     var containerPort = ""
@@ -301,7 +301,7 @@ struct CreatePortRow: Identifiable {
 }
 
 /// 存储卷可编辑行
-struct CreateVolumeRow: Identifiable {
+nonisolated struct CreateVolumeRow: Identifiable {
     let id = UUID()
     var type = "bind"
     var sourceDir = ""
@@ -311,7 +311,7 @@ struct CreateVolumeRow: Identifiable {
 }
 
 /// 创建容器草稿（表单编辑态，提交时转 ContainerUpdateRequest 发送）
-struct ContainerCreateDraft {
+nonisolated struct ContainerCreateDraft {
     var name = ""
     var image = ""
     var forcePull = false
@@ -332,7 +332,7 @@ struct ContainerCreateDraft {
 
 // MARK: - 更新端口（update.exposedPorts 比 info 多 host 字段）
 
-struct ContainerUpdatePort: Encodable {
+nonisolated struct ContainerUpdatePort: Encodable {
     let hostIP: String
     let hostPort: String
     let containerPort: String
@@ -348,7 +348,7 @@ struct ContainerUpdatePort: Encodable {
 
 // MARK: - 更新容器请求（POST /containers/update）
 
-struct ContainerUpdateRequest: Encodable {
+nonisolated struct ContainerUpdateRequest: Encodable {
     let taskID: String
     let name: String
     let image: String

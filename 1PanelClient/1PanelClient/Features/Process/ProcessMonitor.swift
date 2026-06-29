@@ -190,8 +190,8 @@ final class ProcessMonitor: ObservableObject {
         task = ws
 
         ws.sendPing { [weak self] error in
+            guard let self else { return }
             Task { @MainActor in
-                guard let self else { return }
                 if let error {
                     self.handleDisconnect(error: error)
                     return

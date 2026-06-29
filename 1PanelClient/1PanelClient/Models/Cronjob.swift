@@ -62,7 +62,7 @@ enum CronjobType: String, CaseIterable, Identifiable, Codable {
 // MARK: - 计划任务列表
 
 /// 计划任务搜索请求
-struct CronjobSearchRequest: Encodable {
+nonisolated struct CronjobSearchRequest: Encodable {
     var page: Int = 1
     var pageSize: Int = 20
     var orderBy: String = "createdAt"
@@ -70,13 +70,13 @@ struct CronjobSearchRequest: Encodable {
 }
 
 /// 计划任务列表响应
-struct CronjobListResponse: Decodable {
+nonisolated struct CronjobListResponse: Decodable {
     let total: Int
     let items: [Cronjob]?
 }
 
 /// 单个计划任务（response.CronjobDTO，仅取列表/详情展示所需字段）
-struct Cronjob: Decodable, Identifiable, Hashable {
+nonisolated struct Cronjob: Decodable, Identifiable, Hashable {
     let id: Int
     let name: String?
     let type: String?                  // CronjobType.rawValue
@@ -148,7 +148,7 @@ struct Cronjob: Decodable, Identifiable, Hashable {
 // MARK: - 创建/编辑计划任务
 
 /// 计划任务分组（response.CronjobGroup）
-struct CronjobGroup: Decodable, Identifiable, Hashable {
+nonisolated struct CronjobGroup: Decodable, Identifiable, Hashable {
     let id: Int
     let name: String?
     let type: String?
@@ -156,7 +156,7 @@ struct CronjobGroup: Decodable, Identifiable, Hashable {
 }
 
 /// 备份账号
-struct BackupOption: Decodable, Identifiable, Hashable {
+nonisolated struct BackupOption: Decodable, Identifiable, Hashable {
     let id: Int
     let name: String?
     let type: String?
@@ -164,17 +164,17 @@ struct BackupOption: Decodable, Identifiable, Hashable {
 }
 
 /// 分组查询请求
-struct CronjobGroupRequest: Encodable {
+nonisolated struct CronjobGroupRequest: Encodable {
     let type: String
 }
 
 /// 手动执行计划任务请求
-struct CronjobHandleRequest: Encodable {
+nonisolated struct CronjobHandleRequest: Encodable {
     let id: Int
 }
 
 /// 删除计划任务请求
-struct CronjobDeleteRequest: Encodable {
+nonisolated struct CronjobDeleteRequest: Encodable {
     let ids: [Int]
     var cleanData: Bool = false
     var cleanRemoteData: Bool = false
@@ -183,7 +183,7 @@ struct CronjobDeleteRequest: Encodable {
 // MARK: - 执行记录
 
 /// 执行记录查询请求
-struct CronjobRecordSearchRequest: Encodable {
+nonisolated struct CronjobRecordSearchRequest: Encodable {
     let page: Int
     let pageSize: Int
     let cronjobID: Int
@@ -193,13 +193,13 @@ struct CronjobRecordSearchRequest: Encodable {
 }
 
 /// 执行记录列表响应
-struct CronjobRecordListResponse: Decodable {
+nonisolated struct CronjobRecordListResponse: Decodable {
     let total: Int
     let items: [CronjobRecord]?
 }
 
 /// 单条执行记录
-struct CronjobRecord: Decodable, Identifiable, Hashable {
+nonisolated struct CronjobRecord: Decodable, Identifiable, Hashable {
     let id: Int?
     let taskID: String?
     let startTime: String?
@@ -244,7 +244,7 @@ struct CronjobRecord: Decodable, Identifiable, Hashable {
 // MARK: - 任务日志（复用 files/read）
 
 /// 任务日志请求（与 WebsiteLogReadRequest 类似但 taskID 不同）
-struct CronjobLogRequest: Encodable {
+nonisolated struct CronjobLogRequest: Encodable {
     let type = "task"
     let page: Int
     let pageSize: Int
@@ -253,7 +253,7 @@ struct CronjobLogRequest: Encodable {
 }
 
 /// 任务日志响应
-struct CronjobLogResponse: Decodable {
+nonisolated struct CronjobLogResponse: Decodable {
     let end: Bool?
     let path: String?
     let total: Int?
@@ -265,7 +265,7 @@ struct CronjobLogResponse: Decodable {
 // MARK: - 创建任务请求体（全字段，用于 POST /api/v2/cronjobs）
 
 /// 创建计划任务请求（覆盖 5 种类型，未使用字段保持默认空值）
-struct CronjobCreateRequest: Encodable {
+nonisolated struct CronjobCreateRequest: Encodable {
     var id: Int = 0
     var name: String = ""
     var type: String = "shell"
@@ -318,7 +318,7 @@ struct CronjobCreateRequest: Encodable {
 }
 
 /// cron 周期描述对象（perHour/perDay/perWeek/perMonth）
-struct CronjobSpecObj: Encodable {
+nonisolated struct CronjobSpecObj: Encodable {
     var specType: String = "perDay"
     var week: Int = 0
     var day: Int = 0
@@ -328,7 +328,7 @@ struct CronjobSpecObj: Encodable {
 }
 
 /// 快照规则（仅 snapshot 类型使用）
-struct CronjobSnapshotRule: Encodable {
+nonisolated struct CronjobSnapshotRule: Encodable {
     var withImage: Bool = false
     var ignoreAppIDs: [Int] = []
 }

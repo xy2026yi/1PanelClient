@@ -143,8 +143,6 @@ struct ManageTab: View {
             ProcessView(server: server)
         case .toolbox:
             ToolboxView(server: server)
-        default:
-            EmptyView()
         }
     }
 }
@@ -313,7 +311,6 @@ enum ManageItem: String, Identifiable {
     var available: Bool {
         switch self {
         case .apps, .websites, .containers, .terminal, .cronjob, .firewall, .database, .process, .toolbox: return true
-        default: return false
         }
     }
 }

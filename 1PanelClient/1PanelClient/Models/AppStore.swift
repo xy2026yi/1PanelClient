@@ -11,7 +11,7 @@ import Foundation
 // MARK: - 应用商店搜索
 
 /// 应用商店搜索请求（request.AppSearch）
-struct AppSearchRequest: Encodable {
+nonisolated struct AppSearchRequest: Encodable {
     let name: String
     let page: Int
     let pageSize: Int
@@ -23,13 +23,13 @@ struct AppSearchRequest: Encodable {
 }
 
 /// 应用商店搜索响应（response.AppRes）
-struct AppSearchResponse: Decodable {
+nonisolated struct AppSearchResponse: Decodable {
     let total: Int
     let items: [AppStoreApp]?
 }
 
 /// 应用商店列表项（response.AppItem）
-struct AppStoreApp: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct AppStoreApp: Decodable, Identifiable, Hashable, Sendable {
     let id: Int
     let key: String?
     let name: String?
@@ -72,7 +72,7 @@ struct AppStoreApp: Decodable, Identifiable, Hashable, Sendable {
 // MARK: - 应用商店详情
 
 /// 应用商店应用详情（response.AppDTO）
-struct AppStoreDetail: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct AppStoreDetail: Decodable, Identifiable, Hashable, Sendable {
     let id: Int
     let key: String?
     let name: String?
@@ -95,7 +95,7 @@ struct AppStoreDetail: Decodable, Identifiable, Hashable, Sendable {
     let memoryRequired: Int?
     let requiredPanelVersion: Double?
 
-    struct AppTag: Decodable, Hashable, Sendable {
+    nonisolated struct AppTag: Decodable, Hashable, Sendable {
         let id: Int?
         let key: String?
         let name: String?
@@ -111,7 +111,7 @@ struct AppStoreDetail: Decodable, Identifiable, Hashable, Sendable {
 
 /// 应用版本详情（response.AppDetailDTO）
 /// 包含 docker-compose 模板和参数表单字段定义
-struct AppDetail: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct AppDetail: Decodable, Identifiable, Hashable, Sendable {
     let id: Int              // appDetailId
     let appId: Int?
     let version: String?
@@ -131,7 +131,7 @@ struct AppDetail: Decodable, Identifiable, Hashable, Sendable {
 /// 参数表单定义（AppDetail.params）
 /// 1Panel 后端返回的结构：{ formFields: [...] }
 /// 部分应用可能返回 [] 或 null，自定义解码器兼容多种格式
-struct AppFormParams: Decodable, Hashable, Sendable {
+nonisolated struct AppFormParams: Decodable, Hashable, Sendable {
     let formFields: [AppFormField]?
 
     init(formFields: [AppFormField]? = nil) {
@@ -160,7 +160,7 @@ struct AppFormParams: Decodable, Hashable, Sendable {
 
 /// 单个表单字段定义
 /// 支持多种字段类型：number / text / select / apps / password / service
-struct AppFormField: Decodable, Hashable, Sendable {
+nonisolated struct AppFormField: Decodable, Hashable, Sendable {
     let envKey: String?
     let type: String?          // "number" / "text" / "select" / "apps" / "password" / "service"
     let labelZh: String?
@@ -179,7 +179,7 @@ struct AppFormField: Decodable, Hashable, Sendable {
 }
 
 /// apps 类型字段的关联子字段（如数据库应用选择后需要填充 DB_HOST）
-struct AppFormFieldChild: Decodable, Hashable, Sendable {
+nonisolated struct AppFormFieldChild: Decodable, Hashable, Sendable {
     let envKey: String?
     let `default`: String?
     let required: Bool?
@@ -188,7 +188,7 @@ struct AppFormFieldChild: Decodable, Hashable, Sendable {
 
 /// select/apps 候选项值
 /// 可能是简单字符串 "mysql"，也可能是对象 {label:"MySQL", value:"mysql"}
-struct FormFieldValueItem: Decodable, Hashable, Sendable {
+nonisolated struct FormFieldValueItem: Decodable, Hashable, Sendable {
     let label: String?
     let value: String?
 
@@ -247,7 +247,7 @@ enum FormFieldValue: Decodable, Hashable, Sendable {
 
 /// 应用安装请求（request.AppInstallCreate）
 /// 通过 doc/网页安装app请求抓取.log + doc/安装应用修复.md 完整抓包验证字段
-struct AppInstallCreateRequest: Encodable {
+nonisolated struct AppInstallCreateRequest: Encodable {
     let appDetailId: Int
     let params: [String: AnyCodableValue]
     let name: String
@@ -289,7 +289,7 @@ enum AnyCodableValue: Encodable {
 // MARK: - 忽略升级
 
 /// 忽略升级请求（request.AppIgnoreUpgradeReq）
-struct AppIgnoreUpgradeRequest: Encodable {
+nonisolated struct AppIgnoreUpgradeRequest: Encodable {
     let appID: Int
     let scope: String           // "all" 或 "version"
     let appDetailID: Int?       // scope=version 时指定版本
@@ -297,7 +297,7 @@ struct AppIgnoreUpgradeRequest: Encodable {
 
 /// 忽略升级记录（model.AppIgnoreUpgrade）
 /// 通过 doc/取消升级以及卸载应用抓取信息.log 验证字段（注意 ID 为大写）
-struct AppIgnoreUpgrade: Decodable, Identifiable, Sendable {
+nonisolated struct AppIgnoreUpgrade: Decodable, Identifiable, Sendable {
     let id: Int
     let appID: Int?
     let appDetailID: Int?
@@ -315,19 +315,19 @@ struct AppIgnoreUpgrade: Decodable, Identifiable, Sendable {
 }
 
 /// 通用 ID 请求（request.ReqWithID）
-struct ReqWithID: Encodable {
+nonisolated struct ReqWithID: Encodable {
     let id: Int
 }
 
 /// 带 taskID 的请求（应用商店同步接口使用）
-struct ReqWithTaskID: Encodable {
+nonisolated struct ReqWithTaskID: Encodable {
     let taskID: String
 }
 
 // MARK: - 数据库服务（安装关联数据库应用时使用）
 
 /// 数据库服务项（GET /api/v2/apps/services/:type 返回）
-struct AppServiceItem: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct AppServiceItem: Decodable, Identifiable, Hashable, Sendable {
     let label: String?
     let value: String?
     let config: [String: String]?

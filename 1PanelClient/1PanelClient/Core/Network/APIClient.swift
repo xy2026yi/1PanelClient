@@ -264,9 +264,9 @@ final class APIClient {
 
 // MARK: - 辅助类型
 
-struct EmptyResponse: Codable {}
+nonisolated struct EmptyResponse: Codable {}
 
-struct AnyEncodable: Encodable {
+nonisolated struct AnyEncodable: Encodable {
     private let encodeFunc: (Encoder) throws -> Void
     init(_ wrapped: any Encodable) {
         self.encodeFunc = wrapped.encode

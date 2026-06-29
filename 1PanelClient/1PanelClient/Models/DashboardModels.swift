@@ -7,7 +7,7 @@ import Foundation
 
 /// 操作系统基础信息
 /// 对应 GET /api/v2/dashboard/base/os（已通过 logs/输出14.log 验证）
-struct OsInfo: Decodable, Sendable {
+nonisolated struct OsInfo: Decodable, Sendable {
     let os: String?
     let platform: String?
     let platformFamily: String?
@@ -20,7 +20,7 @@ struct OsInfo: Decodable, Sendable {
 
 /// 仪表盘完整基础信息
 /// 对应 GET /api/v2/dashboard/base/:ioOption/:netOption
-struct DashboardBase: Decodable, Sendable {
+nonisolated struct DashboardBase: Decodable, Sendable {
     let hostname: String?
     let os: String?
     let platform: String?
@@ -47,7 +47,7 @@ struct DashboardBase: Decodable, Sendable {
 }
 
 /// 实时监控数据（DashboardBase.currentInfo）
-struct DashboardCurrent: Decodable, Sendable {
+nonisolated struct DashboardCurrent: Decodable, Sendable {
     let cpuUsedPercent: Double?
     let cpuUsed: Double?
     let cpuTotal: Int?
@@ -81,7 +81,7 @@ struct DashboardCurrent: Decodable, Sendable {
 }
 
 /// 单个挂载点的磁盘使用信息
-struct DiskData: Decodable, Sendable {
+nonisolated struct DiskData: Decodable, Sendable {
     let path: String?
     let type: String?
     let device: String?
@@ -92,7 +92,7 @@ struct DiskData: Decodable, Sendable {
 }
 
 /// CPU/内存 TOP 进程（GET /dashboard/current/top/cpu）
-struct ProcessInfo: Decodable, Identifiable, Sendable {
+nonisolated struct ProcessInfo: Decodable, Identifiable, Sendable {
     let pid: Int?
     let name: String?
     let cmd: String?
@@ -109,7 +109,7 @@ struct ProcessInfo: Decodable, Identifiable, Sendable {
 
 /// 面板系统设置信息（POST /core/settings/search）
 /// 用于获取面板版本号等
-struct SettingInfo: Decodable, Sendable {
+nonisolated struct SettingInfo: Decodable, Sendable {
     let systemVersion: String?
     let systemIP: String?
     let timeZone: String?
@@ -129,7 +129,7 @@ struct SettingInfo: Decodable, Sendable {
 
 /// 面板版本更新检查结果
 /// 对应 GET /api/v2/core/settings/upgrade
-struct PanelUpgradeInfo: Decodable {
+nonisolated struct PanelUpgradeInfo: Decodable {
     let latestVersion: String?
     let releaseNote: String?
 
@@ -141,7 +141,7 @@ struct PanelUpgradeInfo: Decodable {
 
 /// 版本更新日志条目
 /// 对应 GET /api/v2/core/settings/upgrade/releases 返回数组中的元素
-struct PanelRelease: Decodable, Identifiable {
+nonisolated struct PanelRelease: Decodable, Identifiable {
     let version: String
     let createdAt: String?
     let content: String?
@@ -153,6 +153,6 @@ struct PanelRelease: Decodable, Identifiable {
 }
 
 /// 面板版本升级请求
-struct PanelUpgradeRequest: Encodable {
+nonisolated struct PanelUpgradeRequest: Encodable {
     let version: String
 }
