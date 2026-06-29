@@ -26,7 +26,7 @@ nonisolated func resolveI18n(_ raw: String) -> String {
 }
 
 /// 从语言映射中按简体→繁体→英文→首项优先级取值
-private func pickLang(_ dict: [String: String]) -> String? {
+private nonisolated func pickLang(_ dict: [String: String]) -> String? {
     let prefs = ["zh-CN", "zh-Hans", "zh-hant", "zh-Hant", "zh-TW", "zh-tw", "zh"]
     for p in prefs {
         if let v = dict[p], !v.isEmpty { return v }
@@ -37,7 +37,7 @@ private func pickLang(_ dict: [String: String]) -> String? {
 }
 
 /// 松散格式 {en: text, zh-hant: 文本}（键值无引号）的兜底解析
-private func resolveI18nLoose(_ s: String) -> String? {
+private nonisolated func resolveI18nLoose(_ s: String) -> String? {
     let inner = String(s.dropFirst().dropLast())
     let langPattern = "(?:^|,\\s*)(en|zh-Hant|zh-hant|zh-CN|zh-Hans|zh-TW|zh-tw|zh|ja|ko|fr|de|es|ru|tr|ms|pt-BR|pt)\\s*:\\s*"
     guard let regex = try? NSRegularExpression(pattern: langPattern) else { return nil }
