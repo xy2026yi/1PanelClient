@@ -43,6 +43,7 @@ struct OverviewTab: View {
                     }
                 }
                 .padding()
+                .padding(.bottom, 44)
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
