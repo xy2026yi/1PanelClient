@@ -74,10 +74,6 @@ struct OverviewTab: View {
                 ForEach(manager.servers) { s in
                     Button(s.name) {
                         manager.select(s)
-                        if let new = manager.current {
-                            vm.switchServer(new)
-                            Task { await vm.refresh() }
-                        }
                     }
                 }
                 Button("添加服务器") { showAddSheet = true }
@@ -100,6 +96,13 @@ struct OverviewTab: View {
                 if !Task.isCancelled {
                     await vm.refreshCurrent()
                 }
+            }
+        }
+        // 服务器切换时（设置页添加/切换、首页下拉选择）自动重建 ViewModel 并刷新
+        .onChange(of: manager.currentServerID) { _ in
+            if let new = manager.current {
+                vm.switchServer(new)
+                Task { await vm.refresh() }
             }
         }
     }
