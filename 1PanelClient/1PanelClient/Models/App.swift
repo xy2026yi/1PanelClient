@@ -199,6 +199,10 @@ nonisolated struct AppVersion: Decodable, Identifiable, Sendable {
 /// 查询可用更新版本的请求 body
 nonisolated struct AppUpdateVersionsRequest: Encodable {
     let appInstallId: Int
+
+    enum CodingKeys: String, CodingKey {
+        case appInstallId = "appInstallID"
+    }
 }
 
 // MARK: - 更新已安装应用参数（重建应用）

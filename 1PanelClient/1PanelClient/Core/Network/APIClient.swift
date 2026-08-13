@@ -17,6 +17,8 @@ final class APIClient {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
         config.timeoutIntervalForResource = 30
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.urlCache = nil
         config.httpCookieAcceptPolicy = .always
         config.httpShouldSetCookies = true
         config.httpCookieStorage = nil
@@ -63,6 +65,7 @@ final class APIClient {
         }
 
         var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.httpMethod = method
         for (k, v) in generateHeaders() {
             request.setValue(v, forHTTPHeaderField: k)
@@ -123,6 +126,7 @@ final class APIClient {
             throw APIError.invalidURL
         }
         var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.httpMethod = method
         for (k, v) in generateHeaders() {
             request.setValue(v, forHTTPHeaderField: k)
@@ -164,6 +168,7 @@ final class APIClient {
             throw APIError.invalidURL
         }
         var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.httpMethod = "GET"
         for (k, v) in generateHeaders() {
             request.setValue(v, forHTTPHeaderField: k)
@@ -210,6 +215,7 @@ final class APIClient {
         }
 
         var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.httpMethod = "GET"
         for (k, v) in generateHeaders() {
             request.setValue(v, forHTTPHeaderField: k)

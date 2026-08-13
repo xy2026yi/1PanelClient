@@ -1201,6 +1201,13 @@ struct ComposeEditorView: View {
                         .frame(minHeight: 240)
                         .scrollContentBackground(.hidden)
                         .background(Color(.secondarySystemBackground))
+                } else if newCompose.isEmpty {
+                    ContentUnavailableView(
+                        "未获取到新版本配置",
+                        systemImage: "doc.text.magnifyingglass",
+                        description: Text("请返回后重新打开升级对比，或检查版本接口是否返回 dockerCompose 字段")
+                    )
+                    .frame(minHeight: 160)
                 } else {
                     CodePreview(text: newCompose, color: .primary)
                         .frame(minHeight: 200)
@@ -1707,6 +1714,8 @@ final class AppsViewModel: ObservableObject {
 
     func loadVersions(for app: AppInstall) async {
         availableVersions = []
+        selectedVersion = nil
+        upgradeSuccess = false
         isLoadingVersions = true
         showUpgradeSheet = true
 
@@ -1714,6 +1723,7 @@ final class AppsViewModel: ObservableObject {
             let versions: [AppVersion] = try await client.send(
                 path: APIEndpoint.appsUpdateVersions.path,
                 body: AppUpdateVersionsRequest(appInstallId: app.id),
+                queryItems: [URLQueryItem(name: "operateNode", value: "local")],
                 as: [AppVersion].self
             )
             let currentDetailId = app.appDetailID ?? -1

@@ -138,7 +138,7 @@ struct OverviewTab: View {
                 Spacer()
                 Text(vm.settingInfo?.systemVersion.flatMap { $0.isEmpty ? nil : $0 } ?? "未知")
                     .foregroundStyle(.primary)
-                if vm.upgradeInfo?.hasUpdate == true {
+                if vm.upgradeInfo?.hasUpdate(comparedTo: vm.settingInfo?.systemVersion) == true {
                     Text("有更新")
                         .font(.caption2)
                         .fontWeight(.medium)
@@ -553,8 +553,8 @@ final class OverviewViewModel: ObservableObject {
         if let d { self.deviceInfo = d }
         if let s { self.settingInfo = s }
         if let c { self.currentInfo = c }
-        if let au { self.appUpdateCount = au.total }
-        if let up { self.upgradeInfo = up }
+        self.appUpdateCount = au?.total ?? 0
+        self.upgradeInfo = up
 
         // 仅在完全无数据时才显示错误（刷新失败时保留旧数据）
         if base == nil && osInfo == nil && deviceInfo == nil {
@@ -578,10 +578,12 @@ final class OverviewViewModel: ObservableObject {
 
 struct PanelUpgradeView: View {
     let server: ServerConfig
-    let currentVersion: String?
-    let upgradeInfo: PanelUpgradeInfo?
+    let initialCurrentVersion: String?
+    let initialUpgradeInfo: PanelUpgradeInfo?
 
     @State private var releases: [PanelRelease] = []
+    @State private var latestSettingInfo: SettingInfo?
+    @State private var latestUpgradeInfo: PanelUpgradeInfo?
     @State private var isLoading = false
     @State private var isUpgrading = false
     @State private var errorMessage: String?
@@ -589,10 +591,18 @@ struct PanelUpgradeView: View {
 
     private let client: APIClient
 
+    private var currentVersion: String? {
+        latestSettingInfo?.systemVersion ?? initialCurrentVersion
+    }
+
+    private var upgradeInfo: PanelUpgradeInfo? {
+        latestUpgradeInfo ?? initialUpgradeInfo
+    }
+
     init(server: ServerConfig, currentVersion: String?, upgradeInfo: PanelUpgradeInfo?) {
         self.server = server
-        self.currentVersion = currentVersion
-        self.upgradeInfo = upgradeInfo
+        self.initialCurrentVersion = currentVersion
+        self.initialUpgradeInfo = upgradeInfo
         self.client = APIClient(server: server)
     }
 
@@ -605,7 +615,7 @@ struct PanelUpgradeView: View {
                 } else if releases.isEmpty {
                     ContentUnavailableView("暂无更新日志", systemImage: "doc.text.magnifyingglass")
                 } else {
-                    if upgradeInfo?.hasUpdate == true, let latest = upgradeInfo?.latestVersion {
+                    if upgradeInfo?.hasUpdate(comparedTo: currentVersion) == true, let latest = upgradeInfo?.latestVersion {
                         updateBanner(latestVersion: latest)
                     }
 
@@ -705,12 +715,24 @@ struct PanelUpgradeView: View {
     private func loadReleases() async {
         isLoading = true
         do {
-            let resp: [PanelRelease] = try await client.send(
+            async let releasesResponse: [PanelRelease] = client.send(
                 path: APIEndpoint.settingsUpgradeReleases.path,
                 method: APIEndpoint.settingsUpgradeReleases.method,
                 as: [PanelRelease].self
             )
-            releases = resp
+            async let settingsResponse: SettingInfo? = try? await client.send(
+                path: APIEndpoint.settingsSearch.path,
+                as: SettingInfo.self
+            )
+            async let upgradeResponse: PanelUpgradeInfo? = try? await client.send(
+                path: APIEndpoint.settingsUpgradeCheck.path,
+                method: APIEndpoint.settingsUpgradeCheck.method,
+                as: PanelUpgradeInfo.self
+            )
+
+            releases = try await releasesResponse
+            latestSettingInfo = await settingsResponse
+            latestUpgradeInfo = await upgradeResponse
         } catch {
             errorMessage = error.localizedDescription
         }

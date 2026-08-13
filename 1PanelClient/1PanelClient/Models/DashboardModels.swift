@@ -134,8 +134,28 @@ nonisolated struct PanelUpgradeInfo: Decodable {
     let releaseNote: String?
 
     var hasUpdate: Bool {
-        guard let v = latestVersion, !v.isEmpty else { return false }
+        guard let version = latestVersion, !version.isEmpty else { return false }
         return true
+    }
+
+    func hasUpdate(comparedTo currentVersion: String?) -> Bool {
+        guard let latestVersion = normalizedVersion(latestVersion), !latestVersion.isEmpty else {
+            return false
+        }
+        guard let currentVersion = normalizedVersion(currentVersion), !currentVersion.isEmpty else {
+            return true
+        }
+        return latestVersion != currentVersion
+    }
+
+    private func normalizedVersion(_ version: String?) -> String? {
+        guard var normalizedVersion = version?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+            return nil
+        }
+        if normalizedVersion.hasPrefix("v") || normalizedVersion.hasPrefix("V") {
+            normalizedVersion.removeFirst()
+        }
+        return normalizedVersion
     }
 }
 
