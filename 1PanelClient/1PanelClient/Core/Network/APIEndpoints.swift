@@ -99,6 +99,8 @@ enum APIEndpoint {
     // MARK: - 计划任务
     case cronjobsSearch           // POST 分页查询计划任务
     case cronjobsCreate           // POST 创建计划任务
+    case cronjobsUpdate           // POST 更新计划任务
+    case cronjobsLoadInfo         // POST 加载计划任务详情（编辑用）
     case cronjobsHandle           // POST 手动执行计划任务
     case cronjobsDelete           // POST 删除计划任务
     case cronjobsRecords          // POST 查询计划任务执行记录
@@ -300,6 +302,8 @@ enum APIEndpoint {
         case .openrestyReset:        return "/api/v2/apps/installed/conf"
         case .cronjobsSearch:        return "/api/v2/cronjobs/search"
         case .cronjobsCreate:        return "/api/v2/cronjobs"
+        case .cronjobsUpdate:        return "/api/v2/cronjobs/update"
+        case .cronjobsLoadInfo:      return "/api/v2/cronjobs/load/info"
         case .cronjobsHandle:        return "/api/v2/cronjobs/handle"
         case .cronjobsDelete:        return "/api/v2/cronjobs/del"
         case .cronjobsRecords:       return "/api/v2/cronjobs/search/records"

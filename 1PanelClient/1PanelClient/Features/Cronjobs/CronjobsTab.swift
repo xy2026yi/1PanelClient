@@ -86,7 +86,7 @@ struct CronjobsTab: View {
             }
         }
         .navigationDestination(for: Cronjob.self) { job in
-            CronjobDetailView(job: job, vm: vm)
+            CronjobDetailView(job: job, vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
         .overlay(alignment: .bottomTrailing) {
             Button {
@@ -198,35 +198,47 @@ struct CronjobRow: View {
 struct CronjobDetailView: View {
     let job: Cronjob
     @ObservedObject var vm: CronjobsViewModel
+    var server: ServerConfig = ServerConfig(name: "", baseURL: "", apiKey: "")
+    @Environment(\.dismiss) private var dismiss
+    @State private var editingInfo: CronjobInfo?
+    @State private var showEditView = false
+    @State private var isLoadingEditInfo = false
+
+    /// 从 ViewModel 列表中查找最新的任务数据。
+    /// 编辑后 vm.cronjobs 会刷新，此属性返回更新后的版本；
+    /// 如果列表中已无此任务（被删除），则回退到原始 job。
+    private var currentJob: Cronjob {
+        vm.cronjobs.first(where: { $0.id == job.id }) ?? job
+    }
 
     var body: some View {
         List {
             Section("基本信息") {
-                LabeledRow("名称", value: job.name ?? "—")
-                LabeledRow("类型", value: job.jobType.displayName)
-                LabeledRow("执行周期", value: job.specDisplay)
-                LabeledRow("状态", value: job.isEnabled ? "启用" : "停用")
-                LabeledRow("保留份数", value: job.retainCopiesDisplay)
-                if let r = job.retryTimes, r > 0 {
+                LabeledRow("名称", value: currentJob.name ?? "—")
+                LabeledRow("类型", value: currentJob.jobType.displayName)
+                LabeledRow("执行周期", value: currentJob.specDisplay)
+                LabeledRow("状态", value: currentJob.isEnabled ? "启用" : "停用")
+                LabeledRow("保留份数", value: currentJob.retainCopiesDisplay)
+                if let r = currentJob.retryTimes, r > 0 {
                     LabeledRow("重试次数", value: "\(r) 次")
                 }
-                if let t = job.timeout, t > 0 {
-                    LabeledRow("超时", value: "\(t)\(job.timeoutUnit ?? "s")")
+                if let t = currentJob.timeout, t > 0 {
+                    LabeledRow("超时", value: "\(t)\(currentJob.timeoutUnit ?? "s")")
                 }
             }
 
             // 类型相关详情
-            switch job.jobType {
+            switch currentJob.jobType {
             case .shell:
-                if let user = job.user, !user.isEmpty {
+                if let user = currentJob.user, !user.isEmpty {
                     Section("执行设置") {
                         LabeledRow("执行用户", value: user)
-                        if job.inContainer == true {
-                            LabeledRow("容器", value: job.containerName ?? "—")
+                        if currentJob.inContainer == true {
+                            LabeledRow("容器", value: currentJob.containerName ?? "—")
                         }
                     }
                 }
-                if let script = job.script, !script.isEmpty {
+                if let script = currentJob.script, !script.isEmpty {
                     Section {
                         Text(script)
                             .font(.system(.caption, design: .monospaced))
@@ -235,15 +247,19 @@ struct CronjobDetailView: View {
                 }
             case .app:
                 Section("备份内容") {
-                    LabeledRow("备份对象", value: job.appID == "all" ? "全部应用" : (job.appID ?? "—"))
+                    LabeledRow("备份对象", value: currentJob.appID == "all" ? "全部应用" : (currentJob.appID ?? "—"))
                 }
             case .website:
                 Section("备份内容") {
-                    LabeledRow("备份对象", value: job.website == "all" ? "全部网站" : (job.website ?? "—"))
+                    LabeledRow("备份对象", value: currentJob.website == "all" ? "全部网站" : (currentJob.website ?? "—"))
                 }
             case .database:
                 Section("备份内容") {
-                    LabeledRow("备份对象", value: job.dbName == "all" ? "全部数据库" : (job.dbName ?? "—"))
+                    LabeledRow("数据库类型", value: currentJob.dbTypeDisplay)
+                    LabeledRow("备份对象", value: currentJob.dbName == "all" ? "全部数据库" : (currentJob.dbName ?? "—"))
+                    if currentJob.dbTypeDisplay == "MySQL" || currentJob.dbTypeDisplay == "MariaDB" {
+                        LabeledRow("备份参数", value: currentJob.dbBackupParamsDisplay)
+                    }
                 }
             case .snapshot:
                 Section("备份内容") {
@@ -254,21 +270,32 @@ struct CronjobDetailView: View {
             // 操作
             Section {
                 Button {
-                    Task { await vm.handle(job: job) }
+                    Task { await vm.handle(job: currentJob) }
                 } label: {
                     Label("立即执行", systemImage: "play.fill")
                 }
                 NavigationLink {
-                    CronjobRecordsView(job: job, vm: vm)
+                    CronjobRecordsView(job: currentJob, vm: vm)
                 } label: {
                     Label("执行记录", systemImage: "list.bullet.rectangle")
+                }
+                Button {
+                    Task { await loadEditInfo() }
+                } label: {
+                    HStack {
+                        Label("编辑任务", systemImage: "pencil")
+                        if isLoadingEditInfo {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
                 }
             }
 
             // 危险操作
             Section {
                 Button(role: .destructive) {
-                    vm.pendingDeleteJob = job
+                    vm.pendingDeleteJob = currentJob
                 } label: {
                     Label("删除任务", systemImage: "trash")
                 }
@@ -278,7 +305,7 @@ struct CronjobDetailView: View {
                 Text("删除后不可恢复，可选择是否同时删除已生成的备份文件")
             }
         }
-        .navigationTitle(job.name ?? "任务详情")
+        .navigationTitle(currentJob.name ?? "任务详情")
         .navigationBarTitleDisplayMode(.inline)
         .alert("删除任务", isPresented: Binding(
             get: { vm.pendingDeleteJob != nil },
@@ -290,7 +317,12 @@ struct CronjobDetailView: View {
             }
             Button("删除", role: .destructive) {
                 if let j = vm.pendingDeleteJob {
-                    Task { await vm.delete(job: j) }
+                    Task {
+                        let success = await vm.delete(job: j)
+                        if success {
+                            dismiss()
+                        }
+                    }
                 }
             }
         } message: {
@@ -300,6 +332,22 @@ struct CronjobDetailView: View {
             }
         }
         .toastOverlay(message: $vm.toastMessage)
+        .navigationDestination(isPresented: $showEditView) {
+            if let info = editingInfo {
+                CreateCronjobView(vm: vm, server: server, editingJob: info)
+            }
+        }
+    }
+
+    /// 加载编辑所需的任务详情，加载成功后跳转到编辑表单
+    private func loadEditInfo() async {
+        isLoadingEditInfo = true
+        let info = await vm.loadCronjobInfo(id: job.id)
+        isLoadingEditInfo = false
+        if let info = info {
+            editingInfo = info
+            showEditView = true
+        }
     }
 }
 
@@ -432,7 +480,12 @@ struct CronjobLogView: View {
 struct CreateCronjobView: View {
     @ObservedObject var vm: CronjobsViewModel
     let server: ServerConfig
+    /// 编辑模式时传入已有的任务详情；创建模式传 nil。
+    var editingJob: CronjobInfo? = nil
     @Environment(\.dismiss) private var dismiss
+
+    /// 是否为编辑模式
+    var isEditing: Bool { editingJob != nil }
 
     @State private var type: CronjobType = .shell
     @State private var name = ""
@@ -451,7 +504,52 @@ struct CreateCronjobView: View {
     @State private var backupAccountID = 0
     @State private var appSelection = "all"
     @State private var websiteSelection = "all"
+    @State private var dbType: DBBackupType = .mysql
     @State private var dbSelection = "all"
+    /// 选中的 mysqldump 备份参数（多选）。仅 MySQL / MariaDB 使用。
+    @State private var dbBackupParams: Set<String> = []
+    /// 控制备份参数多选 sheet 的弹出
+    @State private var showBackupParamsPicker = false
+    /// 标记是否已完成编辑模式的数据预填
+    @State private var hasPrefilled = false
+
+    enum DBBackupType: String, CaseIterable, Identifiable {
+        case mysql = "mysql"
+        case mariadb = "mariadb"
+        case postgresql = "postgresql"
+        case mongodb = "mongodb"
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .mysql:      return "MySQL"
+            case .mariadb:    return "MariaDB"
+            case .postgresql: return "PostgreSQL"
+            case .mongodb:    return "MongoDB"
+            }
+        }
+        /// 是否支持备份参数（仅 MySQL / MariaDB）
+        var supportsBackupParams: Bool {
+            self == .mysql || self == .mariadb
+        }
+    }
+
+    /// MySQL / MariaDB 备份参数选项（含参数值、简短说明、详细说明）
+    static let backupParamOptions: [(value: String, summary: String, detail: String)] = [
+        ("--single-transaction", "单一事务备份", "使用单一事务备份InnoDB表，适用于大数据量的备份"),
+        ("--quick", "逐行读取", "逐行读取数据，而不是将整个表加载到内存中，适用于大数据量和低内存机器的备份"),
+        ("--skip-lock-tables", "不锁定表", "不锁定所有表进行备份，适用于高并发的数据库"),
+        ("--set-gtid-purged=OFF", "不导出GTID", "备份时不导出GTID信息，适用于组复制环境中的数据库恢复")
+    ]
+
+    /// 返回当前数据库类型可用的备份参数选项。
+    /// 根据计划任务需求：MySQL 支持 4 项；MariaDB 仅支持前 3 项（不含 --set-gtid-purged=OFF）。
+    var availableBackupParamOptions: [(value: String, summary: String, detail: String)] {
+        switch dbType {
+        case .mysql:      return Self.backupParamOptions
+        case .mariadb:    return Self.backupParamOptions.filter { $0.value != "--set-gtid-purged=OFF" }
+        default:          return []
+        }
+    }
 
     enum SpecType: String, CaseIterable, Identifiable {
         case perHour = "每小时"
@@ -554,17 +652,57 @@ struct CreateCronjobView: View {
 
             case .database:
                 Section("备份数据库") {
+                    Picker("数据库类型", selection: $dbType) {
+                        ForEach(DBBackupType.allCases) { t in
+                            Text(t.displayName).tag(t)
+                        }
+                    }
+                    .onChange(of: dbType) { _, newType in
+                        dbSelection = "all"
+                        dbBackupParams.removeAll()
+                        Task { await vm.loadDBItems(dbType: newType.rawValue) }
+                    }
+
                     Picker("范围", selection: $dbSelection) {
                         Text("全部数据库").tag("all")
+                        ForEach(vm.dbItems, id: \.id) { item in
+                            Text(item.name ?? "—").tag(String(item.id))
+                        }
                     }
                 }
+
+                if dbType.supportsBackupParams {
+                    Section {
+                        Button {
+                            showBackupParamsPicker = true
+                        } label: {
+                            HStack {
+                                Text("备份参数")
+                                Spacer()
+                                Text(backupParamsSummary)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.trailing)
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(.secondary)
+                                    .font(.caption)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    } header: {
+                        Text("备份参数")
+                    } footer: {
+                        Text("可选的 mysqldump 参数，支持多选，用于优化大数据量或特殊场景的备份。")
+                    }
+                }
+
                 backupSection
 
             case .snapshot:
                 backupSection
             }
         }
-        .navigationTitle("创建计划任务")
+        .navigationTitle(isEditing ? "编辑计划任务" : "创建计划任务")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -574,7 +712,7 @@ struct CreateCronjobView: View {
                     if vm.isCreating {
                         ProgressView()
                     } else {
-                        Text("创建").bold()
+                        Text(isEditing ? "保存" : "创建").bold()
                     }
                 }
                 .disabled(name.isEmpty || vm.isCreating)
@@ -582,6 +720,11 @@ struct CreateCronjobView: View {
         }
         .task {
             await vm.loadCreateOptions()
+            if let info = editingJob, !hasPrefilled {
+                prefill(from: info)
+                hasPrefilled = true
+            }
+            await vm.loadDBItems(dbType: dbType.rawValue)
         }
         .sheet(isPresented: $showScriptPicker) {
             NavigationStack {
@@ -598,6 +741,17 @@ struct CreateCronjobView: View {
                 }
             }
         }
+        .sheet(isPresented: $showBackupParamsPicker) {
+            BackupParamsPickerView(selection: $dbBackupParams, dbType: dbType)
+        }
+    }
+
+    /// 备份参数摘要（用于创建表单的右侧预览文本）
+    private var backupParamsSummary: String {
+        if dbBackupParams.isEmpty {
+            return "默认（无）"
+        }
+        return dbBackupParams.sorted().joined(separator: ", ")
     }
 
     @ViewBuilder
@@ -654,8 +808,10 @@ struct CreateCronjobView: View {
             req.downloadAccountID = backupAccountID
             req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
         case .database:
+            req.dbType = dbType.rawValue
             req.dbName = dbSelection
             req.dbNameList = [dbSelection]
+            req.setBackupArgs(from: Array(dbBackupParams))
             req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
             req.downloadAccountID = backupAccountID
             req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
@@ -665,8 +821,87 @@ struct CreateCronjobView: View {
             req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
         }
 
-        if await vm.create(req: req) {
-            dismiss()
+        if isEditing, let info = editingJob {
+            req.id = info.id
+            if await vm.update(req: req) {
+                dismiss()
+            }
+        } else {
+            if await vm.create(req: req) {
+                dismiss()
+            }
+        }
+    }
+
+    /// 从已有任务详情预填表单字段
+    private func prefill(from info: CronjobInfo) {
+        name = info.name ?? ""
+        type = info.jobType
+
+        // 解析 cron 表达式回填周期控件
+        if let spec = info.spec, !spec.isEmpty {
+            parseSpec(spec)
+        }
+
+        // Shell
+        if let s = info.script, !s.isEmpty {
+            script = s
+        }
+        user = info.user ?? ""
+
+        // 备份设置
+        retainCopies = info.retainCopies ?? 7
+        backupAccountID = info.downloadAccountID ?? 0
+
+        // 各类型特定字段
+        switch type {
+        case .shell:
+            break
+        case .app:
+            appSelection = info.appID ?? "all"
+        case .website:
+            websiteSelection = info.website ?? "all"
+        case .database:
+            if let dt = CreateCronjobView.DBBackupType(rawValue: info.dbType ?? "mysql") {
+                dbType = dt
+            }
+            dbSelection = info.dbName ?? "all"
+            dbBackupParams = info.backupParamSet
+        case .snapshot:
+            break
+        }
+    }
+
+    /// 将 5 段 cron 表达式解析为 specType / hour / minute / week / day
+    private func parseSpec(_ spec: String) {
+        let parts = spec.split(separator: " ").map(String.init)
+        guard parts.count >= 5 else { return }
+
+        let minuteValue = Int(parts[0]) ?? 30
+        let hourValue = Int(parts[1]) ?? 2
+
+        minute = max(0, min(59, minuteValue))
+        hour = max(0, min(23, hourValue))
+
+        // parts[2] = day-of-month, parts[3] = month, parts[4] = day-of-week
+        let dayOfMonth = parts[2]
+        let dayOfWeek = parts[4]
+
+        if dayOfMonth == "*" && dayOfWeek == "*" {
+            // 检查是否每小时（hour 位置为 *）
+            if parts[1] == "*" {
+                specType = .perHour
+            } else {
+                specType = .perDay
+            }
+        } else if dayOfMonth != "*" {
+            specType = .perMonth
+            day = max(1, min(28, Int(dayOfMonth) ?? 1))
+        } else if dayOfWeek != "*" {
+            specType = .perWeek
+            week = max(0, min(6, Int(dayOfWeek) ?? 0))
+        } else {
+            specType = .perDay
         }
     }
 
@@ -683,6 +918,89 @@ struct CreateCronjobView: View {
             return "\(m) \(h) * * \(week)"
         case .perMonth:
             return "\(m) \(h) \(day) * *"
+        }
+    }
+}
+
+// MARK: - 备份参数多选视图
+
+/// mysqldump 备份参数多选 Sheet。
+/// 通过勾选切换 selection 中的成员；关闭即确认，无需额外保存按钮。
+struct BackupParamsPickerView: View {
+    @Binding var selection: Set<String>
+    let dbType: CreateCronjobView.DBBackupType
+    @Environment(\.dismiss) private var dismiss
+
+    /// 当前数据库类型可用的参数选项
+    private var options: [(value: String, summary: String, detail: String)] {
+        switch dbType {
+        case .mysql:
+            return CreateCronjobView.backupParamOptions
+        case .mariadb:
+            return CreateCronjobView.backupParamOptions.filter {
+                $0.value != "--set-gtid-purged=OFF"
+            }
+        default:
+            return []
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(options, id: \.value) { opt in
+                        Button {
+                            toggle(opt.value)
+                        } label: {
+                            HStack(alignment: .top, spacing: 12) {
+                                Image(systemName: selection.contains(opt.value) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(selection.contains(opt.value) ? Color.accentColor : .secondary)
+                                    .font(.title3)
+                                    .padding(.top, 2)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(opt.value)
+                                        .font(.system(.callout, design: .monospaced))
+                                        .foregroundStyle(.primary)
+                                    Text(opt.detail)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("\(dbType.displayName) 备份参数")
+                } footer: {
+                    Text("可多选；不选任何参数则使用默认方式备份。所选参数将以 args / argItems 形式提交给服务端。")
+                }
+            }
+            .navigationTitle("备份参数")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("完成") { dismiss() }
+                        .bold()
+                }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("清除全部") {
+                        selection.removeAll()
+                    }
+                    .disabled(selection.isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func toggle(_ value: String) {
+        if selection.contains(value) {
+            selection.remove(value)
+        } else {
+            selection.insert(value)
         }
     }
 }
@@ -720,6 +1038,8 @@ final class CronjobsViewModel: ObservableObject {
     @Published var backupAccounts: [BackupOption] = []
     @Published var installedApps: [InstalledAppOption] = []
     @Published var websiteOptions: [WebsiteOptionSimple] = []
+    @Published var dbItems: [DBItemOption] = []
+    @Published var isLoadingDBItems = false
 
     /// 默认分组 ID（创建任务时必须填，否则任务会显示在「-」分组）
     /// 从 POST /api/v2/core/groups/search (type=cronjob) 获取 isDefault=true 的项
@@ -768,7 +1088,8 @@ final class CronjobsViewModel: ObservableObject {
         }
     }
 
-    func delete(job: Cronjob) async {
+    @discardableResult
+    func delete(job: Cronjob) async -> Bool {
         pendingDeleteJob = nil
         do {
             let _: EmptyResponse = try await client.send(
@@ -781,12 +1102,15 @@ final class CronjobsViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             deleteCleanData = false
-            showAlert(message: "任务已删除")
+            showToast("任务「\(job.name ?? "")」已删除")
             await refresh()
+            return true
         } catch let err as APIError {
             showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            return false
         } catch {
             showAlert(message: "删除失败：\(error.localizedDescription)")
+            return false
         }
     }
 
@@ -807,6 +1131,47 @@ final class CronjobsViewModel: ObservableObject {
         } catch {
             showAlert(message: "创建失败：\(error.localizedDescription)")
             return false
+        }
+    }
+
+    /// 更新计划任务（POST /api/v2/cronjobs/update）
+    @discardableResult
+    func update(req: CronjobCreateRequest) async -> Bool {
+        isCreating = true
+        defer { isCreating = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.cronjobsUpdate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            showToast("任务「\(req.name)」已更新")
+            await refresh()
+            return true
+        } catch let err as APIError {
+            showAlert(message: "更新失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "更新失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    /// 加载计划任务详情（POST /api/v2/cronjobs/load/info），用于编辑表单预填
+    func loadCronjobInfo(id: Int) async -> CronjobInfo? {
+        do {
+            let info: CronjobInfo = try await client.send(
+                path: APIEndpoint.cronjobsLoadInfo.path,
+                body: CronjobLoadInfoRequest(id: id),
+                as: CronjobInfo.self
+            )
+            return info
+        } catch let err as APIError {
+            showAlert(message: "加载详情失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "加载详情失败：\(error.localizedDescription)")
+            return nil
         }
     }
 
@@ -927,6 +1292,22 @@ final class CronjobsViewModel: ObservableObject {
                 websiteOptions = []
             }
         }
+    }
+
+    /// 加载指定类型的数据库实例列表（用于备份数据库任务）
+    func loadDBItems(dbType: String) async {
+        isLoadingDBItems = true
+        dbItems = []
+        do {
+            dbItems = try await client.send(
+                path: "/api/v2/databases/db/item/\(dbType)",
+                method: "GET",
+                as: [DBItemOption].self
+            )
+        } catch {
+            dbItems = []
+        }
+        isLoadingDBItems = false
     }
 
     private func showAlert(message: String) {
