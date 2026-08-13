@@ -711,6 +711,23 @@ final class DatabaseUserDetailViewModel: ObservableObject {
             await loadGrants()
         } catch { errorMessage = error.localizedDescription }
     }
+
+    func deleteUser() async -> Bool {
+        guard let username = user.username, let host = user.host else { return false }
+        isOperating = true
+        errorMessage = nil
+        defer { isOperating = false }
+        let req = DeleteDBUserRequest(database: system.database, username: username, host: host)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesUsersDelete.path, body: req, as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
 }
 
 struct DatabaseUserDetailView: View {
@@ -723,6 +740,7 @@ struct DatabaseUserDetailView: View {
         case changePassword
         case editPermission
         case addGrant
+        case delete
         var id: Self { self }
     }
 
@@ -746,6 +764,7 @@ struct DatabaseUserDetailView: View {
             infoSection
             permissionSection
             grantedDatabasesSection
+            deleteSection
         }
         .navigationTitle(vm.user.displayName)
         .navigationBarTitleDisplayMode(.inline)
@@ -774,6 +793,16 @@ struct DatabaseUserDetailView: View {
                     Task {
                         await vm.addGrant(db: dbName)
                         await onChanged()
+                    }
+                }
+            case .delete:
+                DeleteDatabaseUserDetailSheet(username: vm.user.username ?? "") {
+                    Task {
+                        let ok = await vm.deleteUser()
+                        if ok {
+                            await onChanged()
+                            dismiss()
+                        }
                     }
                 }
             }
@@ -858,6 +887,18 @@ struct DatabaseUserDetailView: View {
             .disabled(vm.availableDatabases.filter { !vm.grantedDatabases.contains($0) }.isEmpty)
         } header: {
             SectionLabel(title: "关联数据库（\(vm.grantedDatabases.count)）", systemImage: "cylinder")
+        }
+    }
+
+    // MARK: 删除
+
+    private var deleteSection: some View {
+        Section {
+            Button(role: .destructive) {
+                activeSheet = .delete
+            } label: {
+                Label("删除用户", systemImage: "trash")
+            }
         }
     }
 }
@@ -991,5 +1032,51 @@ struct AddGrantSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - 用户详情页删除确认 Sheet（半屏，输入用户名确认）
+
+struct DeleteDatabaseUserDetailSheet: View {
+    let username: String
+    let onConfirm: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var nameConfirm = ""
+
+    private var canDelete: Bool {
+        nameConfirm.trimmingCharacters(in: .whitespaces) == username
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("此操作不可恢复。请输入用户名「\(username)」以确认删除。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section("确认用户名") {
+                    TextField("用户名", text: $nameConfirm)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+            }
+            .navigationTitle("删除用户")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("删除", role: .destructive) {
+                        onConfirm()
+                        dismiss()
+                    }
+                    .disabled(!canDelete)
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
