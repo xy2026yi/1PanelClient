@@ -240,10 +240,30 @@ struct CreateDatabaseView: View {
             }
             .task {
                 if vm.formats.isEmpty { await vm.loadFormats() }
-                if vm.isMySQL { await vm.loadUsers() }
+                if vm.isMySQL {
+                    await vm.loadUsers()
+                    if password.isEmpty {
+                        password = randomPassword()
+                        showPassword = true
+                    }
+                }
                 if vm.isPostgreSQL && password.isEmpty {
                     password = randomPassword()
                     showPassword = true
+                }
+            }
+            .onChange(of: name) { _, newValue in
+                if vm.isMySQL && userGrantMode == .create {
+                    username = newValue
+                }
+            }
+            .onChange(of: userGrantMode) { _, newMode in
+                if newMode == .create {
+                    username = name
+                    if password.isEmpty {
+                        password = randomPassword()
+                        showPassword = true
+                    }
                 }
             }
         }
@@ -385,13 +405,8 @@ struct CreateDatabaseView: View {
             let ips: String
 
             switch userGrantMode {
-            case .none:
+            case .none, .select:
                 finalUser = ""
-                finalPassword = ""
-                perm = "%"
-                ips = ""
-            case .select:
-                finalUser = selectedExistingUser
                 finalPassword = ""
                 perm = "%"
                 ips = ""
@@ -600,5 +615,381 @@ struct CreateDatabaseUserView: View {
     private func randomPassword() -> String {
         let chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         return String((0..<16).map { _ in chars.randomElement()! })
+    }
+}
+
+// MARK: - 数据库用户详情/编辑视图
+
+@MainActor
+final class DatabaseUserDetailViewModel: ObservableObject {
+    @Published var user: DatabaseUser
+    @Published var grantedDatabases: [String] = []
+    @Published var isOperating = false
+    @Published var errorMessage: String?
+
+    let system: DatabaseSystem
+    let availableDatabases: [String]
+    private let client: APIClient
+
+    init(user: DatabaseUser, system: DatabaseSystem, availableDatabases: [String], server: ServerConfig) {
+        self.user = user
+        self.system = system
+        self.availableDatabases = availableDatabases
+        self.client = APIClient(server: server)
+    }
+
+    func loadGrants() async {
+        let req = DBUsersRequest(database: system.database)
+        do {
+            let allGrants: [DatabaseGrant] = try await client.send(
+                path: APIEndpoint.databasesGrantsSearch.path, body: req, as: [DatabaseGrant].self
+            )
+            grantedDatabases = allGrants
+                .filter { $0.username == user.username && $0.host == user.host }
+                .compactMap { $0.database }
+        } catch { grantedDatabases = [] }
+    }
+
+    func changePassword(_ password: String) async -> Bool {
+        guard let username = user.username, let host = user.host else { return false }
+        isOperating = true
+        errorMessage = nil
+        defer { isOperating = false }
+        let pwdBase64 = Data(password.utf8).base64EncodedString()
+        let req = ChangeDBUserPasswordRequest(database: system.database, username: username, host: host, password: pwdBase64)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesUsersPassword.path, body: req, as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func updatePermission(newHost: String, description: String) async -> Bool {
+        guard let username = user.username, let host = user.host else { return false }
+        isOperating = true
+        errorMessage = nil
+        defer { isOperating = false }
+        let req = UpdateDBUserRequest(database: system.database, username: username, host: host, newHost: newHost, description: description)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesUsersUpdate.path, body: req, as: EmptyResponse.self
+            )
+            user = DatabaseUser(username: username, host: newHost, password: user.password, description: description, isDelete: user.isDelete)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func addGrant(db: String) async {
+        guard let username = user.username, let host = user.host else { return }
+        isOperating = true
+        defer { isOperating = false }
+        let req = DBGrantRequest(database: system.database, db: db, username: username, host: host)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesGrantsAdd.path, body: req, as: EmptyResponse.self
+            )
+            await loadGrants()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func removeGrant(db: String) async {
+        guard let username = user.username, let host = user.host else { return }
+        isOperating = true
+        defer { isOperating = false }
+        let req = DBGrantRequest(database: system.database, db: db, username: username, host: host)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesGrantsDelete.path, body: req, as: EmptyResponse.self
+            )
+            await loadGrants()
+        } catch { errorMessage = error.localizedDescription }
+    }
+}
+
+struct DatabaseUserDetailView: View {
+    @StateObject private var vm: DatabaseUserDetailViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var showPassword = false
+    @State private var activeSheet: UserDetailSheet?
+
+    enum UserDetailSheet: Identifiable {
+        case changePassword
+        case editPermission
+        case addGrant
+        var id: Self { self }
+    }
+
+    let onChanged: () async -> Void
+
+    init(user: DatabaseUser, system: DatabaseSystem, availableDatabases: [String], onChanged: @escaping () async -> Void) {
+        let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        _vm = StateObject(wrappedValue: DatabaseUserDetailViewModel(user: user, system: system, availableDatabases: availableDatabases, server: server))
+        self.onChanged = onChanged
+    }
+
+    var body: some View {
+        List {
+            if let msg = vm.errorMessage {
+                Section {
+                    Label(msg, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .font(.caption)
+                }
+            }
+            infoSection
+            permissionSection
+            grantedDatabasesSection
+        }
+        .navigationTitle(vm.user.displayName)
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await vm.loadGrants() }
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .changePassword:
+                ChangePasswordSheet(
+                    title: "修改用户密码",
+                    currentPassword: vm.user.password
+                ) { newPwd in
+                    Task {
+                        let ok = await vm.changePassword(newPwd)
+                        if ok { await onChanged() }
+                    }
+                }
+            case .editPermission:
+                EditUserPermissionSheet(user: vm.user) { newHost, description in
+                    Task {
+                        let ok = await vm.updatePermission(newHost: newHost, description: description)
+                        if ok { await onChanged() }
+                    }
+                }
+            case .addGrant:
+                AddGrantSheet(availableDatabases: vm.availableDatabases.filter { !vm.grantedDatabases.contains($0) }) { dbName in
+                    Task {
+                        await vm.addGrant(db: dbName)
+                        await onChanged()
+                    }
+                }
+            }
+        }
+    }
+
+    private var infoSection: some View {
+        Section {
+            if let username = vm.user.username {
+                InfoRow(key: "用户名", value: username)
+            }
+            if let pwd = vm.user.password, !pwd.isEmpty {
+                HStack {
+                    Text("密码").foregroundStyle(.secondary)
+                    Spacer()
+                    Text(showPassword ? pwd : String(repeating: "•", count: min(pwd.count, 12)))
+                        .font(.system(.subheadline, design: .monospaced))
+                    Button { showPassword.toggle() } label: {
+                        Image(systemName: showPassword ? "eye.slash" : "eye").foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    Button { UIPasteboard.general.string = pwd } label: {
+                        Image(systemName: "doc.on.doc").foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+            if let desc = vm.user.description, !desc.isEmpty {
+                InfoRow(key: "描述", value: desc)
+            }
+
+            Button {
+                activeSheet = .changePassword
+            } label: {
+                Label("修改密码", systemImage: "key")
+            }
+        } header: {
+            SectionLabel(title: "用户信息", systemImage: "person")
+        }
+    }
+
+    private var permissionSection: some View {
+        Section {
+            InfoRow(key: "当前权限", value: vm.user.host == "%" ? "所有人(%)" : (vm.user.host ?? "-"))
+            Button {
+                activeSheet = .editPermission
+            } label: {
+                Label("修改权限", systemImage: "network")
+            }
+        } header: {
+            SectionLabel(title: "权限", systemImage: "lock.shield")
+        }
+    }
+
+    private var grantedDatabasesSection: some View {
+        Section {
+            if vm.grantedDatabases.isEmpty {
+                Text("无关联数据库")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(vm.grantedDatabases, id: \.self) { dbName in
+                    HStack {
+                        Text(dbName)
+                            .font(.system(.body, design: .monospaced))
+                        Spacer()
+                        Button {
+                            Task { await vm.removeGrant(db: dbName) }
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+            }
+
+            Button {
+                activeSheet = .addGrant
+            } label: {
+                Label("添加关联数据库", systemImage: "plus.circle")
+            }
+            .disabled(vm.availableDatabases.filter { !vm.grantedDatabases.contains($0) }.isEmpty)
+        } header: {
+            SectionLabel(title: "关联数据库（\(vm.grantedDatabases.count)）", systemImage: "cylinder")
+        }
+    }
+}
+
+// MARK: - 修改权限 Sheet
+
+struct EditUserPermissionSheet: View {
+    let user: DatabaseUser
+    let onConfirm: (_ newHost: String, _ description: String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var permissionMode: PermissionMode
+    @State private var permissionIPs = ""
+    @State private var description = ""
+
+    enum PermissionMode: String, CaseIterable, Identifiable {
+        case all = "所有人(%)"
+        case ip = "指定IP"
+        var id: String { rawValue }
+    }
+
+    init(user: DatabaseUser, onConfirm: @escaping (_ newHost: String, _ description: String) -> Void) {
+        self.user = user
+        self.onConfirm = onConfirm
+        let host = user.host ?? "%"
+        if host == "%" {
+            _permissionMode = State(initialValue: .all)
+        } else {
+            _permissionMode = State(initialValue: .ip)
+            _permissionIPs = State(initialValue: host)
+        }
+        _description = State(initialValue: user.description ?? "")
+    }
+
+    private var finalHost: String {
+        permissionMode == .all ? "%" : permissionIPs.trimmingCharacters(in: .whitespaces)
+    }
+
+    private var canConfirm: Bool {
+        permissionMode == .all || !permissionIPs.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("权限") {
+                    Picker("访问权限", selection: $permissionMode) {
+                        ForEach(PermissionMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if permissionMode == .ip {
+                        TextField("IP 地址", text: $permissionIPs)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .font(.system(.body, design: .monospaced))
+                    }
+                }
+                Section("描述") {
+                    TextField("描述", text: $description, axis: .vertical)
+                        .lineLimit(2...4)
+                }
+            }
+            .navigationTitle("修改权限")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("确认") {
+                        onConfirm(finalHost, description)
+                        dismiss()
+                    }
+                    .disabled(!canConfirm)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 添加关联数据库 Sheet
+
+struct AddGrantSheet: View {
+    let availableDatabases: [String]
+    let onConfirm: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedDatabase = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if availableDatabases.isEmpty {
+                    Text("暂无可关联的数据库")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Section("选择数据库") {
+                        ForEach(availableDatabases, id: \.self) { dbName in
+                            HStack {
+                                Text(dbName)
+                                    .font(.system(.body, design: .monospaced))
+                                Spacer()
+                                if selectedDatabase == dbName {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedDatabase = dbName
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("添加关联数据库")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("确认") {
+                        onConfirm(selectedDatabase)
+                        dismiss()
+                    }
+                    .disabled(selectedDatabase.isEmpty)
+                }
+            }
+        }
     }
 }

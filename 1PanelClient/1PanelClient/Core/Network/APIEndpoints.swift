@@ -145,6 +145,10 @@ enum APIEndpoint {
     case databasesGrantsSearch    // POST 查询用户关联数据库
     case databasesUsersCreate     // POST 创建数据库用户
     case databasesUsersDelete     // POST 删除数据库用户
+    case databasesUsersUpdate     // POST 修改用户权限/描述
+    case databasesUsersPassword   // POST 修改用户密码
+    case databasesGrantsAdd       // POST 增加用户关联数据库
+    case databasesGrantsDelete    // POST 移除用户关联数据库
 
     // MARK: - 进程
     case processStop             // POST 结束指定进程
@@ -332,6 +336,10 @@ enum APIEndpoint {
         case .databasesGrantsSearch: return "/api/v2/databases/grants/search"
         case .databasesUsersCreate:  return "/api/v2/databases/users"
         case .databasesUsersDelete:  return "/api/v2/databases/users/del"
+        case .databasesUsersUpdate:  return "/api/v2/databases/users/update"
+        case .databasesUsersPassword: return "/api/v2/databases/users/password"
+        case .databasesGrantsAdd:    return "/api/v2/databases/grants"
+        case .databasesGrantsDelete: return "/api/v2/databases/grants/del"
         case .processStop:           return "/api/v2/process/stop"
         case .fail2banBase:          return "/api/v2/toolbox/fail2ban/base"
         case .fail2banUpdate:        return "/api/v2/toolbox/fail2ban/update"

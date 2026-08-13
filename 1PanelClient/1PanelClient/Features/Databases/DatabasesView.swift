@@ -713,19 +713,19 @@ struct DatabaseSystemView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
             } else {
                 ForEach(vm.users) { user in
-                    DatabaseUserRow(user: user, grants: vm.databasesForUser(user))
+                    NavigationLink {
+                        DatabaseUserDetailView(user: user, system: vm.system, availableDatabases: vm.databases.map { $0.name ?? "" }.filter { !$0.isEmpty }) {
+                            await vm.loadUsers()
+                        }
+                    } label: {
+                        DatabaseUserRow(user: user, grants: vm.databasesForUser(user))
+                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
                             pendingDeleteUser = user
                         } label: { Label("删除", systemImage: "trash") }
                     }
                 }
-            }
-
-            Button {
-                showCreateUser = true
-            } label: {
-                Label("创建用户", systemImage: "person.badge.plus")
             }
         } header: {
             SectionLabel(title: "用户（\(vm.users.count)）", systemImage: "person.2")

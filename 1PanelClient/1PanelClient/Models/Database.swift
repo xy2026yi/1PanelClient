@@ -280,6 +280,31 @@ nonisolated struct DeleteDBUserRequest: Encodable {
     let host: String
 }
 
+/// 修改用户权限/描述请求
+nonisolated struct UpdateDBUserRequest: Encodable {
+    let database: String
+    let username: String
+    let host: String
+    let newHost: String
+    let description: String
+}
+
+/// 修改用户密码请求
+nonisolated struct ChangeDBUserPasswordRequest: Encodable {
+    let database: String
+    let username: String
+    let host: String
+    let password: String        // base64
+}
+
+/// 增加/移除关联数据库请求
+nonisolated struct DBGrantRequest: Encodable {
+    let database: String
+    let db: String
+    let username: String
+    let host: String
+}
+
 // MARK: - Redis 专用请求体
 
 nonisolated struct RedisPasswordRequest: Encodable {
