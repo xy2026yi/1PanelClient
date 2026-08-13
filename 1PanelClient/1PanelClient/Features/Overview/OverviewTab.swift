@@ -203,6 +203,14 @@ struct OverviewTab: View {
             InfoRow(key: "内核版本", value: b.kernelVersion ?? "-")
             InfoRow(key: "系统类型", value: b.kernelArch ?? "-")
             InfoRow(key: "主机地址", value: b.ipV4Addr ?? "-")
+            if let currentInfo = vm.currentInfo ?? b.currentInfo {
+                if let startupTime = currentInfo.timeSinceUptime, !startupTime.isEmpty {
+                    InfoRow(key: "启动时间", value: startupTime)
+                }
+                if let runningTime = currentInfo.runningTime {
+                    InfoRow(key: "运行时间", value: runningTime.displayText)
+                }
+            }
         }
         .padding()
         .background(.regularMaterial)

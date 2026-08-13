@@ -69,6 +69,7 @@ nonisolated struct DashboardCurrent: Decodable, Sendable {
 
     let uptime: Int?
     let timeSinceUptime: String?
+    let runningTime: RunningTime?
     let procs: Int?
 
     let ioReadBytes: Int64?
@@ -78,6 +79,32 @@ nonisolated struct DashboardCurrent: Decodable, Sendable {
 
     // 磁盘数据（数组，每个挂载点一项）
     let diskData: [DiskData]?
+}
+
+/// 系统运行时长
+nonisolated struct RunningTime: Decodable, Sendable {
+    let days: Int?
+    let hours: Int?
+    let minutes: Int?
+    let seconds: Int?
+
+    var displayText: String {
+        let dayCount = days ?? 0
+        let hourCount = hours ?? 0
+        let minuteCount = minutes ?? 0
+        let secondCount = seconds ?? 0
+
+        if dayCount > 0 {
+            return "\(dayCount)天 \(hourCount)小时 \(minuteCount)分钟"
+        }
+        if hourCount > 0 {
+            return "\(hourCount)小时 \(minuteCount)分钟"
+        }
+        if minuteCount > 0 {
+            return "\(minuteCount)分钟 \(secondCount)秒"
+        }
+        return "\(secondCount)秒"
+    }
 }
 
 /// 单个挂载点的磁盘使用信息

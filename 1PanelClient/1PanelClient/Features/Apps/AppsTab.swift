@@ -593,6 +593,7 @@ struct UpgradeSheetView: View {
     let app: AppInstall
     @ObservedObject var vm: AppsViewModel
     @State private var showComposeEditor = false
+    @State private var deleteOldImage = false
 
     var body: some View {
         Group {
@@ -626,6 +627,7 @@ struct UpgradeSheetView: View {
                     app: app,
                     version: version,
                     vm: vm,
+                    initialDeleteOldImage: deleteOldImage,
                     onBack: { showComposeEditor = false }
                 )
             }
@@ -644,6 +646,15 @@ struct UpgradeSheetView: View {
                 }
             } header: {
                 Text("提示")
+            }
+
+            Section {
+                Toggle("升级后删除旧镜像", isOn: $deleteOldImage)
+                    .tint(.orange)
+            } header: {
+                Text("升级选项")
+            } footer: {
+                Text("默认关闭。开启后升级请求会删除旧镜像以释放存储空间")
             }
 
             Section("可升级到") {
@@ -665,7 +676,14 @@ struct UpgradeSheetView: View {
 
                         HStack(spacing: 8) {
                             Button {
-                                Task { await vm.confirmUpgrade(app: app, to: ver, customCompose: nil) }
+                                Task {
+                                    await vm.confirmUpgrade(
+                                        app: app,
+                                        to: ver,
+                                        customCompose: nil,
+                                        deleteOldImage: deleteOldImage
+                                    )
+                                }
                             } label: {
                                 Label("直接升级", systemImage: "arrow.up.circle.fill")
                                     .frame(maxWidth: .infinity)
@@ -675,14 +693,26 @@ struct UpgradeSheetView: View {
                             .disabled(vm.upgradingVersionId != nil)
 
                             Button {
-                                vm.selectedVersion = ver
-                                showComposeEditor = true
+                                Task {
+                                    if await vm.prepareComposeEditor(app: app, version: ver) {
+                                        showComposeEditor = true
+                                    }
+                                }
                             } label: {
-                                Label("对比/编辑", systemImage: "doc.text.magnifyingglass")
+                                if vm.loadingComposeVersionId == ver.detailId {
+                                    HStack {
+                                        ProgressView()
+                                            .scaleEffect(0.7)
+                                        Text("加载配置")
+                                    }
                                     .frame(maxWidth: .infinity)
+                                } else {
+                                    Label("对比/编辑", systemImage: "doc.text.magnifyingglass")
+                                        .frame(maxWidth: .infinity)
+                                }
                             }
                             .buttonStyle(.bordered)
-                            .disabled(vm.upgradingVersionId != nil)
+                            .disabled(vm.upgradingVersionId != nil || vm.loadingComposeVersionId != nil)
                         }
                         .font(.caption)
                     }
@@ -1118,7 +1148,21 @@ struct ComposeEditorView: View {
 
     @State private var useCustom = false
     @State private var editedCompose = ""
-    @State private var showDiff = true
+    @State private var deleteOldImage: Bool
+
+    init(
+        app: AppInstall,
+        version: AppVersion,
+        vm: AppsViewModel,
+        initialDeleteOldImage: Bool,
+        onBack: @escaping () -> Void
+    ) {
+        self.app = app
+        self.version = version
+        self.vm = vm
+        self.onBack = onBack
+        _deleteOldImage = State(initialValue: initialDeleteOldImage)
+    }
 
     private var newCompose: String {
         version.dockerCompose ?? ""
@@ -1147,12 +1191,26 @@ struct ComposeEditorView: View {
                 Text("配置模式")
             }
 
+            Section {
+                Toggle("升级后删除旧镜像", isOn: $deleteOldImage)
+                    .tint(.orange)
+            } header: {
+                Text("升级选项")
+            } footer: {
+                Text("默认关闭。开启后升级请求会删除旧镜像以释放存储空间")
+            }
+
             // 操作按钮
             Section {
                 Button {
                     Task {
                         let compose = useCustom ? editedCompose : nil
-                        await vm.confirmUpgrade(app: app, to: version, customCompose: compose)
+                        await vm.confirmUpgrade(
+                            app: app,
+                            to: version,
+                            customCompose: compose,
+                            deleteOldImage: deleteOldImage
+                        )
                         if vm.upgradeSuccess {
                             onBack()
                         }
@@ -1570,6 +1628,7 @@ final class AppsViewModel: ObservableObject {
     @Published var availableVersions: [AppVersion] = []
     @Published var isLoadingVersions = false
     @Published var upgradingVersionId: Int?
+    @Published var loadingComposeVersionId: Int?
     /// 当前选中的要升级到的版本（在 ComposeEditorView 里使用）
     @Published var selectedVersion: AppVersion?
     /// 标记升级是否成功完成（用于编辑器返回时的判断）
@@ -1738,7 +1797,50 @@ final class AppsViewModel: ObservableObject {
         isLoadingVersions = false
     }
 
-    func confirmUpgrade(app: AppInstall, to version: AppVersion, customCompose: String?) async {
+    func prepareComposeEditor(app: AppInstall, version: AppVersion) async -> Bool {
+        if let dockerCompose = version.dockerCompose, !dockerCompose.isEmpty {
+            selectedVersion = version
+            return true
+        }
+
+        guard let updateVersion = version.version, !updateVersion.isEmpty else {
+            selectedVersion = version
+            return true
+        }
+
+        loadingComposeVersionId = version.detailId
+        defer { loadingComposeVersionId = nil }
+
+        do {
+            let versions: [AppVersion] = try await client.send(
+                path: APIEndpoint.appsUpdateVersions.path,
+                body: AppUpdateVersionsRequest(appInstallId: app.id, updateVersion: updateVersion),
+                queryItems: [URLQueryItem(name: "operateNode", value: "local")],
+                as: [AppVersion].self
+            )
+            let preparedVersion = versions.first(where: { $0.detailId == version.detailId })
+                ?? versions.first(where: { $0.version == updateVersion })
+                ?? version
+            selectedVersion = preparedVersion
+            if let versionIndex = availableVersions.firstIndex(where: { $0.detailId == preparedVersion.detailId }) {
+                availableVersions[versionIndex] = preparedVersion
+            }
+            return true
+        } catch let err as APIError {
+            showAlert(message: "加载新版本配置失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "加载新版本配置失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func confirmUpgrade(
+        app: AppInstall,
+        to version: AppVersion,
+        customCompose: String?,
+        deleteOldImage: Bool
+    ) async {
         upgradingVersionId = version.detailId
         upgradeSuccess = false
         defer { upgradingVersionId = nil }
@@ -1749,7 +1851,8 @@ final class AppsViewModel: ObservableObject {
             detailId: version.detailId,
             backup: false,
             pullImage: true,
-            dockerCompose: customCompose
+            dockerCompose: customCompose,
+            deleteImage: deleteOldImage
         )
         do {
             let _: EmptyResponse = try await client.send(

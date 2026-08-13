@@ -199,9 +199,11 @@ nonisolated struct AppVersion: Decodable, Identifiable, Sendable {
 /// 查询可用更新版本的请求 body
 nonisolated struct AppUpdateVersionsRequest: Encodable {
     let appInstallId: Int
+    var updateVersion: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case appInstallId = "appInstallID"
+        case updateVersion
     }
 }
 
