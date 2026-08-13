@@ -12,6 +12,7 @@ import Combine
 @MainActor
 final class CreateDatabaseViewModel: ObservableObject {
     @Published var formats: [FormatOption] = []
+    @Published var users: [DatabaseUser] = []
     @Published var isLoading = false
     @Published var isCreating = false
     @Published var errorMessage: String?
@@ -21,6 +22,11 @@ final class CreateDatabaseViewModel: ObservableObject {
 
     var isPostgreSQL: Bool {
         system.type.lowercased().contains("postgresql")
+    }
+
+    var isMySQL: Bool {
+        let t = system.type.lowercased()
+        return t == "mysql" || t == "mariadb" || t == "mysql-cluster"
     }
 
     init(system: DatabaseSystem, server: ServerConfig) {
@@ -37,6 +43,39 @@ final class CreateDatabaseViewModel: ObservableObject {
                 path: APIEndpoint.databasesFormatOptions.path, body: req, as: [FormatOption].self
             )
         } catch { errorMessage = error.localizedDescription }
+    }
+
+    func loadUsers() async {
+        let req = DBUsersRequest(database: system.database)
+        do {
+            let resp: [DatabaseUser] = try await client.send(
+                path: APIEndpoint.databasesUsersSearch.path, body: req, as: [DatabaseUser].self
+            )
+            users = resp.filter { !($0.isDelete ?? false) }
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func systemUserCreate(
+        username: String, host: String, password: String,
+        description: String, databases: [String]
+    ) async -> Bool {
+        isCreating = true
+        defer { isCreating = false }
+        let pwdBase64 = Data(password.utf8).base64EncodedString()
+        let req = CreateDBUserRequest(
+            database: system.database, username: username,
+            host: host, password: pwdBase64,
+            description: description, dbs: databases
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesUsersCreate.path, body: req, as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 
     func createMySQL(
@@ -103,6 +142,8 @@ struct CreateDatabaseView: View {
     @State private var showPassword = false
     @State private var selectedFormat = "utf8mb4"
     @State private var selectedCollation = ""
+    @State private var userGrantMode: UserGrantMode = .none
+    @State private var selectedExistingUser = ""
     @State private var permissionMode: PermissionMode = .all
     @State private var permissionIPs = ""
     @State private var superUser = true
@@ -122,19 +163,36 @@ struct CreateDatabaseView: View {
         var id: String { rawValue }
     }
 
+    enum UserGrantMode: String, CaseIterable, Identifiable {
+        case none = "不授权"
+        case select = "选择"
+        case create = "创建"
+        var id: String { rawValue }
+    }
+
     private var availableCollations: [String] {
         vm.formats.first { $0.format == selectedFormat }?.collations ?? []
     }
 
     private var canCreate: Bool {
         let nameOk = !name.trimmingCharacters(in: .whitespaces).isEmpty
-        let userOk = !username.trimmingCharacters(in: .whitespaces).isEmpty
-        let pwdOk = !password.isEmpty
         if vm.isPostgreSQL {
+            let userOk = !username.trimmingCharacters(in: .whitespaces).isEmpty
+            let pwdOk = !password.isEmpty
             return nameOk && userOk && pwdOk
         }
-        let permOk = permissionMode == .all || !permissionIPs.trimmingCharacters(in: .whitespaces).isEmpty
-        return nameOk && userOk && pwdOk && permOk
+        guard nameOk else { return false }
+        switch userGrantMode {
+        case .none:
+            return true
+        case .select:
+            return !selectedExistingUser.isEmpty
+        case .create:
+            let userOk = !username.trimmingCharacters(in: .whitespaces).isEmpty
+            let pwdOk = !password.isEmpty
+            let permOk = permissionMode == .all || !permissionIPs.trimmingCharacters(in: .whitespaces).isEmpty
+            return userOk && pwdOk && permOk
+        }
     }
 
     var body: some View {
@@ -144,41 +202,20 @@ struct CreateDatabaseView: View {
                     TextField("数据库名称", text: $name)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .onChange(of: name) { _, newValue in
-                            username = newValue
-                        }
-                    TextField("用户名", text: $username)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    passwordRow
                 }
 
                 if vm.isPostgreSQL {
+                    pgUserSection
                     Section("权限") {
                         Toggle("超级用户", isOn: $superUser)
                     }
-                } else {
-                    Section("访问权限") {
-                        Picker("权限", selection: $permissionMode) {
-                            ForEach(PermissionMode.allCases) { m in
-                                Text(m.rawValue).tag(m)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-
-                        if permissionMode == .ip {
-                            TextField("IP 地址（逗号分隔）", text: $permissionIPs, axis: .vertical)
-                                .textFieldStyle(.roundedBorder)
-                                .lineLimit(2...4)
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
-                                .font(.system(.body, design: .monospaced))
-                        }
-                    }
+                } else if vm.isMySQL {
+                    mysqlCharsetSection
+                    mysqlUserGrantSection
                 }
 
-                Section("备注") {
-                    TextField("可选备注", text: $description, axis: .vertical)
+                Section("描述") {
+                    TextField("可选描述", text: $description, axis: .vertical)
                         .lineLimit(2...4)
                 }
 
@@ -189,6 +226,283 @@ struct CreateDatabaseView: View {
                 }
             }
             .navigationTitle("创建数据库")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("创建") {
+                        Task { await submit() }
+                    }
+                    .disabled(!canCreate || vm.isCreating)
+                }
+            }
+            .task {
+                if vm.formats.isEmpty { await vm.loadFormats() }
+                if vm.isMySQL { await vm.loadUsers() }
+                if vm.isPostgreSQL && password.isEmpty {
+                    password = randomPassword()
+                    showPassword = true
+                }
+            }
+        }
+    }
+
+    // MARK: PostgreSQL 用户（保持原有行为：名称同步）
+
+    private var pgUserSection: some View {
+        Section("用户") {
+            TextField("用户名", text: $username)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .onChange(of: name) { _, newValue in
+                    username = newValue
+                }
+            passwordRow
+        }
+    }
+
+    // MARK: MySQL 字符集 / 排序规则
+
+    private var mysqlCharsetSection: some View {
+        Section("字符集与排序规则") {
+            Picker("字符集", selection: $selectedFormat) {
+                ForEach(vm.formats) { fmt in
+                    Text(fmt.format).tag(fmt.format)
+                }
+            }
+            .onChange(of: selectedFormat) { _, _ in
+                selectedCollation = ""
+            }
+
+            Picker("排序规则", selection: $selectedCollation) {
+                Text("默认").tag("")
+                ForEach(availableCollations, id: \.self) { col in
+                    Text(col).tag(col)
+                }
+            }
+        }
+    }
+
+    // MARK: MySQL 用户授权
+
+    private var mysqlUserGrantSection: some View {
+        Group {
+            Section("用户授权") {
+                Picker("授权方式", selection: $userGrantMode) {
+                    ForEach(UserGrantMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
+            switch userGrantMode {
+            case .none:
+                EmptyView()
+            case .select:
+                Section("选择用户") {
+                    if vm.users.isEmpty {
+                        Text("暂无可用用户，请先创建用户或切换为「创建」模式")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Picker("授权用户", selection: $selectedExistingUser) {
+                            Text("请选择...").tag("")
+                            ForEach(vm.users) { user in
+                                Text(user.displayName).tag(user.id)
+                            }
+                        }
+                    }
+                }
+            case .create:
+                Section("新用户") {
+                    TextField("用户名", text: $username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    passwordRow
+                }
+                Section("权限") {
+                    Picker("权限", selection: $permissionMode) {
+                        ForEach(PermissionMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if permissionMode == .ip {
+                        TextField("IP 地址（逗号分隔）", text: $permissionIPs, axis: .vertical)
+                            .textFieldStyle(.roundedBorder)
+                            .lineLimit(2...4)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .font(.system(.body, design: .monospaced))
+                    }
+                }
+            }
+        }
+    }
+
+    private var passwordRow: some View {
+        HStack {
+            if showPassword {
+                TextField("密码", text: $password)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(.body, design: .monospaced))
+            } else {
+                SecureField("密码", text: $password)
+            }
+            Button { showPassword.toggle() } label: {
+                Image(systemName: showPassword ? "eye.slash" : "eye")
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                password = randomPassword()
+            } label: {
+                Image(systemName: "shuffle")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func submit() async {
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+
+        let ok: Bool
+        if vm.isPostgreSQL {
+            let trimmedUser = username.trimmingCharacters(in: .whitespaces)
+            ok = await vm.createPG(
+                name: trimmedName, username: trimmedUser,
+                password: password, format: "UTF8",
+                superUser: superUser, description: description
+            )
+        } else {
+            let finalUser: String
+            let finalPassword: String
+            let perm: String
+            let ips: String
+
+            switch userGrantMode {
+            case .none:
+                finalUser = ""
+                finalPassword = ""
+                perm = "%"
+                ips = ""
+            case .select:
+                finalUser = selectedExistingUser
+                finalPassword = ""
+                perm = "%"
+                ips = ""
+            case .create:
+                finalUser = username.trimmingCharacters(in: .whitespaces)
+                finalPassword = password
+                if permissionMode == .all {
+                    perm = "%"
+                    ips = ""
+                } else {
+                    perm = "%"
+                    ips = permissionIPs
+                }
+            }
+
+            ok = await vm.createMySQL(
+                name: trimmedName, username: finalUser,
+                password: finalPassword, format: selectedFormat,
+                collation: selectedCollation,
+                permission: perm, permissionIPs: ips,
+                description: description
+            )
+        }
+        if ok {
+            await onCreated()
+            dismiss()
+        }
+    }
+
+    private func randomPassword() -> String {
+        let chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        return String((0..<16).map { _ in chars.randomElement()! })
+    }
+}
+
+// MARK: - 创建数据库用户视图
+
+struct CreateDatabaseUserView: View {
+    @StateObject private var vm: CreateDatabaseViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var username = ""
+    @State private var password = ""
+    @State private var showPassword = false
+    @State private var permissionMode: UserPermissionMode = .all
+    @State private var permissionIPs = ""
+    @State private var description = ""
+    @State private var selectedDatabases: Set<String> = []
+
+    let availableDatabases: [String]
+    let onCreated: () async -> Void
+
+    enum UserPermissionMode: String, CaseIterable, Identifiable {
+        case all = "所有人(%)"
+        case ip = "指定IP"
+        var id: String { rawValue }
+    }
+
+    init(system: DatabaseSystem, availableDatabases: [String], onCreated: @escaping () async -> Void) {
+        let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        _vm = StateObject(wrappedValue: CreateDatabaseViewModel(system: system, server: server))
+        self.availableDatabases = availableDatabases
+        self.onCreated = onCreated
+    }
+
+    private var canCreate: Bool {
+        let userOk = !username.trimmingCharacters(in: .whitespaces).isEmpty
+        let pwdOk = !password.isEmpty
+        let permOk = permissionMode == .all || !permissionIPs.trimmingCharacters(in: .whitespaces).isEmpty
+        return userOk && pwdOk && permOk
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("用户信息") {
+                    TextField("用户名", text: $username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    passwordRow
+                    TextField("描述", text: $description, axis: .vertical)
+                        .lineLimit(2...4)
+                }
+
+                Section("权限") {
+                    Picker("访问权限", selection: $permissionMode) {
+                        ForEach(UserPermissionMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if permissionMode == .ip {
+                        TextField("IP 地址（逗号分隔）", text: $permissionIPs, axis: .vertical)
+                            .textFieldStyle(.roundedBorder)
+                            .lineLimit(2...4)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .font(.system(.body, design: .monospaced))
+                    }
+                }
+
+                associatedDatabasesSection
+
+                if let msg = vm.errorMessage {
+                    Section {
+                        Text(msg).foregroundStyle(.red).font(.caption)
+                    }
+                }
+            }
+            .navigationTitle("创建用户")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -233,35 +547,50 @@ struct CreateDatabaseView: View {
         }
     }
 
-    private func submit() async {
-        let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        let trimmedUser = username.trimmingCharacters(in: .whitespaces)
-
-        let ok: Bool
-        if vm.isPostgreSQL {
-            ok = await vm.createPG(
-                name: trimmedName, username: trimmedUser,
-                password: password, format: "UTF8",
-                superUser: superUser, description: description
-            )
-        } else {
-            let perm: String
-            let ips: String
-            if permissionMode == .all {
-                perm = "%"
-                ips = ""
+    @ViewBuilder
+    private var associatedDatabasesSection: some View {
+        Section("关联数据库") {
+            if availableDatabases.isEmpty {
+                Text("暂无可用数据库")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } else {
-                perm = "%"
-                ips = permissionIPs
+                ForEach(availableDatabases, id: \.self) { dbName in
+                    databaseSelectionRow(dbName)
+                }
             }
-            ok = await vm.createMySQL(
-                name: trimmedName, username: trimmedUser,
-                password: password, format: selectedFormat,
-                collation: selectedCollation,
-                permission: perm, permissionIPs: ips,
-                description: description
-            )
         }
+    }
+
+    private func databaseSelectionRow(_ dbName: String) -> some View {
+        HStack {
+            Text(dbName)
+                .font(.system(.body, design: .monospaced))
+            Spacer()
+            if selectedDatabases.contains(dbName) {
+                Image(systemName: "checkmark")
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if selectedDatabases.contains(dbName) {
+                selectedDatabases.remove(dbName)
+            } else {
+                selectedDatabases.insert(dbName)
+            }
+        }
+    }
+
+    private func submit() async {
+        let trimmedUser = username.trimmingCharacters(in: .whitespaces)
+        let host = permissionMode == .all ? "%" : permissionIPs
+        let dbs = Array(selectedDatabases).sorted()
+        let ok = await vm.systemUserCreate(
+            username: trimmedUser, host: host,
+            password: password, description: description,
+            databases: dbs
+        )
         if ok {
             await onCreated()
             dismiss()

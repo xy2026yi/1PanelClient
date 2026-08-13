@@ -232,6 +232,54 @@ nonisolated struct PGPrivilegesRequest: Encodable {
     let superUser: Bool
 }
 
+// MARK: - MySQL 用户与授权
+
+/// POST /api/v2/databases/users/search 返回的数据库用户
+nonisolated struct DatabaseUser: Decodable, Identifiable, Hashable {
+    let username: String?
+    let host: String?
+    let password: String?
+    let description: String?
+    let isDelete: Bool?
+
+    var id: String {
+        "\(username ?? "")@\(host ?? "")"
+    }
+
+    var displayName: String {
+        "\(username ?? "-")@\(host ?? "-")"
+    }
+}
+
+/// POST /api/v2/databases/grants/search 返回的用户-数据库授权关系
+nonisolated struct DatabaseGrant: Decodable, Hashable {
+    let database: String?
+    let username: String?
+    let host: String?
+}
+
+/// 用户查询请求（{database: "mysql"}）
+nonisolated struct DBUsersRequest: Encodable {
+    let database: String
+}
+
+/// 创建用户请求
+nonisolated struct CreateDBUserRequest: Encodable {
+    let database: String
+    let username: String
+    let host: String
+    let password: String        // base64
+    let description: String
+    let dbs: [String]
+}
+
+/// 删除用户请求
+nonisolated struct DeleteDBUserRequest: Encodable {
+    let database: String
+    let username: String
+    let host: String
+}
+
 // MARK: - Redis 专用请求体
 
 nonisolated struct RedisPasswordRequest: Encodable {

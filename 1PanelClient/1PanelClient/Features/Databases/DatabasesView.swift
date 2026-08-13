@@ -146,6 +146,8 @@ final class DatabaseSystemViewModel: ObservableObject {
     @Published var connInfo: ConnInfo?
     @Published var remoteAccess: Bool = false
     @Published var databases: [DatabaseItem] = []
+    @Published var users: [DatabaseUser] = []
+    @Published var grants: [DatabaseGrant] = []
     @Published var isLoading = false
     @Published var isOperating = false
     @Published var errorMessage: String?
@@ -161,6 +163,12 @@ final class DatabaseSystemViewModel: ObservableObject {
 
     /// 是否支持远程访问开关（仅 MySQL/MariaDB）
     var supportsRemoteAccess: Bool {
+        let t = system.type.lowercased()
+        return t == "mysql" || t == "mariadb" || t == "mysql-cluster"
+    }
+
+    /// 是否支持用户管理（仅 MySQL/MariaDB）
+    var supportsUserManagement: Bool {
         let t = system.type.lowercased()
         return t == "mysql" || t == "mariadb" || t == "mysql-cluster"
     }
@@ -194,6 +202,10 @@ final class DatabaseSystemViewModel: ObservableObject {
         if supportsDatabaseList {
             async let _: () = loadDatabases()
             _ = await loadDatabases()
+        }
+        if supportsUserManagement {
+            async let _: () = loadUsers()
+            _ = await loadUsers()
         }
         _ = await (loadCheck(), loadConnInfo(), loadRemote())
     }
@@ -285,6 +297,71 @@ final class DatabaseSystemViewModel: ObservableObject {
             await loadDatabases()
         } catch { errorMessage = error.localizedDescription }
     }
+
+    // MARK: - MySQL 用户管理
+
+    func loadUsers() async {
+        let req = DBUsersRequest(database: system.database)
+        do {
+            let resp: [DatabaseUser] = try await client.send(
+                path: APIEndpoint.databasesUsersSearch.path, body: req, as: [DatabaseUser].self
+            )
+            users = resp.filter { !($0.isDelete ?? false) }
+            await loadGrants()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func loadGrants() async {
+        let req = DBUsersRequest(database: system.database)
+        do {
+            grants = try await client.send(
+                path: APIEndpoint.databasesGrantsSearch.path, body: req, as: [DatabaseGrant].self
+            )
+        } catch { grants = [] }
+    }
+
+    func databasesForUser(_ user: DatabaseUser) -> [String] {
+        grants
+            .filter { $0.username == user.username && $0.host == user.host }
+            .compactMap { $0.database }
+    }
+
+    func createUser(
+        username: String, host: String, password: String,
+        description: String, databases: [String]
+    ) async -> Bool {
+        isOperating = true
+        defer { isOperating = false }
+        let pwdBase64 = Data(password.utf8).base64EncodedString()
+        let req = CreateDBUserRequest(
+            database: system.database, username: username,
+            host: host, password: pwdBase64,
+            description: description, dbs: databases
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesUsersCreate.path, body: req, as: EmptyResponse.self
+            )
+            await loadUsers()
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func deleteUser(_ user: DatabaseUser) async {
+        guard let username = user.username, let host = user.host else { return }
+        isOperating = true
+        defer { isOperating = false }
+        let req = DeleteDBUserRequest(database: system.database, username: username, host: host)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesUsersDelete.path, body: req, as: EmptyResponse.self
+            )
+            await loadUsers()
+        } catch { errorMessage = error.localizedDescription }
+    }
 }
 
 // MARK: - 单个数据库系统详情视图
@@ -301,6 +378,8 @@ struct DatabaseSystemView: View {
     @State private var pendingAction: String?
     @State private var pendingDeleteDb: DatabaseItem?
     @State private var isStatusExpanded = false
+    @State private var showCreateUser = false
+    @State private var pendingDeleteUser: DatabaseUser?
 
     init(system: DatabaseSystem) {
         _vm = StateObject(wrappedValue: DatabaseSystemViewModel(system: system, server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")))
@@ -313,6 +392,9 @@ struct DatabaseSystemView: View {
             if vm.supportsDatabaseList {
                 databaseListSection
             }
+            if vm.supportsUserManagement {
+                userListSection
+            }
         }
         .navigationTitle(vm.system.displayName)
         .navigationBarTitleDisplayMode(.inline)
@@ -320,7 +402,16 @@ struct DatabaseSystemView: View {
         .task { await vm.refresh() }
         .overlay(alignment: .bottomTrailing) {
             if vm.supportsDatabaseList {
-                Button { showCreate = true } label: {
+                Menu {
+                    Button { showCreate = true } label: {
+                        Label("创建数据库", systemImage: "cylinder.badge.plus")
+                    }
+                    if vm.supportsUserManagement {
+                        Button { showCreateUser = true } label: {
+                            Label("创建用户", systemImage: "person.badge.plus")
+                        }
+                    }
+                } label: {
                     Image(systemName: "plus")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.white)
@@ -334,6 +425,11 @@ struct DatabaseSystemView: View {
         }
         .sheet(isPresented: $showCreate) {
             CreateDatabaseView(system: vm.system) { await vm.loadDatabases() }
+        }
+        .sheet(isPresented: $showCreateUser) {
+            CreateDatabaseUserView(system: vm.system, availableDatabases: vm.databases.map { $0.name ?? "" }.filter { !$0.isEmpty }) {
+                await vm.loadUsers()
+            }
         }
         .sheet(isPresented: $showServicePasswordSheet) {
             ChangePasswordSheet(
@@ -406,6 +502,24 @@ struct DatabaseSystemView: View {
         } message: {
             if let db = pendingDeleteDb {
                 Text("确定删除数据库「\(db.name ?? "")」吗？删除后不可恢复。")
+            }
+        }
+        .alert(
+            "删除用户",
+            isPresented: Binding(
+                get: { pendingDeleteUser != nil },
+                set: { if !$0 { pendingDeleteUser = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingDeleteUser = nil }
+            Button("删除", role: .destructive) {
+                let user = pendingDeleteUser
+                pendingDeleteUser = nil
+                if let user { Task { await vm.deleteUser(user) } }
+            }
+        } message: {
+            if let user = pendingDeleteUser {
+                Text("确定删除用户「\(user.username ?? "")」吗？删除后不可恢复。")
             }
         }
     }
@@ -587,6 +701,99 @@ struct DatabaseSystemView: View {
         } header: {
             SectionLabel(title: "数据库（\(vm.databases.count)）", systemImage: "cylinder")
         }
+    }
+
+    // MARK: 用户列表（MySQL）
+
+    private var userListSection: some View {
+        Section {
+            if vm.users.isEmpty {
+                Text("暂无用户")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                ForEach(vm.users) { user in
+                    DatabaseUserRow(user: user, grants: vm.databasesForUser(user))
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            pendingDeleteUser = user
+                        } label: { Label("删除", systemImage: "trash") }
+                    }
+                }
+            }
+
+            Button {
+                showCreateUser = true
+            } label: {
+                Label("创建用户", systemImage: "person.badge.plus")
+            }
+        } header: {
+            SectionLabel(title: "用户（\(vm.users.count)）", systemImage: "person.2")
+        }
+    }
+}
+
+// MARK: - 数据库用户行
+
+struct DatabaseUserRow: View {
+    let user: DatabaseUser
+    let grants: [String]
+
+    @State private var showPassword = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(user.displayName)
+                    .font(.system(.body, design: .monospaced).bold())
+                if let host = user.host, host == "%" {
+                    StatusBadge(text: "远程", color: .blue, icon: "network")
+                } else {
+                    StatusBadge(text: "本机", color: .orange, icon: "lock.shield")
+                }
+            }
+
+            if let pwd = user.password, !pwd.isEmpty {
+                HStack(spacing: 6) {
+                    Text("密码").font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Text(showPassword ? pwd : String(repeating: "•", count: min(pwd.count, 12)))
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Button {
+                        showPassword.toggle()
+                    } label: {
+                        Image(systemName: showPassword ? "eye.slash" : "eye")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    Button {
+                        UIPasteboard.general.string = pwd
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+
+            if !grants.isEmpty {
+                HStack(spacing: 4) {
+                    Text("数据库:").font(.caption).foregroundStyle(.secondary)
+                    Text(grants.joined(separator: ", "))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+
+            if let desc = user.description, !desc.isEmpty {
+                Text(desc).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 
