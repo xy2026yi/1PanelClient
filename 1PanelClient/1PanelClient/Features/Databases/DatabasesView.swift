@@ -504,22 +504,9 @@ struct DatabaseSystemView: View {
                 Text("确定删除数据库「\(db.name ?? "")」吗？删除后不可恢复。")
             }
         }
-        .alert(
-            "删除用户",
-            isPresented: Binding(
-                get: { pendingDeleteUser != nil },
-                set: { if !$0 { pendingDeleteUser = nil } }
-            )
-        ) {
-            Button("取消", role: .cancel) { pendingDeleteUser = nil }
-            Button("删除", role: .destructive) {
-                let user = pendingDeleteUser
-                pendingDeleteUser = nil
-                if let user { Task { await vm.deleteUser(user) } }
-            }
-        } message: {
-            if let user = pendingDeleteUser {
-                Text("确定删除用户「\(user.username ?? "")」吗？删除后不可恢复。")
+        .sheet(item: $pendingDeleteUser) { user in
+            DeleteDatabaseUserSheet(user: user) {
+                Task { await vm.deleteUser(user) }
             }
         }
     }
@@ -1006,6 +993,55 @@ struct RedisPasswordSheet: View {
     private func randomPassword() -> String {
         let chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         return String((0..<16).map { _ in chars.randomElement()! })
+    }
+}
+
+// MARK: - 删除用户确认 Sheet
+
+struct DeleteDatabaseUserSheet: View {
+    let user: DatabaseUser
+    let onConfirm: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var nameConfirm = ""
+
+    private var expectedName: String {
+        user.username ?? ""
+    }
+
+    private var canDelete: Bool {
+        nameConfirm.trimmingCharacters(in: .whitespaces) == expectedName
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("此操作不可恢复。请输入用户名「\(expectedName)」以确认删除。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section("确认用户名") {
+                    TextField("用户名", text: $nameConfirm)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+            }
+            .navigationTitle("删除用户")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("删除", role: .destructive) {
+                        onConfirm()
+                        dismiss()
+                    }
+                    .disabled(!canDelete)
+                }
+            }
+        }
     }
 }
 
