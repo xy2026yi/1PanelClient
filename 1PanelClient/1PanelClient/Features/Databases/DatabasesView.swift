@@ -294,6 +294,7 @@ final class DatabaseSystemViewModel: ObservableObject {
         do {
             let _: EmptyResponse = try await client.send(path: checkPath, body: checkReq, as: EmptyResponse.self)
             let _: EmptyResponse = try await client.send(path: delPath, body: delReq, as: EmptyResponse.self)
+            databases.removeAll { $0.id == db.id }
             await loadDatabases()
         } catch { errorMessage = error.localizedDescription }
     }
@@ -359,6 +360,8 @@ final class DatabaseSystemViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.databasesUsersDelete.path, body: req, as: EmptyResponse.self
             )
+            users.removeAll { $0.id == user.id }
+            grants.removeAll { $0.username == username && $0.host == host }
             await loadUsers()
         } catch { errorMessage = error.localizedDescription }
     }
@@ -656,23 +659,22 @@ struct DatabaseSystemView: View {
 
     private var databaseListSection: some View {
         Section {
+            ForEach(vm.databases, id: \.id) { db in
+                NavigationLink {
+                    DatabaseDetailView(database: db, system: vm.system) { await vm.loadDatabases() }
+                } label: {
+                    DatabaseItemRow(db: db)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        pendingDeleteDb = db
+                    } label: { Label("删除", systemImage: "trash") }
+                }
+            }
             if vm.databases.isEmpty {
                 Text("暂无数据库")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
-            } else {
-                ForEach(vm.databases) { db in
-                    NavigationLink {
-                        DatabaseDetailView(database: db, system: vm.system) { await vm.loadDatabases() }
-                    } label: {
-                        DatabaseItemRow(db: db)
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            pendingDeleteDb = db
-                        } label: { Label("删除", systemImage: "trash") }
-                    }
-                }
             }
         } header: {
             SectionLabel(title: "数据库（\(vm.databases.count)）", systemImage: "cylinder")
@@ -683,25 +685,24 @@ struct DatabaseSystemView: View {
 
     private var userListSection: some View {
         Section {
+            ForEach(vm.users, id: \.id) { user in
+                NavigationLink {
+                    DatabaseUserDetailView(user: user, system: vm.system, availableDatabases: vm.databases.map { $0.name ?? "" }.filter { !$0.isEmpty }) {
+                        await vm.loadUsers()
+                    }
+                } label: {
+                    DatabaseUserRow(user: user, grants: vm.databasesForUser(user))
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        pendingDeleteUser = user
+                    } label: { Label("删除", systemImage: "trash") }
+                }
+            }
             if vm.users.isEmpty {
                 Text("暂无用户")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
-            } else {
-                ForEach(vm.users) { user in
-                    NavigationLink {
-                        DatabaseUserDetailView(user: user, system: vm.system, availableDatabases: vm.databases.map { $0.name ?? "" }.filter { !$0.isEmpty }) {
-                            await vm.loadUsers()
-                        }
-                    } label: {
-                        DatabaseUserRow(user: user, grants: vm.databasesForUser(user))
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            pendingDeleteUser = user
-                        } label: { Label("删除", systemImage: "trash") }
-                    }
-                }
             }
         } header: {
             SectionLabel(title: "用户（\(vm.users.count)）", systemImage: "person.2")
