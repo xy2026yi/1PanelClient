@@ -17,36 +17,48 @@ enum CronjobType: String, CaseIterable, Identifiable, Codable {
     case website    = "website"     // 备份网站
     case database   = "database"    // 备份数据库
     case snapshot   = "snapshot"    // 系统快照
+    case clean      = "clean"       // 缓存清理
+    case ntp        = "ntp"         // 同步服务器时间
+    case syncIpGroup = "syncIpGroup" // 同步 WAF IP 组
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .shell:     return "Shell 脚本"
-        case .app:       return "备份应用"
-        case .website:   return "备份网站"
-        case .database:  return "备份数据库"
-        case .snapshot:  return "系统快照"
+        case .shell:       return "Shell 脚本"
+        case .app:         return "备份应用"
+        case .website:     return "备份网站"
+        case .database:    return "备份数据库"
+        case .snapshot:    return "系统快照"
+        case .clean:       return "缓存清理"
+        case .ntp:         return "同步服务器时间"
+        case .syncIpGroup: return "同步 WAF IP 组"
         }
     }
 
     var icon: String {
         switch self {
-        case .shell:     return "terminal"
-        case .app:       return "shippingbox"
-        case .website:   return "globe"
-        case .database:  return "cylinder"
-        case .snapshot:  return "camera.metering.center.weighted"
+        case .shell:       return "terminal"
+        case .app:         return "shippingbox"
+        case .website:     return "globe"
+        case .database:    return "cylinder"
+        case .snapshot:    return "camera.metering.center.weighted"
+        case .clean:       return "trash.circle"
+        case .ntp:         return "clock.badge"
+        case .syncIpGroup: return "shield.lefthalf.filled"
         }
     }
 
     var color: Color {
         switch self {
-        case .shell:     return .black
-        case .app:       return .blue
-        case .website:   return .green
-        case .database:  return .teal
-        case .snapshot:  return .purple
+        case .shell:       return .black
+        case .app:         return .blue
+        case .website:     return .green
+        case .database:    return .teal
+        case .snapshot:    return .purple
+        case .clean:       return .orange
+        case .ntp:         return .indigo
+        case .syncIpGroup: return .pink
         }
     }
 
@@ -54,7 +66,7 @@ enum CronjobType: String, CaseIterable, Identifiable, Codable {
     var needsBackupAccount: Bool {
         switch self {
         case .app, .website, .database, .snapshot: return true
-        case .shell: return false
+        case .shell, .clean, .ntp, .syncIpGroup:   return false
         }
     }
 }
@@ -266,6 +278,12 @@ nonisolated struct CronjobGroupRequest: Encodable {
 /// 手动执行计划任务请求
 nonisolated struct CronjobHandleRequest: Encodable {
     let id: Int
+}
+
+/// 启用/停用计划任务请求（POST /api/v2/cronjobs/status）
+nonisolated struct CronjobUpdateStatusRequest: Encodable {
+    let id: Int
+    let status: String
 }
 
 /// 删除计划任务请求

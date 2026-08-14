@@ -203,6 +203,7 @@ struct CronjobDetailView: View {
     @State private var editingInfo: CronjobInfo?
     @State private var showEditView = false
     @State private var isLoadingEditInfo = false
+    @State private var showDeleteSheet = false
 
     /// 从 ViewModel 列表中查找最新的任务数据。
     /// 编辑后 vm.cronjobs 会刷新，此属性返回更新后的版本；
@@ -265,6 +266,9 @@ struct CronjobDetailView: View {
                 Section("备份内容") {
                     LabeledRow("类型", value: "系统快照")
                 }
+            case .clean, .ntp, .syncIpGroup:
+                // 缓存清理 / 同步服务器时间 / 同步 WAF IP 组：无类型特定详情
+                EmptyView()
             }
 
             // 操作
@@ -273,6 +277,12 @@ struct CronjobDetailView: View {
                     Task { await vm.handle(job: currentJob) }
                 } label: {
                     Label("立即执行", systemImage: "play.fill")
+                }
+                Button {
+                    Task { await vm.updateStatus(job: currentJob, enabled: !currentJob.isEnabled) }
+                } label: {
+                    Label(currentJob.isEnabled ? "停用任务" : "启用任务",
+                          systemImage: currentJob.isEnabled ? "pause.fill" : "checkmark.circle.fill")
                 }
                 NavigationLink {
                     CronjobRecordsView(job: currentJob, vm: vm)
@@ -295,7 +305,7 @@ struct CronjobDetailView: View {
             // 危险操作
             Section {
                 Button(role: .destructive) {
-                    vm.pendingDeleteJob = currentJob
+                    showDeleteSheet = true
                 } label: {
                     Label("删除任务", systemImage: "trash")
                 }
@@ -307,28 +317,16 @@ struct CronjobDetailView: View {
         }
         .navigationTitle(currentJob.name ?? "任务详情")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("删除任务", isPresented: Binding(
-            get: { vm.pendingDeleteJob != nil },
-            set: { if !$0 { vm.pendingDeleteJob = nil } }
-        )) {
-            Button("取消", role: .cancel) {
-                vm.pendingDeleteJob = nil
-                vm.deleteCleanData = false
-            }
-            Button("删除", role: .destructive) {
-                if let j = vm.pendingDeleteJob {
-                    Task {
-                        let success = await vm.delete(job: j)
-                        if success {
-                            dismiss()
-                        }
+        .sheet(isPresented: $showDeleteSheet) {
+            DeleteCronjobSheet(job: currentJob) { cleanData in
+                Task {
+                    // 同步删除选项到 ViewModel（delete 方法内部读取 deleteCleanData）
+                    vm.deleteCleanData = cleanData
+                    let success = await vm.delete(job: currentJob)
+                    if success {
+                        dismiss()
                     }
                 }
-            }
-        } message: {
-            VStack {
-                Text("确定删除任务「\(vm.pendingDeleteJob?.name ?? "")」吗？")
-                Toggle("同时删除备份文件", isOn: $vm.deleteCleanData)
             }
         }
         .toastOverlay(message: $vm.toastMessage)
@@ -348,6 +346,59 @@ struct CronjobDetailView: View {
             editingInfo = info
             showEditView = true
         }
+    }
+}
+
+// MARK: - 删除任务确认 Sheet（半屏，输入任务名确认）
+
+/// 删除计划任务确认弹窗，样式与数据库详情页的 DeleteDatabaseSheet 保持一致。
+struct DeleteCronjobSheet: View {
+    let job: Cronjob
+    /// 确认删除回调：cleanData 表示是否同时删除已生成的备份文件（本地+远程）。
+    let onConfirm: (_ cleanData: Bool) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var nameConfirm = ""
+    @State private var cleanData = false
+
+    /// 输入的任务名与实际名称完全一致时才允许删除
+    private var canDelete: Bool {
+        nameConfirm.trimmingCharacters(in: .whitespaces) == (job.name ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("此操作不可恢复。请输入任务名称「\(job.name ?? "")」以确认删除。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section("确认名称") {
+                    TextField("任务名称", text: $nameConfirm)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+                Section("选项") {
+                    Toggle("同时删除备份文件", isOn: $cleanData)
+                }
+            }
+            .navigationTitle("删除任务")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("删除", role: .destructive) {
+                        onConfirm(cleanData)
+                        dismiss()
+                    }
+                    .disabled(!canDelete)
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 
@@ -489,12 +540,8 @@ struct CreateCronjobView: View {
 
     @State private var type: CronjobType = .shell
     @State private var name = ""
-    // 周期
-    @State private var specType: SpecType = .perDay
-    @State private var hour = 2
-    @State private var minute = 30
-    @State private var week = 1        // 周日=0
-    @State private var day = 1         // 每月几号
+    // 周期（支持多个）
+    @State private var schedules: [ScheduleItem] = [ScheduleItem()]
     // Shell
     @State private var script = "#!/bin/bash\n"
     @State private var user = ""           // 默认不选（空字符串 = 服务器默认）
@@ -512,6 +559,12 @@ struct CreateCronjobView: View {
     @State private var showBackupParamsPicker = false
     /// 标记是否已完成编辑模式的数据预填
     @State private var hasPrefilled = false
+    /// 失败重试次数（所有任务类型通用）
+    @State private var retryTimes = 3
+    /// 超时时间的数值（单位由 timeoutUnit 决定）
+    @State private var timeoutValue = 1
+    /// 超时时间的单位（提交时统一换算成秒，timeoutUnit 固定为 "s"）
+    @State private var timeoutUnit: TimeoutUnit = .hours
 
     enum DBBackupType: String, CaseIterable, Identifiable {
         case mysql = "mysql"
@@ -567,6 +620,68 @@ struct CreateCronjobView: View {
         }
     }
 
+    /// 超时时间单位（仅 UI 表达，提交时统一换算成秒并以 timeoutUnit="s" 发送）
+    enum TimeoutUnit: String, CaseIterable, Identifiable {
+        case seconds = "秒"
+        case minutes = "分钟"
+        case hours   = "小时"
+        var id: String { rawValue }
+
+        /// 当前单位换算到秒的乘数
+        var multiplier: Int {
+            switch self {
+            case .seconds: return 1
+            case .minutes: return 60
+            case .hours:   return 3600
+            }
+        }
+
+        /// 从总秒数反推合适的单位与数值（编辑回填用）。
+        /// 优先用最大可整除的单位；无法整除时回退到秒。
+        static func from(seconds: Int) -> (unit: TimeoutUnit, value: Int) {
+            if seconds >= 3600, seconds % 3600 == 0 {
+                return (.hours, seconds / 3600)
+            } else if seconds >= 60, seconds % 60 == 0 {
+                return (.minutes, seconds / 60)
+            } else {
+                return (.seconds, max(seconds, 1))
+            }
+        }
+    }
+
+    /// 单个执行周期（支持多个周期组合）
+    struct ScheduleItem: Identifiable {
+        let id = UUID()
+        var specType: SpecType = .perDay
+        var hour: Int = 2
+        var minute: Int = 30
+        var week: Int = 1     // 周日=0
+        var day: Int = 1      // 每月几号
+
+        /// 生成对应的 cron 表达式
+        var cronSpec: String {
+            let m = String(format: "%02d", minute)
+            let h = String(format: "%02d", hour)
+            switch specType {
+            case .perHour:  return "\(m) * * * *"
+            case .perDay:   return "\(m) \(h) * * *"
+            case .perWeek:  return "\(m) \(h) * * \(week)"
+            case .perMonth: return "\(m) \(h) \(day) * *"
+            }
+        }
+
+        /// 生成对应的 specObj（提交用）
+        var specObj: CronjobSpecObj {
+            var obj = CronjobSpecObj()
+            obj.specType = specType.raw
+            obj.hour = hour
+            obj.minute = minute
+            obj.week = week
+            obj.day = day
+            return obj
+        }
+    }
+
     var body: some View {
         Form {
             Section("基本信息") {
@@ -579,26 +694,22 @@ struct CreateCronjobView: View {
                 }
             }
 
-            Section("执行周期") {
-                Picker("周期", selection: $specType) {
-                    ForEach(SpecType.allCases) { s in
-                        Text(s.rawValue).tag(s)
-                    }
+            Section {
+                ForEach($schedules) { $item in
+                    scheduleRow(for: $item)
                 }
 
-                Stepper("小时：\(hour) 时", value: $hour, in: 0...23)
-                Stepper("分钟：\(minute) 分", value: $minute, in: 0...59)
-
-                if specType == .perWeek {
-                    Picker("星期", selection: $week) {
-                        ForEach(0..<7) { w in
-                            Text(weekDay(w)).tag(w)
-                        }
-                    }
+                Button {
+                    schedules.append(ScheduleItem())
+                } label: {
+                    Label("添加周期", systemImage: "plus.circle")
+                        .foregroundStyle(Color.accentColor)
                 }
-                if specType == .perMonth {
-                    Stepper("日期：\(day) 号", value: $day, in: 1...28)
-                }
+                .disabled(schedules.count >= 10)
+            } header: {
+                Text("执行周期")
+            } footer: {
+                Text(schedules.count > 1 ? "已添加 \(schedules.count) 个周期，将按各周期分别执行。" : "支持添加多个周期，任务将在每个设定的时间点执行。")
             }
 
             switch type {
@@ -700,6 +811,29 @@ struct CreateCronjobView: View {
 
             case .snapshot:
                 backupSection
+
+            case .clean, .ntp, .syncIpGroup:
+                // 这三种类型无备份账号、无类型特定配置，仅需保留份数
+                Section("任务设置") {
+                    Stepper("保留份数：\(retainCopies) 份", value: $retainCopies, in: 1...100)
+                }
+            }
+
+            // 超时与重试（所有任务类型通用，放在各类型设置之后）
+            Section("超时与重试") {
+                Stepper("失败重试次数：\(retryTimes) 次", value: $retryTimes, in: 0...10)
+                Picker("超时单位", selection: $timeoutUnit) {
+                    ForEach(TimeoutUnit.allCases) { u in
+                        Text(u.rawValue).tag(u)
+                    }
+                }
+                .onChange(of: timeoutUnit) { oldUnit, newUnit in
+                    // 切换单位时尽量保持总时长不变：按新单位取整
+                    let totalSeconds = timeoutValue * oldUnit.multiplier
+                    let newValue = max(1, totalSeconds / newUnit.multiplier)
+                    timeoutValue = newValue
+                }
+                Stepper("超时时间：\(timeoutValue) \(timeoutUnit.rawValue)", value: $timeoutValue, in: 1...9999)
             }
         }
         .navigationTitle(isEditing ? "编辑计划任务" : "创建计划任务")
@@ -767,6 +901,76 @@ struct CreateCronjobView: View {
         }
     }
 
+    /// 单个执行周期的编辑块（嵌入「执行周期」Section 内）。
+    /// 使用 VStack + 内边距 + 圆角背景，让每个周期成为一个独立视觉区块，
+    /// 避免直接堆在 List row 中导致 Stepper 点击区域重叠、控件过于紧凑。
+    @ViewBuilder
+    private func scheduleRow(for item: Binding<ScheduleItem>) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // 顶部：周期标题 + 删除按钮
+            HStack {
+                Text("周期 \(index(of: item.wrappedValue) + 1)")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                Spacer()
+                if schedules.count > 1 {
+                    Button(role: .destructive) {
+                        schedules.removeAll { $0.id == item.wrappedValue.id }
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            // 周期类型
+            Picker("周期类型", selection: item.specType) {
+                ForEach(SpecType.allCases) { s in
+                    Text(s.rawValue).tag(s)
+                }
+            }
+
+            // 小时 / 分钟：每个 Stepper 单独成行并增加垂直留白，
+            // 避免相邻 Stepper 的加减按钮视觉/点击区域重叠。
+            Stepper("小时：\(item.wrappedValue.hour) 时", value: item.hour, in: 0...23)
+                .padding(.vertical, 2)
+            Stepper("分钟：\(item.wrappedValue.minute) 分", value: item.minute, in: 0...59)
+                .padding(.vertical, 2)
+
+            if item.wrappedValue.specType == .perWeek {
+                Picker("星期", selection: item.week) {
+                    ForEach(0..<7) { w in
+                        Text(weekDay(w)).tag(w)
+                    }
+                }
+            }
+            if item.wrappedValue.specType == .perMonth {
+                Stepper("日期：\(item.wrappedValue.day) 号", value: item.day, in: 1...28)
+            }
+
+            // 预览生成的 cron 表达式
+            HStack {
+                Text("表达式")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(item.wrappedValue.cronSpec)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
+        .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+    }
+
+    /// 查找某个周期在数组中的下标（用于显示「周期 N」）
+    private func index(of item: ScheduleItem) -> Int {
+        schedules.firstIndex { $0.id == item.id } ?? 0
+    }
+
     private func weekDay(_ w: Int) -> String {
         let names = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
         return names[w]
@@ -780,16 +984,18 @@ struct CreateCronjobView: View {
         // 默认分组（不传则任务会显示在「-」分组）
         req.groupID = vm.defaultGroupID
 
-        // 周期
-        var specObj = CronjobSpecObj()
-        specObj.specType = specType.raw
-        specObj.hour = hour
-        specObj.minute = minute
-        specObj.week = week
-        specObj.day = day
-        req.specObjs = [specObj]
-        req.spec = buildCronSpec()
-        req.specs = [req.spec]
+        // 周期（支持多个：spec 用 && 连接，specObjs 与 specs 逐项对应）
+        let cronSpecs = schedules.map { $0.cronSpec }
+        req.specObjs = schedules.map { $0.specObj }
+        req.spec = cronSpecs.joined(separator: "&&")
+        req.specs = cronSpecs
+
+        // 超时与重试（所有任务类型通用；timeout 统一换算成秒，与抓包 timeoutUnit="s" 一致）
+        let timeoutSeconds = timeoutValue * timeoutUnit.multiplier
+        req.retryTimes = retryTimes
+        req.timeout = timeoutSeconds
+        req.timeoutItem = timeoutSeconds
+        req.timeoutUnit = "s"
 
         switch type {
         case .shell:
@@ -819,6 +1025,9 @@ struct CreateCronjobView: View {
             req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
             req.downloadAccountID = backupAccountID
             req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+        case .clean, .ntp, .syncIpGroup:
+            // 仅保留份数，无备份账号与类型特定字段
+            break
         }
 
         if isEditing, let info = editingJob {
@@ -838,9 +1047,9 @@ struct CreateCronjobView: View {
         name = info.name ?? ""
         type = info.jobType
 
-        // 解析 cron 表达式回填周期控件
+        // 解析 cron 表达式回填周期控件（支持多个周期，spec 以 && 分隔）
         if let spec = info.spec, !spec.isEmpty {
-            parseSpec(spec)
+            schedules = parseSchedules(spec)
         }
 
         // Shell
@@ -852,6 +1061,12 @@ struct CreateCronjobView: View {
         // 备份设置
         retainCopies = info.retainCopies ?? 7
         backupAccountID = info.downloadAccountID ?? 0
+
+        // 超时与重试
+        retryTimes = info.retryTimes ?? 3
+        let (unit, value) = TimeoutUnit.from(seconds: info.timeout ?? 3600)
+        timeoutUnit = unit
+        timeoutValue = value
 
         // 各类型特定字段
         switch type {
@@ -869,19 +1084,33 @@ struct CreateCronjobView: View {
             dbBackupParams = info.backupParamSet
         case .snapshot:
             break
+        case .clean, .ntp, .syncIpGroup:
+            break
         }
     }
 
-    /// 将 5 段 cron 表达式解析为 specType / hour / minute / week / day
-    private func parseSpec(_ spec: String) {
+    /// 将 spec 字符串（可能包含多个以 && 连接的 cron 表达式）解析为周期数组。
+    private func parseSchedules(_ spec: String) -> [ScheduleItem] {
+        // 1Panel 多周期用 && 连接，例如 "30 1 * * 1&&30 2 * * 1"
+        let cronSpecs = spec.components(separatedBy: "&&").map { $0.trimmingCharacters(in: .whitespaces) }
+        var items: [ScheduleItem] = []
+        for cron in cronSpecs where !cron.isEmpty {
+            if let item = parseSingleSchedule(cron) {
+                items.append(item)
+            }
+        }
+        // 至少保留一个周期
+        return items.isEmpty ? [ScheduleItem()] : items
+    }
+
+    /// 将单个 5 段 cron 表达式解析为一个 ScheduleItem。
+    private func parseSingleSchedule(_ spec: String) -> ScheduleItem? {
         let parts = spec.split(separator: " ").map(String.init)
-        guard parts.count >= 5 else { return }
+        guard parts.count >= 5 else { return nil }
 
-        let minuteValue = Int(parts[0]) ?? 30
-        let hourValue = Int(parts[1]) ?? 2
-
-        minute = max(0, min(59, minuteValue))
-        hour = max(0, min(23, hourValue))
+        var item = ScheduleItem()
+        item.minute = max(0, min(59, Int(parts[0]) ?? 30))
+        item.hour = max(0, min(23, Int(parts[1]) ?? 2))
 
         // parts[2] = day-of-month, parts[3] = month, parts[4] = day-of-week
         let dayOfMonth = parts[2]
@@ -890,35 +1119,20 @@ struct CreateCronjobView: View {
         if dayOfMonth == "*" && dayOfWeek == "*" {
             // 检查是否每小时（hour 位置为 *）
             if parts[1] == "*" {
-                specType = .perHour
+                item.specType = .perHour
             } else {
-                specType = .perDay
+                item.specType = .perDay
             }
         } else if dayOfMonth != "*" {
-            specType = .perMonth
-            day = max(1, min(28, Int(dayOfMonth) ?? 1))
+            item.specType = .perMonth
+            item.day = max(1, min(28, Int(dayOfMonth) ?? 1))
         } else if dayOfWeek != "*" {
-            specType = .perWeek
-            week = max(0, min(6, Int(dayOfWeek) ?? 0))
+            item.specType = .perWeek
+            item.week = max(0, min(6, Int(dayOfWeek) ?? 0))
         } else {
-            specType = .perDay
+            item.specType = .perDay
         }
-    }
-
-    /// 根据周期类型生成 cron 表达式
-    private func buildCronSpec() -> String {
-        let m = String(format: "%02d", minute)
-        let h = String(format: "%02d", hour)
-        switch specType {
-        case .perHour:
-            return "\(m) * * * *"
-        case .perDay:
-            return "\(m) \(h) * * *"
-        case .perWeek:
-            return "\(m) \(h) * * \(week)"
-        case .perMonth:
-            return "\(m) \(h) \(day) * *"
-        }
+        return item
     }
 }
 
@@ -1085,6 +1299,23 @@ final class CronjobsViewModel: ObservableObject {
             showAlert(message: "执行失败：\(err.errorDescription ?? "未知错误")")
         } catch {
             showAlert(message: "执行失败：\(error.localizedDescription)")
+        }
+    }
+
+    /// 启用/停用计划任务（POST /api/v2/cronjobs/status）
+    func updateStatus(job: Cronjob, enabled: Bool) async {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.cronjobsStatus.path,
+                body: CronjobUpdateStatusRequest(id: job.id, status: enabled ? "Enable" : "Disable"),
+                as: EmptyResponse.self
+            )
+            await refresh()
+            showToast("任务「\(job.name ?? "")」已\(enabled ? "启用" : "停用")")
+        } catch let err as APIError {
+            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+        } catch {
+            showAlert(message: "操作失败：\(error.localizedDescription)")
         }
     }
 

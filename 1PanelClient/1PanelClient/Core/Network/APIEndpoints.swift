@@ -102,6 +102,7 @@ enum APIEndpoint {
     case cronjobsUpdate           // POST 更新计划任务
     case cronjobsLoadInfo         // POST 加载计划任务详情（编辑用）
     case cronjobsHandle           // POST 手动执行计划任务
+    case cronjobsStatus           // POST 启用/停用计划任务
     case cronjobsDelete           // POST 删除计划任务
     case cronjobsRecords          // POST 查询计划任务执行记录
     case cronjobsGroups           // POST 查询计划任务分组
@@ -305,6 +306,7 @@ enum APIEndpoint {
         case .cronjobsUpdate:        return "/api/v2/cronjobs/update"
         case .cronjobsLoadInfo:      return "/api/v2/cronjobs/load/info"
         case .cronjobsHandle:        return "/api/v2/cronjobs/handle"
+        case .cronjobsStatus:        return "/api/v2/cronjobs/status"
         case .cronjobsDelete:        return "/api/v2/cronjobs/del"
         case .cronjobsRecords:       return "/api/v2/cronjobs/search/records"
         case .cronjobsGroups:        return "/api/v2/core/groups/search"
