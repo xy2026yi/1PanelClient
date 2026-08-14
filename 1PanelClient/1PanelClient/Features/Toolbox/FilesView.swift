@@ -53,6 +53,8 @@ struct FilesView: View {
     @State private var showUploadPicker = false
     @State private var transfer: TransferState?
     @State private var transferTask: Task<Void, Never>?
+    /// 悬浮 + 号的半屏操作菜单
+    @State private var showActionSheet = false
     /// 分片大小：与 1Panel 网页端一致（5MB）
     private let uploadChunkSize = 5 * 1024 * 1024
     /// 超过此大小走分片上传
@@ -77,6 +79,15 @@ struct FilesView: View {
             .overlay(alignment: .bottomTrailing) { floatingAddButton }
             .refreshable { await loadDir(currentPath) }
             .task { await initialLoad() }
+            .sheet(isPresented: $showActionSheet) {
+                FilesActionSheet(
+                    onUpload: { showUploadPicker = true },
+                    onCreateDir: { createIsDir = true; showCreate = true },
+                    onCreateFile: { createIsDir = false; showCreate = true },
+                    onGoTo: { pathInput = currentPath; showPathInput = true },
+                    onRoot: { pathInput = "/"; showPathInput = true }
+                )
+            }
             .modifier(FilesTransferModifier(
                 showUploadPicker: $showUploadPicker,
                 transfer: $transfer,
@@ -109,25 +120,23 @@ struct FilesView: View {
         List {
             ForEach(items) { item in
                 fileRow(item)
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            deletingItem = item
-                        } label: {
-                            Label("删除", systemImage: "trash")
-                        }
-                        Button {
-                            renamingItem = item
-                        } label: {
-                            Label("重命名", systemImage: "pencil")
-                        }
-                        .tint(.blue)
+                    .contextMenu {
                         if !item.isDir {
                             Button {
                                 downloadFile(item)
                             } label: {
                                 Label("下载", systemImage: "arrow.down.circle")
                             }
-                            .tint(.green)
+                        }
+                        Button {
+                            renamingItem = item
+                        } label: {
+                            Label("重命名", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            deletingItem = item
+                        } label: {
+                            Label("删除", systemImage: "trash")
                         }
                     }
             }
@@ -192,57 +201,23 @@ struct FilesView: View {
         }
     }
 
-    // MARK: - 新建/操作菜单（右上角与悬浮按钮共用）
-
-    private var addMenu: some View {
-        Menu {
-            Button {
-                showUploadPicker = true
-            } label: {
-                Label("上传文件", systemImage: "arrow.up.circle")
-            }
-            Button {
-                createIsDir = true
-                showCreate = true
-            } label: {
-                Label("新建文件夹", systemImage: "folder.badge.plus")
-            }
-            Button {
-                createIsDir = false
-                showCreate = true
-            } label: {
-                Label("新建文件", systemImage: "doc.badge.plus")
-            }
-            Divider()
-            Button {
-                pathInput = currentPath
-                showPathInput = true
-            } label: {
-                Label("前往路径", systemImage: "location")
-            }
-            Button {
-                pathInput = "/"
-                showPathInput = true
-            } label: {
-                Label("根目录", systemImage: "house")
-            }
-        } label: {
-            Label("新建", systemImage: "plus.circle.fill")
-        }
-    }
+    // MARK: - 右下角悬浮 + 按钮（点击弹出半屏操作菜单）
 
     /// 右下角悬浮 + 按钮
     private var floatingAddButton: some View {
-        addMenu
-            .labelStyle(.iconOnly)
-            .font(.title3.weight(.semibold))
-            .foregroundStyle(.white)
-            .frame(width: 52, height: 52)
-            .background(Color.accentColor, in: Circle())
-            .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-            .padding(.trailing, 20)
-            .padding(.bottom, 20)
-            .accessibilityLabel("新建")
+        Button {
+            showActionSheet = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 52, height: 52)
+                .background(Color.accentColor, in: Circle())
+                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+        }
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
+        .accessibilityLabel("操作菜单")
     }
 
     @ViewBuilder
@@ -418,13 +393,14 @@ struct FilesView: View {
 
     // MARK: - 下载
 
-    /// 下载文件到本地临时目录，完成后可通过系统分享保存到「文件」App
+    /// 下载文件到本地 Documents 目录（通过 Info.plist 的 UIFileSharingEnabled
+    /// 暴露到「文件」App 的 我的iPhone/1PanelClient），同名文件自动加序号
     private func downloadFile(_ item: FileItem) {
         transfer = TransferState(kind: "下载", fileName: item.name, total: Int64(item.size ?? 0))
         let totalSize = Int64(item.size ?? 0)
         transferTask = Task {
             do {
-                let url = try await client.downloadFile(
+                let tempURL = try await client.downloadFile(
                     path: APIEndpoint.filesDownload.path,
                     queryItems: [
                         URLQueryItem(name: "operateNode", value: "local"),
@@ -444,7 +420,15 @@ struct FilesView: View {
                         }
                     }
                 )
-                transfer?.localURL = url
+                // 移入 Documents 根目录（同名自动加序号）
+                let destDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                let finalName = uniqueFileName(item.name, in: destDir)
+                let finalURL = destDir.appendingPathComponent(finalName)
+                try? FileManager.default.removeItem(at: finalURL)
+                try FileManager.default.moveItem(at: tempURL, to: finalURL)
+
+                transfer?.fileName = finalName
+                transfer?.localURL = finalURL
                 transfer?.progress = 1
                 transfer?.status = .done
             } catch {
@@ -456,6 +440,22 @@ struct FilesView: View {
                     transfer?.errorText = error.localizedDescription
                 }
             }
+        }
+    }
+
+    /// 目标目录下不冲突的文件名：同名时追加序号（如 "a 1.txt"、"a 2.txt"）
+    private func uniqueFileName(_ name: String, in dir: URL) -> String {
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: dir.appendingPathComponent(name).path) { return name }
+        let ext = (name as NSString).pathExtension
+        let base = ext.isEmpty ? name : String(name.dropLast(ext.count + 1))
+        var index = 1
+        while true {
+            let candidate = ext.isEmpty ? "\(base) \(index)" : "\(base) \(index).\(ext)"
+            if !fm.fileExists(atPath: dir.appendingPathComponent(candidate).path) {
+                return candidate
+            }
+            index += 1
         }
     }
 
@@ -562,13 +562,13 @@ struct TransferState: Identifiable {
     enum Status { case running, done, failed }
     let id = UUID()
     let kind: String          // "上传" / "下载"
-    let fileName: String
+    var fileName: String
     var progress: Double = 0  // 0...1；-1 表示总大小未知（转圈）
     var received: Int64 = 0
     var total: Int64 = 0
     var status: Status = .running
     var errorText: String?
-    /// 下载完成后的本地文件 URL（用于分享/保存到「文件」App）
+    /// 下载完成后的本地文件 URL（用于分享）
     var localURL: URL?
 }
 
@@ -592,6 +592,11 @@ struct TransferSheet: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .truncationMode(.middle)
+                if state.status == .done, state.localURL != nil {
+                    Text("已保存到「文件」App · 我的 iPhone/1PanelClient")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                }
             }
 
             if state.status == .running {
@@ -628,11 +633,11 @@ struct TransferSheet: View {
                 }
                 if state.status == .done, let url = state.localURL {
                     ShareLink(item: url) {
-                        Label("保存到「文件」/ 分享", systemImage: "square.and.arrow.up")
+                        Label("分享 / 另存为", systemImage: "square.and.arrow.up")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.bordered)
                 }
                 if state.status != .running {
                     Button {
@@ -677,6 +682,56 @@ struct TransferSheet: View {
             idx += 1
         }
         return String(format: "%.1f %@", size, units[idx])
+    }
+}
+
+/// 悬浮 + 号的半屏操作菜单（上传/新建/跳转）
+struct FilesActionSheet: View {
+    let onUpload: () -> Void
+    let onCreateDir: () -> Void
+    let onCreateFile: () -> Void
+    let onGoTo: () -> Void
+    let onRoot: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("文件") {
+                    actionRow("上传文件", icon: "arrow.up.circle", color: .blue, action: onUpload)
+                    actionRow("新建文件夹", icon: "folder.badge.plus", color: .orange, action: onCreateDir)
+                    actionRow("新建文件", icon: "doc.badge.plus", color: .teal, action: onCreateFile)
+                }
+                Section("跳转") {
+                    actionRow("前往路径", icon: "location", color: .indigo, action: onGoTo)
+                    actionRow("根目录", icon: "house", color: .green, action: onRoot)
+                }
+            }
+            .navigationTitle("操作")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    @ViewBuilder
+    private func actionRow(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button {
+            action()
+            dismiss()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .foregroundStyle(color)
+                    .frame(width: 24)
+                Text(title)
+                    .foregroundStyle(.primary)
+            }
+        }
     }
 }
 

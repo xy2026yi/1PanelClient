@@ -7,5 +7,10 @@
         <key>NSAllowsArbitraryLoads</key>
         <true/>
     </dict>
+    <!-- 将 App 的 Documents 目录暴露到「文件」App（我的iPhone/1PanelClient），下载的文件直接存这里 -->
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
 </dict>
 </plist>
