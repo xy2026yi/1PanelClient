@@ -111,6 +111,10 @@ struct DatabasesView: View {
         .task {
             if vm.systems.isEmpty { await vm.loadSystems() }
         }
+        // 应用安装完成时刷新（如从「安装 XX」流程返回后，新装的数据库需重新拉取）
+        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
+            Task { await vm.loadSystems() }
+        }
         .overlay {
             if vm.isLoading && vm.systems.isEmpty {
                 ProgressView()
