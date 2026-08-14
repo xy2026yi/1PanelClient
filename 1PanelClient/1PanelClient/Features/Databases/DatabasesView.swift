@@ -121,11 +121,16 @@ struct DatabaseSystemRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            IconBadge(
-                systemName: system.systemIcon,
-                color: Color.fromDBString(system.systemColor),
-                size: 42
-            )
+            // 优先显示内置品牌图标，未知类型回退到 SF Symbol
+            if let brand = Brand.from(dbType: system.type) {
+                BrandIcon(brand: brand, size: 42)
+            } else {
+                IconBadge(
+                    systemName: system.systemIcon,
+                    color: Color.fromDBString(system.systemColor),
+                    size: 42
+                )
+            }
             VStack(alignment: .leading, spacing: 3) {
                 Text(system.displayName).font(.headline)
                 if let v = system.version, !v.isEmpty {

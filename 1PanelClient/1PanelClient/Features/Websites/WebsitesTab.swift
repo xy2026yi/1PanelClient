@@ -231,14 +231,8 @@ struct OpenRestyCard: View {
     @ViewBuilder
     private func headerRow(_ app: AppInstall) -> some View {
         HStack(spacing: 12) {
-            AppIconView(
-                appID: app.appID,
-                baseURL: manager.current?.baseURL ?? "",
-                fallbackIcon: "globe",
-                fallbackColor: app.statusColor,
-                size: 40,
-                cornerRadius: 10
-            )
+            // OpenResty 使用内置品牌图标，避免依赖服务器应用图标接口
+            BrandIcon(brand: .openresty, size: 40)
             VStack(alignment: .leading, spacing: 3) {
                 Text("OpenResty")
                     .font(.body.bold())

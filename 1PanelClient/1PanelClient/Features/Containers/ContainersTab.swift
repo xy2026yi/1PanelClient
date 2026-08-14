@@ -212,7 +212,8 @@ struct DockerStatusCard: View {
     @ViewBuilder
     private func headerRow(_ status: DockerStatus) -> some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: "shippingbox.fill", color: .indigo, size: 40, cornerRadius: 10)
+            // Docker 使用内置品牌图标
+            BrandIcon(brand: .docker, size: 40)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text("Docker")
