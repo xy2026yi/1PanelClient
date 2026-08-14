@@ -194,8 +194,8 @@ struct NotInstalledDatabaseView: View {
         let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         return AppStoreViewModel(server: server)
     }()
-    /// 标记安装是否已完成（用于安装完成后返回数据库列表）
-    @State private var installDidFinish = false
+    /// 是否已进入安装表单（用于区分「自己的安装完成」与无关的全局 installCompleted 通知）
+    @State private var didEnterInstall = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -235,13 +235,15 @@ struct NotInstalledDatabaseView: View {
                 AppInstallView(detail: installDetail, vm: storeVM)
             }
         }
-        // 安装完成通知：标记完成，返回数据库列表
-        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
-            installDidFinish = true
-            storeVM.showInstall = false
+        // 跟踪是否进入过安装表单（showInstall true→false 表示用户开始了安装流程）
+        .onChange(of: storeVM.showInstall) { _, isShown in
+            if isShown { didEnterInstall = true }
         }
-        .onChange(of: installDidFinish) { _, finished in
-            guard finished else { return }
+        // 安装完成通知：仅当确实进入了本页发起的安装流程时才返回，
+        // 避免无关的全局 installCompleted 通知误触发 dismiss（表现为点击安装变返回）
+        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
+            guard didEnterInstall else { return }
+            storeVM.showInstall = false
             // 等导航栈稳定后再 dismiss，避免动画冲突
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 dismiss()
