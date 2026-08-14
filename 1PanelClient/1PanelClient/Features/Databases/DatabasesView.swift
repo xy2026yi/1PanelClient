@@ -183,7 +183,16 @@ struct NotInstalledDatabaseRow: View {
 /// 未安装数据库的详情页：提示未安装并提供跳转应用商店安装的入口
 struct NotInstalledDatabaseView: View {
     let category: DBCategory
-    @State private var showInstallStore = false
+    @Environment(\.dismiss) private var dismiss
+
+    /// 直接跳转到该应用在商店的详情页（而非整个商店列表），
+    /// 避免 AppStoreTab 额外一层 navigationDestination 导致返回按钮异常。
+    @State private var showAppDetail = false
+    /// 应用商店 ViewModel（详情页 + 安装表单共用）
+    @StateObject private var storeVM: AppStoreViewModel = {
+        let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        return AppStoreViewModel(server: server)
+    }()
 
     var body: some View {
         VStack(spacing: 20) {
@@ -202,7 +211,7 @@ struct NotInstalledDatabaseView: View {
             }
 
             Button {
-                showInstallStore = true
+                showAppDetail = true
             } label: {
                 Label("安装 \(category.title)", systemImage: "arrow.down.circle.fill")
                     .frame(maxWidth: .infinity)
@@ -216,13 +225,22 @@ struct NotInstalledDatabaseView: View {
         .padding()
         .navigationTitle(category.title)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(isPresented: $showInstallStore) {
-            AppStoreTab(
-                manager: ServerManager.shared,
-                showCloseButton: false,
-                standalone: false,
-                initialAppKey: category.appKey
-            )
+        // 跳转到应用商店详情页（带安装表单的 navigationDestination）
+        .navigationDestination(isPresented: $showAppDetail) {
+            AppStoreDetailView(appKey: category.appKey, vm: storeVM)
+                // 安装表单：详情页点「安装」后 push 安装表单
+                .navigationDestination(isPresented: $storeVM.showInstall) {
+                    if let installDetail = storeVM.installDetail {
+                        AppInstallView(detail: installDetail, vm: storeVM)
+                    }
+                }
+        }
+        // 安装完成：返回数据库列表（pop 掉详情页 + 安装页）
+        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
+            // 先关闭可能还开着的安装页/详情页，再返回数据库页
+            storeVM.showInstall = false
+            showAppDetail = false
+            dismiss()
         }
     }
 }
