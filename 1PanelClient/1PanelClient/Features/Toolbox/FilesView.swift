@@ -486,6 +486,10 @@ struct FilesView: View {
                 path: APIEndpoint.filesDel.path + "?operateNode=undefined",
                 body: req, as: EmptyResponse.self
             )
+            // 先本地移除再刷新：若直接整表替换 items，会与滑动删除确认的
+            // 行移除动画竞争，触发 List "attempt to delete item N from
+            // section 0" 越界崩溃（同 dfaa430 数据库删除崩溃的修法）
+            items.removeAll { $0.path == item.path }
             successMessage = "已删除"
             await loadDir(currentPath)
         } catch {
