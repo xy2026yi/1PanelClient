@@ -56,32 +56,31 @@ struct FilesView: View {
     }
 
     var body: some View {
-        fileList
-            .safeAreaInset(edge: .top, spacing: 0) {
-                breadcrumbBar
-            }
-            .navigationTitle(currentPath == "/" ? "根目录" : (currentPath as NSString).lastPathComponent)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { addMenu }
-            }
-            .overlay(alignment: .bottomTrailing) { floatingAddButton }
-            .refreshable { await loadDir(currentPath) }
-            .task { await initialLoad() }
-            .modifier(FilesDialogsModifier(
-                showCreate: $showCreate,
-                createIsDir: createIsDir,
-                currentPath: currentPath,
-                renamingItem: $renamingItem,
-                deletingItem: $deletingItem,
-                showPathInput: $showPathInput,
-                pathInput: $pathInput,
-                successMessage: $successMessage,
-                errorMessage: $errorMessage,
-                reload: { Task { await loadDir(currentPath) } },
-                jumpTo: { target in pathHistory = [target]; Task { await loadDir(target) } },
-                deleteItem: { item in Task { await deleteItem(item) } }
-            ))
+        VStack(spacing: 0) {
+            // 路径面包屑：固定在导航栏下方，不随列表滚动
+            breadcrumbBar
+            // 文件列表
+            fileList
+        }
+        .navigationTitle(currentPath == "/" ? "根目录" : (currentPath as NSString).lastPathComponent)
+        .navigationBarTitleDisplayMode(.inline)
+        .overlay(alignment: .bottomTrailing) { floatingAddButton }
+        .refreshable { await loadDir(currentPath) }
+        .task { await initialLoad() }
+        .modifier(FilesDialogsModifier(
+            showCreate: $showCreate,
+            createIsDir: createIsDir,
+            currentPath: currentPath,
+            renamingItem: $renamingItem,
+            deletingItem: $deletingItem,
+            showPathInput: $showPathInput,
+            pathInput: $pathInput,
+            successMessage: $successMessage,
+            errorMessage: $errorMessage,
+            reload: { Task { await loadDir(currentPath) } },
+            jumpTo: { target in pathHistory = [target]; Task { await loadDir(target) } },
+            deleteItem: { item in Task { await deleteItem(item) } }
+        ))
     }
 
     /// 文件列表（仅文件项；路径面包屑通过 safeAreaInset 固定在顶部）
