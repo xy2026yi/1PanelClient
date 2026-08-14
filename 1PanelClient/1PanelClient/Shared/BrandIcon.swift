@@ -18,6 +18,7 @@ enum Brand: String {
     case mariadb
     case postgresql
     case redis
+    case mongodb
 
     /// Assets.xcassets 中的 imageset 名称（MariaDB 复用 MySQL 图标）
     var imageName: String {
@@ -28,6 +29,7 @@ enum Brand: String {
         case .mariadb:     return "brand-mysql"      // 复用 MySQL 图标
         case .postgresql:  return "brand-postgresql"
         case .redis:       return "brand-redis"
+        case .mongodb:     return "brand-mongodb"
         }
     }
 
@@ -40,16 +42,18 @@ enum Brand: String {
         case .mariadb:     return Color(red: 0.00, green: 0.47, blue: 0.69)   // MariaDB 青
         case .postgresql:  return Color(red: 0.16, green: 0.32, blue: 0.55)   // PG 深蓝
         case .redis:       return Color(red: 0.72, green: 0.00, blue: 0.00)   // Redis 红
+        case .mongodb:     return Color(red: 0.00, green: 0.47, blue: 0.30)   // Mongo 绿
         }
     }
 
-    /// 由数据库服务名（type/database 字段，如 "mysql"/"postgresql"/"redis"）推断品牌
+    /// 由数据库服务名（type/database 字段，如 "mysql"/"postgresql"/"redis"/"mongodb"）推断品牌
     static func from(dbType: String) -> Brand? {
         switch dbType.lowercased() {
         case "mysql", "mysql-cluster":            return .mysql
         case "mariadb":                            return .mariadb
         case "postgresql", "postgresql-cluster":   return .postgresql
         case "redis", "redis-cluster":             return .redis
+        case "mongodb", "mongodb-cluster":         return .mongodb
         default:                                   return nil
         }
     }

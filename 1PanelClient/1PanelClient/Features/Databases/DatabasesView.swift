@@ -25,6 +25,7 @@ final class DatabasesViewModel: ObservableObject {
     var mysqlSystems: [DatabaseSystem] { systems.filter { ["mysql","mariadb","mysql-cluster"].contains($0.type.lowercased()) } }
     var pgSystems: [DatabaseSystem] { systems.filter { ["postgresql","postgresql-cluster"].contains($0.type.lowercased()) } }
     var redisSystems: [DatabaseSystem] { systems.filter { ["redis","redis-cluster"].contains($0.type.lowercased()) } }
+    var mongoSystems: [DatabaseSystem] { systems.filter { ["mongodb","mongodb-cluster"].contains($0.type.lowercased()) } }
 
     func loadSystems() async {
         isLoading = true
@@ -33,11 +34,13 @@ final class DatabasesViewModel: ObservableObject {
         async let mysql: [DatabaseSystem]? = fetchList(types: "mysql,mariadb,mysql-cluster")
         async let pg: [DatabaseSystem]? = fetchList(types: "postgresql,postgresql-cluster")
         async let redis: [DatabaseSystem]? = fetchList(types: "redis,redis-cluster")
+        async let mongo: [DatabaseSystem]? = fetchList(types: "mongodb,mongodb-cluster")
 
         var all: [DatabaseSystem] = []
         all.append(contentsOf: await mysql ?? [])
         all.append(contentsOf: await pg ?? [])
         all.append(contentsOf: await redis ?? [])
+        all.append(contentsOf: await mongo ?? [])
         self.systems = all
         self.errorMessage = nil
     }
@@ -54,6 +57,41 @@ final class DatabasesViewModel: ObservableObject {
 
 // MARK: - 数据库首页（DB 系统列表）
 
+/// 数据库类型分类（始终展示的 4 类，未安装时显示占位行 + 安装入口）
+enum DBCategory: String, CaseIterable {
+    case mysql, postgresql, redis, mongodb
+
+    /// 分组标题
+    var title: String {
+        switch self {
+        case .mysql:       return "MySQL / MariaDB"
+        case .postgresql:  return "PostgreSQL"
+        case .redis:       return "Redis"
+        case .mongodb:     return "MongoDB"
+        }
+    }
+
+    /// 安装跳转用的应用 key（对应应用商店中的应用标识）
+    var appKey: String {
+        switch self {
+        case .mysql:       return "mysql"
+        case .postgresql:  return "postgresql"
+        case .redis:       return "redis"
+        case .mongodb:     return "mongodb"
+        }
+    }
+
+    /// 品牌图标
+    var brand: Brand {
+        switch self {
+        case .mysql:       return .mysql
+        case .postgresql:  return .postgresql
+        case .redis:       return .redis
+        case .mongodb:     return .mongodb
+        }
+    }
+}
+
 struct DatabasesView: View {
     @StateObject private var vm: DatabasesViewModel
 
@@ -63,12 +101,8 @@ struct DatabasesView: View {
 
     var body: some View {
         List {
-            if vm.systems.isEmpty && !vm.isLoading {
-                emptySection
-            } else {
-                if !vm.mysqlSystems.isEmpty { systemGroup("MySQL / MariaDB", vm.mysqlSystems) }
-                if !vm.pgSystems.isEmpty { systemGroup("PostgreSQL", vm.pgSystems) }
-                if !vm.redisSystems.isEmpty { systemGroup("Redis", vm.redisSystems) }
+            ForEach(DBCategory.allCases, id: \.rawValue) { category in
+                systemGroup(for: category)
             }
         }
         .navigationTitle("数据库")
@@ -84,34 +118,111 @@ struct DatabasesView: View {
         }
     }
 
-    private var emptySection: some View {
-        Section {
-            VStack(spacing: 12) {
-                Image(systemName: "cylinder")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.secondary)
-                Text("未检测到数据库")
-                    .font(.headline)
-                Text("请先在应用商店安装 MySQL / PostgreSQL / Redis。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+    /// 单个分类分组：有实例则列出，无实例则显示未安装占位行
+    @ViewBuilder
+    private func systemGroup(for category: DBCategory) -> some View {
+        let items = systems(for: category)
+        if items.isEmpty {
+            // 未安装：占位行
+            Section(category.title) {
+                NavigationLink {
+                    NotInstalledDatabaseView(category: category)
+                } label: {
+                    NotInstalledDatabaseRow(category: category)
+                }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 32)
+        } else {
+            // 已安装：列出实例
+            Section(category.title) {
+                ForEach(items) { sys in
+                    NavigationLink {
+                        DatabaseSystemView(system: sys)
+                    } label: {
+                        DatabaseSystemRow(system: sys)
+                    }
+                }
+            }
         }
     }
 
-    @ViewBuilder
-    private func systemGroup(_ title: String, _ items: [DatabaseSystem]) -> some View {
-        Section(title) {
-            ForEach(items) { sys in
-                NavigationLink {
-                    DatabaseSystemView(system: sys)
-                } label: {
-                    DatabaseSystemRow(system: sys)
-                }
+    /// 取某分类下已安装的数据库实例
+    private func systems(for category: DBCategory) -> [DatabaseSystem] {
+        switch category {
+        case .mysql:       return vm.mysqlSystems
+        case .postgresql:  return vm.pgSystems
+        case .redis:       return vm.redisSystems
+        case .mongodb:     return vm.mongoSystems
+        }
+    }
+}
+
+// MARK: - 未安装占位行
+
+/// 未安装数据库的占位行：灰色品牌图标 + 名称 + 「未安装」标签
+struct NotInstalledDatabaseRow: View {
+    let category: DBCategory
+
+    var body: some View {
+        HStack(spacing: 14) {
+            BrandIcon(brand: category.brand, size: 42)
+                .opacity(0.4)   // 未安装：图标变淡
+            VStack(alignment: .leading, spacing: 3) {
+                Text(category.title).font(.headline).foregroundStyle(.secondary)
+                Text("未安装")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+// MARK: - 未安装数据库详情页（提示 + 安装按钮）
+
+/// 未安装数据库的详情页：提示未安装并提供跳转应用商店安装的入口
+struct NotInstalledDatabaseView: View {
+    let category: DBCategory
+    @State private var showInstallStore = false
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            BrandIcon(brand: category.brand, size: 72)
+                .opacity(0.5)
+
+            VStack(spacing: 8) {
+                Text("\(category.title)未安装")
+                    .font(.headline)
+                Text("请先安装 \(category.title) 后再使用此功能")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            Button {
+                showInstallStore = true
+            } label: {
+                Label("安装 \(category.title)", systemImage: "arrow.down.circle.fill")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.horizontal, 40)
+
+            Spacer()
+        }
+        .padding()
+        .navigationTitle(category.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showInstallStore) {
+            AppStoreTab(
+                manager: ServerManager.shared,
+                showCloseButton: false,
+                standalone: false,
+                initialAppKey: category.appKey
+            )
         }
     }
 }

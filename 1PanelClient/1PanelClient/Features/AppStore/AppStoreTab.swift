@@ -19,11 +19,16 @@ struct AppStoreTab: View {
     var showCloseButton: Bool = true
     /// true=自带 NavigationStack；false=仅提供内容（嵌入外层栈）
     var standalone: Bool = true
+    /// 深链接：进入商店后自动跳转到该 appKey 的应用详情页（如数据库「安装 XX」跳转用）
+    var initialAppKey: String? = nil
+    /// 是否已触发过深链接跳转
+    @State private var showInitialDetail = false
 
-    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
+    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true, initialAppKey: String? = nil) {
         self.manager = manager
         self.showCloseButton = showCloseButton
         self.standalone = standalone
+        self.initialAppKey = initialAppKey
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: AppStoreViewModel(server: server))
     }
@@ -38,7 +43,13 @@ struct AppStoreTab: View {
                 storeRootContent
             }
         }
-        .task { await vm.refresh() }
+        .task {
+            await vm.refresh()
+            // 深链接：加载完成后自动跳转到指定应用详情
+            if let key = initialAppKey, !key.isEmpty, !showInitialDetail {
+                showInitialDetail = true
+            }
+        }
     }
 
     /// 列表根内容（不含 NavigationStack/task），供外层复用
@@ -94,6 +105,11 @@ struct AppStoreTab: View {
             Button("好的", role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
+        }
+        .navigationDestination(isPresented: $showInitialDetail) {
+            if let key = initialAppKey {
+                AppStoreDetailView(appKey: key, vm: vm)
+            }
         }
     }
 
