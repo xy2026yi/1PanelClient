@@ -57,7 +57,6 @@ struct FilesView: View {
 
     var body: some View {
         fileList
-            .safeAreaInset(edge: .top) { breadcrumbBar }
             .navigationTitle(currentPath == "/" ? "根目录" : (currentPath as NSString).lastPathComponent)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -82,9 +81,16 @@ struct FilesView: View {
             ))
     }
 
-    /// 文件列表（抽离以减轻 body 类型推断负担）
+    /// 文件列表（顶部为路径面包屑，下方为文件项）
     private var fileList: some View {
         List {
+            // 路径面包屑（作为列表首行，始终可见在导航栏下方）
+            Section {
+                breadcrumbBar
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .listRowBackground(Color(.systemGroupedBackground))
+            }
+            // 文件项
             ForEach(items) { item in
                 fileRow(item)
                     .swipeActions {
@@ -127,10 +133,9 @@ struct FilesView: View {
                     breadcrumbSegment(idx: idx, segment: seg)
                 }
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
-        .background(.bar)
     }
 
     /// 单个路径段（分隔符 + 可点击按钮）
