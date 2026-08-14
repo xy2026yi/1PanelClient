@@ -1217,7 +1217,8 @@ final class WebsitesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "HTTPS 配置已保存，正在重载 OpenResty…")
+            // 成功时不调用 showAlert：showAlert 绑定在根页 WebsitesTab 上，
+            // 会在用户返回主页面时才弹出。改由调用方（WebsiteHTTPSView）显示轻量 toast。
             return true
         } catch let err as APIError {
             showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
@@ -1592,6 +1593,9 @@ struct WebsiteHTTPSView: View {
     @State private var config: WebsiteHTTPS?
     @State private var isLoading = false
     @State private var isSaving = false
+    /// 轻量成功提示（自动消失，仅在 HTTPS 页显示，避免返回主页面时弹窗残留）
+    @State private var toastMessage: String?
+    @State private var toastTask: Task<Void, Never>?
 
     // 可编辑状态
     @State private var enable = false
@@ -1623,6 +1627,7 @@ struct WebsiteHTTPSView: View {
         }
         .navigationTitle("HTTPS")
         .navigationBarTitleDisplayMode(.inline)
+        .toastOverlay(message: $toastMessage)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -1727,8 +1732,21 @@ struct WebsiteHTTPSView: View {
             httpsPort: httpsPort,
             http3: http3
         )
-        _ = await vm.updateHTTPSConfig(websiteId: websiteId, sslId: sslId, req: req)
+        let ok = await vm.updateHTTPSConfig(websiteId: websiteId, sslId: sslId, req: req)
+        if ok {
+            showToast("HTTPS 配置已保存，正在重载 OpenResty…")
+        }
         await load()
+    }
+
+    /// 显示轻量提示，2 秒后自动消失
+    private func showToast(_ message: String) {
+        toastTask?.cancel()
+        toastMessage = message
+        toastTask = Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run { toastMessage = nil }
+        }
     }
 }
 
