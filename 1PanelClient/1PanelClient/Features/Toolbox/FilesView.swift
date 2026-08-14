@@ -122,7 +122,7 @@ struct FilesView: View {
     }
 
     /// 顶部路径面包屑条：固定在导航栏下方，不随列表滚动。
-    /// 使用不透明背景确保可见，紧凑间距。
+    /// 使用固定高度，避免在 VStack 中被贪婪的 List 挤压为 0 高度。
     private var breadcrumbBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
@@ -130,10 +130,13 @@ struct FilesView: View {
                     breadcrumbSegment(idx: idx, segment: seg)
                 }
             }
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 16)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
         }
-        .background(Color(.systemBackground))
+        .frame(height: 36)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground))
         .overlay(alignment: .bottom) {
             Divider()
         }
@@ -142,17 +145,17 @@ struct FilesView: View {
     /// 单个路径段（分隔符 + 可点击按钮）
     private func breadcrumbSegment(idx: Int, segment: (path: String, name: String)) -> some View {
         let isLast = idx == breadcrumbSegments.count - 1
-        return HStack(spacing: 6) {
+        return HStack(spacing: 4) {
             if idx > 0 {
                 Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.tertiary)
             }
             Button {
                 Task { await loadDir(segment.path) }
             } label: {
                 Text(segment.name == "/" ? "根目录" : segment.name)
-                    .font(.subheadline)
+                    .font(.subheadline.weight(isLast ? .semibold : .regular))
                     .foregroundStyle(isLast ? Color.primary : Color.accentColor)
             }
             .buttonStyle(.plain)
