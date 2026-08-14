@@ -57,6 +57,9 @@ struct FilesView: View {
 
     var body: some View {
         fileList
+            .safeAreaInset(edge: .top, spacing: 0) {
+                breadcrumbBar
+            }
             .navigationTitle(currentPath == "/" ? "根目录" : (currentPath as NSString).lastPathComponent)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -81,16 +84,9 @@ struct FilesView: View {
             ))
     }
 
-    /// 文件列表（顶部为路径面包屑，下方为文件项）
+    /// 文件列表（仅文件项；路径面包屑通过 safeAreaInset 固定在顶部）
     private var fileList: some View {
         List {
-            // 路径面包屑（作为列表首行，始终可见在导航栏下方）
-            Section {
-                breadcrumbBar
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                    .listRowBackground(Color(.systemGroupedBackground))
-            }
-            // 文件项
             ForEach(items) { item in
                 fileRow(item)
                     .swipeActions {
@@ -108,6 +104,7 @@ struct FilesView: View {
                     }
             }
         }
+        .listSectionSpacing(8)
     }
 
     // MARK: - 路径面包屑
@@ -125,16 +122,21 @@ struct FilesView: View {
         return segments
     }
 
-    /// 顶部路径面包屑条：水平滚动，点击任意段跳转到对应路径
+    /// 顶部路径面包屑条：固定在导航栏下方，不随列表滚动。
+    /// 使用不透明背景确保可见，紧凑间距。
     private var breadcrumbBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+            HStack(spacing: 4) {
                 ForEach(Array(breadcrumbSegments.enumerated()), id: \.offset) { idx, seg in
                     breadcrumbSegment(idx: idx, segment: seg)
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6)
+        }
+        .background(Color(.systemBackground))
+        .overlay(alignment: .bottom) {
+            Divider()
         }
     }
 
