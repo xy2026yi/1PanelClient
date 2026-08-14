@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - 请求模型
 
@@ -48,6 +49,15 @@ struct FilesView: View {
     @State private var showPathInput = false
     @State private var pathInput = "/"
 
+    // 上传/下载
+    @State private var showUploadPicker = false
+    @State private var transfer: TransferState?
+    @State private var transferTask: Task<Void, Never>?
+    /// 分片大小：与 1Panel 网页端一致（5MB）
+    private let uploadChunkSize = 5 * 1024 * 1024
+    /// 超过此大小走分片上传
+    private let directUploadLimit = 50 * 1024 * 1024
+
     private let client: APIClient
 
     init(server: ServerConfig) {
@@ -64,10 +74,21 @@ struct FilesView: View {
         }
         .navigationTitle(currentPath == "/" ? "根目录" : (currentPath as NSString).lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) { floatingAddButton }
-        .refreshable { await loadDir(currentPath) }
-        .task { await initialLoad() }
-        .modifier(FilesDialogsModifier(
+            .overlay(alignment: .bottomTrailing) { floatingAddButton }
+            .refreshable { await loadDir(currentPath) }
+            .task { await initialLoad() }
+            .modifier(FilesTransferModifier(
+                showUploadPicker: $showUploadPicker,
+                transfer: $transfer,
+                onPickFiles: { result in
+                    if case .success(let urls) = result {
+                        transferTask = Task { await uploadFiles(urls) }
+                    }
+                },
+                onCancel: { transferTask?.cancel() },
+                onClose: { transfer = nil }
+            ))
+            .modifier(FilesDialogsModifier(
             showCreate: $showCreate,
             createIsDir: createIsDir,
             currentPath: currentPath,
@@ -100,6 +121,14 @@ struct FilesView: View {
                             Label("重命名", systemImage: "pencil")
                         }
                         .tint(.blue)
+                        if !item.isDir {
+                            Button {
+                                downloadFile(item)
+                            } label: {
+                                Label("下载", systemImage: "arrow.down.circle")
+                            }
+                            .tint(.green)
+                        }
                     }
             }
         }
@@ -167,6 +196,11 @@ struct FilesView: View {
 
     private var addMenu: some View {
         Menu {
+            Button {
+                showUploadPicker = true
+            } label: {
+                Label("上传文件", systemImage: "arrow.up.circle")
+            }
             Button {
                 createIsDir = true
                 showCreate = true
@@ -289,6 +323,142 @@ struct FilesView: View {
         await loadDir(currentPath)
     }
 
+    // MARK: - 上传
+
+    /// 批量上传选中的文件，完成后刷新列表
+    private func uploadFiles(_ urls: [URL]) async {
+        for url in urls {
+            await uploadOneFile(url)
+            if transfer?.status != .done { break }   // 失败/取消则停止后续文件
+        }
+        if transfer?.status == .done {
+            await loadDir(currentPath)
+        }
+    }
+
+    /// 上传单个文件：≤50MB 直传，>50MB 分片（5MB/片，与网页端一致）
+    private func uploadOneFile(_ url: URL) async {
+        let name = url.lastPathComponent
+        let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+        let size = (attrs?[.size] as? Int64) ?? 0
+        transfer = TransferState(kind: "上传", fileName: name, total: size)
+
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+
+        do {
+            try Task.checkCancellation()
+            if size > Int64(directUploadLimit) {
+                try await chunkUpload(url: url, name: name, size: size)
+            } else {
+                let data = try Data(contentsOf: url)
+                try await client.uploadMultipart(
+                    path: APIEndpoint.filesUpload.path,
+                    fields: [
+                        "path": uploadTargetDir(),
+                        "overwrite": "True",
+                    ],
+                    fileFieldName: "file",
+                    fileName: name,
+                    mimeType: mime(of: name),
+                    fileData: data
+                )
+                transfer?.received = size
+                transfer?.progress = 1
+            }
+            transfer?.status = .done
+        } catch is CancellationError {
+            transfer?.status = .failed
+            transfer?.errorText = "已取消"
+        } catch {
+            transfer?.status = .failed
+            transfer?.errorText = error.localizedDescription
+        }
+    }
+
+    /// 分片上传：逐片读取（不整体载入内存），按 chunkIndex 顺序提交
+    private func chunkUpload(url: URL, name: String, size: Int64) async throws {
+        let chunkCount = Int(ceil(Double(size) / Double(uploadChunkSize)))
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+
+        for index in 0..<chunkCount {
+            try Task.checkCancellation()
+            try handle.seek(toOffset: UInt64(index) * UInt64(uploadChunkSize))
+            let length = min(uploadChunkSize, Int(size) - index * uploadChunkSize)
+            guard let data = try handle.read(upToCount: length), !data.isEmpty else { break }
+            try await client.uploadMultipart(
+                path: APIEndpoint.filesChunkUpload.path,
+                fields: [
+                    "filename": name,
+                    "path": uploadTargetDir(),
+                    "chunkIndex": String(index),
+                    "chunkCount": String(chunkCount),
+                ],
+                fileFieldName: "chunk",
+                fileName: name,
+                mimeType: "application/octet-stream",
+                fileData: data
+            )
+            transfer?.received += Int64(data.count)
+            transfer?.progress = Double(transfer?.received ?? 0) / Double(max(size, 1))
+        }
+    }
+
+    /// 上传目标目录（保证尾部斜杠，与抓包格式一致，如 "/tmp/"）
+    private func uploadTargetDir() -> String {
+        currentPath.hasSuffix("/") ? currentPath : currentPath + "/"
+    }
+
+    /// 根据扩展名推断 MIME 类型
+    private func mime(of fileName: String) -> String {
+        let ext = (fileName as NSString).pathExtension
+        return UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
+    }
+
+    // MARK: - 下载
+
+    /// 下载文件到本地临时目录，完成后可通过系统分享保存到「文件」App
+    private func downloadFile(_ item: FileItem) {
+        transfer = TransferState(kind: "下载", fileName: item.name, total: Int64(item.size ?? 0))
+        let totalSize = Int64(item.size ?? 0)
+        transferTask = Task {
+            do {
+                let url = try await client.downloadFile(
+                    path: APIEndpoint.filesDownload.path,
+                    queryItems: [
+                        URLQueryItem(name: "operateNode", value: "local"),
+                        URLQueryItem(name: "path", value: item.path),
+                    ],
+                    fileName: item.name,
+                    progress: { fraction in
+                        // 网络线程 → 主线程更新进度
+                        Task { @MainActor in
+                            guard transfer?.status == .running else { return }
+                            if fraction >= 0 {
+                                transfer?.progress = fraction
+                                transfer?.received = Int64(fraction * Double(max(totalSize, 1)))
+                            } else {
+                                transfer?.progress = -1
+                            }
+                        }
+                    }
+                )
+                transfer?.localURL = url
+                transfer?.progress = 1
+                transfer?.status = .done
+            } catch {
+                if Task.isCancelled {
+                    transfer?.status = .failed
+                    transfer?.errorText = "已取消"
+                } else {
+                    transfer?.status = .failed
+                    transfer?.errorText = error.localizedDescription
+                }
+            }
+        }
+    }
+
     private func loadDir(_ path: String) async {
         isLoading = true
         currentPath = path
@@ -377,6 +547,153 @@ private struct FilesDialogsModifier: ViewModifier {
                 Button("好的") { successMessage = nil; errorMessage = nil }
             } message: {
                 Text(errorMessage ?? successMessage ?? "")
+            }
+    }
+}
+
+// MARK: - 上传/下载传输状态与进度视图
+
+/// 一次上传/下载任务的状态（驱动 TransferSheet 展示）
+struct TransferState: Identifiable {
+    enum Status { case running, done, failed }
+    let id = UUID()
+    let kind: String          // "上传" / "下载"
+    let fileName: String
+    var progress: Double = 0  // 0...1；-1 表示总大小未知（转圈）
+    var received: Int64 = 0
+    var total: Int64 = 0
+    var status: Status = .running
+    var errorText: String?
+    /// 下载完成后的本地文件 URL（用于分享/保存到「文件」App）
+    var localURL: URL?
+}
+
+/// 上传/下载进度弹窗：进度条 + 已传大小 + 取消/分享/关闭
+struct TransferSheet: View {
+    let state: TransferState
+    let onCancel: () -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: 22) {
+            Image(systemName: statusIcon)
+                .font(.system(size: 44))
+                .foregroundStyle(statusColor)
+
+            VStack(spacing: 6) {
+                Text("\(state.kind)\(state.status == .running ? "中" : "")")
+                    .font(.headline)
+                Text(state.fileName)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .truncationMode(.middle)
+            }
+
+            if state.status == .running {
+                if state.progress >= 0 {
+                    ProgressView(value: state.progress)
+                        .padding(.horizontal, 30)
+                    Text("\(Int(state.progress * 100))%  \(fmt(state.received)) / \(fmt(state.total))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ProgressView()
+                }
+            } else if state.status == .failed, let err = state.errorText {
+                Text(err)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+
+            Spacer(minLength: 0)
+
+            // 操作按钮
+            VStack(spacing: 12) {
+                if state.status == .running {
+                    Button(role: .destructive) {
+                        onCancel()
+                    } label: {
+                        Text("取消传输")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                if state.status == .done, let url = state.localURL {
+                    ShareLink(item: url) {
+                        Label("保存到「文件」/ 分享", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                if state.status != .running {
+                    Button {
+                        onClose()
+                    } label: {
+                        Text("关闭")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding(.horizontal, 30)
+        }
+        .padding(.vertical, 28)
+        .frame(maxWidth: .infinity)
+        .presentationDetents([.medium])
+    }
+
+    private var statusIcon: String {
+        switch state.status {
+        case .running: return state.kind == "上传" ? "arrow.up.circle" : "arrow.down.circle"
+        case .done:    return "checkmark.circle.fill"
+        case .failed:  return "xmark.circle.fill"
+        }
+    }
+
+    private var statusColor: Color {
+        switch state.status {
+        case .running: return .accentColor
+        case .done:    return .green
+        case .failed:  return .red
+        }
+    }
+
+    private func fmt(_ bytes: Int64) -> String {
+        let units = ["B", "KB", "MB", "GB"]
+        var size = Double(bytes)
+        var idx = 0
+        while size >= 1024 && idx < units.count - 1 {
+            size /= 1024
+            idx += 1
+        }
+        return String(format: "%.1f %@", size, units[idx])
+    }
+}
+
+/// 上传选择器 + 传输进度弹窗（独立 ViewModifier 以控制 body 复杂度）
+private struct FilesTransferModifier: ViewModifier {
+    @Binding var showUploadPicker: Bool
+    @Binding var transfer: TransferState?
+    let onPickFiles: (Result<[URL], Error>) -> Void
+    let onCancel: () -> Void
+    let onClose: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .fileImporter(
+                isPresented: $showUploadPicker,
+                allowedContentTypes: [.item],
+                allowsMultipleSelection: true,
+                onCompletion: onPickFiles
+            )
+            .sheet(item: $transfer) { state in
+                TransferSheet(state: state, onCancel: onCancel, onClose: onClose)
             }
     }
 }

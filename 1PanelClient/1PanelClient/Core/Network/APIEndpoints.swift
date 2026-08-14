@@ -167,6 +167,9 @@ enum APIEndpoint {
 
     // MARK: - 文件
     case filesSearch             // POST 文件浏览 {path, expand, page, pageSize, showHidden}
+    case filesUpload             // POST 上传文件（multipart: file+path+overwrite）
+    case filesChunkUpload        // POST 分片上传（multipart: filename+path+chunk+chunkIndex+chunkCount，5MB/片）
+    case filesDownload           // GET  下载文件（query: operateNode+path，返回二进制流）
 
     // MARK: - WAF
     case wafStatus               // GET  WAF状态
@@ -357,6 +360,9 @@ enum APIEndpoint {
         case .fail2banSearch:        return "/api/v2/toolbox/fail2ban/search"
         case .fail2banOperateSSHD:   return "/api/v2/toolbox/fail2ban/operate/sshd"
         case .filesSearch:           return "/api/v2/files/search"
+        case .filesUpload:           return "/api/v2/files/upload"
+        case .filesChunkUpload:      return "/api/v2/files/chunkupload"
+        case .filesDownload:         return "/api/v2/files/download"
         case .wafStatus:             return "/api/v2/xpack/waf/status"
         case .wafConfigGlobal:       return "/api/v2/xpack/waf/config/global"
         case .wafConfigGlobalState:  return "/api/v2/xpack/waf/config/global/state"
@@ -424,7 +430,8 @@ enum APIEndpoint {
              .wafStatus, .wafConfigGlobal,
              .settingsBaseDir,
              .settingsUpgradeCheck, .settingsUpgradeReleases,
-             .openrestyConfig:
+             .openrestyConfig,
+             .filesDownload:
             return "GET"
         default:
             return "POST"

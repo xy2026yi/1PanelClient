@@ -11,6 +11,8 @@ final class APIClient {
     private let session: URLSession
     /// SSE 流式专用 session（无超时，用于日志查看等长连接）
     private let streamSession: URLSession
+    /// 上传/下载专用 session（长超时，用于大文件传输）
+    private let transferSession: URLSession
 
     init(server: ServerConfig) {
         self.server = server
@@ -29,6 +31,15 @@ final class APIClient {
         streamConfig.timeoutIntervalForResource = .infinity
         streamConfig.httpCookieAcceptPolicy = .always
         self.streamSession = URLSession(configuration: streamConfig)
+
+        // 上传/下载专用：大文件传输不受 15s/30s 超时限制
+        let transferConfig = URLSessionConfiguration.default
+        transferConfig.timeoutIntervalForRequest = 60          // 单个分片/请求超时
+        transferConfig.timeoutIntervalForResource = .infinity  // 整体传输不限时
+        transferConfig.requestCachePolicy = .reloadIgnoringLocalCacheData
+        transferConfig.urlCache = nil
+        transferConfig.httpCookieAcceptPolicy = .always
+        self.transferSession = URLSession(configuration: transferConfig)
     }
 
     // MARK: - Token 签名
@@ -195,6 +206,157 @@ final class APIClient {
             throw APIError.businessError(500, "图标接口返回 JSON")
         }
         return data
+    }
+
+    // MARK: - 文件上传/下载
+
+    /// multipart/form-data 上传。
+    /// - Parameters:
+    ///   - path: 接口路径（filesUpload 或 filesChunkUpload）
+    ///   - fields: 普通表单字段（如 path/overwrite/filename/chunkIndex/chunkCount）
+    ///   - fileFieldName: 文件字段名（直传为 "file"，分片为 "chunk"）
+    ///   - fileName: 文件名
+    ///   - mimeType: MIME 类型
+    ///   - fileData: 文件（分片）二进制数据
+    func uploadMultipart(
+        path: String,
+        fields: [String: String],
+        fileFieldName: String,
+        fileName: String,
+        mimeType: String,
+        fileData: Data
+    ) async throws {
+        guard let url = URL(string: server.normalizedBaseURL + path) else {
+            throw APIError.invalidURL
+        }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+
+        // 普通字段
+        for (name, value) in fields {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(value)\r\n".data(using: .utf8)!)
+        }
+        // 文件字段
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"\(fileFieldName)\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n".data(using: .utf8)!)
+        // 结束边界
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        for (k, v) in generateHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+        // 覆盖默认的 JSON Content-Type
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.httpBody = body
+
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await transferSession.data(for: request)
+        } catch {
+            throw APIError.networkError(error)
+        }
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        if let ct = http.value(forHTTPHeaderField: "Content-Type"), ct.contains("text/html") {
+            throw APIError.htmlBlocked
+        }
+        guard (200...299).contains(http.statusCode) else {
+            let msg = String(data: data, encoding: .utf8) ?? ""
+            throw APIError.httpError(http.statusCode, msg)
+        }
+        // 解析业务信封（如 {code:200, message:"1 files upload success"}）
+        if let wrapped = try? JSONDecoder().decode(APIResponse<EmptyResponse>.self, from: data) {
+            if !wrapped.isSuccess {
+                throw APIError.businessError(wrapped.code, wrapped.message ?? "上传失败")
+            }
+        }
+    }
+
+    /// 流式下载文件到临时目录，实时回报进度。
+    /// - Parameters:
+    ///   - path: 接口路径（filesDownload）
+    ///   - queryItems: 查询参数（operateNode + path）
+    ///   - fileName: 保存的文件名
+    ///   - progress: 进度回调（0...1，-1 表示总大小未知）
+    /// - Returns: 下载完成的本地文件 URL
+    func downloadFile(
+        path: String,
+        queryItems: [URLQueryItem],
+        fileName: String,
+        progress: (@Sendable (Double) -> Void)? = nil
+    ) async throws -> URL {
+        guard var components = URLComponents(string: server.normalizedBaseURL + path) else {
+            throw APIError.invalidURL
+        }
+        components.queryItems = queryItems
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.httpMethod = "GET"
+        for (k, v) in generateHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+
+        let (bytes, response): (URLSession.AsyncBytes, URLResponse)
+        do {
+            (bytes, response) = try await transferSession.bytes(for: request)
+        } catch {
+            throw APIError.networkError(error)
+        }
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        if let ct = http.value(forHTTPHeaderField: "Content-Type"), ct.contains("text/html") {
+            throw APIError.htmlBlocked
+        }
+        guard (200...299).contains(http.statusCode) else {
+            throw APIError.httpError(http.statusCode, "下载失败")
+        }
+
+        let totalSize = http.expectedContentLength
+        let destURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        // 覆盖旧的同名临时文件
+        try? FileManager.default.removeItem(at: destURL)
+        FileManager.default.createFile(atPath: destURL.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: destURL)
+        defer { try? handle.close() }
+
+        var received: Int64 = 0
+        var buffer = Data()
+        // 用 AsyncBytes 逐块读取并落盘，避免大文件整体载入内存
+        do {
+            for try await byte in bytes {
+                buffer.append(byte)
+                received += 1
+                if buffer.count >= 64 * 1024 {
+                    try handle.write(contentsOf: buffer)
+                    buffer.removeAll(keepingCapacity: true)
+                }
+                if totalSize > 0, received % (256 * 1024) == 0 {
+                    progress?(Double(received) / Double(totalSize))
+                }
+            }
+            if !buffer.isEmpty {
+                try handle.write(contentsOf: buffer)
+            }
+        } catch {
+            try? FileManager.default.removeItem(at: destURL)
+            throw APIError.networkError(error)
+        }
+        progress?(totalSize > 0 ? 1 : -1)
+        return destURL
     }
 
     // MARK: - SSE 流式请求（日志查看）
