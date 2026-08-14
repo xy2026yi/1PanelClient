@@ -56,6 +56,34 @@ struct FilesView: View {
     }
 
     var body: some View {
+        fileList
+            .safeAreaInset(edge: .top) { breadcrumbBar }
+            .navigationTitle(currentPath == "/" ? "根目录" : (currentPath as NSString).lastPathComponent)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { addMenu }
+            }
+            .overlay(alignment: .bottomTrailing) { floatingAddButton }
+            .refreshable { await loadDir(currentPath) }
+            .task { await initialLoad() }
+            .modifier(FilesDialogsModifier(
+                showCreate: $showCreate,
+                createIsDir: createIsDir,
+                currentPath: currentPath,
+                renamingItem: $renamingItem,
+                deletingItem: $deletingItem,
+                showPathInput: $showPathInput,
+                pathInput: $pathInput,
+                successMessage: $successMessage,
+                errorMessage: $errorMessage,
+                reload: { Task { await loadDir(currentPath) } },
+                jumpTo: { target in pathHistory = [target]; Task { await loadDir(target) } },
+                deleteItem: { item in Task { await deleteItem(item) } }
+            ))
+    }
+
+    /// 文件列表（抽离以减轻 body 类型推断负担）
+    private var fileList: some View {
         List {
             ForEach(items) { item in
                 fileRow(item)
@@ -74,105 +102,104 @@ struct FilesView: View {
                     }
             }
         }
-        .navigationTitle(currentPath == "/" ? "根目录" : (currentPath as NSString).lastPathComponent)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    let parent = (currentPath as NSString).deletingLastPathComponent
-                    if parent.isEmpty || parent == currentPath {
-                        Task { await loadDir("/") }
-                    } else {
-                        Task { await loadDir(parent) }
-                    }
-                } label: {
-                    Image(systemName: "arrow.up")
-                }
-                .disabled(currentPath == "/")
-            }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    Task { await loadDir(currentPath) }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                Menu {
-                    Button {
-                        createIsDir = true
-                        showCreate = true
-                    } label: {
-                        Label("新建文件夹", systemImage: "folder.badge.plus")
-                    }
-                    Button {
-                        createIsDir = false
-                        showCreate = true
-                    } label: {
-                        Label("新建文件", systemImage: "doc.badge.plus")
-                    }
-                    Divider()
-                    Button {
-                        pathInput = currentPath
-                        showPathInput = true
-                    } label: {
-                        Label("前往路径", systemImage: "location")
-                    }
-                    Button {
-                        pathInput = "/"
-                        showPathInput = true
-                    } label: {
-                        Label("根目录", systemImage: "house")
-                    }
-                } label: {
-                    Image(systemName: "plus.circle")
+    }
+
+    // MARK: - 路径面包屑
+
+    /// 把 currentPath 拆成可点击的路径段。
+    /// 例如 "/etc/apt" → [("/", "/"), ("/etc", "etc"), ("/etc/apt", "apt")]
+    private var breadcrumbSegments: [(path: String, name: String)] {
+        var segments: [(path: String, name: String)] = [("/", "/")]
+        let parts = currentPath.split(separator: "/").map(String.init)
+        var built = ""
+        for part in parts {
+            built += "/" + part
+            segments.append((built, part))
+        }
+        return segments
+    }
+
+    /// 顶部路径面包屑条：水平滚动，点击任意段跳转到对应路径
+    private var breadcrumbBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(Array(breadcrumbSegments.enumerated()), id: \.offset) { idx, seg in
+                    breadcrumbSegment(idx: idx, segment: seg)
                 }
             }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
-        .refreshable { await loadDir(currentPath) }
-        .task { await initialLoad() }
-        .sheet(isPresented: $showCreate) {
-            FileCreateSheet(isDir: createIsDir, currentPath: currentPath) {
-                Task { await loadDir(currentPath) }
+        .background(.bar)
+    }
+
+    /// 单个路径段（分隔符 + 可点击按钮）
+    private func breadcrumbSegment(idx: Int, segment: (path: String, name: String)) -> some View {
+        let isLast = idx == breadcrumbSegments.count - 1
+        return HStack(spacing: 6) {
+            if idx > 0 {
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
-        }
-        .sheet(item: $renamingItem) { item in
-            FileRenameSheet(item: item) {
-                Task { await loadDir(currentPath) }
+            Button {
+                Task { await loadDir(segment.path) }
+            } label: {
+                Text(segment.name == "/" ? "根目录" : segment.name)
+                    .font(.subheadline)
+                    .foregroundStyle(isLast ? Color.primary : Color.accentColor)
             }
+            .buttonStyle(.plain)
+            .disabled(isLast)
         }
-        .alert("确认删除", isPresented: Binding(
-            get: { deletingItem != nil },
-            set: { if !$0 { deletingItem = nil } }
-        )) {
-            Button("取消", role: .cancel) { deletingItem = nil }
-            Button("删除", role: .destructive) {
-                if let item = deletingItem {
-                    Task { await deleteItem(item) }
-                }
+    }
+
+    // MARK: - 新建/操作菜单（右上角与悬浮按钮共用）
+
+    private var addMenu: some View {
+        Menu {
+            Button {
+                createIsDir = true
+                showCreate = true
+            } label: {
+                Label("新建文件夹", systemImage: "folder.badge.plus")
             }
-        } message: {
-            if let item = deletingItem {
-                Text("确定要删除\(item.isDir ? "文件夹" : "文件") \"\(item.name)\" 吗？")
+            Button {
+                createIsDir = false
+                showCreate = true
+            } label: {
+                Label("新建文件", systemImage: "doc.badge.plus")
             }
-        }
-        .alert("前往路径", isPresented: $showPathInput) {
-            TextField("路径", text: $pathInput)
-            Button("取消", role: .cancel) { }
-            Button("前往") {
-                let target = pathInput.trimmingCharacters(in: .whitespaces)
-                if !target.isEmpty {
-                    pathHistory = [target]
-                    Task { await loadDir(target) }
-                }
+            Divider()
+            Button {
+                pathInput = currentPath
+                showPathInput = true
+            } label: {
+                Label("前往路径", systemImage: "location")
             }
+            Button {
+                pathInput = "/"
+                showPathInput = true
+            } label: {
+                Label("根目录", systemImage: "house")
+            }
+        } label: {
+            Label("新建", systemImage: "plus.circle.fill")
         }
-        .alert("提示", isPresented: Binding(
-            get: { successMessage != nil || errorMessage != nil },
-            set: { _ in successMessage = nil; errorMessage = nil }
-        )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? successMessage ?? "")
-        }
+    }
+
+    /// 右下角悬浮 + 按钮
+    private var floatingAddButton: some View {
+        addMenu
+            .labelStyle(.iconOnly)
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(.white)
+            .frame(width: 52, height: 52)
+            .background(Color.accentColor, in: Circle())
+            .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+            .padding(.trailing, 20)
+            .padding(.bottom, 20)
+            .accessibilityLabel("新建")
     }
 
     @ViewBuilder
@@ -285,6 +312,63 @@ struct FilesView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+}
+
+// MARK: - 弹窗/Sheet 集合（抽离为 ViewModifier 以减轻 body 类型推断负担）
+
+/// 集中管理 FilesView 的 sheet 与 alert，避免 body 过长导致编译器无法类型推断。
+private struct FilesDialogsModifier: ViewModifier {
+    @Binding var showCreate: Bool
+    let createIsDir: Bool
+    let currentPath: String
+    @Binding var renamingItem: FileItem?
+    @Binding var deletingItem: FileItem?
+    @Binding var showPathInput: Bool
+    @Binding var pathInput: String
+    @Binding var successMessage: String?
+    @Binding var errorMessage: String?
+    let reload: () -> Void
+    let jumpTo: (String) -> Void
+    let deleteItem: (FileItem) -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: $showCreate) {
+                FileCreateSheet(isDir: createIsDir, currentPath: currentPath, onCreated: reload)
+            }
+            .sheet(item: $renamingItem) { item in
+                FileRenameSheet(item: item, onRenamed: reload)
+            }
+            .alert("确认删除", isPresented: Binding(
+                get: { deletingItem != nil },
+                set: { if !$0 { deletingItem = nil } }
+            )) {
+                Button("取消", role: .cancel) { deletingItem = nil }
+                Button("删除", role: .destructive) {
+                    if let item = deletingItem { deleteItem(item) }
+                }
+            } message: {
+                if let item = deletingItem {
+                    Text("确定要删除\(item.isDir ? "文件夹" : "文件") \"\(item.name)\" 吗？")
+                }
+            }
+            .alert("前往路径", isPresented: $showPathInput) {
+                TextField("路径", text: $pathInput)
+                Button("取消", role: .cancel) { }
+                Button("前往") {
+                    let target = pathInput.trimmingCharacters(in: .whitespaces)
+                    if !target.isEmpty { jumpTo(target) }
+                }
+            }
+            .alert("提示", isPresented: Binding(
+                get: { successMessage != nil || errorMessage != nil },
+                set: { _ in successMessage = nil; errorMessage = nil }
+            )) {
+                Button("好的") { successMessage = nil; errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? successMessage ?? "")
+            }
     }
 }
 
