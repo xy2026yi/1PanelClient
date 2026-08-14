@@ -546,6 +546,9 @@ struct AppInstallView: View {
         // 版本默认为最新版
         if selectedVersion.isEmpty { selectedVersion = detail.latestVersion ?? "" }
         await loadDetailForVersion(selectedVersion)
+        // 加载应用设置，用其 InstallAllowPort 作为「端口外部访问」默认值
+        await vm.loadAppStoreConfig()
+        allowPort = vm.appStoreConfig?.isInstallAllowPort ?? true
         isLoadingDetail = false
     }
 
@@ -890,6 +893,9 @@ final class AppStoreViewModel: ObservableObject {
     // 同步
     @Published var isSyncing = false
 
+    // 应用商店设置（安装时读取 allowPort 默认值）
+    @Published var appStoreConfig: AppStoreConfig?
+
     // 提示
     @Published var showAlert = false
     @Published var alertMessage = ""
@@ -934,6 +940,22 @@ final class AppStoreViewModel: ObservableObject {
         installDetail = detail
         installSuccess = false
         showInstall = true
+    }
+
+    // MARK: - 应用商店设置（安装时读取 allowPort 默认值）
+
+    /// 加载应用商店设置（GET /api/v2/core/settings/apps/store/config）
+    func loadAppStoreConfig() async {
+        do {
+            let resp: AppStoreConfig = try await client.send(
+                path: APIEndpoint.appStoreSettingConfig.path,
+                method: APIEndpoint.appStoreSettingConfig.method,
+                as: AppStoreConfig.self
+            )
+            self.appStoreConfig = resp
+        } catch {
+            // 静默失败：加载设置失败不应阻塞安装流程，沿用表单默认值
+        }
     }
 
     func installApp(req: AppInstallCreateRequest) async {

@@ -216,6 +216,8 @@ enum APIEndpoint {
     case appsInstalledDeleteCheck // GET 删除前检查（:installId 路径参数）
     case appsInstalledParams     // GET  获取已安装应用参数（:installId 路径参数）
     case appsInstalledParamsUpdate // POST 更新已安装应用参数（重建应用）
+    case appStoreSettingConfig   // GET  读取应用商店设置（卸载/升级/安装默认选项）
+    case appStoreSettingUpdate   // POST 更新单项应用商店设置
 
     // MARK: - 应用商店
     case appsStoreSearch         // POST 应用商店搜索
@@ -392,6 +394,8 @@ enum APIEndpoint {
         case .appsInstalledDeleteCheck: return "/api/v2/apps/installed/delete/check/:installId"
         case .appsInstalledParams:   return "/api/v2/apps/installed/params/:installId"
         case .appsInstalledParamsUpdate: return "/api/v2/apps/installed/params/update"
+        case .appStoreSettingConfig: return "/api/v2/core/settings/apps/store/config"
+        case .appStoreSettingUpdate: return "/api/v2/core/settings/apps/store/update"
         case .appsStoreSearch:       return "/api/v2/apps/search"
         case .appsStoreDetail:       return "/api/v2/apps/:key"
         case .appsSyncRemote:        return "/api/v2/apps/sync/remote"
@@ -408,6 +412,7 @@ enum APIEndpoint {
         case .dashboardOS, .dashboardBase, .dashboardCurrent, .dashboardTopCPU, .dashboardTopMem,
              .appsIgnoredList, .appsStoreDetail,
              .appsInstalledDeleteCheck, .appsInstalledParams,
+             .appStoreSettingConfig,
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
              .containersListStats, .containersDockerStatus, .containersImageAll,

@@ -91,12 +91,21 @@ struct AppsTab: View {
         .toolbar {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        IgnoredAppsView(vm: vm)
+                    Menu {
+                        NavigationLink {
+                            IgnoredAppsView(vm: vm)
+                        } label: {
+                            Label("忽略应用", systemImage: "eye.slash")
+                        }
+                        NavigationLink {
+                            AppStoreSettingsView(vm: vm)
+                        } label: {
+                            Label("设置", systemImage: "gearshape")
+                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
-                    .accessibilityLabel("查看忽略应用")
+                    .accessibilityLabel("更多")
                 }
             }
         }
@@ -390,6 +399,10 @@ struct AppDetailView: View {
                 icon: "trash",
                 color: .red
             ) {
+                // 从应用设置读取「删除备份 / 删除镜像」默认勾选
+                uninstallDeleteBackup = vm.appStoreConfig?.isUninstallDeleteBackup ?? false
+                uninstallDeleteImage = vm.appStoreConfig?.isUninstallDeleteImage ?? false
+                uninstallConfirmName = ""
                 showUninstall = true
             }
         }
@@ -611,6 +624,13 @@ struct UpgradeSheetView: View {
         }
         .navigationTitle("升级 \(app.displayName)")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            // 确保应用设置已加载，用于「升级后删除旧镜像」默认勾选
+            if vm.appStoreConfig == nil {
+                await vm.loadAppStoreConfig()
+            }
+            deleteOldImage = vm.appStoreConfig?.isUpgradeDeleteImage ?? false
+        }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {
                 if vm.pendingDismissUpgrade {
@@ -631,6 +651,25 @@ struct UpgradeSheetView: View {
                     onBack: { showComposeEditor = false }
                 )
             }
+        }
+        .navigationDestination(isPresented: $vm.showUpgradeProgress) {
+            TaskProgressView(
+                taskID: vm.upgradeTaskID,
+                title: "升级 \(app.displayName)",
+                onComplete: { isDone in
+                    vm.needsRefresh = true
+                    // 重置进度状态，避免重新进入时残留
+                    vm.showUpgradeProgress = false
+                    if isDone {
+                        // 升级完成：通过通知 pop 回应用列表（ManageTab 嵌入模式下一次性 pop AppDetailView）
+                        NotificationCenter.default.post(name: .popAppDetail, object: nil)
+                        // 同时关闭升级页，兼容独立模式（popAppDetail 无效时由 showUpgradeSheet=false 收起）
+                        vm.showUpgradeSheet = false
+                        return true
+                    }
+                    return false
+                }
+            )
         }
     }
 
@@ -677,11 +716,13 @@ struct UpgradeSheetView: View {
                         HStack(spacing: 8) {
                             Button {
                                 Task {
+                                    let taskID = UUID().uuidString
                                     await vm.confirmUpgrade(
                                         app: app,
                                         to: ver,
                                         customCompose: nil,
-                                        deleteOldImage: deleteOldImage
+                                        deleteOldImage: deleteOldImage,
+                                        taskID: taskID
                                     )
                                 }
                             } label: {
@@ -1205,14 +1246,18 @@ struct ComposeEditorView: View {
                 Button {
                     Task {
                         let compose = useCustom ? editedCompose : nil
+                        let taskID = UUID().uuidString
                         await vm.confirmUpgrade(
                             app: app,
                             to: version,
                             customCompose: compose,
-                            deleteOldImage: deleteOldImage
+                            deleteOldImage: deleteOldImage,
+                            taskID: taskID
                         )
                         if vm.upgradeSuccess {
                             onBack()
+                            // 编辑器返回后，UpgradeSheetView 的进度导航目标会接管，
+                            // 显示升级任务进度（vm.showUpgradeProgress 已由 confirmUpgrade 置位）
                         }
                     }
                 } label: {
@@ -1633,6 +1678,9 @@ final class AppsViewModel: ObservableObject {
     @Published var selectedVersion: AppVersion?
     /// 标记升级是否成功完成（用于编辑器返回时的判断）
     @Published var upgradeSuccess = false
+    /// 升级进度视图：提交升级成功后展示任务进度
+    @Published var showUpgradeProgress = false
+    @Published var upgradeTaskID = ""
 
     // 操作提示
     @Published var showAlert = false
@@ -1652,6 +1700,10 @@ final class AppsViewModel: ObservableObject {
 
     /// 标记列表需要刷新（在详情页操作后置 true，返回列表时触发刷新）
     @Published var needsRefresh = false
+
+    /// 应用商店设置（卸载/升级/安装默认选项），供弹窗读取默认勾选
+    @Published var appStoreConfig: AppStoreConfig?
+    @Published var isLoadingAppStoreConfig = false
 
     private(set) var client: APIClient
 
@@ -1839,7 +1891,8 @@ final class AppsViewModel: ObservableObject {
         app: AppInstall,
         to version: AppVersion,
         customCompose: String?,
-        deleteOldImage: Bool
+        deleteOldImage: Bool,
+        taskID: String
     ) async {
         upgradingVersionId = version.detailId
         upgradeSuccess = false
@@ -1849,10 +1902,11 @@ final class AppsViewModel: ObservableObject {
             installId: app.id,
             operate: AppOperation.upgrade.rawValue,
             detailId: version.detailId,
-            backup: false,
+            backup: appStoreConfig?.isUpgradeBackup ?? true,
             pullImage: true,
             dockerCompose: customCompose,
-            deleteImage: deleteOldImage
+            deleteImage: deleteOldImage,
+            taskID: taskID
         )
         do {
             let _: EmptyResponse = try await client.send(
@@ -1861,12 +1915,11 @@ final class AppsViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             upgradeSuccess = true
-            showUpgradeSheet = false
-            // 延迟显示 alert，避免 sheet 关闭动画"吞掉" alert 状态
-            try? await Task.sleep(for: .milliseconds(300))
-            showAlert(message: "升级请求已提交，应用正在后台更新中…")
-            try? await Task.sleep(for: .seconds(4))
-            await load(query: "")
+            // 先置位 taskID，再触发进度视图导航（progress 的 navigationDestination 挂在
+            // UpgradeSheetView 上，因此不能关闭 UpgradeSheetView，否则会失去锚点导致白屏）。
+            // 进度页完成时由 .popAppDetail 通知一次性 pop 回应用列表。
+            upgradeTaskID = taskID
+            showUpgradeProgress = true
         } catch let err as APIError {
             showAlert(message: "升级失败：\(err.errorDescription ?? "未知错误")")
         } catch {
@@ -1966,6 +2019,52 @@ final class AppsViewModel: ObservableObject {
         } catch {
             showAlert(message: "加载参数失败：\(error.localizedDescription)")
             return nil
+        }
+    }
+
+    // MARK: - 应用商店设置（卸载/升级/安装默认选项）
+
+    /// 加载应用商店设置（GET /api/v2/core/settings/apps/store/config）
+    func loadAppStoreConfig() async {
+        isLoadingAppStoreConfig = true
+        defer { isLoadingAppStoreConfig = false }
+        do {
+            let resp: AppStoreConfig = try await client.send(
+                path: APIEndpoint.appStoreSettingConfig.path,
+                method: APIEndpoint.appStoreSettingConfig.method,
+                as: AppStoreConfig.self
+            )
+            self.appStoreConfig = resp
+        } catch let err as APIError {
+            showAlert(message: "加载应用设置失败：\(err.errorDescription ?? "未知错误")")
+        } catch {
+            showAlert(message: "加载应用设置失败：\(error.localizedDescription)")
+        }
+    }
+
+    /// 更新单项应用商店设置（POST /api/v2/core/settings/apps/store/update）。
+    /// 成功后同步本地 appStoreConfig 对应字段，避免重复请求。
+    func updateAppStoreSetting(scope: AppStoreSettingScope, enabled: Bool) async {
+        let status = enabled ? "Enable" : "Disable"
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.appStoreSettingUpdate.path,
+                body: AppStoreSettingUpdateRequest(scope: scope.rawValue, status: status),
+                as: EmptyResponse.self
+            )
+            // 本地同步，避免重新拉取
+            if appStoreConfig == nil { appStoreConfig = AppStoreConfig() }
+            switch scope {
+            case .uninstallDeleteBackup: appStoreConfig?.uninstallDeleteBackup = status
+            case .uninstallDeleteImage:  appStoreConfig?.uninstallDeleteImage = status
+            case .upgradeBackup:         appStoreConfig?.upgradeBackup = status
+            case .upgradeDeleteImage:    appStoreConfig?.upgradeDeleteImage = status
+            case .installAllowPort:      appStoreConfig?.installAllowPort = status
+            }
+        } catch let err as APIError {
+            showAlert(message: "更新应用设置失败：\(err.errorDescription ?? "未知错误")")
+        } catch {
+            showAlert(message: "更新应用设置失败：\(error.localizedDescription)")
         }
     }
 

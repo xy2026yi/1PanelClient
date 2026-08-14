@@ -336,3 +336,39 @@ nonisolated struct AppServiceItem: Decodable, Identifiable, Hashable, Sendable {
 
     var id: String { value ?? label ?? UUID().uuidString }
 }
+
+// MARK: - 应用商店设置（卸载/升级/安装默认选项）
+
+/// 应用商店配置（GET /api/v2/core/settings/apps/store/config 返回）。
+/// 字段值为 "Enable"/"Disable"；新版服务器可能额外返回 upgradeDeleteImage / installAllowPort，
+/// 旧版不返回这两项，模型用可选 + 默认值兜底。
+nonisolated struct AppStoreConfig: Decodable {
+    var uninstallDeleteBackup: String?
+    var uninstallDeleteImage: String?
+    var upgradeBackup: String?
+    var upgradeDeleteImage: String?
+    var installAllowPort: String?
+
+    var isUninstallDeleteBackup: Bool { (uninstallDeleteBackup ?? "Disable") == "Enable" }
+    var isUninstallDeleteImage: Bool  { (uninstallDeleteImage ?? "Disable") == "Enable" }
+    /// 应用升级前备份应用：文档默认为「开」
+    var isUpgradeBackup: Bool         { (upgradeBackup ?? "Enable") == "Enable" }
+    var isUpgradeDeleteImage: Bool    { (upgradeDeleteImage ?? "Disable") == "Enable" }
+    var isInstallAllowPort: Bool      { (installAllowPort ?? "Disable") == "Enable" }
+}
+
+/// 应用商店设置 scope 枚举（POST /api/v2/core/settings/apps/store/update 的 scope 取值）
+enum AppStoreSettingScope: String {
+    case uninstallDeleteBackup = "UninstallDeleteBackup"
+    case uninstallDeleteImage  = "UninstallDeleteImage"
+    case upgradeBackup         = "UpgradeBackup"
+    case upgradeDeleteImage    = "UpgradeDeleteImage"
+    case installAllowPort      = "InstallAllowPort"
+}
+
+/// 更新应用商店设置请求（POST /api/v2/core/settings/apps/store/update）
+nonisolated struct AppStoreSettingUpdateRequest: Encodable {
+    let scope: String
+    let status: String   // Enable / Disable
+}
+

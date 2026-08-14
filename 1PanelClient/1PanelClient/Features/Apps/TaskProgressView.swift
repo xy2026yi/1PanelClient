@@ -205,7 +205,7 @@ struct TaskProgressView: View {
                 }
             }
             if !isDone {
-                try? await Task.sleep(for: .milliseconds(1500))
+                try? await Task.sleep(for: .seconds(3))
             }
         }
     }
