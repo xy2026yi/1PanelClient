@@ -278,6 +278,7 @@ struct MonitorView: View {
                 .accessibilityLabel(showLoadChart ? "收起图表" : "展开图表")
             }
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
             // 1/5/15 分钟负载（上标签下数值）+ 右侧小型使用率圆环
             HStack(alignment: .center, spacing: 8) {
@@ -291,12 +292,14 @@ struct MonitorView: View {
                 miniRing(percent: vm.loadPoints.last?.value ?? 0)
             }
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
             // 图表（下拉展开时显示：1/5/15 分钟三条曲线，支持拖动查看）
             if showLoadChart {
                 loadChart
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
             }
         }
     }
@@ -478,6 +481,7 @@ struct MonitorView: View {
                 .accessibilityLabel(showCPUChart ? "收起图表" : "展开图表")
             }
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
             // 核心 / 已用 / 可用 三列 + 右侧使用率圆环
             HStack(alignment: .center, spacing: 8) {
@@ -495,12 +499,14 @@ struct MonitorView: View {
                 miniRing(percent: vm.current?.cpuUsedPercent ?? 0, color: .blue)
             }
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
             // 图表（下拉展开时显示，Y 轴自适应）
             if showCPUChart {
                 singleSeriesChart(points: vm.cpuPoints, color: .blue, title: "CPU", selected: $selectedCPUDate, yMax: vm.cpuAxisMax)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
             }
         }
     }
@@ -594,6 +600,7 @@ struct MonitorView: View {
                 .accessibilityLabel(showMemChart ? "收起图表" : "展开图表")
             }
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
             // 内存：总计 / 已用 / 可用 三列 + 右侧使用率圆环
             HStack(alignment: .center, spacing: 8) {
@@ -607,6 +614,7 @@ struct MonitorView: View {
                 miniRing(percent: vm.current?.memoryUsedPercent ?? 0, color: .purple)
             }
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
             // SWAP 子标签
             HStack {
@@ -617,6 +625,7 @@ struct MonitorView: View {
             }
             .padding(.top, 2)
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
             // SWAP：总计 / 已用 / 可用 三列 + 右侧使用率圆环（无图表）
             HStack(alignment: .center, spacing: 8) {
@@ -630,12 +639,14 @@ struct MonitorView: View {
                 miniRing(percent: vm.current?.swapMemoryUsedPercent ?? 0, color: .orange)
             }
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
             // 内存图表（下拉展开时显示，置于两块数值之下，Y 轴自适应）
             if showMemChart {
                 singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate, yMax: vm.memoryAxisMax)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
             }
         }
     }
@@ -655,6 +666,7 @@ struct MonitorView: View {
                 Spacer()
             }
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
             dualSeriesChart(
                 points: ioSeriesPoints,
@@ -663,6 +675,7 @@ struct MonitorView: View {
                 selected: $selectedIODate
             )
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         }
     }
 
@@ -676,6 +689,7 @@ struct MonitorView: View {
                 Spacer()
             }
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
             dualSeriesChart(
                 points: networkSeriesPoints,
@@ -684,6 +698,7 @@ struct MonitorView: View {
                 selected: $selectedNetDate
             )
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         }
     }
 
