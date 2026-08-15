@@ -135,6 +135,8 @@ final class MonitorViewModel: ObservableObject {
 struct MonitorView: View {
     let server: ServerConfig
     @StateObject private var vm: MonitorViewModel
+    /// 平均负载图表展开状态（默认收起，点右侧下拉展开）
+    @State private var showLoadChart = false
 
     init(server: ServerConfig) {
         self.server = server
@@ -187,22 +189,67 @@ struct MonitorView: View {
         .task(id: vm.hours) { await vm.load() }
     }
 
-    // MARK: 平均负载
+    // MARK: 平均负载（标题+数值+图表一体化，右侧下拉展开图表）
 
     private var loadSection: some View {
         Section {
-            percentChart(vm.loadPoints, color: .teal)
-            HStack(spacing: 16) {
-                loadLabel("1分钟", vm.latestLoad1)
-                loadLabel("5分钟", vm.latestLoad5)
-                loadLabel("15分钟", vm.latestLoad15)
+            // 标题行 + 下拉按钮
+            HStack {
+                Text("平均负载")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        showLoadChart.toggle()
+                    }
+                } label: {
+                    Image(systemName: showLoadChart ? "chevron.up" : "chevron.down")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(showLoadChart ? "收起图表" : "展开图表")
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity)
-        } header: {
-            Text("平均负载")
+
+            // 圆环使用率 + 1/5/15 分钟负载（上标签下数值）
+            HStack(alignment: .center, spacing: 8) {
+                RingStatView(
+                    percent: vm.loadPoints.last?.value ?? 0,
+                    color: .teal,
+                    topText: String(format: "%.0f%%", vm.loadPoints.last?.value ?? 0),
+                    bottomText: "使用率",
+                    footer: ""
+                )
+                .frame(width: 96)
+
+                HStack(spacing: 0) {
+                    loadColumn("1分钟", vm.latestLoad1)
+                    loadColumn("5分钟", vm.latestLoad5)
+                    loadColumn("15分钟", vm.latestLoad15)
+                }
+                .frame(maxWidth: .infinity)
+            }
+
+            // 图表（下拉展开时显示）
+            if showLoadChart {
+                percentChart(vm.loadPoints, color: .teal)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
+    }
+
+    /// 负载列：上方标签、下方数值
+    private func loadColumn(_ title: String, _ value: Double?) -> some View {
+        VStack(spacing: 4) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value.map { String(format: "%.2f", $0) } ?? "—")
+                .font(.headline.monospacedDigit())
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var cpuSection: some View {
