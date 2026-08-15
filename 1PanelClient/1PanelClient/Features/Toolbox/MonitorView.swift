@@ -626,14 +626,14 @@ struct MonitorView: View {
         bytes.map { formatBytes($0) } ?? "—"
     }
 
-    // MARK: 磁盘 I/O
+    // MARK: 磁盘 I/O / 网络（双曲线，单位 KB 置于图表左侧）
 
     private var ioSection: some View {
         Section {
-            dualChart(read: vm.ioReadPoints, write: vm.ioWritePoints)
+            dualChartWithUnit(read: vm.ioReadPoints, write: vm.ioWritePoints, unit: "KB")
             legend(color: .blue, label: "读取", color2: .orange, label2: "写入")
         } header: {
-            Text("磁盘 I/O（KB/s）")
+            Text("磁盘 I/O")
         }
     }
 
@@ -641,10 +641,22 @@ struct MonitorView: View {
 
     private var networkSection: some View {
         Section {
-            dualChart(read: vm.netUpPoints, write: vm.netDownPoints)
+            dualChartWithUnit(read: vm.netUpPoints, write: vm.netDownPoints, unit: "KB")
             legend(color: .green, label: "上行", color2: .purple, label2: "下行")
         } header: {
-            Text("网络（KB/s）")
+            Text("网络")
+        }
+    }
+
+    /// 双曲线图表 + 左侧单位标签（紧贴 Y 轴刻度文字右侧）
+    private func dualChartWithUnit(read: [MonitorPoint], write: [MonitorPoint], unit: String) -> some View {
+        HStack(alignment: .top, spacing: 2) {
+            Text(unit)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.top, 16)
+                .fixedSize()
+            dualChart(read: read, write: write)
         }
     }
 
