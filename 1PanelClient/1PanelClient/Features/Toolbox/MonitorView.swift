@@ -191,8 +191,6 @@ final class MonitorViewModel: ObservableObject {
 
 struct MonitorView: View {
     let server: ServerConfig
-    /// 自定义底栏可见性回调：true=隐藏底栏（首页入口传入；工具箱入口由 ManageTab 深度机制处理）
-    var onTabBarVisibility: ((Bool) -> Void)? = nil
     @StateObject private var vm: MonitorViewModel
     /// 平均负载图表展开状态（默认收起，点右侧下拉展开）
     @State private var showLoadChart = false
@@ -211,9 +209,8 @@ struct MonitorView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var isSceneActive = true
 
-    init(server: ServerConfig, onTabBarVisibility: ((Bool) -> Void)? = nil) {
+    init(server: ServerConfig) {
         self.server = server
-        self.onTabBarVisibility = onTabBarVisibility
         _vm = StateObject(wrappedValue: MonitorViewModel(server: server))
     }
 
@@ -241,9 +238,6 @@ struct MonitorView: View {
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.load() }
-        // 首页入口：通知外层隐藏/恢复自定义底栏（工具箱入口由 ManageTab 导航深度机制处理）
-        .onAppear { onTabBarVisibility?(true) }
-        .onDisappear { onTabBarVisibility?(false) }
         // App 前后台切换时同步轮询开关
         .onChange(of: scenePhase) { _, phase in
             isSceneActive = phase == .active

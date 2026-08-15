@@ -34,16 +34,6 @@ struct ToolboxView: View {
                 )
             }
             NavigationLink {
-                FilesView(server: server)
-            } label: {
-                toolRow(
-                    icon: "folder.fill",
-                    color: .yellow,
-                    title: "文件",
-                    subtitle: "服务器文件管理"
-                )
-            }
-            NavigationLink {
                 SSHView(server: server)
             } label: {
                 toolRow(
@@ -51,28 +41,6 @@ struct ToolboxView: View {
                     color: .gray,
                     title: "SSH",
                     subtitle: "SSH 服务管理"
-                )
-            }
-
-            NavigationLink {
-                ProcessView(server: server)
-            } label: {
-                toolRow(
-                    icon: "chart.bar",
-                    color: .pink,
-                    title: "进程",
-                    subtitle: "系统进程监控"
-                )
-            }
-
-            NavigationLink {
-                MonitorView(server: server)
-            } label: {
-                toolRow(
-                    icon: "chart.line.uptrend.xyaxis",
-                    color: .teal,
-                    title: "监控",
-                    subtitle: "负载 / CPU / 内存 / I/O / 网络"
                 )
             }
 

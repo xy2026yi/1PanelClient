@@ -31,7 +31,7 @@ struct ManageTab: View {
         [
             ("",          [.apps, .websites, .database, .containers]),
             ("",          [.terminal, .firewall, .toolbox, .cronjob]),
-            ("",          [.logs])
+            ("",          [.monitor, .files, .process, .logs])
         ]
     }
 
@@ -146,6 +146,10 @@ struct ManageTab: View {
             ToolboxView(server: server)
         case .logs:
             LogsView(server: server)
+        case .monitor:
+            MonitorView(server: server)
+        case .files:
+            FilesView(server: server)
         }
     }
 }
@@ -161,7 +165,7 @@ struct ManageEditView: View {
         [
             ("",  [.apps, .websites, .database, .containers]),
             ("",  [.terminal, .firewall, .toolbox, .cronjob]),
-            ("",  [.logs])
+            ("",  [.monitor, .files, .process, .logs])
         ]
     }
 
@@ -254,6 +258,8 @@ enum ManageItem: String, Identifiable {
     case cronjob
     case toolbox
     case logs
+    case monitor
+    case files
 
     var id: String { rawValue }
 
@@ -269,6 +275,8 @@ enum ManageItem: String, Identifiable {
         case .cronjob:    return "计划任务"
         case .toolbox:    return "工具箱"
         case .logs:       return "日志"
+        case .monitor:    return "监控"
+        case .files:      return "文件"
         }
     }
 
@@ -284,6 +292,8 @@ enum ManageItem: String, Identifiable {
         case .cronjob:    return "定时备份与脚本"
         case .toolbox:    return "Fail2ban 等系统工具"
         case .logs:       return "面板 / SSH / 网站日志"
+        case .monitor:    return "负载 / CPU / 内存 / I/O / 网络"
+        case .files:      return "服务器文件管理"
         }
     }
 
@@ -299,6 +309,8 @@ enum ManageItem: String, Identifiable {
         case .cronjob:    return "clock.badge.checkmark"
         case .toolbox:    return "wrench.and.screwdriver"
         case .logs:       return "doc.text.magnifyingglass"
+        case .monitor:    return "chart.line.uptrend.xyaxis"
+        case .files:      return "folder.fill"
         }
     }
 
@@ -314,12 +326,14 @@ enum ManageItem: String, Identifiable {
         case .cronjob:    return .teal
         case .toolbox:    return .brown
         case .logs:       return .cyan
+        case .monitor:    return .mint
+        case .files:      return .yellow
         }
     }
 
     var available: Bool {
         switch self {
-        case .apps, .websites, .containers, .terminal, .cronjob, .firewall, .database, .process, .toolbox, .logs: return true
+        case .apps, .websites, .containers, .terminal, .cronjob, .firewall, .database, .process, .toolbox, .logs, .monitor, .files: return true
         }
     }
 }

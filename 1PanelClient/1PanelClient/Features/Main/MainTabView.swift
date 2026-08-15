@@ -19,11 +19,9 @@ struct MainTabView: View {
     @State private var pendingManageItem: ManageItem?
     /// 管理 Tab 导航深度 > 0 时隐藏底部 Tab 栏
     @State private var manageAtRoot = true
-    /// 首页入口进入监控页时隐藏底部 Tab 栏
-    @State private var overviewMonitorVisible = false
 
     private var showTabBar: Bool {
-        (selectedTab != .manage || manageAtRoot) && !overviewMonitorVisible
+        selectedTab != .manage || manageAtRoot
     }
 
     var body: some View {
@@ -37,9 +35,6 @@ struct MainTabView: View {
                     onSelectManageItem: { item in
                         pendingManageItem = item
                         selectedTab = .manage
-                    },
-                    onMonitorVisibility: { visible in
-                        overviewMonitorVisible = visible
                     }
                 )
                 .opacity(selectedTab == .overview ? 1 : 0)
