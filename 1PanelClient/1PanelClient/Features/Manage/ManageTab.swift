@@ -61,6 +61,8 @@ struct ManageTab: View {
                     .buttonStyle(.plain)
                 }
             }
+            // 内容超屏后为底部自定义 Tab 栏留出滚动空间（与首页/设置页的处理一致）
+            .contentMargins(.bottom, 60, for: .scrollContent)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: ManageItem.self) { item in
