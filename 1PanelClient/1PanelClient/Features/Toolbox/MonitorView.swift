@@ -194,6 +194,9 @@ struct MonitorView: View {
     /// CPU 图表展开状态与选中时间
     @State private var showCPUChart = false
     @State private var selectedCPUDate: Date?
+    /// 内存图表展开状态与选中时间
+    @State private var showMemChart = false
+    @State private var selectedMemDate: Date?
 
     init(server: ServerConfig) {
         self.server = server
@@ -225,6 +228,7 @@ struct MonitorView: View {
                 loadSection
                 cpuSection
                 memorySection
+                swapSection
                 ioSection
                 networkSection
                 topProcessSections
@@ -327,18 +331,12 @@ struct MonitorView: View {
 
                 // 选中浮层：竖排显示三条曲线数值（值大的在最上面），颜色与曲线一致
                 if let sel = selectedLoadDate {
-                    let entries: [(title: String, value: Double?, color: Color)] = [
-                        ("1分钟", selectedLoadValue(from: vm.load1Points), .blue),
-                        ("5分钟", selectedLoadValue(from: vm.load5Points), .orange),
-                        ("15分钟", selectedLoadValue(from: vm.load15Points), .purple),
-                    ].sorted { ($0.value ?? 0) > ($1.value ?? 0) }
-
                     let x = proxy.position(forX: sel) ?? 0
                     let panelWidth: CGFloat = 112
                     // 靠右边缘时翻转到左侧
                     let flip = x + panelWidth + 16 > geo.size.width
 
-                    loadTooltip(entries)
+                    loadTooltip(sortedLoadEntries(at: sel))
                         .offset(x: flip ? x - panelWidth - 12 : x + 12, y: 10)
                 }
             }
@@ -352,8 +350,8 @@ struct MonitorView: View {
             + vm.load15Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "15分钟") }
     }
 
-    /// 拖动选中时的竖排数值浮层
-    private func loadTooltip(_ entries: [(title: String, value: Double?, color: Color)]) -> some View {
+    /// 拖动选中时的竖排数值浮层（text 为已格式化的显示文本）
+    private func loadTooltip(_ entries: [(title: String, text: String, color: Color)]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach(entries, id: \.title) { entry in
                 HStack(spacing: 5) {
@@ -361,7 +359,7 @@ struct MonitorView: View {
                     Text(entry.title)
                         .foregroundStyle(entry.color)
                     Spacer(minLength: 4)
-                    Text(entry.value.map { String(format: "%.2f", $0) } ?? "—")
+                    Text(entry.text)
                         .monospacedDigit()
                         .foregroundStyle(entry.color)
                 }
@@ -379,6 +377,22 @@ struct MonitorView: View {
     private func selectedLoadValue(from points: [MonitorPoint]) -> Double? {
         guard let sel = selectedLoadDate else { return points.last?.value }
         return nearestValue(to: sel, in: points)
+    }
+
+    /// 选中时间的三条负载数值（按值降序，返回已格式化文本）
+    private func sortedLoadEntries(at date: Date) -> [(title: String, text: String, color: Color)] {
+        let raw: [(String, Double?, Color)] = [
+            ("1分钟", nearestValue(to: date, in: vm.load1Points), .blue),
+            ("5分钟", nearestValue(to: date, in: vm.load5Points), .orange),
+            ("15分钟", nearestValue(to: date, in: vm.load15Points), .purple),
+        ]
+        let sorted = raw.sorted { ($0.1 ?? 0) > ($1.1 ?? 0) }
+        var result: [(title: String, text: String, color: Color)] = []
+        for pair in sorted {
+            let text = pair.1.map { String(format: "%.2f", $0) } ?? "—"
+            result.append((pair.0, text, pair.2))
+        }
+        return result
     }
 
     /// 距目标时间最近的曲线数值
@@ -473,27 +487,27 @@ struct MonitorView: View {
 
             // 图表（下拉展开时显示，拖动查看数值）
             if showCPUChart {
-                cpuChart
+                singleSeriesChart(points: vm.cpuPoints, color: .blue, title: "CPU", selected: $selectedCPUDate)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }
 
-    /// CPU 单曲线图表（0-100%），拖动时图内浮层显示该时间点的使用率
-    private var cpuChart: some View {
-        Chart(vm.cpuPoints) { p in
+    /// 通用单曲线百分比图表（0-100%）：面积+折线，拖动时图内浮层显示该时间点的值
+    private func singleSeriesChart(points: [MonitorPoint], color: Color, title: String, selected: Binding<Date?>) -> some View {
+        Chart(points) { p in
             AreaMark(
                 x: .value("时间", p.date),
-                y: .value("CPU", p.value)
+                y: .value(title, p.value)
             )
-            .foregroundStyle(Color.blue.opacity(0.12))
+            .foregroundStyle(color.opacity(0.12))
             LineMark(
                 x: .value("时间", p.date),
-                y: .value("CPU", p.value)
+                y: .value(title, p.value)
             )
-            .foregroundStyle(.blue)
+            .foregroundStyle(color)
             .lineStyle(StrokeStyle(lineWidth: 1.5))
-            if let sel = selectedCPUDate {
+            if let sel = selected.wrappedValue {
                 RuleMark(x: .value("选中", sel))
                     .foregroundStyle(.secondary.opacity(0.5))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
@@ -515,17 +529,17 @@ struct MonitorView: View {
                                 let x = gesture.location.x - plotFrame.minX
                                 guard x >= 0, x <= plotFrame.width,
                                       let date: Date = proxy.value(atX: x) else { return }
-                                selectedCPUDate = clampDate(date, in: vm.cpuPoints)
+                                selected.wrappedValue = clampDate(date, in: points)
                             }
-                            .onEnded { _ in selectedCPUDate = nil }
+                            .onEnded { _ in selected.wrappedValue = nil }
                     )
 
-                if let sel = selectedCPUDate {
-                    let value = nearestValue(to: sel, in: vm.cpuPoints)
+                if let sel = selected.wrappedValue {
+                    let value = nearestValue(to: sel, in: points)
                     let x = proxy.position(forX: sel) ?? 0
-                    let flip = x + 112 + 16 > geo.size.width
-                    loadTooltip([("CPU", value, .blue)])
-                        .offset(x: flip ? x - 112 - 12 : x + 12, y: 10)
+                    let flip = x + 128 > geo.size.width
+                    loadTooltip([(title, value.map { String(format: "%.1f%%", $0) } ?? "—", color)])
+                        .offset(x: flip ? x - 128 : x + 12, y: 10)
                 }
             }
         }
@@ -544,16 +558,73 @@ struct MonitorView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: 内存 / SWAP（样式与 CPU 一致；SWAP 无图表）
+
     private var memorySection: some View {
         Section {
-            percentChart(vm.memPoints, color: .purple)
-        } header: {
-            Text("内存使用率")
-        } footer: {
-            if let last = vm.memPoints.last {
-                Text("当前 \(String(format: "%.1f%%", last.value))")
+            // 标题行 + 下拉按钮
+            HStack {
+                Text("内存")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        showMemChart.toggle()
+                    }
+                } label: {
+                    Image(systemName: showMemChart ? "chevron.up" : "chevron.down")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(showMemChart ? "收起图表" : "展开图表")
+            }
+
+            // 总计 / 已用 / 可用 三列 + 右侧使用率圆环
+            HStack(alignment: .center, spacing: 8) {
+                HStack(spacing: 0) {
+                    statColumn("总计", bytesText(vm.current?.memoryTotal))
+                    statColumn("已用", bytesText(vm.current?.memoryUsed))
+                    statColumn("可用", bytesText(vm.current?.memoryAvailable))
+                }
+                .frame(maxWidth: .infinity)
+
+                miniRing(percent: vm.current?.memoryUsedPercent ?? 0, color: .purple)
+            }
+
+            // 图表（下拉展开时显示）
+            if showMemChart {
+                singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+    }
+
+    /// SWAP：仅数值列 + 使用率圆环，无图表
+    private var swapSection: some View {
+        Section {
+            HStack {
+                Text("SWAP")
+                    .font(.headline)
+                Spacer()
+            }
+            HStack(alignment: .center, spacing: 8) {
+                HStack(spacing: 0) {
+                    statColumn("总计", bytesText(vm.current?.swapMemoryTotal))
+                    statColumn("已用", bytesText(vm.current?.swapMemoryUsed))
+                    statColumn("可用", bytesText(vm.current?.swapMemoryAvailable))
+                }
+                .frame(maxWidth: .infinity)
+
+                miniRing(percent: vm.current?.swapMemoryUsedPercent ?? 0, color: .orange)
+            }
+        }
+    }
+
+    /// 字节数值格式化（nil 显示 —）
+    private func bytesText(_ bytes: Int64?) -> String {
+        bytes.map { formatBytes($0) } ?? "—"
     }
 
     // MARK: 磁盘 I/O

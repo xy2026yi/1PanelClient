@@ -60,6 +60,7 @@ nonisolated struct DashboardCurrent: Decodable, Sendable {
 
     let swapMemoryTotal: Int64?
     let swapMemoryUsed: Int64?
+    let swapMemoryAvailable: Int64?
     let swapMemoryUsedPercent: Double?
 
     let load1: Double?
