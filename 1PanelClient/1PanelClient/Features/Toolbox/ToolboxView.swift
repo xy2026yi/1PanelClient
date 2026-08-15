@@ -75,6 +75,17 @@ struct ToolboxView: View {
                     subtitle: "负载 / CPU / 内存 / I/O / 网络"
                 )
             }
+
+            NavigationLink {
+                PanelServerManageView(server: server)
+            } label: {
+                toolRow(
+                    icon: "power",
+                    color: .red,
+                    title: "面板/服务器管理",
+                    subtitle: "重启面板与服务器"
+                )
+            }
         }
         .navigationTitle("工具箱")
         .navigationBarTitleDisplayMode(.inline)

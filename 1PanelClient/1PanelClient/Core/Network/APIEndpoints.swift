@@ -13,6 +13,7 @@ enum APIEndpoint {
     case dashboardBase            // GET 完整系统信息+CPU+内存+资源统计
     case dashboardCurrent         // GET 实时监控数据（独立轮询用）
     case hostsMonitorSearch       // POST 历史监控查询 {param, io, network, startTime, endTime}
+    case dashboardSystemRestart   // POST 重启面板/服务器（:target = 1panel / system）
     case dashboardTopCPU          // GET CPU占用TOP进程
     case dashboardTopMem          // GET 内存占用TOP进程
     case settingsSearch           // POST 面板设置（含 systemVersion 面板版本）
@@ -241,6 +242,7 @@ enum APIEndpoint {
         case .dashboardBase:         return "/api/v2/dashboard/base/all/all"
         case .dashboardCurrent:      return "/api/v2/dashboard/current/all/all"
         case .hostsMonitorSearch:    return "/api/v2/hosts/monitor/search"
+        case .dashboardSystemRestart: return "/api/v2/dashboard/system/restart/:target"
         case .dashboardTopCPU:       return "/api/v2/dashboard/current/top/cpu"
         case .dashboardTopMem:       return "/api/v2/dashboard/current/top/mem"
         case .settingsSearch:        return "/api/v2/core/settings/search"
