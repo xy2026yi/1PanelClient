@@ -277,7 +277,7 @@ struct MonitorView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(showLoadChart ? "收起图表" : "展开图表")
             }
-            .padding(.top, 6)
+            .padding(.top, 8)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -484,7 +484,7 @@ struct MonitorView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(showCPUChart ? "收起图表" : "展开图表")
             }
-            .padding(.top, 6)
+            .padding(.top, 8)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -607,7 +607,7 @@ struct MonitorView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(showMemChart ? "收起图表" : "展开图表")
             }
-            .padding(.top, 6)
+            .padding(.top, 8)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -678,7 +678,7 @@ struct MonitorView: View {
                     .font(.headline)
                 Spacer()
             }
-            .padding(.top, 6)
+            .padding(.top, 8)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -704,7 +704,7 @@ struct MonitorView: View {
                     .font(.headline)
                 Spacer()
             }
-            .padding(.top, 6)
+            .padding(.top, 8)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
