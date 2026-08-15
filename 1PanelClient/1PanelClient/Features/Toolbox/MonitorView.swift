@@ -191,6 +191,9 @@ struct MonitorView: View {
     /// 磁盘 I/O / 网络图表选中时间
     @State private var selectedIODate: Date?
     @State private var selectedNetDate: Date?
+    /// App 是否处于前台活跃（后台时暂停轮询）
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isSceneActive = true
 
     init(server: ServerConfig) {
         self.server = server
@@ -218,11 +221,19 @@ struct MonitorView: View {
         }
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
+        // 隐藏底部标签栏（首页/管理/设置），不遮挡监控信息
+        .toolbar(.hidden, for: .tabBar)
         .refreshable { await vm.load() }
-        // 3 秒间隔自动刷新（页面存活期间持续轮询）
+        // App 前后台切换时同步轮询开关
+        .onChange(of: scenePhase) { _, phase in
+            isSceneActive = phase == .active
+        }
+        // 3 秒间隔自动刷新（仅页面存活且 App 前台活跃时轮询）
         .task {
             while !Task.isCancelled {
-                await vm.load()
+                if isSceneActive {
+                    await vm.load()
+                }
                 try? await Task.sleep(for: .seconds(3))
             }
         }
