@@ -105,11 +105,16 @@ struct PanelServerManageView: View {
             let _: EmptyResponse = try await client.send(path: path, as: EmptyResponse.self)
             showToast(target.successToast)
         } catch let err as APIError {
-            alertMessage = "操作失败：\(err.errorDescription ?? "未知错误")"
-            showAlert = true
+            // 重启面板/服务器时，服务端收到请求后会主动断开连接（自身正在重启），
+            // 抓包表现为无响应。此时指令实际已送达，按成功处理而非报错。
+            if case .networkError = err {
+                showToast(target.successToast)
+            } else {
+                alertMessage = "操作失败：\(err.errorDescription ?? "未知错误")"
+                showAlert = true
+            }
         } catch {
-            alertMessage = "操作失败：\(error.localizedDescription)"
-            showAlert = true
+            showToast(target.successToast)
         }
     }
 
