@@ -677,6 +677,7 @@ struct MonitorView: View {
                 styles: ["读取": .blue, "写入": .orange],
                 selected: $selectedIODate
             )
+            .padding(.top, 10)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         }
@@ -700,6 +701,7 @@ struct MonitorView: View {
                 styles: ["上行": .green, "下行": .purple],
                 selected: $selectedNetDate
             )
+            .padding(.top, 10)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         }
