@@ -229,10 +229,11 @@ struct MonitorView: View {
                 loadSection
                 cpuSection
                 memorySection
-                ioSection
-                networkSection
+                ioNetworkSection
             }
         }
+        // 卡片内更紧凑的行距
+        .environment(\.defaultMinListRowHeight, 36)
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏底部标签栏（首页/管理/设置），不遮挡监控信息
@@ -643,33 +644,43 @@ struct MonitorView: View {
         bytes.map { formatBytes($0) } ?? "—"
     }
 
-    // MARK: 磁盘 I/O / 网络（双曲线 + 左侧单位 + 图内竖排浮层）
+    // MARK: 磁盘 I/O + 网络（同栏显示，双曲线 + 图内竖排浮层）
 
-    private var ioSection: some View {
+    private var ioNetworkSection: some View {
         Section {
+            // 磁盘 I/O 主标题
+            HStack {
+                Text("磁盘 I/O")
+                    .font(.headline)
+                Spacer()
+            }
+            .listRowSeparator(.hidden)
+
             dualSeriesChart(
                 points: ioSeriesPoints,
                 unit: "KB",
                 styles: ["读取": .blue, "写入": .orange],
                 selected: $selectedIODate
             )
-        } header: {
-            Text("磁盘 I/O")
-        }
-    }
+            .listRowSeparator(.hidden)
 
-    // MARK: 网络
+            // 网络子标签
+            HStack {
+                Text("网络")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.top, 2)
+            .listRowSeparator(.hidden)
 
-    private var networkSection: some View {
-        Section {
             dualSeriesChart(
                 points: networkSeriesPoints,
                 unit: "KB",
                 styles: ["上行": .green, "下行": .purple],
                 selected: $selectedNetDate
             )
-        } header: {
-            Text("网络")
+            .listRowSeparator(.hidden)
         }
     }
 
