@@ -212,23 +212,16 @@ struct MonitorView: View {
                 .accessibilityLabel(showLoadChart ? "收起图表" : "展开图表")
             }
 
-            // 圆环使用率 + 1/5/15 分钟负载（上标签下数值）
+            // 1/5/15 分钟负载（上标签下数值）+ 右侧小型使用率圆环
             HStack(alignment: .center, spacing: 8) {
-                RingStatView(
-                    percent: vm.loadPoints.last?.value ?? 0,
-                    color: .teal,
-                    topText: String(format: "%.0f%%", vm.loadPoints.last?.value ?? 0),
-                    bottomText: "使用率",
-                    footer: ""
-                )
-                .frame(width: 96)
-
                 HStack(spacing: 0) {
                     loadColumn("1分钟", vm.latestLoad1)
                     loadColumn("5分钟", vm.latestLoad5)
                     loadColumn("15分钟", vm.latestLoad15)
                 }
                 .frame(maxWidth: .infinity)
+
+                miniRing(percent: vm.loadPoints.last?.value ?? 0)
             }
 
             // 图表（下拉展开时显示）
@@ -239,17 +232,39 @@ struct MonitorView: View {
         }
     }
 
-    /// 负载列：上方标签、下方数值
+    /// 负载列：上方标签、下方数值（不加粗）
     private func loadColumn(_ title: String, _ value: Double?) -> some View {
         VStack(spacing: 4) {
             Text(title)
-                .font(.caption2)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
             Text(value.map { String(format: "%.2f", $0) } ?? "—")
-                .font(.headline.monospacedDigit())
+                .font(.subheadline.monospacedDigit())
                 .foregroundStyle(.primary)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// 小型使用率圆环（44pt，高度不超过三列负载文本），圆心显示百分比
+    private func miniRing(percent: Double) -> some View {
+        ZStack {
+            Circle()
+                .stroke(Color.teal.opacity(0.15), lineWidth: 4)
+            Circle()
+                .trim(from: 0, to: max(0.001, min(percent, 100)) / 100)
+                .stroke(Color.teal, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            VStack(spacing: 0) {
+                Text(String(format: "%.0f%%", percent))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                Text("使用率")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(width: 44, height: 44)
     }
 
     private var cpuSection: some View {
