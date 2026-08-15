@@ -229,7 +229,8 @@ struct MonitorView: View {
                 loadSection
                 cpuSection
                 memorySection
-                ioNetworkSection
+                ioSection
+                networkSection
             }
         }
         // 卡片内更紧凑的行距
@@ -644,11 +645,10 @@ struct MonitorView: View {
         bytes.map { formatBytes($0) } ?? "—"
     }
 
-    // MARK: 磁盘 I/O + 网络（同栏显示，双曲线 + 图内竖排浮层）
+    // MARK: 磁盘 I/O（标题与图表同卡片）
 
-    private var ioNetworkSection: some View {
+    private var ioSection: some View {
         Section {
-            // 磁盘 I/O 主标题
             HStack {
                 Text("磁盘 I/O")
                     .font(.headline)
@@ -663,15 +663,18 @@ struct MonitorView: View {
                 selected: $selectedIODate
             )
             .listRowSeparator(.hidden)
+        }
+    }
 
-            // 网络子标签
+    // MARK: 网络（标题与图表同卡片）
+
+    private var networkSection: some View {
+        Section {
             HStack {
                 Text("网络")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
+                    .font(.headline)
                 Spacer()
             }
-            .padding(.top, 2)
             .listRowSeparator(.hidden)
 
             dualSeriesChart(
