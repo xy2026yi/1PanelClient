@@ -28,7 +28,10 @@ final class MonitorViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     // 曲线数据
-    @Published var loadPoints: [MonitorPoint] = []      // 负载使用率 %
+    @Published var loadPoints: [MonitorPoint] = []      // 负载使用率 %（圆环用）
+    @Published var load1Points: [MonitorPoint] = []     // 1 分钟负载曲线
+    @Published var load5Points: [MonitorPoint] = []     // 5 分钟负载曲线
+    @Published var load15Points: [MonitorPoint] = []    // 15 分钟负载曲线
     @Published var cpuPoints: [MonitorPoint] = []       // CPU %
     @Published var memPoints: [MonitorPoint] = []       // 内存 %
     @Published var ioReadPoints: [MonitorPoint] = []    // 磁盘读取 KB/s
@@ -54,12 +57,13 @@ final class MonitorViewModel: ObservableObject {
         ("近1小时", 1), ("近6小时", 6), ("近24小时", 24), ("近3天", 72), ("近7天", 168),
     ]
 
-    /// 负载图表 Y 轴上限：取「1/5/15 分钟负载、资源使用率、曲线历史峰值」中的
+    /// 负载图表 Y 轴上限：取「1/5/15 分钟三条曲线历史峰值、最新负载值」中的
     /// 最大值，留 20% 余量后向上取整到 1/2/5×10ⁿ 的整齐刻度（不固定 100）
     var loadAxisMax: Double {
-        let seriesMax = loadPoints.map(\.value).max() ?? 0
-        let candidates = [seriesMax, latestLoad1 ?? 0, latestLoad5 ?? 0, latestLoad15 ?? 0]
-        let rawMax = candidates.max() ?? 0
+        let seriesMax = [load1Points, load5Points, load15Points]
+            .compactMap { $0.map(\.value).max() }
+            .max() ?? 0
+        let rawMax = [seriesMax, latestLoad1 ?? 0, latestLoad5 ?? 0, latestLoad15 ?? 0].max() ?? 0
         guard rawMax > 0 else { return 10 }
         return Self.niceCeil(rawMax * 1.2)
     }
@@ -105,6 +109,9 @@ final class MonitorViewModel: ObservableObject {
 
         // base 形态（负载/CPU/内存共用记录结构）
         loadPoints = points(from: baseLoad) { $0.loadUsage ?? 0 }
+        load1Points = points(from: baseLoad) { $0.cpuLoad1 ?? 0 }
+        load5Points = points(from: baseLoad) { $0.cpuLoad5 ?? 0 }
+        load15Points = points(from: baseLoad) { $0.cpuLoad15 ?? 0 }
         cpuPoints = points(from: baseCPU) { $0.cpu ?? 0 }
         memPoints = points(from: baseMem) { $0.memory ?? 0 }
 
@@ -163,6 +170,8 @@ struct MonitorView: View {
     @StateObject private var vm: MonitorViewModel
     /// 平均负载图表展开状态（默认收起，点右侧下拉展开）
     @State private var showLoadChart = false
+    /// 负载图表手指选中的时间点（nil = 显示最新值）
+    @State private var selectedLoadDate: Date?
 
     init(server: ServerConfig) {
         self.server = server
@@ -250,12 +259,107 @@ struct MonitorView: View {
                 miniRing(percent: vm.loadPoints.last?.value ?? 0)
             }
 
-            // 图表（下拉展开时显示，Y 轴自适应最大值）
+            // 图表（下拉展开时显示：1/5/15 分钟三条曲线，支持拖动查看）
             if showLoadChart {
-                percentChart(vm.loadPoints, color: .teal, yMax: vm.loadAxisMax)
+                loadChart
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+    }
+
+    /// 负载三曲线图表：顶部数值行（颜色与曲线一致）+ 拖动选中
+    private var loadChart: some View {
+        let v1 = selectedLoadValue(from: vm.load1Points)
+        let v5 = selectedLoadValue(from: vm.load5Points)
+        let v15 = selectedLoadValue(from: vm.load15Points)
+
+        return VStack(spacing: 8) {
+            // 数值行：选中时间点的值（未选中显示最新值），颜色与曲线一致
+            HStack(spacing: 16) {
+                loadLegendValue("1分钟", v1, color: .blue)
+                loadLegendValue("5分钟", v5, color: .orange)
+                loadLegendValue("15分钟", v15, color: .purple)
+                Spacer()
+                if selectedLoadDate != nil {
+                    Text("拖动查看")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .font(.caption)
+
+            Chart {
+                ForEach(vm.load1Points) { p in
+                    LineMark(x: .value("时间", p.date), y: .value("1分钟", p.value))
+                        .foregroundStyle(.blue)
+                }
+                ForEach(vm.load5Points) { p in
+                    LineMark(x: .value("时间", p.date), y: .value("5分钟", p.value))
+                        .foregroundStyle(.orange)
+                }
+                ForEach(vm.load15Points) { p in
+                    LineMark(x: .value("时间", p.date), y: .value("15分钟", p.value))
+                        .foregroundStyle(.purple)
+                }
+                if let sel = selectedLoadDate {
+                    RuleMark(x: .value("选中", sel))
+                        .foregroundStyle(.secondary.opacity(0.5))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                }
+            }
+            .chartYScale(domain: 0...max(vm.loadAxisMax, 1))
+            .chartYAxis { AxisMarks(position: .leading) }
+            .frame(height: 160)
+            .chartOverlay { proxy in
+                GeometryReader { geo in
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { gesture in
+                                    // 触摸 x 坐标 → 图表日期（限制在绘图区内）
+                                    guard let plotAnchor = proxy.plotFrame else { return }
+                                    let plotFrame = geo[plotAnchor]
+                                    let x = gesture.location.x - plotFrame.minX
+                                    guard x >= 0, x <= plotFrame.width,
+                                          let date: Date = proxy.value(atX: x) else { return }
+                                    selectedLoadDate = clampToLoadDomain(date)
+                                }
+                                .onEnded { _ in selectedLoadDate = nil }
+                        )
+                }
+            }
+        }
+    }
+
+    /// 顶部数值项：颜色与对应曲线一致
+    private func loadLegendValue(_ title: String, _ value: Double?, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text("\(title):")
+                .foregroundStyle(color)
+            Text(value.map { String(format: "%.2f", $0) } ?? "—")
+                .monospacedDigit()
+                .foregroundStyle(color)
+        }
+    }
+
+    /// 选中时间（或最新）在曲线上的数值
+    private func selectedLoadValue(from points: [MonitorPoint]) -> Double? {
+        guard let sel = selectedLoadDate else { return points.last?.value }
+        return points.min {
+            abs($0.date.timeIntervalSince(sel)) < abs($1.date.timeIntervalSince(sel))
+        }?.value
+    }
+
+    /// 把手势换算出的日期限制在曲线数据范围内
+    private func clampToLoadDomain(_ date: Date) -> Date {
+        let all = vm.load1Points + vm.load5Points + vm.load15Points
+        guard let first = all.map(\.date).min(), let last = all.map(\.date).max() else {
+            return date
+        }
+        return min(max(date, first), last)
     }
 
     /// 负载列：上方标签、下方数值（不加粗）
@@ -271,7 +375,7 @@ struct MonitorView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// 小型使用率圆环（44pt，高度不超过三列负载文本），圆心显示百分比
+    /// 小型使用率圆环（44pt，高度不超过三列负载文本），圆心仅显示数值
     private func miniRing(percent: Double) -> some View {
         ZStack {
             Circle()
@@ -280,15 +384,10 @@ struct MonitorView: View {
                 .trim(from: 0, to: max(0.001, min(percent, 100)) / 100)
                 .stroke(Color.teal, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-            VStack(spacing: 0) {
-                Text(String(format: "%.0f%%", percent))
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(.primary)
-                Text("使用率")
-                    .font(.system(size: 8))
-                    .foregroundStyle(.secondary)
-            }
+            Text(String(format: "%.0f%%", percent))
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
         }
         .frame(width: 44, height: 44)
     }
