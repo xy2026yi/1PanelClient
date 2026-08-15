@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import UIKit
 
 // MARK: - 请求模型
 
@@ -55,6 +56,8 @@ struct FilesView: View {
     @State private var transferTask: Task<Void, Never>?
     /// 悬浮 + 号的半屏操作菜单
     @State private var showActionSheet = false
+    /// 长按文件行弹出的半屏操作菜单对应的文件
+    @State private var actionItem: FileItem?
     /// 分片大小：与 1Panel 网页端一致（5MB）
     private let uploadChunkSize = 5 * 1024 * 1024
     /// 超过此大小走分片上传
@@ -86,6 +89,14 @@ struct FilesView: View {
                     onCreateFile: { createIsDir = false; showCreate = true },
                     onGoTo: { pathInput = currentPath; showPathInput = true },
                     onRoot: { pathInput = "/"; showPathInput = true }
+                )
+            }
+            .sheet(item: $actionItem) { item in
+                FileItemActionSheet(
+                    item: item,
+                    onDownload: { delayedAction { downloadFile(item) } },
+                    onRename: { delayedAction { renamingItem = item } },
+                    onDelete: { delayedAction { deletingItem = item } }
                 )
             }
             .modifier(FilesTransferModifier(
@@ -120,24 +131,10 @@ struct FilesView: View {
         List {
             ForEach(items) { item in
                 fileRow(item)
-                    .contextMenu {
-                        if !item.isDir {
-                            Button {
-                                downloadFile(item)
-                            } label: {
-                                Label("下载", systemImage: "arrow.down.circle")
-                            }
-                        }
-                        Button {
-                            renamingItem = item
-                        } label: {
-                            Label("重命名", systemImage: "pencil")
-                        }
-                        Button(role: .destructive) {
-                            deletingItem = item
-                        } label: {
-                            Label("删除", systemImage: "trash")
-                        }
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        // 触觉反馈 + 弹出半屏操作菜单
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        actionItem = item
                     }
             }
         }
@@ -389,6 +386,12 @@ struct FilesView: View {
     private func mime(of fileName: String) -> String {
         let ext = (fileName as NSString).pathExtension
         return UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
+    }
+
+    /// 延迟执行：等半屏操作菜单收起后再触发下一级弹窗（重命名 sheet/删除 alert），
+    /// 避免 sheet 关闭动画与新的呈现竞争
+    private func delayedAction(_ action: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: action)
     }
 
     // MARK: - 下载
@@ -682,6 +685,72 @@ struct TransferSheet: View {
             idx += 1
         }
         return String(format: "%.1f %@", size, units[idx])
+    }
+}
+
+/// 长按文件行弹出的半屏操作菜单（下载/重命名/删除，带文件信息头）
+struct FileItemActionSheet: View {
+    let item: FileItem
+    let onDownload: () -> Void
+    let onRename: () -> Void
+    let onDelete: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                // 文件信息头
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: item.isDir ? "folder.fill" : "doc.fill")
+                            .font(.title3)
+                            .foregroundStyle(item.isDir ? .blue : .secondary)
+                            .frame(width: 28)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.name)
+                                .font(.headline)
+                                .lineLimit(1)
+                            Text(item.isDir ? "文件夹" : "文件")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                Section {
+                    if !item.isDir {
+                        actionRow("下载", icon: "arrow.down.circle", color: .green, action: onDownload)
+                    }
+                    actionRow("重命名", icon: "pencil", color: .blue, action: onRename)
+                }
+                Section {
+                    actionRow("删除", icon: "trash", color: .red, action: onDelete)
+                }
+            }
+            .navigationTitle("操作")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    @ViewBuilder
+    private func actionRow(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button {
+            action()
+            dismiss()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .foregroundStyle(color)
+                    .frame(width: 24)
+                Text(title)
+                    .foregroundStyle(.primary)
+            }
+        }
     }
 }
 
