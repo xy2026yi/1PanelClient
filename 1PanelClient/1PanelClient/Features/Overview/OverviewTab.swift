@@ -227,6 +227,15 @@ struct OverviewTab: View {
                 Text("状态")
                     .font(.headline)
                 Spacer()
+                // 三个点：跳转历史监控
+                NavigationLink {
+                    MonitorView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundStyle(.secondary)
+                        .font(.body)
+                }
+                .accessibilityLabel("查看监控")
             }
 
             // 负载 / CPU / 内存 / 各存储挂载点 全部一排，超出可左右滑动

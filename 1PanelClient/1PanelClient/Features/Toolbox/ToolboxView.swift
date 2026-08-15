@@ -64,6 +64,17 @@ struct ToolboxView: View {
                     subtitle: "系统进程监控"
                 )
             }
+
+            NavigationLink {
+                MonitorView(server: server)
+            } label: {
+                toolRow(
+                    icon: "chart.line.uptrend.xyaxis",
+                    color: .teal,
+                    title: "监控",
+                    subtitle: "负载 / CPU / 内存 / I/O / 网络"
+                )
+            }
         }
         .navigationTitle("工具箱")
         .navigationBarTitleDisplayMode(.inline)

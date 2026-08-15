@@ -1,0 +1,396 @@
+//
+//  MonitorView.swift
+//  1PanelClient
+//
+//  历史监控：平均负载 / CPU / 内存 / 磁盘I/O / 网络 曲线图（Swift Charts）
+//  数据来自 POST /api/v2/hosts/monitor/search，支持时间范围切换
+//
+
+import SwiftUI
+import Combine
+import Charts
+
+// MARK: - 图表数据点
+
+struct MonitorPoint: Identifiable {
+    let date: Date
+    let value: Double
+    var id: Date { date }
+}
+
+// MARK: - ViewModel
+
+@MainActor
+final class MonitorViewModel: ObservableObject {
+    /// 时间范围（小时）
+    @Published var hours: Int = 1
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    // 曲线数据
+    @Published var loadPoints: [MonitorPoint] = []      // 负载使用率 %
+    @Published var cpuPoints: [MonitorPoint] = []       // CPU %
+    @Published var memPoints: [MonitorPoint] = []       // 内存 %
+    @Published var ioReadPoints: [MonitorPoint] = []    // 磁盘读取 KB/s
+    @Published var ioWritePoints: [MonitorPoint] = []   // 磁盘写入 KB/s
+    @Published var netUpPoints: [MonitorPoint] = []     // 上行 KB/s
+    @Published var netDownPoints: [MonitorPoint] = []   // 下行 KB/s
+
+    // 最新快照（负载 1/5/15 + Top 进程）
+    @Published var latestLoad1: Double?
+    @Published var latestLoad5: Double?
+    @Published var latestLoad15: Double?
+    @Published var topCPU: [MonitorTopItem] = []
+    @Published var topMem: [MonitorTopItem] = []
+
+    private let client: APIClient
+
+    init(server: ServerConfig) {
+        self.client = APIClient(server: server)
+    }
+
+    /// 可选时间范围（小时）
+    static let rangeOptions: [(title: String, hours: Int)] = [
+        ("近1小时", 1), ("近6小时", 6), ("近24小时", 24), ("近3天", 72), ("近7天", 168),
+    ]
+
+    func load() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        let end = Date()
+        let start = Calendar.current.date(byAdding: .hour, value: -hours, to: end) ?? end
+        let startTime = MonitorDate.requestString(start)
+        let endTime = MonitorDate.requestString(end)
+
+        // 五个指标并行请求
+        async let loadSeries: [MonitorSeries]? = fetch(param: "load", start: startTime, end: endTime)
+        async let cpuSeries: [MonitorSeries]? = fetch(param: "cpu", start: startTime, end: endTime)
+        async let memSeries: [MonitorSeries]? = fetch(param: "memory", start: startTime, end: endTime)
+        async let ioSeries: [MonitorSeries]? = fetch(param: "io", start: startTime, end: endTime)
+        async let netSeries: [MonitorSeries]? = fetch(param: "network", start: startTime, end: endTime)
+
+        let baseLoad = await loadSeries ?? []
+        let baseCPU = await cpuSeries ?? []
+        let baseMem = await memSeries ?? []
+        let io = await ioSeries ?? []
+        let net = await netSeries ?? []
+
+        // base 形态（负载/CPU/内存共用记录结构）
+        loadPoints = points(from: baseLoad) { $0.loadUsage ?? 0 }
+        cpuPoints = points(from: baseCPU) { $0.cpu ?? 0 }
+        memPoints = points(from: baseMem) { $0.memory ?? 0 }
+
+        // io / network 形态
+        ioReadPoints = points(from: io) { $0.read ?? 0 }
+        ioWritePoints = points(from: io) { $0.write ?? 0 }
+        netUpPoints = points(from: net) { $0.up ?? 0 }
+        netDownPoints = points(from: net) { $0.down ?? 0 }
+
+        // 最新快照（优先用负载序列的最后一条）
+        let snapshotSeries = [baseLoad, baseCPU, baseMem].first { series in
+            series.flatMap { $0.value ?? [] }.contains { $0.topCPUItems != nil || $0.topMemItems != nil }
+        }
+        if let last = snapshotSeries?.compactMap({ $0.value ?? [] }).last?.last {
+            latestLoad1 = last.cpuLoad1
+            latestLoad5 = last.cpuLoad5
+            latestLoad15 = last.cpuLoad15
+            topCPU = (last.topCPUItems ?? []).sorted { ($0.percent ?? 0) > ($1.percent ?? 0) }
+            topMem = (last.topMemItems ?? []).sorted { ($0.percent ?? 0) > ($1.percent ?? 0) }
+        }
+    }
+
+    private func fetch(param: String, start: String, end: String) async -> [MonitorSeries]? {
+        do {
+            return try await client.send(
+                path: APIEndpoint.hostsMonitorSearch.path,
+                body: MonitorSearchRequest(param: param, startTime: start, endTime: end),
+                as: [MonitorSeries].self
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    /// date[i] 与 value[i] 按索引配对生成图表点
+    private func points(from series: [MonitorSeries], value: @escaping (MonitorRecord) -> Double) -> [MonitorPoint] {
+        var result: [MonitorPoint] = []
+        for s in series {
+            let dates = s.date ?? []
+            let values = s.value ?? []
+            for (d, v) in zip(dates, values) {
+                if let date = MonitorDate.parse(d) {
+                    result.append(MonitorPoint(date: date, value: value(v)))
+                }
+            }
+        }
+        return result.sorted { $0.date < $1.date }
+    }
+}
+
+// MARK: - 监控视图
+
+struct MonitorView: View {
+    let server: ServerConfig
+    @StateObject private var vm: MonitorViewModel
+
+    init(server: ServerConfig) {
+        self.server = server
+        _vm = StateObject(wrappedValue: MonitorViewModel(server: server))
+    }
+
+    var body: some View {
+        List {
+            // 时间范围
+            Section {
+                Picker("时间范围", selection: $vm.hours) {
+                    ForEach(MonitorViewModel.rangeOptions, id: \.hours) { opt in
+                        Text(opt.title).tag(opt.hours)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+
+            if vm.isLoading && vm.cpuPoints.isEmpty {
+                Section {
+                    HStack { Spacer(); ProgressView("加载监控数据…"); Spacer() }
+                        .padding(.vertical, 30)
+                }
+            } else if let err = vm.errorMessage, vm.cpuPoints.isEmpty {
+                Section {
+                    ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle", description: Text(err))
+                }
+            } else {
+                loadSection
+                cpuSection
+                memorySection
+                ioSection
+                networkSection
+                topProcessSections
+            }
+        }
+        .navigationTitle("监控")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await vm.load() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .disabled(vm.isLoading)
+            }
+        }
+        .refreshable { await vm.load() }
+        .task(id: vm.hours) { await vm.load() }
+    }
+
+    // MARK: 平均负载
+
+    private var loadSection: some View {
+        Section {
+            percentChart(vm.loadPoints, color: .teal)
+            HStack(spacing: 16) {
+                loadLabel("1分钟", vm.latestLoad1)
+                loadLabel("5分钟", vm.latestLoad5)
+                loadLabel("15分钟", vm.latestLoad15)
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+        } header: {
+            Text("平均负载")
+        }
+    }
+
+    private var cpuSection: some View {
+        Section {
+            percentChart(vm.cpuPoints, color: .blue)
+        } header: {
+            Text("CPU 使用率")
+        } footer: {
+            if let last = vm.cpuPoints.last {
+                Text("当前 \(String(format: "%.1f%%", last.value))")
+            }
+        }
+    }
+
+    private var memorySection: some View {
+        Section {
+            percentChart(vm.memPoints, color: .purple)
+        } header: {
+            Text("内存使用率")
+        } footer: {
+            if let last = vm.memPoints.last {
+                Text("当前 \(String(format: "%.1f%%", last.value))")
+            }
+        }
+    }
+
+    // MARK: 磁盘 I/O
+
+    private var ioSection: some View {
+        Section {
+            dualChart(read: vm.ioReadPoints, write: vm.ioWritePoints)
+            legend(color: .blue, label: "读取", color2: .orange, label2: "写入")
+        } header: {
+            Text("磁盘 I/O（KB/s）")
+        }
+    }
+
+    // MARK: 网络
+
+    private var networkSection: some View {
+        Section {
+            dualChart(read: vm.netUpPoints, write: vm.netDownPoints)
+            legend(color: .green, label: "上行", color2: .purple, label2: "下行")
+        } header: {
+            Text("网络（KB/s）")
+        }
+    }
+
+    // MARK: Top 进程
+
+    @ViewBuilder
+    private var topProcessSections: some View {
+        if !vm.topCPU.isEmpty {
+            Section("Top 进程（CPU）") {
+                ForEach(vm.topCPU.prefix(5)) { item in
+                    topRow(item, memoryBytes: false)
+                }
+            }
+        }
+        if !vm.topMem.isEmpty {
+            Section("Top 进程（内存）") {
+                ForEach(vm.topMem.prefix(5)) { item in
+                    topRow(item, memoryBytes: true)
+                }
+            }
+        }
+    }
+
+    // MARK: 图表组件
+
+    /// 百分比单曲线（0-100）：面积 + 折线
+    private func percentChart(_ points: [MonitorPoint], color: Color) -> some View {
+        Chart(points) { p in
+            AreaMark(
+                x: .value("时间", p.date),
+                y: .value("数值", p.value)
+            )
+            .foregroundStyle(color.opacity(0.12))
+            LineMark(
+                x: .value("时间", p.date),
+                y: .value("数值", p.value)
+            )
+            .foregroundStyle(color)
+            .lineStyle(StrokeStyle(lineWidth: 1.5))
+        }
+        .chartYScale(domain: 0...100)
+        .chartYAxis {
+            AxisMarks(position: .leading)
+        }
+        .frame(height: 160)
+    }
+
+    /// 双曲线（读/写、上/下行），Y 轴自适应
+    private func dualChart(read: [MonitorPoint], write: [MonitorPoint]) -> some View {
+        Chart {
+            ForEach(read) { p in
+                LineMark(
+                    x: .value("时间", p.date),
+                    y: .value("数值", p.value)
+                )
+                .foregroundStyle(.blue)
+            }
+            ForEach(write) { p in
+                LineMark(
+                    x: .value("时间", p.date),
+                    y: .value("数值", p.value)
+                )
+                .foregroundStyle(.orange)
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading)
+        }
+        .frame(height: 160)
+    }
+
+    private func legend(color: Color, label: String, color2: Color, label2: String) -> some View {
+        HStack(spacing: 20) {
+            HStack(spacing: 6) {
+                Circle().fill(color).frame(width: 8, height: 8)
+                Text(label)
+            }
+            HStack(spacing: 6) {
+                Circle().fill(color2).frame(width: 8, height: 8)
+                Text(label2)
+            }
+            Spacer()
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    private func loadLabel(_ title: String, _ value: Double?) -> some View {
+        HStack(spacing: 4) {
+            Text(title)
+            Text(value.map { String(format: "%.2f", $0) } ?? "—")
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+        }
+    }
+
+    private func topRow(_ item: MonitorTopItem, memoryBytes: Bool) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "gearshape")
+                .foregroundStyle(.secondary)
+                .font(.caption)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(item.name ?? "—")
+                        .font(.subheadline.bold())
+                        .lineLimit(1)
+                    if let user = item.user, user != "undefined" {
+                        Text(user)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if let cmd = item.cmd, !cmd.isEmpty {
+                    Text(cmd)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(String(format: "%.1f%%", item.percent ?? 0))
+                    .font(.subheadline.bold().monospacedDigit())
+                    .foregroundStyle(memoryBytes ? .purple : .blue)
+                if memoryBytes, let mem = item.memory, mem > 0 {
+                    Text(formatBytes(mem))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func formatBytes(_ bytes: Int64) -> String {
+        let units = ["B", "KB", "MB", "GB"]
+        var size = Double(bytes)
+        var idx = 0
+        while size >= 1024 && idx < units.count - 1 {
+            size /= 1024
+            idx += 1
+        }
+        return String(format: "%.1f %@", size, units[idx])
+    }
+}
