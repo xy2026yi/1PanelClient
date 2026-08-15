@@ -24,3 +24,5 @@ __pycache__/
 *.env
 *.key
 doc/
+
+.zcode/
