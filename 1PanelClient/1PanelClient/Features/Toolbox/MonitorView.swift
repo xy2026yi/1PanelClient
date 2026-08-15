@@ -124,9 +124,9 @@ final class MonitorViewModel: ObservableObject {
         cpuPoints = points(from: base) { $0.cpu ?? 0 }
         memPoints = points(from: base) { $0.memory ?? 0 }
 
-        // io / network 形态
-        ioReadPoints = points(from: io) { $0.read ?? 0 }
-        ioWritePoints = points(from: io) { $0.write ?? 0 }
+        // io / network 形态（磁盘 I/O 原始值为字节，除以 1000 换算为 KB）
+        ioReadPoints = points(from: io) { ($0.read ?? 0) / 1000 }
+        ioWritePoints = points(from: io) { ($0.write ?? 0) / 1000 }
         netUpPoints = points(from: net) { $0.up ?? 0 }
         netDownPoints = points(from: net) { $0.down ?? 0 }
 
@@ -197,6 +197,9 @@ struct MonitorView: View {
     /// 内存图表展开状态与选中时间
     @State private var showMemChart = false
     @State private var selectedMemDate: Date?
+    /// 磁盘 I/O / 网络图表选中时间
+    @State private var selectedIODate: Date?
+    @State private var selectedNetDate: Date?
 
     init(server: ServerConfig) {
         self.server = server
@@ -626,12 +629,16 @@ struct MonitorView: View {
         bytes.map { formatBytes($0) } ?? "—"
     }
 
-    // MARK: 磁盘 I/O / 网络（双曲线，单位 KB 置于图表左侧）
+    // MARK: 磁盘 I/O / 网络（双曲线 + 左侧单位 + 图内竖排浮层）
 
     private var ioSection: some View {
         Section {
-            dualChartWithUnit(read: vm.ioReadPoints, write: vm.ioWritePoints, unit: "KB")
-            legend(color: .blue, label: "读取", color2: .orange, label2: "写入")
+            dualSeriesChart(
+                points: ioSeriesPoints,
+                unit: "KB",
+                styles: ["读取": .blue, "写入": .orange],
+                selected: $selectedIODate
+            )
         } header: {
             Text("磁盘 I/O")
         }
@@ -641,23 +648,103 @@ struct MonitorView: View {
 
     private var networkSection: some View {
         Section {
-            dualChartWithUnit(read: vm.netUpPoints, write: vm.netDownPoints, unit: "KB")
-            legend(color: .green, label: "上行", color2: .purple, label2: "下行")
+            dualSeriesChart(
+                points: networkSeriesPoints,
+                unit: "KB",
+                styles: ["上行": .green, "下行": .purple],
+                selected: $selectedNetDate
+            )
         } header: {
             Text("网络")
         }
     }
 
-    /// 双曲线图表 + 左侧单位标签（紧贴 Y 轴刻度文字右侧）
-    private func dualChartWithUnit(read: [MonitorPoint], write: [MonitorPoint], unit: String) -> some View {
+    /// 磁盘 I/O 扁平双系列数据
+    private var ioSeriesPoints: [LoadSeriesPoint] {
+        vm.ioReadPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "读取") }
+            + vm.ioWritePoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "写入") }
+    }
+
+    /// 网络扁平双系列数据
+    private var networkSeriesPoints: [LoadSeriesPoint] {
+        vm.netUpPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "上行") }
+            + vm.netDownPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "下行") }
+    }
+
+    /// 双曲线图表：左侧单位标签，拖动时图内竖排浮层（按值降序，颜色与曲线一致）
+    private func dualSeriesChart(
+        points: [LoadSeriesPoint],
+        unit: String,
+        styles: KeyValuePairs<String, Color>,
+        selected: Binding<Date?>
+    ) -> some View {
         HStack(alignment: .top, spacing: 2) {
             Text(unit)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.top, 16)
                 .fixedSize()
-            dualChart(read: read, write: write)
+
+            Chart(points) { p in
+                LineMark(
+                    x: .value("时间", p.date),
+                    y: .value("速率", p.value)
+                )
+                .foregroundStyle(by: .value("类型", p.kind))
+                if let sel = selected.wrappedValue {
+                    RuleMark(x: .value("选中", sel))
+                        .foregroundStyle(.secondary.opacity(0.5))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                }
+            }
+            .chartForegroundStyleScale(styles)
+            .chartYAxis { AxisMarks(position: .leading) }
+            .frame(height: 160)
+            .chartOverlay { proxy in
+                GeometryReader { geo in
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { gesture in
+                                    guard let plotAnchor = proxy.plotFrame else { return }
+                                    let plotFrame = geo[plotAnchor]
+                                    let x = gesture.location.x - plotFrame.minX
+                                    guard x >= 0, x <= plotFrame.width,
+                                          let date: Date = proxy.value(atX: x) else { return }
+                                    let monitorPoints = points.map { MonitorPoint(date: $0.date, value: $0.value) }
+                                    selected.wrappedValue = clampDate(date, in: monitorPoints)
+                                }
+                                .onEnded { _ in selected.wrappedValue = nil }
+                        )
+
+                    if let sel = selected.wrappedValue {
+                        let entries = sortedSeriesEntries(at: sel, in: points, styles: styles)
+                        let x = proxy.position(forX: sel) ?? 0
+                        let flip = x + 128 > geo.size.width
+                        loadTooltip(entries)
+                            .offset(x: flip ? x - 128 : x + 12, y: 10)
+                    }
+                }
+            }
         }
+    }
+
+    /// 选中时间的各系列数值（按值降序，返回已格式化文本）
+    private func sortedSeriesEntries(
+        at date: Date,
+        in points: [LoadSeriesPoint],
+        styles: KeyValuePairs<String, Color>
+    ) -> [(title: String, text: String, color: Color)] {
+        var raw: [(title: String, text: String, color: Color, value: Double)] = []
+        for (kind, color) in styles {
+            let seriesPoints = points.filter { $0.kind == kind }
+                .map { MonitorPoint(date: $0.date, value: $0.value) }
+            let value = nearestValue(to: date, in: seriesPoints) ?? 0
+            raw.append((kind, String(format: "%.2f", value), color, value))
+        }
+        return raw.sorted { $0.3 > $1.3 }.map { ($0.title, $0.text, $0.color) }
     }
 
     // MARK: Top 进程
@@ -681,68 +768,6 @@ struct MonitorView: View {
     }
 
     // MARK: 图表组件
-
-    /// 百分比单曲线：面积 + 折线（yMax 默认 100，负载图传入自适应上限）
-    private func percentChart(_ points: [MonitorPoint], color: Color, yMax: Double = 100) -> some View {
-        Chart(points) { p in
-            AreaMark(
-                x: .value("时间", p.date),
-                y: .value("数值", p.value)
-            )
-            .foregroundStyle(color.opacity(0.12))
-            LineMark(
-                x: .value("时间", p.date),
-                y: .value("数值", p.value)
-            )
-            .foregroundStyle(color)
-            .lineStyle(StrokeStyle(lineWidth: 1.5))
-        }
-        .chartYScale(domain: 0...max(yMax, 1))
-        .chartYAxis {
-            AxisMarks(position: .leading)
-        }
-        .frame(height: 160)
-    }
-
-    /// 双曲线（读/写、上/下行），Y 轴自适应
-    private func dualChart(read: [MonitorPoint], write: [MonitorPoint]) -> some View {
-        Chart {
-            ForEach(read) { p in
-                LineMark(
-                    x: .value("时间", p.date),
-                    y: .value("数值", p.value)
-                )
-                .foregroundStyle(.blue)
-            }
-            ForEach(write) { p in
-                LineMark(
-                    x: .value("时间", p.date),
-                    y: .value("数值", p.value)
-                )
-                .foregroundStyle(.orange)
-            }
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading)
-        }
-        .frame(height: 160)
-    }
-
-    private func legend(color: Color, label: String, color2: Color, label2: String) -> some View {
-        HStack(spacing: 20) {
-            HStack(spacing: 6) {
-                Circle().fill(color).frame(width: 8, height: 8)
-                Text(label)
-            }
-            HStack(spacing: 6) {
-                Circle().fill(color2).frame(width: 8, height: 8)
-                Text(label2)
-            }
-            Spacer()
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-    }
 
     private func loadLabel(_ title: String, _ value: Double?) -> some View {
         HStack(spacing: 4) {
