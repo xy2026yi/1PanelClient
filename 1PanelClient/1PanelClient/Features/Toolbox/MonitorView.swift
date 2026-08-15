@@ -228,7 +228,6 @@ struct MonitorView: View {
                 loadSection
                 cpuSection
                 memorySection
-                swapSection
                 ioSection
                 networkSection
                 topProcessSections
@@ -558,7 +557,7 @@ struct MonitorView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: 内存 / SWAP（样式与 CPU 一致；SWAP 无图表）
+    // MARK: 内存 + SWAP（同栏显示，图表仅针对内存）
 
     private var memorySection: some View {
         Section {
@@ -581,7 +580,7 @@ struct MonitorView: View {
                 .accessibilityLabel(showMemChart ? "收起图表" : "展开图表")
             }
 
-            // 总计 / 已用 / 可用 三列 + 右侧使用率圆环
+            // 内存：总计 / 已用 / 可用 三列 + 右侧使用率圆环
             HStack(alignment: .center, spacing: 8) {
                 HStack(spacing: 0) {
                     statColumn("总计", bytesText(vm.current?.memoryTotal))
@@ -593,22 +592,16 @@ struct MonitorView: View {
                 miniRing(percent: vm.current?.memoryUsedPercent ?? 0, color: .purple)
             }
 
-            // 图表（下拉展开时显示）
-            if showMemChart {
-                singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-    }
-
-    /// SWAP：仅数值列 + 使用率圆环，无图表
-    private var swapSection: some View {
-        Section {
+            // SWAP 子标签
             HStack {
                 Text("SWAP")
-                    .font(.headline)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
                 Spacer()
             }
+            .padding(.top, 2)
+
+            // SWAP：总计 / 已用 / 可用 三列 + 右侧使用率圆环（无图表）
             HStack(alignment: .center, spacing: 8) {
                 HStack(spacing: 0) {
                     statColumn("总计", bytesText(vm.current?.swapMemoryTotal))
@@ -618,6 +611,12 @@ struct MonitorView: View {
                 .frame(maxWidth: .infinity)
 
                 miniRing(percent: vm.current?.swapMemoryUsedPercent ?? 0, color: .orange)
+            }
+
+            // 内存图表（下拉展开时显示，置于两块数值之下）
+            if showMemChart {
+                singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }
