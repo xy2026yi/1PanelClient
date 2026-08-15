@@ -234,7 +234,7 @@ struct MonitorView: View {
             }
         }
         // 卡片内更紧凑的行距
-        .environment(\.defaultMinListRowHeight, 36)
+        .environment(\.defaultMinListRowHeight, 28)
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏底部标签栏（首页/管理/设置），不遮挡监控信息
