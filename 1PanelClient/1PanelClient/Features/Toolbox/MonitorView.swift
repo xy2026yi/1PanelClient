@@ -53,6 +53,8 @@ final class MonitorViewModel: ObservableObject {
     @Published var latestLoad15: Double?
     @Published var topCPU: [MonitorTopItem] = []
     @Published var topMem: [MonitorTopItem] = []
+    /// 实时数值（GET dashboard/current：CPU 核心/已用/可用、内存等）
+    @Published var current: DashboardCurrent?
 
     private let client: APIClient
 
@@ -102,26 +104,25 @@ final class MonitorViewModel: ObservableObject {
         let startTime = MonitorDate.requestString(start)
         let endTime = MonitorDate.requestString(end)
 
-        // 五个指标并行请求
-        async let loadSeries: [MonitorSeries]? = fetch(param: "load", start: startTime, end: endTime)
-        async let cpuSeries: [MonitorSeries]? = fetch(param: "cpu", start: startTime, end: endTime)
-        async let memSeries: [MonitorSeries]? = fetch(param: "memory", start: startTime, end: endTime)
-        async let ioSeries: [MonitorSeries]? = fetch(param: "io", start: startTime, end: endTime)
-        async let netSeries: [MonitorSeries]? = fetch(param: "network", start: startTime, end: endTime)
+        // 一个请求获取全部监控序列（param=all 返回 base/io/network 三组）
+        // + 一个请求获取实时数值（CPU 核心/已用等）
+        async let allSeries: [MonitorSeries]? = fetch(param: "all", start: startTime, end: endTime)
+        async let currentResp: DashboardCurrent? = fetchCurrent()
+        let series = await allSeries ?? []
+        current = await currentResp
 
-        let baseLoad = await loadSeries ?? []
-        let baseCPU = await cpuSeries ?? []
-        let baseMem = await memSeries ?? []
-        let io = await ioSeries ?? []
-        let net = await netSeries ?? []
+        // 按返回的 param 拆分
+        let base = series.filter { $0.param == "base" }
+        let io = series.filter { $0.param == "io" }
+        let net = series.filter { $0.param == "network" }
 
         // base 形态（负载/CPU/内存共用记录结构）
-        loadPoints = points(from: baseLoad) { $0.loadUsage ?? 0 }
-        load1Points = points(from: baseLoad) { $0.cpuLoad1 ?? 0 }
-        load5Points = points(from: baseLoad) { $0.cpuLoad5 ?? 0 }
-        load15Points = points(from: baseLoad) { $0.cpuLoad15 ?? 0 }
-        cpuPoints = points(from: baseCPU) { $0.cpu ?? 0 }
-        memPoints = points(from: baseMem) { $0.memory ?? 0 }
+        loadPoints = points(from: base) { $0.loadUsage ?? 0 }
+        load1Points = points(from: base) { $0.cpuLoad1 ?? 0 }
+        load5Points = points(from: base) { $0.cpuLoad5 ?? 0 }
+        load15Points = points(from: base) { $0.cpuLoad15 ?? 0 }
+        cpuPoints = points(from: base) { $0.cpu ?? 0 }
+        memPoints = points(from: base) { $0.memory ?? 0 }
 
         // io / network 形态
         ioReadPoints = points(from: io) { $0.read ?? 0 }
@@ -129,11 +130,8 @@ final class MonitorViewModel: ObservableObject {
         netUpPoints = points(from: net) { $0.up ?? 0 }
         netDownPoints = points(from: net) { $0.down ?? 0 }
 
-        // 最新快照（优先用负载序列的最后一条）
-        let snapshotSeries = [baseLoad, baseCPU, baseMem].first { series in
-            series.flatMap { $0.value ?? [] }.contains { $0.topCPUItems != nil || $0.topMemItems != nil }
-        }
-        if let last = snapshotSeries?.compactMap({ $0.value ?? [] }).last?.last {
+        // 最新快照（负载 1/5/15 + Top 进程）
+        if let last = base.compactMap({ $0.value ?? [] }).last?.last {
             latestLoad1 = last.cpuLoad1
             latestLoad5 = last.cpuLoad5
             latestLoad15 = last.cpuLoad15
@@ -151,6 +149,19 @@ final class MonitorViewModel: ObservableObject {
             )
         } catch {
             errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    /// 实时数值（GET /api/v2/dashboard/current/all/all）
+    private func fetchCurrent() async -> DashboardCurrent? {
+        do {
+            return try await client.send(
+                path: APIEndpoint.dashboardCurrent.path,
+                method: APIEndpoint.dashboardCurrent.method,
+                as: DashboardCurrent.self
+            )
+        } catch {
             return nil
         }
     }
@@ -180,6 +191,9 @@ struct MonitorView: View {
     @State private var showLoadChart = false
     /// 负载图表手指选中的时间点（nil = 显示最新值）
     @State private var selectedLoadDate: Date?
+    /// CPU 图表展开状态与选中时间
+    @State private var showCPUChart = false
+    @State private var selectedCPUDate: Date?
 
     init(server: ServerConfig) {
         self.server = server
@@ -364,18 +378,28 @@ struct MonitorView: View {
     /// 选中时间（或最新）在曲线上的数值
     private func selectedLoadValue(from points: [MonitorPoint]) -> Double? {
         guard let sel = selectedLoadDate else { return points.last?.value }
-        return points.min {
-            abs($0.date.timeIntervalSince(sel)) < abs($1.date.timeIntervalSince(sel))
+        return nearestValue(to: sel, in: points)
+    }
+
+    /// 距目标时间最近的曲线数值
+    private func nearestValue(to date: Date, in points: [MonitorPoint]) -> Double? {
+        points.min {
+            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
         }?.value
     }
 
-    /// 把手势换算出的日期限制在曲线数据范围内
-    private func clampToLoadDomain(_ date: Date) -> Date {
-        let all = vm.load1Points + vm.load5Points + vm.load15Points
-        guard let first = all.map(\.date).min(), let last = all.map(\.date).max() else {
+    /// 把手势换算出的日期限制在数据时间范围内
+    private func clampDate(_ date: Date, in points: [MonitorPoint]) -> Date {
+        guard let first = points.map(\.date).min(), let last = points.map(\.date).max() else {
             return date
         }
         return min(max(date, first), last)
+    }
+
+    /// 把负载图表的手势日期限制在三条曲线的并集范围内
+    private func clampToLoadDomain(_ date: Date) -> Date {
+        let all = vm.load1Points + vm.load5Points + vm.load15Points
+        return clampDate(date, in: all)
     }
 
     /// 负载列：上方标签、下方数值（不加粗）
@@ -391,14 +415,14 @@ struct MonitorView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// 小型使用率圆环（44pt，高度不超过三列负载文本），圆心仅显示数值
-    private func miniRing(percent: Double) -> some View {
+    /// 小型使用率圆环（44pt，高度不超过三列数值文本），圆心仅显示数值
+    private func miniRing(percent: Double, color: Color = .teal) -> some View {
         ZStack {
             Circle()
-                .stroke(Color.teal.opacity(0.15), lineWidth: 4)
+                .stroke(color.opacity(0.15), lineWidth: 4)
             Circle()
                 .trim(from: 0, to: max(0.001, min(percent, 100)) / 100)
-                .stroke(Color.teal, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text(String(format: "%.0f%%", percent))
                 .font(.system(size: 11, weight: .bold, design: .rounded))
@@ -408,16 +432,116 @@ struct MonitorView: View {
         .frame(width: 44, height: 44)
     }
 
+    // MARK: CPU（样式与平均负载一致：标题+下拉、三列数值+使用率圆环、拖动浮层）
+
     private var cpuSection: some View {
         Section {
-            percentChart(vm.cpuPoints, color: .blue)
-        } header: {
-            Text("CPU 使用率")
-        } footer: {
-            if let last = vm.cpuPoints.last {
-                Text("当前 \(String(format: "%.1f%%", last.value))")
+            // 标题行 + 下拉按钮
+            HStack {
+                Text("CPU")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        showCPUChart.toggle()
+                    }
+                } label: {
+                    Image(systemName: showCPUChart ? "chevron.up" : "chevron.down")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(showCPUChart ? "收起图表" : "展开图表")
+            }
+
+            // 核心 / 已用 / 可用 三列 + 右侧使用率圆环
+            HStack(alignment: .center, spacing: 8) {
+                HStack(spacing: 0) {
+                    statColumn("核心", vm.current?.cpuTotal.map(String.init) ?? "—")
+                    statColumn("已用", vm.current?.cpuUsed.map { String(format: "%.2f", $0) } ?? "—")
+                    statColumn("可用", vm.current.map { cur in
+                        let total = Double(cur.cpuTotal ?? 0)
+                        let used = cur.cpuUsed ?? 0
+                        return String(format: "%.2f", max(total - used, 0))
+                    } ?? "—")
+                }
+                .frame(maxWidth: .infinity)
+
+                miniRing(percent: vm.current?.cpuUsedPercent ?? 0, color: .blue)
+            }
+
+            // 图表（下拉展开时显示，拖动查看数值）
+            if showCPUChart {
+                cpuChart
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+    }
+
+    /// CPU 单曲线图表（0-100%），拖动时图内浮层显示该时间点的使用率
+    private var cpuChart: some View {
+        Chart(vm.cpuPoints) { p in
+            AreaMark(
+                x: .value("时间", p.date),
+                y: .value("CPU", p.value)
+            )
+            .foregroundStyle(Color.blue.opacity(0.12))
+            LineMark(
+                x: .value("时间", p.date),
+                y: .value("CPU", p.value)
+            )
+            .foregroundStyle(.blue)
+            .lineStyle(StrokeStyle(lineWidth: 1.5))
+            if let sel = selectedCPUDate {
+                RuleMark(x: .value("选中", sel))
+                    .foregroundStyle(.secondary.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            }
+        }
+        .chartYScale(domain: 0...100)
+        .chartYAxis { AxisMarks(position: .leading) }
+        .frame(height: 160)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { gesture in
+                                guard let plotAnchor = proxy.plotFrame else { return }
+                                let plotFrame = geo[plotAnchor]
+                                let x = gesture.location.x - plotFrame.minX
+                                guard x >= 0, x <= plotFrame.width,
+                                      let date: Date = proxy.value(atX: x) else { return }
+                                selectedCPUDate = clampDate(date, in: vm.cpuPoints)
+                            }
+                            .onEnded { _ in selectedCPUDate = nil }
+                    )
+
+                if let sel = selectedCPUDate {
+                    let value = nearestValue(to: sel, in: vm.cpuPoints)
+                    let x = proxy.position(forX: sel) ?? 0
+                    let flip = x + 112 + 16 > geo.size.width
+                    loadTooltip([("CPU", value, .blue)])
+                        .offset(x: flip ? x - 112 - 12 : x + 12, y: 10)
+                }
+            }
+        }
+    }
+
+    /// 通用数值列：上方标签、下方数值（与负载列样式一致）
+    private func statColumn(_ title: String, _ value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var memorySection: some View {
