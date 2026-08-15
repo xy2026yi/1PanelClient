@@ -86,7 +86,7 @@ struct SettingsTab: View {
 
             // MARK: - 关于
             Section("关于") {
-                LabeledContent("版本", value: "0.1.0")
+                LabeledContent("版本", value: "0.1.1")
                 LabeledContent("API 版本", value: "v2")
                 Link(destination: URL(string: "https://1panel.cn")!) {
                     Label("1Panel 官网", systemImage: "safari")
