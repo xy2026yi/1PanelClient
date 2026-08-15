@@ -18,6 +18,14 @@ struct MonitorPoint: Identifiable {
     var id: Date { date }
 }
 
+/// 带类型标签的图表点（多系列折线用：foregroundStyle(by:) 按类型分系列）
+struct LoadSeriesPoint: Identifiable {
+    let date: Date
+    let value: Double
+    let kind: String   // "1分钟" / "5分钟" / "15分钟"
+    var id: String { "\(kind)-\(date.timeIntervalSince1970)" }
+}
+
 // MARK: - ViewModel
 
 @MainActor
@@ -267,82 +275,90 @@ struct MonitorView: View {
         }
     }
 
-    /// 负载三曲线图表：顶部数值行（颜色与曲线一致）+ 拖动选中
+    /// 负载三曲线图表（1/5/15 分钟），拖动时图表内竖排浮层显示数值（按值降序）
     private var loadChart: some View {
-        let v1 = selectedLoadValue(from: vm.load1Points)
-        let v5 = selectedLoadValue(from: vm.load5Points)
-        let v15 = selectedLoadValue(from: vm.load15Points)
-
-        return VStack(spacing: 8) {
-            // 数值行：选中时间点的值（未选中显示最新值），颜色与曲线一致
-            HStack(spacing: 16) {
-                loadLegendValue("1分钟", v1, color: .blue)
-                loadLegendValue("5分钟", v5, color: .orange)
-                loadLegendValue("15分钟", v15, color: .purple)
-                Spacer()
-                if selectedLoadDate != nil {
-                    Text("拖动查看")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
+        return Chart(loadAllPoints) { p in
+            LineMark(x: .value("时间", p.date), y: .value("负载", p.value))
+                .foregroundStyle(by: .value("类型", p.kind))
+            if let sel = selectedLoadDate {
+                RuleMark(x: .value("选中", sel))
+                    .foregroundStyle(.secondary.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
-            .font(.caption)
+        }
+        .chartForegroundStyleScale([
+            "1分钟": .blue, "5分钟": .orange, "15分钟": .purple,
+        ])
+        .chartYScale(domain: 0...max(vm.loadAxisMax, 1))
+        .chartYAxis { AxisMarks(position: .leading) }
+        .frame(height: 160)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                // 手势层：触摸 x → 日期
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { gesture in
+                                guard let plotAnchor = proxy.plotFrame else { return }
+                                let plotFrame = geo[plotAnchor]
+                                let x = gesture.location.x - plotFrame.minX
+                                guard x >= 0, x <= plotFrame.width,
+                                      let date: Date = proxy.value(atX: x) else { return }
+                                selectedLoadDate = clampToLoadDomain(date)
+                            }
+                            .onEnded { _ in selectedLoadDate = nil }
+                    )
 
-            Chart {
-                ForEach(vm.load1Points) { p in
-                    LineMark(x: .value("时间", p.date), y: .value("1分钟", p.value))
-                        .foregroundStyle(.blue)
-                }
-                ForEach(vm.load5Points) { p in
-                    LineMark(x: .value("时间", p.date), y: .value("5分钟", p.value))
-                        .foregroundStyle(.orange)
-                }
-                ForEach(vm.load15Points) { p in
-                    LineMark(x: .value("时间", p.date), y: .value("15分钟", p.value))
-                        .foregroundStyle(.purple)
-                }
+                // 选中浮层：竖排显示三条曲线数值（值大的在最上面），颜色与曲线一致
                 if let sel = selectedLoadDate {
-                    RuleMark(x: .value("选中", sel))
-                        .foregroundStyle(.secondary.opacity(0.5))
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                }
-            }
-            .chartYScale(domain: 0...max(vm.loadAxisMax, 1))
-            .chartYAxis { AxisMarks(position: .leading) }
-            .frame(height: 160)
-            .chartOverlay { proxy in
-                GeometryReader { geo in
-                    Rectangle()
-                        .fill(.clear)
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { gesture in
-                                    // 触摸 x 坐标 → 图表日期（限制在绘图区内）
-                                    guard let plotAnchor = proxy.plotFrame else { return }
-                                    let plotFrame = geo[plotAnchor]
-                                    let x = gesture.location.x - plotFrame.minX
-                                    guard x >= 0, x <= plotFrame.width,
-                                          let date: Date = proxy.value(atX: x) else { return }
-                                    selectedLoadDate = clampToLoadDomain(date)
-                                }
-                                .onEnded { _ in selectedLoadDate = nil }
-                        )
+                    let entries: [(title: String, value: Double?, color: Color)] = [
+                        ("1分钟", selectedLoadValue(from: vm.load1Points), .blue),
+                        ("5分钟", selectedLoadValue(from: vm.load5Points), .orange),
+                        ("15分钟", selectedLoadValue(from: vm.load15Points), .purple),
+                    ].sorted { ($0.value ?? 0) > ($1.value ?? 0) }
+
+                    let x = proxy.position(forX: sel) ?? 0
+                    let panelWidth: CGFloat = 112
+                    // 靠右边缘时翻转到左侧
+                    let flip = x + panelWidth + 16 > geo.size.width
+
+                    loadTooltip(entries)
+                        .offset(x: flip ? x - panelWidth - 12 : x + 12, y: 10)
                 }
             }
         }
     }
 
-    /// 顶部数值项：颜色与对应曲线一致
-    private func loadLegendValue(_ title: String, _ value: Double?, color: Color) -> some View {
-        HStack(spacing: 4) {
-            Circle().fill(color).frame(width: 7, height: 7)
-            Text("\(title):")
-                .foregroundStyle(color)
-            Text(value.map { String(format: "%.2f", $0) } ?? "—")
-                .monospacedDigit()
-                .foregroundStyle(color)
+    /// 三条曲线的扁平数据（按「类型」分组形成独立系列）
+    private var loadAllPoints: [LoadSeriesPoint] {
+        vm.load1Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "1分钟") }
+            + vm.load5Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "5分钟") }
+            + vm.load15Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "15分钟") }
+    }
+
+    /// 拖动选中时的竖排数值浮层
+    private func loadTooltip(_ entries: [(title: String, value: Double?, color: Color)]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(entries, id: \.title) { entry in
+                HStack(spacing: 5) {
+                    Circle().fill(entry.color).frame(width: 6, height: 6)
+                    Text(entry.title)
+                        .foregroundStyle(entry.color)
+                    Spacer(minLength: 4)
+                    Text(entry.value.map { String(format: "%.2f", $0) } ?? "—")
+                        .monospacedDigit()
+                        .foregroundStyle(entry.color)
+                }
+            }
         }
+        .font(.caption2)
+        .frame(width: 112, alignment: .leading)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
     }
 
     /// 选中时间（或最新）在曲线上的数值
