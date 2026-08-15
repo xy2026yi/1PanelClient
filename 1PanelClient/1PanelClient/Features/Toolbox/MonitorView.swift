@@ -71,6 +71,20 @@ final class MonitorViewModel: ObservableObject {
         return Self.niceCeil(rawMax * 1.2)
     }
 
+    /// CPU 图表 Y 轴上限：曲线峰值 × 1.2 取整齐刻度，上限 100（百分比）
+    var cpuAxisMax: Double {
+        let seriesMax = cpuPoints.map(\.value).max() ?? 0
+        guard seriesMax > 0 else { return 10 }
+        return min(Self.niceCeil(seriesMax * 1.2), 100)
+    }
+
+    /// 内存图表 Y 轴上限：同 CPU
+    var memoryAxisMax: Double {
+        let seriesMax = memPoints.map(\.value).max() ?? 0
+        guard seriesMax > 0 else { return 10 }
+        return min(Self.niceCeil(seriesMax * 1.2), 100)
+    }
+
     /// 向上取整到 1 / 2 / 5 × 10ⁿ 的"好看"刻度值
     private static func niceCeil(_ value: Double) -> Double {
         guard value > 0 else { return 1 }
@@ -475,16 +489,17 @@ struct MonitorView: View {
                 miniRing(percent: vm.current?.cpuUsedPercent ?? 0, color: .blue)
             }
 
-            // 图表（下拉展开时显示，拖动查看数值）
+            // 图表（下拉展开时显示，Y 轴自适应）
             if showCPUChart {
-                singleSeriesChart(points: vm.cpuPoints, color: .blue, title: "CPU", selected: $selectedCPUDate)
+                singleSeriesChart(points: vm.cpuPoints, color: .blue, title: "CPU", selected: $selectedCPUDate, yMax: vm.cpuAxisMax)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }
 
-    /// 通用单曲线百分比图表（0-100%）：面积+折线，拖动时图内浮层显示该时间点的值
-    private func singleSeriesChart(points: [MonitorPoint], color: Color, title: String, selected: Binding<Date?>) -> some View {
+    /// 通用单曲线百分比图表：面积+折线，拖动时图内浮层显示该时间点的值
+    /// （yMax 默认 100，CPU/内存传入自适应上限）
+    private func singleSeriesChart(points: [MonitorPoint], color: Color, title: String, selected: Binding<Date?>, yMax: Double = 100) -> some View {
         Chart(points) { p in
             AreaMark(
                 x: .value("时间", p.date),
@@ -503,7 +518,7 @@ struct MonitorView: View {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
         }
-        .chartYScale(domain: 0...100)
+        .chartYScale(domain: 0...max(yMax, 1))
         .chartYAxis { AxisMarks(position: .leading) }
         .frame(height: 160)
         .chartOverlay { proxy in
@@ -604,9 +619,9 @@ struct MonitorView: View {
                 miniRing(percent: vm.current?.swapMemoryUsedPercent ?? 0, color: .orange)
             }
 
-            // 内存图表（下拉展开时显示，置于两块数值之下）
+            // 内存图表（下拉展开时显示，置于两块数值之下，Y 轴自适应）
             if showMemChart {
-                singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate)
+                singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate, yMax: vm.memoryAxisMax)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
