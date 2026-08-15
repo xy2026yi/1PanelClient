@@ -234,7 +234,7 @@ struct MonitorView: View {
             }
         }
         // 卡片内更紧凑的行距
-        .environment(\.defaultMinListRowHeight, 28)
+        .environment(\.defaultMinListRowHeight, 32)
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏底部标签栏（首页/管理/设置），不遮挡监控信息
@@ -297,6 +297,7 @@ struct MonitorView: View {
             // 图表（下拉展开时显示：1/5/15 分钟三条曲线，支持拖动查看）
             if showLoadChart {
                 loadChart
+                    .padding(.top, 10)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
@@ -504,6 +505,7 @@ struct MonitorView: View {
             // 图表（下拉展开时显示，Y 轴自适应）
             if showCPUChart {
                 singleSeriesChart(points: vm.cpuPoints, color: .blue, title: "CPU", selected: $selectedCPUDate, yMax: vm.cpuAxisMax)
+                    .padding(.top, 10)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
@@ -644,6 +646,7 @@ struct MonitorView: View {
             // 内存图表（下拉展开时显示，置于两块数值之下，Y 轴自适应）
             if showMemChart {
                 singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate, yMax: vm.memoryAxisMax)
+                    .padding(.top, 10)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
