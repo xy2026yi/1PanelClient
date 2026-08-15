@@ -16,15 +16,19 @@ struct OverviewTab: View {
 
     /// 卡片点击回调：传递具体 ManageItem，由 MainTabView 跨 Tab 跳转到管理详情
     var onSelectManageItem: ((ManageItem) -> Void)? = nil
+    /// 监控页可见性回调（true=隐藏自定义底栏），由 MainTabView 传入
+    var onMonitorVisibility: ((Bool) -> Void)? = nil
 
     init(
         manager: ServerManager,
         selectedTab: Binding<AppTab> = .constant(.overview),
-        onSelectManageItem: ((ManageItem) -> Void)? = nil
+        onSelectManageItem: ((ManageItem) -> Void)? = nil,
+        onMonitorVisibility: ((Bool) -> Void)? = nil
     ) {
         self.manager = manager
         self._selectedTab = selectedTab
         self.onSelectManageItem = onSelectManageItem
+        self.onMonitorVisibility = onMonitorVisibility
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: OverviewViewModel(server: server))
     }
@@ -229,7 +233,10 @@ struct OverviewTab: View {
                 Spacer()
                 // 三个点：跳转历史监控
                 NavigationLink {
-                    MonitorView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+                    MonitorView(
+                        server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
+                        onTabBarVisibility: onMonitorVisibility
+                    )
                 } label: {
                     Image(systemName: "ellipsis")
                         .foregroundStyle(.secondary)
