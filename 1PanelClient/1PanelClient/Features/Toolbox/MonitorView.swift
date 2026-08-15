@@ -234,7 +234,7 @@ struct MonitorView: View {
             }
         }
         // 卡片内更紧凑的行距
-        .environment(\.defaultMinListRowHeight, 36)
+        .environment(\.defaultMinListRowHeight, 32)
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏底部标签栏（首页/管理/设置），不遮挡监控信息
@@ -277,6 +277,7 @@ struct MonitorView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(showLoadChart ? "收起图表" : "展开图表")
             }
+            .padding(.top, 6)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -291,7 +292,7 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.loadPoints.last?.value ?? 0)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 6)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -299,6 +300,7 @@ struct MonitorView: View {
             if showLoadChart {
                 loadChart
                     .padding(.top, 10)
+                    .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
@@ -482,6 +484,7 @@ struct MonitorView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(showCPUChart ? "收起图表" : "展开图表")
             }
+            .padding(.top, 6)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -500,7 +503,7 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.current?.cpuUsedPercent ?? 0, color: .blue)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 6)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -508,6 +511,7 @@ struct MonitorView: View {
             if showCPUChart {
                 singleSeriesChart(points: vm.cpuPoints, color: .blue, title: "CPU", selected: $selectedCPUDate, yMax: vm.cpuAxisMax)
                     .padding(.top, 10)
+                    .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
@@ -603,6 +607,7 @@ struct MonitorView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(showMemChart ? "收起图表" : "展开图表")
             }
+            .padding(.top, 6)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -617,7 +622,7 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.current?.memoryUsedPercent ?? 0, color: .purple)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 6)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -643,7 +648,7 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.current?.swapMemoryUsedPercent ?? 0, color: .orange)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 6)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -651,6 +656,7 @@ struct MonitorView: View {
             if showMemChart {
                 singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate, yMax: vm.memoryAxisMax)
                     .padding(.top, 10)
+                    .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
@@ -672,6 +678,7 @@ struct MonitorView: View {
                     .font(.headline)
                 Spacer()
             }
+            .padding(.top, 6)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -682,6 +689,7 @@ struct MonitorView: View {
                 selected: $selectedIODate
             )
             .padding(.top, 10)
+            .padding(.bottom, 8)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         }
@@ -696,6 +704,7 @@ struct MonitorView: View {
                     .font(.headline)
                 Spacer()
             }
+            .padding(.top, 6)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -706,6 +715,7 @@ struct MonitorView: View {
                 selected: $selectedNetDate
             )
             .padding(.top, 10)
+            .padding(.bottom, 8)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         }
