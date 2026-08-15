@@ -275,6 +275,7 @@ struct MonitorView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(showLoadChart ? "收起图表" : "展开图表")
             }
+            .listRowSeparator(.hidden)
 
             // 1/5/15 分钟负载（上标签下数值）+ 右侧小型使用率圆环
             HStack(alignment: .center, spacing: 8) {
@@ -287,11 +288,13 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.loadPoints.last?.value ?? 0)
             }
+            .listRowSeparator(.hidden)
 
             // 图表（下拉展开时显示：1/5/15 分钟三条曲线，支持拖动查看）
             if showLoadChart {
                 loadChart
                     .transition(.opacity.combined(with: .move(edge: .top)))
+                    .listRowSeparator(.hidden)
             }
         }
     }
@@ -472,6 +475,7 @@ struct MonitorView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(showCPUChart ? "收起图表" : "展开图表")
             }
+            .listRowSeparator(.hidden)
 
             // 核心 / 已用 / 可用 三列 + 右侧使用率圆环
             HStack(alignment: .center, spacing: 8) {
@@ -488,11 +492,13 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.current?.cpuUsedPercent ?? 0, color: .blue)
             }
+            .listRowSeparator(.hidden)
 
             // 图表（下拉展开时显示，Y 轴自适应）
             if showCPUChart {
                 singleSeriesChart(points: vm.cpuPoints, color: .blue, title: "CPU", selected: $selectedCPUDate, yMax: vm.cpuAxisMax)
                     .transition(.opacity.combined(with: .move(edge: .top)))
+                    .listRowSeparator(.hidden)
             }
         }
     }
@@ -585,6 +591,7 @@ struct MonitorView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(showMemChart ? "收起图表" : "展开图表")
             }
+            .listRowSeparator(.hidden)
 
             // 内存：总计 / 已用 / 可用 三列 + 右侧使用率圆环
             HStack(alignment: .center, spacing: 8) {
@@ -597,6 +604,7 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.current?.memoryUsedPercent ?? 0, color: .purple)
             }
+            .listRowSeparator(.hidden)
 
             // SWAP 子标签
             HStack {
@@ -606,6 +614,7 @@ struct MonitorView: View {
                 Spacer()
             }
             .padding(.top, 2)
+            .listRowSeparator(.hidden)
 
             // SWAP：总计 / 已用 / 可用 三列 + 右侧使用率圆环（无图表）
             HStack(alignment: .center, spacing: 8) {
@@ -618,11 +627,13 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.current?.swapMemoryUsedPercent ?? 0, color: .orange)
             }
+            .listRowSeparator(.hidden)
 
             // 内存图表（下拉展开时显示，置于两块数值之下，Y 轴自适应）
             if showMemChart {
                 singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate, yMax: vm.memoryAxisMax)
                     .transition(.opacity.combined(with: .move(edge: .top)))
+                    .listRowSeparator(.hidden)
             }
         }
     }
