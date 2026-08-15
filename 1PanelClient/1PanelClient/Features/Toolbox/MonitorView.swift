@@ -47,12 +47,10 @@ final class MonitorViewModel: ObservableObject {
     @Published var netUpPoints: [MonitorPoint] = []     // 上行 KB/s
     @Published var netDownPoints: [MonitorPoint] = []   // 下行 KB/s
 
-    // 最新快照（负载 1/5/15 + Top 进程）
+    // 最新快照（负载 1/5/15）
     @Published var latestLoad1: Double?
     @Published var latestLoad5: Double?
     @Published var latestLoad15: Double?
-    @Published var topCPU: [MonitorTopItem] = []
-    @Published var topMem: [MonitorTopItem] = []
     /// 实时数值（GET dashboard/current：CPU 核心/已用/可用、内存等）
     @Published var current: DashboardCurrent?
 
@@ -61,11 +59,6 @@ final class MonitorViewModel: ObservableObject {
     init(server: ServerConfig) {
         self.client = APIClient(server: server)
     }
-
-    /// 可选时间范围（小时）
-    static let rangeOptions: [(title: String, hours: Int)] = [
-        ("近1小时", 1), ("近6小时", 6), ("近24小时", 24), ("近3天", 72), ("近7天", 168),
-    ]
 
     /// 负载图表 Y 轴上限：取「1/5/15 分钟三条曲线历史峰值、最新负载值」中的
     /// 最大值，留 20% 余量后向上取整到 1/2/5×10ⁿ 的整齐刻度（不固定 100）
@@ -130,13 +123,11 @@ final class MonitorViewModel: ObservableObject {
         netUpPoints = points(from: net) { $0.up ?? 0 }
         netDownPoints = points(from: net) { $0.down ?? 0 }
 
-        // 最新快照（负载 1/5/15 + Top 进程）
+        // 最新快照（负载 1/5/15）
         if let last = base.compactMap({ $0.value ?? [] }).last?.last {
             latestLoad1 = last.cpuLoad1
             latestLoad5 = last.cpuLoad5
             latestLoad15 = last.cpuLoad15
-            topCPU = (last.topCPUItems ?? []).sorted { ($0.percent ?? 0) > ($1.percent ?? 0) }
-            topMem = (last.topMemItems ?? []).sorted { ($0.percent ?? 0) > ($1.percent ?? 0) }
         }
     }
 
@@ -208,16 +199,6 @@ struct MonitorView: View {
 
     var body: some View {
         List {
-            // 时间范围
-            Section {
-                Picker("时间范围", selection: $vm.hours) {
-                    ForEach(MonitorViewModel.rangeOptions, id: \.hours) { opt in
-                        Text(opt.title).tag(opt.hours)
-                    }
-                }
-                .pickerStyle(.menu)
-            }
-
             if vm.isLoading && vm.cpuPoints.isEmpty {
                 Section {
                     HStack { Spacer(); ProgressView("加载监控数据…"); Spacer() }
@@ -233,23 +214,18 @@ struct MonitorView: View {
                 memorySection
                 ioSection
                 networkSection
-                topProcessSections
             }
         }
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await vm.load() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .disabled(vm.isLoading)
+        .refreshable { await vm.load() }
+        // 3 秒间隔自动刷新（页面存活期间持续轮询）
+        .task {
+            while !Task.isCancelled {
+                await vm.load()
+                try? await Task.sleep(for: .seconds(3))
             }
         }
-        .refreshable { await vm.load() }
-        .task(id: vm.hours) { await vm.load() }
     }
 
     // MARK: 平均负载（标题+数值+图表一体化，右侧下拉展开图表）
@@ -309,6 +285,7 @@ struct MonitorView: View {
         .chartForegroundStyleScale([
             "1分钟": .blue, "5分钟": .orange, "15分钟": .purple,
         ])
+        .chartLegend(.hidden)
         .chartYScale(domain: 0...max(vm.loadAxisMax, 1))
         .chartYAxis { AxisMarks(position: .leading) }
         .frame(height: 160)
@@ -671,64 +648,75 @@ struct MonitorView: View {
             + vm.netDownPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "下行") }
     }
 
-    /// 双曲线图表：左侧单位标签，拖动时图内竖排浮层（按值降序，颜色与曲线一致）
+    /// 双曲线图表：Y 轴刻度自带单位（如 30KB/20KB/10KB/0KB），
+    /// 拖动时图内竖排浮层（按值降序，颜色与曲线一致）
     private func dualSeriesChart(
         points: [LoadSeriesPoint],
         unit: String,
         styles: KeyValuePairs<String, Color>,
         selected: Binding<Date?>
     ) -> some View {
-        HStack(alignment: .top, spacing: 2) {
-            Text(unit)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .padding(.top, 16)
-                .fixedSize()
-
-            Chart(points) { p in
-                LineMark(
-                    x: .value("时间", p.date),
-                    y: .value("速率", p.value)
-                )
-                .foregroundStyle(by: .value("类型", p.kind))
-                if let sel = selected.wrappedValue {
-                    RuleMark(x: .value("选中", sel))
-                        .foregroundStyle(.secondary.opacity(0.5))
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                }
+        Chart(points) { p in
+            LineMark(
+                x: .value("时间", p.date),
+                y: .value("速率", p.value)
+            )
+            .foregroundStyle(by: .value("类型", p.kind))
+            if let sel = selected.wrappedValue {
+                RuleMark(x: .value("选中", sel))
+                    .foregroundStyle(.secondary.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
-            .chartForegroundStyleScale(styles)
-            .chartYAxis { AxisMarks(position: .leading) }
-            .frame(height: 160)
-            .chartOverlay { proxy in
-                GeometryReader { geo in
-                    Rectangle()
-                        .fill(.clear)
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { gesture in
-                                    guard let plotAnchor = proxy.plotFrame else { return }
-                                    let plotFrame = geo[plotAnchor]
-                                    let x = gesture.location.x - plotFrame.minX
-                                    guard x >= 0, x <= plotFrame.width,
-                                          let date: Date = proxy.value(atX: x) else { return }
-                                    let monitorPoints = points.map { MonitorPoint(date: $0.date, value: $0.value) }
-                                    selected.wrappedValue = clampDate(date, in: monitorPoints)
-                                }
-                                .onEnded { _ in selected.wrappedValue = nil }
-                        )
-
-                    if let sel = selected.wrappedValue {
-                        let entries = sortedSeriesEntries(at: sel, in: points, styles: styles)
-                        let x = proxy.position(forX: sel) ?? 0
-                        let flip = x + 128 > geo.size.width
-                        loadTooltip(entries)
-                            .offset(x: flip ? x - 128 : x + 12, y: 10)
+        }
+        .chartForegroundStyleScale(styles)
+        .chartLegend(.hidden)
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                AxisGridLine()
+                AxisValueLabel {
+                    if let v = value.as(Double.self) {
+                        Text(axisText(v, unit: unit))
                     }
                 }
             }
         }
+        .frame(height: 160)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { gesture in
+                                guard let plotAnchor = proxy.plotFrame else { return }
+                                let plotFrame = geo[plotAnchor]
+                                let x = gesture.location.x - plotFrame.minX
+                                guard x >= 0, x <= plotFrame.width,
+                                      let date: Date = proxy.value(atX: x) else { return }
+                                let monitorPoints = points.map { MonitorPoint(date: $0.date, value: $0.value) }
+                                selected.wrappedValue = clampDate(date, in: monitorPoints)
+                            }
+                            .onEnded { _ in selected.wrappedValue = nil }
+                    )
+
+                if let sel = selected.wrappedValue {
+                    let entries = sortedSeriesEntries(at: sel, in: points, styles: styles)
+                    let x = proxy.position(forX: sel) ?? 0
+                    let flip = x + 128 > geo.size.width
+                    loadTooltip(entries)
+                        .offset(x: flip ? x - 128 : x + 12, y: 10)
+                }
+            }
+        }
+    }
+
+    /// Y 轴刻度文本：整数直接拼单位（30KB），小数保留一位（0.5KB）
+    private func axisText(_ value: Double, unit: String) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(value))\(unit)"
+        }
+        return String(format: "%.1f%@", value, unit)
     }
 
     /// 选中时间的各系列数值（按值降序，返回已格式化文本）
@@ -747,26 +735,6 @@ struct MonitorView: View {
         return raw.sorted { $0.3 > $1.3 }.map { ($0.title, $0.text, $0.color) }
     }
 
-    // MARK: Top 进程
-
-    @ViewBuilder
-    private var topProcessSections: some View {
-        if !vm.topCPU.isEmpty {
-            Section("Top 进程（CPU）") {
-                ForEach(vm.topCPU.prefix(5)) { item in
-                    topRow(item, memoryBytes: false)
-                }
-            }
-        }
-        if !vm.topMem.isEmpty {
-            Section("Top 进程（内存）") {
-                ForEach(vm.topMem.prefix(5)) { item in
-                    topRow(item, memoryBytes: true)
-                }
-            }
-        }
-    }
-
     // MARK: 图表组件
 
     private func loadLabel(_ title: String, _ value: Double?) -> some View {
@@ -776,45 +744,6 @@ struct MonitorView: View {
                 .monospacedDigit()
                 .foregroundStyle(.primary)
         }
-    }
-
-    private func topRow(_ item: MonitorTopItem, memoryBytes: Bool) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "gearshape")
-                .foregroundStyle(.secondary)
-                .font(.caption)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(item.name ?? "—")
-                        .font(.subheadline.bold())
-                        .lineLimit(1)
-                    if let user = item.user, user != "undefined" {
-                        Text(user)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                if let cmd = item.cmd, !cmd.isEmpty {
-                    Text(cmd)
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(String(format: "%.1f%%", item.percent ?? 0))
-                    .font(.subheadline.bold().monospacedDigit())
-                    .foregroundStyle(memoryBytes ? .purple : .blue)
-                if memoryBytes, let mem = item.memory, mem > 0 {
-                    Text(formatBytes(mem))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .padding(.vertical, 2)
     }
 
     private func formatBytes(_ bytes: Int64) -> String {
