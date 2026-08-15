@@ -234,7 +234,7 @@ struct MonitorView: View {
             }
         }
         // 卡片内更紧凑的行距
-        .environment(\.defaultMinListRowHeight, 32)
+        .environment(\.defaultMinListRowHeight, 36)
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏底部标签栏（首页/管理/设置），不遮挡监控信息
@@ -291,6 +291,7 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.loadPoints.last?.value ?? 0)
             }
+            .padding(.vertical, 4)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -499,6 +500,7 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.current?.cpuUsedPercent ?? 0, color: .blue)
             }
+            .padding(.vertical, 4)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -615,6 +617,7 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.current?.memoryUsedPercent ?? 0, color: .purple)
             }
+            .padding(.vertical, 4)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
@@ -640,6 +643,7 @@ struct MonitorView: View {
 
                 miniRing(percent: vm.current?.swapMemoryUsedPercent ?? 0, color: .orange)
             }
+            .padding(.vertical, 4)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
