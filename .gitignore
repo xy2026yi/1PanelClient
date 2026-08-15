@@ -12,8 +12,8 @@ DerivedData/
 # 打包产物（build-ipa.sh 生成）
 build/
 
-# Logs
-logs/
+# Logs（仅根目录的抓包文档目录，避免误匹配 Features/Logs）
+/logs/
 *.log
 
 # Python

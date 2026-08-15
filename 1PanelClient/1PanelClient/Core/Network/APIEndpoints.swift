@@ -236,6 +236,15 @@ enum APIEndpoint {
     case logsTaskRead            // POST 读取任务日志（轮询 taskID）
     case logsTaskCount           // GET  正在执行的任务数量
 
+    // MARK: - 日志模块
+    case logsOperation           // POST 操作日志分页查询
+    case logsLogin               // POST 访问日志（面板登录记录）分页查询
+    case logsSystemFiles         // GET  系统日志日期列表
+    case logsSSHLog              // POST SSH 登陆日志分页查询
+    case logsWebsitesList        // GET  网站列表（网站日志下拉用）
+    case logsReadSystem          // POST 读取系统日志行（files/read/system）
+    case logsReadWebsite         // POST 读取网站日志行（files/read/website）
+
     var path: String {
         switch self {
         case .dashboardOS:           return "/api/v2/dashboard/base/os"
@@ -414,6 +423,13 @@ enum APIEndpoint {
         case .appsServices:          return "/api/v2/apps/services/:type"
         case .logsTaskRead:          return "/api/v2/logs/tasks/read"
         case .logsTaskCount:         return "/api/v2/logs/tasks/executing/count"
+        case .logsOperation:         return "/api/v2/core/logs/operation"
+        case .logsLogin:             return "/api/v2/core/logs/login"
+        case .logsSystemFiles:       return "/api/v2/logs/system/files"
+        case .logsSSHLog:            return "/api/v2/hosts/ssh/log"
+        case .logsWebsitesList:      return "/api/v2/websites/list"
+        case .logsReadSystem:        return "/api/v2/files/read/system"
+        case .logsReadWebsite:       return "/api/v2/files/read/website"
         }
     }
 
@@ -435,6 +451,7 @@ enum APIEndpoint {
              .settingsBaseDir,
              .settingsUpgradeCheck, .settingsUpgradeReleases,
              .openrestyConfig,
+             .logsSystemFiles, .logsWebsitesList,
              .filesDownload:
             return "GET"
         default:

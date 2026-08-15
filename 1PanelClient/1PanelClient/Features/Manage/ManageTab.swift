@@ -30,7 +30,8 @@ struct ManageTab: View {
     private var groups: [(title: String, items: [ManageItem])] {
         [
             ("",          [.apps, .websites, .database, .containers]),
-            ("",          [.terminal, .firewall, .toolbox, .cronjob])
+            ("",          [.terminal, .firewall, .toolbox, .cronjob]),
+            ("",          [.logs])
         ]
     }
 
@@ -143,6 +144,8 @@ struct ManageTab: View {
             ProcessView(server: server)
         case .toolbox:
             ToolboxView(server: server)
+        case .logs:
+            LogsView(server: server)
         }
     }
 }
@@ -157,7 +160,8 @@ struct ManageEditView: View {
     private var groups: [(title: String, items: [ManageItem])] {
         [
             ("",  [.apps, .websites, .database, .containers]),
-            ("",  [.terminal, .firewall, .toolbox, .cronjob])
+            ("",  [.terminal, .firewall, .toolbox, .cronjob]),
+            ("",  [.logs])
         ]
     }
 
@@ -249,6 +253,7 @@ enum ManageItem: String, Identifiable {
     case firewall
     case cronjob
     case toolbox
+    case logs
 
     var id: String { rawValue }
 
@@ -263,6 +268,7 @@ enum ManageItem: String, Identifiable {
         case .firewall:   return "防火墙"
         case .cronjob:    return "计划任务"
         case .toolbox:    return "工具箱"
+        case .logs:       return "日志"
         }
     }
 
@@ -277,6 +283,7 @@ enum ManageItem: String, Identifiable {
         case .firewall:   return "防火墙规则"
         case .cronjob:    return "定时备份与脚本"
         case .toolbox:    return "Fail2ban 等系统工具"
+        case .logs:       return "面板 / SSH / 网站日志"
         }
     }
 
@@ -291,6 +298,7 @@ enum ManageItem: String, Identifiable {
         case .firewall:   return "flame"
         case .cronjob:    return "clock.badge.checkmark"
         case .toolbox:    return "wrench.and.screwdriver"
+        case .logs:       return "doc.text.magnifyingglass"
         }
     }
 
@@ -305,12 +313,13 @@ enum ManageItem: String, Identifiable {
         case .firewall:   return .orange
         case .cronjob:    return .teal
         case .toolbox:    return .brown
+        case .logs:       return .cyan
         }
     }
 
     var available: Bool {
         switch self {
-        case .apps, .websites, .containers, .terminal, .cronjob, .firewall, .database, .process, .toolbox: return true
+        case .apps, .websites, .containers, .terminal, .cronjob, .firewall, .database, .process, .toolbox, .logs: return true
         }
     }
 }
