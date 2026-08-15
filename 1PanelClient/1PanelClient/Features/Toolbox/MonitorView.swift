@@ -54,6 +54,32 @@ final class MonitorViewModel: ObservableObject {
         ("近1小时", 1), ("近6小时", 6), ("近24小时", 24), ("近3天", 72), ("近7天", 168),
     ]
 
+    /// 负载图表 Y 轴上限：取「1/5/15 分钟负载、资源使用率、曲线历史峰值」中的
+    /// 最大值，留 20% 余量后向上取整到 1/2/5×10ⁿ 的整齐刻度（不固定 100）
+    var loadAxisMax: Double {
+        let seriesMax = loadPoints.map(\.value).max() ?? 0
+        let candidates = [seriesMax, latestLoad1 ?? 0, latestLoad5 ?? 0, latestLoad15 ?? 0]
+        let rawMax = candidates.max() ?? 0
+        guard rawMax > 0 else { return 10 }
+        return Self.niceCeil(rawMax * 1.2)
+    }
+
+    /// 向上取整到 1 / 2 / 5 × 10ⁿ 的"好看"刻度值
+    private static func niceCeil(_ value: Double) -> Double {
+        guard value > 0 else { return 1 }
+        let exponent = floor(log10(value))
+        let base = pow(10, exponent)
+        let fraction = value / base
+        let nice: Double
+        switch fraction {
+        case ...1:  nice = 1
+        case ...2:  nice = 2
+        case ...5:  nice = 5
+        default:    nice = 10
+        }
+        return nice * base
+    }
+
     func load() async {
         isLoading = true
         errorMessage = nil
@@ -224,9 +250,9 @@ struct MonitorView: View {
                 miniRing(percent: vm.loadPoints.last?.value ?? 0)
             }
 
-            // 图表（下拉展开时显示）
+            // 图表（下拉展开时显示，Y 轴自适应最大值）
             if showLoadChart {
-                percentChart(vm.loadPoints, color: .teal)
+                percentChart(vm.loadPoints, color: .teal, yMax: vm.loadAxisMax)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
@@ -335,8 +361,8 @@ struct MonitorView: View {
 
     // MARK: 图表组件
 
-    /// 百分比单曲线（0-100）：面积 + 折线
-    private func percentChart(_ points: [MonitorPoint], color: Color) -> some View {
+    /// 百分比单曲线：面积 + 折线（yMax 默认 100，负载图传入自适应上限）
+    private func percentChart(_ points: [MonitorPoint], color: Color, yMax: Double = 100) -> some View {
         Chart(points) { p in
             AreaMark(
                 x: .value("时间", p.date),
@@ -350,7 +376,7 @@ struct MonitorView: View {
             .foregroundStyle(color)
             .lineStyle(StrokeStyle(lineWidth: 1.5))
         }
-        .chartYScale(domain: 0...100)
+        .chartYScale(domain: 0...max(yMax, 1))
         .chartYAxis {
             AxisMarks(position: .leading)
         }
