@@ -3,7 +3,7 @@
 //  1PanelClient
 //
 //  数据库模块模型
-//  MySQL / PostgreSQL / Redis
+//  MySQL / PostgreSQL / Redis / MongoDB
 //
 
 import Foundation
@@ -86,7 +86,7 @@ nonisolated struct ConnInfo: Decodable {
 
 // MARK: - 数据库条目（search 结果）
 
-/// POST /api/v2/databases/search 或 /api/v2/databases/pg/search 返回的 items
+/// POST /api/v2/databases/search 或 /api/v2/databases/{pg,mongodb}/search 返回的 items
 nonisolated struct DatabaseItem: Decodable, Identifiable, Hashable {
     let id: Int
     let name: String?
@@ -94,6 +94,7 @@ nonisolated struct DatabaseItem: Decodable, Identifiable, Hashable {
     let type: String?
     let database: String?
     let postgresqlName: String?   // PG 专用（替代 database）
+    let mongodbName: String?      // MongoDB 专用（替代 database）
     let format: String?
     let collation: String?
     let username: String?
@@ -105,9 +106,14 @@ nonisolated struct DatabaseItem: Decodable, Identifiable, Hashable {
     let description: String?
     let createdAt: String?
 
-    /// 统一的服务名（PG 用 postgresqlName，MySQL 用 database）
+    /// 统一的服务名（PG 用 postgresqlName，MongoDB 用 mongodbName，MySQL 用 database）
     var databaseName: String {
-        postgresqlName ?? database ?? ""
+        postgresqlName ?? mongodbName ?? database ?? ""
+    }
+
+    /// 是否为 MongoDB 数据库（mongodb/search 返回，无 type 字段）
+    var isMongoDB: Bool {
+        mongodbName != nil
     }
 
     /// 是否为超级用户（PG）
@@ -117,6 +123,9 @@ nonisolated struct DatabaseItem: Decodable, Identifiable, Hashable {
 
     /// 权限显示文本
     var permissionDisplay: String {
+        if mongodbName != nil {
+            return "—"
+        }
         if superUser != nil {
             return isSuperUser ? "超级用户" : "普通用户"
         }
@@ -310,4 +319,63 @@ nonisolated struct DBGrantRequest: Encodable {
 nonisolated struct RedisPasswordRequest: Encodable {
     let database: String
     let value: String           // base64
+}
+
+// MARK: - MongoDB 专用请求体
+
+/// 创建：POST /api/v2/databases/mongodb（无 type 字段）
+nonisolated struct CreateMongoDBRequest: Encodable {
+    let name: String
+    let from: String
+    let database: String
+    let username: String
+    let password: String        // base64
+    let permission: String      // dbOwner / read / readWrite / userAdmin
+    let description: String
+}
+
+/// 数据库改密：POST /api/v2/databases/mongodb/password
+nonisolated struct MongoPasswordRequest: Encodable {
+    let database: String
+    let name: String
+    let password: String        // base64
+}
+
+/// 查询权限：POST /api/v2/databases/mongodb/privileges（返回角色字符串）
+nonisolated struct MongoPrivilegesLoadRequest: Encodable {
+    let database: String
+    let name: String
+    let username: String
+}
+
+/// 修改权限：POST /api/v2/databases/mongodb/privileges/change
+nonisolated struct MongoPrivilegesChangeRequest: Encodable {
+    let database: String
+    let name: String
+    let username: String
+    let permission: String      // dbOwner / read / readWrite / userAdmin
+}
+
+/// MongoDB 权限角色（角色值 ↔ 显示名）
+enum MongoPermission: String, CaseIterable, Identifiable {
+    case dbOwner
+    case read
+    case readWrite
+    case userAdmin
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .dbOwner:   return "数据库所有者"
+        case .read:      return "读取数据"
+        case .readWrite: return "读取和写入数据"
+        case .userAdmin: return "用户管理员"
+        }
+    }
+
+    /// 由角色值构造（未知值回退 dbOwner）
+    static func from(rawValue value: String?) -> MongoPermission {
+        MongoPermission(rawValue: value ?? "") ?? .dbOwner
+    }
 }

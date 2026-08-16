@@ -3,7 +3,8 @@
 //  1PanelClient
 //
 //  历史监控：平均负载 / CPU / 内存 / 磁盘I/O / 网络 曲线图（Swift Charts）
-//  数据来自 POST /api/v2/hosts/monitor/search，支持时间范围切换
+//  历史曲线来自 POST /api/v2/hosts/monitor/search（时间范围可切换：1/6/24 小时与 7 天），
+//  实时数值来自 GET /api/v2/dashboard/current/all/all（3 秒轮询）
 //
 
 import SwiftUI
@@ -30,9 +31,11 @@ struct LoadSeriesPoint: Identifiable {
 
 @MainActor
 final class MonitorViewModel: ObservableObject {
-    /// 时间范围（小时）
+    /// 时间范围（小时）：1 / 6 / 24 / 168（7 天）
     @Published var hours: Int = 1
     @Published var isLoading = false
+    /// 首次历史加载是否已完成（避免后台刷新时闪"加载中"占位）
+    @Published private(set) var hasLoadedOnce = false
     @Published var errorMessage: String?
 
     // 曲线数据
@@ -47,7 +50,7 @@ final class MonitorViewModel: ObservableObject {
     @Published var netUpPoints: [MonitorPoint] = []     // 上行 KB/s
     @Published var netDownPoints: [MonitorPoint] = []   // 下行 KB/s
 
-    // 最新快照（负载 1/5/15）
+    // 最新负载 1/5/15（取自 dashboard/current 实时接口，随 3 秒轮询更新）
     @Published var latestLoad1: Double?
     @Published var latestLoad5: Double?
     @Published var latestLoad15: Double?
@@ -101,10 +104,22 @@ final class MonitorViewModel: ObservableObject {
         return nice * base
     }
 
-    func load() async {
+    /// 首次进入/下拉刷新：历史曲线 + 实时数值并发拉取
+    func loadAll() async {
+        async let history: () = loadHistory()
+        async let current: () = loadCurrent()
+        _ = await (history, current)
+    }
+
+    /// 历史曲线（POST /hosts/monitor/search，按 hours 圈定时间窗）。
+    /// 服务端每 5 分钟才落一条记录，无需高频轮询。
+    func loadHistory() async {
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            hasLoadedOnce = true
+        }
 
         let end = Date()
         let start = Calendar.current.date(byAdding: .hour, value: -hours, to: end) ?? end
@@ -112,11 +127,7 @@ final class MonitorViewModel: ObservableObject {
         let endTime = MonitorDate.requestString(end)
 
         // 一个请求获取全部监控序列（param=all 返回 base/io/network 三组）
-        // + 一个请求获取实时数值（CPU 核心/已用等）
-        async let allSeries: [MonitorSeries]? = fetch(param: "all", start: startTime, end: endTime)
-        async let currentResp: DashboardCurrent? = fetchCurrent()
-        let series = await allSeries ?? []
-        current = await currentResp
+        guard let series = await fetch(param: "all", start: startTime, end: endTime) else { return }
 
         // 按返回的 param 拆分
         let base = series.filter { $0.param == "base" }
@@ -124,25 +135,38 @@ final class MonitorViewModel: ObservableObject {
         let net = series.filter { $0.param == "network" }
 
         // base 形态（负载/CPU/内存共用记录结构）
-        loadPoints = points(from: base) { $0.loadUsage ?? 0 }
-        load1Points = points(from: base) { $0.cpuLoad1 ?? 0 }
-        load5Points = points(from: base) { $0.cpuLoad5 ?? 0 }
-        load15Points = points(from: base) { $0.cpuLoad15 ?? 0 }
-        cpuPoints = points(from: base) { $0.cpu ?? 0 }
-        memPoints = points(from: base) { $0.memory ?? 0 }
+        loadPoints = Self.decimate(points(from: base) { $0.loadUsage ?? 0 })
+        load1Points = Self.decimate(points(from: base) { $0.cpuLoad1 ?? 0 })
+        load5Points = Self.decimate(points(from: base) { $0.cpuLoad5 ?? 0 })
+        load15Points = Self.decimate(points(from: base) { $0.cpuLoad15 ?? 0 })
+        cpuPoints = Self.decimate(points(from: base) { $0.cpu ?? 0 })
+        memPoints = Self.decimate(points(from: base) { $0.memory ?? 0 })
 
         // io / network 形态（磁盘 I/O 原始值为字节，除以 1000 换算为 KB）
-        ioReadPoints = points(from: io) { ($0.read ?? 0) / 1000 }
-        ioWritePoints = points(from: io) { ($0.write ?? 0) / 1000 }
-        netUpPoints = points(from: net) { $0.up ?? 0 }
-        netDownPoints = points(from: net) { $0.down ?? 0 }
+        ioReadPoints = Self.decimate(points(from: io) { ($0.read ?? 0) / 1000 })
+        ioWritePoints = Self.decimate(points(from: io) { ($0.write ?? 0) / 1000 })
+        netUpPoints = Self.decimate(points(from: net) { $0.up ?? 0 })
+        netDownPoints = Self.decimate(points(from: net) { $0.down ?? 0 })
+    }
 
-        // 最新快照（负载 1/5/15）
-        if let last = base.compactMap({ $0.value ?? [] }).last?.last {
-            latestLoad1 = last.cpuLoad1
-            latestLoad5 = last.cpuLoad5
-            latestLoad15 = last.cpuLoad15
+    /// 实时数值（GET /dashboard/current/all/all）：CPU/内存/SWAP 与负载 1/5/15
+    func loadCurrent() async {
+        current = await fetchCurrent()
+        latestLoad1 = current?.load1
+        latestLoad5 = current?.load5
+        latestLoad15 = current?.load15
+    }
+
+    /// 长时间范围降采样：每条曲线最多保留约 cap 个点，末尾点始终保留。
+    /// 7 天全量约 2000 点/条，降采样后曲线在 160pt 高度内足够平滑且不卡顿。
+    private static func decimate(_ points: [MonitorPoint], cap: Int = 480) -> [MonitorPoint] {
+        guard points.count > cap else { return points }
+        let step = Int((Double(points.count) / Double(cap)).rounded(.up))
+        var result = stride(from: 0, to: points.count, by: step).map { points[$0] }
+        if let last = points.last, result.last?.date != last.date {
+            result.append(last)
         }
+        return result
     }
 
     private func fetch(param: String, start: String, end: String) async -> [MonitorSeries]? {
@@ -216,16 +240,17 @@ struct MonitorView: View {
 
     var body: some View {
         List {
-            if vm.isLoading && vm.cpuPoints.isEmpty {
+            if vm.isLoading && !vm.hasLoadedOnce {
                 Section {
                     HStack { Spacer(); ProgressView("加载监控数据…"); Spacer() }
                         .padding(.vertical, 30)
                 }
-            } else if let err = vm.errorMessage, vm.cpuPoints.isEmpty {
+            } else if let err = vm.errorMessage, vm.cpuPoints.isEmpty, !vm.isLoading {
                 Section {
                     ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle", description: Text(err))
                 }
             } else {
+                rangeSection
                 loadSection
                 cpuSection
                 memorySection
@@ -237,19 +262,47 @@ struct MonitorView: View {
         .environment(\.defaultMinListRowHeight, 32)
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await vm.load() }
+        .refreshable { await vm.loadAll() }
         // App 前后台切换时同步轮询开关
         .onChange(of: scenePhase) { _, phase in
             isSceneActive = phase == .active
         }
-        // 3 秒间隔自动刷新（仅页面存活且 App 前台活跃时轮询）
+        // 切换时间范围后立即重拉历史曲线
+        .onChange(of: vm.hours) { _, _ in
+            Task { await vm.loadHistory() }
+        }
+        // 自动刷新（仅页面存活且 App 前台活跃时）：
+        // 实时数值 3 秒一轮；历史曲线服务端 5 分钟才记一条，60 秒一轮足够
         .task {
+            await vm.loadAll()
+            var elapsed = 0
             while !Task.isCancelled {
-                if isSceneActive {
-                    await vm.load()
-                }
                 try? await Task.sleep(for: .seconds(3))
+                guard !Task.isCancelled, isSceneActive else { continue }
+                await vm.loadCurrent()
+                elapsed += 3
+                if elapsed >= 60 {
+                    elapsed = 0
+                    await vm.loadHistory()
+                }
             }
+        }
+    }
+
+    // MARK: 时间范围
+
+    /// 历史曲线时间范围切换（近 1 小时 / 6 小时 / 24 小时 / 7 天）
+    private var rangeSection: some View {
+        Section {
+            Picker("时间范围", selection: $vm.hours) {
+                Text("1小时").tag(1)
+                Text("6小时").tag(6)
+                Text("24小时").tag(24)
+                Text("7天").tag(168)
+            }
+            .pickerStyle(.segmented)
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            .listRowSeparator(.hidden)
         }
     }
 
@@ -288,7 +341,7 @@ struct MonitorView: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                miniRing(percent: vm.loadPoints.last?.value ?? 0)
+                miniRing(percent: vm.current?.loadUsagePercent ?? vm.loadPoints.last?.value ?? 0)
             }
             .padding(.vertical, 6)
             .listRowSeparator(.hidden)
@@ -296,7 +349,13 @@ struct MonitorView: View {
 
             // 图表（下拉展开时显示：1/5/15 分钟三条曲线，支持拖动查看）
             if showLoadChart {
-                loadChart
+                Group {
+                    if loadAllPoints.isEmpty {
+                        chartPlaceholder()
+                    } else {
+                        loadChart
+                    }
+                }
                     .padding(.top, 10)
                     .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -311,6 +370,12 @@ struct MonitorView: View {
         return Chart(loadAllPoints) { p in
             LineMark(x: .value("时间", p.date), y: .value("负载", p.value))
                 .foregroundStyle(by: .value("类型", p.kind))
+            // 数据点过少时折线画不出来，补圆点让单点也可见
+            if loadSeriesSparse {
+                PointMark(x: .value("时间", p.date), y: .value("负载", p.value))
+                    .foregroundStyle(by: .value("类型", p.kind))
+                    .symbolSize(30)
+            }
             if let sel = selectedLoadDate {
                 RuleMark(x: .value("选中", sel))
                     .foregroundStyle(.secondary.opacity(0.5))
@@ -362,6 +427,28 @@ struct MonitorView: View {
         vm.load1Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "1分钟") }
             + vm.load5Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "5分钟") }
             + vm.load15Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "15分钟") }
+    }
+
+    /// 任一负载曲线点数 ≤ 2（刚开启监控/时间窗内只有一两个采样）
+    private var loadSeriesSparse: Bool {
+        [vm.load1Points, vm.load5Points, vm.load15Points].contains { $0.count <= 2 }
+    }
+
+    /// 图表空数据占位：与图表同高，避免空白坐标轴让用户误以为图表坏了
+    private func chartPlaceholder(hint: String? = nil) -> some View {
+        VStack(spacing: 6) {
+            Text("暂无监控数据")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            if let hint {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 160)
     }
 
     /// 拖动选中时的竖排数值浮层（text 为已格式化的显示文本）
@@ -507,7 +594,13 @@ struct MonitorView: View {
 
             // 图表（下拉展开时显示，Y 轴自适应）
             if showCPUChart {
-                singleSeriesChart(points: vm.cpuPoints, color: .blue, title: "CPU", selected: $selectedCPUDate, yMax: vm.cpuAxisMax)
+                Group {
+                    if vm.cpuPoints.isEmpty {
+                        chartPlaceholder()
+                    } else {
+                        singleSeriesChart(points: vm.cpuPoints, color: .blue, title: "CPU", selected: $selectedCPUDate, yMax: vm.cpuAxisMax)
+                    }
+                }
                     .padding(.top, 10)
                     .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -532,6 +625,15 @@ struct MonitorView: View {
             )
             .foregroundStyle(color)
             .lineStyle(StrokeStyle(lineWidth: 1.5))
+            // 数据点过少时折线画不出来，补圆点让单点也可见
+            if points.count <= 2 {
+                PointMark(
+                    x: .value("时间", p.date),
+                    y: .value(title, p.value)
+                )
+                .foregroundStyle(color)
+                .symbolSize(30)
+            }
             if let sel = selected.wrappedValue {
                 RuleMark(x: .value("选中", sel))
                     .foregroundStyle(.secondary.opacity(0.5))
@@ -652,7 +754,13 @@ struct MonitorView: View {
 
             // 内存图表（下拉展开时显示，置于两块数值之下，Y 轴自适应）
             if showMemChart {
-                singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate, yMax: vm.memoryAxisMax)
+                Group {
+                    if vm.memPoints.isEmpty {
+                        chartPlaceholder()
+                    } else {
+                        singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate, yMax: vm.memoryAxisMax)
+                    }
+                }
                     .padding(.top, 10)
                     .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -680,12 +788,18 @@ struct MonitorView: View {
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
-            dualSeriesChart(
-                points: ioSeriesPoints,
-                unit: "KB",
-                styles: ["读取": .blue, "写入": .orange],
-                selected: $selectedIODate
-            )
+            Group {
+                if ioSeriesPoints.isEmpty {
+                    chartPlaceholder(hint: "若刚开启监控，磁盘 I/O 与网络数据约 5 分钟后开始记录")
+                } else {
+                    dualSeriesChart(
+                        points: ioSeriesPoints,
+                        unit: "KB",
+                        styles: ["读取": .blue, "写入": .orange],
+                        selected: $selectedIODate
+                    )
+                }
+            }
             .padding(.top, 10)
             .padding(.bottom, 8)
             .listRowSeparator(.hidden)
@@ -706,12 +820,18 @@ struct MonitorView: View {
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
-            dualSeriesChart(
-                points: networkSeriesPoints,
-                unit: "KB",
-                styles: ["上行": .green, "下行": .purple],
-                selected: $selectedNetDate
-            )
+            Group {
+                if networkSeriesPoints.isEmpty {
+                    chartPlaceholder(hint: "若刚开启监控，磁盘 I/O 与网络数据约 5 分钟后开始记录")
+                } else {
+                    dualSeriesChart(
+                        points: networkSeriesPoints,
+                        unit: "KB",
+                        styles: ["上行": .green, "下行": .purple],
+                        selected: $selectedNetDate
+                    )
+                }
+            }
             .padding(.top, 10)
             .padding(.bottom, 8)
             .listRowSeparator(.hidden)
@@ -739,12 +859,22 @@ struct MonitorView: View {
         styles: KeyValuePairs<String, Color>,
         selected: Binding<Date?>
     ) -> some View {
-        Chart(points) { p in
+        // 各系列点数（数据点过少时折线画不出来，补圆点让单点也可见）
+        let seriesCounts = Dictionary(grouping: points, by: \.kind).mapValues(\.count)
+        return Chart(points) { p in
             LineMark(
                 x: .value("时间", p.date),
                 y: .value("速率", p.value)
             )
             .foregroundStyle(by: .value("类型", p.kind))
+            if (seriesCounts[p.kind] ?? 0) <= 2 {
+                PointMark(
+                    x: .value("时间", p.date),
+                    y: .value("速率", p.value)
+                )
+                .foregroundStyle(by: .value("类型", p.kind))
+                .symbolSize(30)
+            }
             if let sel = selected.wrappedValue {
                 RuleMark(x: .value("选中", sel))
                     .foregroundStyle(.secondary.opacity(0.5))

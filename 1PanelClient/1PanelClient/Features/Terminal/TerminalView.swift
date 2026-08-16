@@ -16,6 +16,8 @@ struct TerminalView: View {
     @State private var inputText = ""
     @State private var autoScroll = true
     @FocusState private var inputFocused: Bool
+    /// 连接调试信息开关（连接横幅/WS 地址/超时诊断），开启后重连生效
+    @AppStorage("terminalShowConnectionDebug") private var showConnectionDebug = false
 
     /// 是否显示关闭按钮（fullScreen 模式用 true）
     var showCloseButton: Bool = false
@@ -23,8 +25,8 @@ struct TerminalView: View {
     /// 连接目标标题
     private let title: String
 
-    init(server: ServerConfig, target: TerminalTarget, title: String? = nil, showCloseButton: Bool = false) {
-        let s = TerminalSession(server: server, target: target)
+    init(server: ServerConfig, target: TerminalTarget, title: String? = nil, showCloseButton: Bool = false, initialCommand: String? = nil) {
+        let s = TerminalSession(server: server, target: target, initialCommand: initialCommand)
         _session = StateObject(wrappedValue: s)
         self.showCloseButton = showCloseButton
         switch target {
@@ -238,6 +240,7 @@ struct TerminalView: View {
                 Label("清屏", systemImage: "trash")
             }
             Toggle("自动滚动到底部", isOn: $autoScroll)
+            Toggle("显示连接调试信息", isOn: $showConnectionDebug)
         } label: {
             Image(systemName: "ellipsis.circle")
         }

@@ -144,19 +144,24 @@ final class TerminalEmulator: ObservableObject {
     func feed(_ data: Data) {
         let text = String(data: data, encoding: .utf8)
             ?? String(decoding: data, as: UTF8.self)
-        for char in text {
-            process(char)
-        }
+        processText(text)
         trimExcess()
         revision &+= 1
     }
 
     func feed(_ string: String) {
-        for char in string {
-            process(char)
-        }
+        processText(string)
         trimExcess()
         revision &+= 1
+    }
+
+    /// 逐 Unicode 标量处理：Swift 中 "\r\n" 是单个 Character（字素簇），
+    /// 按 Character 遍历会把 CRLF 当作可打印文本写入行内容，导致换行失效、
+    /// 行内容错位叠加后被清屏序列擦除（表现为输出缺行）
+    private func processText(_ text: String) {
+        for scalar in text.unicodeScalars {
+            process(scalar)
+        }
     }
 
     // MARK: - 清空
@@ -182,28 +187,28 @@ final class TerminalEmulator: ObservableObject {
         }
     }
 
-    private func currentSegmentAppend(_ char: Character) {
+    private func currentSegmentAppend(_ scalar: Unicode.Scalar) {
         ensureCursorRow()
         // 合并到末尾同属性段
         if let lastIdx = lines[cursorRow].segments.indices.last,
            lines[cursorRow].segments[lastIdx].attrs == currentAttrs {
-            lines[cursorRow].segments[lastIdx].text.append(char)
+            lines[cursorRow].segments[lastIdx].text.unicodeScalars.append(scalar)
         } else {
             lines[cursorRow].segments.append(
-                TerminalSegment(text: String(char), attrs: currentAttrs)
+                TerminalSegment(text: String(scalar), attrs: currentAttrs)
             )
         }
         lines[cursorRow].dirty = true
     }
 
-    private func putChar(_ char: Character) {
+    private func putChar(_ scalar: Unicode.Scalar) {
         // 软换行：到达列宽自动换行
         if cursorCol >= cols {
             cursorCol = 0
             cursorRow += 1
             ensureCursorRow()
         }
-        currentSegmentAppend(char)
+        currentSegmentAppend(scalar)
         cursorCol += 1
     }
 
@@ -214,11 +219,15 @@ final class TerminalEmulator: ObservableObject {
     }
 
     private func lineFeed() {
+        // 缓冲本身即回滚区（屏幕 = 缓冲末尾 rows 行），换行只向下追加，
+        // 历史长度由 trimExcess 统一裁剪；此前每次换行丢弃缓冲首行会吃掉历史
         cursorRow += 1
         ensureCursorRow()
-        if cursorRow >= rows {
-            scrollUp()
-        }
+    }
+
+    /// 屏幕首行在缓冲中的下标（缓冲超过 rows 行时，屏幕对应缓冲末尾 rows 行）
+    private var screenTop: Int {
+        max(0, lines.count - rows)
     }
 
     private func carriageReturn() {
@@ -258,13 +267,15 @@ final class TerminalEmulator: ObservableObject {
     private func eraseInDisplay(_ mode: Int) {
         switch mode {
         case 2:
-            // 全屏清
-            lines = Array(repeating: TerminalLine(segments: []), count: rows)
-            cursorRow = 0
+            // 全屏清（清屏幕区域，保留回滚历史）
+            for i in screenTop..<lines.count {
+                lines[i] = TerminalLine(segments: [])
+            }
+            cursorRow = screenTop
             cursorCol = 0
         case 1:
-            // 从开始到光标
-            for i in 0...min(cursorRow, lines.count - 1) {
+            // 从屏幕开始到光标
+            for i in screenTop...min(cursorRow, lines.count - 1) {
                 if i < cursorRow {
                     lines[i] = TerminalLine(segments: [])
                 } else {
@@ -324,7 +335,8 @@ final class TerminalEmulator: ObservableObject {
     // MARK: - 光标移动
 
     private func moveCursor(row: Int, col: Int) {
-        cursorRow = max(0, min(row, rows - 1))
+        // 屏幕坐标 → 缓冲坐标（屏幕是缓冲末尾 rows 行）
+        cursorRow = screenTop + max(0, min(row, rows - 1))
         cursorCol = max(0, min(col, cols - 1))
         ensureCursorRow()
     }
@@ -442,30 +454,28 @@ final class TerminalEmulator: ObservableObject {
 
     // MARK: - 主状态机
 
-    private func process(_ char: Character) {
+    private func process(_ scalar: Unicode.Scalar) {
         switch state {
         case .ground:
-            processGround(char)
+            processGround(scalar)
         case .esc:
-            processEsc(char)
+            processEsc(scalar)
         case .csi:
-            processCSI(char)
+            processCSI(scalar)
         case .csiPrivate:
-            processCSIPrivate(char)
+            processCSIPrivate(scalar)
         case .charset:
             // ESC ( X / ESC ) X：忽略下一个字符
             state = .ground
         case .osc:
-            if char == "\u{07}" {
-                state = .ground
-            } else if char == "\\" {
+            if scalar == "\u{07}" || scalar == "\\" {
                 state = .ground
             }
         }
     }
 
-    private func processGround(_ char: Character) {
-        switch char {
+    private func processGround(_ scalar: Unicode.Scalar) {
+        switch scalar {
         case "\u{1B}":          // ESC
             state = .esc
         case "\r":
@@ -479,12 +489,12 @@ final class TerminalEmulator: ObservableObject {
         case "\u{07}":          // BEL
             break
         default:
-            putChar(char)
+            putChar(scalar)
         }
     }
 
-    private func processEsc(_ char: Character) {
-        switch char {
+    private func processEsc(_ scalar: Unicode.Scalar) {
+        switch scalar {
         case "[":
             csiBuffer = ""
             state = .csi
@@ -517,33 +527,33 @@ final class TerminalEmulator: ObservableObject {
         }
     }
 
-    private func processCSI(_ char: Character) {
-        if char == "?" {
+    private func processCSI(_ scalar: Unicode.Scalar) {
+        if scalar == "?" {
             state = .csiPrivate
             return
         }
         // CSI 以 0x40-0x7E 的 final byte 结束
-        if char.isASCII && char.asciiValue != nil {
-            let v = char.asciiValue!
+        if scalar.isASCII {
+            let v = Int(scalar.value)
             if v >= 0x40 && v <= 0x7E {
-                dispatchCSI(csiBuffer, final: char)
+                dispatchCSI(csiBuffer, final: Character(scalar))
                 csiBuffer = ""
                 state = .ground
                 return
             }
         }
-        csiBuffer.append(char)
+        csiBuffer.unicodeScalars.append(scalar)
     }
 
-    private func processCSIPrivate(_ char: Character) {
-        let v = char.asciiValue ?? 0
+    private func processCSIPrivate(_ scalar: Unicode.Scalar) {
+        let v = Int(scalar.value)
         if v >= 0x40 && v <= 0x7E {
             // 私有序列（如 ?25h/l 光标显示、?1049h/l 备用屏幕），基本忽略
             // 备用屏幕切换：退出时简单清屏恢复主缓冲可见性
-            if char == "l" && csiBuffer == "1049" {
+            if scalar == "l" && csiBuffer == "1049" {
                 // 退出 alternate screen：清屏
                 clear()
-            } else if char == "h" && csiBuffer == "1049" {
+            } else if scalar == "h" && csiBuffer == "1049" {
                 // 进入 alternate screen：清屏
                 clear()
             }
@@ -551,7 +561,7 @@ final class TerminalEmulator: ObservableObject {
             state = .ground
             return
         }
-        csiBuffer.append(char)
+        csiBuffer.unicodeScalars.append(scalar)
     }
 
     private func dispatchCSI(_ buf: String, final: Character) {
@@ -586,8 +596,8 @@ final class TerminalEmulator: ObservableObject {
             // CHA 水平绝对定位
             cursorCol = max(0, min(cols - 1, (params[0] == 0 ? 1 : params[0]) - 1))
         case "d":
-            // VPA 垂直绝对定位
-            cursorRow = max(0, min(rows - 1, (params[0] == 0 ? 1 : params[0]) - 1))
+            // VPA 垂直绝对定位（屏幕坐标 → 缓冲坐标）
+            cursorRow = screenTop + max(0, min(rows - 1, (params[0] == 0 ? 1 : params[0]) - 1))
             ensureCursorRow()
         case "J":
             eraseInDisplay(params[0])

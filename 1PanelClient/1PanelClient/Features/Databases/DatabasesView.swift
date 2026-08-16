@@ -318,6 +318,10 @@ final class DatabaseSystemViewModel: ObservableObject {
         system.type.lowercased().contains("postgresql")
     }
 
+    var isMongoDB: Bool {
+        system.type.lowercased().contains("mongodb")
+    }
+
     var isRedis: Bool {
         let t = system.type.lowercased()
         return t == "redis" || t == "redis-cluster"
@@ -326,7 +330,20 @@ final class DatabaseSystemViewModel: ObservableObject {
     var searchPath: String {
         let t = system.type.lowercased()
         if t.contains("postgresql") { return APIEndpoint.databasesPgSearch.path }
+        if t.contains("mongodb") { return APIEndpoint.databasesMongoSearch.path }
         return APIEndpoint.databasesSearch.path
+    }
+
+    /// MongoDB 终端初始命令：进入容器后自动执行 mongosh 连接数据库
+    /// （容器内 shell 不连库；连接参数取自应用连接信息）
+    var mongoInitialCommand: String? {
+        guard isMongoDB,
+              let ci = connInfo,
+              let user = ci.username, !user.isEmpty,
+              let pwd = ci.password, !pwd.isEmpty
+        else { return nil }
+        let port = ci.port ?? 27017
+        return "mongosh \"mongodb://127.0.0.1:\(port)/admin?authSource=admin\" --username '\(user)' --password '\(pwd)'\r\n"
     }
 
     init(system: DatabaseSystem, server: ServerConfig) {
@@ -407,7 +424,15 @@ final class DatabaseSystemViewModel: ObservableObject {
     func changeServicePassword(_ password: String) async {
         let value = Data(password.utf8).base64EncodedString()
         let req = ChangePasswordRequest(id: 0, from: "local", type: system.type, database: system.database, value: value)
-        let path = isPostgreSQL ? APIEndpoint.databasesPgPassword.path : APIEndpoint.databasesChangePassword.path
+        let path: String
+        if isPostgreSQL {
+            path = APIEndpoint.databasesPgPassword.path
+        } else if isMongoDB {
+            // MongoDB root 密码：POST /databases/mongodb/root/password
+            path = APIEndpoint.databasesMongoRootPassword.path
+        } else {
+            path = APIEndpoint.databasesChangePassword.path
+        }
         do {
             let _: EmptyResponse = try await client.send(path: path, body: req, as: EmptyResponse.self)
             await loadConnInfo()
@@ -430,8 +455,18 @@ final class DatabaseSystemViewModel: ObservableObject {
         let dbType = db.type ?? system.type
         let checkReq = DelCheckRequest(id: db.id, type: dbType, database: system.database)
         let delReq = DelDBRequest(id: db.id, type: dbType, database: system.database, deleteBackup: false, forceDelete: false)
-        let checkPath = isPostgreSQL ? APIEndpoint.databasesPgDelCheck.path : APIEndpoint.databasesDelCheck.path
-        let delPath = isPostgreSQL ? APIEndpoint.databasesPgDel.path : APIEndpoint.databasesDel.path
+        let checkPath: String
+        let delPath: String
+        if isPostgreSQL {
+            checkPath = APIEndpoint.databasesPgDelCheck.path
+            delPath = APIEndpoint.databasesPgDel.path
+        } else if isMongoDB {
+            checkPath = APIEndpoint.databasesMongoDelCheck.path
+            delPath = APIEndpoint.databasesMongoDel.path
+        } else {
+            checkPath = APIEndpoint.databasesDelCheck.path
+            delPath = APIEndpoint.databasesDel.path
+        }
         do {
             let _: EmptyResponse = try await client.send(path: checkPath, body: checkReq, as: EmptyResponse.self)
             let _: EmptyResponse = try await client.send(path: delPath, body: delReq, as: EmptyResponse.self)
@@ -519,6 +554,7 @@ struct DatabaseSystemView: View {
     @State private var showRedisTerminal = false
     @State private var showRedisPasswordSheet = false
     @State private var showDatabaseTerminal = false
+    @State private var showContainerTerminal = false
     @State private var pendingAction: String?
     @State private var pendingDeleteDb: DatabaseItem?
     @State private var isStatusExpanded = false
@@ -598,6 +634,17 @@ struct DatabaseSystemView: View {
                     cols: 80, rows: 24
                 )
             )
+        }
+        // MongoDB 无数据库专用终端，进入其容器执行 /bin/sh，
+        // 连接就绪后自动下发 mongosh（与网页端行为一致）
+        .navigationDestination(isPresented: $showContainerTerminal) {
+            if let container = vm.check?.containerName {
+                TerminalView(
+                    server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
+                    target: .container(containerID: container, user: "", command: "/bin/sh", cols: 80, rows: 24),
+                    initialCommand: vm.mongoInitialCommand
+                )
+            }
         }
         .sheet(isPresented: $showRedisPasswordSheet) {
             RedisPasswordSheet(
@@ -680,7 +727,7 @@ struct DatabaseSystemView: View {
                             }
                         }
                         Spacer()
-                        Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.right")
+                        Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.tertiary)
                     }
@@ -717,6 +764,8 @@ struct DatabaseSystemView: View {
                         Button {
                             if vm.isRedis {
                                 showRedisTerminal = true
+                            } else if vm.isMongoDB {
+                                showContainerTerminal = true
                             } else {
                                 showDatabaseTerminal = true
                             }
@@ -725,6 +774,7 @@ struct DatabaseSystemView: View {
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
+                        .disabled(vm.isMongoDB && (vm.check?.containerName?.isEmpty ?? true))
                     }
                     .padding(.vertical, 2)
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -925,10 +975,13 @@ struct DatabaseItemRow: View {
             HStack {
                 Text(db.name ?? "-")
                     .font(.system(.body, design: .monospaced).bold())
-                if let perm = db.permission, perm == "%" || perm.isEmpty {
-                    StatusBadge(text: "远程", color: .blue, icon: "network")
-                } else {
-                    StatusBadge(text: "本机", color: .orange, icon: "lock.shield")
+                // MongoDB 无 permission 字段，不显示本机/远程徽标
+                if !db.isMongoDB {
+                    if let perm = db.permission, perm == "%" || perm.isEmpty {
+                        StatusBadge(text: "远程", color: .blue, icon: "network")
+                    } else {
+                        StatusBadge(text: "本机", color: .orange, icon: "lock.shield")
+                    }
                 }
             }
             if let desc = db.description, !desc.isEmpty {

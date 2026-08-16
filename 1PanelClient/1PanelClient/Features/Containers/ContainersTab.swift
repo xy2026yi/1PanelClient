@@ -5,6 +5,7 @@
 
 import SwiftUI
 import Combine
+import Charts
 
 struct ContainersTab: View {
     @ObservedObject var manager: ServerManager
@@ -420,6 +421,12 @@ struct ContainerDetailView: View {
                     Label("日志", systemImage: "doc.text")
                 }
                 .buttonStyle(.plain)
+                NavigationLink {
+                    ContainerMonitorView(container: container)
+                } label: {
+                    Label("监控", systemImage: "chart.xyaxis.line")
+                }
+                .buttonStyle(.plain)
             }
         }
         .navigationTitle(container.displayName)
@@ -691,6 +698,8 @@ struct ContainerLogView: View {
                 .padding(.vertical, 8)
             }
             .background(Color(.secondarySystemBackground))
+            // 进入页面即定位到底部（最新日志），内容增长时保持贴底
+            .defaultScrollAnchor(.bottom)
             .navigationTitle("日志")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -703,10 +712,9 @@ struct ContainerLogView: View {
                 }
             }
             .onChange(of: lines.count) { _, count in
+                // 兜底追底；不用动画，日志突发时连续动画滚动会被合并打断
                 guard count > 0 else { return }
-                withAnimation {
-                    proxy.scrollTo(count - 1, anchor: .bottom)
-                }
+                proxy.scrollTo(count - 1, anchor: .bottom)
             }
         }
         .task {
@@ -732,6 +740,314 @@ struct ContainerLogView: View {
                 errorMessage = "加载日志失败：\(error.localizedDescription)"
             }
         }
+    }
+}
+
+// MARK: - 容器监控页
+
+/// 单容器实时监控：按所选间隔轮询 /containers/stats/:id，
+/// CPU / 内存(含缓存) / 磁盘I/O / 网络 四张曲线图（仅标题+图表）
+@MainActor
+final class ContainerMonitorViewModel: ObservableObject {
+    @Published var cpuPoints: [MonitorPoint] = []      // CPU %
+    @Published var memPoints: [MonitorPoint] = []      // 内存 MB
+    @Published var cachePoints: [MonitorPoint] = []    // 缓存 MB
+    @Published var ioReadPoints: [MonitorPoint] = []   // 读取 MB/s
+    @Published var ioWritePoints: [MonitorPoint] = []  // 写入 MB/s
+    @Published var netTXPoints: [MonitorPoint] = []    // 上行 KB/s
+    @Published var netRXPoints: [MonitorPoint] = []    // 下行 KB/s
+    @Published var errorMessage: String?
+
+    /// 每系列最多保留采样点数（与网页端一致保留 20 个）
+    private let maxPoints = 20
+    private let client: APIClient
+
+    init(server: ServerConfig) {
+        self.client = APIClient(server: server)
+    }
+
+    /// 拉取一次快照并追加到各曲线
+    func sample(containerID: String) async {
+        let path = APIEndpoint.containersStats.path
+            .replacingOccurrences(of: ":containerID", with: containerID)
+        do {
+            let stats: ContainerStatsSnapshot = try await client.send(
+                path: path, method: APIEndpoint.containersStats.method, as: ContainerStatsSnapshot.self
+            )
+            errorMessage = nil
+            guard let date = MonitorDate.parse(stats.shotTime ?? "") else { return }
+            push(.init(date: date, value: stats.cpuPercent ?? 0), into: &cpuPoints)
+            push(.init(date: date, value: stats.memory ?? 0), into: &memPoints)
+            push(.init(date: date, value: stats.cache ?? 0), into: &cachePoints)
+            push(.init(date: date, value: stats.ioRead ?? 0), into: &ioReadPoints)
+            push(.init(date: date, value: stats.ioWrite ?? 0), into: &ioWritePoints)
+            push(.init(date: date, value: stats.networkTX ?? 0), into: &netTXPoints)
+            push(.init(date: date, value: stats.networkRX ?? 0), into: &netRXPoints)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func push(_ point: MonitorPoint, into points: inout [MonitorPoint]) {
+        points.append(point)
+        if points.count > maxPoints {
+            points.removeFirst(points.count - maxPoints)
+        }
+    }
+}
+
+struct ContainerMonitorView: View {
+    let container: Container
+    @StateObject private var vm: ContainerMonitorViewModel
+    /// 刷新间隔（秒），默认 5s
+    @State private var interval = 5
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isSceneActive = true
+
+    init(container: Container) {
+        self.container = container
+        _vm = StateObject(wrappedValue: ContainerMonitorViewModel(
+            server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        ))
+    }
+
+    var body: some View {
+        List {
+            Section {
+                Picker("刷新间隔", selection: $interval) {
+                    Text("3s").tag(3)
+                    Text("5s").tag(5)
+                    Text("10s").tag(10)
+                    Text("30s").tag(30)
+                    Text("60s").tag(60)
+                }
+                .pickerStyle(.segmented)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowSeparator(.hidden)
+            }
+
+            if let err = vm.errorMessage, vm.cpuPoints.isEmpty {
+                Section {
+                    ContentUnavailableView(
+                        "获取监控数据失败", systemImage: "exclamationmark.triangle", description: Text(err)
+                    )
+                }
+            } else {
+                monitorSection("CPU", single: vm.cpuPoints, color: .blue, unit: "%")
+                monitorSection("内存", dual: memorySeries, unit: "MB")
+                monitorSection("磁盘 I/O", dual: ioSeries, unit: "MB")
+                monitorSection("网络", dual: networkSeries, unit: "KB")
+            }
+        }
+        .environment(\.defaultMinListRowHeight, 32)
+        .navigationTitle("监控")
+        .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: scenePhase) { _, phase in
+            isSceneActive = phase == .active
+        }
+        // 按所选间隔轮询（仅页面存活且 App 前台活跃时采样）
+        .task {
+            while !Task.isCancelled {
+                if isSceneActive {
+                    await vm.sample(containerID: container.containerID)
+                }
+                try? await Task.sleep(for: .seconds(interval))
+            }
+        }
+    }
+
+    // MARK: 数据系列
+
+    private var memorySeries: [LoadSeriesPoint] {
+        vm.memPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "内存") }
+            + vm.cachePoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "缓存") }
+    }
+
+    private var ioSeries: [LoadSeriesPoint] {
+        vm.ioReadPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "读取") }
+            + vm.ioWritePoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "写入") }
+    }
+
+    private var networkSeries: [LoadSeriesPoint] {
+        vm.netTXPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "上行") }
+            + vm.netRXPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "下行") }
+    }
+
+    // MARK: 图表区（标题 + 图表）
+
+    @ViewBuilder
+    private func monitorSection(
+        _ title: String,
+        single: [MonitorPoint] = [],
+        color: Color = .blue,
+        dual: [LoadSeriesPoint] = [],
+        styles: KeyValuePairs<String, Color> = ["内存": .purple, "缓存": .orange,
+                                                "读取": .blue, "写入": .orange,
+                                                "上行": .green, "下行": .purple],
+        unit: String
+    ) -> some View {
+        Section {
+            HStack {
+                Text(title).font(.headline)
+                Spacer()
+            }
+            .padding(.top, 8)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+
+            Group {
+                if !dual.isEmpty {
+                    ContainerMonitorChart(points: dual, styles: styles, unit: unit)
+                } else if !single.isEmpty {
+                    // 单曲线（CPU）：系列名固定 "CPU"，图例隐藏
+                    ContainerMonitorChart(
+                        points: single.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "CPU") },
+                        styles: ["CPU": color],
+                        unit: unit
+                    )
+                } else {
+                    chartPlaceholder
+                }
+            }
+            .padding(.top, 10)
+            .padding(.bottom, 8)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        }
+    }
+
+    private var chartPlaceholder: some View {
+        Text("暂无数据")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 120)
+    }
+}
+
+// MARK: - 可拖动查看数值的监控图表
+
+/// 折线图 + 拖动浮层：按住图表横向滑动显示竖排数值（按值降序，颜色与曲线一致），
+/// 交互与管理 - 监控的磁盘 I/O / 网络图表相同
+struct ContainerMonitorChart: View {
+    let points: [LoadSeriesPoint]
+    let styles: KeyValuePairs<String, Color>
+    let unit: String
+
+    @State private var selectedDate: Date?
+
+    var body: some View {
+        let seriesCounts = Dictionary(grouping: points, by: \.kind).mapValues(\.count)
+        return Chart(points) { p in
+            LineMark(x: .value("时间", p.date), y: .value("值", p.value))
+                .foregroundStyle(by: .value("类型", p.kind))
+            // 数据点过少时折线画不出来，补圆点让单点也可见
+            if (seriesCounts[p.kind] ?? 0) <= 2 {
+                PointMark(x: .value("时间", p.date), y: .value("值", p.value))
+                    .foregroundStyle(by: .value("类型", p.kind))
+                    .symbolSize(30)
+            }
+            if let sel = selectedDate {
+                RuleMark(x: .value("选中", sel))
+                    .foregroundStyle(.secondary.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            }
+        }
+        .chartForegroundStyleScale(styles)
+        .chartLegend(styles.count > 1 ? .visible : .hidden)
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                AxisGridLine()
+                AxisValueLabel {
+                    if let v = value.as(Double.self) {
+                        Text(Self.axisText(v, unit: unit))
+                    }
+                }
+            }
+        }
+        .frame(height: 120)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                // 手势层：触摸 x → 日期
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { gesture in
+                                guard let plotAnchor = proxy.plotFrame else { return }
+                                let plotFrame = geo[plotAnchor]
+                                let x = gesture.location.x - plotFrame.minX
+                                guard x >= 0, x <= plotFrame.width,
+                                      let date: Date = proxy.value(atX: x) else { return }
+                                selectedDate = clampDate(date)
+                            }
+                            .onEnded { _ in selectedDate = nil }
+                    )
+
+                // 选中浮层：竖排显示各系列数值（值大的在最上面），颜色与曲线一致
+                if let sel = selectedDate {
+                    let entries = sortedEntries(at: sel)
+                    let x = proxy.position(forX: sel) ?? 0
+                    // 靠右边缘时翻转到左侧
+                    let flip = x + 128 > geo.size.width
+                    tooltip(entries)
+                        .offset(x: flip ? x - 128 : x + 12, y: 10)
+                }
+            }
+        }
+    }
+
+    /// 选中时间的各系列数值（按值降序，返回已格式化文本）
+    private func sortedEntries(at date: Date) -> [(title: String, text: String, color: Color)] {
+        var raw: [(String, Double, Color)] = []
+        for (kind, color) in styles {
+            raw.append((kind, nearestValue(to: date, kind: kind) ?? 0, color))
+        }
+        return raw.sorted { $0.1 > $1.1 }
+            .map { ($0.0, String(format: "%.2f%@", $0.1, unit), $0.2) }
+    }
+
+    /// 图内数值浮层（竖排，颜色与曲线一致）
+    private func tooltip(_ entries: [(title: String, text: String, color: Color)]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(entries, id: \.title) { entry in
+                HStack(spacing: 5) {
+                    Circle().fill(entry.color).frame(width: 6, height: 6)
+                    Text(entry.title).foregroundStyle(entry.color)
+                    Spacer(minLength: 4)
+                    Text(entry.text).monospacedDigit().foregroundStyle(entry.color)
+                }
+            }
+        }
+        .font(.caption2)
+        .frame(width: 112, alignment: .leading)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
+    }
+
+    /// 距目标时间最近的指定系列数值
+    private func nearestValue(to date: Date, kind: String) -> Double? {
+        points.filter { $0.kind == kind }
+            .min { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }?
+            .value
+    }
+
+    /// 把手势日期限制在数据时间范围内
+    private func clampDate(_ date: Date) -> Date {
+        guard let first = points.map(\.date).min(),
+              let last = points.map(\.date).max() else { return date }
+        return min(max(date, first), last)
+    }
+
+    /// Y 轴刻度文本：整数直接拼单位（30KB），小数保留一位（0.5KB）
+    private static func axisText(_ value: Double, unit: String) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(value))\(unit)"
+        }
+        return String(format: "%.1f%@", value, unit)
     }
 }
 
@@ -1218,6 +1534,10 @@ struct RepoListView: View {
     @ObservedObject var vm: ContainersViewModel
     @State private var repos: [ContainerRepo] = []
     @State private var isLoading = false
+    @State private var showCreate = false
+    /// 当前编辑的仓库（sheet(item:)）
+    @State private var editingRepo: ContainerRepo?
+    @State private var pendingDelete: ContainerRepo?
 
     var body: some View {
         Group {
@@ -1232,7 +1552,25 @@ struct RepoListView: View {
             } else {
                 List {
                     ForEach(repos) { repo in
-                        RepoRow(repo: repo)
+                        Button {
+                            editingRepo = repo
+                        } label: {
+                            RepoRow(repo: repo)
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                pendingDelete = repo
+                            } label: {
+                                Label("删除", systemImage: "trash")
+                            }
+                            Button {
+                                Task { await sync(repo) }
+                            } label: {
+                                Label("同步", systemImage: "arrow.triangle.2.circlepath")
+                            }
+                            .tint(.blue)
+                        }
                     }
                 }
                 .listStyle(.insetGrouped)
@@ -1241,6 +1579,48 @@ struct RepoListView: View {
         }
         .navigationTitle("仓库")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showCreate = true } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showCreate) {
+            RepoFormView(editing: nil, vm: vm) { await loadRepos() }
+        }
+        .sheet(item: $editingRepo) { repo in
+            RepoFormView(editing: repo, vm: vm) { await loadRepos() }
+        }
+        .alert(
+            "删除仓库",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { pendingDelete = nil }
+            Button("删除", role: .destructive) {
+                let repo = pendingDelete
+                pendingDelete = nil
+                if let repo {
+                    Task {
+                        if await vm.deleteRepo(id: repo.id) {
+                            await loadRepos()
+                        }
+                    }
+                }
+            }
+        } message: {
+            if let repo = pendingDelete {
+                Text("确定删除仓库「\(repo.name ?? "")」吗？")
+            }
+        }
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
         .task { await loadRepos() }
     }
 
@@ -1248,6 +1628,192 @@ struct RepoListView: View {
         isLoading = true
         repos = await vm.loadRepos()
         isLoading = false
+    }
+
+    /// 同步仓库状态：提交后稍等再刷新列表，让状态有机会更新
+    private func sync(_ repo: ContainerRepo) async {
+        if await vm.syncRepo(id: repo.id) {
+            try? await Task.sleep(for: .seconds(1))
+            await loadRepos()
+        }
+    }
+}
+
+// MARK: - 仓库表单（添加/编辑）
+
+struct RepoFormView: View {
+    /// nil = 添加；非 nil = 编辑（信息预填）
+    let editing: ContainerRepo?
+    @ObservedObject var vm: ContainersViewModel
+    let onSaved: () async -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name = ""
+    @State private var downloadUrl = ""
+    @State private var useAuth = false
+    @State private var username = ""
+    @State private var password = ""
+    @State private var showPassword = false
+    /// true = https
+    @State private var useHTTPS = true
+    /// http 协议二次确认步骤（需输入「立即重启」）
+    @State private var confirmStep = false
+    @State private var restartConfirm = ""
+    @State private var isSaving = false
+
+    init(editing: ContainerRepo?, vm: ContainersViewModel, onSaved: @escaping () async -> Void) {
+        self.editing = editing
+        self.vm = vm
+        self.onSaved = onSaved
+        // 编辑：原有信息预填
+        _name = State(initialValue: editing?.name ?? "")
+        _downloadUrl = State(initialValue: editing?.downloadUrl ?? "")
+        _useAuth = State(initialValue: editing?.auth ?? false)
+        _username = State(initialValue: editing?.username ?? "")
+        _useHTTPS = State(initialValue: (editing?.protocolField ?? "https").lowercased() != "http")
+    }
+
+    private var isEditing: Bool { editing != nil }
+
+    private var canSubmit: Bool {
+        guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
+              !downloadUrl.trimmingCharacters(in: .whitespaces).isEmpty
+        else { return false }
+        if useAuth {
+            guard !username.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+            // 添加时密码必填；编辑不提交密码（保留原密码）
+            if !isEditing && password.isEmpty { return false }
+        }
+        return true
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if confirmStep {
+                    Section {
+                        Label("操作 http 类型仓库需要重启 Docker 服务。\n如果确认操作，请手动输入 '立即重启'", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .font(.subheadline)
+                    }
+                    Section("确认") {
+                        TextField("立即重启", text: $restartConfirm)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                    }
+                } else {
+                    formSection
+                }
+            }
+            .navigationTitle(isEditing ? "编辑仓库" : "添加仓库")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        if confirmStep {
+                            confirmStep = false
+                            restartConfirm = ""
+                        } else {
+                            dismiss()
+                        }
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isSaving ? "提交中…" : (confirmStep ? "确认" : "确认")) {
+                        Task { await submit() }
+                    }
+                    .disabled(!canSubmit || isSaving || (confirmStep && restartConfirm != "立即重启"))
+                }
+            }
+        }
+    }
+
+    private var formSection: some View {
+        Section {
+            TextField("名称", text: $name)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Toggle("认证", isOn: $useAuth)
+            if useAuth {
+                TextField("用户名", text: $username)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                if !isEditing {
+                    HStack {
+                        Group {
+                            if showPassword {
+                                TextField("密码", text: $password)
+                            } else {
+                                SecureField("密码", text: $password)
+                            }
+                        }
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        Button { showPassword.toggle() } label: {
+                            Image(systemName: showPassword ? "eye.slash" : "eye")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            TextField("下载地址", text: $downloadUrl)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .keyboardType(.URL)
+            Picker("协议", selection: $useHTTPS) {
+                Text("https").tag(true)
+                Text("http").tag(false)
+            }
+            .pickerStyle(.segmented)
+            Text("http 仓库添加授信需要重启 Docker 服务")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func submit() async {
+        // http 协议：先进入二次确认步骤
+        if !useHTTPS && !confirmStep {
+            confirmStep = true
+            return
+        }
+        isSaving = true
+        defer { isSaving = false }
+
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedURL = downloadUrl.trimmingCharacters(in: .whitespaces)
+        let protocolStr = useHTTPS ? "https" : "http"
+
+        let ok: Bool
+        if let repo = editing {
+            let req = RepoUpdateRequest(
+                id: repo.id,
+                createdAt: repo.createdAt ?? "",
+                name: trimmedName,
+                downloadUrl: trimmedURL,
+                protocolField: protocolStr,
+                username: useAuth ? username.trimmingCharacters(in: .whitespaces) : "",
+                auth: useAuth,
+                status: repo.status ?? "",
+                message: repo.message ?? ""
+            )
+            ok = await vm.updateRepo(req)
+        } else {
+            let req = RepoCreateRequest(
+                auth: useAuth,
+                protocolField: protocolStr,
+                name: trimmedName,
+                downloadUrl: trimmedURL,
+                username: useAuth ? username.trimmingCharacters(in: .whitespaces) : "",
+                password: useAuth ? password : ""
+            )
+            ok = await vm.createRepo(req)
+        }
+        if ok {
+            await onSaved()
+            dismiss()
+        }
     }
 }
 
@@ -1889,6 +2455,59 @@ final class ContainersViewModel: ObservableObject {
             return resp.items ?? []
         } catch {
             return []
+        }
+    }
+
+    // MARK: - 仓库管理（添加/编辑/删除/同步）
+
+    func createRepo(_ req: RepoCreateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersRepoCreate.path, body: req, as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            showAlert(message: "添加仓库失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func updateRepo(_ req: RepoUpdateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersRepoUpdate.path, body: req, as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            showAlert(message: "更新仓库失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func deleteRepo(id: Int) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersRepoDelete.path,
+                body: RepoIDRequest(id: id), as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            showAlert(message: "删除仓库失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func syncRepo(id: Int) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersRepoSync.path,
+                body: RepoIDRequest(id: id), as: EmptyResponse.self
+            )
+            showAlert(message: "仓库同步任务已提交")
+            return true
+        } catch {
+            showAlert(message: "同步仓库失败：\(error.localizedDescription)")
+            return false
         }
     }
 

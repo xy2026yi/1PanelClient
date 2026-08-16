@@ -4,6 +4,7 @@
 //
 //  创建数据库：名称 / 用户名 / 密码 / 字符集 / 排序规则 / 权限 / 备注
 //  PostgreSQL: 名称 / 用户名(自动同步) / 密码 / 字符集 / 超级用户 / 备注
+//  MongoDB: 名称 / 用户名(默认同名) / 密码 / 权限角色(dbOwner/read/readWrite/userAdmin) / 备注
 //
 
 import SwiftUI
@@ -27,6 +28,10 @@ final class CreateDatabaseViewModel: ObservableObject {
     var isMySQL: Bool {
         let t = system.type.lowercased()
         return t == "mysql" || t == "mariadb" || t == "mysql-cluster"
+    }
+
+    var isMongoDB: Bool {
+        system.type.lowercased().contains("mongodb")
     }
 
     init(system: DatabaseSystem, server: ServerConfig) {
@@ -128,6 +133,29 @@ final class CreateDatabaseViewModel: ObservableObject {
             return false
         }
     }
+
+    func createMongo(
+        name: String, username: String, password: String,
+        permission: MongoPermission, description: String
+    ) async -> Bool {
+        isCreating = true
+        defer { isCreating = false }
+        let pwdBase64 = Data(password.utf8).base64EncodedString()
+        let req = CreateMongoDBRequest(
+            name: name, from: "local", database: system.database,
+            username: username, password: pwdBase64,
+            permission: permission.rawValue, description: description
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesMongoCreate.path, body: req, as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
 }
 
 // MARK: - 创建视图
@@ -147,6 +175,7 @@ struct CreateDatabaseView: View {
     @State private var permissionMode: PermissionMode = .all
     @State private var permissionIPs = ""
     @State private var superUser = true
+    @State private var mongoPermission: MongoPermission = .dbOwner
     @State private var description = ""
 
     let onCreated: () async -> Void
@@ -176,7 +205,7 @@ struct CreateDatabaseView: View {
 
     private var canCreate: Bool {
         let nameOk = !name.trimmingCharacters(in: .whitespaces).isEmpty
-        if vm.isPostgreSQL {
+        if vm.isPostgreSQL || vm.isMongoDB {
             let userOk = !username.trimmingCharacters(in: .whitespaces).isEmpty
             let pwdOk = !password.isEmpty
             return nameOk && userOk && pwdOk
@@ -209,6 +238,15 @@ struct CreateDatabaseView: View {
                     Section("权限") {
                         Toggle("超级用户", isOn: $superUser)
                     }
+                } else if vm.isMongoDB {
+                    mongoUserSection
+                    Section("权限") {
+                        Picker("角色", selection: $mongoPermission) {
+                            ForEach(MongoPermission.allCases) { perm in
+                                Text(perm.displayName).tag(perm)
+                            }
+                        }
+                    }
                 } else if vm.isMySQL {
                     mysqlCharsetSection
                     mysqlUserGrantSection
@@ -239,7 +277,7 @@ struct CreateDatabaseView: View {
                 }
             }
             .task {
-                if vm.formats.isEmpty { await vm.loadFormats() }
+                if !vm.isMongoDB && vm.formats.isEmpty { await vm.loadFormats() }
                 if vm.isMySQL {
                     await vm.loadUsers()
                     if password.isEmpty {
@@ -247,13 +285,16 @@ struct CreateDatabaseView: View {
                         showPassword = true
                     }
                 }
-                if vm.isPostgreSQL && password.isEmpty {
+                if (vm.isPostgreSQL || vm.isMongoDB) && password.isEmpty {
                     password = randomPassword()
                     showPassword = true
                 }
             }
             .onChange(of: name) { _, newValue in
                 if vm.isMySQL && userGrantMode == .create {
+                    username = newValue
+                }
+                if vm.isMongoDB {
                     username = newValue
                 }
             }
@@ -279,6 +320,17 @@ struct CreateDatabaseView: View {
                 .onChange(of: name) { _, newValue in
                     username = newValue
                 }
+            passwordRow
+        }
+    }
+
+    // MARK: MongoDB 用户（名称自动带入同名，可修改）
+
+    private var mongoUserSection: some View {
+        Section("用户") {
+            TextField("用户名（默认同名称）", text: $username)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
             passwordRow
         }
     }
@@ -391,7 +443,14 @@ struct CreateDatabaseView: View {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
 
         let ok: Bool
-        if vm.isPostgreSQL {
+        if vm.isMongoDB {
+            let trimmedUser = username.trimmingCharacters(in: .whitespaces)
+            ok = await vm.createMongo(
+                name: trimmedName, username: trimmedUser,
+                password: password, permission: mongoPermission,
+                description: description
+            )
+        } else if vm.isPostgreSQL {
             let trimmedUser = username.trimmingCharacters(in: .whitespaces)
             ok = await vm.createPG(
                 name: trimmedName, username: trimmedUser,

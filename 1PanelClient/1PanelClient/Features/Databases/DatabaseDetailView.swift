@@ -11,6 +11,8 @@ import Combine
 @MainActor
 final class DatabaseDetailViewModel: ObservableObject {
     @Published var database: DatabaseItem
+    /// MongoDB 当前用户权限角色（privileges 接口加载）
+    @Published var mongoPermission: MongoPermission?
     @Published var isOperating = false
     @Published var errorMessage: String?
 
@@ -26,11 +28,16 @@ final class DatabaseDetailViewModel: ObservableObject {
     private var searchPath: String {
         let t = system.type.lowercased()
         if t.contains("postgresql") { return APIEndpoint.databasesPgSearch.path }
+        if t.contains("mongodb") { return APIEndpoint.databasesMongoSearch.path }
         return APIEndpoint.databasesSearch.path
     }
 
     var isPostgreSQL: Bool {
         system.type.lowercased().contains("postgresql")
+    }
+
+    var isMongoDB: Bool {
+        system.type.lowercased().contains("mongodb")
     }
 
     /// 修改后重新拉取最新数据
@@ -54,7 +61,10 @@ final class DatabaseDetailViewModel: ObservableObject {
         let dbName = system.database
 
         do {
-            if isPostgreSQL {
+            if isMongoDB {
+                let req = MongoPasswordRequest(database: dbName, name: database.name ?? "", password: value)
+                let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesMongoPassword.path, body: req, as: EmptyResponse.self)
+            } else if isPostgreSQL {
                 let checkReq = ChangePasswordRequest(id: database.id, from: dbFrom, type: dbType, database: dbName, value: "")
                 let _: EmptyResponse = try await client.send(path: APIEndpoint.databasesPgDelCheck.path, body: checkReq, as: EmptyResponse.self)
                 let pwdReq = ChangePasswordRequest(id: database.id, from: dbFrom, type: dbType, database: dbName, value: value)
@@ -101,14 +111,61 @@ final class DatabaseDetailViewModel: ObservableObject {
         } catch { errorMessage = error.localizedDescription }
     }
 
+    // MARK: - MongoDB 权限
+
+    /// 查询当前用户权限角色（POST /databases/mongodb/privileges → 角色字符串）
+    func loadMongoPrivileges() async {
+        let req = MongoPrivilegesLoadRequest(
+            database: system.database,
+            name: database.name ?? "",
+            username: database.username ?? ""
+        )
+        do {
+            let resp: String = try await client.send(
+                path: APIEndpoint.databasesMongoPrivilegesLoad.path, body: req, as: String.self
+            )
+            mongoPermission = MongoPermission.from(rawValue: resp)
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    /// 修改用户权限角色
+    func changeMongoPrivileges(_ permission: MongoPermission) async {
+        isOperating = true
+        errorMessage = nil
+        defer { isOperating = false }
+        let req = MongoPrivilegesChangeRequest(
+            database: system.database,
+            name: database.name ?? "",
+            username: database.username ?? "",
+            permission: permission.rawValue
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.databasesMongoPrivileges.path, body: req, as: EmptyResponse.self
+            )
+            mongoPermission = permission
+            await reloadDetail()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
     func delete(forceDelete: Bool, deleteBackup: Bool) async -> Bool {
         let checkReq = DelCheckRequest(id: database.id, type: system.type, database: system.database)
         let delReq = DelDBRequest(
             id: database.id, type: system.type,
             database: system.database, deleteBackup: deleteBackup, forceDelete: forceDelete
         )
-        let checkPath = isPostgreSQL ? APIEndpoint.databasesPgDelCheck.path : APIEndpoint.databasesDelCheck.path
-        let delPath = isPostgreSQL ? APIEndpoint.databasesPgDel.path : APIEndpoint.databasesDel.path
+        let checkPath: String
+        let delPath: String
+        if isPostgreSQL {
+            checkPath = APIEndpoint.databasesPgDelCheck.path
+            delPath = APIEndpoint.databasesPgDel.path
+        } else if isMongoDB {
+            checkPath = APIEndpoint.databasesMongoDelCheck.path
+            delPath = APIEndpoint.databasesMongoDel.path
+        } else {
+            checkPath = APIEndpoint.databasesDelCheck.path
+            delPath = APIEndpoint.databasesDel.path
+        }
         do {
             let _: EmptyResponse = try await client.send(path: checkPath, body: checkReq, as: EmptyResponse.self)
             let _: EmptyResponse = try await client.send(path: delPath, body: delReq, as: EmptyResponse.self)
@@ -132,6 +189,7 @@ struct DatabaseDetailView: View {
         case changePassword
         case changeAccess
         case changePrivileges
+        case changeMongoPrivileges
         case delete
         var id: Self { self }
     }
@@ -160,13 +218,16 @@ struct DatabaseDetailView: View {
                 }
             }
             infoSection
-            if vm.isPostgreSQL {
+            if vm.isPostgreSQL || vm.isMongoDB {
                 privilegesSection
             }
             deleteSection
         }
         .navigationTitle(vm.database.name ?? "数据库")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if vm.isMongoDB { await vm.loadMongoPrivileges() }
+        }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .changePassword:
@@ -190,6 +251,16 @@ struct DatabaseDetailView: View {
                 PGPrivilegesSheet(database: vm.database) { superUser in
                     Task {
                         await vm.changePrivileges(superUser: superUser)
+                        await onChanged()
+                    }
+                }
+            case .changeMongoPrivileges:
+                MongoPrivilegesSheet(
+                    username: vm.database.username,
+                    current: vm.mongoPermission
+                ) { permission in
+                    Task {
+                        await vm.changeMongoPrivileges(permission)
                         await onChanged()
                     }
                 }
@@ -241,7 +312,7 @@ struct DatabaseDetailView: View {
                 InfoRow(key: "备注", value: desc)
             }
 
-            if vm.isPostgreSQL {
+            if vm.isPostgreSQL || vm.isMongoDB {
                 Button {
                     activeSheet = .changePassword
                 } label: {
@@ -268,18 +339,27 @@ struct DatabaseDetailView: View {
         }
     }
 
-    // MARK: 权限 (PostgreSQL - 超级用户)
+    // MARK: 权限 (PostgreSQL 超级用户 / MongoDB 角色)
 
     private var privilegesSection: some View {
         Section {
             if let u = vm.database.username, !u.isEmpty {
                 InfoRow(key: "绑定用户", value: u)
             }
-            InfoRow(key: "当前角色", value: vm.database.permissionDisplay)
-            Button {
-                activeSheet = .changePrivileges
-            } label: {
-                Label("修改权限", systemImage: "person.badge.shield.checkmark")
+            if vm.isMongoDB {
+                InfoRow(key: "当前角色", value: vm.mongoPermission?.displayName ?? "—")
+                Button {
+                    activeSheet = .changeMongoPrivileges
+                } label: {
+                    Label("修改权限", systemImage: "person.badge.shield.checkmark")
+                }
+            } else {
+                InfoRow(key: "当前角色", value: vm.database.permissionDisplay)
+                Button {
+                    activeSheet = .changePrivileges
+                } label: {
+                    Label("修改权限", systemImage: "person.badge.shield.checkmark")
+                }
             }
         } header: {
             SectionLabel(title: "权限", systemImage: "lock.shield")
@@ -430,6 +510,58 @@ struct ChangeAccessSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - MongoDB 权限修改 Sheet（角色下拉选择）
+
+struct MongoPrivilegesSheet: View {
+    let username: String?
+    let current: MongoPermission?
+    let onConfirm: (MongoPermission) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var permission: MongoPermission
+
+    init(username: String?, current: MongoPermission?, onConfirm: @escaping (MongoPermission) -> Void) {
+        self.username = username
+        self.current = current
+        self.onConfirm = onConfirm
+        _permission = State(initialValue: current ?? .dbOwner)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("为用户「\(username ?? "-")」设置数据库权限。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section("权限") {
+                    Picker("角色", selection: $permission) {
+                        ForEach(MongoPermission.allCases) { perm in
+                            Text(perm.displayName).tag(perm)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("修改权限")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("确认") {
+                        onConfirm(permission)
+                        dismiss()
+                    }
+                    .disabled(current == permission)
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

@@ -22,6 +22,19 @@ nonisolated struct ContainerListResponse: Decodable {
     let items: [Container]?
 }
 
+/// GET /api/v2/containers/stats/:id 单容器实时监控快照
+/// （数值单位与 1Panel 网页端一致：内存/缓存 MB，磁盘 I/O MB/s，网络 KB/s）
+nonisolated struct ContainerStatsSnapshot: Decodable {
+    let cpuPercent: Double?
+    let memory: Double?
+    let cache: Double?
+    let ioRead: Double?
+    let ioWrite: Double?
+    let networkRX: Double?
+    let networkTX: Double?
+    let shotTime: String?
+}
+
 /// 单个容器（1Panel v2 实际返回的字段，已通过 logs/输出11.log 验证）
 nonisolated struct Container: Decodable, Identifiable, Hashable {
     let containerID: String
@@ -156,11 +169,52 @@ nonisolated struct ContainerRepo: Decodable, Identifiable {
     let auth: Bool?
     let status: String?
     let message: String?
+    let createdAt: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, downloadUrl, username, auth, status, message
+        case id, name, downloadUrl, username, auth, status, message, createdAt
         case protocolField = "protocol"
     }
+}
+
+// MARK: - 镜像仓库请求体
+
+/// 添加仓库（POST /containers/repo）
+nonisolated struct RepoCreateRequest: Encodable {
+    let auth: Bool
+    let protocolField: String   // "http" / "https"
+    let name: String
+    let downloadUrl: String
+    var username: String = ""
+    var password: String = ""
+
+    enum CodingKeys: String, CodingKey {
+        case auth, name, downloadUrl, username, password
+        case protocolField = "protocol"
+    }
+}
+
+/// 编辑仓库（POST /containers/repo/update，不携带密码）
+nonisolated struct RepoUpdateRequest: Encodable {
+    let id: Int
+    let createdAt: String
+    let name: String
+    let downloadUrl: String
+    let protocolField: String
+    let username: String
+    let auth: Bool
+    let status: String
+    let message: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, createdAt, name, downloadUrl, username, auth, status, message
+        case protocolField = "protocol"
+    }
+}
+
+/// 删除 / 同步仓库（POST /containers/repo/del、/containers/repo/status）
+nonisolated struct RepoIDRequest: Encodable {
+    let id: Int
 }
 
 // MARK: - 拉取镜像请求（POST /containers/image/pull）

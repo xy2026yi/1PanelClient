@@ -27,6 +27,7 @@ enum APIEndpoint {
     // MARK: - 容器
     case containersSearch         // POST 分页查询容器
     case containersListStats      // GET  容器运行时指标（CPU/内存，按 containerID）
+    case containersStats          // GET  单容器实时监控快照（:containerID 路径参数）
     case containersDockerStatus   // GET  Docker 服务状态（isActive/isExist）
     case containersDockerOperate  // POST Docker 服务操作（start/stop/restart）
     case containersPrune          // POST 清理容器/镜像
@@ -45,6 +46,10 @@ enum APIEndpoint {
     case containersImagePull      // POST 拉取镜像
     case containersImageDelete    // POST 删除镜像
     case containersRepoSearch     // POST 查询已配置的仓库
+    case containersRepoCreate     // POST 添加镜像仓库
+    case containersRepoUpdate     // POST 编辑镜像仓库
+    case containersRepoDelete     // POST 删除镜像仓库 {id}
+    case containersRepoSync       // POST 同步镜像仓库 {id}
 
     // MARK: - 网站
     case websitesSearch           // POST 分页查询网站
@@ -144,6 +149,16 @@ enum APIEndpoint {
 
     // MARK: - Redis 专用端点
     case databasesRedisPassword   // POST Redis密码修改
+
+    // MARK: - MongoDB 专用端点
+    case databasesMongoSearch         // POST 分页查询数据库(MongoDB)
+    case databasesMongoCreate         // POST 创建 MongoDB 数据库
+    case databasesMongoRootPassword   // POST MongoDB root 密码修改
+    case databasesMongoPassword       // POST MongoDB 数据库密码修改
+    case databasesMongoPrivilegesLoad // POST 查询 MongoDB 用户权限
+    case databasesMongoPrivileges     // POST 修改 MongoDB 用户权限
+    case databasesMongoDelCheck       // POST MongoDB 删除前检查
+    case databasesMongoDel            // POST 删除 MongoDB 数据库
 
     // MARK: - MySQL 用户与授权管理
     case databasesUsersSearch     // POST 查询数据库用户列表
@@ -283,6 +298,7 @@ enum APIEndpoint {
         case .deviceBase:            return "/api/v2/toolbox/device/base"
         case .containersSearch:      return "/api/v2/containers/search"
         case .containersListStats:      return "/api/v2/containers/list/stats"
+        case .containersStats:          return "/api/v2/containers/stats/:containerID"
         case .containersDockerStatus:   return "/api/v2/containers/docker/status"
         case .containersDockerOperate:  return "/api/v2/containers/docker/operate"
         case .containersPrune:          return "/api/v2/containers/prune"
@@ -301,6 +317,10 @@ enum APIEndpoint {
         case .containersImagePull:      return "/api/v2/containers/image/pull"
         case .containersImageDelete:    return "/api/v2/containers/image/delete"
         case .containersRepoSearch:     return "/api/v2/containers/repo/search"
+        case .containersRepoCreate:     return "/api/v2/containers/repo"
+        case .containersRepoUpdate:     return "/api/v2/containers/repo/update"
+        case .containersRepoDelete:     return "/api/v2/containers/repo/del"
+        case .containersRepoSync:       return "/api/v2/containers/repo/status"
         case .websitesSearch:        return "/api/v2/websites/search"
         case .websitesCreate:        return "/api/v2/websites"
         case .websitesCheck:         return "/api/v2/websites/check"
@@ -378,6 +398,14 @@ enum APIEndpoint {
         case .databasesPgDel:        return "/api/v2/databases/pg/del"
         case .databasesPgPrivileges: return "/api/v2/databases/pg/privileges"
         case .databasesRedisPassword: return "/api/v2/databases/redis/password"
+        case .databasesMongoSearch:       return "/api/v2/databases/mongodb/search"
+        case .databasesMongoCreate:       return "/api/v2/databases/mongodb"
+        case .databasesMongoRootPassword: return "/api/v2/databases/mongodb/root/password"
+        case .databasesMongoPassword:     return "/api/v2/databases/mongodb/password"
+        case .databasesMongoPrivilegesLoad: return "/api/v2/databases/mongodb/privileges"
+        case .databasesMongoPrivileges:   return "/api/v2/databases/mongodb/privileges/change"
+        case .databasesMongoDelCheck:     return "/api/v2/databases/mongodb/del/check"
+        case .databasesMongoDel:          return "/api/v2/databases/mongodb/del"
         case .databasesUsersSearch:  return "/api/v2/databases/users/search"
         case .databasesGrantsSearch: return "/api/v2/databases/grants/search"
         case .databasesUsersCreate:  return "/api/v2/databases/users"
@@ -481,7 +509,7 @@ enum APIEndpoint {
              .appStoreSettingConfig,
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
-             .containersListStats, .containersDockerStatus, .containersImageAll,
+             .containersListStats, .containersStats, .containersDockerStatus, .containersImageAll,
              .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,
              .appsIcon, .databasesRedisCheck,
              .appsServices,

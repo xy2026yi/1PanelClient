@@ -215,6 +215,12 @@ struct AppDetailView: View {
         } message: {
             Text(vm.alertMessage)
         }
+        .task {
+            // 预加载应用设置，卸载弹窗的「删除备份 / 删除镜像」默认勾选取自这里
+            if vm.appStoreConfig == nil {
+                await vm.loadAppStoreConfig()
+            }
+        }
     }
 
     private var listContent: some View {
@@ -399,15 +405,23 @@ struct AppDetailView: View {
                 icon: "trash",
                 color: .red
             ) {
-                // 从应用设置读取「删除备份 / 删除镜像」默认勾选
-                uninstallDeleteBackup = vm.appStoreConfig?.isUninstallDeleteBackup ?? false
-                uninstallDeleteImage = vm.appStoreConfig?.isUninstallDeleteImage ?? false
-                uninstallConfirmName = ""
-                showUninstall = true
+                Task { await prepareUninstall() }
             }
         }
         .padding(.top, 2)
         .padding(.bottom, 2)
+    }
+
+    /// 打开卸载弹窗前确保应用设置已加载，
+    /// 「删除备份 / 删除镜像」默认勾选与设置页保持一致
+    private func prepareUninstall() async {
+        if vm.appStoreConfig == nil {
+            await vm.loadAppStoreConfig()
+        }
+        uninstallDeleteBackup = vm.appStoreConfig?.isUninstallDeleteBackup ?? false
+        uninstallDeleteImage = vm.appStoreConfig?.isUninstallDeleteImage ?? false
+        uninstallConfirmName = ""
+        showUninstall = true
     }
 
     @ViewBuilder

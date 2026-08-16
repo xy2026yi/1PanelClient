@@ -142,6 +142,8 @@ final class TerminalSession: ObservableObject {
 
     private let server: ServerConfig
     private let target: TerminalTarget
+    /// 连接就绪后自动执行的初始命令（如 MongoDB 容器内启动 mongosh）
+    private let initialCommand: String?
     private var task: URLSessionWebSocketTask?
     private var session: URLSession!
     private var receiveTask: Task<Void, Never>?
@@ -151,9 +153,10 @@ final class TerminalSession: ObservableObject {
     /// 收到原始字节时是否直接当文本喂入（true）；否则解析 JSON+base64
     private var rawFrameMode = false
 
-    init(server: ServerConfig, target: TerminalTarget) {
+    init(server: ServerConfig, target: TerminalTarget, initialCommand: String? = nil) {
         self.server = server
         self.target = target
+        self.initialCommand = initialCommand
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         config.waitsForConnectivity = false
@@ -200,6 +203,12 @@ final class TerminalSession: ObservableObject {
 
     // MARK: - 连接
 
+    /// 连接调试信息（连接横幅/WS 地址/超时诊断）开关，默认隐藏，
+    /// 在终端页菜单开启后重新连接生效
+    static var showConnectionDebug: Bool {
+        UserDefaults.standard.bool(forKey: "terminalShowConnectionDebug")
+    }
+
     func connect() {
         guard !isConnecting, !isConnected else { return }
         guard let url = makeWebSocketURL() else {
@@ -214,19 +223,21 @@ final class TerminalSession: ObservableObject {
 
         isConnecting = true
         errorMessage = nil
-        emulator.feed("正在连接 \(server.name)…\r\n")
-        emulator.feed("\u{1B}[90m\(url.absoluteString)\u{1B}[0m\r\n")
+        if Self.showConnectionDebug {
+            emulator.feed("正在连接 \(server.name)…\r\n")
+            emulator.feed("\u{1B}[90m\(url.absoluteString)\u{1B}[0m\r\n")
+        }
 
         let ws = session.webSocketTask(with: request)
         ws.resume()
         task = ws
 
-        // 诊断：3 秒后检查连接状态
+        // 诊断：3 秒后检查连接状态（仅调试模式显示）
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(3))
             await MainActor.run {
                 guard let self else { return }
-                if self.isConnecting && !self.isConnected {
+                if self.isConnecting && !self.isConnected && Self.showConnectionDebug {
                     let state = self.task?.state.rawValue ?? -1
                     let closeCode = self.task?.closeCode.rawValue ?? -1
                     self.emulator.feed("\r\n\u{1B}[33m[诊断] 3秒未收到数据\r\nWS状态: \(state) (0=running 3=completed)\r\n关闭码: \(closeCode)\u{1B}[0m\r\n")
@@ -270,6 +281,15 @@ final class TerminalSession: ObservableObject {
         }
     }
 
+    /// 首包收到（服务端 PTY 已就绪）后自动执行初始命令，仅需一次
+    private func sendInitialCommandIfNeeded() {
+        guard let cmd = initialCommand else { return }
+        Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(300))
+            self?.send(cmd)
+        }
+    }
+
     /// 通知后端终端尺寸变更
     func sendResize(cols: Int, rows: Int) {
         guard let task else { return }
@@ -294,6 +314,7 @@ final class TerminalSession: ObservableObject {
                     firstPacket = false
                     isConnecting = false
                     isConnected = true
+                    sendInitialCommandIfNeeded()
                 }
                 handleIncoming(msg)
             } catch {
