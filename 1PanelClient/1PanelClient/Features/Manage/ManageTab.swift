@@ -71,7 +71,7 @@ struct ManageTab: View {
         .onChange(of: initialItem) { _, newItem in
             guard let newItem else { return }
             if newItem.available {
-                navPath.append(newItem)
+                pushIfNeeded(newItem)
             }
             initialItem = nil
         }
@@ -79,10 +79,22 @@ struct ManageTab: View {
             atRoot = count == 0
         }
         .onReceive(NotificationCenter.default.publisher(for: .popAppDetail)) { _ in
-            // 收到通知后 pop 最后一个元素（AppInstall），回到应用列表
-            if !navPath.isEmpty { navPath.removeLast() }
+            popToAppList()
         }
         .environmentObject(prefs)
+    }
+
+    /// 跨 Tab 跳转：重置为单元素栈再进入目标页——
+    /// 避免从首页反复点击叠出 [monitor, monitor]（NavigationPath 无法读取栈内元素，无法按值去重）
+    private func pushIfNeeded(_ item: ManageItem) {
+        navPath = NavigationPath([item])
+    }
+
+    /// pop 回应用列表：重置为 [.apps]。
+    /// 不依赖「弹几层」的假设——兼容 isPresented 推入是否计入 NavigationPath 的系统行为差异；
+    /// 应用列表会重建并重新加载（卸载/升级后正好需要刷新）
+    private func popToAppList() {
+        navPath = NavigationPath([ManageItem.apps])
     }
 
     @ViewBuilder
@@ -116,16 +128,13 @@ struct ManageTab: View {
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         switch item {
         case .apps:
-            AppsTab(manager: manager, showCloseButton: false, standalone: false)
-                .environment(\.popDetail, {
-                    if !navPath.isEmpty { navPath.removeLast() }
-                })
+            AppsTab(manager: manager)
         case .websites:
-            WebsitesTab(manager: manager, showCloseButton: false, standalone: false)
+            WebsitesTab(manager: manager)
         case .containers:
-            ContainersTab(manager: manager, showCloseButton: false, standalone: false)
+            ContainersTab(manager: manager)
         case .cronjob:
-            CronjobsTab(manager: manager, showCloseButton: false, standalone: false)
+            CronjobsTab(manager: manager)
         case .firewall:
             FirewallView(server: server)
         case .database:

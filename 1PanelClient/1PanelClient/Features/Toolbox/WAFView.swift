@@ -609,19 +609,13 @@ struct WAFIPRulesView: View {
         .refreshable { await loadItems() }
         .task { await loadItems() }
         .sheet(isPresented: $showCreate) {
-            WAFCreateIPRuleView(server: server, scope: scope) {
+            WAFIPRuleFormView(server: server, scope: scope) {
                 Task { await loadItems() }
             }
         }
-        .navigationDestination(isPresented: Binding(
-            get: { editingItem != nil },
-            set: { if !$0 { editingItem = nil } }
-        )) {
-            if let item = editingItem {
-                WAFEditIPRuleView(server: server, scope: scope, item: item) {
-                    Task { await loadItems() }
-                }
-                .onDisappear { Task { await loadItems() } }
+        .sheet(item: $editingItem) { item in
+            WAFIPRuleFormView(server: server, scope: scope, editingItem: item) {
+                Task { await loadItems() }
             }
         }
         .sheet(isPresented: Binding(
@@ -716,12 +710,16 @@ struct WAFIPRulesView: View {
     }
 }
 
-// MARK: - 创建 IP 规则
+// MARK: - IP 规则表单（创建/编辑共用）
 
-struct WAFCreateIPRuleView: View {
+/// IP 规则表单：`editingItem` 为 nil 时是创建模式，非 nil 时为编辑模式（多一个启用开关）。
+/// 统一以 sheet 呈现（取消 + 提交按钮，提交时显示 loading）。
+struct WAFIPRuleFormView: View {
     let server: ServerConfig
     let scope: String
-    let onCreated: () -> Void
+    /// 编辑中的规则；nil = 创建
+    let editingItem: WAFRuleIPItem?
+    let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var ipType = "ipv4"
@@ -731,17 +729,29 @@ struct WAFCreateIPRuleView: View {
     @State private var ipv6 = ""
     @State private var ipGroup = ""
     @State private var description = ""
+    @State private var state = "on"
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var ipGroups: [WAFIPGroupItem] = []
 
     private let client: APIClient
 
-    init(server: ServerConfig, scope: String, onCreated: @escaping () -> Void) {
+    init(server: ServerConfig, scope: String, editingItem: WAFRuleIPItem? = nil, onSaved: @escaping () -> Void) {
         self.server = server
         self.scope = scope
-        self.onCreated = onCreated
+        self.editingItem = editingItem
+        self.onSaved = onSaved
         self.client = APIClient(server: server)
+        if let item = editingItem {
+            _ipType = State(initialValue: item.type)
+            _ipv4 = State(initialValue: item.ipv4 ?? "")
+            _ipStart = State(initialValue: item.ipStart ?? "")
+            _ipEnd = State(initialValue: item.ipEnd ?? "")
+            _ipv6 = State(initialValue: item.ipv6 ?? "")
+            _ipGroup = State(initialValue: item.ipGroup ?? "")
+            _description = State(initialValue: item.description ?? "")
+            _state = State(initialValue: item.state)
+        }
     }
 
     private let typeOptions: [(value: String, label: String)] = [
@@ -801,189 +811,33 @@ struct WAFCreateIPRuleView: View {
                     EmptyView()
                 }
 
+                if editingItem != nil {
+                    Section("状态") {
+                        Toggle("启用", isOn: Binding(
+                            get: { state == "on" },
+                            set: { state = $0 ? "on" : "off" }
+                        ))
+                    }
+                }
+
                 Section("备注") {
                     TextField("描述(可选)", text: $description)
                 }
             }
-            .navigationTitle("添加 IP 规则")
+            .navigationTitle(editingItem == nil ? "添加 IP 规则" : "编辑 IP 规则")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("创建") {
-                        Task { await create() }
-                    }
-                    .disabled(isSaving || !isValid)
-                }
-            }
-            .alert("错误", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("好的") { errorMessage = nil }
-            } message: {
-                Text(errorMessage ?? "")
-            }
-        }
-    }
-
-    private var isValid: Bool {
-        switch ipType {
-        case "ipv4": return !ipv4.isEmpty
-        case "ipArr": return !ipStart.isEmpty && !ipEnd.isEmpty
-        case "ipv6": return !ipv6.isEmpty
-        case "ipGroup": return !ipGroup.isEmpty
-        default: return false
-        }
-    }
-
-    private func loadGroups() async {
-        let req = WAFIPGroupSearchRequest(page: 1, pageSize: 100, type: "", name: "", all: false)
-        do {
-            let resp: PageResponse<WAFIPGroupItem> = try await client.send(
-                path: APIEndpoint.wafIPGroupSearch.path, body: req,
-                as: PageResponse<WAFIPGroupItem>.self
-            )
-            ipGroups = resp.items ?? []
-        } catch { }
-    }
-
-    private func create() async {
-        isSaving = true
-        let req = WAFRuleIPCreateRequest(
-            name: "", type: ipType, ipv4: ipv4, ipStart: ipStart, ipEnd: ipEnd,
-            ipv6: ipv6, state: "on", description: description, scope: scope, ipGroup: ipGroup
-        )
-        do {
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleIPCreate.path, body: req, as: EmptyResponse.self)
-            onCreated()
-            dismiss()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isSaving = false
-    }
-}
-
-// MARK: - 编辑 IP 规则
-
-struct WAFEditIPRuleView: View {
-    let server: ServerConfig
-    let scope: String
-    let item: WAFRuleIPItem
-    let onSaved: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var ipType: String
-    @State private var ipv4: String
-    @State private var ipStart: String
-    @State private var ipEnd: String
-    @State private var ipv6: String
-    @State private var ipGroup: String
-    @State private var description: String
-    @State private var state: String
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-    @State private var ipGroups: [WAFIPGroupItem] = []
-
-    private let client: APIClient
-
-    init(server: ServerConfig, scope: String, item: WAFRuleIPItem, onSaved: @escaping () -> Void) {
-        self.server = server
-        self.scope = scope
-        self.item = item
-        self.onSaved = onSaved
-        self.client = APIClient(server: server)
-        _ipType = State(initialValue: item.type)
-        _ipv4 = State(initialValue: item.ipv4 ?? "")
-        _ipStart = State(initialValue: item.ipStart ?? "")
-        _ipEnd = State(initialValue: item.ipEnd ?? "")
-        _ipv6 = State(initialValue: item.ipv6 ?? "")
-        _ipGroup = State(initialValue: item.ipGroup ?? "")
-        _description = State(initialValue: item.description ?? "")
-        _state = State(initialValue: item.state)
-    }
-
-    private let typeOptions: [(value: String, label: String)] = [
-        ("ipv4", "IPv4"),
-        ("ipArr", "IPv4 范围"),
-        ("ipv6", "IPv6"),
-        ("ipGroup", "IP 组"),
-    ]
-
-    var body: some View {
-        Form {
-                Section("类型") {
-                    Picker("IP 类型", selection: $ipType) {
-                        ForEach(typeOptions, id: \.value) { Text($0.label).tag($0.value) }
-                    }
-                    .onChange(of: ipType) { _, _ in
-                        if ipType == "ipGroup" { Task { await loadGroups() } }
-                    }
-                }
-
-                switch ipType {
-                case "ipv4":
-                    Section("IPv4 地址") {
-                        TextField("例: 192.168.1.1", text: $ipv4)
-                            .keyboardType(.decimalPad)
-                            .autocorrectionDisabled()
-                    }
-                case "ipArr":
-                    Section("IPv4 范围") {
-                        TextField("起始 IP", text: $ipStart)
-                            .keyboardType(.decimalPad)
-                            .autocorrectionDisabled()
-                        TextField("结束 IP", text: $ipEnd)
-                            .keyboardType(.decimalPad)
-                            .autocorrectionDisabled()
-                    }
-                case "ipv6":
-                    Section("IPv6 地址") {
-                        TextField("例: 2001:db8::1", text: $ipv6)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                    }
-                case "ipGroup":
-                    Section("IP 组") {
-                        if ipGroups.isEmpty {
-                            Text("请先创建 IP 组").foregroundStyle(.secondary)
-                        } else {
-                            Picker("选择 IP 组", selection: $ipGroup) {
-                                ForEach(ipGroups) { group in
-                                    Text(group.name).tag(group.name)
-                                }
-                            }
-                        }
-                    }
-                default:
-                    EmptyView()
-                }
-
-                Section("状态") {
-                    Toggle("启用", isOn: Binding(
-                        get: { state == "on" },
-                        set: { state = $0 ? "on" : "off" }
-                    ))
-                }
-
-                Section("备注") {
-                    TextField("描述(可选)", text: $description)
-                }
-            }
-            .navigationTitle("编辑 IP 规则")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task { await save() }
                     } label: {
                         if isSaving {
                             ProgressView()
                         } else {
-                            Text("保存").fontWeight(.medium)
+                            Text(editingItem == nil ? "创建" : "保存")
                         }
                     }
                     .disabled(isSaving || !isValid)
@@ -1000,6 +854,7 @@ struct WAFEditIPRuleView: View {
             } message: {
                 Text(errorMessage ?? "")
             }
+        }
     }
 
     private var isValid: Bool {
@@ -1025,21 +880,30 @@ struct WAFEditIPRuleView: View {
 
     private func save() async {
         isSaving = true
-        let req = WAFRuleIPUpdateRequest(
-            name: item.name, state: state, type: ipType,
-            ipv4: ipv4, ipv6: ipv6, ipStart: ipStart, ipEnd: ipEnd,
-            ipGroup: ipGroup, description: description, scope: scope
-        )
+        defer { isSaving = false }
         do {
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleIPUpdate.path, body: req, as: EmptyResponse.self)
+            if let item = editingItem {
+                let req = WAFRuleIPUpdateRequest(
+                    name: item.name, state: state, type: ipType,
+                    ipv4: ipv4, ipv6: ipv6, ipStart: ipStart, ipEnd: ipEnd,
+                    ipGroup: ipGroup, description: description, scope: scope
+                )
+                let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleIPUpdate.path, body: req, as: EmptyResponse.self)
+            } else {
+                let req = WAFRuleIPCreateRequest(
+                    name: "", type: ipType, ipv4: ipv4, ipStart: ipStart, ipEnd: ipEnd,
+                    ipv6: ipv6, state: "on", description: description, scope: scope, ipGroup: ipGroup
+                )
+                let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleIPCreate.path, body: req, as: EmptyResponse.self)
+            }
             onSaved()
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
         }
-        isSaving = false
     }
 }
+
 
 // MARK: - IP 组管理视图
 
@@ -1050,6 +914,7 @@ struct WAFIPGroupsView: View {
     @State private var items: [WAFIPGroupItem] = []
     @State private var isLoading = false
     @State private var showCreate = false
+    @State private var editingGroup: WAFIPGroupItem?
     @State private var successMessage: String?
     @State private var errorMessage: String?
     @State private var pendingDeleteGroup: WAFIPGroupItem?
@@ -1069,24 +934,30 @@ struct WAFIPGroupsView: View {
                 ContentUnavailableView("暂无 IP 组", systemImage: "rectangle.on.rectangle.angled")
             } else {
                 ForEach(items) { item in
-                    NavigationLink {
-                        WAFIPGroupEditView(server: server, item: item) {
-                            Task { await loadItems() }
-                        }
+                    Button {
+                        editingGroup = item
                     } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.name).font(.body)
-                            if let content = item.content, !content.isEmpty {
-                                Text(content.replacingOccurrences(of: "\n", with: ", "))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.name).font(.body)
+                                if let content = item.content, !content.isEmpty {
+                                    Text(content.replacingOccurrences(of: "\n", with: ", "))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
+                                if let source = item.source, !source.isEmpty {
+                                    StatusBadge(text: source == "imported" ? "手动" : "远程", color: .blue)
+                                }
                             }
-                            if let source = item.source, !source.isEmpty {
-                                StatusBadge(text: source == "imported" ? "手动" : "远程", color: .blue)
-                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
                         }
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                     .swipeActions {
                         Button(role: .destructive) {
                             pendingDeleteGroup = item
@@ -1112,6 +983,11 @@ struct WAFIPGroupsView: View {
         .task { await loadItems() }
         .sheet(isPresented: $showCreate) {
             WAFCreateIPGroupView(server: server) {
+                Task { await loadItems() }
+            }
+        }
+        .sheet(item: $editingGroup) { item in
+            WAFIPGroupEditView(server: server, item: item) {
                 Task { await loadItems() }
             }
         }
@@ -1281,39 +1157,50 @@ struct WAFIPGroupEditView: View {
     }
 
     var body: some View {
-        Form {
-            Section("名称") {
-                Text(item.name).foregroundStyle(.secondary)
-            }
-            if item.source == "remoteFile" {
-                Section("远程 URL") {
-                    Text(item.remoteURL ?? "—").font(.caption).foregroundStyle(.secondary)
+        NavigationStack {
+            Form {
+                Section("名称") {
+                    Text(item.name).foregroundStyle(.secondary)
+                }
+                if item.source == "remoteFile" {
+                    Section("远程 URL") {
+                        Text(item.remoteURL ?? "—").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Section("IP 列表") {
+                    TextEditor(text: $content)
+                        .font(.system(.caption, design: .monospaced))
+                        .frame(minHeight: 200)
                 }
             }
-            Section("IP 列表") {
-                TextEditor(text: $content)
-                    .font(.system(.caption, design: .monospaced))
-                    .frame(minHeight: 200)
-            }
-        }
-        .navigationTitle("编辑 IP 组")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear { content = item.content ?? "" }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("保存") {
-                    Task { await save() }
+            .navigationTitle("编辑 IP 组")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear { content = item.content ?? "" }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
                 }
-                .disabled(isSaving)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task { await save() }
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                        } else {
+                            Text("保存")
+                        }
+                    }
+                    .disabled(isSaving)
+                }
             }
-        }
-        .alert("提示", isPresented: Binding(
-            get: { successMessage != nil || errorMessage != nil },
-            set: { _ in successMessage = nil; errorMessage = nil }
-        )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
-        } message: {
-            Text(successMessage ?? errorMessage ?? "")
+            .alert("提示", isPresented: Binding(
+                get: { successMessage != nil || errorMessage != nil },
+                set: { _ in successMessage = nil; errorMessage = nil }
+            )) {
+                Button("好的") { successMessage = nil; errorMessage = nil }
+            } message: {
+                Text(successMessage ?? errorMessage ?? "")
+            }
         }
     }
 
@@ -1407,19 +1294,13 @@ struct WAFCommonRulesView: View {
         .refreshable { await loadItems() }
         .task { await loadItems() }
         .sheet(isPresented: $showCreate) {
-            WAFCreateCommonRuleView(server: server, scope: scope) {
+            WAFCommonRuleFormView(server: server, scope: scope) {
                 Task { await loadItems() }
             }
         }
-        .navigationDestination(isPresented: Binding(
-            get: { editingItem != nil },
-            set: { if !$0 { editingItem = nil } }
-        )) {
-            if let item = editingItem {
-                WAFEditCommonRuleView(server: server, scope: scope, item: item) {
-                    Task { await loadItems() }
-                }
-                .onDisappear { Task { await loadItems() } }
+        .sheet(item: $editingItem) { item in
+            WAFCommonRuleFormView(server: server, scope: scope, editingItem: item) {
+                Task { await loadItems() }
             }
         }
         .sheet(isPresented: Binding(
@@ -1513,12 +1394,16 @@ struct WAFCommonRulesView: View {
     }
 }
 
-// MARK: - 创建通用规则
+// MARK: - 通用规则表单（创建/编辑共用）
 
-struct WAFCreateCommonRuleView: View {
+/// 通用规则表单：`editingItem` 为 nil 时是创建模式，非 nil 时为编辑模式。
+/// 统一以 sheet 呈现（取消 + 提交按钮，提交时显示 loading）。
+struct WAFCommonRuleFormView: View {
     let server: ServerConfig
     let scope: String
-    let onCreated: () -> Void
+    /// 编辑中的规则；nil = 创建
+    let editingItem: WAFCommonRuleItem?
+    let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var rule = ""
@@ -1528,11 +1413,16 @@ struct WAFCreateCommonRuleView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, scope: String, onCreated: @escaping () -> Void) {
+    init(server: ServerConfig, scope: String, editingItem: WAFCommonRuleItem? = nil, onSaved: @escaping () -> Void) {
         self.server = server
         self.scope = scope
-        self.onCreated = onCreated
+        self.editingItem = editingItem
+        self.onSaved = onSaved
         self.client = APIClient(server: server)
+        if let item = editingItem {
+            _rule = State(initialValue: item.rule)
+            _description = State(initialValue: item.description ?? "")
+        }
     }
 
     var body: some View {
@@ -1547,97 +1437,20 @@ struct WAFCreateCommonRuleView: View {
                     TextField("描述(可选)", text: $description)
                 }
             }
-            .navigationTitle("添加规则")
+            .navigationTitle(editingItem == nil ? "添加规则" : "编辑规则")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("创建") {
-                        Task { await create() }
-                    }
-                    .disabled(isSaving || rule.isEmpty)
-                }
-            }
-            .alert("错误", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("好的") { errorMessage = nil }
-            } message: {
-                Text(errorMessage ?? "")
-            }
-        }
-    }
-
-    private func create() async {
-        isSaving = true
-        let req = WAFCommonRuleCreateRequest(
-            name: "", state: "on", description: description,
-            scope: scope, rule: rule, websiteID: 0
-        )
-        do {
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonCreate.path, body: req, as: EmptyResponse.self)
-            onCreated()
-            dismiss()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isSaving = false
-    }
-}
-
-// MARK: - 编辑通用规则
-
-struct WAFEditCommonRuleView: View {
-    let server: ServerConfig
-    let scope: String
-    let item: WAFCommonRuleItem
-    let onUpdated: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var rule = ""
-    @State private var description = ""
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-
-    private let client: APIClient
-
-    init(server: ServerConfig, scope: String, item: WAFCommonRuleItem, onUpdated: @escaping () -> Void) {
-        self.server = server
-        self.scope = scope
-        self.item = item
-        self.onUpdated = onUpdated
-        self.client = APIClient(server: server)
-    }
-
-    var body: some View {
-        Form {
-                Section("规则内容") {
-                    TextField("输入规则", text: $rule)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                }
-                Section("备注") {
-                    TextField("描述(可选)", text: $description)
-                }
-            }
-            .navigationTitle("编辑规则")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                rule = item.rule
-                description = item.description ?? ""
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task { await save() }
                     } label: {
                         if isSaving {
                             ProgressView()
                         } else {
-                            Text("保存").fontWeight(.medium)
+                            Text(editingItem == nil ? "创建" : "保存")
                         }
                     }
                     .disabled(isSaving || rule.isEmpty)
@@ -1651,25 +1464,35 @@ struct WAFEditCommonRuleView: View {
             } message: {
                 Text(errorMessage ?? "")
             }
+        }
     }
 
     private func save() async {
         isSaving = true
-        let req = WAFCommonRuleUpdateRequest(
-            name: item.name, state: item.state, rule: rule,
-            type: item.type ?? "", description: description,
-            scope: scope, websiteID: 0
-        )
+        defer { isSaving = false }
         do {
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonUpdate.path, body: req, as: EmptyResponse.self)
-            onUpdated()
+            if let item = editingItem {
+                let req = WAFCommonRuleUpdateRequest(
+                    name: item.name, state: item.state, rule: rule,
+                    type: item.type ?? "", description: description,
+                    scope: scope, websiteID: 0
+                )
+                let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonUpdate.path, body: req, as: EmptyResponse.self)
+            } else {
+                let req = WAFCommonRuleCreateRequest(
+                    name: "", state: "on", description: description,
+                    scope: scope, rule: rule, websiteID: 0
+                )
+                let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonCreate.path, body: req, as: EmptyResponse.self)
+            }
+            onSaved()
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
         }
-        isSaving = false
     }
 }
+
 
 // MARK: - CC 访问频率限制设置
 

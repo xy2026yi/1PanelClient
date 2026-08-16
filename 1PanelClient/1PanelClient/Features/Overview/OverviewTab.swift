@@ -9,6 +9,8 @@ import Combine
 struct OverviewTab: View {
     @ObservedObject var manager: ServerManager
     @Binding var selectedTab: AppTab
+    /// 向 MainTabView 同步导航深度：true=根页面（显示底部 Tab 栏），false=子页面
+    @Binding var atRoot: Bool
     @StateObject private var vm: OverviewViewModel
     @State private var showServerPicker = false
     @State private var showAddSheet = false
@@ -20,10 +22,12 @@ struct OverviewTab: View {
     init(
         manager: ServerManager,
         selectedTab: Binding<AppTab> = .constant(.overview),
+        atRoot: Binding<Bool> = .constant(true),
         onSelectManageItem: ((ManageItem) -> Void)? = nil
     ) {
         self.manager = manager
         self._selectedTab = selectedTab
+        self._atRoot = atRoot
         self.onSelectManageItem = onSelectManageItem
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: OverviewViewModel(server: server))
@@ -88,13 +92,16 @@ struct OverviewTab: View {
                     PanelUpgradeView(server: server, currentVersion: vm.settingInfo?.systemVersion, upgradeInfo: vm.upgradeInfo)
                 }
             }
+            .onChange(of: showUpgradeLog) { _, show in
+                atRoot = !show
+            }
         }
         .task { await vm.refresh() }
-        // 实时监控独立轮询：页面可见时每 5 秒刷新一次 current 数据
+        // 实时监控独立轮询：页面可见时每 5 秒刷新一次 current 数据（仅当前 Tab 活跃时）
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
-                if !Task.isCancelled {
+                if !Task.isCancelled && selectedTab == .overview {
                     await vm.refreshCurrent()
                 }
             }

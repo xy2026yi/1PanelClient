@@ -16,29 +16,15 @@ struct ContainersTab: View {
     @State private var showImages = false
     @State private var showCreate = false
 
-    /// 是否显示关闭按钮（fullScreen 模式用 true，作为分段/嵌入内容时用 false）
-    var showCloseButton: Bool = true
-    /// true=自带 NavigationStack（独立/fullScreen 用）；false=仅提供内容（嵌入外层栈）
-    var standalone: Bool = true
 
-    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
+    init(manager: ServerManager) {
         self.manager = manager
-        self.showCloseButton = showCloseButton
-        self.standalone = standalone
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: ContainersViewModel(server: server))
     }
 
     var body: some View {
-        Group {
-            if standalone {
-                NavigationStack {
-                    rootContent
-                }
-            } else {
-                rootContent
-            }
-        }
+        rootContent
         .task { await vm.refresh() }
     }
 
@@ -61,9 +47,7 @@ struct ContainersTab: View {
             text: $searchText,
             isSearching: $isSearching,
             title: "容器",
-            prompt: "搜索容器名",
-            showCloseButton: showCloseButton,
-            onClose: { dismiss() }
+            prompt: "搜索容器名"
         )
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
@@ -1099,7 +1083,7 @@ struct ContainerUpgradeView: View {
         .navigationBarTitleDisplayMode(.inline)
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {
-                if vm.alertMessage.contains("已提交") {
+                if vm.lastAlertIsSuccess {
                     dismiss()
                 }
             }
@@ -1238,7 +1222,7 @@ struct ContainerEditView: View {
         }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {
-                if vm.alertMessage.contains("已提交") {
+                if vm.lastAlertIsSuccess {
                     dismiss()
                 }
             }
@@ -1978,6 +1962,9 @@ final class ContainersViewModel: ObservableObject {
 
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// 最近一次 alert 是否为操作成功（任务已提交）——提交页据此判断是否返回，
+    /// 避免依赖 alert 文案字符串匹配
+    @Published var lastAlertIsSuccess = false
 
     /// 标记 docker 状态是否已加载，避免 List 重绘反复请求
     private var dockerLoaded = false
@@ -2152,7 +2139,7 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: "升级容器「\(name)」任务已提交")
+            showAlert(message: "升级容器「\(name)」任务已提交", isSuccess: true)
         } catch {
             showAlert(message: "升级容器失败：\(error.localizedDescription)")
         }
@@ -2292,7 +2279,7 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: "创建容器「\(draft.name)」任务已提交")
+            showAlert(message: "创建容器「\(draft.name)」任务已提交", isSuccess: true)
         } catch {
             showAlert(message: "创建容器失败：\(error.localizedDescription)")
         }
@@ -2357,7 +2344,7 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: "更新容器「\(info.name)」任务已提交")
+            showAlert(message: "更新容器「\(info.name)」任务已提交", isSuccess: true)
         } catch {
             showAlert(message: "更新容器失败：\(error.localizedDescription)")
         }
@@ -2515,8 +2502,9 @@ final class ContainersViewModel: ObservableObject {
         }
     }
 
-    private func showAlert(message: String) {
+    private func showAlert(message: String, isSuccess: Bool = false) {
         alertMessage = message
+        lastAlertIsSuccess = isSuccess
         showAlert = true
     }
 }
@@ -2565,7 +2553,7 @@ struct ContainerCreateView: View {
         .task { await vm.loadCreateOptions() }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {
-                if vm.alertMessage.contains("任务已提交") { dismiss() }
+                if vm.lastAlertIsSuccess { dismiss() }
             }
         } message: { Text(vm.alertMessage) }
     }

@@ -12,40 +12,21 @@ import Combine
 struct CronjobsTab: View {
     @ObservedObject var manager: ServerManager
     @StateObject private var vm: CronjobsViewModel
-    @Environment(\.dismiss) private var dismiss
     @State private var showCreateSheet = false
 
-    /// 是否显示关闭按钮（fullScreen 模式用 true，作为分段/嵌入内容时用 false）
-    var showCloseButton: Bool = true
-    /// true=自带 NavigationStack（独立/fullScreen 用）；false=仅提供内容（嵌入外层栈）
-    var standalone: Bool = true
-
-    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
+    init(manager: ServerManager) {
         self.manager = manager
-        self.showCloseButton = showCloseButton
-        self.standalone = standalone
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: CronjobsViewModel(server: server))
     }
 
     var body: some View {
-        if standalone {
-            NavigationStack {
-                rootContent
-            }
+        rootContent
             .task { await vm.refresh() }
             .alert(vm.alertMessage, isPresented: $vm.showAlert) {
                 Button("好", role: .cancel) {}
             }
             .toastOverlay(message: $vm.toastMessage)
-        } else {
-            rootContent
-                .task { await vm.refresh() }
-                .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-                    Button("好", role: .cancel) {}
-                }
-                .toastOverlay(message: $vm.toastMessage)
-        }
     }
 
     /// 列表根内容（不含 NavigationStack），供 ManageTab 嵌入复用
@@ -77,16 +58,6 @@ struct CronjobsTab: View {
         .navigationTitle("计划任务")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if showCloseButton {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {
                     ScriptLibraryView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))

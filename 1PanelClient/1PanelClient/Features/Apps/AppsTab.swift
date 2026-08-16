@@ -14,29 +14,15 @@ struct AppsTab: View {
     @State private var isSearching = false
     @State private var showStore = false
 
-    /// 是否显示关闭按钮（fullScreen 模式用 true）
-    var showCloseButton: Bool = true
-    /// true=自带 NavigationStack；false=仅提供内容（嵌入外层栈）
-    var standalone: Bool = true
 
-    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
+    init(manager: ServerManager) {
         self.manager = manager
-        self.showCloseButton = showCloseButton
-        self.standalone = standalone
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: AppsViewModel(server: server))
     }
 
     var body: some View {
-        Group {
-            if standalone {
-                NavigationStack {
-                    rootContent
-                }
-            } else {
-                rootContent
-            }
-        }
+        rootContent
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
         } message: {
@@ -69,9 +55,7 @@ struct AppsTab: View {
             text: $searchText,
             isSearching: $isSearching,
             title: "应用",
-            prompt: "搜索已安装应用",
-            showCloseButton: showCloseButton,
-            onClose: { dismiss() }
+            prompt: "搜索已安装应用"
         )
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
@@ -107,7 +91,7 @@ struct AppsTab: View {
             AppDetailView(app: app, vm: vm)
         }
         .navigationDestination(isPresented: $showStore) {
-            AppStoreTab(manager: manager, showCloseButton: false, standalone: false)
+            AppStoreTab(manager: manager)
         }
     }
 
@@ -154,7 +138,6 @@ struct AppDetailView: View {
     let app: AppInstall
     @ObservedObject var vm: AppsViewModel
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.popDetail) private var popDetail
     @State private var showUninstall = false
     @State private var showEdit = false
     @State private var isExpanded = false
@@ -206,7 +189,7 @@ struct AppDetailView: View {
                     vm.needsRefresh = true
                     if isDone {
                         // 通过通知操作 ManageTab 的 NavigationPath，
-                        // 一次性 pop AppDetailView + TaskProgressView
+                        // 由接收方显式 pop 回应用列表（详情页 + 进度页全部移除）
                         NotificationCenter.default.post(name: .popAppDetail, object: nil)
                         return true
                     }
@@ -840,7 +823,7 @@ struct UpdateParamsView: View {
         .navigationTitle("更新参数")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .destructiveAction) {
+            ToolbarItem(placement: .confirmationAction) {
                 Button("更新") {
                     Task { await performUpdate() }
                 }

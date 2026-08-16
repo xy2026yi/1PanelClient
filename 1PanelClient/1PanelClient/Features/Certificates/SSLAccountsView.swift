@@ -471,7 +471,6 @@ struct CreateDNSAccountView: View {
         .task {
             if let account = existingAccount { prefill(from: account) }
         }
-        .onDisappear { onComplete?() }
     }
 
     private func prefill(from account: DNSAccount) {
@@ -608,10 +607,12 @@ struct CreateDNSAccountView: View {
                 password: auth["password"]
             )
             if await vm.updateDnsAccount(account: updated) {
+                onComplete?()
                 dismiss()
             }
         } else {
             if await vm.createDnsAccount(name: trimmedName, type: type.rawValue, auth: auth) {
+                onComplete?()
                 dismiss()
             }
         }

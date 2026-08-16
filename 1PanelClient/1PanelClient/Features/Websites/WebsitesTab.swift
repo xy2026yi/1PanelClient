@@ -16,29 +16,15 @@ struct WebsitesTab: View {
     @State private var showCerts = false
     @State private var showOpenRestyConfig = false
 
-    /// 是否显示关闭按钮（fullScreen 模式用 true）
-    var showCloseButton: Bool = true
-    /// true=自带 NavigationStack；false=仅提供内容
-    var standalone: Bool = true
 
-    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
+    init(manager: ServerManager) {
         self.manager = manager
-        self.showCloseButton = showCloseButton
-        self.standalone = standalone
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: WebsitesViewModel(server: server))
     }
 
     var body: some View {
-        Group {
-            if standalone {
-                NavigationStack {
-                    rootContent
-                }
-            } else {
-                rootContent
-            }
-        }
+        rootContent
         .alert(vm.alertMessage, isPresented: $vm.showAlert) {
             Button("好", role: .cancel) {}
         }
@@ -58,9 +44,7 @@ struct WebsitesTab: View {
             text: $searchText,
             isSearching: $isSearching,
             title: "网站",
-            prompt: "搜索域名",
-            showCloseButton: showCloseButton,
-            onClose: { dismiss() }
+            prompt: "搜索域名"
         )
         .toolbar {
             // SSL 证书入口：仅非搜索态显示
@@ -91,7 +75,7 @@ struct WebsitesTab: View {
             WebsiteDetailView(website: website, vm: vm)
         }
         .navigationDestination(isPresented: $showCerts) {
-            CertificatesTab(manager: manager, showCloseButton: false, standalone: false)
+            CertificatesTab(manager: manager)
         }
         .navigationDestination(isPresented: $showCreateSheet) {
             CreateWebsiteView(vm: vm)
@@ -1888,7 +1872,7 @@ struct WebsiteProxiesView: View {
                 }
                 .swipeActions {
                     Button(role: .destructive) {
-                        Task { await deleteProxy(p) }
+                        pendingDeleteProxy = p
                     } label: {
                         Label("删除", systemImage: "trash")
                     }

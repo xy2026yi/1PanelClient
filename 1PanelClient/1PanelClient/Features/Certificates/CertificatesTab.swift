@@ -19,29 +19,15 @@ struct CertificatesTab: View {
     @State private var showDns = false
     @State private var showCA = false
 
-    /// 是否显示关闭按钮（fullScreen 模式用 true）
-    var showCloseButton: Bool = true
-    /// true=自带 NavigationStack；false=仅提供内容
-    var standalone: Bool = true
 
-    init(manager: ServerManager, showCloseButton: Bool = true, standalone: Bool = true) {
+    init(manager: ServerManager) {
         self.manager = manager
-        self.showCloseButton = showCloseButton
-        self.standalone = standalone
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: CertificatesViewModel(server: server))
     }
 
     var body: some View {
-        Group {
-            if standalone {
-                NavigationStack {
-                    rootContent
-                }
-            } else {
-                rootContent
-            }
-        }
+        rootContent
         .task { await vm.refresh() }
         .alert(vm.alertMessage, isPresented: $vm.showAlert) {
             Button("好", role: .cancel) {}
@@ -102,16 +88,6 @@ struct CertificatesTab: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                }
-            }
-            if showCloseButton {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
                 }
             }
         }

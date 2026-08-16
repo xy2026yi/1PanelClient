@@ -355,7 +355,6 @@ struct CreateCAView: View {
         .alert(validationMessage, isPresented: $showValidationAlert) {
             Button("好", role: .cancel) {}
         }
-        .onDisappear { onComplete?() }
     }
 
     private func submit() async {
@@ -391,6 +390,7 @@ struct CreateCAView: View {
 
         isSubmitting = true; defer { isSubmitting = false }
         if await vm.createCA(req: req) {
+            onComplete?()
             dismiss()
         }
     }

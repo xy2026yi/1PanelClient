@@ -15,13 +15,19 @@ import SwiftUI
 struct MainTabView: View {
     @StateObject private var manager = ServerManager.shared
     @State private var selectedTab: AppTab = .overview
-    /// OverviewTab 卡片点击待跳转的 ManageItem；ManageTab 监听此值并自动打开 fullScreen
+    /// OverviewTab 卡片点击待跳转的 ManageItem；ManageTab 监听此值并自动 push
     @State private var pendingManageItem: ManageItem?
-    /// 管理 Tab 导航深度 > 0 时隐藏底部 Tab 栏
+    /// 三个 Tab 各自的导航深度（根页面 = true 时显示底部 Tab 栏）
     @State private var manageAtRoot = true
+    @State private var overviewAtRoot = true
+    @State private var settingsAtRoot = true
 
     private var showTabBar: Bool {
-        selectedTab != .manage || manageAtRoot
+        switch selectedTab {
+        case .overview: return overviewAtRoot
+        case .manage:   return manageAtRoot
+        case .settings: return settingsAtRoot
+        }
     }
 
     var body: some View {
@@ -32,6 +38,7 @@ struct MainTabView: View {
                 OverviewTab(
                     manager: manager,
                     selectedTab: $selectedTab,
+                    atRoot: $overviewAtRoot,
                     onSelectManageItem: { item in
                         pendingManageItem = item
                         selectedTab = .manage
@@ -48,7 +55,7 @@ struct MainTabView: View {
                 .opacity(selectedTab == .manage ? 1 : 0)
                 .allowsHitTesting(selectedTab == .manage)
 
-                SettingsTab(manager: manager)
+                SettingsTab(manager: manager, atRoot: $settingsAtRoot)
                     .opacity(selectedTab == .settings ? 1 : 0)
                     .allowsHitTesting(selectedTab == .settings)
             }

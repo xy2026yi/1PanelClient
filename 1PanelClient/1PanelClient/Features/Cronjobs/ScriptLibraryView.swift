@@ -88,9 +88,7 @@ struct ScriptLibraryView: View {
             text: $searchText,
             isSearching: $isSearching,
             title: "脚本库",
-            prompt: "搜索脚本名",
-            showCloseButton: false,
-            onClose: {}
+            prompt: "搜索脚本名"
         )
         .task { if vm.scripts.isEmpty { await vm.load() } }
         .onChange(of: searchText) { _, newValue in

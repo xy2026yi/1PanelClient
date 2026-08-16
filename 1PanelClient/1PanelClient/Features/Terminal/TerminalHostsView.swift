@@ -77,9 +77,8 @@ struct TerminalHostsView: View {
                 TerminalView(
                     server: server,
                     target: .sshHost(id: host.id, cols: 80, rows: 24),
-                    title: host.displayName,
-                    showCloseButton: false
-                )
+                    title: host.displayName
+        )
             }
         }
         .task { await vm.loadAll() }
@@ -94,9 +93,8 @@ struct TerminalHostsView: View {
                 TerminalView(
                     server: server,
                     target: .host(cols: 80, rows: 24),
-                    title: localTitle ?? "本机",
-                    showCloseButton: false
-                )
+                    title: localTitle ?? "本机"
+        )
             } label: {
                 HStack(spacing: 12) {
                     IconBadge(systemName: "desktopcomputer", color: .blue)

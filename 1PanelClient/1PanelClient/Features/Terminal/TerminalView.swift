@@ -19,16 +19,12 @@ struct TerminalView: View {
     /// 连接调试信息开关（连接横幅/WS 地址/超时诊断），开启后重连生效
     @AppStorage("terminalShowConnectionDebug") private var showConnectionDebug = false
 
-    /// 是否显示关闭按钮（fullScreen 模式用 true）
-    var showCloseButton: Bool = false
-
     /// 连接目标标题
     private let title: String
 
-    init(server: ServerConfig, target: TerminalTarget, title: String? = nil, showCloseButton: Bool = false, initialCommand: String? = nil) {
+    init(server: ServerConfig, target: TerminalTarget, title: String? = nil, initialCommand: String? = nil) {
         let s = TerminalSession(server: server, target: target, initialCommand: initialCommand)
         _session = StateObject(wrappedValue: s)
-        self.showCloseButton = showCloseButton
         switch target {
         case .host:
             self.title = title ?? "终端"
@@ -56,13 +52,6 @@ struct TerminalView: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if showCloseButton {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                }
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 toolbarMenu
             }

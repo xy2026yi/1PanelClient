@@ -7,11 +7,18 @@ import SwiftUI
 
 struct SettingsTab: View {
     @ObservedObject var manager: ServerManager
+    /// 向 MainTabView 同步导航深度：true=根页面（显示底部 Tab 栏），false=子页面
+    @Binding var atRoot: Bool
     @State private var showAddSheet = false
     @State private var editingServer: ServerConfig?
     @State private var showAbout = false
     @State private var serverToDelete: ServerConfig?
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
+
+    init(manager: ServerManager, atRoot: Binding<Bool> = .constant(true)) {
+        self.manager = manager
+        self._atRoot = atRoot
+    }
 
     var body: some View {
         NavigationStack {
@@ -19,7 +26,7 @@ struct SettingsTab: View {
         }
     }
 
-    /// 供外部 NavigationStack 复用的根内容（不包含 NavigationStack）
+    /// 根内容（List 及其修饰符）
     var settingsRootContent: some View {
         List {
             // MARK: - 当前服务器
@@ -108,6 +115,9 @@ struct SettingsTab: View {
         // navigationDestination 必须挂在 List 外，否则 lazy 容器内会被忽略
         .navigationDestination(isPresented: $showAbout) {
             AboutDetailView()
+        }
+        .onChange(of: showAbout) { _, show in
+            atRoot = !show
         }
         .sheet(isPresented: $showAddSheet) {
             ServerEditView(manager: manager)

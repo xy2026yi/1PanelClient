@@ -71,9 +71,7 @@ struct ProcessView: View {
             text: $searchText,
             isSearching: $isSearching,
             title: "进程",
-            prompt: searchTextPrompt,
-            showCloseButton: false,
-            onClose: {}
+            prompt: searchTextPrompt
         )
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
