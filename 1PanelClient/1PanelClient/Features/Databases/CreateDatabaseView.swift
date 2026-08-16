@@ -281,12 +281,12 @@ struct CreateDatabaseView: View {
                 if vm.isMySQL {
                     await vm.loadUsers()
                     if password.isEmpty {
-                        password = randomPassword()
+                        password = PasswordInputRow.randomPassword()
                         showPassword = true
                     }
                 }
                 if (vm.isPostgreSQL || vm.isMongoDB) && password.isEmpty {
-                    password = randomPassword()
+                    password = PasswordInputRow.randomPassword()
                     showPassword = true
                 }
             }
@@ -302,7 +302,7 @@ struct CreateDatabaseView: View {
                 if newMode == .create {
                     username = name
                     if password.isEmpty {
-                        password = randomPassword()
+                        password = PasswordInputRow.randomPassword()
                         showPassword = true
                     }
                 }
@@ -417,26 +417,7 @@ struct CreateDatabaseView: View {
     }
 
     private var passwordRow: some View {
-        HStack {
-            if showPassword {
-                TextField("密码", text: $password)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.system(.body, design: .monospaced))
-            } else {
-                SecureField("密码", text: $password)
-            }
-            Button { showPassword.toggle() } label: {
-                Image(systemName: showPassword ? "eye.slash" : "eye")
-                    .foregroundStyle(.secondary)
-            }
-            Button {
-                password = randomPassword()
-            } label: {
-                Image(systemName: "shuffle")
-                    .foregroundStyle(.secondary)
-            }
-        }
+        PasswordInputRow(password: $password, showPassword: $showPassword)
     }
 
     private func submit() async {
@@ -495,10 +476,6 @@ struct CreateDatabaseView: View {
         }
     }
 
-    private func randomPassword() -> String {
-        let chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-        return String((0..<16).map { _ in chars.randomElement()! })
-    }
 }
 
 // MARK: - 创建数据库用户视图
@@ -591,7 +568,7 @@ struct CreateDatabaseUserView: View {
             }
             .task {
                 if password.isEmpty {
-                    password = randomPassword()
+                    password = PasswordInputRow.randomPassword()
                     showPassword = true
                 }
             }
@@ -599,26 +576,7 @@ struct CreateDatabaseUserView: View {
     }
 
     private var passwordRow: some View {
-        HStack {
-            if showPassword {
-                TextField("密码", text: $password)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.system(.body, design: .monospaced))
-            } else {
-                SecureField("密码", text: $password)
-            }
-            Button { showPassword.toggle() } label: {
-                Image(systemName: showPassword ? "eye.slash" : "eye")
-                    .foregroundStyle(.secondary)
-            }
-            Button {
-                password = randomPassword()
-            } label: {
-                Image(systemName: "shuffle")
-                    .foregroundStyle(.secondary)
-            }
-        }
+        PasswordInputRow(password: $password, showPassword: $showPassword)
     }
 
     @ViewBuilder
@@ -662,10 +620,6 @@ struct CreateDatabaseUserView: View {
         }
     }
 
-    private func randomPassword() -> String {
-        let chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-        return String((0..<16).map { _ in chars.randomElement()! })
-    }
 }
 
 // MARK: - 数据库用户详情/编辑视图

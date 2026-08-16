@@ -169,7 +169,6 @@ struct AppDetailView: View {
     @State private var uninstallDeleteImage = false
     @State private var uninstallDeleteBackup = false
     @State private var uninstallForceDelete = false
-    @State private var uninstallConfirmName = ""
 
     /// 从 VM 实时查找最新应用数据（操作后状态自动刷新）
     private var currentApp: AppInstall {
@@ -177,14 +176,28 @@ struct AppDetailView: View {
     }
 
     var body: some View {
-        ZStack {
-            listContent
-            if showUninstall {
-                uninstallConfirmDialog
-                    .transition(.opacity)
+        listContent
+            .sheet(isPresented: $showUninstall) {
+                TextInputConfirmSheet(
+                    title: "卸载 \(app.displayName)",
+                    message: "此操作不可恢复。请输入应用名称「\(app.displayName)」以确认卸载。",
+                    expectedText: app.displayName,
+                    fieldLabel: "确认名称",
+                    fieldPlaceholder: "应用名称",
+                    confirmTitle: "卸载"
+                ) {
+                    Task { await performUninstall() }
+                } options: {
+                    Section("选项") {
+                        if app.linkDB == true {
+                            Toggle("同时删除数据库", isOn: $uninstallDeleteDB)
+                        }
+                        Toggle("删除备份", isOn: $uninstallDeleteBackup)
+                        Toggle("删除镜像", isOn: $uninstallDeleteImage)
+                        Toggle("强制删除", isOn: $uninstallForceDelete)
+                    }
+                }
             }
-        }
-        .animation(.easeInOut(duration: 0.2), value: showUninstall)
         .navigationDestination(isPresented: $showUninstallProgress) {
             TaskProgressView(
                 taskID: uninstallTaskID,
@@ -409,7 +422,6 @@ struct AppDetailView: View {
         }
         uninstallDeleteBackup = vm.appStoreConfig?.isUninstallDeleteBackup ?? false
         uninstallDeleteImage = vm.appStoreConfig?.isUninstallDeleteImage ?? false
-        uninstallConfirmName = ""
         showUninstall = true
     }
 
@@ -464,105 +476,7 @@ struct AppDetailView: View {
         }
     }
 
-    // MARK: - 卸载居中确认弹窗
-
-    private var uninstallConfirmDialog: some View {
-        ZStack {
-            // 半透明背景
-            Color.black.opacity(0.4)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    showUninstall = false
-                }
-
-            // 弹窗卡片
-            VStack(spacing: 16) {
-                // 标题
-                Text("卸载 - \(app.displayName)")
-                    .font(.headline)
-                    .foregroundStyle(.red)
-
-                // 勾选项
-                VStack(spacing: 10) {
-                    if app.linkDB == true {
-                        HStack {
-                            Image(systemName: uninstallDeleteDB ? "checkmark.square.fill" : "square")
-                                .foregroundStyle(uninstallDeleteDB ? .blue : .secondary)
-                            Text("同时删除数据库")
-                            Spacer()
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture { uninstallDeleteDB.toggle() }
-                    }
-                    HStack {
-                        Image(systemName: uninstallDeleteBackup ? "checkmark.square.fill" : "square")
-                            .foregroundStyle(uninstallDeleteBackup ? .blue : .secondary)
-                        Text("删除备份")
-                        Spacer()
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture { uninstallDeleteBackup.toggle() }
-                    HStack {
-                        Image(systemName: uninstallDeleteImage ? "checkmark.square.fill" : "square")
-                            .foregroundStyle(uninstallDeleteImage ? .blue : .secondary)
-                        Text("删除镜像")
-                        Spacer()
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture { uninstallDeleteImage.toggle() }
-                    HStack {
-                        Image(systemName: uninstallForceDelete ? "checkmark.square.fill" : "square")
-                            .foregroundStyle(uninstallForceDelete ? .blue : .secondary)
-                        Text("强制删除")
-                        Spacer()
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture { uninstallForceDelete.toggle() }
-                }
-
-                // 输入框
-                TextField("输入应用名称以确认", text: $uninstallConfirmName)
-                    .textFieldStyle(.roundedBorder)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-
-                // 按钮
-                HStack(spacing: 12) {
-                    Button {
-                        showUninstall = false
-                    } label: {
-                        Text("取消")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                    }
-                    .buttonStyle(.bordered)
-
-                    Button {
-                        Task { await performUninstall() }
-                    } label: {
-                        Group {
-                            if vm.isUninstalling {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text("确认")
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.red)
-                    .disabled(uninstallConfirmName != (app.name ?? "") && uninstallConfirmName != app.displayName || vm.isUninstalling)
-                }
-            }
-            .padding(20)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .padding(.horizontal, 40)
-        }
-        .transition(.opacity)
-    }
+    // MARK: - 卸载执行（确认弹窗由共享 TextInputConfirmSheet 提供）
 
     private func performUninstall() async {
         let taskID = UUID().uuidString

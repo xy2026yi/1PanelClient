@@ -139,13 +139,7 @@ struct OverviewTab: View {
                 Text(vm.settingInfo?.systemVersion.flatMap { $0.isEmpty ? nil : $0 } ?? "未知")
                     .foregroundStyle(.primary)
                 if vm.upgradeInfo?.hasUpdate(comparedTo: vm.settingInfo?.systemVersion) == true {
-                    Text("有更新")
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.orange, in: Capsule())
+                    StatusBadge(text: "有更新", color: .orange)
                 }
                 Image(systemName: "chevron.right")
                     .font(.caption2)
@@ -703,13 +697,13 @@ struct PanelUpgradeView: View {
                 }
                 Spacer()
                 if let newCount = release.newCount, newCount > 0 {
-                    ReleaseTag(text: "新增 \(newCount)", color: .green)
+                    StatusBadge(text: "新增 \(newCount)", color: .green)
                 }
                 if let optCount = release.optimizationCount, optCount > 0 {
-                    ReleaseTag(text: "优化 \(optCount)", color: .blue)
+                    StatusBadge(text: "优化 \(optCount)", color: .blue)
                 }
                 if let fixCount = release.fixCount, fixCount > 0 {
-                    ReleaseTag(text: "修复 \(fixCount)", color: .orange)
+                    StatusBadge(text: "修复 \(fixCount)", color: .orange)
                 }
             }
 
@@ -784,19 +778,5 @@ struct PanelUpgradeView: View {
         text = text.replacingOccurrences(of: "&gt;", with: ">")
         let lines = text.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         return lines.joined(separator: "\n")
-    }
-}
-
-private struct ReleaseTag: View {
-    let text: String
-    let color: Color
-
-    var body: some View {
-        Text(text)
-            .font(.caption2)
-            .foregroundStyle(color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.12), in: Capsule())
     }
 }

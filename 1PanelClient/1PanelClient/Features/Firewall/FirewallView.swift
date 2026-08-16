@@ -424,12 +424,7 @@ struct FirewallRuleRow: View {
                 Text(rule.port ?? "-")
                     .font(.system(.body, design: .monospaced).bold())
                 if let proto = rule.protocolField, !proto.isEmpty {
-                    Text(proto.uppercased())
-                        .font(.caption2.bold())
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.15))
-                        .foregroundStyle(.blue)
-                        .clipShape(Capsule())
+                    StatusBadge(text: proto.uppercased(), color: .blue)
                 }
                 Spacer()
                 strategyBadge(rule.strategy)

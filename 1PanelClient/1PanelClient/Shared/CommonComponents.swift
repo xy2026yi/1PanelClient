@@ -115,6 +115,44 @@ struct PasswordRow: View {
     }
 }
 
+// MARK: - 密码输入行（表单内：输入 + 显示切换 + 随机生成）
+
+/// 表单里的密码输入行：SecureField/明文切换 + 随机密码按钮。
+/// `showPassword` 以 Binding 暴露，便于外部在生成密码后自动切换为明文展示。
+struct PasswordInputRow: View {
+    @Binding var password: String
+    @Binding var showPassword: Bool
+
+    var body: some View {
+        HStack {
+            if showPassword {
+                TextField("密码", text: $password)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(.body, design: .monospaced))
+            } else {
+                SecureField("密码", text: $password)
+            }
+            Button { showPassword.toggle() } label: {
+                Image(systemName: showPassword ? "eye.slash" : "eye")
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                password = Self.randomPassword()
+            } label: {
+                Image(systemName: "shuffle")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// 16 位随机密码（去除易混淆字符 0/O、1/l/I）
+    static func randomPassword(length: Int = 16) -> String {
+        let chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        return String((0..<length).map { _ in chars.randomElement()! })
+    }
+}
+
 // MARK: - 勾选行（选择列表行）
 
 /// 选择列表行：等宽标题 + 右侧选中勾（checkmark.circle.fill，与设置页选择行一致）。
@@ -206,6 +244,8 @@ struct StatusBadge: View {
     var color: Color = .secondary
     var icon: String? = nil
     var backgroundOpacity: Double = 0.15
+    /// 等宽数字/字符（如 CPU 百分比、PID 等数据徽章）
+    var monospaced: Bool = false
 
     var body: some View {
         HStack(spacing: 3) {
@@ -216,7 +256,7 @@ struct StatusBadge: View {
             Text(text)
                 .lineLimit(1)
         }
-        .font(.caption2.bold())
+        .font(monospaced ? .caption2.monospaced().bold() : .caption2.bold())
         .padding(.horizontal, 7)
         .padding(.vertical, 2.5)
         .background(color.opacity(backgroundOpacity))

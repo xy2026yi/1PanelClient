@@ -11,6 +11,7 @@ struct ProcessView: View {
     @StateObject private var monitor: ProcessMonitor
 
     @State private var searchText = ""
+    @State private var isSearching = false
     @State private var sortOption: SortOption = .cpu
     @State private var selectedProcess: ProcessItem?
     @State private var showStopConfirm = false
@@ -66,7 +67,14 @@ struct ProcessView: View {
         }
         .navigationTitle("进程")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: searchTextPrompt)
+        .searchIconMode(
+            text: $searchText,
+            isSearching: $isSearching,
+            title: "进程",
+            prompt: searchTextPrompt,
+            showCloseButton: false,
+            onClose: {}
+        )
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -224,7 +232,7 @@ struct ProcessView: View {
                     .onTapGesture { selectedProcess = proc }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
     }
 
     // MARK: - 网络连接列表
@@ -235,7 +243,7 @@ struct ProcessView: View {
                 NetworkRow(connection: conn)
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
     }
 }
 
@@ -248,7 +256,7 @@ private struct ProcessRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(process.name)
-                    .font(.subheadline.weight(.medium))
+                    .font(.body.bold())
                     .lineLimit(1)
                 Spacer()
                 Text("PID \(process.pid)")
@@ -273,33 +281,17 @@ private struct ProcessRow: View {
                     cpuBadge(cpu)
                 }
                 if let mem = process.rss, !mem.isEmpty {
-                    memBadge(mem)
+                    StatusBadge(text: mem, color: .purple, monospaced: true)
                 }
             }
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
     }
 
     private func cpuBadge(_ value: String) -> some View {
         let v = Double(value.replacingOccurrences(of: "%", with: "")) ?? 0
         let color: Color = v > 50 ? .red : v > 10 ? .orange : .blue
-        return Text("CPU \(value)")
-            .font(.caption2.monospaced())
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.15))
-            .foregroundStyle(color)
-            .clipShape(Capsule())
-    }
-
-    private func memBadge(_ value: String) -> some View {
-        Text(value)
-            .font(.caption2.monospaced())
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Color.purple.opacity(0.15))
-            .foregroundStyle(.purple)
-            .clipShape(Capsule())
+        return StatusBadge(text: "CPU \(value)", color: color, monospaced: true)
     }
 }
 
@@ -312,7 +304,8 @@ private struct NetworkRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(connection.name)
-                    .font(.subheadline.weight(.medium))
+                    .font(.body.bold())
+                    .lineLimit(1)
                 Spacer()
                 Text("PID \(connection.pid)")
                     .font(.caption.monospaced())
@@ -320,13 +313,7 @@ private struct NetworkRow: View {
             }
 
             HStack(spacing: 6) {
-                Text(connection.type.uppercased())
-                    .font(.caption2.monospaced().bold())
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(connection.typeColor.opacity(0.15))
-                    .foregroundStyle(connection.typeColor)
-                    .clipShape(Capsule())
+                StatusBadge(text: connection.type.uppercased(), color: connection.typeColor)
 
                 statusBadge
 
@@ -336,7 +323,7 @@ private struct NetworkRow: View {
                     .font(.caption2.monospaced())
                     .foregroundStyle(.primary)
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 8))
+                    .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Text(connection.remoteaddr.port == 0 ? "*" : "\(connection.remoteaddr.ip):\(connection.remoteaddr.port)")
                     .font(.caption2.monospaced())
@@ -344,7 +331,7 @@ private struct NetworkRow: View {
                     .lineLimit(1)
             }
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
     }
 
     @ViewBuilder
@@ -358,13 +345,7 @@ private struct NetworkRow: View {
             default:            return .secondary
             }
         }()
-        Text(connection.status)
-            .font(.caption2.bold())
-            .padding(.horizontal, 5)
-            .padding(.vertical, 1)
-            .background(color.opacity(0.15))
-            .foregroundStyle(color)
-            .clipShape(Capsule())
+        StatusBadge(text: connection.status, color: color)
     }
 }
 

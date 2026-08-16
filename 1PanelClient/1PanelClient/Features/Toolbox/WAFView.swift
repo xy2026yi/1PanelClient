@@ -716,30 +716,6 @@ struct WAFIPRulesView: View {
     }
 }
 
-struct WAFIPRuleRow: View {
-    let item: WAFRuleIPItem
-    let onToggle: () -> Void
-
-    var body: some View {
-        Toggle(isOn: Binding(get: { item.state == "on" }, set: { _ in onToggle() })) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(item.displayValue)
-                        .font(.system(.body, design: .monospaced))
-                    Spacer()
-                }
-                HStack(spacing: 8) {
-                    StatusBadge(text: item.typeLabel, color: .blue)
-                    if let desc = item.description, !desc.isEmpty {
-                        Text(desc).font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-            }
-        }
-        .tint(item.state == "on" ? .green : .gray)
-    }
-}
-
 // MARK: - 创建 IP 规则
 
 struct WAFCreateIPRuleView: View {
@@ -1534,24 +1510,6 @@ struct WAFCommonRulesView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
-    }
-}
-
-struct WAFCommonRuleRow: View {
-    let item: WAFCommonRuleItem
-    let onToggle: () -> Void
-
-    var body: some View {
-        Toggle(isOn: Binding(get: { item.state == "on" }, set: { _ in onToggle() })) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.rule)
-                    .font(.system(.body, design: .monospaced))
-                if let desc = item.description, !desc.isEmpty {
-                    Text(desc).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-        }
-        .tint(item.state == "on" ? .green : .gray)
     }
 }
 
