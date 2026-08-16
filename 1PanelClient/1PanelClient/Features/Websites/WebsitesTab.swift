@@ -79,18 +79,9 @@ struct WebsitesTab: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            Button {
+            FloatingActionButton(action: {
                 showCreateSheet = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.accentColor, in: Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 20)
+            })
             .accessibilityLabel("创建网站")
         }
         .onChange(of: searchText) { _, newValue in
@@ -116,19 +107,27 @@ struct WebsitesTab: View {
             OpenRestyCard(vm: vm, manager: manager, showConfig: $showOpenRestyConfig)
 
             if vm.websites.isEmpty {
-                if let err = vm.errorMessage, !err.isEmpty {
-                    Section {
-                        Text(err)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Section {
-                        Text("点击右下角 + 创建第一个网站")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                Section {
+                    if let err = vm.errorMessage, !err.isEmpty {
+                        ContentUnavailableView {
+                            Label("加载失败", systemImage: "wifi.exclamationmark")
+                        } description: {
+                            Text(err)
+                        } actions: {
+                            Button("重试") {
+                                Task { await vm.refresh() }
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    } else {
+                        ContentUnavailableView(
+                            "暂无网站",
+                            systemImage: "globe",
+                            description: Text("点击右下角 + 创建第一个网站")
+                        )
                     }
                 }
+                .listRowBackground(Color.clear)
             } else {
                 Section {
                     ForEach(vm.websites) { w in
@@ -232,7 +231,7 @@ struct OpenRestyCard: View {
     private func headerRow(_ app: AppInstall) -> some View {
         HStack(spacing: 12) {
             // OpenResty 使用内置品牌图标，避免依赖服务器应用图标接口
-            BrandIcon(brand: .openresty, size: 40)
+            BrandIcon(brand: .openresty, size: 44)
             VStack(alignment: .leading, spacing: 3) {
                 Text("OpenResty")
                     .font(.body.bold())
@@ -248,9 +247,7 @@ struct OpenRestyCard: View {
             }
             Spacer()
             HStack(spacing: 4) {
-                Circle()
-                    .fill(app.statusColor)
-                    .frame(width: 6, height: 6)
+                StatusDot(color: app.statusColor)
                 Text(app.status ?? "未知")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -359,13 +356,13 @@ struct WebsiteDetailView: View {
             } else if let d = detail {
                 Section {
                     if let alias = d.alias, !alias.isEmpty {
-                        LabeledRow("别名", value: alias)
+                        InfoRow("别名", value: alias)
                     }
                     HStack {
                         Text("状态").foregroundStyle(.secondary)
                         Spacer()
                         Text(d.status ?? "—")
-                            .foregroundStyle(statusColor(d.status))
+                            .foregroundStyle(d.statusColor)
                     }
                     Toggle("操作", isOn: Binding(
                         get: { (d.status ?? "").lowercased() == "running" },
@@ -375,7 +372,7 @@ struct WebsiteDetailView: View {
                     ))
                     .disabled(isOperating)
                     if let port = d.primaryDomain, !port.isEmpty {
-                        LabeledRow("主域名", value: port)
+                        InfoRow("主域名", value: port)
                     }
                     NavigationLink {
                         WebsiteHTTPSView(websiteId: website.id, vm: vm)
@@ -391,7 +388,7 @@ struct WebsiteDetailView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    LabeledRow("类型", value: d.type ?? website.typeDisplayName)
+                    InfoRow("类型", value: d.type ?? website.typeDisplayName)
                     NavigationLink {
                         WebsiteLogPage(websiteId: website.id, vm: vm)
                     } label: {
@@ -399,16 +396,16 @@ struct WebsiteDetailView: View {
                     }
                     .buttonStyle(.plain)
                     if let p = d.sitePath, !p.isEmpty {
-                        LabeledRow("根目录", value: p)
+                        InfoRow("根目录", value: p)
                     }
                     if let created = d.createdAt, !created.isEmpty {
-                        LabeledRow("创建时间", value: String(created.prefix(19)))
+                        InfoRow("创建时间", value: String(created.prefix(19)))
                     }
                 }
             } else {
                 Section {
-                    LabeledRow("主域名", value: website.primaryDomain ?? "—")
-                    LabeledRow("类型", value: website.typeDisplayName)
+                    InfoRow("主域名", value: website.primaryDomain ?? "—")
+                    InfoRow("类型", value: website.typeDisplayName)
                 }
             }
         }
@@ -474,11 +471,6 @@ struct WebsiteDetailView: View {
         detail = await vm.loadDetail(id: website.id)
     }
 
-    private func statusColor(_ status: String?) -> Color {
-        guard let s = status?.lowercased() else { return .secondary }
-        return s == "running" ? .green : .orange
-    }
-
     private func toggleStatus(current: String?, to running: Bool) async {
         isOperating = true
         let op = running ? "start" : "stop"
@@ -517,9 +509,7 @@ struct WebsiteRow: View {
             Spacer()
 
             HStack(spacing: 4) {
-                Circle()
-                    .fill(website.statusColor)
-                    .frame(width: 6, height: 6)
+                StatusDot(color: website.statusColor)
                 Text(website.status ?? "—")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -2151,7 +2141,7 @@ struct WebsiteLogPage: View {
                         VStack(alignment: .leading, spacing: 2) {
                             ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
                                 Text(line)
-                                    .font(.system(size: 11, design: .monospaced))
+                                    .font(.system(.caption, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .textSelection(.enabled)
                                     .id(idx)
@@ -2246,7 +2236,7 @@ struct WebsiteLogView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                                 Text(line)
-                                    .font(.system(size: 11, design: .monospaced))
+                                    .font(.system(.caption, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .textSelection(.enabled)
                             }

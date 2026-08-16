@@ -74,18 +74,9 @@ struct AppsTab: View {
             onClose: { dismiss() }
         )
         .overlay(alignment: .bottomTrailing) {
-            Button {
+            FloatingActionButton(action: {
                 showStore = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.accentColor, in: Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 20)
+            })
             .accessibilityLabel("进入应用商店")
         }
         .toolbar {
@@ -234,16 +225,16 @@ struct AppDetailView: View {
             // 应用信息（精简）
             Section("应用信息") {
                 if let port = app.httpPort, port > 0 {
-                    LabeledRow("HTTP 端口", value: "\(port)")
+                    InfoRow("HTTP 端口", value: "\(port)")
                 }
                 if let ports = app.httpsPort, ports > 0 {
-                    LabeledRow("HTTPS 端口", value: "\(ports)")
+                    InfoRow("HTTPS 端口", value: "\(ports)")
                 }
                 if let container = app.container, !container.isEmpty {
-                    LabeledRow("容器名", value: container)
+                    InfoRow("容器名", value: container)
                 }
                 if let created = app.createdAt, !created.isEmpty {
-                    LabeledRow("安装时间", value: String(created.prefix(19)))
+                    InfoRow("安装时间", value: String(created.prefix(19)))
                 }
             }
 
@@ -344,9 +335,7 @@ struct AppDetailView: View {
                     }
                 }
                 HStack(spacing: 4) {
-                    Circle()
-                        .fill(currentApp.statusColor)
-                        .frame(width: 6, height: 6)
+                    StatusDot(color: currentApp.statusColor)
                     Text((currentApp.status ?? "未知").capitalized)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -590,27 +579,6 @@ struct AppDetailView: View {
             uninstallTaskID = taskID
             showUninstallProgress = true
         }
-    }
-}
-
-struct LabeledRow: View {
-    let label: String
-    let value: String
-
-    init(_ label: String, value: String) {
-        self.label = label
-        self.value = value
-    }
-
-    var body: some View {
-        HStack {
-            Text(label)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .multilineTextAlignment(.trailing)
-        }
-        .font(.subheadline)
     }
 }
 
@@ -1422,9 +1390,7 @@ struct AppRow: View {
             Spacer()
 
             HStack(spacing: 4) {
-                Circle()
-                    .fill(app.statusColor)
-                    .frame(width: 6, height: 6)
+                StatusDot(color: app.statusColor)
                 Text(app.isRunning ? "已启动" : (app.status ?? "未知"))
                     .font(.caption)
                     .foregroundStyle(.secondary)

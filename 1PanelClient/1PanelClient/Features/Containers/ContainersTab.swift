@@ -71,18 +71,9 @@ struct ContainersTab: View {
             Text(vm.alertMessage)
         }
         .overlay(alignment: .bottomTrailing) {
-            Button {
+            FloatingActionButton(action: {
                 showCreate = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.accentColor, in: Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 20)
+            })
             .accessibilityLabel("创建容器")
         }
         .onChange(of: searchText) { _, newValue in
@@ -214,20 +205,18 @@ struct DockerStatusCard: View {
     private func headerRow(_ status: DockerStatus) -> some View {
         HStack(spacing: 12) {
             // Docker 使用内置品牌图标
-            BrandIcon(brand: .docker, size: 40)
+            BrandIcon(brand: .docker, size: 44)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text("Docker")
                     .font(.body.bold())
-                Text(status.isActive == true ? "Running" : "Stopped")
+                Text(status.isActive == true ? "运行中" : "已停止")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
             HStack(spacing: 4) {
-                Circle()
-                    .fill(isRunning ? Color.green : Color.gray)
-                    .frame(width: 6, height: 6)
+                StatusDot(color: isRunning ? .green : .gray)
                 Text(status.isExist == false ? "未安装" : (isRunning ? "运行中" : "已停止"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -362,7 +351,7 @@ struct ContainerRow: View {
             // CPU 使用率（靠左，状态徽标已移除）
             HStack(spacing: 2) {
                 Image(systemName: "cpu")
-                    .font(.system(size: 9))
+                    .font(.caption2)
                 Text(container.cpuDisplay)
                     .font(.caption2.monospacedDigit())
             }
@@ -397,20 +386,20 @@ struct ContainerDetailView: View {
 
             Section("基本信息") {
                 if let img = container.imageName, !img.isEmpty {
-                    LabeledRow("镜像", value: img)
+                    InfoRow("镜像", value: img)
                 }
                 if let app = container.appName, !app.isEmpty {
-                    LabeledRow("应用程序", value: app)
+                    InfoRow("应用程序", value: app)
                 }
                 if let sites = container.websites, !sites.isEmpty {
-                    LabeledRow("网站", value: sites.joined(separator: "\n"))
+                    InfoRow("网站", value: sites.joined(separator: "\n"))
                 }
                 if let ports = container.ports, !ports.isEmpty {
-                    LabeledRow("端口映射", value: ports.joined(separator: "\n"))
+                    InfoRow("端口映射", value: ports.joined(separator: "\n"))
                 }
-                LabeledRow("运行时长", value: container.runTime ?? "—")
+                InfoRow("运行时长", value: container.runTime ?? "—")
                 if let created = container.createTime, !created.isEmpty {
-                    LabeledRow("创建时间", value: String(created.prefix(19)))
+                    InfoRow("创建时间", value: String(created.prefix(19)))
                 }
             }
 
@@ -509,21 +498,19 @@ struct ContainerDetailView: View {
     @ViewBuilder
     private var headerRow: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: "shippingbox.fill", color: .indigo, size: 40, cornerRadius: 10)
+            IconBadge(systemName: "shippingbox.fill", color: .indigo)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(container.displayName)
                     .font(.body.bold())
                     .lineLimit(1)
-                Text(isRunning ? "Running" : "Stopped")
+                Text(isRunning ? "运行中" : "已停止")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
             HStack(spacing: 4) {
-                Circle()
-                    .fill(isRunning ? Color.green : Color.gray)
-                    .frame(width: 6, height: 6)
+                StatusDot(color: isRunning ? .green : .gray)
                 Text(isRunning ? "运行中" : "已停止")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -681,7 +668,7 @@ struct ContainerLogView: View {
                     }
                     ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
                         Text(line)
-                            .font(.system(size: 11, design: .monospaced))
+                            .font(.system(.caption, design: .monospaced))
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
@@ -1013,7 +1000,7 @@ struct ContainerMonitorChart: View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach(entries, id: \.title) { entry in
                 HStack(spacing: 5) {
-                    Circle().fill(entry.color).frame(width: 6, height: 6)
+                    StatusDot(color: entry.color)
                     Text(entry.title).foregroundStyle(entry.color)
                     Spacer(minLength: 4)
                     Text(entry.text).monospacedDigit().foregroundStyle(entry.color)
@@ -1373,7 +1360,7 @@ struct ImageRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: "square.stack.3d.up.fill", color: .teal, size: 38, cornerRadius: 10)
+            IconBadge(systemName: "square.stack.3d.up.fill", color: .teal, size: 34, cornerRadius: 8)
             VStack(alignment: .leading, spacing: 3) {
                 Text(image.displayName)
                     .font(.subheadline.bold())
@@ -1383,12 +1370,12 @@ struct ImageRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if image.isUsed == true {
-                        StatusBadge(text: "使用中", color: .green, backgroundOpacity: 0.12)
+                        StatusBadge(text: "使用中", color: .green)
                     } else {
-                        StatusBadge(text: "未使用", color: .gray, backgroundOpacity: 0.1)
+                        StatusBadge(text: "未使用", color: .gray)
                     }
                     if image.isPinned == true {
-                        StatusBadge(text: "已固定", color: .orange, backgroundOpacity: 0.12)
+                        StatusBadge(text: "已固定", color: .orange)
                     }
                 }
             }
@@ -1822,7 +1809,7 @@ struct RepoRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: "shippingbox.fill", color: .indigo, size: 38, cornerRadius: 10)
+            IconBadge(systemName: "shippingbox.fill", color: .indigo, size: 34, cornerRadius: 8)
             VStack(alignment: .leading, spacing: 3) {
                 Text(repo.name ?? "未知")
                     .font(.subheadline.bold())
@@ -1834,17 +1821,15 @@ struct RepoRow: View {
                 }
                 HStack(spacing: 6) {
                     if repo.auth == true {
-                        StatusBadge(text: "已认证", color: .green, backgroundOpacity: 0.12)
+                        StatusBadge(text: "已认证", color: .green)
                     } else {
-                        StatusBadge(text: "公开", color: .gray, backgroundOpacity: 0.1)
+                        StatusBadge(text: "公开", color: .gray)
                     }
                     if let status = repo.status, !status.isEmpty {
                         let isSuccess = status.lowercased() == "success"
                         StatusBadge(
                             text: isSuccess ? "正常" : status,
-                            color: isSuccess ? .green : .orange,
-                            backgroundOpacity: 0.12
-                        )
+                            color: isSuccess ? .green : .orange                        )
                     }
                 }
             }

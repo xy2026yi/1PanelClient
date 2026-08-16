@@ -182,9 +182,7 @@ struct TerminalView: View {
 
     @ViewBuilder
     private var statusDot: some View {
-        Circle()
-            .fill(session.isConnected ? Color.green : (session.isConnecting ? Color.orange : Color.red))
-            .frame(width: 8, height: 8)
+        StatusDot(color: session.isConnected ? .green : (session.isConnecting ? .orange : .red), diameter: 8)
     }
 
     // MARK: - 快捷控制键
@@ -283,16 +281,7 @@ struct TerminalCommandPicker: View {
                         Button {
                             command = preset
                         } label: {
-                            HStack {
-                                Text(preset)
-                                    .font(.system(.body, design: .monospaced))
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                if command == preset {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(Color.accentColor)
-                                }
-                            }
+                            CheckRow(title: preset, isSelected: command == preset)
                         }
                         .buttonStyle(.plain)
                     }

@@ -27,6 +27,9 @@ final class DatabasesViewModel: ObservableObject {
     var redisSystems: [DatabaseSystem] { systems.filter { ["redis","redis-cluster"].contains($0.type.lowercased()) } }
     var mongoSystems: [DatabaseSystem] { systems.filter { ["mongodb","mongodb-cluster"].contains($0.type.lowercased()) } }
 
+    /// 最近一次请求失败的错误信息（仅用于全部请求失败时展示）
+    private var lastError: String?
+
     func loadSystems() async {
         isLoading = true
         defer { isLoading = false }
@@ -36,13 +39,21 @@ final class DatabasesViewModel: ObservableObject {
         async let redis: [DatabaseSystem]? = fetchList(types: "redis,redis-cluster")
         async let mongo: [DatabaseSystem]? = fetchList(types: "mongodb,mongodb-cluster")
 
+        // nil = 请求失败（与「已安装但列表为空」区分开），全部失败才算加载失败
+        let results = [await mysql, await pg, await redis, await mongo]
         var all: [DatabaseSystem] = []
-        all.append(contentsOf: await mysql ?? [])
-        all.append(contentsOf: await pg ?? [])
-        all.append(contentsOf: await redis ?? [])
-        all.append(contentsOf: await mongo ?? [])
+        var loaded = 0
+        for list in results {
+            if let list {
+                all.append(contentsOf: list)
+                loaded += 1
+            }
+        }
         self.systems = all
-        self.errorMessage = nil
+        self.errorMessage = (loaded == 0 && all.isEmpty)
+            ? (lastError ?? "数据库列表加载失败，请检查服务器连接")
+            : nil
+        lastError = nil
     }
 
     private func fetchList(types: String) async -> [DatabaseSystem]? {
@@ -50,6 +61,7 @@ final class DatabasesViewModel: ObservableObject {
         do {
             return try await client.send(path: path, method: "GET", as: [DatabaseSystem].self)
         } catch {
+            lastError = "加载失败：\(error.localizedDescription)"
             return nil
         }
     }
@@ -101,8 +113,23 @@ struct DatabasesView: View {
 
     var body: some View {
         List {
-            ForEach(DBCategory.allCases, id: \.rawValue) { category in
-                systemGroup(for: category)
+            // 全部请求失败：显示错误态 + 重试（而不是误显示为「未安装」）
+            if vm.systems.isEmpty, let msg = vm.errorMessage, !vm.isLoading {
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(msg)
+                } actions: {
+                    Button("重试") {
+                        Task { await vm.loadSystems() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(DBCategory.allCases, id: \.rawValue) { category in
+                    systemGroup(for: category)
+                }
             }
         }
         .navigationTitle("数据库")
@@ -168,7 +195,7 @@ struct NotInstalledDatabaseRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            BrandIcon(brand: category.brand, size: 42)
+            BrandIcon(brand: category.brand, size: 44)
                 .opacity(0.4)   // 未安装：图标变淡
             VStack(alignment: .leading, spacing: 3) {
                 Text(category.title).font(.headline).foregroundStyle(.secondary)
@@ -259,12 +286,11 @@ struct DatabaseSystemRow: View {
         HStack(spacing: 14) {
             // 优先显示内置品牌图标，未知类型回退到 SF Symbol
             if let brand = Brand.from(dbType: system.type) {
-                BrandIcon(brand: brand, size: 42)
+                BrandIcon(brand: brand, size: 44)
             } else {
                 IconBadge(
                     systemName: system.systemIcon,
-                    color: Color.fromDBString(system.systemColor),
-                    size: 42
+                    color: Color.fromDBString(system.systemColor)
                 )
             }
             VStack(alignment: .leading, spacing: 3) {
@@ -550,7 +576,6 @@ struct DatabaseSystemView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showCreate = false
     @State private var showServicePasswordSheet = false
-    @State private var showPassword = false
     @State private var showRedisTerminal = false
     @State private var showRedisPasswordSheet = false
     @State private var showDatabaseTerminal = false
@@ -678,16 +703,26 @@ struct DatabaseSystemView: View {
             }
         }
         .sheet(item: $pendingDeleteDb) { db in
-            DeleteDBConfirmSheet(db: db) {
+            TextInputConfirmSheet(
+                title: "删除数据库",
+                message: "此操作不可恢复。请输入数据库名称「\(db.name ?? "")」以确认删除。",
+                expectedText: db.name ?? "",
+                fieldLabel: "确认名称",
+                fieldPlaceholder: "数据库名称"
+            ) {
                 Task { await vm.deleteDatabase(db) }
             }
-            .presentationDetents([.medium])
         }
         .sheet(item: $pendingDeleteUser) { user in
-            DeleteUserConfirmSheet(user: user) {
+            TextInputConfirmSheet(
+                title: "删除用户",
+                message: "此操作不可恢复。请输入用户名「\(user.username ?? "")」以确认删除。",
+                expectedText: user.username ?? "",
+                fieldLabel: "确认用户名",
+                fieldPlaceholder: "用户名"
+            ) {
                 Task { await vm.deleteUser(user) }
             }
-            .presentationDetents([.medium])
         }
     }
 
@@ -712,7 +747,7 @@ struct DatabaseSystemView: View {
                 } label: {
                     HStack(spacing: 12) {
                         IconBadge(systemName: check.isRunning ? "play.circle.fill" : "stop.circle.fill",
-                                  color: check.isRunning ? .green : .red, size: 40)
+                                  color: check.isRunning ? .green : .red)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(check.app ?? vm.system.displayName).font(.headline)
                             HStack(spacing: 6) {
@@ -744,6 +779,7 @@ struct DatabaseSystemView: View {
                             .disabled(vm.isOperating)
                             .buttonStyle(.bordered)
                             .controlSize(.small)
+                            .tint(.green)
                         } else {
                             Button { pendingAction = "stop" } label: {
                                 Label("停止", systemImage: "stop.fill")
@@ -760,6 +796,7 @@ struct DatabaseSystemView: View {
                         .disabled(vm.isOperating)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
+                        .tint(.orange)
 
                         Button {
                             if vm.isRedis {
@@ -808,26 +845,7 @@ struct DatabaseSystemView: View {
                 }
 
                 if let pwd = ci.password, !pwd.isEmpty {
-                    HStack {
-                        Text("密码").foregroundStyle(.secondary)
-                        Spacer()
-                        Text(showPassword ? pwd : String(repeating: "•", count: min(pwd.count, 12)))
-                            .font(.system(.subheadline, design: .monospaced))
-                        Button {
-                            showPassword.toggle()
-                        } label: {
-                            Image(systemName: showPassword ? "eye.slash" : "eye")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        Button {
-                            UIPasteboard.general.string = pwd
-                        } label: {
-                            Image(systemName: "doc.on.doc")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                    }
+                    PasswordRow(password: pwd)
                     Button {
                         if vm.isRedis {
                             showRedisPasswordSheet = true
@@ -907,8 +925,6 @@ struct DatabaseUserRow: View {
     let user: DatabaseUser
     let grants: [String]
 
-    @State private var showPassword = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -922,29 +938,7 @@ struct DatabaseUserRow: View {
             }
 
             if let pwd = user.password, !pwd.isEmpty {
-                HStack(spacing: 6) {
-                    Text("密码").font(.caption).foregroundStyle(.secondary)
-                    Spacer()
-                    Text(showPassword ? pwd : String(repeating: "•", count: min(pwd.count, 12)))
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                    Button {
-                        showPassword.toggle()
-                    } label: {
-                        Image(systemName: showPassword ? "eye.slash" : "eye")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    Button {
-                        UIPasteboard.general.string = pwd
-                    } label: {
-                        Image(systemName: "doc.on.doc")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                }
+                PasswordRow(password: pwd, compact: true)
             }
 
             if !grants.isEmpty {
@@ -1181,100 +1175,6 @@ struct RedisPasswordSheet: View {
 }
 
 // MARK: - 半屏确认删除 Sheet（数据库 / 用户）
-
-/// 删除数据库半屏确认（系统列表页滑动删除使用）
-struct DeleteDBConfirmSheet: View {
-    let db: DatabaseItem
-    let onConfirm: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var nameConfirm = ""
-
-    private var expectedName: String { db.name ?? "" }
-
-    private var canDelete: Bool {
-        nameConfirm.trimmingCharacters(in: .whitespaces) == expectedName
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Text("此操作不可恢复。请输入数据库名称「\(expectedName)」以确认删除。")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                Section("确认名称") {
-                    TextField("数据库名称", text: $nameConfirm)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
-            }
-            .navigationTitle("删除数据库")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("删除", role: .destructive) {
-                        onConfirm()
-                        dismiss()
-                    }
-                    .disabled(!canDelete)
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
-}
-
-/// 删除用户半屏确认（系统列表页滑动删除使用）
-struct DeleteUserConfirmSheet: View {
-    let user: DatabaseUser
-    let onConfirm: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var nameConfirm = ""
-
-    private var expectedName: String { user.username ?? "" }
-
-    private var canDelete: Bool {
-        nameConfirm.trimmingCharacters(in: .whitespaces) == expectedName
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Text("此操作不可恢复。请输入用户名「\(expectedName)」以确认删除。")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                Section("确认用户名") {
-                    TextField("用户名", text: $nameConfirm)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
-            }
-            .navigationTitle("删除用户")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("删除", role: .destructive) {
-                        onConfirm()
-                        dismiss()
-                    }
-                    .disabled(!canDelete)
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
-}
 
 // MARK: - Color 扩展
 

@@ -202,18 +202,9 @@ struct FilesView: View {
 
     /// 右下角悬浮 + 按钮
     private var floatingAddButton: some View {
-        Button {
+        FloatingActionButton {
             showActionSheet = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 52, height: 52)
-                .background(Color.accentColor, in: Circle())
-                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
         }
-        .padding(.trailing, 20)
-        .padding(.bottom, 20)
         .accessibilityLabel("操作菜单")
     }
 

@@ -247,7 +247,14 @@ struct MonitorView: View {
                 }
             } else if let err = vm.errorMessage, vm.cpuPoints.isEmpty, !vm.isLoading {
                 Section {
-                    ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle", description: Text(err))
+                    ContentUnavailableView {
+                        Label("加载失败", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(err)
+                    } actions: {
+                        Button("重试") { Task { await vm.loadAll() } }
+                            .buttonStyle(.borderedProminent)
+                    }
                 }
             } else {
                 rangeSection
@@ -456,7 +463,7 @@ struct MonitorView: View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach(entries, id: \.title) { entry in
                 HStack(spacing: 5) {
-                    Circle().fill(entry.color).frame(width: 6, height: 6)
+                    StatusDot(color: entry.color)
                     Text(entry.title)
                         .foregroundStyle(entry.color)
                     Spacer(minLength: 4)

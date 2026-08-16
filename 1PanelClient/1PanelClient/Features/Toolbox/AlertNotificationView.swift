@@ -49,7 +49,7 @@ struct AlertNotificationView: View {
         // 右下角悬浮创建按钮（日志段不显示），样式与计划任务页一致
         .overlay(alignment: .bottomTrailing) {
             if segment != 1 {
-                Button {
+                FloatingActionButton {
                     if segment == 2 {
                         showCreateConfig = true
                     } else if vm.configs.isEmpty {
@@ -57,16 +57,7 @@ struct AlertNotificationView: View {
                     } else {
                         showCreateRule = true
                     }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(Color.accentColor, in: Circle())
-                        .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
                 }
-                .padding(.trailing, 20)
-                .padding(.bottom, 20)
                 .accessibilityLabel(segment == 2 ? "添加发送方式" : "创建告警")
             }
         }
@@ -127,11 +118,22 @@ struct AlertNotificationView: View {
             if vm.isLoading && vm.rules.isEmpty {
                 ProgressView("加载中…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let err = vm.errorMessage, !err.isEmpty, vm.rules.isEmpty {
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(err)
+                } actions: {
+                    Button("重试") {
+                        Task { await vm.loadRules() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             } else if vm.rules.isEmpty {
                 ContentUnavailableView(
                     "暂无告警规则",
                     systemImage: "bell.slash",
-                    description: Text(vm.errorMessage ?? "点击右上角创建第一个告警")
+                    description: Text("点击右上角创建第一个告警")
                 )
             } else {
                 List {
@@ -313,12 +315,10 @@ struct AlertRuleRow: View {
                     .lineLimit(1)
 
                 HStack(spacing: 6) {
-                    StatusBadge(text: rule.alertType.displayName, color: rule.alertType.color, backgroundOpacity: 0.12)
+                    StatusBadge(text: rule.alertType.displayName, color: rule.alertType.color)
                     StatusBadge(
                         text: rule.isEnabled ? "启用" : "已停用",
-                        color: rule.isEnabled ? .green : .secondary,
-                        backgroundOpacity: 0.12
-                    )
+                        color: rule.isEnabled ? .green : .secondary                    )
                 }
 
                 Text(rule.conditionDisplay)
@@ -344,9 +344,7 @@ struct AlertLogRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(log.isSuccess ? Color.green : Color.red)
-                .frame(width: 10, height: 10)
+                StatusDot(color: log.isSuccess ? .green : .red, diameter: 10)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(log.alertDetail?.title ?? log.alertType.displayName)
@@ -354,7 +352,7 @@ struct AlertLogRow: View {
                     .lineLimit(1)
 
                 HStack(spacing: 6) {
-                    StatusBadge(text: log.alertType.displayName, color: log.alertType.color, backgroundOpacity: 0.12)
+                    StatusBadge(text: log.alertType.displayName, color: log.alertType.color)
                     if let message = log.message, !message.isEmpty {
                         Text(message)
                             .font(.caption2)
@@ -410,9 +408,7 @@ struct AlertConfigRow: View {
 
             StatusBadge(
                 text: config.isEnabled ? "启用" : "已停用",
-                color: config.isEnabled ? .green : .secondary,
-                backgroundOpacity: 0.12
-            )
+                color: config.isEnabled ? .green : .secondary            )
 
             if sendType != nil {
                 Image(systemName: "chevron.right")

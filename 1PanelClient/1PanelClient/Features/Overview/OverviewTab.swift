@@ -63,7 +63,7 @@ struct OverviewTab: View {
                                     .font(.caption2)
                                     .lineLimit(1)
                                 Image(systemName: "chevron.down")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.caption2.weight(.bold))
                             }
                             .foregroundStyle(.secondary)
                         }

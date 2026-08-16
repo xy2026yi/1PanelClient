@@ -46,6 +46,17 @@ struct InfoRow: View {
     let key: String
     let value: String
 
+    init(key: String, value: String) {
+        self.key = key
+        self.value = value
+    }
+
+    /// 便捷初始化：`InfoRow("名称", value: x)`
+    init(_ key: String, value: String) {
+        self.key = key
+        self.value = value
+    }
+
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(key)
@@ -57,6 +68,110 @@ struct InfoRow: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .font(.subheadline)
+    }
+}
+
+// MARK: - 密码展示行（••• + 显示切换 + 复制）
+
+/// 密码信息行：默认打码，可切换明文、一键复制。
+/// 与 InfoRow 同级使用（数据库/用户详情等页面）；`compact: true` 用于嵌套的小字号行。
+struct PasswordRow: View {
+    var key: String = "密码"
+    let password: String
+    var compact: Bool = false
+
+    @State private var showPassword = false
+
+    var body: some View {
+        HStack(spacing: compact ? 6 : nil) {
+            Text(key)
+                .font(compact ? .caption : nil)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(showPassword ? password : String(repeating: "•", count: min(password.count, 12)))
+                .font(compact
+                      ? .system(.caption, design: .monospaced)
+                      : .system(.subheadline, design: .monospaced))
+                .foregroundStyle(compact ? .secondary : .primary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Button {
+                showPassword.toggle()
+            } label: {
+                Image(systemName: showPassword ? "eye.slash" : "eye")
+                    .font(compact ? .caption : nil)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            Button {
+                UIPasteboard.general.string = password
+            } label: {
+                Image(systemName: "doc.on.doc")
+                    .font(compact ? .caption : nil)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+        }
+    }
+}
+
+// MARK: - 勾选行（选择列表行）
+
+/// 选择列表行：等宽标题 + 右侧选中勾（checkmark.circle.fill，与设置页选择行一致）。
+/// 点击行为由调用方通过 onTapGesture / Button 挂载。
+struct CheckRow: View {
+    let title: String
+    var isSelected: Bool
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.system(.body, design: .monospaced))
+            Spacer()
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - 悬浮操作按钮（FAB）
+
+/// 右下角悬浮操作按钮：默认 accent 色 + 号（56pt，阴影 r6·y4），配合 `.overlay(alignment: .bottomTrailing)` 使用。
+/// 特殊入口（应用升级等）可换 systemImage / color。
+struct FloatingActionButton: View {
+    var systemImage: String = "plus"
+    var color: Color = .accentColor
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(color, in: Circle())
+                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+        }
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
+    }
+}
+
+// MARK: - 状态圆点
+
+/// 状态小圆点：与状态文字并排使用，如 `HStack(spacing: 4) { StatusDot(color:); Text(...) }`。
+/// 与文字搭配时用默认 6pt；独立作为行首图标时传 `diameter: 10`。
+struct StatusDot: View {
+    let color: Color
+    var diameter: CGFloat = 6
+
+    var body: some View {
+        Circle()
+            .fill(color)
+            .frame(width: diameter, height: diameter)
     }
 }
 
@@ -243,6 +358,103 @@ extension View {
             showCloseButton: showCloseButton,
             onClose: onClose
         ))
+    }
+}
+
+// MARK: - 输入确认 Sheet（高危操作：输入指定文本才能确认）
+
+/// 高危操作确认弹窗模板：输入 expectedText 指定的文本（如名称或「立即重启」）后才能点击确认。
+/// 「删除数据库/用户/任务」「面板重启确认」等弹窗的统一样式；如需附加选项（Toggle 等），
+/// 通过 `options` 传入额外的 Form 内容（如 `Section("选项") { Toggle(...) }`）。
+///
+/// 使用方式：
+/// ```
+/// .sheet(isPresented: $showDelete) {
+///     TextInputConfirmSheet(
+///         title: "删除数据库",
+///         message: "此操作不可恢复。请输入数据库名称「\(name)」以确认删除。",
+///         expectedText: name,
+///         fieldLabel: "确认名称",
+///         fieldPlaceholder: "数据库名称"
+///     ) {
+///         delete()
+///     }
+/// }
+/// ```
+struct TextInputConfirmSheet<Options: View>: View {
+    let title: String
+    /// 顶部提示文案
+    let message: String
+    /// 必须完整输入的确认文本
+    let expectedText: String
+    /// 输入框 Section 标题
+    var fieldLabel: String = "确认输入"
+    /// 输入框占位符，默认与确认文本一致
+    var fieldPlaceholder: String?
+    /// 确认按钮文案
+    var confirmTitle: String = "删除"
+
+    let onConfirm: () -> Void
+    @ViewBuilder var options: () -> Options
+
+    init(
+        title: String,
+        message: String,
+        expectedText: String,
+        fieldLabel: String = "确认输入",
+        fieldPlaceholder: String? = nil,
+        confirmTitle: String = "删除",
+        onConfirm: @escaping () -> Void,
+        @ViewBuilder options: @escaping () -> Options = { EmptyView() }
+    ) {
+        self.title = title
+        self.message = message
+        self.expectedText = expectedText
+        self.fieldLabel = fieldLabel
+        self.fieldPlaceholder = fieldPlaceholder
+        self.confirmTitle = confirmTitle
+        self.onConfirm = onConfirm
+        self.options = options
+    }
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var input = ""
+
+    private var canConfirm: Bool {
+        input.trimmingCharacters(in: .whitespaces) == expectedText
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section(fieldLabel) {
+                    TextField(fieldPlaceholder ?? expectedText, text: $input)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+                options()
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(confirmTitle, role: .destructive) {
+                        onConfirm()
+                        dismiss()
+                    }
+                    .disabled(!canConfirm)
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

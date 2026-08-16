@@ -334,6 +334,16 @@ nonisolated struct WebsiteFull: Decodable {
         case errorLogPath, accessLogPath, sitePath
         case appName, runtimeName, runtimeType, siteDir, openBaseDir, algorithm, servers
     }
+
+    /// 状态颜色（与 Website.statusColor 映射保持一致）
+    var statusColor: Color {
+        switch (status ?? "").lowercased() {
+        case "running", "normal": return .green
+        case "stopped":           return .gray
+        case "error", "failed":   return .red
+        default:                  return .secondary
+        }
+    }
 }
 
 /// 网站域名（详情中的 domains 数组元素）

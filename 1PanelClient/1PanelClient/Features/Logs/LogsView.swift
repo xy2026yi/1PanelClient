@@ -52,7 +52,7 @@ struct LogsView: View {
 
     private func logMenuRow(_ title: String, icon: String, color: Color, subtitle: String) -> some View {
         HStack(spacing: 14) {
-            IconBadge(systemName: icon, color: color, size: 38, cornerRadius: 10)
+            IconBadge(systemName: icon, color: color)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                 Text(subtitle)
@@ -85,7 +85,14 @@ struct OperationLogView: View {
             if isLoading {
                 ProgressView("加载中…").frame(maxWidth: .infinity, minHeight: 200)
             } else if let errorMessage {
-                ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(errorMessage)
+                } actions: {
+                    Button("重试") { Task { await load() } }
+                        .buttonStyle(.borderedProminent)
+                }
             } else if items.isEmpty {
                 ContentUnavailableView("暂无操作日志", systemImage: "square.and.pencil")
             } else {
@@ -109,7 +116,7 @@ struct OperationLogView: View {
 
             HStack(spacing: 8) {
                 if let source = item.source, !source.isEmpty {
-                    StatusBadge(text: source, color: .blue, backgroundOpacity: 0.1)
+                    StatusBadge(text: source, color: .blue)
                 }
                 Text(item.status ?? "")
                     .font(.caption2.bold())
@@ -177,7 +184,14 @@ struct LoginLogView: View {
             if isLoading {
                 ProgressView("加载中…").frame(maxWidth: .infinity, minHeight: 200)
             } else if let errorMessage {
-                ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(errorMessage)
+                } actions: {
+                    Button("重试") { Task { await load() } }
+                        .buttonStyle(.borderedProminent)
+                }
             } else if items.isEmpty {
                 ContentUnavailableView("暂无访问日志", systemImage: "person.badge.key")
             } else {
@@ -264,7 +278,14 @@ struct SystemLogView: View {
             if isLoading && dates.isEmpty {
                 ProgressView("加载中…").frame(maxWidth: .infinity, minHeight: 200)
             } else if let errorMessage, dates.isEmpty {
-                ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(errorMessage)
+                } actions: {
+                    Button("重试") { Task { await loadDates() } }
+                        .buttonStyle(.borderedProminent)
+                }
             } else if dates.isEmpty {
                 ContentUnavailableView("暂无系统日志", systemImage: "gearshape.2")
             } else {
@@ -360,7 +381,14 @@ struct SSHLogView: View {
             if isLoading {
                 ProgressView("加载中…").frame(maxWidth: .infinity, minHeight: 200)
             } else if let errorMessage {
-                ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(errorMessage)
+                } actions: {
+                    Button("重试") { Task { await load() } }
+                        .buttonStyle(.borderedProminent)
+                }
             } else if items.isEmpty {
                 ContentUnavailableView("暂无 SSH 登陆日志", systemImage: "terminal")
             } else {
@@ -394,7 +422,7 @@ struct SSHLogView: View {
                     .font(.caption2.bold())
                     .foregroundStyle(LogUI.statusColor(item.status))
                 if let mode = item.authMode, !mode.isEmpty {
-                    StatusBadge(text: mode, color: .indigo, backgroundOpacity: 0.1)
+                    StatusBadge(text: mode, color: .indigo)
                 }
                 Text(item.area ?? "")
                     .font(.caption2)
@@ -456,7 +484,14 @@ struct WebsiteLogsView: View {
             if isLoading && sites.isEmpty {
                 ProgressView("加载中…").frame(maxWidth: .infinity, minHeight: 200)
             } else if let errorMessage, sites.isEmpty {
-                ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(errorMessage)
+                } actions: {
+                    Button("重试") { Task { await loadSites() } }
+                        .buttonStyle(.borderedProminent)
+                }
             } else if sites.isEmpty {
                 ContentUnavailableView("暂无网站", systemImage: "globe", description: Text("请先创建网站"))
             } else {

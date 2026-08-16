@@ -174,9 +174,12 @@ struct FirewallView: View {
                     EmptyView()
                 } else {
                     Section {
-                        Text("暂无端口规则")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
+                        ContentUnavailableView(
+                            "暂无端口规则",
+                            systemImage: "flame",
+                            description: Text("点击右下角 + 添加规则")
+                        )
+                        .listRowBackground(Color.clear)
                     }
                 }
             } else {
@@ -213,18 +216,9 @@ struct FirewallView: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            Button { showAdd = true } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 52, height: 52)
-                    .background(Color.accentColor, in: Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-            }
-            .disabled(vm.base?.isExist != true)
-            .opacity(vm.base?.isExist == true ? 1 : 0.4)
-            .padding(.trailing, 20)
-            .padding(.bottom, 20)
+            FloatingActionButton(action: { showAdd = true })
+                .disabled(vm.base?.isExist != true)
+                .opacity(vm.base?.isExist == true ? 1 : 0.4)
         }
         .navigationDestination(isPresented: $showAdd) {
             FirewallAddRuleView(vm: vm)
@@ -310,12 +304,10 @@ struct FirewallView: View {
                                 }
                             }
                             HStack(spacing: 4) {
-                                Circle()
-                                    .fill((base.isActive ?? false) ? Color.green : Color.gray)
-                                    .frame(width: 6, height: 6)
-                                Text((base.isActive ?? false) ? "Running" : "Stopped")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                StatusBadge(
+                                    text: (base.isActive ?? false) ? "运行中" : "已停止",
+                                    color: (base.isActive ?? false) ? .green : .red
+                                )
                             }
                         }
                         Spacer()
@@ -340,14 +332,14 @@ struct FirewallView: View {
                             firewallActionButton(
                                 title: (base.isActive ?? false) ? "关闭" : "开启",
                                 icon: (base.isActive ?? false) ? "stop.fill" : "play.fill",
-                                color: (base.isActive ?? false) ? .orange : .green
+                                color: (base.isActive ?? false) ? .red : .green
                             ) {
                                 pendingUFWOp = (base.isActive ?? false) ? "stop" : "start"
                             }
                             firewallActionButton(
                                 title: "重启",
                                 icon: "arrow.triangle.2.circlepath",
-                                color: .blue
+                                color: .orange
                             ) {
                                 pendingUFWOp = "restart"
                             }

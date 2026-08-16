@@ -36,18 +36,9 @@ struct TerminalHostsView: View {
         .navigationTitle("终端")
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
-            Button {
+            FloatingActionButton(action: {
                 showAddHost = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.accentColor, in: Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 20)
+            })
             .accessibilityLabel("添加主机")
         }
         .alert(vm.alertMessage, isPresented: $vm.showAlert) {
@@ -137,8 +128,11 @@ struct TerminalHostsView: View {
                     Spacer()
                 }
             } else if vm.hosts.isEmpty {
-                Text("暂无主机，点击右下角 + 添加")
-                    .foregroundStyle(.secondary)
+                ContentUnavailableView(
+                    "暂无主机",
+                    systemImage: "rectangle.on.rectangle",
+                    description: Text("点击右下角 + 添加")
+                )
             } else {
                 ForEach(vm.hosts) { host in
                     Button {
@@ -201,7 +195,7 @@ struct SSHHostRow: View {
                         .font(.body.bold())
                         .lineLimit(1)
                     if let group = host.groupBelong, !group.isEmpty, group != "Default" {
-                        StatusBadge(text: group, color: .secondary, backgroundOpacity: 0.1)
+                        StatusBadge(text: group, color: .secondary)
                     }
                 }
                 Text("\(host.user ?? "—")@\(host.endpoint)")

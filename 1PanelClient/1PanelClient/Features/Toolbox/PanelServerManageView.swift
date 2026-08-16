@@ -60,7 +60,14 @@ struct PanelServerManageView: View {
         .navigationTitle("面板/服务器管理")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $restartTarget) { target in
-            RestartConfirmSheet(title: target.title) {
+            TextInputConfirmSheet(
+                title: target.title,
+                message: "此操作不可恢复。如果确认操作，请手动输入「立即重启」。",
+                expectedText: "立即重启",
+                fieldLabel: "确认输入",
+                fieldPlaceholder: "请输入 立即重启",
+                confirmTitle: "确认重启"
+            ) {
                 Task { await restart(target) }
             }
         }
@@ -125,53 +132,5 @@ struct PanelServerManageView: View {
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             await MainActor.run { toastMessage = nil }
         }
-    }
-}
-
-// MARK: - 重启确认弹窗（输入「立即重启」半屏，样式与删除确认一致）
-
-struct RestartConfirmSheet: View {
-    let title: String
-    let onConfirm: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var input = ""
-
-    private let confirmText = "立即重启"
-
-    private var canConfirm: Bool {
-        input.trimmingCharacters(in: .whitespaces) == confirmText
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Text("此操作不可恢复。如果确认操作，请手动输入 '\(confirmText)'。")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                Section("确认输入") {
-                    TextField("请输入 \(confirmText)", text: $input)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
-            }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("确认重启", role: .destructive) {
-                        onConfirm()
-                        dismiss()
-                    }
-                    .disabled(!canConfirm)
-                }
-            }
-        }
-        .presentationDetents([.medium])
     }
 }

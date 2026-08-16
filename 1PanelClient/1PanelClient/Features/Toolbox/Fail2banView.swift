@@ -318,9 +318,7 @@ struct Fail2banView: View {
                 Spacer()
                 StatusBadge(
                     text: base.isActive ? "运行中" : "已停止",
-                    color: base.isActive ? .green : .red,
-                    backgroundOpacity: 0.15
-                )
+                    color: base.isActive ? .green : .red                )
                 Button {
                     withAnimation(.easeInOut(duration: 0.25)) {
                         isServiceExpanded.toggle()

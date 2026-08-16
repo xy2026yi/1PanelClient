@@ -563,7 +563,7 @@ struct WAFIPRulesView: View {
             if isLoading && items.isEmpty {
                 ProgressView()
             } else if items.isEmpty {
-                Text("暂无数据").foregroundStyle(.secondary)
+                ContentUnavailableView("暂无 IP 规则", systemImage: "ipaddress")
             } else {
                 ForEach(items) { item in
                     HStack {
@@ -574,7 +574,7 @@ struct WAFIPRulesView: View {
                                 Text(item.displayValue)
                                     .font(.system(.body, design: .monospaced))
                                 HStack(spacing: 8) {
-                                    StatusBadge(text: item.typeLabel, color: .blue, backgroundOpacity: 0.1)
+                                    StatusBadge(text: item.typeLabel, color: .blue)
                                     if let desc = item.description, !desc.isEmpty {
                                         Text(desc).font(.caption).foregroundStyle(.secondary)
                                     }
@@ -729,7 +729,7 @@ struct WAFIPRuleRow: View {
                     Spacer()
                 }
                 HStack(spacing: 8) {
-                    StatusBadge(text: item.typeLabel, color: .blue, backgroundOpacity: 0.1)
+                    StatusBadge(text: item.typeLabel, color: .blue)
                     if let desc = item.description, !desc.isEmpty {
                         Text(desc).font(.caption).foregroundStyle(.secondary)
                     }
@@ -1090,7 +1090,7 @@ struct WAFIPGroupsView: View {
             if isLoading && items.isEmpty {
                 ProgressView()
             } else if items.isEmpty {
-                Text("暂无数据").foregroundStyle(.secondary)
+                ContentUnavailableView("暂无 IP 组", systemImage: "rectangle.on.rectangle.angled")
             } else {
                 ForEach(items) { item in
                     NavigationLink {
@@ -1107,7 +1107,7 @@ struct WAFIPGroupsView: View {
                                     .lineLimit(2)
                             }
                             if let source = item.source, !source.isEmpty {
-                                StatusBadge(text: source == "imported" ? "手动" : "远程", color: .blue, backgroundOpacity: 0.1)
+                                StatusBadge(text: source == "imported" ? "手动" : "远程", color: .blue)
                             }
                         }
                     }
@@ -1388,7 +1388,7 @@ struct WAFCommonRulesView: View {
             if isLoading && items.isEmpty {
                 ProgressView()
             } else if items.isEmpty {
-                Text("暂无数据").foregroundStyle(.secondary)
+                ContentUnavailableView("暂无通用规则", systemImage: "list.bullet.rectangle.shield")
             } else {
                 ForEach(items) { item in
                     HStack {

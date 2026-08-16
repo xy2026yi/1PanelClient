@@ -141,9 +141,7 @@ struct ProcessView: View {
     private var statusBar: some View {
         HStack(spacing: 12) {
             HStack(spacing: 6) {
-                Circle()
-                    .fill(connectionColor)
-                    .frame(width: 8, height: 8)
+                StatusDot(color: connectionColor)
                 Text(connectionText)
                     .font(.caption)
                     .foregroundStyle(.secondary)

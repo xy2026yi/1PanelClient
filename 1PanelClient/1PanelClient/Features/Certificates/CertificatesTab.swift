@@ -53,11 +53,22 @@ struct CertificatesTab: View {
         Group {
             if vm.isLoading && vm.certificates.isEmpty {
                 ProgressView("加载中…")
+            } else if let err = vm.errorMessage, !err.isEmpty, vm.certificates.isEmpty {
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(err)
+                } actions: {
+                    Button("重试") {
+                        Task { await vm.refresh() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             } else if vm.certificates.isEmpty {
                 ContentUnavailableView(
                     "暂无证书",
                     systemImage: "lock.shield",
-                    description: Text(vm.errorMessage ?? "点击右下角「申请」创建第一张证书")
+                    description: Text("点击右下角「申请」创建第一张证书")
                 )
             } else {
                 certList
@@ -105,18 +116,9 @@ struct CertificatesTab: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            Button {
+            FloatingActionButton(action: {
                 showApply = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.accentColor, in: Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 20)
+            })
             .accessibilityLabel("申请证书")
         }
         .navigationDestination(isPresented: $showUpload) {
@@ -214,7 +216,7 @@ struct CertificateRow: View {
                 Text(cert.displayExpireDate)
                     .font(.caption.bold())
                 Text("到期")
-                    .font(.system(size: 9))
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
             }
         }
@@ -343,34 +345,34 @@ struct CertificateDetailView: View {
     private var infoSection: some View {
         let d = detail ?? cert
         return Section {
-            LabeledRow("主域名", value: d.primaryDomain ?? "—")
-            LabeledRow("其他域名", value: d.displayDomains)
-            LabeledRow("证书主体名称(CN)", value: d.displayType)
-            LabeledRow("颁发组织", value: d.displayOrganization)
-            LabeledRow("申请方式", value: d.providerDisplay)
+            InfoRow("主域名", value: d.primaryDomain ?? "—")
+            InfoRow("其他域名", value: d.displayDomains)
+            InfoRow("证书主体名称(CN)", value: d.displayType)
+            InfoRow("颁发组织", value: d.displayOrganization)
+            InfoRow("申请方式", value: d.providerDisplay)
 
             if (d.provider ?? "").lowercased() == "dnsaccount" {
                 if let dns = d.dnsAccount, !dns.name.isEmpty {
-                    LabeledRow("DNS 账号", value: dns.name)
+                    InfoRow("DNS 账号", value: dns.name)
                 }
                 if let acc = d.acmeAccount, !acc.email.isEmpty {
-                    LabeledRow("Acme 账号", value: acc.email)
+                    InfoRow("Acme 账号", value: acc.email)
                 }
             }
 
-            LabeledRow("生效时间", value: d.displayStartDate)
-            LabeledRow("过期时间", value: d.displayExpireDate)
+            InfoRow("生效时间", value: d.displayStartDate)
+            InfoRow("过期时间", value: d.displayExpireDate)
 
             if d.pushDir == true {
-                LabeledRow("推送证书到本地目录", value: d.dir ?? "")
+                InfoRow("推送证书到本地目录", value: d.dir ?? "")
             }
             if d.execShell == true {
-                LabeledRow("申请证书之后执行脚本", value: d.shell ?? "")
+                InfoRow("申请证书之后执行脚本", value: d.shell ?? "")
             }
 
-            LabeledRow("状态", value: d.statusDisplay)
+            InfoRow("状态", value: d.statusDisplay)
             if let msg = d.message, !msg.isEmpty {
-                LabeledRow("状态详情", value: msg)
+                InfoRow("状态详情", value: msg)
             }
 
             if isAcmeCert {
@@ -386,7 +388,7 @@ struct CertificateDetailView: View {
             }
 
             if let desc = d.description, !desc.isEmpty {
-                LabeledRow("备注", value: desc)
+                InfoRow("备注", value: desc)
             }
         } header: {
             Text("证书信息")
@@ -444,7 +446,7 @@ struct CertificateDetailView: View {
         } footer: {
             if let path = (detail ?? cert).logPath, !path.isEmpty {
                 Text(path)
-                    .font(.system(size: 9))
+                    .font(.caption2)
             }
         }
     }

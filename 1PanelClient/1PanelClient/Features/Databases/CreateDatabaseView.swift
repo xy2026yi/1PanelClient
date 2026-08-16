@@ -637,23 +637,14 @@ struct CreateDatabaseUserView: View {
     }
 
     private func databaseSelectionRow(_ dbName: String) -> some View {
-        HStack {
-            Text(dbName)
-                .font(.system(.body, design: .monospaced))
-            Spacer()
-            if selectedDatabases.contains(dbName) {
-                Image(systemName: "checkmark")
-                    .foregroundStyle(Color.accentColor)
+        CheckRow(title: dbName, isSelected: selectedDatabases.contains(dbName))
+            .onTapGesture {
+                if selectedDatabases.contains(dbName) {
+                    selectedDatabases.remove(dbName)
+                } else {
+                    selectedDatabases.insert(dbName)
+                }
             }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if selectedDatabases.contains(dbName) {
-                selectedDatabases.remove(dbName)
-            } else {
-                selectedDatabases.insert(dbName)
-            }
-        }
     }
 
     private func submit() async {
@@ -792,7 +783,6 @@ final class DatabaseUserDetailViewModel: ObservableObject {
 struct DatabaseUserDetailView: View {
     @StateObject private var vm: DatabaseUserDetailViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var showPassword = false
     @State private var activeSheet: UserDetailSheet?
 
     enum UserDetailSheet: Identifiable {
@@ -855,7 +845,13 @@ struct DatabaseUserDetailView: View {
                     }
                 }
             case .delete:
-                DeleteDatabaseUserDetailSheet(username: vm.user.username ?? "") {
+                TextInputConfirmSheet(
+                    title: "删除用户",
+                    message: "此操作不可恢复。请输入用户名「\(vm.user.username ?? "")」以确认删除。",
+                    expectedText: vm.user.username ?? "",
+                    fieldLabel: "确认用户名",
+                    fieldPlaceholder: "用户名"
+                ) {
                     Task {
                         let ok = await vm.deleteUser()
                         if ok {
@@ -874,20 +870,7 @@ struct DatabaseUserDetailView: View {
                 InfoRow(key: "用户名", value: username)
             }
             if let pwd = vm.user.password, !pwd.isEmpty {
-                HStack {
-                    Text("密码").foregroundStyle(.secondary)
-                    Spacer()
-                    Text(showPassword ? pwd : String(repeating: "•", count: min(pwd.count, 12)))
-                        .font(.system(.subheadline, design: .monospaced))
-                    Button { showPassword.toggle() } label: {
-                        Image(systemName: showPassword ? "eye.slash" : "eye").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    Button { UIPasteboard.general.string = pwd } label: {
-                        Image(systemName: "doc.on.doc").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                }
+                PasswordRow(password: pwd)
             }
             if let desc = vm.user.description, !desc.isEmpty {
                 InfoRow(key: "描述", value: desc)
@@ -1059,19 +1042,10 @@ struct AddGrantSheet: View {
                 } else {
                     Section("选择数据库") {
                         ForEach(availableDatabases, id: \.self) { dbName in
-                            HStack {
-                                Text(dbName)
-                                    .font(.system(.body, design: .monospaced))
-                                Spacer()
-                                if selectedDatabase == dbName {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(Color.accentColor)
+                            CheckRow(title: dbName, isSelected: selectedDatabase == dbName)
+                                .onTapGesture {
+                                    selectedDatabase = dbName
                                 }
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedDatabase = dbName
-                            }
                         }
                     }
                 }
@@ -1094,48 +1068,4 @@ struct AddGrantSheet: View {
     }
 }
 
-// MARK: - 用户详情页删除确认 Sheet（半屏，输入用户名确认）
-
-struct DeleteDatabaseUserDetailSheet: View {
-    let username: String
-    let onConfirm: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var nameConfirm = ""
-
-    private var canDelete: Bool {
-        nameConfirm.trimmingCharacters(in: .whitespaces) == username
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Text("此操作不可恢复。请输入用户名「\(username)」以确认删除。")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                Section("确认用户名") {
-                    TextField("用户名", text: $nameConfirm)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
-            }
-            .navigationTitle("删除用户")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("删除", role: .destructive) {
-                        onConfirm()
-                        dismiss()
-                    }
-                    .disabled(!canDelete)
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
-}
+// MARK: - 用户详情页删除确认 Sheet（半屏，输入用户名确认）已由共享 TextInputConfirmSheet 提供

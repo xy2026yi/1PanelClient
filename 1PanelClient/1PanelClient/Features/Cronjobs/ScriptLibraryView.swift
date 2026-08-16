@@ -63,11 +63,22 @@ struct ScriptLibraryView: View {
         Group {
             if vm.isLoading && vm.scripts.isEmpty {
                 ProgressView("加载中…")
+            } else if let err = vm.errorMessage, !err.isEmpty, vm.scripts.isEmpty {
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(err)
+                } actions: {
+                    Button("重试") {
+                        Task { await vm.load() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             } else if vm.scripts.isEmpty {
                 ContentUnavailableView(
                     "暂无脚本",
                     systemImage: "doc.text",
-                    description: Text(vm.errorMessage ?? "脚本库为空")
+                    description: Text("脚本库为空")
                 )
             } else {
                 scriptList
@@ -122,7 +133,7 @@ struct ScriptRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: "terminal", color: .purple, size: 36, cornerRadius: 9)
+            IconBadge(systemName: "terminal", color: .purple, size: 34, cornerRadius: 8)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(script.displayName)
@@ -137,10 +148,10 @@ struct ScriptRow: View {
                 }
                 HStack(spacing: 6) {
                     if script.isSystem == true {
-                        StatusBadge(text: "系统", color: .blue, backgroundOpacity: 0.12)
+                        StatusBadge(text: "系统", color: .blue)
                     }
                     if script.isInteractive == true {
-                        StatusBadge(text: "需交互", color: .orange, backgroundOpacity: 0.12)
+                        StatusBadge(text: "需交互", color: .orange)
                     }
                 }
             }
@@ -160,15 +171,15 @@ struct ScriptDetailView: View {
     var body: some View {
         List {
             Section("基本信息") {
-                LabeledRow("名称", value: script.displayName)
+                InfoRow("名称", value: script.displayName)
                 if let desc = script.displayDescription, !desc.isEmpty {
-                    LabeledRow("描述", value: desc)
+                    InfoRow("描述", value: desc)
                 }
                 if script.isInteractive == true {
-                    LabeledRow("类型", value: "需要交互输入")
+                    InfoRow("类型", value: "需要交互输入")
                 }
                 if let t = script.createdAt, !t.isEmpty {
-                    LabeledRow("创建时间", value: t.prefix(19).description)
+                    InfoRow("创建时间", value: t.prefix(19).description)
                 }
             }
 

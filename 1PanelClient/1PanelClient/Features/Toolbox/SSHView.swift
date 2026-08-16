@@ -198,9 +198,7 @@ struct SSHView: View {
                     Spacer()
                     StatusBadge(
                         text: config.isActive ? "运行中" : "已停止",
-                        color: config.isActive ? .green : .red,
-                        backgroundOpacity: 0.15
-                    )
+                        color: config.isActive ? .green : .red                    )
                     Button {
                         withAnimation(.easeInOut(duration: 0.25)) {
                             isServiceExpanded.toggle()

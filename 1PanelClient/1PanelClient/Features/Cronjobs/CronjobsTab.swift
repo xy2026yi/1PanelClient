@@ -53,11 +53,22 @@ struct CronjobsTab: View {
         Group {
             if vm.isLoading && vm.cronjobs.isEmpty {
                 ProgressView("加载中…")
+            } else if let err = vm.errorMessage, !err.isEmpty, vm.cronjobs.isEmpty {
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(err)
+                } actions: {
+                    Button("重试") {
+                        Task { await vm.refresh() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             } else if vm.cronjobs.isEmpty {
                 ContentUnavailableView(
                     "暂无计划任务",
                     systemImage: "clock.badge.checkmark",
-                    description: Text(vm.errorMessage ?? "点击右上角创建第一个任务")
+                    description: Text("点击右上角创建第一个任务")
                 )
             } else {
                 cronjobList
@@ -89,18 +100,9 @@ struct CronjobsTab: View {
             CronjobDetailView(job: job, vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
         .overlay(alignment: .bottomTrailing) {
-            Button {
+            FloatingActionButton(action: {
                 showCreateSheet = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.accentColor, in: Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 20)
+            })
             .accessibilityLabel("创建计划任务")
         }
         .navigationDestination(isPresented: $showCreateSheet) {
@@ -171,8 +173,8 @@ struct CronjobRow: View {
                     .lineLimit(1)
 
                 HStack(spacing: 6) {
-                    StatusBadge(text: job.jobType.displayName, color: job.jobType.color, backgroundOpacity: 0.12)
-                    StatusBadge(text: job.specDisplay, color: .secondary, backgroundOpacity: 0.1)
+                    StatusBadge(text: job.jobType.displayName, color: job.jobType.color)
+                    StatusBadge(text: job.specDisplay, color: .secondary)
                 }
 
                 if let last = job.lastRecordStatus, !last.isEmpty {
@@ -186,7 +188,7 @@ struct CronjobRow: View {
 
             // 启用/禁用徽标
             if !job.isEnabled {
-                StatusBadge(text: "已停用", color: .secondary, backgroundOpacity: 0.1)
+                StatusBadge(text: "已停用", color: .secondary)
             }
         }
         .padding(.vertical, 4)
@@ -204,6 +206,8 @@ struct CronjobDetailView: View {
     @State private var showEditView = false
     @State private var isLoadingEditInfo = false
     @State private var showDeleteSheet = false
+    /// 删除确认弹窗中的「同时删除备份文件」选项（传入共享 TextInputConfirmSheet）
+    @State private var deleteCleanDataOption = false
 
     /// 从 ViewModel 列表中查找最新的任务数据。
     /// 编辑后 vm.cronjobs 会刷新，此属性返回更新后的版本；
@@ -215,16 +219,16 @@ struct CronjobDetailView: View {
     var body: some View {
         List {
             Section("基本信息") {
-                LabeledRow("名称", value: currentJob.name ?? "—")
-                LabeledRow("类型", value: currentJob.jobType.displayName)
-                LabeledRow("执行周期", value: currentJob.specDisplay)
-                LabeledRow("状态", value: currentJob.isEnabled ? "启用" : "停用")
-                LabeledRow("保留份数", value: currentJob.retainCopiesDisplay)
+                InfoRow("名称", value: currentJob.name ?? "—")
+                InfoRow("类型", value: currentJob.jobType.displayName)
+                InfoRow("执行周期", value: currentJob.specDisplay)
+                InfoRow("状态", value: currentJob.isEnabled ? "启用" : "停用")
+                InfoRow("保留份数", value: currentJob.retainCopiesDisplay)
                 if let r = currentJob.retryTimes, r > 0 {
-                    LabeledRow("重试次数", value: "\(r) 次")
+                    InfoRow("重试次数", value: "\(r) 次")
                 }
                 if let t = currentJob.timeout, t > 0 {
-                    LabeledRow("超时", value: "\(t)\(currentJob.timeoutUnit ?? "s")")
+                    InfoRow("超时", value: "\(t)\(currentJob.timeoutUnit ?? "s")")
                 }
             }
 
@@ -233,9 +237,9 @@ struct CronjobDetailView: View {
             case .shell:
                 if let user = currentJob.user, !user.isEmpty {
                     Section("执行设置") {
-                        LabeledRow("执行用户", value: user)
+                        InfoRow("执行用户", value: user)
                         if currentJob.inContainer == true {
-                            LabeledRow("容器", value: currentJob.containerName ?? "—")
+                            InfoRow("容器", value: currentJob.containerName ?? "—")
                         }
                     }
                 }
@@ -248,23 +252,23 @@ struct CronjobDetailView: View {
                 }
             case .app:
                 Section("备份内容") {
-                    LabeledRow("备份对象", value: currentJob.appID == "all" ? "全部应用" : (currentJob.appID ?? "—"))
+                    InfoRow("备份对象", value: currentJob.appID == "all" ? "全部应用" : (currentJob.appID ?? "—"))
                 }
             case .website:
                 Section("备份内容") {
-                    LabeledRow("备份对象", value: currentJob.website == "all" ? "全部网站" : (currentJob.website ?? "—"))
+                    InfoRow("备份对象", value: currentJob.website == "all" ? "全部网站" : (currentJob.website ?? "—"))
                 }
             case .database:
                 Section("备份内容") {
-                    LabeledRow("数据库类型", value: currentJob.dbTypeDisplay)
-                    LabeledRow("备份对象", value: currentJob.dbName == "all" ? "全部数据库" : (currentJob.dbName ?? "—"))
+                    InfoRow("数据库类型", value: currentJob.dbTypeDisplay)
+                    InfoRow("备份对象", value: currentJob.dbName == "all" ? "全部数据库" : (currentJob.dbName ?? "—"))
                     if currentJob.dbTypeDisplay == "MySQL" || currentJob.dbTypeDisplay == "MariaDB" {
-                        LabeledRow("备份参数", value: currentJob.dbBackupParamsDisplay)
+                        InfoRow("备份参数", value: currentJob.dbBackupParamsDisplay)
                     }
                 }
             case .snapshot:
                 Section("备份内容") {
-                    LabeledRow("类型", value: "系统快照")
+                    InfoRow("类型", value: "系统快照")
                 }
             case .clean, .ntp, .syncIpGroup:
                 // 缓存清理 / 同步服务器时间 / 同步 WAF IP 组：无类型特定详情
@@ -318,14 +322,24 @@ struct CronjobDetailView: View {
         .navigationTitle(currentJob.name ?? "任务详情")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showDeleteSheet) {
-            DeleteCronjobSheet(job: currentJob) { cleanData in
+            TextInputConfirmSheet(
+                title: "删除任务",
+                message: "此操作不可恢复。请输入任务名称「\(currentJob.name ?? "")」以确认删除。",
+                expectedText: currentJob.name ?? "",
+                fieldLabel: "确认名称",
+                fieldPlaceholder: "任务名称"
+            ) {
                 Task {
                     // 同步删除选项到 ViewModel（delete 方法内部读取 deleteCleanData）
-                    vm.deleteCleanData = cleanData
+                    vm.deleteCleanData = deleteCleanDataOption
                     let success = await vm.delete(job: currentJob)
                     if success {
                         dismiss()
                     }
+                }
+            } options: {
+                Section("选项") {
+                    Toggle("同时删除备份文件", isOn: $deleteCleanDataOption)
                 }
             }
         }
@@ -346,59 +360,6 @@ struct CronjobDetailView: View {
             editingInfo = info
             showEditView = true
         }
-    }
-}
-
-// MARK: - 删除任务确认 Sheet（半屏，输入任务名确认）
-
-/// 删除计划任务确认弹窗，样式与数据库详情页的 DeleteDatabaseSheet 保持一致。
-struct DeleteCronjobSheet: View {
-    let job: Cronjob
-    /// 确认删除回调：cleanData 表示是否同时删除已生成的备份文件（本地+远程）。
-    let onConfirm: (_ cleanData: Bool) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var nameConfirm = ""
-    @State private var cleanData = false
-
-    /// 输入的任务名与实际名称完全一致时才允许删除
-    private var canDelete: Bool {
-        nameConfirm.trimmingCharacters(in: .whitespaces) == (job.name ?? "")
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Text("此操作不可恢复。请输入任务名称「\(job.name ?? "")」以确认删除。")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                Section("确认名称") {
-                    TextField("任务名称", text: $nameConfirm)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
-                Section("选项") {
-                    Toggle("同时删除备份文件", isOn: $cleanData)
-                }
-            }
-            .navigationTitle("删除任务")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("删除", role: .destructive) {
-                        onConfirm(cleanData)
-                        dismiss()
-                    }
-                    .disabled(!canDelete)
-                }
-            }
-        }
-        .presentationDetents([.medium])
     }
 }
 
@@ -453,9 +414,7 @@ struct CronjobRecordRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(record.statusColor)
-                .frame(width: 10, height: 10)
+                StatusDot(color: record.statusColor, diameter: 10)
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack {

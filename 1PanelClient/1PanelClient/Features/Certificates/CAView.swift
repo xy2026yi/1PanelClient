@@ -44,18 +44,9 @@ struct CAListView: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            Button {
+            FloatingActionButton(action: {
                 showCreate = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.accentColor, in: Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 20)
+            })
             .accessibilityLabel("创建机构")
         }
         .navigationDestination(isPresented: $showCreate) {
@@ -222,22 +213,22 @@ struct CADetailView: View {
     private var infoSection: some View {
         let d = detail ?? ca
         return Section {
-            LabeledRow("名称", value: d.name)
-            LabeledRow("证书主体名称(CN)", value: d.commonName ?? "—")
-            LabeledRow("颁发组织", value: d.organization ?? "—")
+            InfoRow("名称", value: d.name)
+            InfoRow("证书主体名称(CN)", value: d.commonName ?? "—")
+            InfoRow("颁发组织", value: d.organization ?? "—")
             if let unit = d.organizationUint, !unit.isEmpty {
-                LabeledRow("部门", value: unit)
+                InfoRow("部门", value: unit)
             }
             if let country = d.country, !country.isEmpty {
-                LabeledRow("国家代号", value: country)
+                InfoRow("国家代号", value: country)
             }
             if let province = d.province, !province.isEmpty {
-                LabeledRow("省份", value: province)
+                InfoRow("省份", value: province)
             }
             if let city = d.city, !city.isEmpty {
-                LabeledRow("城市", value: city)
+                InfoRow("城市", value: city)
             }
-            LabeledRow("密钥算法", value: SSLKeyType(rawValue: d.keyType)?.displayName ?? d.keyType)
+            InfoRow("密钥算法", value: SSLKeyType(rawValue: d.keyType)?.displayName ?? d.keyType)
         } header: {
             Text("机构详情")
         }

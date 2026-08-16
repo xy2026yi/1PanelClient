@@ -10,6 +10,7 @@ struct SettingsTab: View {
     @State private var showAddSheet = false
     @State private var editingServer: ServerConfig?
     @State private var showAbout = false
+    @State private var serverToDelete: ServerConfig?
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
 
     var body: some View {
@@ -80,7 +81,7 @@ struct SettingsTab: View {
                 .onDelete { offsets in
                     for offset in offsets {
                         if offset < manager.servers.count {
-                            manager.remove(manager.servers[offset])
+                            serverToDelete = manager.servers[offset]
                         }
                     }
                 }
@@ -113,6 +114,25 @@ struct SettingsTab: View {
         }
         .sheet(item: $editingServer) { server in
             ServerEditView(manager: manager, editing: server)
+        }
+        // 删除服务器前确认（会连带清除 Keychain 中的 API 密钥）
+        .confirmationDialog(
+            "删除服务器",
+            isPresented: Binding(
+                get: { serverToDelete != nil },
+                set: { if !$0 { serverToDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("删除「\(serverToDelete?.name ?? "")」", role: .destructive) {
+                if let server = serverToDelete {
+                    manager.remove(server)
+                }
+                serverToDelete = nil
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("将移除该服务器的连接配置与已保存的 API 密钥，此操作不可恢复。")
         }
     }
 }
@@ -224,6 +244,7 @@ struct SettingsTabContent: View {
     @State private var showAddSheet = false
     @State private var editingServer: ServerConfig?
     @State private var showAbout = false
+    @State private var serverToDelete: ServerConfig?
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
 
     var body: some View {
@@ -284,7 +305,7 @@ struct SettingsTabContent: View {
                 .onDelete { offsets in
                     for offset in offsets {
                         if offset < manager.servers.count {
-                            manager.remove(manager.servers[offset])
+                            serverToDelete = manager.servers[offset]
                         }
                     }
                 }
@@ -317,6 +338,25 @@ struct SettingsTabContent: View {
         }
         .sheet(item: $editingServer) { server in
             ServerEditView(manager: manager, editing: server)
+        }
+        // 删除服务器前确认（会连带清除 Keychain 中的 API 密钥）
+        .confirmationDialog(
+            "删除服务器",
+            isPresented: Binding(
+                get: { serverToDelete != nil },
+                set: { if !$0 { serverToDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("删除「\(serverToDelete?.name ?? "")」", role: .destructive) {
+                if let server = serverToDelete {
+                    manager.remove(server)
+                }
+                serverToDelete = nil
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("将移除该服务器的连接配置与已保存的 API 密钥，此操作不可恢复。")
         }
     }
 }

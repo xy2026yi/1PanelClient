@@ -182,8 +182,10 @@ final class DatabaseDetailViewModel: ObservableObject {
 struct DatabaseDetailView: View {
     @StateObject private var vm: DatabaseDetailViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var showPassword = false
     @State private var activeSheet: DetailSheet?
+    /// 删除确认弹窗中的选项（传入共享 TextInputConfirmSheet）
+    @State private var forceDeleteOption = false
+    @State private var deleteBackupOption = false
 
     enum DetailSheet: Identifiable {
         case changePassword
@@ -265,13 +267,24 @@ struct DatabaseDetailView: View {
                     }
                 }
             case .delete:
-                DeleteDatabaseSheet(database: vm.database) { forceDelete, deleteBackup in
+                TextInputConfirmSheet(
+                    title: "删除数据库",
+                    message: "此操作不可恢复。请输入数据库名称「\(vm.database.name ?? "")」以确认删除。",
+                    expectedText: vm.database.name ?? "",
+                    fieldLabel: "确认名称",
+                    fieldPlaceholder: "数据库名称"
+                ) {
                     Task {
-                        let ok = await vm.delete(forceDelete: forceDelete, deleteBackup: deleteBackup)
+                        let ok = await vm.delete(forceDelete: forceDeleteOption, deleteBackup: deleteBackupOption)
                         if ok {
                             await onChanged()
                             dismiss()
                         }
+                    }
+                } options: {
+                    Section("选项") {
+                        Toggle("强制删除", isOn: $forceDeleteOption)
+                        Toggle("删除备份", isOn: $deleteBackupOption)
                     }
                 }
             }
@@ -287,20 +300,7 @@ struct DatabaseDetailView: View {
                 InfoRow(key: "用户名", value: u)
             }
             if let pwd = vm.database.password, !pwd.isEmpty {
-                HStack {
-                    Text("密码").foregroundStyle(.secondary)
-                    Spacer()
-                    Text(showPassword ? pwd : String(repeating: "•", count: min(pwd.count, 12)))
-                        .font(.system(.subheadline, design: .monospaced))
-                    Button { showPassword.toggle() } label: {
-                        Image(systemName: showPassword ? "eye.slash" : "eye").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    Button { UIPasteboard.general.string = pwd } label: {
-                        Image(systemName: "doc.on.doc").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                }
+                PasswordRow(password: pwd)
             }
             if let f = vm.database.format, !f.isEmpty {
                 InfoRow(key: "字符集", value: f)
@@ -376,58 +376,6 @@ struct DatabaseDetailView: View {
                 Label("删除数据库", systemImage: "trash")
             }
         }
-    }
-}
-
-// MARK: - 删除确认 Sheet
-
-struct DeleteDatabaseSheet: View {
-    let database: DatabaseItem
-    let onConfirm: (_ forceDelete: Bool, _ deleteBackup: Bool) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var nameConfirm = ""
-    @State private var forceDelete = false
-    @State private var deleteBackup = false
-
-    private var canDelete: Bool {
-        nameConfirm.trimmingCharacters(in: .whitespaces) == (database.name ?? "")
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Text("此操作不可恢复。请输入数据库名称「\(database.name ?? "")」以确认删除。")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                Section("确认名称") {
-                    TextField("数据库名称", text: $nameConfirm)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
-                Section("选项") {
-                    Toggle("强制删除", isOn: $forceDelete)
-                    Toggle("删除备份", isOn: $deleteBackup)
-                }
-            }
-            .navigationTitle("删除数据库")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("删除", role: .destructive) {
-                        onConfirm(forceDelete, deleteBackup)
-                        dismiss()
-                    }
-                    .disabled(!canDelete)
-                }
-            }
-        }
-        .presentationDetents([.medium])
     }
 }
 

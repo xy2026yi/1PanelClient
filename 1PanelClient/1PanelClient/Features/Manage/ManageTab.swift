@@ -89,7 +89,7 @@ struct ManageTab: View {
     private func manageRow(_ item: ManageItem) -> some View {
         NavigationLink(value: item) {
             HStack(spacing: 14) {
-                IconBadge(systemName: item.icon, color: item.color, size: 38, cornerRadius: 10)
+                IconBadge(systemName: item.icon, color: item.color)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.title)
@@ -102,7 +102,7 @@ struct ManageTab: View {
                 Spacer()
 
                 if !item.available {
-                    StatusBadge(text: "敬请期待", color: .secondary, backgroundOpacity: 0.1)
+                    StatusBadge(text: "敬请期待", color: .secondary)
                 }
             }
             .padding(.vertical, 2)
@@ -339,7 +339,7 @@ enum ManageItem: String, Identifiable {
         case .websites:    return .green
         case .database:    return .purple
         case .containers:  return .indigo
-        case .terminal:    return .black
+        case .terminal:    return .primary  // 深色模式下 .black 图标不可见，改用自适应色
         case .files:       return .yellow
         case .monitor:     return .mint
         case .process:     return .pink

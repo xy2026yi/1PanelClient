@@ -103,7 +103,7 @@ struct ApplyCertificateView: View {
             }
 
             Section {
-                LabeledRow("密钥算法", value: selectedKeyType.displayName)
+                InfoRow("密钥算法", value: selectedKeyType.displayName)
                 Toggle("自动续签", isOn: $autoRenew)
             } header: {
                 Text("配置")
