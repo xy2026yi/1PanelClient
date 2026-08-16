@@ -100,7 +100,7 @@ struct OverviewTab: View {
             }
         }
         // 服务器切换时（设置页添加/切换、首页下拉选择）自动重建 ViewModel 并刷新
-        .onChange(of: manager.currentServerID) { _ in
+        .onChange(of: manager.currentServerID) {
             if let new = manager.current {
                 vm.switchServer(new)
                 Task { await vm.refresh() }

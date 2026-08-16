@@ -26,24 +26,19 @@ struct ManageTab: View {
         self._atRoot = atRoot
     }
 
-    /// 所有可管理的功能项，按固定分组排列
-    private var groups: [(title: String, items: [ManageItem])] {
-        [
-            ("",          [.apps, .websites, .database, .containers]),
-            ("",          [.terminal, .firewall, .toolbox, .cronjob]),
-            ("",          [.monitor, .files, .process, .logs])
-        ]
-    }
-
     var body: some View {
         NavigationStack(path: $navPath) {
             List {
-                ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
+                ForEach(Array(ManageItem.groups.enumerated()), id: \.offset) { _, group in
                     Section {
                         ForEach(group.items) { item in
                             if prefs.isEnabled(item) {
                                 manageRow(item)
                             }
+                        }
+                    } header: {
+                        if !group.title.isEmpty {
+                            Text(group.title)
                         }
                     }
                 }
@@ -136,16 +131,19 @@ struct ManageTab: View {
         case .database:
             DatabasesView(server: server)
         case .terminal:
-            TerminalView(
-                server: server,
-                target: .host(cols: 80, rows: 24),
-                title: manager.current?.name,
-                showCloseButton: false
-            )
+            TerminalHostsView(server: server, localTitle: manager.current?.name)
         case .process:
             ProcessView(server: server)
-        case .toolbox:
-            ToolboxView(server: server)
+        case .sshService:
+            SSHView(server: server)
+        case .fail2ban:
+            Fail2banView(server: server)
+        case .waf:
+            WAFView(server: server)
+        case .panelManage:
+            PanelServerManageView(server: server)
+        case .alert:
+            AlertNotificationView(server: server)
         case .logs:
             LogsView(server: server)
         case .monitor:
@@ -162,15 +160,6 @@ struct ManageEditView: View {
     @ObservedObject var prefs: ManagePrefs
     @Environment(\.dismiss) private var dismiss
 
-    /// 与 ManageTab 保持一致的分组
-    private var groups: [(title: String, items: [ManageItem])] {
-        [
-            ("",  [.apps, .websites, .database, .containers]),
-            ("",  [.terminal, .firewall, .toolbox, .cronjob]),
-            ("",  [.monitor, .files, .process, .logs])
-        ]
-    }
-
     var body: some View {
         NavigationStack {
             List {
@@ -180,7 +169,7 @@ struct ManageEditView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
+                ForEach(Array(ManageItem.groups.enumerated()), id: \.offset) { _, group in
                     Section {
                         ForEach(group.items) { item in
                             HStack(spacing: 12) {
@@ -199,6 +188,10 @@ struct ManageEditView: View {
                                 .labelsHidden()
                             }
                             .padding(.vertical, 2)
+                        }
+                    } header: {
+                        if !group.title.isEmpty {
+                            Text(group.title)
                         }
                     }
                 }
@@ -255,87 +248,111 @@ enum ManageItem: String, Identifiable {
     case database
     case containers
     case terminal
-    case process
-    case firewall
-    case cronjob
-    case toolbox
-    case logs
-    case monitor
     case files
+    case monitor
+    case process
+    case sshService
+    case firewall
+    case fail2ban
+    case waf
+    case alert
+    case panelManage
+    case cronjob
+    case logs
 
     var id: String { rawValue }
 
+    /// 管理页分组（带标题），ManageTab 与「自定义功能」编辑页共用
+    static let groups: [(title: String, items: [ManageItem])] = [
+        ("应用", [.apps, .websites, .database, .containers]),
+        ("主机", [.terminal, .files, .monitor, .process, .sshService]),
+        ("安全", [.firewall, .fail2ban, .waf]),
+        ("面板", [.alert, .panelManage, .cronjob, .logs]),
+    ]
+
     var title: String {
         switch self {
-        case .apps:       return "应用程序"
-        case .websites:   return "网站"
-        case .database:   return "数据库"
-        case .containers: return "容器"
-        case .terminal:   return "终端"
-        case .process:    return "进程"
-        case .firewall:   return "防火墙"
-        case .cronjob:    return "计划任务"
-        case .toolbox:    return "工具箱"
-        case .logs:       return "日志"
-        case .monitor:    return "监控"
-        case .files:      return "文件"
+        case .apps:        return "应用程序"
+        case .websites:    return "网站"
+        case .database:    return "数据库"
+        case .containers:  return "容器"
+        case .terminal:    return "终端"
+        case .files:       return "文件"
+        case .monitor:     return "监控"
+        case .process:     return "进程"
+        case .sshService:  return "SSH 服务管理"
+        case .firewall:    return "防火墙"
+        case .fail2ban:    return "Fail2ban"
+        case .waf:         return "WAF"
+        case .alert:       return "告警通知"
+        case .panelManage: return "面板/服务器管理"
+        case .cronjob:     return "计划任务"
+        case .logs:        return "日志"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .apps:       return "已安装应用 / 应用商店"
-        case .websites:   return "网站 / SSL 证书"
-        case .database:   return "管理数据库实例"
-        case .containers: return "Docker 容器"
-        case .terminal:   return "远程终端连接"
-        case .process:    return "系统进程监控"
-        case .firewall:   return "防火墙规则"
-        case .cronjob:    return "定时备份与脚本"
-        case .toolbox:    return "Fail2ban 等系统工具"
-        case .logs:       return "面板 / SSH / 网站日志"
-        case .monitor:    return "负载 / CPU / 内存 / I/O / 网络"
-        case .files:      return "服务器文件管理"
+        case .apps:        return "已安装应用 / 应用商店"
+        case .websites:    return "网站 / SSL 证书"
+        case .database:    return "管理数据库实例"
+        case .containers:  return "Docker 容器"
+        case .terminal:    return "本机终端 / SSH 连接主机"
+        case .files:       return "服务器文件管理"
+        case .monitor:     return "负载 / CPU / 内存 / I/O / 网络"
+        case .process:     return "系统进程监控"
+        case .sshService:  return "面板主机 SSH 服务与配置"
+        case .firewall:    return "防火墙规则"
+        case .fail2ban:    return "SSH 防暴力破解"
+        case .waf:         return "Web 应用防火墙"
+        case .alert:       return "告警规则 / 日志 / 发送方式"
+        case .panelManage: return "重启面板与服务器"
+        case .cronjob:     return "定时备份与脚本"
+        case .logs:        return "面板 / SSH / 网站日志"
         }
     }
 
     var icon: String {
         switch self {
-        case .apps:       return "app.badge"
-        case .websites:   return "globe"
-        case .database:   return "cylinder"
-        case .containers: return "shippingbox"
-        case .terminal:   return "terminal"
-        case .process:    return "chart.bar"
-        case .firewall:   return "flame"
-        case .cronjob:    return "clock.badge.checkmark"
-        case .toolbox:    return "wrench.and.screwdriver"
-        case .logs:       return "doc.text.magnifyingglass"
-        case .monitor:    return "chart.line.uptrend.xyaxis"
-        case .files:      return "folder.fill"
+        case .apps:        return "app.badge"
+        case .websites:    return "globe"
+        case .database:    return "cylinder"
+        case .containers:  return "shippingbox"
+        case .terminal:    return "terminal"
+        case .files:       return "folder.fill"
+        case .monitor:     return "chart.line.uptrend.xyaxis"
+        case .process:     return "chart.bar"
+        case .sshService:  return "chevron.left.forwardslash.chevron.right"
+        case .firewall:    return "flame"
+        case .fail2ban:    return "shield.lefthalf.filled"
+        case .waf:         return "flame.fill"
+        case .alert:       return "bell.badge.fill"
+        case .panelManage: return "power"
+        case .cronjob:     return "clock.badge.checkmark"
+        case .logs:        return "doc.text.magnifyingglass"
         }
     }
 
     var color: Color {
         switch self {
-        case .apps:       return .blue
-        case .websites:   return .green
-        case .database:   return .purple
-        case .containers: return .indigo
-        case .terminal:   return .black
-        case .process:    return .pink
-        case .firewall:   return .orange
-        case .cronjob:    return .teal
-        case .toolbox:    return .brown
-        case .logs:       return .cyan
-        case .monitor:    return .mint
-        case .files:      return .yellow
+        case .apps:        return .blue
+        case .websites:    return .green
+        case .database:    return .purple
+        case .containers:  return .indigo
+        case .terminal:    return .black
+        case .files:       return .yellow
+        case .monitor:     return .mint
+        case .process:     return .pink
+        case .sshService:  return .gray
+        case .firewall:    return .orange
+        case .fail2ban:    return .blue
+        case .waf:         return .red
+        case .alert:       return .orange
+        case .panelManage: return .red
+        case .cronjob:     return .teal
+        case .logs:        return .cyan
         }
     }
 
-    var available: Bool {
-        switch self {
-        case .apps, .websites, .containers, .terminal, .cronjob, .firewall, .database, .process, .toolbox, .logs, .monitor, .files: return true
-        }
-    }
+    var available: Bool { true }
 }

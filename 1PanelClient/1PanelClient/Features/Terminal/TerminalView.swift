@@ -30,6 +30,9 @@ struct TerminalView: View {
         switch target {
         case .host:
             self.title = title ?? "终端"
+        case .sshHost(let id, _, _):
+            self.title = title ?? "SSH 终端"
+            _ = id
         case .container(let id, _, _, _, _):
             self.title = title ?? "容器终端"
             _ = id

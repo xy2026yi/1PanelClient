@@ -167,6 +167,19 @@ enum APIEndpoint {
     case fail2banSearch          // POST 查询白/黑名单 {status}
     case fail2banOperateSSHD     // POST 增删IP {operate, ips}
 
+    // MARK: - 告警通知
+    case alertSearch            // POST 分页查询告警规则
+    case alertCreate            // POST 创建告警规则
+    case alertUpdate            // POST 更新告警规则
+    case alertDelete            // POST 删除告警规则 {id}
+    case alertLogsSearch        // POST 分页查询告警日志
+    case alertDisksList         // GET  磁盘列表（磁盘告警选择挂载目录用）
+    case alertConfigSearch      // POST 分页查询发送方式（excludeTypes 排除 sms）
+    case alertConfigInfo        // POST 查询全部配置（含 common 全局配置）
+    case alertConfigTest        // POST 测试发送方式（邮箱）
+    case alertConfigUpdate      // POST 创建/更新发送方式与全局配置
+    case alertConfigDelete      // POST 删除发送方式 {id}
+
     // MARK: - 文件
     case filesSearch             // POST 文件浏览 {path, expand, page, pageSize, showHidden}
     case filesUpload             // POST 上传文件（multipart: file+path+overwrite）
@@ -209,6 +222,15 @@ enum APIEndpoint {
     case sshUpdate               // POST SSH单项配置修改
     case sshFile                 // POST SSH完整配置文件读取
     case sshFileUpdate           // POST SSH完整配置文件保存
+
+    // MARK: - SSH 连接主机
+    case hostsSearch             // POST 分页查询已保存主机
+    case hostsCreate             // POST 添加主机
+    case hostsUpdate             // POST 更新主机
+    case hostsDelete             // POST 删除主机 {ids}
+    case hostsTestByInfo         // POST 按表单信息测试连通（添加/编辑时）
+    case hostsTestByID           // POST 按已存 id 测试连通（连接前）
+    case hostGroupsSearch        // POST 主机分组查询 {type:"host"}
 
     // MARK: - 应用
     case appsInstalledSearch      // POST 已安装应用分页查询
@@ -373,6 +395,17 @@ enum APIEndpoint {
         case .fail2banSearch:        return "/api/v2/toolbox/fail2ban/search"
         case .fail2banOperateSSHD:   return "/api/v2/toolbox/fail2ban/operate/sshd"
         case .filesSearch:           return "/api/v2/files/search"
+        case .alertSearch:           return "/api/v2/alert/search"
+        case .alertCreate:           return "/api/v2/alert"
+        case .alertUpdate:           return "/api/v2/alert/update"
+        case .alertDelete:           return "/api/v2/alert/del"
+        case .alertLogsSearch:       return "/api/v2/alert/logs/search"
+        case .alertDisksList:        return "/api/v2/alert/disks/list"
+        case .alertConfigSearch:     return "/api/v2/alert/config/search"
+        case .alertConfigInfo:       return "/api/v2/alert/config/info"
+        case .alertConfigTest:       return "/api/v2/alert/config/test"
+        case .alertConfigUpdate:     return "/api/v2/alert/config/update"
+        case .alertConfigDelete:     return "/api/v2/alert/config/del"
         case .filesUpload:           return "/api/v2/files/upload"
         case .filesChunkUpload:      return "/api/v2/files/chunkupload"
         case .filesDownload:         return "/api/v2/files/download"
@@ -403,6 +436,13 @@ enum APIEndpoint {
         case .sshUpdate:             return "/api/v2/hosts/ssh/update"
         case .sshFile:               return "/api/v2/hosts/ssh/file"
         case .sshFileUpdate:         return "/api/v2/hosts/ssh/file/update"
+        case .hostsSearch:           return "/api/v2/hosts/search"
+        case .hostsCreate:           return "/api/v2/hosts"
+        case .hostsUpdate:           return "/api/v2/hosts/update"
+        case .hostsDelete:           return "/api/v2/hosts/del"
+        case .hostsTestByInfo:       return "/api/v2/hosts/test/byinfo"
+        case .hostsTestByID:         return "/api/v2/hosts/test/byid"
+        case .hostGroupsSearch:      return "/api/v2/groups/search"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
@@ -447,6 +487,7 @@ enum APIEndpoint {
              .appsServices,
              .logsTaskCount,
              .fail2banBase, .fail2banLoadConf,
+             .alertDisksList,
              .wafStatus, .wafConfigGlobal,
              .settingsBaseDir,
              .settingsUpgradeCheck, .settingsUpgradeReleases,

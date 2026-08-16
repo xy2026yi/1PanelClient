@@ -16,6 +16,8 @@ import Combine
 enum TerminalTarget {
     /// 主机本地终端（操作面板所在服务器的 shell）
     case host(cols: Int, rows: Int)
+    /// SSH 连接已保存的远程主机（hosts 表中的 id）
+    case sshHost(id: Int, cols: Int, rows: Int)
     /// 容器内终端
     case container(containerID: String, user: String, command: String, cols: Int, rows: Int)
     /// 执行脚本库脚本（后端按 script_id 启动 PTY 运行脚本）
@@ -28,6 +30,7 @@ enum TerminalTarget {
     var cols: Int {
         switch self {
         case .host(let c, _): return c
+        case .sshHost(_, let c, _): return c
         case .container(_, _, _, let c, _): return c
         case .scriptRun(_, let c, _): return c
         case .redis(_, let c, _): return c
@@ -38,6 +41,7 @@ enum TerminalTarget {
     var rows: Int {
         switch self {
         case .host(_, let r): return r
+        case .sshHost(_, _, let r): return r
         case .container(_, _, _, _, let r): return r
         case .scriptRun(_, _, let r): return r
         case .redis(_, _, let r): return r
@@ -49,6 +53,7 @@ enum TerminalTarget {
     var path: String {
         switch self {
         case .host: return "/api/v2/hosts/terminal/local"
+        case .sshHost: return "/api/v2/hosts/terminal/ssh"
         case .container: return "/api/v2/hosts/terminal/container"
         case .scriptRun: return "/api/v2/core/script/run"
         case .redis: return "/api/v2/hosts/terminal/container"
@@ -63,6 +68,13 @@ enum TerminalTarget {
             return [
                 URLQueryItem(name: "cols", value: "\(cols)"),
                 URLQueryItem(name: "rows", value: "\(rows)"),
+                URLQueryItem(name: "operateNode", value: "local")
+            ]
+        case .sshHost(let id, let cols, let rows):
+            return [
+                URLQueryItem(name: "cols", value: "\(cols)"),
+                URLQueryItem(name: "rows", value: "\(rows)"),
+                URLQueryItem(name: "id", value: "\(id)"),
                 URLQueryItem(name: "operateNode", value: "local")
             ]
         case .container(let id, let user, let command, let cols, let rows):
