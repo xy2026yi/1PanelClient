@@ -239,7 +239,7 @@ struct WebsiteDetailView: View {
     @State private var showEditSheet = false
     @State private var isOperating = false
     @State private var pendingToggle: Bool?
-    @State private var showBackup = false
+    @State private var isStatusExpanded = false
 
     /// 当前服务器配置（根目录跳转文件管理用）
     private var server: ServerConfig {
@@ -251,23 +251,15 @@ struct WebsiteDetailView: View {
             if isLoadingDetail && detail == nil {
                 Section { HStack { ProgressView(); Text("加载中…") } }
             } else if let d = detail {
-                // 状态与启停
+                // 状态与操作（下拉抽屉，与容器详情一致）
                 Section {
-                    HStack {
-                        Text("状态").foregroundStyle(.secondary)
-                        Spacer()
-                        Text(d.status ?? "—")
-                            .foregroundStyle(d.statusColor)
+                    drawerHeaderRow
+
+                    if isStatusExpanded {
+                        operationsRow
+                            .padding(.top, 4)
+                            .padding(.bottom, 2)
                     }
-                    Toggle("启用网站", isOn: Binding(
-                        get: { (d.status ?? "").lowercased() == "running" },
-                        set: { newVal in
-                            pendingToggle = newVal
-                        }
-                    ))
-                    .disabled(isOperating)
-                } header: {
-                    SectionLabel(title: "状态", systemImage: "info.circle")
                 }
 
                 // 基本信息
@@ -294,7 +286,7 @@ struct WebsiteDetailView: View {
                     SectionLabel(title: "基本信息", systemImage: "doc.text")
                 }
 
-                // 操作入口（HTTPS / 日志 / 反代 / 配置文件 / 备份）
+                // 操作入口（HTTPS / 日志 / 反代 / 配置文件）
                 Section {
                     NavigationLink {
                         WebsiteHTTPSView(websiteId: website.id, vm: vm)
@@ -330,13 +322,6 @@ struct WebsiteDetailView: View {
                         WebsiteNginxView(websiteId: website.id, vm: vm)
                     } label: {
                         Label("配置文件", systemImage: "doc.text")
-                            .foregroundStyle(.primary)
-                    }
-                    .buttonStyle(.plain)
-                    NavigationLink {
-                        BackupListView(target: websiteBackupTarget)
-                    } label: {
-                        Label("备份", systemImage: "externaldrive.badge.timemachine")
                             .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
@@ -398,7 +383,7 @@ struct WebsiteDetailView: View {
             }
         }
         .alert(
-            (pendingToggle == true) ? "启动" : "停止",
+            (pendingToggle == true) ? "启用" : "停止",
             isPresented: Binding(
                 get: { pendingToggle != nil },
                 set: { if !$0 { pendingToggle = nil } }
@@ -412,7 +397,7 @@ struct WebsiteDetailView: View {
                 Task { await toggleStatus(current: detail?.status, to: target) }
             }
         } message: {
-            Text("将对网站「\(website.displayName)」进行 \(pendingToggle == true ? "启动" : "停止") 操作，是否继续？")
+            Text("将对网站「\(website.displayName)」进行 \(pendingToggle == true ? "启用" : "停止") 操作，是否继续？")
         }
     }
 
@@ -422,11 +407,88 @@ struct WebsiteDetailView: View {
         detail = await vm.loadDetail(id: website.id)
     }
 
-    /// 网站备份目标（type=website；后端按 website.alias 查库，备份记录也以 alias 存
-    /// 储，与网页端一致优先传 alias，主域名仅作兜底）
-    private var websiteBackupTarget: BackupTarget {
-        let alias = detail?.alias ?? website.alias ?? website.primaryDomain ?? website.displayName
-        return BackupTarget(type: "website", name: alias, detailName: alias)
+    // MARK: - 可折叠状态面板（与容器详情一致的下拉抽屉）
+
+    private var isRunning: Bool {
+        (detail?.status ?? "").lowercased() == "running"
+    }
+
+    private var drawerHeaderRow: some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: "globe", color: .blue)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(website.displayName)
+                    .font(.body.bold())
+                    .lineLimit(1)
+                Text(detail?.type ?? website.typeDisplayName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            HStack(spacing: 4) {
+                StatusDot(color: detail?.statusColor ?? .secondary)
+                Text(detail?.status ?? "—")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isStatusExpanded.toggle()
+                }
+            } label: {
+                Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+            .disabled(isOperating)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var operationsRow: some View {
+        HStack(spacing: 8) {
+            actionButton(
+                title: isRunning ? "停止" : "启用",
+                icon: isRunning ? "stop.fill" : "play.fill",
+                color: isRunning ? .orange : .green
+            ) {
+                pendingToggle = !isRunning
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func actionButton(
+        title: String,
+        icon: String,
+        color: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                if isOperating {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .frame(width: 22, height: 22)
+                } else {
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(color)
+                        .frame(width: 22, height: 22)
+                }
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+        .disabled(isOperating)
     }
 
     private func toggleStatus(current: String?, to running: Bool) async {
