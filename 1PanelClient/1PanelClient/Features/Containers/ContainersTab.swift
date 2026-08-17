@@ -255,6 +255,51 @@ struct ContainerRow: View {
     }
 }
 
+// MARK: - 端口映射行（超长折叠）
+
+/// 端口映射信息行：超过 5 行默认折叠，按钮就地展开/收起
+///（部分应用端口映射达数十行，全部展开会把详情页撑得过长）
+private struct PortsInfoRow: View {
+    let ports: [String]
+    @State private var isExpanded = false
+
+    private static let previewLimit = 5
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("端口映射")
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                Spacer(minLength: 12)
+                Text(visiblePorts.joined(separator: "\n"))
+                    .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .font(.subheadline)
+
+            if needsFold {
+                Button {
+                    withAnimation { isExpanded.toggle() }
+                } label: {
+                    Label(
+                        isExpanded ? "收起" : "展开全部 \(ports.count) 条",
+                        systemImage: isExpanded ? "chevron.up" : "chevron.down"
+                    )
+                    .font(.caption)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+    }
+
+    private var needsFold: Bool { ports.count > Self.previewLimit }
+
+    private var visiblePorts: [String] {
+        isExpanded || !needsFold ? ports : Array(ports.prefix(Self.previewLimit))
+    }
+}
+
 // MARK: - 容器详情页
 
 struct ContainerDetailView: View {
@@ -294,7 +339,7 @@ struct ContainerDetailView: View {
                     InfoRow("网站", value: sites.joined(separator: "\n"))
                 }
                 if let ports = container.ports, !ports.isEmpty {
-                    InfoRow("端口映射", value: ports.joined(separator: "\n"))
+                    PortsInfoRow(ports: ports)
                 }
                 InfoRow("运行时长", value: container.runTime ?? "—")
                 if let created = container.createTime, !created.isEmpty {
