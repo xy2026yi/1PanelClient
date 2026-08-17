@@ -183,6 +183,8 @@ struct ManageTab: View {
             WAFView(server: server)
         case .panelManage:
             PanelServerManageView(server: server)
+        case .backupAccount:
+            BackupAccountsView(server: server)
         case .alert:
             AlertNotificationView(server: server)
         case .logs:
@@ -298,6 +300,7 @@ enum ManageItem: String, Identifiable {
     case waf
     case alert
     case panelManage
+    case backupAccount
     case cronjob
     case logs
 
@@ -308,7 +311,7 @@ enum ManageItem: String, Identifiable {
         ("应用", [.apps, .websites, .database, .containers]),
         ("主机", [.terminal, .files, .monitor, .process, .sshService]),
         ("安全", [.firewall, .fail2ban, .waf]),
-        ("面板", [.alert, .panelManage, .cronjob, .logs]),
+        ("面板", [.alert, .panelManage, .backupAccount, .cronjob, .logs]),
     ]
 
     var title: String {
@@ -327,6 +330,7 @@ enum ManageItem: String, Identifiable {
         case .waf:         return "WAF"
         case .alert:       return "告警通知"
         case .panelManage: return "面板/服务器管理"
+        case .backupAccount: return "备份账号"
         case .cronjob:     return "计划任务"
         case .logs:        return "日志"
         }
@@ -348,6 +352,7 @@ enum ManageItem: String, Identifiable {
         case .waf:         return "Web 应用防火墙"
         case .alert:       return "告警规则 / 日志 / 发送方式"
         case .panelManage: return "重启面板与服务器"
+        case .backupAccount: return "MINIO / WebDAV / SFTP 备份存储"
         case .cronjob:     return "定时备份与脚本"
         case .logs:        return "面板 / SSH / 网站日志"
         }
@@ -369,6 +374,7 @@ enum ManageItem: String, Identifiable {
         case .waf:         return "flame.fill"
         case .alert:       return "bell.badge.fill"
         case .panelManage: return "power"
+        case .backupAccount: return "externaldrive.badge.icloud"
         case .cronjob:     return "clock.badge.checkmark"
         case .logs:        return "doc.text.magnifyingglass"
         }
@@ -390,6 +396,7 @@ enum ManageItem: String, Identifiable {
         case .waf:         return .red
         case .alert:       return .orange
         case .panelManage: return .red
+        case .backupAccount: return .blue
         case .cronjob:     return .teal
         case .logs:        return .cyan
         }

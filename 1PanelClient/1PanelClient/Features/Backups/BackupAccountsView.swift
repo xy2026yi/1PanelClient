@@ -1,0 +1,961 @@
+//
+//  BackupAccountsView.swift
+//  1PanelClient
+//
+//  备份账号管理：MINIO / WebDAV / SFTP 账号 列表 / 新增 / 编辑 / 删除。
+//  新增与编辑需先「连接测试」通过才能保存（与网页端一致）；
+//  accessKey / credential 以 base64 提交（后端解码），凭证仅在勾选
+//  「记住认证信息」后才会回显。接口字段通过 logs/备份账号.md 抓包验证。
+//
+
+import SwiftUI
+import Combine
+
+// MARK: - 模型
+
+/// 备份账号（POST /backups/search 返回的 items 元素）
+nonisolated struct BackupAccount: Decodable, Identifiable {
+    let id: Int
+    let name: String?
+    let type: String?
+    let isPublic: Bool?
+    let bucket: String?
+    let accessKey: String?
+    let credential: String?
+    let backupPath: String?
+    let vars: String?
+    let createdAt: String?
+    let rememberAuth: Bool?
+
+    var isLocal: Bool { type == "LOCAL" }
+    /// 本机账号（localhost/LOCAL）不可删除
+    var isProtected: Bool { isLocal || name == "localhost" }
+    /// 当前客户端支持编辑表单的类型
+    var isEditable: Bool { BackupAccountType(rawValue: type ?? "") != nil || isLocal }
+
+    var displayType: String { type ?? "—" }
+    var displayCreatedAt: String {
+        guard let t = createdAt, t.count >= 10 else { return "—" }
+        return String(t.prefix(10))
+    }
+}
+
+/// 客户端支持创建/编辑的备份账号类型（LOCAL 仅可编辑）
+enum BackupAccountType: String, CaseIterable, Identifiable {
+    case minio = "MINIO"
+    case webdav = "WebDAV"
+    case sftp = "SFTP"
+
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .minio:  return "MINIO"
+        case .webdav: return "WebDAV"
+        case .sftp:   return "SFTP"
+        }
+    }
+}
+
+/// SFTP 认证方式
+enum SFTPAuthMode: String, CaseIterable, Identifiable {
+    case password
+    case key
+    var id: String { rawValue }
+    var displayName: String { self == .password ? "密码认证" : "私钥认证" }
+}
+
+/// 备份账号分页查询请求
+nonisolated struct BackupAccountSearchRequest: Encodable {
+    let page: Int
+    let pageSize: Int
+    let type: String
+    let name: String
+}
+
+nonisolated struct BackupAccountListResponse: Decodable {
+    let total: Int
+    let items: [BackupAccount]?
+}
+
+/// varsJson 动态值（字符串 / 整数 / 布尔）
+nonisolated enum BackupVarsValue: Codable, Equatable {
+    case string(String)
+    case int(Int)
+    case bool(Bool)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let b = try? container.decode(Bool.self) { self = .bool(b) }
+        else if let i = try? container.decode(Int.self) { self = .int(i) }
+        else { self = .string(try container.decode(String.self)) }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .string(let s): try container.encode(s)
+        case .int(let i):    try container.encode(i)
+        case .bool(let b):   try container.encode(b)
+        }
+    }
+
+    var stringValue: String? {
+        if case .string(let s) = self { return s }
+        return nil
+    }
+
+    var intValue: Int? {
+        if case .int(let i) = self { return i }
+        return nil
+    }
+}
+
+/// varsJson / vars：同一份键值对象，提交时 vars 为其 JSON 字符串形式
+nonisolated struct BackupVarsJSON: Encodable, Equatable {
+    var values: [String: BackupVarsValue]
+
+    init(_ values: [String: BackupVarsValue] = [:]) { self.values = values }
+
+    subscript(key: String) -> BackupVarsValue? {
+        get { values[key] }
+        set { values[key] = newValue }
+    }
+
+    /// 直接编码为 JSON 对象（不包 values 外层键）
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(values)
+    }
+
+    /// 紧凑 JSON 字符串（键排序，保证同一表单状态产出稳定）
+    var jsonString: String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = try? encoder.encode(values), let s = String(data: data, encoding: .utf8) else {
+            return "{}"
+        }
+        return s
+    }
+
+    /// 从服务端 vars 字符串解析（编辑回显用）
+    static func parse(_ json: String?) -> BackupVarsJSON {
+        guard let json, let data = json.data(using: .utf8),
+              let dict = try? JSONDecoder().decode([String: BackupVarsValue].self, from: data) else {
+            return BackupVarsJSON()
+        }
+        return BackupVarsJSON(dict)
+    }
+}
+
+/// 创建 / 更新 / 连接测试 共用的请求体（dto.BackupOperate + varsJson）
+nonisolated struct BackupAccountOperate: Encodable {
+    var id: Int = 0
+    var name: String
+    var type: String
+    var isPublic: Bool = false
+    var bucket: String = ""
+    /// base64 编码后的凭证（后端 StdEncoding 解码）
+    var accessKey: String
+    var credential: String
+    var backupPath: String
+    /// varsJson 的 JSON 字符串形式（后端实际使用此字段）
+    var vars: String
+    var varsJson: BackupVarsJSON
+    var rememberAuth: Bool = false
+    /// 编辑时原样回传（后端会以库中值为准）
+    var createdAt: String?
+}
+
+/// 获取存储桶请求（MINIO）
+nonisolated struct BackupBucketsRequest: Encodable {
+    let isPublic: Bool
+    let type: String
+    let vars: String
+    let accessKey: String
+    let credential: String
+}
+
+/// 连接测试响应
+nonisolated struct BackupCheckResult: Decodable {
+    let isOk: Bool
+    let msg: String?
+    let token: String?
+}
+
+nonisolated struct BackupAccountDeleteRequest: Encodable {
+    let id: Int
+}
+
+// MARK: - ViewModel
+
+@MainActor
+final class BackupAccountsViewModel: ObservableObject {
+    @Published var showAlert = false
+    @Published var alertMessage = ""
+
+    private let client: APIClient
+
+    init(server: ServerConfig) {
+        self.client = APIClient(server: server)
+    }
+
+    func loadAccounts() async -> [BackupAccount] {
+        let req = BackupAccountSearchRequest(page: 1, pageSize: 100, type: "", name: "")
+        do {
+            let resp: BackupAccountListResponse = try await client.send(
+                path: APIEndpoint.backupAccountsSearch.path, body: req,
+                as: BackupAccountListResponse.self
+            )
+            return resp.items ?? []
+        } catch {
+            showAlert(message: "加载备份账号失败：\(error.localizedDescription)")
+            return []
+        }
+    }
+
+    /// 获取存储桶列表（MINIO）；vars 仅含完整 endpoint
+    func fetchBuckets(type: String, endpoint: String, accessKey: String, credential: String) async -> [String] {
+        let vars = BackupVarsJSON(["endpoint": .string(endpoint)]).jsonString
+        let req = BackupBucketsRequest(
+            isPublic: false, type: type, vars: vars,
+            accessKey: accessKey, credential: credential
+        )
+        do {
+            let buckets: [String] = try await client.send(
+                path: APIEndpoint.backupAccountsBuckets.path, body: req, as: [String].self
+            )
+            return buckets
+        } catch {
+            showAlert(message: "获取桶失败：\(error.localizedDescription)")
+            return []
+        }
+    }
+
+    /// 连接测试；返回失败原因（成功返回 nil）
+    func checkConnection(_ op: BackupAccountOperate) async -> String? {
+        do {
+            let res: BackupCheckResult = try await client.send(
+                path: APIEndpoint.backupAccountsCheck.path, body: op, as: BackupCheckResult.self
+            )
+            if res.isOk { return nil }
+            let msg = res.msg ?? ""
+            return msg.isEmpty ? "连接失败" : msg
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    /// 创建 / 更新
+    func submitAccount(_ op: BackupAccountOperate, isCreate: Bool) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: isCreate ? APIEndpoint.backupAccountsCreate.path : APIEndpoint.backupAccountsUpdate.path,
+                body: op,
+                as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            showAlert(message: "\(isCreate ? "创建" : "保存")失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func deleteAccount(id: Int) async -> Bool {
+        let req = BackupAccountDeleteRequest(id: id)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.backupAccountsDelete.path, body: req, as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            showAlert(message: "删除失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    private func showAlert(message: String) {
+        alertMessage = message
+        showAlert = true
+    }
+}
+
+// MARK: - 连接测试状态
+
+enum ConnectionCheckState: Equatable {
+    case none
+    case ok
+    case failed(String)
+}
+
+// MARK: - 账号列表页
+
+struct BackupAccountsView: View {
+    @StateObject private var vm: BackupAccountsViewModel
+    @State private var accounts: [BackupAccount] = []
+    @State private var isLoading = false
+    @State private var showCreate = false
+    @State private var pendingDelete: BackupAccount?
+
+    init(server: ServerConfig) {
+        _vm = StateObject(wrappedValue: BackupAccountsViewModel(server: server))
+    }
+
+    var body: some View {
+        Group {
+            if isLoading && accounts.isEmpty {
+                ProgressView("加载中…")
+            } else if accounts.isEmpty {
+                ContentUnavailableView(
+                    "暂无备份账号",
+                    systemImage: "externaldrive.badge.icloud",
+                    description: Text("点击右下角 + 添加 MINIO / WebDAV / SFTP 备份账号")
+                )
+            } else {
+                accountList
+            }
+        }
+        .navigationTitle("备份账号")
+        .navigationBarTitleDisplayMode(.inline)
+        .overlay(alignment: .bottomTrailing) {
+            FloatingActionButton(action: {
+                showCreate = true
+            })
+            .accessibilityLabel("添加备份账号")
+        }
+        .navigationDestination(isPresented: $showCreate) {
+            BackupAccountEditView(vm: vm, existing: nil) {
+                Task { await load() }
+            }
+        }
+        .task { await load() }
+        .refreshable { await load() }
+        .alert("删除备份账号", isPresented: Binding(
+            get: { pendingDelete != nil },
+            set: { if !$0 { pendingDelete = nil } }
+        )) {
+            Button("取消", role: .cancel) { pendingDelete = nil }
+            Button("删除", role: .destructive) {
+                if let account = pendingDelete {
+                    Task {
+                        if await vm.deleteAccount(id: account.id) {
+                            await load()
+                        }
+                    }
+                }
+                pendingDelete = nil
+            }
+        } message: {
+            if let account = pendingDelete {
+                Text("确定删除账号「\(account.name ?? "—")」吗？使用该账号的计划任务备份将失败。")
+            }
+        }
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
+    }
+
+    private var accountList: some View {
+        List {
+            Section {
+                ForEach(accounts) { account in
+                    if account.isEditable {
+                        NavigationLink {
+                            BackupAccountEditView(vm: vm, existing: account) {
+                                Task { await load() }
+                            }
+                        } label: {
+                            BackupAccountRow(account: account)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if !account.isProtected {
+                                Button(role: .destructive) {
+                                    pendingDelete = account
+                                } label: {
+                                    Label("删除", systemImage: "trash")
+                                }
+                            }
+                        }
+                    } else {
+                        BackupAccountRow(account: account)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if !account.isProtected {
+                                    Button(role: .destructive) {
+                                        pendingDelete = account
+                                    } label: {
+                                        Label("删除", systemImage: "trash")
+                                    }
+                                }
+                            }
+                    }
+                }
+            } footer: {
+                Text("本机账号（LOCAL）为面板内置账号，不可删除；点击账号可编辑")
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        accounts = await vm.loadAccounts()
+    }
+}
+
+// MARK: - 账号行
+
+struct BackupAccountRow: View {
+    let account: BackupAccount
+
+    private var typeIcon: (name: String, color: Color) {
+        switch account.type {
+        case "LOCAL":  return ("internaldrive", .gray)
+        case "MINIO":  return ("externaldrive.badge.icloud", .orange)
+        case "WebDAV": return ("externaldrive.connected.to.line.below", .blue)
+        case "SFTP":   return ("externaldrive.badge.timemachine", .green)
+        default:       return ("externaldrive", .purple)
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: typeIcon.name, color: typeIcon.color, cornerRadius: 12)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(account.name ?? "—")
+                        .font(.body.bold())
+                        .lineLimit(1)
+                    if account.isProtected {
+                        StatusBadge(text: "内置", color: .secondary)
+                    }
+                }
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(account.displayType)
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                Text(account.displayCreatedAt)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var subtitle: String {
+        var parts: [String] = []
+        if let bucket = account.bucket, !bucket.isEmpty {
+            parts.append("桶: \(bucket)")
+        }
+        if let path = account.backupPath, !path.isEmpty {
+            parts.append(path)
+        }
+        return parts.isEmpty ? "—" : parts.joined(separator: " · ")
+    }
+}
+
+// MARK: - 新增 / 编辑表单
+
+struct BackupAccountEditView: View {
+    @ObservedObject var vm: BackupAccountsViewModel
+    @Environment(\.dismiss) private var dismiss
+    /// 传入则进入「编辑」模式，为 nil 则为「创建」
+    let existing: BackupAccount?
+    /// 保存成功回调（用于刷新列表）
+    var onComplete: (() -> Void)? = nil
+
+    // MARK: 表单状态
+    @State private var name = ""
+    @State private var type: BackupAccountType = .minio
+    @State private var rememberAuth = false
+    @State private var backupPath = "/"
+
+    // MINIO
+    @State private var accessKeyID = ""
+    @State private var secretKey = ""
+    @State private var endpointProto = "https"
+    @State private var endpointHost = ""
+    @State private var bucketManual = false
+    @State private var bucket = ""
+    @State private var buckets: [String] = []
+    @State private var isLoadingBuckets = false
+
+    // WebDAV
+    @State private var webdavAddress = ""
+    @State private var webdavUsername = ""
+    @State private var webdavPassword = ""
+
+    // SFTP
+    @State private var sftpAddress = ""
+    @State private var sftpPort = 22
+    @State private var sftpUsername = ""
+    @State private var sftpAuthMode: SFTPAuthMode = .password
+    @State private var sftpPassword = ""
+    @State private var sftpPrivateKey = ""
+    @State private var sftpPassPhrase = ""
+    /// 编辑时保留原 vars 中的其他键（如 timeout）
+    @State private var extraVars: [String: BackupVarsValue] = [:]
+
+    // 状态
+    @State private var checkState: ConnectionCheckState = .none
+    @State private var isChecking = false
+    @State private var isSubmitting = false
+    @State private var showValidationAlert = false
+    @State private var validationMessage = ""
+
+    private var isEdit: Bool { existing != nil }
+    private var isLocal: Bool { isEdit && existing!.isLocal }
+
+    var body: some View {
+        Form {
+            basicSection
+
+            if !isLocal {
+                switch type {
+                case .minio:  minioSections
+                case .webdav: webdavSection
+                case .sftp:   sftpSections
+                }
+                otherSection
+                checkSection
+            }
+        }
+        .navigationTitle(isEdit ? "编辑备份账号" : "添加备份账号")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSubmitting {
+                        ProgressView()
+                    } else {
+                        Text(isEdit ? "保存" : "确认").bold()
+                    }
+                }
+                .disabled(isSubmitting || (isLocal ? false : checkState != .ok))
+            }
+        }
+        .alert(validationMessage, isPresented: $showValidationAlert) {
+            Button("好的", role: .cancel) {}
+        }
+        .task {
+            if let account = existing { prefill(from: account) }
+        }
+        // 表单内容变化后需重新测试连接（与网页端一致：改动即失效）
+        .onChange(of: formFingerprint) { _, _ in
+            if checkState != .none { checkState = .none }
+        }
+    }
+
+    // MARK: 表单区块
+
+    private var basicSection: some View {
+        Section {
+            TextField("名称", text: $name)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            if isEdit {
+                LabeledContent("类型", value: isLocal ? "LOCAL" : type.displayName)
+            } else {
+                Picker("类型", selection: $type) {
+                    ForEach(BackupAccountType.allCases) { t in
+                        Text(t.displayName).tag(t)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+        } header: {
+            Text("基本信息")
+        } footer: {
+            if isEdit && !isLocal && (existing?.rememberAuth != true) {
+                Text("该账号未记住认证信息，凭证需重新填写")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var minioSections: some View {
+        Section {
+            TextField("Access Key ID", text: $accessKeyID)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            SecureField("Secret Key", text: $secretKey)
+        } header: {
+            Text("认证信息")
+        }
+
+        Section {
+            Picker("协议", selection: $endpointProto) {
+                Text("http").tag("http")
+                Text("https").tag("https")
+            }
+            .pickerStyle(.segmented)
+            TextField("Endpoint 地址", text: $endpointHost)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        } header: {
+            Text("Endpoint")
+        }
+
+        Section {
+            Toggle("手动输入桶名", isOn: $bucketManual)
+            if bucketManual {
+                TextField("桶名", text: $bucket)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            } else {
+                Picker("桶", selection: $bucket) {
+                    Text(buckets.isEmpty ? "未获取" : "请选择").tag("")
+                    ForEach(buckets, id: \.self) { b in
+                        Text(b).tag(b)
+                    }
+                }
+                .pickerStyle(.menu)
+                Button {
+                    Task { await loadBuckets() }
+                } label: {
+                    HStack {
+                        Text("获取桶")
+                        Spacer()
+                        if isLoadingBuckets { ProgressView() }
+                    }
+                }
+                .disabled(isLoadingBuckets)
+            }
+        } header: {
+            Text("存储桶")
+        } footer: {
+            Text("默认从 Endpoint 拉取桶列表；开启手动输入可直接填写桶名")
+        }
+    }
+
+    private var webdavSection: some View {
+        Section {
+            TextField("地址（含 http(s)://）", text: $webdavAddress)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            TextField("用户名", text: $webdavUsername)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            SecureField("密码", text: $webdavPassword)
+        } header: {
+            Text("连接信息")
+        }
+    }
+
+    @ViewBuilder
+    private var sftpSections: some View {
+        Section {
+            TextField("地址", text: $sftpAddress)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            HStack {
+                Text("端口")
+                Spacer()
+                TextField("22", value: $sftpPort, format: .number)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 72)
+            }
+            TextField("用户名", text: $sftpUsername)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        } header: {
+            Text("连接信息")
+        }
+
+        Section {
+            Picker("认证方式", selection: $sftpAuthMode) {
+                ForEach(SFTPAuthMode.allCases) { m in
+                    Text(m.displayName).tag(m)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            if sftpAuthMode == .password {
+                SecureField("密码", text: $sftpPassword)
+            } else {
+                TextEditor(text: $sftpPrivateKey)
+                    .font(.caption.monospaced())
+                    .frame(minHeight: 110)
+                    .overlay(alignment: .topLeading) {
+                        if sftpPrivateKey.isEmpty {
+                            Text("-----BEGIN OPENSSH PRIVATE KEY-----")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.tertiary)
+                                .padding(.top, 8)
+                                .padding(.leading, 4)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                SecureField("私钥密码（可选）", text: $sftpPassPhrase)
+            }
+        } header: {
+            Text("认证方式")
+        }
+    }
+
+    private var otherSection: some View {
+        Section {
+            Toggle("记住认证信息", isOn: $rememberAuth)
+        } header: {
+            Text("认证信息")
+        } footer: {
+            Text("开启后凭证加密存储在服务器，编辑时可直接回显；关闭则每次编辑需重新填写")
+        }
+    }
+
+    private var checkSection: some View {
+        Section {
+            Button {
+                Task { await runCheck() }
+            } label: {
+                HStack {
+                    Text("连接测试")
+                    Spacer()
+                    switch checkState {
+                    case .ok:
+                        Label("通过", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .labelStyle(.titleAndIcon)
+                    case .failed(let msg):
+                        Text(msg)
+                            .foregroundStyle(.red)
+                            .lineLimit(1)
+                    case .none:
+                        if isChecking { ProgressView() }
+                    }
+                }
+            }
+            .disabled(isChecking)
+        } header: {
+            Text("连接测试")
+        } footer: {
+            Text("测试通过后才能保存")
+        }
+    }
+
+    // MARK: 逻辑
+
+    /// 表单指纹：任一输入变化都会改变，用于重置连接测试状态
+    private var formFingerprint: String {
+        [
+            name, type.rawValue, String(rememberAuth), backupPath,
+            accessKeyID, secretKey, endpointProto, endpointHost, String(bucketManual), bucket,
+            webdavAddress, webdavUsername, webdavPassword,
+            sftpAddress, String(sftpPort), sftpUsername, sftpAuthMode.rawValue,
+            sftpPassword, sftpPrivateKey, sftpPassPhrase,
+        ].joined(separator: "¦")
+    }
+
+    private func prefill(from account: BackupAccount) {
+        name = account.name ?? ""
+        backupPath = account.backupPath?.isEmpty == false ? account.backupPath! : "/"
+        rememberAuth = account.rememberAuth ?? false
+        type = BackupAccountType(rawValue: account.type ?? "") ?? .minio
+        let vars = BackupVarsJSON.parse(account.vars)
+
+        // 凭证仅记住认证时回显（服务端返回 base64，解码展示）
+        if rememberAuth {
+            accessKeyID = Self.decodeBase64(account.accessKey)
+            webdavUsername = Self.decodeBase64(account.accessKey)
+            sftpUsername = Self.decodeBase64(account.accessKey)
+            secretKey = Self.decodeBase64(account.credential)
+            webdavPassword = Self.decodeBase64(account.credential)
+            sftpPassword = Self.decodeBase64(account.credential)
+            sftpPrivateKey = Self.decodeBase64(account.credential)
+        }
+
+        switch type {
+        case .minio:
+            let endpoint = Self.splitProto(vars["endpoint"]?.stringValue ?? "")
+            if let proto = endpoint.proto { endpointProto = proto }
+            endpointHost = endpoint.host
+            bucket = account.bucket ?? ""
+            bucketManual = !(account.bucket ?? "").isEmpty
+        case .webdav:
+            webdavAddress = vars["address"]?.stringValue ?? ""
+        case .sftp:
+            sftpAddress = vars["address"]?.stringValue ?? ""
+            if let p = vars["port"]?.intValue { sftpPort = p }
+            if let mode = vars["authMode"]?.stringValue, let m = SFTPAuthMode(rawValue: mode) {
+                sftpAuthMode = m
+            }
+            sftpPassPhrase = vars["passPhrase"]?.stringValue ?? ""
+            // 保留 timeout 等其他键
+            extraVars = vars.values.filter { !["address", "port", "authMode", "passPhrase"].contains($0.key) }
+        }
+    }
+
+    private static func decodeBase64(_ text: String?) -> String {
+        guard let text, !text.isEmpty, let data = Data(base64Encoded: text) else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    private static func encodeBase64(_ text: String) -> String {
+        Data(text.utf8).base64EncodedString()
+    }
+
+    /// 拆分 "https://host" → (proto, host)；无协议时 proto 为 nil
+    private static func splitProto(_ endpoint: String) -> (proto: String?, host: String) {
+        if endpoint.hasPrefix("https://") {
+            return ("https", String(endpoint.dropFirst("https://".count)))
+        }
+        if endpoint.hasPrefix("http://") {
+            return ("http", String(endpoint.dropFirst("http://".count)))
+        }
+        return (nil, endpoint)
+    }
+
+    /// 校验必填项，返回错误信息（通过返回 nil）
+    private func validationError() -> String? {
+        if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "请填写名称"
+        }
+        guard !isLocal else { return nil }
+        switch type {
+        case .minio:
+            if accessKeyID.isEmpty { return "请填写 Access Key ID" }
+            if secretKey.isEmpty { return "请填写 Secret Key" }
+            if endpointHost.isEmpty { return "请填写 Endpoint 地址" }
+        case .webdav:
+            if webdavAddress.isEmpty { return "请填写地址" }
+            if webdavUsername.isEmpty { return "请填写用户名" }
+            if webdavPassword.isEmpty { return "请填写密码" }
+        case .sftp:
+            if sftpAddress.isEmpty { return "请填写地址" }
+            if sftpUsername.isEmpty { return "请填写用户名" }
+            if sftpAuthMode == .password && sftpPassword.isEmpty { return "请填写密码" }
+            if sftpAuthMode == .key && sftpPrivateKey.isEmpty { return "请填写私钥" }
+        }
+        return nil
+    }
+
+    /// 构造 vars / varsJson（按类型）
+    private func buildVars() -> BackupVarsJSON {
+        var vars = BackupVarsJSON()
+        switch type {
+        case .minio:
+            let host = endpointHost.trimmingCharacters(in: .whitespaces)
+            vars["endpointItem"] = .string(host)
+            vars["endpoint"] = .string("\(endpointProto)://\(host)")
+        case .webdav:
+            vars["address"] = .string(webdavAddress.trimmingCharacters(in: .whitespaces))
+        case .sftp:
+            vars["address"] = .string(sftpAddress.trimmingCharacters(in: .whitespaces))
+            vars["port"] = .int(sftpPort)
+            vars["authMode"] = .string(sftpAuthMode.rawValue)
+            if sftpAuthMode == .key, !sftpPassPhrase.isEmpty {
+                vars["passPhrase"] = .string(sftpPassPhrase)
+            }
+        }
+        for (k, v) in extraVars where vars[k] == nil {
+            vars[k] = v
+        }
+        return vars
+    }
+
+    /// 构造提交/测试共用请求体（凭证 base64）
+    private func buildOperate() -> BackupAccountOperate {
+        let vars = buildVars()
+        let userKey: String
+        let secret: String
+        switch type {
+        case .minio:
+            userKey = Self.encodeBase64(accessKeyID)
+            secret = Self.encodeBase64(secretKey)
+        case .webdav:
+            userKey = Self.encodeBase64(webdavUsername)
+            secret = Self.encodeBase64(webdavPassword)
+        case .sftp:
+            userKey = Self.encodeBase64(sftpUsername)
+            secret = sftpAuthMode == .password
+                ? Self.encodeBase64(sftpPassword)
+                : Self.encodeBase64(sftpPrivateKey)
+        }
+        return BackupAccountOperate(
+            id: existing?.id ?? 0,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            type: isLocal ? "LOCAL" : type.rawValue,
+            isPublic: false,
+            bucket: isLocal ? "" : bucket.trimmingCharacters(in: .whitespaces),
+            accessKey: isLocal ? "" : userKey,
+            credential: isLocal ? "" : secret,
+            backupPath: backupPath.isEmpty ? "/" : backupPath,
+            vars: vars.jsonString,
+            varsJson: vars,
+            rememberAuth: rememberAuth,
+            createdAt: existing?.createdAt
+        )
+    }
+
+    private func loadBuckets() async {
+        if let error = validationError() {
+            validationMessage = error
+            showValidationAlert = true
+            return
+        }
+        isLoadingBuckets = true
+        defer { isLoadingBuckets = false }
+        let host = endpointHost.trimmingCharacters(in: .whitespaces)
+        let list = await vm.fetchBuckets(
+            type: BackupAccountType.minio.rawValue,
+            endpoint: "\(endpointProto)://\(host)",
+            accessKey: Self.encodeBase64(accessKeyID),
+            credential: Self.encodeBase64(secretKey)
+        )
+        buckets = list
+        if !list.contains(bucket) {
+            bucket = list.first ?? ""
+        }
+    }
+
+    private func runCheck() async {
+        if let error = validationError() {
+            validationMessage = error
+            showValidationAlert = true
+            return
+        }
+        isChecking = true
+        defer { isChecking = false }
+        if let reason = await vm.checkConnection(buildOperate()) {
+            checkState = .failed(reason)
+        } else {
+            checkState = .ok
+        }
+    }
+
+    private func submit() async {
+        if let error = validationError() {
+            validationMessage = error
+            showValidationAlert = true
+            return
+        }
+        // 与网页端一致：连接测试通过后才允许保存（本机账号除外）
+        guard isLocal || checkState == .ok else {
+            validationMessage = "请先通过连接测试"
+            showValidationAlert = true
+            return
+        }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        if await vm.submitAccount(buildOperate(), isCreate: !isEdit) {
+            onComplete?()
+            dismiss()
+        }
+    }
+}

@@ -279,6 +279,14 @@ enum APIEndpoint {
     case backupsRecordDelete       // POST 删除备份记录
     case backupsRecordDownload     // POST 获取备份文件下载路径
 
+    // MARK: - 备份账号（MINIO / WebDAV / SFTP）
+    case backupAccountsSearch      // POST 备份账号分页查询
+    case backupAccountsBuckets     // POST 获取存储桶列表
+    case backupAccountsCheck       // POST 连接测试
+    case backupAccountsCreate      // POST 创建备份账号
+    case backupAccountsUpdate      // POST 更新备份账号
+    case backupAccountsDelete      // POST 删除备份账号
+
     // MARK: - 任务日志（安装/卸载进度）
     case logsTaskRead            // POST 读取任务日志（轮询 taskID）
     case logsTaskCount           // GET  正在执行的任务数量
@@ -509,6 +517,12 @@ enum APIEndpoint {
         case .backupsRecover:        return "/api/v2/backups/recover?operateNode=local"
         case .backupsRecordDelete:   return "/api/v2/backups/record/del"
         case .backupsRecordDownload: return "/api/v2/backups/record/download?operateNode=local"
+        case .backupAccountsSearch:  return "/api/v2/backups/search"
+        case .backupAccountsBuckets: return "/api/v2/backups/buckets"
+        case .backupAccountsCheck:   return "/api/v2/backups/conn/check"
+        case .backupAccountsCreate:  return "/api/v2/backups"
+        case .backupAccountsUpdate:  return "/api/v2/backups/update"
+        case .backupAccountsDelete:  return "/api/v2/backups/del"
         case .logsOperation:         return "/api/v2/core/logs/operation"
         case .logsLogin:             return "/api/v2/core/logs/login"
         case .logsSystemFiles:       return "/api/v2/logs/system/files"
