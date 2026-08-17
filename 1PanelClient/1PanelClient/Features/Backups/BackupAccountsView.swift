@@ -478,7 +478,7 @@ struct BackupAccountEditView: View {
     @State private var name = ""
     @State private var type: BackupAccountType = .minio
     @State private var rememberAuth = false
-    @State private var backupPath = "/"
+    @State private var backupPath = ""
 
     // MINIO
     @State private var accessKeyID = ""
@@ -520,7 +520,9 @@ struct BackupAccountEditView: View {
         Form {
             basicSection
 
-            if !isLocal {
+            if isLocal {
+                localPathSection
+            } else {
                 switch type {
                 case .minio:  minioSections
                 case .webdav: webdavSection
@@ -709,13 +711,30 @@ struct BackupAccountEditView: View {
         }
     }
 
+    /// LOCAL 内置账号：仅可改名称与备份目录（保存后服务器会移动现有备份）
+    private var localPathSection: some View {
+        Section {
+            TextField("备份目录", text: $backupPath, prompt: Text("/opt/1panel/backup"))
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        } header: {
+            Text("备份目录")
+        } footer: {
+            Text("修改后服务器会将现有备份文件移动到新目录")
+        }
+    }
+
     private var otherSection: some View {
         Section {
             Toggle("记住认证信息", isOn: $rememberAuth)
+            TextField("备份目录", text: $backupPath, prompt: Text("/"))
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
         } header: {
-            Text("认证信息")
+            Text("认证与目录")
         } footer: {
-            Text("开启后凭证加密存储在服务器，编辑时可直接回显；关闭则每次编辑需重新填写")
+            Text("开启「记住认证信息」后凭证加密存储在服务器，编辑时可直接回显；备份目录为该账号下的备份存放路径，需手动填写（如 /backup）")
         }
     }
 
@@ -764,7 +783,7 @@ struct BackupAccountEditView: View {
 
     private func prefill(from account: BackupAccount) {
         name = account.name ?? ""
-        backupPath = account.backupPath?.isEmpty == false ? account.backupPath! : "/"
+        backupPath = account.backupPath ?? ""
         rememberAuth = account.rememberAuth ?? false
         type = BackupAccountType(rawValue: account.type ?? "") ?? .minio
         let vars = BackupVarsJSON.parse(account.vars)
