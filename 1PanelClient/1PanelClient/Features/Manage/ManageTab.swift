@@ -14,6 +14,7 @@ struct ManageTab: View {
     @StateObject private var prefs = ManagePrefs()
     @State private var navPath = NavigationPath()
     @State private var showEditSheet = false
+    @State private var showRemoveServer = false
 
     /// 跨 Tab 跳转入口：外部（如 OverviewTab）设置此值时，自动 push 到对应页面
     @Binding var initialItem: ManageItem?
@@ -43,6 +44,22 @@ struct ManageTab: View {
                     }
                 }
 
+                // 移除当前服务器（独立分组，与「编辑」区分开）
+                Section {
+                    Button {
+                        showRemoveServer = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("移除服务器")
+                                .foregroundStyle(.red)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(manager.current == nil)
+                }
+
                 Section {
                     Button {
                         showEditSheet = true
@@ -66,6 +83,21 @@ struct ManageTab: View {
             .sheet(isPresented: $showEditSheet) {
                 ManageEditView(prefs: prefs)
                     .presentationDetents([.medium])
+            }
+            // 移除当前服务器前确认（会连带清除 Keychain 中的 API 密钥）
+            .confirmationDialog(
+                "移除服务器",
+                isPresented: $showRemoveServer,
+                titleVisibility: .visible
+            ) {
+                Button("移除「\(manager.current?.name ?? "")」", role: .destructive) {
+                    if let server = manager.current {
+                        manager.remove(server)
+                    }
+                }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("将移除当前服务器的连接配置与已保存的 API 密钥，此操作不可恢复。")
             }
         }
         .onChange(of: initialItem) { _, newItem in

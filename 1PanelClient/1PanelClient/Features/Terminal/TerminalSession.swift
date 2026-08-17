@@ -203,12 +203,6 @@ final class TerminalSession: ObservableObject {
 
     // MARK: - 连接
 
-    /// 连接调试信息（连接横幅/WS 地址/超时诊断）开关，默认隐藏，
-    /// 在终端页菜单开启后重新连接生效
-    static var showConnectionDebug: Bool {
-        UserDefaults.standard.bool(forKey: "terminalShowConnectionDebug")
-    }
-
     func connect() {
         guard !isConnecting, !isConnected else { return }
         guard let url = makeWebSocketURL() else {
@@ -223,27 +217,10 @@ final class TerminalSession: ObservableObject {
 
         isConnecting = true
         errorMessage = nil
-        if Self.showConnectionDebug {
-            emulator.feed("正在连接 \(server.name)…\r\n")
-            emulator.feed("\u{1B}[90m\(url.absoluteString)\u{1B}[0m\r\n")
-        }
 
         let ws = session.webSocketTask(with: request)
         ws.resume()
         task = ws
-
-        // 诊断：3 秒后检查连接状态（仅调试模式显示）
-        Task { [weak self] in
-            try? await Task.sleep(for: .seconds(3))
-            await MainActor.run {
-                guard let self else { return }
-                if self.isConnecting && !self.isConnected && Self.showConnectionDebug {
-                    let state = self.task?.state.rawValue ?? -1
-                    let closeCode = self.task?.closeCode.rawValue ?? -1
-                    self.emulator.feed("\r\n\u{1B}[33m[诊断] 3秒未收到数据\r\nWS状态: \(state) (0=running 3=completed)\r\n关闭码: \(closeCode)\u{1B}[0m\r\n")
-                }
-            }
-        }
 
         // 发送初始 resize（触发服务端 PTY 启动并推送数据）
         sendResize(cols: target.cols, rows: target.rows)

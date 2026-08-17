@@ -113,35 +113,45 @@ struct DockerStatusCard: View {
     @State private var pendingAction: String?
 
     var body: some View {
-        Section {
+        Group {
             if vm.isLoadingDocker && vm.dockerStatus == nil {
-                HStack(spacing: 12) {
-                    ProgressView()
-                    Text("加载 Docker 状态…")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                Section {
+                    ServiceStatusLoadingRow(text: "加载 Docker 状态…")
                 }
-                .padding(.vertical, 4)
-            } else if let status = vm.dockerStatus {
-                headerRow(status)
-                if isExpanded { actionsRow }
+            } else if vm.dockerStatus != nil {
+                ServiceStatusCard(
+                    title: "Docker",
+                    statusText: statusText,
+                    statusColor: isRunning ? .green : .gray,
+                    isOperating: vm.dockerOperating,
+                    isExpanded: $isExpanded,
+                    actions: [
+                        ServiceAction(
+                            title: isRunning ? "停止" : "启动",
+                            icon: isRunning ? "stop.fill" : "play.fill",
+                            color: isRunning ? .orange : .green
+                        ) { pendingAction = isRunning ? "stop" : "start" },
+                        ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+                            pendingAction = "restart"
+                        },
+                        ServiceAction(title: "清理容器", icon: "trash", color: .pink) {
+                            pendingAction = "prune"
+                        },
+                        ServiceAction(title: "镜像", icon: "square.stack.3d.up", color: .teal) {
+                            Task {
+                                await vm.loadImages()
+                                onShowImages()
+                            }
+                        }
+                    ]
+                ) {
+                    // Docker 使用内置品牌图标
+                    BrandIcon(brand: .docker, size: 44)
+                }
             } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                        Text("Docker 未安装或加载失败")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let msg = vm.dockerErrorMessage, !msg.isEmpty {
-                        Text(msg)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(3)
-                    }
+                Section {
+                    ServiceStatusFailedRow(text: "Docker 未安装或加载失败", detail: vm.dockerErrorMessage)
                 }
-                .padding(.vertical, 4)
             }
         }
         .alert(
@@ -158,6 +168,11 @@ struct DockerStatusCard: View {
                 Text("将对 Docker 进行 \(actionDisplayName(action)) 操作，是否继续？")
             }
         }
+    }
+
+    private var statusText: String {
+        guard let status = vm.dockerStatus else { return "未知" }
+        return status.isExist == false ? "未安装" : (isRunning ? "运行中" : "已停止")
     }
 
     private func actionDisplayName(_ action: String) -> String {
@@ -184,111 +199,6 @@ struct DockerStatusCard: View {
     }
 
     private var isRunning: Bool { vm.dockerStatus?.isActive == true }
-
-    @ViewBuilder
-    private func headerRow(_ status: DockerStatus) -> some View {
-        HStack(spacing: 12) {
-            // Docker 使用内置品牌图标
-            BrandIcon(brand: .docker, size: 44)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Docker")
-                    .font(.body.bold())
-                Text(status.isActive == true ? "运行中" : "已停止")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            HStack(spacing: 4) {
-                StatusDot(color: isRunning ? .green : .gray)
-                Text(status.isExist == false ? "未安装" : (isRunning ? "运行中" : "已停止"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
-            .disabled(vm.dockerOperating)
-        }
-        .padding(.vertical, 2)
-    }
-
-    private var actionsRow: some View {
-        HStack(spacing: 8) {
-            actionButton(
-                title: isRunning ? "停止" : "启动",
-                icon: isRunning ? "stop.fill" : "play.fill",
-                color: isRunning ? .orange : .green
-            ) {
-                pendingAction = isRunning ? "stop" : "start"
-            }
-            actionButton(
-                title: "重启",
-                icon: "arrow.triangle.2.circlepath",
-                color: .blue
-            ) {
-                pendingAction = "restart"
-            }
-            actionButton(
-                title: "清理容器",
-                icon: "trash",
-                color: .pink
-            ) {
-                pendingAction = "prune"
-            }
-            actionButton(
-                title: "镜像",
-                icon: "square.stack.3d.up",
-                color: .teal
-            ) {
-                Task {
-                    await vm.loadImages()
-                    onShowImages()
-                }
-            }
-        }
-        .padding(.top, 4)
-        .padding(.bottom, 2)
-    }
-
-    @ViewBuilder
-    private func actionButton(
-        title: String,
-        icon: String,
-        color: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                if vm.dockerOperating {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .frame(width: 22, height: 22)
-                } else {
-                    Image(systemName: icon)
-                        .font(.title3)
-                        .foregroundStyle(color)
-                        .frame(width: 22, height: 22)
-                }
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-        .disabled(vm.dockerOperating)
-    }
 }
 
 // MARK: - 容器列表项（增强）
@@ -400,6 +310,20 @@ struct ContainerDetailView: View {
                     Label("监控", systemImage: "chart.xyaxis.line")
                 }
                 .buttonStyle(.plain)
+            }
+
+            // 危险区（与数据库/进程/应用详情一致：删除放底部独立 Section）
+            Section {
+                Button(role: .destructive) {
+                    if container.isFromApp == true {
+                        menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
+                        showMenuAlert = true
+                    } else {
+                        pendingDelete = true
+                    }
+                } label: {
+                    Label("删除容器", systemImage: "trash")
+                }
             }
         }
         .navigationTitle(container.displayName)
@@ -563,18 +487,6 @@ struct ContainerDetailView: View {
                 color: .cyan
             ) {
                 showEdit = true
-            }
-            actionButton(
-                title: "删除",
-                icon: "trash",
-                color: .pink
-            ) {
-                if container.isFromApp == true {
-                    menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
-                    showMenuAlert = true
-                } else {
-                    pendingDelete = true
-                }
             }
         }
     }
@@ -1268,6 +1180,8 @@ struct ContainerImageView: View {
     @State private var showRepos = false
     @State private var showPruneSelect = false
     @State private var pruneMode = false  // false=未使用, true=未标签
+    /// 左滑删除的待确认镜像
+    @State private var pendingDeleteImage: ContainerImage?
 
     var body: some View {
         Group {
@@ -1283,6 +1197,14 @@ struct ContainerImageView: View {
                 List {
                     ForEach(vm.images) { img in
                         ImageRow(image: img)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    pendingDeleteImage = img
+                                } label: {
+                                    Label("删除", systemImage: "trash")
+                                }
+                                .disabled(img.isUsed == true || (img.tags?.first ?? "").isEmpty)
+                            }
                     }
                 }
                 .listStyle(.insetGrouped)
@@ -1332,6 +1254,19 @@ struct ContainerImageView: View {
             Button("好的", role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
+        }
+        .alert("删除镜像", isPresented: Binding(
+            get: { pendingDeleteImage != nil },
+            set: { if !$0 { pendingDeleteImage = nil } }
+        )) {
+            Button("取消", role: .cancel) { pendingDeleteImage = nil }
+            Button("删除", role: .destructive) {
+                if let img = pendingDeleteImage, let name = img.tags?.first, !name.isEmpty {
+                    Task { _ = await vm.deleteImages(names: [name]) }
+                }
+            }
+        } message: {
+            Text("确定删除镜像「\(pendingDeleteImage?.displayName ?? "")」吗？删除后不可恢复。")
         }
         .task {
             if vm.images.isEmpty { await vm.loadImages() }
@@ -1550,17 +1485,14 @@ struct RepoListView: View {
         }
         .navigationTitle("仓库")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showCreate = true } label: {
-                    Image(systemName: "plus")
-                }
-            }
+        .overlay(alignment: .bottomTrailing) {
+            FloatingActionButton { showCreate = true }
+                .accessibilityLabel("创建仓库")
         }
-        .sheet(isPresented: $showCreate) {
+        .navigationDestination(isPresented: $showCreate) {
             RepoFormView(editing: nil, vm: vm) { await loadRepos() }
         }
-        .sheet(item: $editingRepo) { repo in
+        .navigationDestination(item: $editingRepo) { repo in
             RepoFormView(editing: repo, vm: vm) { await loadRepos() }
         }
         .alert(
@@ -1660,42 +1592,39 @@ struct RepoFormView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                if confirmStep {
-                    Section {
-                        Label("操作 http 类型仓库需要重启 Docker 服务。\n如果确认操作，请手动输入 '立即重启'", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                            .font(.subheadline)
+        Form {
+            if confirmStep {
+                Section {
+                    Label("操作 http 类型仓库需要重启 Docker 服务。\n如果确认操作，请手动输入 '立即重启'", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.subheadline)
+                }
+                Section("确认") {
+                    TextField("立即重启", text: $restartConfirm)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                }
+            } else {
+                formSection
+            }
+        }
+        .navigationTitle(isEditing ? "编辑仓库" : "添加仓库")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // http 二次确认步骤：前导按钮回到表单步骤（替代原 sheet 的「取消」分支）
+            if confirmStep {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("上一步") {
+                        confirmStep = false
+                        restartConfirm = ""
                     }
-                    Section("确认") {
-                        TextField("立即重启", text: $restartConfirm)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                    }
-                } else {
-                    formSection
                 }
             }
-            .navigationTitle(isEditing ? "编辑仓库" : "添加仓库")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
-                        if confirmStep {
-                            confirmStep = false
-                            restartConfirm = ""
-                        } else {
-                            dismiss()
-                        }
-                    }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(isSaving ? "提交中…" : (confirmStep ? "确认" : "确认")) {
+                    Task { await submit() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(isSaving ? "提交中…" : (confirmStep ? "确认" : "确认")) {
-                        Task { await submit() }
-                    }
-                    .disabled(!canSubmit || isSaving || (confirmStep && restartConfirm != "立即重启"))
-                }
+                .disabled(!canSubmit || isSaving || (confirmStep && restartConfirm != "立即重启"))
             }
         }
     }

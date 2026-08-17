@@ -160,7 +160,7 @@ nonisolated struct ContainerUpgradeRequest: Encodable {
 
 // MARK: - 镜像仓库（POST /containers/repo/search）
 
-nonisolated struct ContainerRepo: Decodable, Identifiable {
+nonisolated struct ContainerRepo: Decodable, Identifiable, Hashable {
     let id: Int
     let name: String?
     let downloadUrl: String?

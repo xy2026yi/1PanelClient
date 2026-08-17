@@ -597,23 +597,18 @@ struct WAFIPRulesView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showCreate = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
+        .overlay(alignment: .bottomTrailing) {
+            FloatingActionButton { showCreate = true }
+                .accessibilityLabel("添加规则")
         }
         .refreshable { await loadItems() }
         .task { await loadItems() }
-        .sheet(isPresented: $showCreate) {
+        .navigationDestination(isPresented: $showCreate) {
             WAFIPRuleFormView(server: server, scope: scope) {
                 Task { await loadItems() }
             }
         }
-        .sheet(item: $editingItem) { item in
+        .navigationDestination(item: $editingItem) { item in
             WAFIPRuleFormView(server: server, scope: scope, editingItem: item) {
                 Task { await loadItems() }
             }
@@ -762,98 +757,93 @@ struct WAFIPRuleFormView: View {
     ]
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("类型") {
-                    Picker("IP 类型", selection: $ipType) {
-                        ForEach(typeOptions, id: \.value) { Text($0.label).tag($0.value) }
-                    }
-                    .onChange(of: ipType) { _, _ in
-                        if ipType == "ipGroup" { Task { await loadGroups() } }
-                    }
+        Form {
+            Section("类型") {
+                Picker("IP 类型", selection: $ipType) {
+                    ForEach(typeOptions, id: \.value) { Text($0.label).tag($0.value) }
                 }
+                .onChange(of: ipType) { _, _ in
+                    if ipType == "ipGroup" { Task { await loadGroups() } }
+                }
+            }
 
-                switch ipType {
-                case "ipv4":
-                    Section("IPv4 地址") {
-                        TextField("例: 192.168.1.1", text: $ipv4)
-                            .keyboardType(.decimalPad)
-                            .autocorrectionDisabled()
-                    }
-                case "ipArr":
-                    Section("IPv4 范围") {
-                        TextField("起始 IP", text: $ipStart)
-                            .keyboardType(.decimalPad)
-                            .autocorrectionDisabled()
-                        TextField("结束 IP", text: $ipEnd)
-                            .keyboardType(.decimalPad)
-                            .autocorrectionDisabled()
-                    }
-                case "ipv6":
-                    Section("IPv6 地址") {
-                        TextField("例: 2001:db8::1", text: $ipv6)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                    }
-                case "ipGroup":
-                    Section("IP 组") {
-                        if ipGroups.isEmpty {
-                            Text("请先创建 IP 组").foregroundStyle(.secondary)
-                        } else {
-                            Picker("选择 IP 组", selection: $ipGroup) {
-                                ForEach(ipGroups) { group in
-                                    Text(group.name).tag(group.name)
-                                }
+            switch ipType {
+            case "ipv4":
+                Section("IPv4 地址") {
+                    TextField("例: 192.168.1.1", text: $ipv4)
+                        .keyboardType(.decimalPad)
+                        .autocorrectionDisabled()
+                }
+            case "ipArr":
+                Section("IPv4 范围") {
+                    TextField("起始 IP", text: $ipStart)
+                        .keyboardType(.decimalPad)
+                        .autocorrectionDisabled()
+                    TextField("结束 IP", text: $ipEnd)
+                        .keyboardType(.decimalPad)
+                        .autocorrectionDisabled()
+                }
+            case "ipv6":
+                Section("IPv6 地址") {
+                    TextField("例: 2001:db8::1", text: $ipv6)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                }
+            case "ipGroup":
+                Section("IP 组") {
+                    if ipGroups.isEmpty {
+                        Text("请先创建 IP 组").foregroundStyle(.secondary)
+                    } else {
+                        Picker("选择 IP 组", selection: $ipGroup) {
+                            ForEach(ipGroups) { group in
+                                Text(group.name).tag(group.name)
                             }
                         }
                     }
-                default:
-                    EmptyView()
                 }
+            default:
+                EmptyView()
+            }
 
-                if editingItem != nil {
-                    Section("状态") {
-                        Toggle("启用", isOn: Binding(
-                            get: { state == "on" },
-                            set: { state = $0 ? "on" : "off" }
-                        ))
+            if editingItem != nil {
+                Section("状态") {
+                    Toggle("启用", isOn: Binding(
+                        get: { state == "on" },
+                        set: { state = $0 ? "on" : "off" }
+                    ))
+                }
+            }
+
+            Section("备注") {
+                TextField("描述(可选)", text: $description)
+            }
+        }
+        .navigationTitle(editingItem == nil ? "添加 IP 规则" : "编辑 IP 规则")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Text(editingItem == nil ? "创建" : "保存")
                     }
                 }
-
-                Section("备注") {
-                    TextField("描述(可选)", text: $description)
-                }
+                .disabled(isSaving || !isValid)
             }
-            .navigationTitle(editingItem == nil ? "添加 IP 规则" : "编辑 IP 规则")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task { await save() }
-                    } label: {
-                        if isSaving {
-                            ProgressView()
-                        } else {
-                            Text(editingItem == nil ? "创建" : "保存")
-                        }
-                    }
-                    .disabled(isSaving || !isValid)
-                }
-            }
-            .onAppear {
-                if ipType == "ipGroup" { Task { await loadGroups() } }
-            }
-            .alert("错误", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("好的") { errorMessage = nil }
-            } message: {
-                Text(errorMessage ?? "")
-            }
+        }
+        .onAppear {
+            if ipType == "ipGroup" { Task { await loadGroups() } }
+        }
+        .alert("错误", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("好的") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
         }
     }
 
@@ -970,23 +960,18 @@ struct WAFIPGroupsView: View {
         }
         .navigationTitle("IP 组")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showCreate = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
+        .overlay(alignment: .bottomTrailing) {
+            FloatingActionButton { showCreate = true }
+                .accessibilityLabel("创建 IP 组")
         }
         .refreshable { await loadItems() }
         .task { await loadItems() }
-        .sheet(isPresented: $showCreate) {
+        .navigationDestination(isPresented: $showCreate) {
             WAFCreateIPGroupView(server: server) {
                 Task { await loadItems() }
             }
         }
-        .sheet(item: $editingGroup) { item in
+        .navigationDestination(item: $editingGroup) { item in
             WAFIPGroupEditView(server: server, item: item) {
                 Task { await loadItems() }
             }
@@ -1070,53 +1055,48 @@ struct WAFCreateIPGroupView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("名称") {
-                    TextField("组名称", text: $name)
-                }
-                Section("导入方式") {
-                    Picker("方式", selection: $source) {
-                        Text("手动创建").tag("imported")
-                        Text("远程下载").tag("remoteFile")
-                    }
-                }
-                if source == "imported" {
-                    Section("IP 列表") {
-                        TextEditor(text: $content)
-                            .font(.system(.caption, design: .monospaced))
-                            .frame(minHeight: 120)
-                    }
-                } else {
-                    Section("URL") {
-                        TextField("https://...", text: $remoteURL)
-                            .keyboardType(.URL)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                    }
+        Form {
+            Section("名称") {
+                TextField("组名称", text: $name)
+            }
+            Section("导入方式") {
+                Picker("方式", selection: $source) {
+                    Text("手动创建").tag("imported")
+                    Text("远程下载").tag("remoteFile")
                 }
             }
-            .navigationTitle("创建 IP 组")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+            if source == "imported" {
+                Section("IP 列表") {
+                    TextEditor(text: $content)
+                        .font(.system(.caption, design: .monospaced))
+                        .frame(minHeight: 120)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("创建") {
-                        Task { await create() }
-                    }
-                    .disabled(isSaving || name.isEmpty)
+            } else {
+                Section("URL") {
+                    TextField("https://...", text: $remoteURL)
+                        .keyboardType(.URL)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
                 }
             }
-            .alert("错误", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("好的") { errorMessage = nil }
-            } message: {
-                Text(errorMessage ?? "")
+        }
+        .navigationTitle("创建 IP 组")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("创建") {
+                    Task { await create() }
+                }
+                .disabled(isSaving || name.isEmpty)
             }
+        }
+        .alert("错误", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("好的") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
         }
     }
 
@@ -1157,50 +1137,45 @@ struct WAFIPGroupEditView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("名称") {
-                    Text(item.name).foregroundStyle(.secondary)
+        Form {
+            Section("名称") {
+                Text(item.name).foregroundStyle(.secondary)
+            }
+            if item.source == "remoteFile" {
+                Section("远程 URL") {
+                    Text(item.remoteURL ?? "—").font(.caption).foregroundStyle(.secondary)
                 }
-                if item.source == "remoteFile" {
-                    Section("远程 URL") {
-                        Text(item.remoteURL ?? "—").font(.caption).foregroundStyle(.secondary)
+            }
+            Section("IP 列表") {
+                TextEditor(text: $content)
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(minHeight: 200)
+            }
+        }
+        .navigationTitle("编辑 IP 组")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { content = item.content ?? "" }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Text("保存")
                     }
                 }
-                Section("IP 列表") {
-                    TextEditor(text: $content)
-                        .font(.system(.caption, design: .monospaced))
-                        .frame(minHeight: 200)
-                }
+                .disabled(isSaving)
             }
-            .navigationTitle("编辑 IP 组")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear { content = item.content ?? "" }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task { await save() }
-                    } label: {
-                        if isSaving {
-                            ProgressView()
-                        } else {
-                            Text("保存")
-                        }
-                    }
-                    .disabled(isSaving)
-                }
-            }
-            .alert("提示", isPresented: Binding(
-                get: { successMessage != nil || errorMessage != nil },
-                set: { _ in successMessage = nil; errorMessage = nil }
-            )) {
-                Button("好的") { successMessage = nil; errorMessage = nil }
-            } message: {
-                Text(successMessage ?? errorMessage ?? "")
-            }
+        }
+        .alert("提示", isPresented: Binding(
+            get: { successMessage != nil || errorMessage != nil },
+            set: { _ in successMessage = nil; errorMessage = nil }
+        )) {
+            Button("好的") { successMessage = nil; errorMessage = nil }
+        } message: {
+            Text(successMessage ?? errorMessage ?? "")
         }
     }
 
@@ -1282,23 +1257,18 @@ struct WAFCommonRulesView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showCreate = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
+        .overlay(alignment: .bottomTrailing) {
+            FloatingActionButton { showCreate = true }
+                .accessibilityLabel("添加规则")
         }
         .refreshable { await loadItems() }
         .task { await loadItems() }
-        .sheet(isPresented: $showCreate) {
+        .navigationDestination(isPresented: $showCreate) {
             WAFCommonRuleFormView(server: server, scope: scope) {
                 Task { await loadItems() }
             }
         }
-        .sheet(item: $editingItem) { item in
+        .navigationDestination(item: $editingItem) { item in
             WAFCommonRuleFormView(server: server, scope: scope, editingItem: item) {
                 Task { await loadItems() }
             }
@@ -1397,7 +1367,7 @@ struct WAFCommonRulesView: View {
 // MARK: - 通用规则表单（创建/编辑共用）
 
 /// 通用规则表单：`editingItem` 为 nil 时是创建模式，非 nil 时为编辑模式。
-/// 统一以 sheet 呈现（取消 + 提交按钮，提交时显示 loading）。
+/// 以页面推入呈现（右上角提交按钮，提交时显示 loading，返回即取消）。
 struct WAFCommonRuleFormView: View {
     let server: ServerConfig
     let scope: String
@@ -1426,44 +1396,39 @@ struct WAFCommonRuleFormView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("规则内容") {
-                    TextField("输入规则", text: $rule)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                }
-                Section("备注") {
-                    TextField("描述(可选)", text: $description)
-                }
+        Form {
+            Section("规则内容") {
+                TextField("输入规则", text: $rule)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
             }
-            .navigationTitle(editingItem == nil ? "添加规则" : "编辑规则")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task { await save() }
-                    } label: {
-                        if isSaving {
-                            ProgressView()
-                        } else {
-                            Text(editingItem == nil ? "创建" : "保存")
-                        }
+            Section("备注") {
+                TextField("描述(可选)", text: $description)
+            }
+        }
+        .navigationTitle(editingItem == nil ? "添加规则" : "编辑规则")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Text(editingItem == nil ? "创建" : "保存")
                     }
-                    .disabled(isSaving || rule.isEmpty)
                 }
+                .disabled(isSaving || rule.isEmpty)
             }
-            .alert("错误", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("好的") { errorMessage = nil }
-            } message: {
-                Text(errorMessage ?? "")
-            }
+        }
+        .alert("错误", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("好的") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
         }
     }
 

@@ -145,29 +145,43 @@ struct OpenRestyCard: View {
     }
 
     var body: some View {
-        Section {
+        Group {
             if vm.isLoadingOpenResty && vm.openresty == nil {
-                HStack(spacing: 12) {
-                    ProgressView()
-                    Text("加载 OpenResty 状态…")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                Section {
+                    ServiceStatusLoadingRow(text: "加载 OpenResty 状态…")
                 }
-                .padding(.vertical, 4)
             } else if let app = vm.openresty {
-                headerRow(app)
-                if isExpanded {
-                    actionsRow(app)
+                ServiceStatusCard(
+                    title: "OpenResty",
+                    subtitle: app.version.flatMap { $0.isEmpty ? nil : "v\($0)" },
+                    statusText: app.status ?? "未知",
+                    statusColor: app.statusColor,
+                    isOperating: vm.openRestyOperating,
+                    isExpanded: $isExpanded,
+                    actions: [
+                        ServiceAction(
+                            title: app.isRunning ? "停止" : "启动",
+                            icon: app.isRunning ? "stop.fill" : "play.fill",
+                            color: app.isRunning ? .orange : .green
+                        ) { pendingAction = app.isRunning ? "stop" : "start" },
+                        ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+                            pendingAction = "restart"
+                        },
+                        ServiceAction(title: "重载", icon: "arrow.clockwise", color: .teal) {
+                            pendingAction = "reload"
+                        },
+                        ServiceAction(title: "配置", icon: "slider.horizontal.3", color: .purple) {
+                            showConfig = true
+                        }
+                    ]
+                ) {
+                    // OpenResty 使用内置品牌图标，避免依赖服务器应用图标接口
+                    BrandIcon(brand: .openresty, size: 44)
                 }
             } else {
-                HStack(spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                    Text("OpenResty 未安装或加载失败")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                Section {
+                    ServiceStatusFailedRow(text: "OpenResty 未安装或加载失败")
                 }
-                .padding(.vertical, 4)
             }
         }
         .alert(
@@ -210,114 +224,6 @@ struct OpenRestyCard: View {
         }
         Task { await vm.operateOpenResty(op: op) }
     }
-
-    @ViewBuilder
-    private func headerRow(_ app: AppInstall) -> some View {
-        HStack(spacing: 12) {
-            // OpenResty 使用内置品牌图标，避免依赖服务器应用图标接口
-            BrandIcon(brand: .openresty, size: 44)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("OpenResty")
-                    .font(.body.bold())
-                if let v = app.version, !v.isEmpty {
-                    Text("v\(v)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("—")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-            HStack(spacing: 4) {
-                StatusDot(color: app.statusColor)
-                Text(app.status ?? "未知")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
-            .disabled(vm.openRestyOperating)
-        }
-        .padding(.vertical, 2)
-    }
-
-    @ViewBuilder
-    private func actionsRow(_ app: AppInstall) -> some View {
-        HStack(spacing: 8) {
-            actionButton(
-                title: app.isRunning ? "停止" : "启动",
-                icon: app.isRunning ? "stop.fill" : "play.fill",
-                color: app.isRunning ? .orange : .green
-            ) {
-                pendingAction = app.isRunning ? "stop" : "start"
-            }
-            actionButton(
-                title: "重启",
-                icon: "arrow.triangle.2.circlepath",
-                color: .blue
-            ) {
-                pendingAction = "restart"
-            }
-            actionButton(
-                title: "重载",
-                icon: "arrow.clockwise",
-                color: .teal
-            ) {
-                pendingAction = "reload"
-            }
-            actionButton(
-                title: "配置",
-                icon: "slider.horizontal.3",
-                color: .purple
-            ) {
-                showConfig = true
-            }
-        }
-        .padding(.top, 4)
-        .padding(.bottom, 2)
-    }
-
-    @ViewBuilder
-    private func actionButton(
-        title: String,
-        icon: String,
-        color: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                if vm.openRestyOperating {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .frame(width: 22, height: 22)
-                } else {
-                    Image(systemName: icon)
-                        .font(.title3)
-                        .foregroundStyle(color)
-                        .frame(width: 22, height: 22)
-                }
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-        .disabled(vm.openRestyOperating)
-    }
 }
 
 // MARK: - 网站详情
@@ -330,6 +236,7 @@ struct WebsiteDetailView: View {
     @State private var detail: WebsiteFull?
     @State private var isLoadingDetail = false
     @State private var showDeleteSheet = false
+    @State private var showEditSheet = false
     @State private var isOperating = false
     @State private var pendingToggle: Bool?
 
@@ -338,31 +245,51 @@ struct WebsiteDetailView: View {
             if isLoadingDetail && detail == nil {
                 Section { HStack { ProgressView(); Text("加载中…") } }
             } else if let d = detail {
+                // 状态与启停
                 Section {
-                    if let alias = d.alias, !alias.isEmpty {
-                        InfoRow("别名", value: alias)
-                    }
                     HStack {
                         Text("状态").foregroundStyle(.secondary)
                         Spacer()
                         Text(d.status ?? "—")
                             .foregroundStyle(d.statusColor)
                     }
-                    Toggle("操作", isOn: Binding(
+                    Toggle("启用网站", isOn: Binding(
                         get: { (d.status ?? "").lowercased() == "running" },
                         set: { newVal in
                             pendingToggle = newVal
                         }
                     ))
                     .disabled(isOperating)
-                    if let port = d.primaryDomain, !port.isEmpty {
-                        InfoRow("主域名", value: port)
+                } header: {
+                    SectionLabel(title: "状态", systemImage: "info.circle")
+                }
+
+                // 基本信息
+                Section {
+                    if let alias = d.alias, !alias.isEmpty {
+                        InfoRow("别名", value: alias)
                     }
+                    if let domain = d.primaryDomain, !domain.isEmpty {
+                        InfoRow("主域名", value: domain)
+                    }
+                    InfoRow("类型", value: d.type ?? website.typeDisplayName)
+                    if let p = d.sitePath, !p.isEmpty {
+                        InfoRow("根目录", value: p)
+                    }
+                    if let created = d.createdAt, !created.isEmpty {
+                        InfoRow("创建时间", value: String(created.prefix(19)))
+                    }
+                } header: {
+                    SectionLabel(title: "基本信息", systemImage: "doc.text")
+                }
+
+                // 操作入口（HTTPS / 日志 / 反代 / 配置文件）
+                Section {
                     NavigationLink {
                         WebsiteHTTPSView(websiteId: website.id, vm: vm)
                     } label: {
                         HStack {
-                            Text("HTTPS").foregroundStyle(.secondary)
+                            Text("HTTPS")
                             Spacer()
                             if d.webSiteSSLId ?? 0 > 0 {
                                 Image(systemName: "lock.fill")
@@ -372,18 +299,35 @@ struct WebsiteDetailView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    InfoRow("类型", value: d.type ?? website.typeDisplayName)
                     NavigationLink {
                         WebsiteLogPage(websiteId: website.id, vm: vm)
                     } label: {
-                        Text("日志").foregroundStyle(.secondary)
+                        Label("日志", systemImage: "doc.text.magnifyingglass")
+                            .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
-                    if let p = d.sitePath, !p.isEmpty {
-                        InfoRow("根目录", value: p)
+                    NavigationLink {
+                        WebsiteProxiesView(websiteId: website.id, vm: vm)
+                    } label: {
+                        Label("反向代理", systemImage: "arrow.left.arrow.right")
+                            .foregroundStyle(.primary)
                     }
-                    if let created = d.createdAt, !created.isEmpty {
-                        InfoRow("创建时间", value: String(created.prefix(19)))
+                    .buttonStyle(.plain)
+                    NavigationLink {
+                        WebsiteNginxView(websiteId: website.id, vm: vm)
+                    } label: {
+                        Label("配置文件", systemImage: "doc.text")
+                            .foregroundStyle(.primary)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // 危险区（与其他详情页一致：删除放底部独立 Section）
+                Section {
+                    Button(role: .destructive) {
+                        showDeleteSheet = true
+                    } label: {
+                        Label("删除网站", systemImage: "trash")
                     }
                 }
             } else {
@@ -397,26 +341,13 @@ struct WebsiteDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    NavigationLink {
-                        WebsiteProxiesView(websiteId: website.id, vm: vm)
-                    } label: {
-                        Label("反向代理", systemImage: "arrow.left.arrow.right")
-                    }
-                    NavigationLink {
-                        WebsiteNginxView(websiteId: website.id, vm: vm)
-                    } label: {
-                        Label("配置文件", systemImage: "doc.text")
-                    }
-                    Divider()
-                    Button(role: .destructive) {
-                        showDeleteSheet = true
-                    } label: {
-                        Label("删除", systemImage: "trash")
-                    }
+                Button {
+                    showEditSheet = true
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "square.and.pencil")
                 }
+                .disabled(detail == nil)
+                .accessibilityLabel("编辑网站")
             }
         }
         .task {
@@ -429,6 +360,16 @@ struct WebsiteDetailView: View {
         }
         .sheet(isPresented: $showDeleteSheet) {
             WebsiteDeleteSheet(website: website, vm: vm)
+        }
+        .sheet(isPresented: $showEditSheet) {
+            if let d = detail {
+                WebsiteEditSheet(detail: d, vm: vm) {
+                    Task {
+                        await loadDetail()
+                        await vm.refresh()
+                    }
+                }
+            }
         }
         .alert(
             (pendingToggle == true) ? "启动" : "停止",
@@ -1026,6 +967,26 @@ final class WebsitesViewModel: ObservableObject {
         }
     }
 
+    // MARK: - 网站基础信息更新
+
+    /// 更新主域名/备注（POST /websites/update），其余字段按当前详情回填避免零值覆盖
+    func updateWebsite(_ req: WebsiteUpdateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesUpdate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "保存失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
     // MARK: - Nginx 配置
 
     func loadNginxConfig(id: Int) async -> WebsiteNginxConfig? {
@@ -1324,6 +1285,79 @@ enum WebsiteLogType {
         switch self {
         case .access: return .blue
         case .error:  return .orange
+        }
+    }
+}
+
+// MARK: - 编辑网站基础信息（主域名 / 备注）
+
+/// 编辑网站基础信息：POST /websites/update 仅接收主域名/备注等少量字段，
+/// 其余字段（IPV6/expireDate/favorite/分组）按当前详情原样回填，避免被零值覆盖。
+struct WebsiteEditSheet: View {
+    let detail: WebsiteFull
+    @ObservedObject var vm: WebsitesViewModel
+    let onSaved: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var primaryDomain: String
+    @State private var remark: String
+    @State private var isSaving = false
+
+    init(detail: WebsiteFull, vm: WebsitesViewModel, onSaved: @escaping () -> Void) {
+        self.detail = detail
+        self.vm = vm
+        self.onSaved = onSaved
+        _primaryDomain = State(initialValue: detail.primaryDomain ?? "")
+        _remark = State(initialValue: detail.remark ?? "")
+    }
+
+    private var trimmedDomain: String {
+        primaryDomain.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("example.com", text: $primaryDomain)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                } header: {
+                    Text("主域名")
+                } footer: {
+                    Text("网站的主访问域名，修改后请确保域名解析已指向本服务器")
+                }
+
+                Section {
+                    TextField("备注（可选）", text: $remark)
+                } header: {
+                    Text("备注")
+                }
+            }
+            .navigationTitle("编辑网站")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isSaving ? "保存中…" : "保存") {
+                        Task {
+                            isSaving = true
+                            var req = WebsiteUpdateRequest(from: detail)
+                            req.primaryDomain = trimmedDomain
+                            req.remark = remark
+                            if await vm.updateWebsite(req) {
+                                onSaved()
+                                dismiss()
+                            }
+                            isSaving = false
+                        }
+                    }
+                    .disabled(trimmedDomain.isEmpty || isSaving)
+                }
+            }
         }
     }
 }

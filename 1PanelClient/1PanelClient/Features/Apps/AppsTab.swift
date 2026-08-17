@@ -13,6 +13,8 @@ struct AppsTab: View {
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var showStore = false
+    @State private var showIgnored = false
+    @State private var showSettings = false
 
 
     init(manager: ServerManager) {
@@ -67,13 +69,13 @@ struct AppsTab: View {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        NavigationLink {
-                            IgnoredAppsView(vm: vm)
+                        Button {
+                            showIgnored = true
                         } label: {
                             Label("忽略应用", systemImage: "eye.slash")
                         }
-                        NavigationLink {
-                            AppStoreSettingsView(vm: vm)
+                        Button {
+                            showSettings = true
                         } label: {
                             Label("设置", systemImage: "gearshape")
                         }
@@ -89,6 +91,12 @@ struct AppsTab: View {
         }
         .navigationDestination(for: AppInstall.self) { app in
             AppDetailView(app: app, vm: vm)
+        }
+        .navigationDestination(isPresented: $showIgnored) {
+            IgnoredAppsView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showSettings) {
+            AppStoreSettingsView(vm: vm)
         }
         .navigationDestination(isPresented: $showStore) {
             AppStoreTab(manager: manager)
@@ -258,29 +266,21 @@ struct AppDetailView: View {
                     }
                 }
             }
+
+            // 危险区（与数据库/进程详情一致：卸载放底部独立 Section）
+            Section {
+                Button(role: .destructive) {
+                    Task { await prepareUninstall() }
+                } label: {
+                    Label("卸载应用", systemImage: "trash")
+                }
+            }
         }
         .refreshable {
             await vm.refresh()
         }
         .navigationTitle(app.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) {
-            if app.canUpdate == true {
-                Button {
-                    Task { await vm.loadVersions(for: app) }
-                } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.white, .orange)
-                        .background(Circle().fill(.orange).frame(width: 52, height: 52))
-                        .frame(width: 52, height: 52)
-                        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-                }
-                .padding(.trailing, 20)
-                .padding(.bottom, 20)
-                .accessibilityLabel("升级")
-            }
-        }
         .navigationDestination(isPresented: $vm.showUpgradeSheet) {
             UpgradeSheetView(app: app, vm: vm)
         }
@@ -385,12 +385,14 @@ struct AppDetailView: View {
             ) {
                 showEdit = true
             }
-            actionButton(
-                title: "卸载",
-                icon: "trash",
-                color: .red
-            ) {
-                Task { await prepareUninstall() }
+            if currentApp.canUpdate == true {
+                actionButton(
+                    title: "升级",
+                    icon: "arrow.up.circle",
+                    color: .orange
+                ) {
+                    Task { await vm.loadVersions(for: currentApp) }
+                }
             }
         }
         .padding(.top, 2)

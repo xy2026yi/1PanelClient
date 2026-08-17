@@ -129,7 +129,7 @@ struct ProcessView: View {
         monitor.mode == .processes ? "搜索进程名称 / PID / 用户" : "搜索进程 / PID / 端口"
     }
 
-    // MARK: - 模式切换
+    // MARK: - 模式切换（List 首个 Section，与监控/证书详情一致）
 
     private var modePicker: some View {
         Picker("", selection: $monitor.mode) {
@@ -138,8 +138,8 @@ struct ProcessView: View {
             }
         }
         .pickerStyle(.segmented)
-        .padding(.horizontal)
-        .padding(.bottom, 8)
+        .segmentedPickerRow()
+        .listRowSeparator(.hidden)
     }
 
     // MARK: - 状态栏
@@ -187,29 +187,51 @@ struct ProcessView: View {
 
     // MARK: - 内容区域
 
+    /// 单 List 容器：错误/加载/空态与正常态都收进 Section，
+    /// 正常态首个 Section 为模式切换（与监控页的时间范围一致）
     @ViewBuilder
     private var contentView: some View {
-        if let err = monitor.errorMessage {
-            ContentUnavailableView {
-                Label("连接失败", systemImage: "wifi.exclamationmark")
-            } description: {
-                Text(err)
-            } actions: {
-                Button("重试") { monitor.connect() }
-                    .buttonStyle(.borderedProminent)
-            }
-        } else if monitor.isConnecting && isEmpty {
-            ProgressView("正在连接…")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if isFilteredEmpty {
-            ContentUnavailableView.search(text: searchText)
-        } else {
-            if monitor.mode == .processes {
-                processList
+        List {
+            if let err = monitor.errorMessage {
+                Section {
+                    ContentUnavailableView {
+                        Label("连接失败", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(err)
+                    } actions: {
+                        Button("重试") { monitor.connect() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    .padding(.vertical, 30)
+                }
+            } else if monitor.isConnecting && isEmpty {
+                Section {
+                    HStack { Spacer(); ProgressView("正在连接…"); Spacer() }
+                        .padding(.vertical, 30)
+                }
+            } else if isFilteredEmpty {
+                Section {
+                    ContentUnavailableView.search(text: searchText)
+                        .padding(.vertical, 30)
+                }
             } else {
-                networkList
+                Section {
+                    modePicker
+                }
+                if monitor.mode == .processes {
+                    ForEach(filteredProcesses) { proc in
+                        ProcessRow(process: proc)
+                            .contentShape(Rectangle())
+                            .onTapGesture { selectedProcess = proc }
+                    }
+                } else {
+                    ForEach(filteredConnections) { conn in
+                        NetworkRow(connection: conn)
+                    }
+                }
             }
         }
+        .listStyle(.insetGrouped)
     }
 
     private var isEmpty: Bool {
@@ -218,30 +240,6 @@ struct ProcessView: View {
 
     private var isFilteredEmpty: Bool {
         monitor.mode == .processes ? filteredProcesses.isEmpty : filteredConnections.isEmpty
-    }
-
-    // MARK: - 进程列表
-
-    private var processList: some View {
-        List {
-            ForEach(filteredProcesses) { proc in
-                ProcessRow(process: proc)
-                    .contentShape(Rectangle())
-                    .onTapGesture { selectedProcess = proc }
-            }
-        }
-        .listStyle(.insetGrouped)
-    }
-
-    // MARK: - 网络连接列表
-
-    private var networkList: some View {
-        List {
-            ForEach(filteredConnections) { conn in
-                NetworkRow(connection: conn)
-            }
-        }
-        .listStyle(.insetGrouped)
     }
 }
 

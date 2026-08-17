@@ -354,6 +354,36 @@ nonisolated struct WebsiteFullDomain: Decodable, Hashable {
     let port: Int?
 }
 
+// MARK: - 网站基础信息更新
+
+/// 更新网站基础信息（POST /api/v2/websites/update，request.WebsiteUpdate）
+/// 接口 schema 仅含这些字段（1Panel v2 swagger）；除主域名/备注外全部按当前详情回填，避免零值覆盖
+nonisolated struct WebsiteUpdateRequest: Encodable {
+    let id: Int
+    var primaryDomain: String
+    var remark: String
+    let ipv6: Bool
+    let expireDate: String
+    let favorite: Bool
+    let webSiteGroupID: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, primaryDomain, remark, favorite, expireDate
+        case ipv6 = "IPV6"
+        case webSiteGroupID
+    }
+
+    init(from detail: WebsiteFull) {
+        self.id = detail.id
+        self.primaryDomain = detail.primaryDomain ?? ""
+        self.remark = detail.remark ?? ""
+        self.ipv6 = detail.ipv6 ?? false
+        self.expireDate = detail.expireDate ?? ""
+        self.favorite = detail.favorite ?? false
+        self.webSiteGroupID = detail.webSiteGroupId ?? 1
+    }
+}
+
 // MARK: - Nginx 配置
 
 /// Nginx 配置文件（response.WebsiteNginxConfig）

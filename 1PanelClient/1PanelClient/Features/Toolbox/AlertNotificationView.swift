@@ -27,21 +27,24 @@ struct AlertNotificationView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("模块", selection: $segment) {
-                Text("告警").tag(0)
-                Text("日志").tag(1)
-                Text("设置").tag(2)
+        List {
+            Section {
+                segmentPicker
             }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-
             switch segment {
-            case 0: ruleList
-            case 1: logList
-            default: configList
+            case 0: ruleContent
+            case 1: logContent
+            default: configContent
+            }
+        }
+        .listStyle(.insetGrouped)
+        .refreshable {
+            switch segment {
+            case 0: await vm.loadRules()
+            case 1: await vm.loadLogs()
+            default:
+                await vm.loadConfigs()
+                await vm.loadCommonConfig()
             }
         }
         .navigationTitle("告警通知")
@@ -82,6 +85,19 @@ struct AlertNotificationView: View {
         .alert(vm.alertMessage, isPresented: $vm.showAlert) {
             Button("好", role: .cancel) {}
         }
+        .alert("删除发送方式", isPresented: Binding(
+            get: { vm.pendingDeleteConfig != nil },
+            set: { if !$0 { vm.pendingDeleteConfig = nil } }
+        )) {
+            Button("取消", role: .cancel) { vm.pendingDeleteConfig = nil }
+            Button("删除", role: .destructive) {
+                if let config = vm.pendingDeleteConfig {
+                    Task { await vm.deleteConfig(config) }
+                }
+            }
+        } message: {
+            Text("确定删除「\(vm.pendingDeleteConfig?.sendConfig.displayName ?? vm.pendingDeleteConfig?.type ?? "")」吗？使用该方式的告警将无法发送通知")
+        }
         .toastOverlay(message: $vm.toastMessage)
         .sheet(item: $selectedLog) { log in
             AlertLogDetailView(log: log)
@@ -111,14 +127,30 @@ struct AlertNotificationView: View {
         .task { await vm.refreshAll() }
     }
 
+    // MARK: - 段切换（List 首个 Section，与监控/证书详情一致）
+
+    private var segmentPicker: some View {
+        Picker("模块", selection: $segment) {
+            Text("告警").tag(0)
+            Text("日志").tag(1)
+            Text("设置").tag(2)
+        }
+        .pickerStyle(.segmented)
+        .segmentedPickerRow()
+        .listRowSeparator(.hidden)
+    }
+
     // MARK: - 告警规则列表
 
-    private var ruleList: some View {
-        Group {
-            if vm.isLoading && vm.rules.isEmpty {
-                ProgressView("加载中…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let err = vm.errorMessage, !err.isEmpty, vm.rules.isEmpty {
+    @ViewBuilder
+    private var ruleContent: some View {
+        if vm.isLoading && vm.rules.isEmpty {
+            Section {
+                HStack { Spacer(); ProgressView("加载中…"); Spacer() }
+                    .padding(.vertical, 30)
+            }
+        } else if let err = vm.errorMessage, !err.isEmpty, vm.rules.isEmpty {
+            Section {
                 ContentUnavailableView {
                     Label("加载失败", systemImage: "wifi.exclamationmark")
                 } description: {
@@ -129,132 +161,120 @@ struct AlertNotificationView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-            } else if vm.rules.isEmpty {
+                .padding(.vertical, 30)
+            }
+        } else if vm.rules.isEmpty {
+            Section {
                 ContentUnavailableView(
                     "暂无告警规则",
                     systemImage: "bell.slash",
-                    description: Text("点击右上角创建第一个告警")
+                    description: Text("点击右下角创建第一个告警")
                 )
-            } else {
-                List {
-                    ForEach(vm.rules) { rule in
-                        Button {
-                            editingRule = rule
+                .padding(.vertical, 30)
+            }
+        } else {
+            Section {
+                ForEach(vm.rules) { rule in
+                    Button {
+                        editingRule = rule
+                    } label: {
+                        AlertRuleRow(rule: rule)
+                    }
+                    .buttonStyle(.plain)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            vm.pendingDeleteRule = rule
                         } label: {
-                            AlertRuleRow(rule: rule)
-                        }
-                        .buttonStyle(.plain)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                vm.pendingDeleteRule = rule
-                            } label: {
-                                Label("删除", systemImage: "trash")
-                            }
+                            Label("删除", systemImage: "trash")
                         }
                     }
                 }
-                .listStyle(.insetGrouped)
             }
         }
-        .refreshable { await vm.loadRules() }
     }
 
     // MARK: - 告警日志列表
 
-    private var logList: some View {
-        Group {
-            if vm.isLoadingLogs && vm.logs.isEmpty {
-                ProgressView("加载中…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if vm.logs.isEmpty {
+    @ViewBuilder
+    private var logContent: some View {
+        if vm.isLoadingLogs && vm.logs.isEmpty {
+            Section {
+                HStack { Spacer(); ProgressView("加载中…"); Spacer() }
+                    .padding(.vertical, 30)
+            }
+        } else if vm.logs.isEmpty {
+            Section {
                 ContentUnavailableView(
                     "暂无告警日志",
                     systemImage: "list.bullet.rectangle",
                     description: Text("告警触发发送后会在这里产生记录")
                 )
-            } else {
-                List {
-                    ForEach(vm.logs) { log in
-                        Button {
-                            selectedLog = log
-                        } label: {
-                            AlertLogRow(log: log)
-                        }
-                        .buttonStyle(.plain)
+                .padding(.vertical, 30)
+            }
+        } else {
+            Section {
+                ForEach(vm.logs) { log in
+                    Button {
+                        selectedLog = log
+                    } label: {
+                        AlertLogRow(log: log)
                     }
+                    .buttonStyle(.plain)
                 }
-                .listStyle(.insetGrouped)
             }
         }
-        .refreshable { await vm.loadLogs() }
     }
 
     // MARK: - 发送方式列表（设置）
 
-    private var configList: some View {
-        Group {
-            if vm.isLoadingConfigs && vm.configs.isEmpty && vm.commonConfig == nil {
-                ProgressView("加载中…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if vm.configs.isEmpty && vm.commonConfig == nil {
+    @ViewBuilder
+    private var configContent: some View {
+        if vm.isLoadingConfigs && vm.configs.isEmpty && vm.commonConfig == nil {
+            Section {
+                HStack { Spacer(); ProgressView("加载中…"); Spacer() }
+                    .padding(.vertical, 30)
+            }
+        } else if vm.configs.isEmpty && vm.commonConfig == nil {
+            Section {
                 ContentUnavailableView(
                     "暂无发送方式",
                     systemImage: "envelope.badge",
                     description: Text("配置邮箱、Bark 等发送方式后才能创建告警")
                 )
-            } else {
-                List {
-                    if let common = vm.commonConfig {
-                        Section {
-                            NavigationLink {
-                                AlertGlobalConfigView(vm: vm, item: common)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    IconBadge(systemName: "gearshape", color: .gray)
+                .padding(.vertical, 30)
+            }
+        } else {
+            if let common = vm.commonConfig {
+                Section {
+                    NavigationLink {
+                        AlertGlobalConfigView(vm: vm, item: common)
+                    } label: {
+                        HStack(spacing: 12) {
+                            IconBadge(systemName: "gearshape", color: .gray)
 
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("全局配置")
-                                            .font(.body.bold())
-                                        Text(globalConfigSubtitle(common))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                }
-                                .padding(.vertical, 4)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("全局配置")
+                                    .font(.body.bold())
+                                Text(globalConfigSubtitle(common))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
                         }
+                        .padding(.vertical, 4)
                     }
+                }
+            }
 
-                    Section {
-                        ForEach(vm.configs) { config in
-                            configRow(config)
-                        }
-                    } header: {
-                        Text("发送方式")
-                    } footer: {
-                        Text("触发告警时通过发送方式通知，左滑可停用或删除")
-                    }
+            Section {
+                ForEach(vm.configs) { config in
+                    configRow(config)
                 }
-                .listStyle(.insetGrouped)
+            } header: {
+                Text("发送方式")
+            } footer: {
+                Text("触发告警时通过发送方式通知，左滑可停用或删除")
             }
-        }
-        .refreshable {
-            await vm.loadConfigs()
-            await vm.loadCommonConfig()
-        }
-        .alert("删除发送方式", isPresented: Binding(
-            get: { vm.pendingDeleteConfig != nil },
-            set: { if !$0 { vm.pendingDeleteConfig = nil } }
-        )) {
-            Button("取消", role: .cancel) { vm.pendingDeleteConfig = nil }
-            Button("删除", role: .destructive) {
-                if let config = vm.pendingDeleteConfig {
-                    Task { await vm.deleteConfig(config) }
-                }
-            }
-        } message: {
-            Text("确定删除「\(vm.pendingDeleteConfig?.sendConfig.displayName ?? vm.pendingDeleteConfig?.type ?? "")」吗？使用该方式的告警将无法发送通知")
         }
     }
 

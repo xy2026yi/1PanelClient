@@ -3,9 +3,9 @@
 //  1PanelClient
 //
 //  底部三段式结构（对齐 1Panel 官方 App）：
-//    1. 首页   - OverviewTab（资源卡片 + 实时监控 + 系统信息）
+//    1. 首页   - OverviewTab（资源卡片 + 实时监控 + 系统信息，顶栏进入服务器管理）
 //    2. 管理   - ManageTab（应用/网站/容器/计划任务等列表式入口）
-//    3. 设置   - SettingsTab（独立 Tab，含服务器与偏好设置）
+//    3. 设置   - SettingsTab（外观与关于APP）
 //
 //  自定义底部 Tab 栏：进入管理子页面时自动隐藏，返回根页面时恢复
 //
@@ -55,7 +55,7 @@ struct MainTabView: View {
                 .opacity(selectedTab == .manage ? 1 : 0)
                 .allowsHitTesting(selectedTab == .manage)
 
-                SettingsTab(manager: manager, atRoot: $settingsAtRoot)
+                SettingsTab(atRoot: $settingsAtRoot)
                     .opacity(selectedTab == .settings ? 1 : 0)
                     .allowsHitTesting(selectedTab == .settings)
             }

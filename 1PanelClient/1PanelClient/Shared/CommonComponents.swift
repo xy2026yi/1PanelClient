@@ -198,6 +198,30 @@ struct FloatingActionButton: View {
     }
 }
 
+/// FAB 的 Menu 变体：外观与 FloatingActionButton 完全一致，点击弹出菜单。
+/// 用于「一个入口二选一」的创建场景，如「创建数据库 / 创建用户」「申请证书 / 上传证书」，
+/// 避免把创建动作拆散到 toolbar Menu 里。
+struct MenuFloatingActionButton<MenuItems: View>: View {
+    var systemImage: String = "plus"
+    var color: Color = .accentColor
+    @ViewBuilder let menuItems: () -> MenuItems
+
+    var body: some View {
+        Menu {
+            menuItems()
+        } label: {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(color, in: Circle())
+                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+        }
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
+    }
+}
+
 // MARK: - 状态圆点
 
 /// 状态小圆点：与状态文字并排使用，如 `HStack(spacing: 4) { StatusDot(color:); Text(...) }`。
@@ -479,6 +503,32 @@ struct TextInputConfirmSheet<Options: View>: View {
             }
         }
         .presentationDetents([.medium])
+    }
+}
+
+// MARK: - List 行留白（统一两套高频 listRowInsets 样板）
+
+extension View {
+    /// 监控卡内紧凑行：去掉上下默认留白（MonitorView 图表/标题行等）
+    func monitorRowInsets() -> some View {
+        listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+    }
+
+    /// List 首个 Section 内 segmented Picker 行（监控/进程/告警/证书详情切换器）
+    func segmentedPickerRow() -> some View {
+        listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+    }
+}
+
+// MARK: - 可按压卡片样式
+
+/// 入口卡按钮的按压反馈：轻微缩放 + 变暗（首页资源统计卡等）
+struct PressableCardStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.75 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 

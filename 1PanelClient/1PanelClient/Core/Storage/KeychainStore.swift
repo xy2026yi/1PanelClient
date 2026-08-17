@@ -22,7 +22,8 @@ enum KeychainStore {
         SecItemAdd(attrs as CFDictionary, nil)
     }
 
-    static func read(for key: String) -> String? {
+    /// 读取并返回底层状态码（诊断模拟器重装后 Keychain 不可读的问题）
+    static func readWithStatus(for key: String) -> (value: String?, status: OSStatus) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -32,8 +33,15 @@ enum KeychainStore {
         ]
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        guard status == errSecSuccess, let data = result as? Data,
+              let value = String(data: data, encoding: .utf8) else {
+            return (nil, status)
+        }
+        return (value, status)
+    }
+
+    static func read(for key: String) -> String? {
+        readWithStatus(for: key).value
     }
 
     static func delete(for key: String) {

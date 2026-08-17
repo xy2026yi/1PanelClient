@@ -607,7 +607,7 @@ struct DatabaseSystemView: View {
         .task { await vm.refresh() }
         .overlay(alignment: .bottomTrailing) {
             if vm.supportsDatabaseList {
-                Menu {
+                MenuFloatingActionButton {
                     Button { showCreate = true } label: {
                         Label("创建数据库", systemImage: "cylinder.badge.plus")
                     }
@@ -616,22 +616,14 @@ struct DatabaseSystemView: View {
                             Label("创建用户", systemImage: "person.badge.plus")
                         }
                     }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 52, height: 52)
-                        .background(Color.accentColor, in: Circle())
-                        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
                 }
-                .padding(.trailing, 20)
-                .padding(.bottom, 20)
+                .accessibilityLabel("创建数据库或用户")
             }
         }
-        .sheet(isPresented: $showCreate) {
+        .navigationDestination(isPresented: $showCreate) {
             CreateDatabaseView(system: vm.system) { await vm.loadDatabases() }
         }
-        .sheet(isPresented: $showCreateUser) {
+        .navigationDestination(isPresented: $showCreateUser) {
             CreateDatabaseUserView(system: vm.system, availableDatabases: vm.databases.map { $0.name ?? "" }.filter { !$0.isEmpty }) {
                 await vm.loadUsers()
             }
@@ -737,86 +729,45 @@ struct DatabaseSystemView: View {
 
     // MARK: 状态卡片（可折叠面板）
 
+    @ViewBuilder
     private var statusSection: some View {
-        Section {
-            if let check = vm.check {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isStatusExpanded.toggle()
-                    }
-                } label: {
-                    HStack(spacing: 12) {
-                        IconBadge(systemName: check.isRunning ? "play.circle.fill" : "stop.circle.fill",
-                                  color: check.isRunning ? .green : .red)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(check.app ?? vm.system.displayName).font(.headline)
-                            HStack(spacing: 6) {
-                                StatusBadge(
-                                    text: check.isRunning ? "运行中" : "已停止",
-                                    color: check.isRunning ? .green : .red,
-                                    icon: check.isRunning ? "checkmark.circle" : "exclamationmark.triangle"
-                                )
-                                if let v = check.version, !v.isEmpty {
-                                    Text("v\(v)").font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        Spacer()
-                        Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                if isStatusExpanded {
-                    HStack(spacing: 12) {
-                        if !check.isRunning {
-                            Button { pendingAction = "start" } label: {
-                                Label("启动", systemImage: "play.fill")
-                            }
-                            .disabled(vm.isOperating)
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .tint(.green)
+        if let check = vm.check {
+            ServiceStatusCard(
+                title: check.app ?? vm.system.displayName,
+                subtitle: check.version.flatMap { $0.isEmpty ? nil : "v\($0)" },
+                statusText: check.isRunning ? "运行中" : "已停止",
+                statusColor: check.isRunning ? .green : .red,
+                isOperating: vm.isOperating,
+                isExpanded: $isStatusExpanded,
+                actions: [
+                    ServiceAction(
+                        title: check.isRunning ? "停止" : "启动",
+                        icon: check.isRunning ? "stop.fill" : "play.fill",
+                        color: check.isRunning ? .orange : .green
+                    ) { pendingAction = check.isRunning ? "stop" : "start" },
+                    ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+                        pendingAction = "restart"
+                    },
+                    ServiceAction(
+                        title: "终端",
+                        icon: "terminal",
+                        color: .teal,
+                        isDisabled: vm.isMongoDB && (check.containerName?.isEmpty ?? true)
+                    ) {
+                        if vm.isRedis {
+                            showRedisTerminal = true
+                        } else if vm.isMongoDB {
+                            showContainerTerminal = true
                         } else {
-                            Button { pendingAction = "stop" } label: {
-                                Label("停止", systemImage: "stop.fill")
-                            }
-                            .disabled(vm.isOperating)
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .tint(.red)
+                            showDatabaseTerminal = true
                         }
-
-                        Button { pendingAction = "restart" } label: {
-                            Label("重启", systemImage: "arrow.clockwise")
-                        }
-                        .disabled(vm.isOperating)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(.orange)
-
-                        Button {
-                            if vm.isRedis {
-                                showRedisTerminal = true
-                            } else if vm.isMongoDB {
-                                showContainerTerminal = true
-                            } else {
-                                showDatabaseTerminal = true
-                            }
-                        } label: {
-                            Label("终端", systemImage: "terminal")
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .disabled(vm.isMongoDB && (vm.check?.containerName?.isEmpty ?? true))
                     }
-                    .padding(.vertical, 2)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            } else {
+                ]
+            ) {
+                IconBadge(systemName: "cylinder.split.1x2", color: .purple, size: 44)
+            }
+        } else {
+            Section {
                 HStack { Spacer(); ProgressView(); Spacer() }
             }
         }

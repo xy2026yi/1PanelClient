@@ -54,7 +54,7 @@ struct CertificatesTab: View {
                 ContentUnavailableView(
                     "暂无证书",
                     systemImage: "lock.shield",
-                    description: Text("点击右下角「申请」创建第一张证书")
+                    description: Text("点击右下角「+」申请或上传第一张证书")
                 )
             } else {
                 certList
@@ -77,11 +77,6 @@ struct CertificatesTab: View {
                     }
                     Divider()
                     Button {
-                        showUpload = true
-                    } label: {
-                        Label("上传证书", systemImage: "icloud.and.arrow.up")
-                    }
-                    Button {
                         showCA = true
                     } label: {
                         Label("自签证书", systemImage: "certificate")
@@ -92,10 +87,15 @@ struct CertificatesTab: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showApply = true
-            })
-            .accessibilityLabel("申请证书")
+            MenuFloatingActionButton {
+                Button { showApply = true } label: {
+                    Label("申请证书", systemImage: "arrow.down.circle")
+                }
+                Button { showUpload = true } label: {
+                    Label("上传证书", systemImage: "icloud.and.arrow.up")
+                }
+            }
+            .accessibilityLabel("申请或上传证书")
         }
         .navigationDestination(isPresented: $showUpload) {
             UploadCertificateView(vm: vm)
@@ -212,9 +212,11 @@ struct CertificateDetailView: View {
     @State private var showUpdateSheet = false
     @State private var showEditView = false
     @State private var pendingRenew = false
+    @State private var pendingDelete = false
     @State private var isRenewing = false
     @State private var logLines: [String] = []
     @State private var isLoadingLog = false
+    @Environment(\.dismiss) private var dismiss
 
     private enum DetailTab: String, CaseIterable, Identifiable {
         case info    = "证书信息"
@@ -252,6 +254,15 @@ struct CertificateDetailView: View {
             case .cert:     pemSection(title: "证书内容", content: (detail ?? cert).pem)
             case .privKey:  pemSection(title: "私钥内容", content: (detail ?? cert).privateKey)
             case .log:      logSection
+            }
+
+            // 危险区（与数据库/进程/应用/容器详情一致：删除放底部独立 Section）
+            Section {
+                Button(role: .destructive) {
+                    pendingDelete = true
+                } label: {
+                    Label("删除证书", systemImage: "trash")
+                }
             }
         }
         .navigationTitle(cert.displayName)
@@ -296,6 +307,18 @@ struct CertificateDetailView: View {
             }
         } message: {
             Text("将重新申请证书「\((detail ?? cert).displayName)」，是否继续？")
+        }
+        .alert("删除证书", isPresented: $pendingDelete) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) {
+                let target = detail ?? cert
+                Task {
+                    await vm.delete(cert: target)
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("确定删除证书「\((detail ?? cert).displayName)」吗？删除后不可恢复。")
         }
         .task { await loadDetail() }
         .onChange(of: vm.needsRefresh) { _, refreshed in

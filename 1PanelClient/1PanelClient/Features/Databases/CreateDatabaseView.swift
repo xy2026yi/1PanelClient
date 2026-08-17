@@ -225,86 +225,81 @@ struct CreateDatabaseView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("基本信息") {
-                    TextField("数据库名称", text: $name)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
+        Form {
+            Section("基本信息") {
+                TextField("数据库名称", text: $name)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
 
-                if vm.isPostgreSQL {
-                    pgUserSection
-                    Section("权限") {
-                        Toggle("超级用户", isOn: $superUser)
-                    }
-                } else if vm.isMongoDB {
-                    mongoUserSection
-                    Section("权限") {
-                        Picker("角色", selection: $mongoPermission) {
-                            ForEach(MongoPermission.allCases) { perm in
-                                Text(perm.displayName).tag(perm)
-                            }
+            if vm.isPostgreSQL {
+                pgUserSection
+                Section("权限") {
+                    Toggle("超级用户", isOn: $superUser)
+                }
+            } else if vm.isMongoDB {
+                mongoUserSection
+                Section("权限") {
+                    Picker("角色", selection: $mongoPermission) {
+                        ForEach(MongoPermission.allCases) { perm in
+                            Text(perm.displayName).tag(perm)
                         }
                     }
-                } else if vm.isMySQL {
-                    mysqlCharsetSection
-                    mysqlUserGrantSection
                 }
+            } else if vm.isMySQL {
+                mysqlCharsetSection
+                mysqlUserGrantSection
+            }
 
-                Section("描述") {
-                    TextField("可选描述", text: $description, axis: .vertical)
-                        .lineLimit(2...4)
-                }
+            Section("描述") {
+                TextField("可选描述", text: $description, axis: .vertical)
+                    .lineLimit(2...4)
+            }
 
-                if let msg = vm.errorMessage {
-                    Section {
-                        Text(msg).foregroundStyle(.red).font(.caption)
-                    }
+            if let msg = vm.errorMessage {
+                Section {
+                    Text(msg).foregroundStyle(.red).font(.caption)
                 }
             }
-            .navigationTitle("创建数据库")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+        }
+        .navigationTitle("创建数据库")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("创建") {
+                    Task { await submit() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("创建") {
-                        Task { await submit() }
-                    }
-                    .disabled(!canCreate || vm.isCreating)
-                }
+                .disabled(!canCreate || vm.isCreating)
             }
-            .task {
-                if !vm.isMongoDB && vm.formats.isEmpty { await vm.loadFormats() }
-                if vm.isMySQL {
-                    await vm.loadUsers()
-                    if password.isEmpty {
-                        password = PasswordInputRow.randomPassword()
-                        showPassword = true
-                    }
-                }
-                if (vm.isPostgreSQL || vm.isMongoDB) && password.isEmpty {
+        }
+        .task {
+            if !vm.isMongoDB && vm.formats.isEmpty { await vm.loadFormats() }
+            if vm.isMySQL {
+                await vm.loadUsers()
+                if password.isEmpty {
                     password = PasswordInputRow.randomPassword()
                     showPassword = true
                 }
             }
-            .onChange(of: name) { _, newValue in
-                if vm.isMySQL && userGrantMode == .create {
-                    username = newValue
-                }
-                if vm.isMongoDB {
-                    username = newValue
-                }
+            if (vm.isPostgreSQL || vm.isMongoDB) && password.isEmpty {
+                password = PasswordInputRow.randomPassword()
+                showPassword = true
             }
-            .onChange(of: userGrantMode) { _, newMode in
-                if newMode == .create {
-                    username = name
-                    if password.isEmpty {
-                        password = PasswordInputRow.randomPassword()
-                        showPassword = true
-                    }
+        }
+        .onChange(of: name) { _, newValue in
+            if vm.isMySQL && userGrantMode == .create {
+                username = newValue
+            }
+            if vm.isMongoDB {
+                username = newValue
+            }
+        }
+        .onChange(of: userGrantMode) { _, newMode in
+            if newMode == .create {
+                username = name
+                if password.isEmpty {
+                    password = PasswordInputRow.randomPassword()
+                    showPassword = true
                 }
             }
         }
@@ -516,61 +511,56 @@ struct CreateDatabaseUserView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("用户信息") {
-                    TextField("用户名", text: $username)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    passwordRow
-                    TextField("描述", text: $description, axis: .vertical)
+        Form {
+            Section("用户信息") {
+                TextField("用户名", text: $username)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                passwordRow
+                TextField("描述", text: $description, axis: .vertical)
+                    .lineLimit(2...4)
+            }
+
+            Section("权限") {
+                Picker("访问权限", selection: $permissionMode) {
+                    ForEach(UserPermissionMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                if permissionMode == .ip {
+                    TextField("IP 地址（逗号分隔）", text: $permissionIPs, axis: .vertical)
+                        .textFieldStyle(.roundedBorder)
                         .lineLimit(2...4)
-                }
-
-                Section("权限") {
-                    Picker("访问权限", selection: $permissionMode) {
-                        ForEach(UserPermissionMode.allCases) { mode in
-                            Text(mode.rawValue).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-
-                    if permissionMode == .ip {
-                        TextField("IP 地址（逗号分隔）", text: $permissionIPs, axis: .vertical)
-                            .textFieldStyle(.roundedBorder)
-                            .lineLimit(2...4)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .font(.system(.body, design: .monospaced))
-                    }
-                }
-
-                associatedDatabasesSection
-
-                if let msg = vm.errorMessage {
-                    Section {
-                        Text(msg).foregroundStyle(.red).font(.caption)
-                    }
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .font(.system(.body, design: .monospaced))
                 }
             }
-            .navigationTitle("创建用户")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("创建") {
-                        Task { await submit() }
-                    }
-                    .disabled(!canCreate || vm.isCreating)
+
+            associatedDatabasesSection
+
+            if let msg = vm.errorMessage {
+                Section {
+                    Text(msg).foregroundStyle(.red).font(.caption)
                 }
             }
-            .task {
-                if password.isEmpty {
-                    password = PasswordInputRow.randomPassword()
-                    showPassword = true
+        }
+        .navigationTitle("创建用户")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("创建") {
+                    Task { await submit() }
                 }
+                .disabled(!canCreate || vm.isCreating)
+            }
+        }
+        .task {
+            if password.isEmpty {
+                password = PasswordInputRow.randomPassword()
+                showPassword = true
             }
         }
     }

@@ -6,17 +6,12 @@
 import SwiftUI
 
 struct SettingsTab: View {
-    @ObservedObject var manager: ServerManager
     /// 向 MainTabView 同步导航深度：true=根页面（显示底部 Tab 栏），false=子页面
     @Binding var atRoot: Bool
-    @State private var showAddSheet = false
-    @State private var editingServer: ServerConfig?
     @State private var showAbout = false
-    @State private var serverToDelete: ServerConfig?
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
 
-    init(manager: ServerManager, atRoot: Binding<Bool> = .constant(true)) {
-        self.manager = manager
+    init(atRoot: Binding<Bool> = .constant(true)) {
         self._atRoot = atRoot
     }
 
@@ -29,71 +24,6 @@ struct SettingsTab: View {
     /// 根内容（List 及其修饰符）
     var settingsRootContent: some View {
         List {
-            // MARK: - 当前服务器
-            Section("当前服务器") {
-                if let current = manager.current {
-                    HStack(spacing: 12) {
-                        Image(systemName: "server.rack")
-                            .font(.title2)
-                            .foregroundStyle(.tint)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(current.name)
-                                .font(.headline)
-                            Text(current.normalizedBaseURL)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                    }
-                } else {
-                    Text("未连接")
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            // MARK: - 服务器列表
-            if manager.servers.count > 1 {
-                Section("所有服务器") {
-                    ForEach(manager.servers) { s in
-                        Button {
-                            manager.select(s)
-                        } label: {
-                            HStack {
-                                Image(systemName: s.id == manager.currentServerID ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(s.id == manager.currentServerID ? .green : .secondary)
-                                Text(s.name)
-                                Spacer()
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-
-            // MARK: - 操作
-            Section {
-                Button {
-                    showAddSheet = true
-                } label: {
-                    Label("添加服务器", systemImage: "plus.circle")
-                }
-
-                ForEach(manager.servers) { s in
-                    Button {
-                        editingServer = s
-                    } label: {
-                        Label("编辑 \(s.name)", systemImage: "pencil")
-                    }
-                }
-                .onDelete { offsets in
-                    for offset in offsets {
-                        if offset < manager.servers.count {
-                            serverToDelete = manager.servers[offset]
-                        }
-                    }
-                }
-            }
-
             // MARK: - 外观
             Section {
                 Picker("主题", selection: $themeRaw) {
@@ -118,31 +48,6 @@ struct SettingsTab: View {
         }
         .onChange(of: showAbout) { _, show in
             atRoot = !show
-        }
-        .sheet(isPresented: $showAddSheet) {
-            ServerEditView(manager: manager)
-        }
-        .sheet(item: $editingServer) { server in
-            ServerEditView(manager: manager, editing: server)
-        }
-        // 删除服务器前确认（会连带清除 Keychain 中的 API 密钥）
-        .confirmationDialog(
-            "删除服务器",
-            isPresented: Binding(
-                get: { serverToDelete != nil },
-                set: { if !$0 { serverToDelete = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("删除「\(serverToDelete?.name ?? "")」", role: .destructive) {
-                if let server = serverToDelete {
-                    manager.remove(server)
-                }
-                serverToDelete = nil
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("将移除该服务器的连接配置与已保存的 API 密钥，此操作不可恢复。")
         }
     }
 }
@@ -185,7 +90,7 @@ struct AboutSectionView: View {
     @Binding var isPresented: Bool
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.3"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.4"
     }
 
     var body: some View {
@@ -226,7 +131,7 @@ struct AboutSectionView: View {
 /// 关于详情：版本 / API 版本 / 1Panel 官网
 struct AboutDetailView: View {
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.3"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.4"
     }
 
     var body: some View {

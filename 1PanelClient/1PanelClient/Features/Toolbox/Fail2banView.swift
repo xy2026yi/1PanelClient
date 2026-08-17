@@ -307,70 +307,33 @@ struct Fail2banView: View {
     // MARK: - 服务管理
 
     private func serviceSection(base: Fail2banBase) -> some View {
-        Section {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Fail2ban").font(.headline)
-                    if let v = base.version {
-                        Text("v\(v)").font(.caption).foregroundStyle(.secondary)
-                    }
+        ServiceStatusCard(
+            title: "Fail2ban",
+            subtitle: base.version.map { "v\($0)" },
+            statusText: base.isActive ? "运行中" : "已停止",
+            statusColor: base.isActive ? .green : .red,
+            isOperating: vm.isOperating,
+            isExpanded: $isServiceExpanded,
+            actions: [
+                ServiceAction(
+                    title: base.isActive ? "停止" : "启动",
+                    icon: base.isActive ? "stop.fill" : "play.fill",
+                    color: base.isActive ? .orange : .green
+                ) { pendingAction = base.isActive ? "stop" : "start" },
+                ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+                    pendingAction = "restart"
                 }
-                Spacer()
-                StatusBadge(
-                    text: base.isActive ? "运行中" : "已停止",
-                    color: base.isActive ? .green : .red                )
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isServiceExpanded.toggle()
-                    }
-                } label: {
-                    Image(systemName: isServiceExpanded ? "chevron.up" : "chevron.down")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+            ]
+        ) {
+            IconBadge(systemName: "shield.lefthalf.filled", color: .indigo, size: 44)
+        } extra: {
+            Toggle("开机自启", isOn: Binding(
+                get: { base.isEnable },
+                set: { newVal in
+                    pendingAction = newVal ? "enable" : "disable"
                 }
-                .buttonStyle(.plain)
-            }
-
-            if isServiceExpanded {
-                HStack(spacing: 12) {
-                    if base.isActive {
-                        Button {
-                            pendingAction = "stop"
-                        } label: {
-                            Label("停止", systemImage: "stop.fill")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.red)
-                    } else {
-                        Button {
-                            pendingAction = "start"
-                        } label: {
-                            Label("启动", systemImage: "play.fill")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.green)
-                    }
-
-                    Button {
-                        pendingAction = "restart"
-                    } label: {
-                        Label("重启", systemImage: "arrow.clockwise")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.orange)
-                }
-
-                Toggle("开机自启", isOn: Binding(
-                    get: { base.isEnable },
-                    set: { newVal in
-                        pendingAction = newVal ? "enable" : "disable"
-                    }
-                ))
-                .disabled(vm.isOperating)
-            }
+            ))
+            .disabled(vm.isOperating)
         }
     }
 

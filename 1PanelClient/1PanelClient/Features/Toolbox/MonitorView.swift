@@ -308,7 +308,7 @@ struct MonitorView: View {
                 Text("7天").tag(168)
             }
             .pickerStyle(.segmented)
-            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            .segmentedPickerRow()
             .listRowSeparator(.hidden)
         }
     }
@@ -337,7 +337,7 @@ struct MonitorView: View {
             }
             .padding(.top, 8)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
 
             // 1/5/15 分钟负载（上标签下数值）+ 右侧小型使用率圆环
             HStack(alignment: .center, spacing: 8) {
@@ -352,7 +352,7 @@ struct MonitorView: View {
             }
             .padding(.vertical, 6)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
 
             // 图表（下拉展开时显示：1/5/15 分钟三条曲线，支持拖动查看）
             if showLoadChart {
@@ -367,7 +367,7 @@ struct MonitorView: View {
                     .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
             }
         }
     }
@@ -578,7 +578,7 @@ struct MonitorView: View {
             }
             .padding(.top, 8)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
 
             // 核心 / 已用 / 可用 三列 + 右侧使用率圆环
             HStack(alignment: .center, spacing: 8) {
@@ -597,7 +597,7 @@ struct MonitorView: View {
             }
             .padding(.vertical, 6)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
 
             // 图表（下拉展开时显示，Y 轴自适应）
             if showCPUChart {
@@ -612,7 +612,7 @@ struct MonitorView: View {
                     .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
             }
         }
     }
@@ -716,7 +716,7 @@ struct MonitorView: View {
             }
             .padding(.top, 8)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
 
             // 内存：总计 / 已用 / 可用 三列 + 右侧使用率圆环
             HStack(alignment: .center, spacing: 8) {
@@ -731,7 +731,7 @@ struct MonitorView: View {
             }
             .padding(.vertical, 6)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
 
             // SWAP 子标签
             HStack {
@@ -742,7 +742,7 @@ struct MonitorView: View {
             }
             .padding(.top, 2)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
 
             // SWAP：总计 / 已用 / 可用 三列 + 右侧使用率圆环（无图表）
             HStack(alignment: .center, spacing: 8) {
@@ -757,7 +757,7 @@ struct MonitorView: View {
             }
             .padding(.vertical, 6)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
 
             // 内存图表（下拉展开时显示，置于两块数值之下，Y 轴自适应）
             if showMemChart {
@@ -772,7 +772,7 @@ struct MonitorView: View {
                     .padding(.bottom, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
             }
         }
     }
@@ -793,7 +793,7 @@ struct MonitorView: View {
             }
             .padding(.top, 8)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
 
             Group {
                 if ioSeriesPoints.isEmpty {
@@ -810,7 +810,7 @@ struct MonitorView: View {
             .padding(.top, 10)
             .padding(.bottom, 8)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
         }
     }
 
@@ -825,7 +825,7 @@ struct MonitorView: View {
             }
             .padding(.top, 8)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
 
             Group {
                 if networkSeriesPoints.isEmpty {
@@ -842,7 +842,7 @@ struct MonitorView: View {
             .padding(.top, 10)
             .padding(.bottom, 8)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .monitorRowInsets()
         }
     }
 

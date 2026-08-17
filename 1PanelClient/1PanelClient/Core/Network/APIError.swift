@@ -28,6 +28,14 @@ enum APIError: LocalizedError {
         case .decodingError(let msg):
             return "数据解析失败: \(msg)"
         case .networkError(let err):
+            // 连接完全建立不起来时给出可操作的排查方向，而不只是系统错误文案
+            if let urlErr = err as? URLError,
+               [.cannotConnectToHost, .cannotFindHost, .timedOut, .notConnectedToInternet, .networkConnectionLost].contains(urlErr.code) {
+                return """
+                    无法连接到服务器。请检查：地址与端口是否正确、服务器防火墙是否放行；\
+                    在模拟器中运行时，还需在 macOS「系统设置 → 隐私与安全性 → 本地网络」中允许 Simulator。
+                    """
+            }
             return "网络错误: \(err.localizedDescription)"
         case .notConfigured:
             return "请先添加服务器"

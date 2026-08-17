@@ -196,7 +196,7 @@ struct DatabaseDetailView: View {
         var id: Self { self }
     }
 
-    /// 是否为 MySQL（需隐藏访问权限和修改密码）
+    /// 是否为 MySQL 系（mysql / mariadb / mysql-cluster）：显示访问权限区（PG/Mongo 显示权限区）
     var isMySQL: Bool {
         let t = vm.system.type.lowercased()
         return t == "mysql" || t == "mariadb" || t == "mysql-cluster"
@@ -220,6 +220,9 @@ struct DatabaseDetailView: View {
                 }
             }
             infoSection
+            if isMySQL {
+                accessSection
+            }
             if vm.isPostgreSQL || vm.isMongoDB {
                 privilegesSection
             }

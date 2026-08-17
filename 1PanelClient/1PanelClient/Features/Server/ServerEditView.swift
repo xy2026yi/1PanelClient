@@ -10,6 +10,8 @@ struct ServerEditView: View {
     @ObservedObject var manager: ServerManager
 
     var editing: ServerConfig?
+    /// true = 以 sheet 弹出（自带 NavigationStack + 取消按钮）；false = 页面推入（返回即取消）
+    var presentedAsSheet: Bool = true
 
     @State private var name: String = ""
     @State private var baseURL: String = ""
@@ -23,58 +25,68 @@ struct ServerEditView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("服务器信息") {
-                    TextField("显示名称", text: $name)
-                        .textInputAutocapitalization(.never)
-                    TextField("面板地址", text: $baseURL, prompt: Text("http://10.0.0.1:36130"))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    SecureField("API Key", text: $apiKey)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
+        if presentedAsSheet {
+            NavigationStack {
+                form
+            }
+        } else {
+            form
+        }
+    }
 
-                Section {
-                    Button {
-                        runTest()
-                    } label: {
-                        HStack {
-                            if testing {
-                                ProgressView()
-                            }
-                            Text("测试连接")
+    private var form: some View {
+        Form {
+            Section("服务器信息") {
+                TextField("显示名称", text: $name)
+                    .textInputAutocapitalization(.never)
+                TextField("面板地址", text: $baseURL, prompt: Text("http://10.0.0.1:36130"))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                SecureField("API Key", text: $apiKey)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
+
+            Section {
+                Button {
+                    runTest()
+                } label: {
+                    HStack {
+                        if testing {
+                            ProgressView()
                         }
-                    }
-                    .disabled(testing || baseURL.isEmpty || apiKey.isEmpty)
-
-                    if let r = testResult {
-                        Label(r.message, systemImage: r.success ? "checkmark.circle.fill" : "xmark.octagon.fill")
-                            .foregroundStyle(r.success ? .green : .red)
-                            .font(.footnote)
+                        Text("测试连接")
                     }
                 }
+                .disabled(testing || baseURL.isEmpty || apiKey.isEmpty)
 
-                Section("提示") {
-                    Text("API Key 获取方式：面板 → 设置 → API 接口 → 开启并复制")
+                if let r = testResult {
+                    Label(r.message, systemImage: r.success ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                        .foregroundStyle(r.success ? .green : .red)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle(editing == nil ? "添加服务器" : "编辑服务器")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+
+            Section("提示") {
+                Text("API Key 获取方式：面板 → 设置 → API 接口 → 开启并复制")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle(editing == nil ? "添加服务器" : "编辑服务器")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if presentedAsSheet {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { save() }
-                        .disabled(name.isEmpty || baseURL.isEmpty || apiKey.isEmpty)
-                }
             }
-            .onAppear { loadIfEditing() }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("保存") { save() }
+                    .disabled(name.isEmpty || baseURL.isEmpty || apiKey.isEmpty)
+            }
         }
+        .onAppear { loadIfEditing() }
     }
 
     private func loadIfEditing() {

@@ -34,15 +34,6 @@ struct AcmeAccountListView: View {
         }
         .navigationTitle("Acme 账户")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await load() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-        }
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
                 showCreate = true
@@ -296,15 +287,6 @@ struct DNSAccountListView: View {
         }
         .navigationTitle("DNS 账户")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await load() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-        }
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
                 showCreate = true

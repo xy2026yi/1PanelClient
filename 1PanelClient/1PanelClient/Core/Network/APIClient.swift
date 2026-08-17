@@ -5,6 +5,7 @@
 
 import Foundation
 import CryptoKit
+import os
 
 final class APIClient {
     let server: ServerConfig
@@ -116,6 +117,10 @@ final class APIClient {
             if wrapped.code == 200 && T.self == EmptyResponse.self {
                 return EmptyResponse() as! T
             }
+            #if DEBUG
+            Logger(subsystem: "com.xy.1PanelClient.debug", category: "api")
+                .warning("[API-DEBUG] \(path, privacy: .public) -> \(String(data: data, encoding: .utf8) ?? "", privacy: .public)")
+            #endif
             throw APIError.businessError(wrapped.code, wrapped.message ?? "")
         }
 

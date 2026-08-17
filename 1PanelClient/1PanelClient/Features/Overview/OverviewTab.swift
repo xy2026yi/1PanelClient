@@ -12,8 +12,7 @@ struct OverviewTab: View {
     /// 向 MainTabView 同步导航深度：true=根页面（显示底部 Tab 栏），false=子页面
     @Binding var atRoot: Bool
     @StateObject private var vm: OverviewViewModel
-    @State private var showServerPicker = false
-    @State private var showAddSheet = false
+    @State private var showServers = false
     @State private var showUpgradeLog = false
 
     /// 卡片点击回调：传递具体 ManageItem，由 MainTabView 跨 Tab 跳转到管理详情
@@ -47,8 +46,9 @@ struct OverviewTab: View {
                     }
                 }
                 .padding()
-                .padding(.bottom, 44)
             }
+            // TabBar 上方留白：与管理页 contentMargins 同一机制、同一数值
+            .contentMargins(.bottom, 60, for: .scrollContent)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .refreshable {
@@ -57,7 +57,7 @@ struct OverviewTab: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Button {
-                        showServerPicker = true
+                        showServers = true
                     } label: {
                         VStack(spacing: 1) {
                             Text(manager.current?.name ?? "未连接")
@@ -66,8 +66,7 @@ struct OverviewTab: View {
                                 Text(manager.current?.normalizedBaseURL ?? "")
                                     .font(.caption2)
                                     .lineLimit(1)
-                                Image(systemName: "chevron.down")
-                                    .font(.caption2.weight(.bold))
+                                ServerSwitchIcon()
                             }
                             .foregroundStyle(.secondary)
                         }
@@ -75,22 +74,16 @@ struct OverviewTab: View {
                     .buttonStyle(.plain)
                 }
             }
-            .confirmationDialog("选择服务器", isPresented: $showServerPicker, titleVisibility: .visible) {
-                ForEach(manager.servers) { s in
-                    Button(s.name) {
-                        manager.select(s)
-                    }
-                }
-                Button("添加服务器") { showAddSheet = true }
-                Button("取消", role: .cancel) {}
-            }
-            .sheet(isPresented: $showAddSheet) {
-                ServerEditView(manager: manager)
+            .navigationDestination(isPresented: $showServers) {
+                ServersView(manager: manager)
             }
             .navigationDestination(isPresented: $showUpgradeLog) {
                 if let server = manager.current {
                     PanelUpgradeView(server: server, currentVersion: vm.settingInfo?.systemVersion, upgradeInfo: vm.upgradeInfo)
                 }
+            }
+            .onChange(of: showServers) { _, show in
+                atRoot = !show
             }
             .onChange(of: showUpgradeLog) { _, show in
                 atRoot = !show
@@ -106,8 +99,15 @@ struct OverviewTab: View {
                 }
             }
         }
-        // 服务器切换时（设置页添加/切换、首页下拉选择）自动重建 ViewModel 并刷新
+        // 服务器切换时（服务器页添加、切换）自动重建 ViewModel 并刷新
         .onChange(of: manager.currentServerID) {
+            if let new = manager.current {
+                vm.switchServer(new)
+                Task { await vm.refresh() }
+            }
+        }
+        // 当前服务器 API Key 变化时（冷启动 Keychain 补齐、编辑保存）同样重建，避免沿用旧 Key
+        .onChange(of: manager.current?.apiKey ?? "") {
             if let new = manager.current {
                 vm.switchServer(new)
                 Task { await vm.refresh() }
@@ -228,65 +228,76 @@ struct OverviewTab: View {
                 Text("状态")
                     .font(.headline)
                 Spacer()
-                // 三个点：跨 Tab 跳转到 管理-监控（onSelectManageItem 机制）
+                // 跳转 管理-监控（onSelectManageItem 机制）；chevron 表达「进入」语义
                 Button {
                     onSelectManageItem?(.monitor)
                 } label: {
-                    Image(systemName: "ellipsis")
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .font(.body)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("查看监控")
             }
 
-            // 负载 / CPU / 内存 / 各存储挂载点 全部一排，超出可左右滑动
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 4) {
-                    RingStatView(
-                        percent: min(cur.loadUsagePercent ?? 0, 100),
-                        color: .teal,
-                        topText: String(format: "%.0f%%", cur.loadUsagePercent ?? 0),
-                        bottomText: "负载",
-                        footer: format2(cur.load1),
-                        compact: true
-                    )
-                    .frame(width: 76)
+            // 负载 / CPU / 内存 固定一排（点击圆环区域与右上角箭头一样跳转监控）
+            HStack(alignment: .top, spacing: 4) {
+                RingStatView(
+                    percent: min(cur.loadUsagePercent ?? 0, 100),
+                    color: .teal,
+                    topText: String(format: "%.2f%%", cur.loadUsagePercent ?? 0),
+                    bottomText: "负载",
+                    footer: format2(cur.load1),
+                    compact: true
+                )
 
-                    RingStatView(
-                        percent: min(cur.cpuUsedPercent ?? 0, 100),
-                        color: .blue,
-                        topText: String(format: "%.0f%%", cur.cpuUsedPercent ?? 0),
-                        bottomText: "CPU",
-                        footer: "\(cur.cpuTotal ?? 0) 核",
-                        compact: true
-                    )
-                    .frame(width: 76)
+                RingStatView(
+                    percent: min(cur.cpuUsedPercent ?? 0, 100),
+                    color: .blue,
+                    topText: String(format: "%.2f%%", cur.cpuUsedPercent ?? 0),
+                    bottomText: "CPU",
+                    footer: "\(format2(cur.cpuUsed)) / \(cur.cpuTotal ?? 0) 核",
+                    compact: true
+                )
 
-                    RingStatView(
-                        percent: min(cur.memoryUsedPercent ?? 0, 100),
-                        color: .purple,
-                        topText: String(format: "%.0f%%", cur.memoryUsedPercent ?? 0),
-                        bottomText: "内存",
-                        footer: formatBytes(cur.memoryTotal),
-                        compact: true
-                    )
-                    .frame(width: 76)
+                RingStatView(
+                    percent: min(cur.memoryUsedPercent ?? 0, 100),
+                    color: .purple,
+                    topText: String(format: "%.2f%%", cur.memoryUsedPercent ?? 0),
+                    bottomText: "内存",
+                    footer: formatUsedOverTotal(cur.memoryUsed, cur.memoryTotal),
+                    compact: true
+                )
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 2)
+            .contentShape(Rectangle())
+            .onTapGesture { tapManage(.monitor) }
 
+            // 各存储挂载点：网格平铺（3 列），无需横滑即可见
+            if !disks.isEmpty {
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 4),
+                    GridItem(.flexible(), spacing: 4),
+                    GridItem(.flexible(), spacing: 4)
+                ], spacing: 12) {
                     ForEach(Array(disks.enumerated()), id: \.offset) { _, disk in
                         let pct = disk.usedPercent ?? 0
                         RingStatView(
                             percent: min(pct, 100),
                             color: .orange,
-                            topText: String(format: "%.0f%%", pct),
+                            topText: String(format: "%.2f%%", pct),
                             bottomText: disk.path?.isEmpty == false ? disk.path! : "存储",
-                            footer: formatBytes(disk.total),
+                            footer: formatUsedOverTotal(disk.used, disk.total),
                             compact: true
                         )
-                        .frame(width: 76)
                     }
                 }
-                .padding(.vertical, 8)
                 .padding(.horizontal, 2)
+                .padding(.bottom, 4)
+                .contentShape(Rectangle())
+                .onTapGesture { tapManage(.monitor) }
             }
         }
         .padding()
@@ -302,22 +313,22 @@ struct OverviewTab: View {
             Button { tapManage(.websites) } label: {
                 StatCard(title: "网站", count: b.websiteNumber, icon: "globe", color: .green)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.apps) } label: {
                 StatCard(title: "应用", count: b.appInstalledNumber, icon: "app.badge", color: .blue, updateCount: vm.appUpdateCount)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.database) } label: {
                 StatCard(title: "数据库", count: b.databaseNumber, icon: "cylinder.split.1x2", color: .purple)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.containers) } label: {
-                StatCard(title: "容器", count: b.appInstalledNumber, icon: "shippingbox", color: .indigo)
+                StatCard(title: "容器", count: vm.containerCount, icon: "shippingbox", color: .indigo)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableCardStyle())
         }
     }
 
@@ -383,8 +394,33 @@ struct OverviewTab: View {
         let bytes = bytes ?? 0
         if bytes < 1024 { return "\(bytes) B" }
         if bytes < 1024 * 1024 { return String(format: "%.1f KB", Double(bytes) / 1024) }
-        if bytes < 1024 * 1024 * 1024 { return String(format: "%.1f MB", Double(bytes) / (1024 * 1024)) }
+        if bytes < 1024 * 1024 * 1024 { return String(format: "%.2f MB", Double(bytes) / (1024 * 1024)) }
         return String(format: "%.2f GB", Double(bytes) / (1024 * 1024 * 1024))
+    }
+
+    /// 字节数拆成 (数值, 单位)：≥1GB 用 GB、≥1MB 用 MB、≥1KB 用 KB；GB/MB 保留两位小数
+    private func byteParts(_ bytes: Int64?) -> (value: String, unit: String) {
+        let b = bytes ?? 0
+        if b >= 1024 * 1024 * 1024 {
+            return (String(format: "%.2f", Double(b) / 1_073_741_824), "GB")
+        }
+        if b >= 1024 * 1024 {
+            return (String(format: "%.2f", Double(b) / 1_048_576), "MB")
+        }
+        if b >= 1024 {
+            return (String(format: "%.1f", Double(b) / 1024), "KB")
+        }
+        return ("\(b)", "B")
+    }
+
+    /// 已用/总量：同单位时单位只出现一次（6.83 / 58.90 GB），不足 GB 的已用单独标注（1.02 MB / 3.86 GB）
+    private func formatUsedOverTotal(_ used: Int64?, _ total: Int64?) -> String {
+        let u = byteParts(used)
+        let t = byteParts(total)
+        if u.unit == t.unit {
+            return "\(u.value) / \(t.value) \(t.unit)"
+        }
+        return "\(u.value) \(u.unit) / \(t.value) \(t.unit)"
     }
 
     private func format2(_ v: Double?) -> String {
@@ -393,6 +429,20 @@ struct OverviewTab: View {
 }
 
 // MARK: - 子视图
+
+/// 首页顶栏「切换服务器」图标：圆形底 + 上下两条平行反向箭头（左右交换语义）
+struct ServerSwitchIcon: View {
+    var body: some View {
+        Image(systemName: "arrow.left.arrow.right")
+            .font(.system(size: 8, weight: .bold))
+            .foregroundStyle(.secondary)
+            .frame(width: 16, height: 16)
+            .background(
+                Circle()
+                    .fill(Color.primary.opacity(0.08))
+            )
+    }
+}
 
 /// 圆形进度指标：外圈圆环体现使用率，圆心上方显示百分比，下方显示标签，圆环正下方显示详情
 struct RingStatView: View {
@@ -406,9 +456,10 @@ struct RingStatView: View {
     var body: some View {
         let ringSize: CGFloat = compact ? 54 : 88
         let ringWidth: CGFloat = compact ? 6 : 10
+        // 两位小数百分比（58.81%）较长，字号收紧 + 允许自动缩小避免圆环内溢出
         let topFont: Font = compact
-            ? .system(size: 13, weight: .bold, design: .rounded)
-            : .system(size: 16, weight: .bold, design: .rounded)
+            ? .system(size: 10, weight: .semibold, design: .rounded)
+            : .system(size: 13, weight: .semibold, design: .rounded)
 
         return VStack(spacing: compact ? 4 : 8) {
             ZStack {
@@ -428,8 +479,10 @@ struct RingStatView: View {
                         .font(topFont)
                         .monospacedDigit()
                         .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                     Text(bottomText)
-                        .font(.caption2)
+                        .font(.system(size: compact ? 9.5 : 12))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -465,9 +518,15 @@ struct StatCard: View {
                     ProgressView()
                         .scaleEffect(0.7)
                 } else {
-                    Text(title)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        // 可点入口的视觉暗示：标题旁的导航箭头
+                        Text(title)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.up.forward")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
 
@@ -502,6 +561,7 @@ final class OverviewViewModel: ObservableObject {
     @Published var settingInfo: SettingInfo?
     @Published var currentInfo: DashboardCurrent?   // 实时监控（独立接口）
     @Published var appUpdateCount: Int?              // 可更新应用数
+    @Published var containerCount: Int?               // 容器总数（dashboard/base 无此字段，独立请求）
     @Published var upgradeInfo: PanelUpgradeInfo?     // 面板版本更新信息
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -522,6 +582,7 @@ final class OverviewViewModel: ObservableObject {
         settingInfo = nil
         currentInfo = nil
         appUpdateCount = nil
+        containerCount = nil
         upgradeInfo = nil
     }
 
@@ -559,19 +620,25 @@ final class OverviewViewModel: ObservableObject {
             body: AppInstalledSearchRequest(page: 1, pageSize: 1, name: "", type: "", tags: [], update: true, all: false, unused: false, sync: false),
             as: AppInstalledListResponse.self
         )
+        async let containers: ContainerListResponse? = try? await client.send(
+            path: APIEndpoint.containersSearch.path,
+            body: ContainerSearchRequest(page: 1, pageSize: 1, name: "", state: "all", orderBy: "createdAt", order: "null"),
+            as: ContainerListResponse.self
+        )
         async let upgrade: PanelUpgradeInfo? = try? await client.send(
             path: APIEndpoint.settingsUpgradeCheck.path,
             method: APIEndpoint.settingsUpgradeCheck.method,
             as: PanelUpgradeInfo.self
         )
 
-        let (b, o, d, s, c, au, up) = await (baseResp, os, dev, settings, current, appUpdates, upgrade)
+        let (b, o, d, s, c, au, ct, up) = await (baseResp, os, dev, settings, current, appUpdates, containers, upgrade)
         if let b { self.base = b }
         if let o { self.osInfo = o }
         if let d { self.deviceInfo = d }
         if let s { self.settingInfo = s }
         if let c { self.currentInfo = c }
         self.appUpdateCount = au?.total ?? 0
+        self.containerCount = ct?.total
         self.upgradeInfo = up
 
         // 仅在完全无数据时才显示错误（刷新失败时保留旧数据）

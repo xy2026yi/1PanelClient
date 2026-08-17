@@ -192,65 +192,32 @@ struct SSHView: View {
     private func content(config: SSHConfig) -> some View {
         List {
             // 服务管理
-            Section {
-                HStack {
-                    Text("SSH").font(.headline)
-                    Spacer()
-                    StatusBadge(
-                        text: config.isActive ? "运行中" : "已停止",
-                        color: config.isActive ? .green : .red                    )
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            isServiceExpanded.toggle()
-                        }
-                    } label: {
-                        Image(systemName: isServiceExpanded ? "chevron.up" : "chevron.down")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+            ServiceStatusCard(
+                title: "SSH",
+                statusText: config.isActive ? "运行中" : "已停止",
+                statusColor: config.isActive ? .green : .red,
+                isOperating: vm.isOperating,
+                isExpanded: $isServiceExpanded,
+                actions: [
+                    ServiceAction(
+                        title: config.isActive ? "停止" : "启动",
+                        icon: config.isActive ? "stop.fill" : "play.fill",
+                        color: config.isActive ? .orange : .green
+                    ) { pendingAction = config.isActive ? "stop" : "start" },
+                    ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+                        pendingAction = "restart"
                     }
-                    .buttonStyle(.plain)
-                }
-
-                if isServiceExpanded {
-                    HStack(spacing: 12) {
-                        if config.isActive {
-                            Button {
-                                pendingAction = "stop"
-                            } label: {
-                                Label("停止", systemImage: "stop.fill")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(.red)
-                        } else {
-                            Button {
-                                pendingAction = "start"
-                            } label: {
-                                Label("启动", systemImage: "play.fill")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(.green)
-                        }
-
-                        Button {
-                            pendingAction = "restart"
-                        } label: {
-                            Label("重启", systemImage: "arrow.clockwise")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.orange)
+                ]
+            ) {
+                IconBadge(systemName: "terminal", color: .blue, size: 44)
+            } extra: {
+                Toggle("开机自启", isOn: Binding(
+                    get: { config.autoStart },
+                    set: { newVal in
+                        pendingAction = newVal ? "enable" : "disable"
                     }
-
-                    Toggle("开机自启", isOn: Binding(
-                        get: { config.autoStart },
-                        set: { newVal in
-                            pendingAction = newVal ? "enable" : "disable"
-                        }
-                    ))
-                    .disabled(vm.isOperating)
-                }
+                ))
+                .disabled(vm.isOperating)
             }
 
             // 基础配置

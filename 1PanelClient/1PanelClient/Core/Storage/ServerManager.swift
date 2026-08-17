@@ -6,6 +6,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import os
 
 @MainActor
 final class ServerManager: ObservableObject {
@@ -17,6 +18,10 @@ final class ServerManager: ObservableObject {
     private let storage = UserDefaults.standard
     private let serversKey = "servers.v1"
     private let currentKey = "currentServer.v1"
+    /// API Key 的 UserDefaults 镜像前缀：模拟器重装 app 后 Keychain 条目可能整体不可读
+    /// （读出空 Key，所有请求被 1Panel 拒绝「API 接口密钥错误」），镜像兜底保证已保存
+    /// 的服务器仍可连接；真机上 Keychain 稳定，Keychain 始终优先
+    private let keyMirrorPrefix = "apikey.mirror."
 
     var current: ServerConfig? {
         guard let id = currentServerID else { return servers.first }
@@ -47,6 +52,7 @@ final class ServerManager: ObservableObject {
     func remove(_ server: ServerConfig) {
         servers.removeAll { $0.id == server.id }
         KeychainStore.delete(for: server.id.uuidString)
+        storage.removeObject(forKey: keyMirrorPrefix + server.id.uuidString)
         persistServers()
         if currentServerID == server.id {
             setCurrent(servers.first?.id)
@@ -68,7 +74,7 @@ final class ServerManager: ObservableObject {
         }
     }
 
-    // MARK: - 持久化（敏感字段进 Keychain）
+    // MARK: - 持久化（敏感字段进 Keychain，另写 UserDefaults 镜像兜底）
 
     private func persistServers() {
         let safe: [[String: String]] = servers.map { s in
@@ -82,6 +88,7 @@ final class ServerManager: ObservableObject {
 
         for s in servers {
             KeychainStore.save(s.apiKey, for: s.id.uuidString)
+            storage.set(s.apiKey, forKey: keyMirrorPrefix + s.id.uuidString)
         }
     }
 
@@ -90,7 +97,12 @@ final class ServerManager: ObservableObject {
         servers = arr.compactMap { d in
             guard let idStr = d["id"], let id = UUID(uuidString: idStr),
                   let name = d["name"], let baseURL = d["baseURL"] else { return nil }
-            let apiKey = KeychainStore.read(for: id.uuidString) ?? ""
+            let (kcValue, status) = KeychainStore.readWithStatus(for: id.uuidString)
+            let apiKey = kcValue ?? storage.string(forKey: keyMirrorPrefix + id.uuidString) ?? ""
+            #if DEBUG
+            Logger(subsystem: "com.xy.1PanelClient.debug", category: "keychain")
+                .warning("[KEYCHAIN-DEBUG] id=\(id.uuidString, privacy: .public) status=\(status) keychainLen=\(kcValue?.count ?? -1) finalLen=\(apiKey.count)")
+            #endif
             return ServerConfig(id: id, name: name, baseURL: baseURL, apiKey: apiKey)
         }
         if let idStr = storage.string(forKey: currentKey), let id = UUID(uuidString: idStr) {

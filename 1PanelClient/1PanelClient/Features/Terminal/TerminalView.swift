@@ -16,8 +16,6 @@ struct TerminalView: View {
     @State private var inputText = ""
     @State private var autoScroll = true
     @FocusState private var inputFocused: Bool
-    /// 连接调试信息开关（连接横幅/WS 地址/超时诊断），开启后重连生效
-    @AppStorage("terminalShowConnectionDebug") private var showConnectionDebug = false
 
     /// 连接目标标题
     private let title: String
@@ -227,7 +225,6 @@ struct TerminalView: View {
                 Label("清屏", systemImage: "trash")
             }
             Toggle("自动滚动到底部", isOn: $autoScroll)
-            Toggle("显示连接调试信息", isOn: $showConnectionDebug)
         } label: {
             Image(systemName: "ellipsis.circle")
         }
