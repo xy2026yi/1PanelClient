@@ -456,8 +456,6 @@ struct ContainerDetailView: View {
     @ViewBuilder
     private var headerRow: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: "shippingbox.fill", color: .indigo)
-
             VStack(alignment: .leading, spacing: 3) {
                 Text(container.displayName)
                     .font(.body.bold())

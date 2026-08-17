@@ -398,16 +398,14 @@ struct WebsiteDetailView: View {
 
     private var drawerHeaderRow: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: "globe", color: .blue)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(website.displayName)
-                        .font(.body.bold())
-                        .lineLimit(1)
-                    Text(Website.typeDisplayName(for: detail?.type ?? website.type))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(website.displayName)
+                    .font(.body.bold())
+                    .lineLimit(1)
+                Text(Website.typeDisplayName(for: detail?.type ?? website.type))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
             HStack(spacing: 4) {
                 StatusDot(color: detail?.statusColor ?? .secondary)
