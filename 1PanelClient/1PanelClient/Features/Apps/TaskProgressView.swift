@@ -34,6 +34,8 @@ struct TaskLogResponse: Decodable {
 struct TaskProgressView: View {
     let taskID: String
     let title: String
+    /// 读取方向：true=从末尾追读（备份等），false=从头读（恢复等），与 1Panel 网页端抓包一致
+    var latest: Bool = true
     /// 参数 isDone=true 表示任务已完成，isDone=false 表示用户选择后台运行
     /// 返回 true 表示调用方已自行处理导航，TaskProgressView 不再调用 dismiss()
     var onComplete: ((Bool) -> Bool)? = nil
@@ -178,7 +180,7 @@ struct TaskProgressView: View {
         let req = TaskLogReadRequest(
             id: 0, type: "task", name: "",
             page: 1, pageSize: 500,
-            latest: true,
+            latest: latest,
             taskID: taskID,
             taskType: "", taskOperate: "", resourceID: 0
         )

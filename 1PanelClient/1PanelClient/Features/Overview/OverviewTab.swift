@@ -316,7 +316,7 @@ struct OverviewTab: View {
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.apps) } label: {
-                StatCard(title: "应用", count: b.appInstalledNumber, icon: "app.badge", color: .blue, updateCount: vm.appUpdateCount)
+                StatCard(title: "应用", count: b.appInstalledNumber, icon: "app.badge", color: .blue, updateCount: vm.appUpdateCount, customIcon: "icon-apps")
             }
             .buttonStyle(PressableCardStyle())
 
@@ -326,7 +326,7 @@ struct OverviewTab: View {
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.containers) } label: {
-                StatCard(title: "容器", count: vm.containerCount, icon: "shippingbox", color: .indigo)
+                StatCard(title: "容器", count: vm.containerCount, icon: "shippingbox", color: .blue, customIcon: "icon-docker")
             }
             .buttonStyle(PressableCardStyle())
         }
@@ -430,12 +430,17 @@ struct OverviewTab: View {
 
 // MARK: - 子视图
 
-/// 首页顶栏「切换服务器」图标：圆形底 + 上下两条平行反向箭头（左右交换语义）
+/// 首页顶栏「切换服务器」图标：logs/切换.svg 样式（圆环 + 上下两条平行反向箭头，template 随明暗自适应）
 struct ServerSwitchIcon: View {
     var body: some View {
-        Image(systemName: "arrow.left.arrow.right")
-            .font(.system(size: 8, weight: .bold))
+        Image("icon-switch")
+            .renderingMode(.template)
+            .resizable()
+            .interpolation(.high)
+            .scaledToFit()
             .foregroundStyle(.secondary)
+            .frame(width: 11, height: 11)
+            .padding(2.5)
             .frame(width: 16, height: 16)
             .background(
                 Circle()
@@ -500,17 +505,20 @@ struct RingStatView: View {
     }
 }
 
+/// 资源统计卡左上角图标：默认 SF Symbol，可换内置自绘图标（docker 鲸鱼 / 应用四宫格）
 struct StatCard: View {
     let title: String
     let count: Int?
     let icon: String
     let color: Color
     var updateCount: Int? = nil
+    /// 覆盖 icon 的自定义图标（asset 名），非空时优先于 SF Symbol
+    var customIcon: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: icon)
+                iconView
                     .foregroundStyle(color)
                     .font(.title3)
                 Spacer()
@@ -548,6 +556,20 @@ struct StatCard: View {
         .padding()
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// 自定义图标（logs/docker.svg 鲸鱼、logs/应用.svg 四宫格）与 SF Symbol 同尺寸展示
+    @ViewBuilder
+    private var iconView: some View {
+        if let customIcon {
+            Image(customIcon)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 26, height: 26)
+        } else {
+            Image(systemName: icon)
+        }
     }
 }
 

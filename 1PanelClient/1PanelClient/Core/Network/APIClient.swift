@@ -114,8 +114,15 @@ final class APIClient {
             if wrapped.isSuccess, let value = wrapped.data {
                 return value
             }
-            if wrapped.code == 200 && T.self == EmptyResponse.self {
-                return EmptyResponse() as! T
+            if wrapped.code == 200 {
+                // code=200 但 data=null：集合类型回退为空集合
+                // （服务端空列表会序列化为 null，如 /backups/record/size 无记录时）
+                if let empty = (T.self as? EmptyInitializable.Type)?.emptyInstance() as? T {
+                    return empty
+                }
+                if T.self == EmptyResponse.self {
+                    return EmptyResponse() as! T
+                }
             }
             #if DEBUG
             Logger(subsystem: "com.xy.1PanelClient.debug", category: "api")
@@ -438,6 +445,23 @@ final class APIClient {
 // MARK: - 辅助类型
 
 nonisolated struct EmptyResponse: Codable {}
+
+/// code=200 且 data=null 时可回退为空值的集合类型
+nonisolated protocol EmptyInitializable {
+    static func emptyInstance() -> Self
+}
+
+extension Array: EmptyInitializable {
+    static func emptyInstance() -> Self { [] }
+}
+
+extension Set: EmptyInitializable {
+    static func emptyInstance() -> Self { [] }
+}
+
+extension Dictionary: EmptyInitializable {
+    static func emptyInstance() -> Self { [:] }
+}
 
 nonisolated struct AnyEncodable: Encodable {
     private let encodeFunc: (Encoder) throws -> Void

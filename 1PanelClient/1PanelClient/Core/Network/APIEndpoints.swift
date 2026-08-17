@@ -270,6 +270,15 @@ enum APIEndpoint {
     case appsIcon                // GET  应用图标（:appID 路径参数，返回二进制图片）
     case appsServices            // GET  获取数据库服务列表（:type 路径参数，如 mysql/postgres）
 
+    // MARK: - 备份（应用 / 网站 / 数据库）
+    case backupsLocal              // GET  备份存放目录
+    case backupsRecordSearch       // POST 备份记录分页查询
+    case backupsRecordSize         // POST 备份文件大小批量查询
+    case backupsBackup             // POST 创建备份（压缩密码/描述/参数）
+    case backupsRecover            // POST 恢复备份（超时/清空库等参数）
+    case backupsRecordDelete       // POST 删除备份记录
+    case backupsRecordDownload     // POST 获取备份文件下载路径
+
     // MARK: - 任务日志（安装/卸载进度）
     case logsTaskRead            // POST 读取任务日志（轮询 taskID）
     case logsTaskCount           // GET  正在执行的任务数量
@@ -493,6 +502,13 @@ enum APIEndpoint {
         case .appsServices:          return "/api/v2/apps/services/:type"
         case .logsTaskRead:          return "/api/v2/logs/tasks/read"
         case .logsTaskCount:         return "/api/v2/logs/tasks/executing/count"
+        case .backupsLocal:          return "/api/v2/backups/local?operateNode=local"
+        case .backupsRecordSearch:   return "/api/v2/backups/record/search?operateNode=local"
+        case .backupsRecordSize:     return "/api/v2/backups/record/size?operateNode=local"
+        case .backupsBackup:         return "/api/v2/backups/backup?operateNode=local"
+        case .backupsRecover:        return "/api/v2/backups/recover?operateNode=local"
+        case .backupsRecordDelete:   return "/api/v2/backups/record/del"
+        case .backupsRecordDownload: return "/api/v2/backups/record/download?operateNode=local"
         case .logsOperation:         return "/api/v2/core/logs/operation"
         case .logsLogin:             return "/api/v2/core/logs/login"
         case .logsSystemFiles:       return "/api/v2/logs/system/files"
@@ -523,6 +539,7 @@ enum APIEndpoint {
              .settingsUpgradeCheck, .settingsUpgradeReleases,
              .openrestyConfig,
              .logsSystemFiles, .logsWebsitesList,
+             .backupsLocal,
              .filesDownload:
             return "GET"
         default:

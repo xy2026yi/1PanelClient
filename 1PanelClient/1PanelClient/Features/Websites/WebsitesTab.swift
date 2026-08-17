@@ -239,6 +239,12 @@ struct WebsiteDetailView: View {
     @State private var showEditSheet = false
     @State private var isOperating = false
     @State private var pendingToggle: Bool?
+    @State private var showBackup = false
+
+    /// 当前服务器配置（根目录跳转文件管理用）
+    private var server: ServerConfig {
+        ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+    }
 
     var body: some View {
         List {
@@ -274,7 +280,12 @@ struct WebsiteDetailView: View {
                     }
                     InfoRow("类型", value: d.type ?? website.typeDisplayName)
                     if let p = d.sitePath, !p.isEmpty {
-                        InfoRow("根目录", value: p)
+                        NavigationLink {
+                            FilesView(server: server, initialPath: p)
+                        } label: {
+                            InfoRow("根目录", value: p)
+                        }
+                        .buttonStyle(.plain)
                     }
                     if let created = d.createdAt, !created.isEmpty {
                         InfoRow("创建时间", value: String(created.prefix(19)))
@@ -283,13 +294,15 @@ struct WebsiteDetailView: View {
                     SectionLabel(title: "基本信息", systemImage: "doc.text")
                 }
 
-                // 操作入口（HTTPS / 日志 / 反代 / 配置文件）
+                // 操作入口（HTTPS / 日志 / 反代 / 配置文件 / 备份）
                 Section {
                     NavigationLink {
                         WebsiteHTTPSView(websiteId: website.id, vm: vm)
                     } label: {
                         HStack {
+                            HTTPSLinkIcon()
                             Text("HTTPS")
+                                .foregroundStyle(.primary)
                             Spacer()
                             if d.webSiteSSLId ?? 0 > 0 {
                                 Image(systemName: "lock.fill")
@@ -320,6 +333,13 @@ struct WebsiteDetailView: View {
                             .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
+                    NavigationLink {
+                        BackupListView(target: websiteBackupTarget)
+                    } label: {
+                        Label("备份", systemImage: "externaldrive.badge.timemachine")
+                            .foregroundStyle(.primary)
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 // 危险区（与其他详情页一致：删除放底部独立 Section）
@@ -339,6 +359,12 @@ struct WebsiteDetailView: View {
         }
         .navigationTitle(website.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        // 右下角悬浮：浏览器打开网站链接（protocol + primaryDomain）
+        .overlay(alignment: .bottomTrailing) {
+            if let url = website.browserURL {
+                WebsiteLinkFab(url: url)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -396,6 +422,13 @@ struct WebsiteDetailView: View {
         detail = await vm.loadDetail(id: website.id)
     }
 
+    /// 网站备份目标（type=website；后端按 website.alias 查库，备份记录也以 alias 存
+    /// 储，与网页端一致优先传 alias，主域名仅作兜底）
+    private var websiteBackupTarget: BackupTarget {
+        let alias = detail?.alias ?? website.alias ?? website.primaryDomain ?? website.displayName
+        return BackupTarget(type: "website", name: alias, detailName: alias)
+    }
+
     private func toggleStatus(current: String?, to running: Bool) async {
         isOperating = true
         let op = running ? "start" : "stop"
@@ -414,6 +447,7 @@ struct WebsiteRow: View {
     let website: Website
 
     /// 上：主域名:端口；下：类型 [appName]；右：状态
+    /// （浏览器打开链接入口已移至网站详情页右下角悬浮按钮）
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
@@ -450,6 +484,47 @@ struct WebsiteRow: View {
             line += ":\(port)"
         }
         return line
+    }
+}
+
+// MARK: - 网站详情页图标（logs/链接.svg、logs/HTTPS.svg 样式）
+
+/// 网站详情页右下角悬浮「打开链接」按钮：链接.svg 样式的蓝色链式图标
+struct WebsiteLinkFab: View {
+    let url: URL
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Button {
+            openURL(url)
+        } label: {
+            Image("icon-link")
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 30, height: 30)
+                .frame(width: 56, height: 56)
+                .background(.regularMaterial, in: Circle())
+                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+        }
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
+        .accessibilityLabel("在浏览器打开网站")
+    }
+}
+
+/// HTTPS 入口行首图标（HTTPS.svg 样式的盾牌，template 渲染随明暗主题自适应）
+struct HTTPSLinkIcon: View {
+    var size: CGFloat = 20
+
+    var body: some View {
+        Image("icon-https")
+            .renderingMode(.template)
+            .resizable()
+            .interpolation(.high)
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .foregroundStyle(.blue)
     }
 }
 

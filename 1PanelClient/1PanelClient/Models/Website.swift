@@ -39,6 +39,7 @@ nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
     let runtimeName: String?
     let runtimeType: String?
     let appName: String?
+    let appInstallId: Int?
     let siteDir: String?
     let webSiteGroupId: Int?
     let createdAt: String?
@@ -52,7 +53,7 @@ nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
     enum CodingKeys: String, CodingKey {
         case id, primaryDomain, type, alias, remark, status, expireDate
         case protocolStr = "protocol"
-        case runtimeName, runtimeType, appName, siteDir
+        case runtimeName, runtimeType, appName, appInstallId, siteDir
         case webSiteGroupId, createdAt, user
         case appType, port, proxy, proxyAddress, ssl
     }
@@ -61,6 +62,13 @@ nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
     var displayName: String {
         if let d = primaryDomain, !d.isEmpty { return d }
         return alias ?? "未命名网站"
+    }
+
+    /// 浏览器访问地址（protocol + primaryDomain，主域名缺省回退 alias；协议缺省按 http）
+    var browserURL: URL? {
+        guard let host = primaryDomain ?? alias, !host.isEmpty else { return nil }
+        let scheme = (protocolStr ?? "").lowercased() == "https" ? "https" : "http"
+        return URL(string: "\(scheme)://\(host)")
     }
 
     /// 类型显示名

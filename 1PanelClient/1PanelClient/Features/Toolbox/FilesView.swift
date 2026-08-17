@@ -64,10 +64,17 @@ struct FilesView: View {
     private let directUploadLimit = 50 * 1024 * 1024
 
     private let client: APIClient
+    /// 是否从外部指定了起始目录（指定后跳过「默认打开面板 baseDir」逻辑）
+    private let hasCustomStart: Bool
 
-    init(server: ServerConfig) {
+    /// initialPath：外部跳转（如应用详情「目录」）指定的起始目录，默认 "/"
+    init(server: ServerConfig, initialPath: String = "/") {
         self.server = server
         self.client = APIClient(server: server)
+        let start = initialPath.isEmpty ? "/" : initialPath
+        _currentPath = State(initialValue: start)
+        _pathHistory = State(initialValue: [start])
+        hasCustomStart = start != "/"
     }
 
     var body: some View {
@@ -279,7 +286,9 @@ struct FilesView: View {
     }
 
     private func initialLoad() async {
-        if let baseDir: String = try? await client.send(path: APIEndpoint.settingsBaseDir.path, method: "GET", as: String.self) {
+        // 外部指定了起始目录时不覆盖（应用目录等场景），仅默认进入时定位面板 baseDir
+        if !hasCustomStart,
+           let baseDir: String = try? await client.send(path: APIEndpoint.settingsBaseDir.path, method: "GET", as: String.self) {
             currentPath = baseDir
             pathHistory = [baseDir]
         }

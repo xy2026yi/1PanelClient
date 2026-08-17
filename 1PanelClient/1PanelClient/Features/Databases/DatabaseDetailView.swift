@@ -186,6 +186,21 @@ struct DatabaseDetailView: View {
     /// 删除确认弹窗中的选项（传入共享 TextInputConfirmSheet）
     @State private var forceDeleteOption = false
     @State private var deleteBackupOption = false
+    @State private var showBackup = false
+
+    /// 是否支持备份（MySQL 系 / PostgreSQL / MongoDB；Redis 不支持）
+    var supportsBackup: Bool {
+        isMySQL || vm.isPostgreSQL || vm.isMongoDB
+    }
+
+    /// 备份目标：type=服务类型，name=服务名，detailName=数据库名
+    var backupTarget: BackupTarget {
+        BackupTarget.database(
+            serviceType: vm.system.type,
+            serviceName: vm.system.database,
+            databaseName: vm.database.name ?? ""
+        )
+    }
 
     enum DetailSheet: Identifiable {
         case changePassword
@@ -220,6 +235,9 @@ struct DatabaseDetailView: View {
                 }
             }
             infoSection
+            if supportsBackup {
+                backupSection
+            }
             if isMySQL {
                 accessSection
             }
@@ -230,6 +248,9 @@ struct DatabaseDetailView: View {
         }
         .navigationTitle(vm.database.name ?? "数据库")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showBackup) {
+            BackupListView(target: backupTarget)
+        }
         .task {
             if vm.isMongoDB { await vm.loadMongoPrivileges() }
         }
@@ -324,6 +345,19 @@ struct DatabaseDetailView: View {
             }
         } header: {
             SectionLabel(title: "数据库信息", systemImage: "info.circle")
+        }
+    }
+
+    // MARK: 备份
+
+    private var backupSection: some View {
+        Section {
+            NavigationLink {
+                BackupListView(target: backupTarget)
+            } label: {
+                Label("备份", systemImage: "externaldrive.badge.timemachine")
+            }
+            .buttonStyle(.plain)
         }
     }
 

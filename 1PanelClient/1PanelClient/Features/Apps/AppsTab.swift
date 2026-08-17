@@ -148,6 +148,7 @@ struct AppDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showUninstall = false
     @State private var showEdit = false
+    @State private var showBackup = false
     @State private var isExpanded = false
     @State private var pendingAction: String?
 
@@ -160,6 +161,23 @@ struct AppDetailView: View {
     @State private var uninstallDeleteImage = false
     @State private var uninstallDeleteBackup = false
     @State private var uninstallForceDelete = false
+
+    /// 详情内嵌跳转网站详情所需的 VM（独立于网站列表页实例）
+    @StateObject private var websitesVM: WebsitesViewModel
+
+    init(app: AppInstall, vm: AppsViewModel) {
+        self.app = app
+        self.vm = vm
+        let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        _websitesVM = StateObject(wrappedValue: WebsitesViewModel(server: server))
+    }
+
+    private var server: ServerConfig { serverConfig }
+
+    /// 当前服务器配置（详情页内跳转 文件/容器/网站 共用）
+    private var serverConfig: ServerConfig {
+        ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+    }
 
     /// 从 VM 实时查找最新应用数据（操作后状态自动刷新）
     private var currentApp: AppInstall {
@@ -216,6 +234,10 @@ struct AppDetailView: View {
                 await vm.loadAppStoreConfig()
             }
         }
+        .task {
+            // 加载应用关联的网站（appInstallId 匹配），有关联才显示「网站」行
+            await vm.loadLinkedWebsites(appID: app.id)
+        }
     }
 
     private var listContent: some View {
@@ -234,8 +256,31 @@ struct AppDetailView: View {
                 if let ports = app.httpsPort, ports > 0 {
                     InfoRow("HTTPS 端口", value: "\(ports)")
                 }
+                if let path = app.path, !path.isEmpty {
+                    NavigationLink {
+                        FilesView(server: server, initialPath: path)
+                    } label: {
+                        InfoRow("目录", value: path)
+                    }
+                    .buttonStyle(.plain)
+                }
                 if let container = app.container, !container.isEmpty {
-                    InfoRow("容器名", value: container)
+                    NavigationLink {
+                        ContainerDetailFromAppView(app: app, server: server)
+                    } label: {
+                        InfoRow("容器名", value: container)
+                    }
+                    .buttonStyle(.plain)
+                }
+                if let sites = vm.linkedWebsites, !sites.isEmpty {
+                    ForEach(sites) { site in
+                        NavigationLink {
+                            WebsiteDetailView(website: site, vm: websitesVM)
+                        } label: {
+                            InfoRow("网站", value: site.displayName)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 if let created = app.createdAt, !created.isEmpty {
                     InfoRow("安装时间", value: String(created.prefix(19)))
@@ -286,6 +331,14 @@ struct AppDetailView: View {
         }
         .navigationDestination(isPresented: $showEdit) {
             UpdateParamsView(app: app, vm: vm)
+        }
+        .navigationDestination(isPresented: $showBackup) {
+            // 应用备份：type=app，name/detailName 均为安装名
+            BackupListView(target: BackupTarget(
+                type: "app",
+                name: app.name ?? "",
+                detailName: app.name ?? ""
+            ))
         }
         .alert(
             pendingAction.map { actionDisplayName($0) } ?? "",
@@ -355,43 +408,55 @@ struct AppDetailView: View {
 
     // MARK: - 展开操作按钮
 
+    /// 第一行：停止/启动、重启、重建、编辑；第二行：备份（+ 可更新时的升级）
     private var actionButtonsRow: some View {
-        HStack(spacing: 8) {
-            actionButton(
-                title: currentApp.isRunning ? "停止" : "启动",
-                icon: currentApp.isRunning ? "stop.fill" : "play.fill",
-                color: currentApp.isRunning ? .orange : .green
-            ) {
-                pendingAction = currentApp.isRunning ? "stop" : "start"
-            }
-            actionButton(
-                title: "重启",
-                icon: "arrow.triangle.2.circlepath",
-                color: .blue
-            ) {
-                pendingAction = "restart"
-            }
-            actionButton(
-                title: "重建",
-                icon: "hammer",
-                color: .indigo
-            ) {
-                pendingAction = "rebuild"
-            }
-            actionButton(
-                title: "编辑",
-                icon: "slider.horizontal.3",
-                color: .teal
-            ) {
-                showEdit = true
-            }
-            if currentApp.canUpdate == true {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
                 actionButton(
-                    title: "升级",
-                    icon: "arrow.up.circle",
-                    color: .orange
+                    title: currentApp.isRunning ? "停止" : "启动",
+                    icon: currentApp.isRunning ? "stop.fill" : "play.fill",
+                    color: currentApp.isRunning ? .orange : .green
                 ) {
-                    Task { await vm.loadVersions(for: currentApp) }
+                    pendingAction = currentApp.isRunning ? "stop" : "start"
+                }
+                actionButton(
+                    title: "重启",
+                    icon: "arrow.triangle.2.circlepath",
+                    color: .blue
+                ) {
+                    pendingAction = "restart"
+                }
+                actionButton(
+                    title: "重建",
+                    icon: "hammer",
+                    color: .indigo
+                ) {
+                    pendingAction = "rebuild"
+                }
+                actionButton(
+                    title: "编辑",
+                    icon: "slider.horizontal.3",
+                    color: .teal
+                ) {
+                    showEdit = true
+                }
+            }
+            HStack(spacing: 8) {
+                actionButton(
+                    title: "备份",
+                    icon: "externaldrive.badge.timemachine",
+                    color: .purple
+                ) {
+                    showBackup = true
+                }
+                if currentApp.canUpdate == true {
+                    actionButton(
+                        title: "升级",
+                        icon: "arrow.up.circle",
+                        color: .orange
+                    ) {
+                        Task { await vm.loadVersions(for: currentApp) }
+                    }
                 }
             }
         }
@@ -477,6 +542,42 @@ struct AppDetailView: View {
             showUninstall = false
             uninstallTaskID = taskID
             showUninstallProgress = true
+        }
+    }
+}
+
+// MARK: - 应用详情 → 关联容器详情
+
+/// 拉取容器列表后按容器名匹配，直接展示容器详情页（返回即回应用详情）
+struct ContainerDetailFromAppView: View {
+    let app: AppInstall
+    let server: ServerConfig
+    @StateObject private var vm: ContainersViewModel
+
+    init(app: AppInstall, server: ServerConfig) {
+        self.app = app
+        self.server = server
+        _vm = StateObject(wrappedValue: ContainersViewModel(server: server))
+    }
+
+    var body: some View {
+        Group {
+            if vm.isLoading && vm.containers.isEmpty {
+                ProgressView("加载中…")
+            } else if let container = vm.containers.first(where: { $0.name == app.container }) {
+                ContainerDetailView(container: container, server: server, vm: vm)
+            } else {
+                ContentUnavailableView(
+                    "未找到容器",
+                    systemImage: "shippingbox",
+                    description: Text(vm.errorMessage ?? "未找到名为「\(app.container ?? "—")」的容器，可能已被移除")
+                )
+            }
+        }
+        .navigationTitle("容器")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if vm.containers.isEmpty { await vm.refresh() }
         }
     }
 }
@@ -750,13 +851,9 @@ struct IgnoredAppsView: View {
                 as: [AppIgnoreUpgrade].self
             )
         } catch let err as APIError {
-            // code=200 但 data=null 表示没有忽略记录
-            if case .businessError(let code, _) = err, code == 200 {
-                ignored = []
-            } else {
-                vm.alertMessage = "加载失败：\(err.errorDescription ?? "未知错误")"
-                vm.showAlert = true
-            }
+            // 无忽略记录时服务端返回 data=null，APIClient 已回退为空数组
+            vm.alertMessage = "加载失败：\(err.errorDescription ?? "未知错误")"
+            vm.showAlert = true
         } catch {
             vm.alertMessage = "加载失败：\(error.localizedDescription)"
             vm.showAlert = true
@@ -1600,6 +1697,32 @@ final class AppsViewModel: ObservableObject {
 
     func search(query: String) async {
         await load(query: query)
+    }
+
+    // MARK: - 应用关联网站
+
+    /// 当前打开应用详情的关联网站（nil=未加载，空=无关联）
+    @Published var linkedWebsites: [Website]?
+
+    /// 加载与指定应用关联的网站（website.appInstallId == app.id）；
+    /// 加载期间置 nil 隐藏「网站」行，失败按无关联处理，不阻断详情页
+    func loadLinkedWebsites(appID: Int) async {
+        linkedWebsites = nil
+        let req = WebsiteSearchRequest(
+            name: "", page: 1, pageSize: 100,
+            orderBy: "favorite", order: "descending",
+            websiteGroupId: 0, type: ""
+        )
+        do {
+            let resp: WebsiteListResponse = try await client.send(
+                path: APIEndpoint.websitesSearch.path,
+                body: req,
+                as: WebsiteListResponse.self
+            )
+            linkedWebsites = (resp.items ?? []).filter { $0.appInstallId == appID }
+        } catch {
+            linkedWebsites = []
+        }
     }
 
     private func load(query: String) async {

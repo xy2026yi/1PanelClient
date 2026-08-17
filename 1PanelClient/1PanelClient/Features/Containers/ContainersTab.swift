@@ -283,7 +283,12 @@ struct ContainerDetailView: View {
                     InfoRow("镜像", value: img)
                 }
                 if let app = container.appName, !app.isEmpty {
-                    InfoRow("应用程序", value: app)
+                    NavigationLink {
+                        AppDetailFromContainerView(container: container, server: server)
+                    } label: {
+                        InfoRow("应用程序", value: app)
+                    }
+                    .buttonStyle(.plain)
                 }
                 if let sites = container.websites, !sites.isEmpty {
                     InfoRow("网站", value: sites.joined(separator: "\n"))
@@ -540,6 +545,47 @@ struct ContainerDetailView: View {
     }
 }
 
+/// 容器详情 → 关联应用详情：
+/// 拉取已安装应用列表后按 容器名/安装名 匹配，直接展示应用详情页（返回即回容器详情）
+struct AppDetailFromContainerView: View {
+    let container: Container
+    let server: ServerConfig
+    @StateObject private var vm: AppsViewModel
+
+    init(container: Container, server: ServerConfig) {
+        self.container = container
+        self.server = server
+        _vm = StateObject(wrappedValue: AppsViewModel(server: server))
+    }
+
+    private var matchedApp: AppInstall? {
+        vm.apps.first { $0.container == container.name }
+            ?? vm.apps.first { $0.name == container.appInstallName }
+            ?? vm.apps.first { $0.displayName == container.appName }
+    }
+
+    var body: some View {
+        Group {
+            if vm.isLoading && vm.apps.isEmpty {
+                ProgressView("加载中…")
+            } else if let app = matchedApp {
+                AppDetailView(app: app, vm: vm)
+            } else {
+                ContentUnavailableView(
+                    "未找到关联应用",
+                    systemImage: "app.badge",
+                    description: Text(vm.errorMessage ?? "该容器关联的应用不存在或已被卸载")
+                )
+            }
+        }
+        .navigationTitle("应用程序")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if vm.apps.isEmpty { await vm.refresh() }
+        }
+    }
+}
+
 /// 容器日志占位页（接口未提供，待开发）
 struct ContainerLogView: View {
     let container: Container
@@ -717,9 +763,9 @@ struct ContainerMonitorView: View {
                 }
             } else {
                 monitorSection("CPU", single: vm.cpuPoints, color: .blue, unit: "%")
-                monitorSection("内存", dual: memorySeries, unit: "MB")
-                monitorSection("磁盘 I/O", dual: ioSeries, unit: "MB")
-                monitorSection("网络", dual: networkSeries, unit: "KB")
+                monitorSection("内存", dual: memorySeries, styles: ["内存": .purple, "缓存": .orange], unit: "MB")
+                monitorSection("磁盘 I/O", dual: ioSeries, styles: ["读取": .blue, "写入": .orange], unit: "MB")
+                monitorSection("网络", dual: networkSeries, styles: ["上行": .green, "下行": .purple], unit: "KB")
             }
         }
         .environment(\.defaultMinListRowHeight, 32)
@@ -758,15 +804,14 @@ struct ContainerMonitorView: View {
 
     // MARK: 图表区（标题 + 图表）
 
+    /// - Parameter styles: 双曲线各自的系列名与颜色（拖动浮层按此过滤显示，传入本图表实际包含的系列）
     @ViewBuilder
     private func monitorSection(
         _ title: String,
         single: [MonitorPoint] = [],
         color: Color = .blue,
         dual: [LoadSeriesPoint] = [],
-        styles: KeyValuePairs<String, Color> = ["内存": .purple, "缓存": .orange,
-                                                "读取": .blue, "写入": .orange,
-                                                "上行": .green, "下行": .purple],
+        styles: KeyValuePairs<String, Color> = [:],
         unit: String
     ) -> some View {
         Section {
@@ -837,7 +882,8 @@ struct ContainerMonitorChart: View {
             }
         }
         .chartForegroundStyleScale(styles)
-        .chartLegend(styles.count > 1 ? .visible : .hidden)
+        // 图表下方不显示系列名图例行（拖动浮层已按颜色标注各系列）
+        .chartLegend(.hidden)
         .chartYAxis {
             AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
                 AxisGridLine()
