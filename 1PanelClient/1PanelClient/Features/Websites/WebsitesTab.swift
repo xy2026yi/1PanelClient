@@ -1567,6 +1567,7 @@ struct WebsiteDeleteSheet: View {
                 }
             }
         }
+        .presentationDetents([.medium])
     }
 
     private func performDelete() async {
