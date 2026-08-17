@@ -362,8 +362,13 @@ final class APIClient {
                     try handle.write(contentsOf: buffer)
                     buffer.removeAll(keepingCapacity: true)
                 }
-                if totalSize > 0, received % (256 * 1024) == 0 {
-                    progress?(Double(received) / Double(totalSize))
+                if received % (256 * 1024) == 0 {
+                    // 主动响应取消：AsyncBytes 只在缓冲耗尽后才会察觉 Task 取消，
+                    // 不主动检查的话取消后还会继续消费已缓冲的数据（进度条多走几秒）
+                    if Task.isCancelled { throw CancellationError() }
+                    if totalSize > 0 {
+                        progress?(Double(received) / Double(totalSize))
+                    }
                 }
             }
             if !buffer.isEmpty {

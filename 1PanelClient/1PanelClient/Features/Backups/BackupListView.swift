@@ -221,7 +221,9 @@ final class BackupViewModel: ObservableObject {
                 fileName: fileName,
                 progress: { [weak self] fraction in
                     Task { @MainActor [weak self] in
-                        self?.downloadProgress[recordID] = fraction
+                        // 取消后不再回写进度，防止 defer 清理后又写入过期值
+                        guard let self, self.downloadingRecordIDs.contains(recordID) else { return }
+                        self.downloadProgress[recordID] = fraction
                     }
                 }
             )
