@@ -88,7 +88,13 @@ final class ServerManager: ObservableObject {
 
         for s in servers {
             KeychainStore.save(s.apiKey, for: s.id.uuidString)
+            #if targetEnvironment(simulator)
+            // 模拟器重装后 Keychain 条目可能整体不可读，写镜像兜底
             storage.set(s.apiKey, forKey: keyMirrorPrefix + s.id.uuidString)
+            #else
+            // 真机 Keychain 稳定，不落明文镜像；顺带清理历史版本可能写入的镜像
+            storage.removeObject(forKey: keyMirrorPrefix + s.id.uuidString)
+            #endif
         }
     }
 
@@ -98,7 +104,12 @@ final class ServerManager: ObservableObject {
             guard let idStr = d["id"], let id = UUID(uuidString: idStr),
                   let name = d["name"], let baseURL = d["baseURL"] else { return nil }
             let (kcValue, status) = KeychainStore.readWithStatus(for: id.uuidString)
-            let apiKey = kcValue ?? storage.string(forKey: keyMirrorPrefix + id.uuidString) ?? ""
+            var apiKey = kcValue ?? ""
+            #if targetEnvironment(simulator)
+            if apiKey.isEmpty {
+                apiKey = storage.string(forKey: keyMirrorPrefix + id.uuidString) ?? ""
+            }
+            #endif
             #if DEBUG
             Logger(subsystem: "com.xy.1PanelClient.debug", category: "keychain")
                 .warning("[KEYCHAIN-DEBUG] id=\(id.uuidString, privacy: .public) status=\(status) keychainLen=\(kcValue?.count ?? -1) finalLen=\(apiKey.count)")

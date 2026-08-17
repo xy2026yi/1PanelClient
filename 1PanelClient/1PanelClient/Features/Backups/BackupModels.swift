@@ -21,28 +21,23 @@ nonisolated struct BackupTarget {
     let name: String
     let detailName: String
 
-    var isMySQLFamily: Bool {
-        let t = type.lowercased()
-        return t == "mysql" || t == "mariadb" || t == "mysql-cluster"
+    /// 去掉 -cluster 后缀的基础类型（mysql-cluster → mysql），用于能力判断与参数选项过滤
+    var baseType: String {
+        type.lowercased().replacingOccurrences(of: "-cluster", with: "")
     }
 
-    var isMongoDB: Bool { type.lowercased() == "mongodb" }
-    var isPostgreSQL: Bool { type.lowercased() == "postgresql" }
+    var isMySQLFamily: Bool {
+        baseType == "mysql" || baseType == "mariadb"
+    }
+    var isMongoDB: Bool { baseType == "mongodb" }
+    var isPostgreSQL: Bool { baseType == "postgresql" }
     var isDatabase: Bool { isMySQLFamily || isMongoDB || isPostgreSQL }
 
-    /// 数据库备份目标：type 为服务类型（cluster 变体归并为基础类型），
+    /// 数据库备份目标：type 直接使用服务返回的类型（含 postgresql-cluster 等 cluster 变体，
+    /// 与后端按 type 查库及备份记录中存储的 type 保持一致，不做归一），
     /// name 为服务名（如 "mysql"），detailName 为数据库名（如 "YcHOX"）
     static func database(serviceType: String, serviceName: String, databaseName: String) -> BackupTarget {
-        let t = serviceType.lowercased()
-        let base: String
-        switch t {
-        case "mysql", "mysql-cluster":   base = "mysql"
-        case "mariadb":                  base = "mariadb"
-        case "postgresql", "postgresql-cluster": base = "postgresql"
-        case "mongodb", "mongodb-cluster":      base = "mongodb"
-        default:                         base = serviceType
-        }
-        return BackupTarget(type: base, name: serviceName, detailName: databaseName)
+        BackupTarget(type: serviceType, name: serviceName, detailName: databaseName)
     }
 }
 

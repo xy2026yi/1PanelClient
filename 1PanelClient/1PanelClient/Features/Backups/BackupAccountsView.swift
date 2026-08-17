@@ -199,17 +199,29 @@ final class BackupAccountsViewModel: ObservableObject {
         self.client = APIClient(server: server)
     }
 
-    func loadAccounts() async -> [BackupAccount] {
-        let req = BackupAccountSearchRequest(page: 1, pageSize: 100, type: "", name: "")
+    /// 加载全部账号（按 total 分页拉全）；失败返回 nil（调用方保留旧数据）
+    func loadAccounts() async -> [BackupAccount]? {
+        let pageSize = 100
+        var all: [BackupAccount] = []
         do {
-            let resp: BackupAccountListResponse = try await client.send(
-                path: APIEndpoint.backupAccountsSearch.path, body: req,
-                as: BackupAccountListResponse.self
-            )
-            return resp.items ?? []
+            var page = 1
+            var total = Int.max
+            while all.count < total && page <= 20 {
+                let req = BackupAccountSearchRequest(page: page, pageSize: pageSize, type: "", name: "")
+                let resp: BackupAccountListResponse = try await client.send(
+                    path: APIEndpoint.backupAccountsSearch.path, body: req,
+                    as: BackupAccountListResponse.self
+                )
+                let items = resp.items ?? []
+                all.append(contentsOf: items)
+                total = resp.total
+                if items.count < pageSize { break }
+                page += 1
+            }
+            return all
         } catch {
             showAlert(message: "加载备份账号失败：\(error.localizedDescription)")
-            return []
+            return nil
         }
     }
 
@@ -293,6 +305,8 @@ struct BackupAccountsView: View {
     @StateObject private var vm: BackupAccountsViewModel
     @State private var accounts: [BackupAccount] = []
     @State private var isLoading = false
+    /// 首屏加载失败（空态展示重试按钮）；已有数据时刷新失败仅弹提示、保留旧列表
+    @State private var loadFailed = false
     @State private var showCreate = false
     @State private var pendingDelete: BackupAccount?
 
@@ -304,6 +318,16 @@ struct BackupAccountsView: View {
         Group {
             if isLoading && accounts.isEmpty {
                 ProgressView("加载中…")
+            } else if accounts.isEmpty && loadFailed {
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text("无法连接服务器，请检查网络后重试")
+                } actions: {
+                    Button("重试") {
+                        Task { await load() }
+                    }
+                }
             } else if accounts.isEmpty {
                 ContentUnavailableView(
                     "暂无备份账号",
@@ -398,9 +422,16 @@ struct BackupAccountsView: View {
     }
 
     private func load() async {
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
-        accounts = await vm.loadAccounts()
+        // 加载失败保留旧列表（loadAccounts 失败返回 nil 并已弹提示）
+        if let list = await vm.loadAccounts() {
+            accounts = list
+            loadFailed = false
+        } else if accounts.isEmpty {
+            loadFailed = true
+        }
     }
 }
 
@@ -550,6 +581,12 @@ struct BackupAccountEditView: View {
         }
         .alert(validationMessage, isPresented: $showValidationAlert) {
             Button("好的", role: .cancel) {}
+        }
+        // 保存/获取桶等失败提示：本页被 push 展示，需自带 alert（父页面的会被遮挡）
+        .alert("提示", isPresented: $vm.showAlert) {
+            Button("好的", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
         }
         .task {
             if let account = existing { prefill(from: account) }
@@ -788,17 +825,6 @@ struct BackupAccountEditView: View {
         type = BackupAccountType(rawValue: account.type ?? "") ?? .minio
         let vars = BackupVarsJSON.parse(account.vars)
 
-        // 凭证仅记住认证时回显（服务端返回 base64，解码展示）
-        if rememberAuth {
-            accessKeyID = Self.decodeBase64(account.accessKey)
-            webdavUsername = Self.decodeBase64(account.accessKey)
-            sftpUsername = Self.decodeBase64(account.accessKey)
-            secretKey = Self.decodeBase64(account.credential)
-            webdavPassword = Self.decodeBase64(account.credential)
-            sftpPassword = Self.decodeBase64(account.credential)
-            sftpPrivateKey = Self.decodeBase64(account.credential)
-        }
-
         switch type {
         case .minio:
             let endpoint = Self.splitProto(vars["endpoint"]?.stringValue ?? "")
@@ -817,6 +843,27 @@ struct BackupAccountEditView: View {
             sftpPassPhrase = vars["passPhrase"]?.stringValue ?? ""
             // 保留 timeout 等其他键
             extraVars = vars.values.filter { !["address", "port", "authMode", "passPhrase"].contains($0.key) }
+        }
+
+        // 凭证仅记住认证时回显（服务端返回 base64，解码展示），且只填入当前类型对应的字段
+        if rememberAuth {
+            switch type {
+            case .minio:
+                accessKeyID = Self.decodeBase64(account.accessKey)
+                secretKey = Self.decodeBase64(account.credential)
+            case .webdav:
+                webdavUsername = Self.decodeBase64(account.accessKey)
+                webdavPassword = Self.decodeBase64(account.credential)
+            case .sftp:
+                sftpUsername = Self.decodeBase64(account.accessKey)
+                let credential = Self.decodeBase64(account.credential)
+                // 密码认证只回显密码，私钥认证只回显私钥，避免明文密码落入私钥输入框
+                if sftpAuthMode == .password {
+                    sftpPassword = credential
+                } else {
+                    sftpPrivateKey = credential
+                }
+            }
         }
     }
 
@@ -851,6 +898,7 @@ struct BackupAccountEditView: View {
             if accessKeyID.isEmpty { return "请填写 Access Key ID" }
             if secretKey.isEmpty { return "请填写 Secret Key" }
             if endpointHost.isEmpty { return "请填写 Endpoint 地址" }
+            if bucket.trimmingCharacters(in: .whitespaces).isEmpty { return "请选择或填写桶" }
         case .webdav:
             if webdavAddress.isEmpty { return "请填写地址" }
             if webdavUsername.isEmpty { return "请填写用户名" }
@@ -890,7 +938,9 @@ struct BackupAccountEditView: View {
 
     /// 构造提交/测试共用请求体（凭证 base64）
     private func buildOperate() -> BackupAccountOperate {
-        let vars = buildVars()
+        // LOCAL 内置账号没有 MINIO/WebDAV/SFTP 表单，vars 沿用服务端原值，
+        // 避免把 MINIO 形状的空表单数据覆写进记录
+        let vars: BackupVarsJSON = isLocal ? BackupVarsJSON.parse(existing?.vars) : buildVars()
         let userKey: String
         let secret: String
         switch type {
@@ -923,7 +973,13 @@ struct BackupAccountEditView: View {
     }
 
     private func loadBuckets() async {
-        if let error = validationError() {
+        // 拉桶只需 Endpoint 与凭证，不要求名称/桶已填
+        let bucketFetchError: String?
+        if accessKeyID.isEmpty { bucketFetchError = "请填写 Access Key ID" }
+        else if secretKey.isEmpty { bucketFetchError = "请填写 Secret Key" }
+        else if endpointHost.trimmingCharacters(in: .whitespaces).isEmpty { bucketFetchError = "请填写 Endpoint 地址" }
+        else { bucketFetchError = nil }
+        if let error = bucketFetchError {
             validationMessage = error
             showValidationAlert = true
             return
@@ -938,7 +994,8 @@ struct BackupAccountEditView: View {
             credential: Self.encodeBase64(secretKey)
         )
         buckets = list
-        if !list.contains(bucket) {
+        // 获取失败（空列表）时保留已选/回显的桶，不强制清空
+        if !list.isEmpty, !list.contains(bucket) {
             bucket = list.first ?? ""
         }
     }
@@ -951,11 +1008,15 @@ struct BackupAccountEditView: View {
         }
         isChecking = true
         defer { isChecking = false }
-        if let reason = await vm.checkConnection(buildOperate()) {
-            checkState = .failed(reason)
-        } else {
-            checkState = .ok
+        // 记录发起测试时的表单指纹：测试期间表单被改动则结果作废，
+        // 防止基于旧凭证的结果放行新表单保存
+        let fingerprintAtStart = formFingerprint
+        let reason = await vm.checkConnection(buildOperate())
+        guard formFingerprint == fingerprintAtStart else {
+            checkState = .none
+            return
         }
+        checkState = reason.map { ConnectionCheckState.failed($0) } ?? .ok
     }
 
     private func submit() async {

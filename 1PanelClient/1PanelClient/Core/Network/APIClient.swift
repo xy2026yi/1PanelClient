@@ -123,6 +123,8 @@ final class APIClient {
                 if T.self == EmptyResponse.self {
                     return EmptyResponse() as! T
                 }
+                // 非集合类型的 data:null 无法回退空值：给出明确提示而不是空 message 的「业务错误200」
+                throw APIError.businessError(200, "接口未返回数据")
             }
             #if DEBUG
             Logger(subsystem: "com.xy.1PanelClient.debug", category: "api")
@@ -338,7 +340,11 @@ final class APIClient {
         }
 
         let totalSize = http.expectedContentLength
-        let destURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        // 只取最后一段文件名（防服务端异常数据拼出目录穿越路径），并加 UUID 前缀：
+        // 同名文件的并行下载不再写同一个临时文件互相覆盖
+        let safeName = (fileName as NSString).lastPathComponent
+        let destURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString)-\(safeName)")
         // 覆盖旧的同名临时文件
         try? FileManager.default.removeItem(at: destURL)
         FileManager.default.createFile(atPath: destURL.path, contents: nil)

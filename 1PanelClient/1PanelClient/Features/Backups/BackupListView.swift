@@ -25,12 +25,19 @@ final class BackupViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var showAlert = false
     @Published var alertMessage = ""
-    /// 正在下载的记录 id（卡片下载按钮转圈）
-    @Published var downloadingRecordID: Int?
+    /// 首屏加载失败（空态展示重试按钮）；已有数据时刷新失败仅弹提示、保留旧列表
+    @Published var loadFailed = false
+    /// 正在下载的记录 id 集合（多记录可并行下载）
+    @Published var downloadingRecordIDs: Set<Int> = []
     /// 下载进度：记录 id → 0...1（-1 表示总大小未知，无法计算百分比）
     @Published var downloadProgress: [Int: Double] = [:]
+    /// 最近一次下载保存到「文件」App 的文件名（完成提示用）
+    @Published var downloadedFileName: String?
     /// 正在删除的记录 id
     @Published var deletingRecordID: Int?
+
+    /// 进行中的下载任务：记录 id → Task（支持取消）
+    private var downloadTasks: [Int: Task<Void, Never>] = [:]
 
     private let client: APIClient
     private var backupDirLoaded = false
@@ -43,31 +50,48 @@ final class BackupViewModel: ObservableObject {
     // MARK: - 查询
 
     func refresh() async {
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 
-        let req = BackupRecordSearchRequest(
-            page: 1, pageSize: 100,
-            type: target.type, name: target.name, detailName: target.detailName
-        )
-        // 记录列表是主数据：失败才算加载失败
+        // 记录列表是主数据：失败才算加载失败；分页拉全（超过一页时循环取后续页）
+        let pageSize = 100
+        var all: [BackupRecord] = []
         do {
-            let resp: BackupRecordListResponse = try await client.send(
-                path: APIEndpoint.backupsRecordSearch.path, body: req,
-                as: BackupRecordListResponse.self
-            )
-            self.records = resp.items ?? []
+            var page = 1
+            var total = Int.max
+            while all.count < total && page <= 20 {
+                let req = BackupRecordSearchRequest(
+                    page: page, pageSize: pageSize,
+                    type: target.type, name: target.name, detailName: target.detailName
+                )
+                let resp: BackupRecordListResponse = try await client.send(
+                    path: APIEndpoint.backupsRecordSearch.path, body: req,
+                    as: BackupRecordListResponse.self
+                )
+                let items = resp.items ?? []
+                all.append(contentsOf: items)
+                total = resp.total
+                if items.count < pageSize { break }
+                page += 1
+            }
+            self.records = all
+            self.loadFailed = false
         } catch {
-            self.records = []
-            self.sizeMap = [:]
+            // 刷新失败保留已加载数据；首屏失败进入可重试的空态
+            if records.isEmpty { loadFailed = true }
             showAlert(message: "加载备份失败：\(error.localizedDescription)")
             return
         }
 
         // 大小/目录为辅助数据：失败不影响列表展示（大小显示 —，目录脚注隐藏）
         do {
+            let sizeReq = BackupRecordSearchRequest(
+                page: 1, pageSize: max(pageSize, all.count),
+                type: target.type, name: target.name, detailName: target.detailName
+            )
             let sizes: [BackupRecordSizeItem] = try await client.send(
-                path: APIEndpoint.backupsRecordSize.path, body: req,
+                path: APIEndpoint.backupsRecordSize.path, body: sizeReq,
                 as: [BackupRecordSizeItem].self
             )
             var map: [Int: Int64] = [:]
@@ -95,8 +119,8 @@ final class BackupViewModel: ObservableObject {
 
     // MARK: - 新增备份
 
-    /// 提交备份任务，成功返回 taskID（用于进度页），失败弹提示返回 nil
-    func createBackup(secret: String, description: String, args: [String]) async -> String? {
+    /// 提交备份任务：成功返回 taskID（用于进度页），失败返回错误信息（由表单内展示）
+    func createBackup(secret: String, description: String, args: [String]) async -> Result<String, BackupSubmitError> {
         let taskID = UUID().uuidString
         let req = BackupCreateRequest(
             type: target.type, name: target.name, detailName: target.detailName,
@@ -106,16 +130,15 @@ final class BackupViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.backupsBackup.path, body: req, as: EmptyResponse.self
             )
-            return taskID
+            return .success(taskID)
         } catch {
-            showAlert(message: "备份提交失败：\(error.localizedDescription)")
-            return nil
+            return .failure(BackupSubmitError(message: "备份提交失败：\(error.localizedDescription)"))
         }
     }
 
     // MARK: - 恢复
 
-    func recover(record: BackupRecord, secret: String, timeout: Int, dropAllCollections: Bool) async -> String? {
+    func recover(record: BackupRecord, secret: String, timeout: Int, dropAllCollections: Bool) async -> Result<String, BackupSubmitError> {
         let taskID = UUID().uuidString
         let req = BackupRecoverRequest(
             downloadAccountID: record.downloadAccountID ?? 1,
@@ -127,10 +150,9 @@ final class BackupViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.backupsRecover.path, body: req, as: EmptyResponse.self
             )
-            return taskID
+            return .success(taskID)
         } catch {
-            showAlert(message: "恢复提交失败：\(error.localizedDescription)")
-            return nil
+            return .failure(BackupSubmitError(message: "恢复提交失败：\(error.localizedDescription)"))
         }
     }
 
@@ -152,30 +174,45 @@ final class BackupViewModel: ObservableObject {
 
     // MARK: - 下载
 
-    /// 先取备份文件在服务器上的绝对路径，再经 files/download 流式下载到本地 Documents。
-    /// 返回保存后的文件名（失败返回 nil 并弹提示）。
-    func downloadRecord(_ record: BackupRecord) async -> String? {
-        guard let fileName = record.fileName else {
+    /// 开始下载（同一记录重复点击忽略；不同记录可并行）
+    func startDownload(_ record: BackupRecord) {
+        guard !downloadingRecordIDs.contains(record.id) else { return }
+        downloadTasks[record.id] = Task { await downloadRecord(record) }
+    }
+
+    /// 取消下载（URLSession 请求抛出取消错误，由 downloadRecord 统一清理）
+    func cancelDownload(_ record: BackupRecord) {
+        downloadTasks[record.id]?.cancel()
+    }
+
+    /// 先取备份文件在服务器上的绝对路径，再经 files/download 流式下载到本地 Documents，
+    /// 完成后置 downloadedFileName 弹出保存位置提示。
+    private func downloadRecord(_ record: BackupRecord) async {
+        guard let rawName = record.fileName, !rawName.isEmpty else {
             showAlert(message: "备份记录缺少文件名，无法下载")
-            return nil
+            return
         }
-        downloadingRecordID = record.id
-        downloadProgress[record.id] = -1
+        // 本地保存只用最后一段文件名，防止服务端异常数据拼出目录穿越路径
+        let fileName = (rawName as NSString).lastPathComponent
+        let recordID = record.id
+        downloadingRecordIDs.insert(recordID)
+        downloadProgress[recordID] = -1
         defer {
-            downloadingRecordID = nil
-            downloadProgress[record.id] = nil
+            downloadingRecordIDs.remove(recordID)
+            downloadProgress[recordID] = nil
+            downloadTasks[recordID] = nil
         }
         let req = BackupRecordDownloadRequest(
             downloadAccountID: record.downloadAccountID ?? 1,
             fileDir: record.fileDir ?? "",
-            fileName: fileName
+            fileName: rawName
         )
+        var tempURL: URL?
         do {
             let serverPath: String = try await client.send(
                 path: APIEndpoint.backupsRecordDownload.path, body: req, as: String.self
             )
-            let recordID = record.id
-            let tempURL = try await client.downloadFile(
+            let downloaded = try await client.downloadFile(
                 path: APIEndpoint.filesDownload.path,
                 queryItems: [
                     URLQueryItem(name: "operateNode", value: "local"),
@@ -188,16 +225,24 @@ final class BackupViewModel: ObservableObject {
                     }
                 }
             )
+            tempURL = downloaded
             // 移入 Documents（同名自动加序号，通过 UIFileSharingEnabled 暴露到「文件」App）
             let destDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let finalName = Self.uniqueFileName(fileName, in: destDir)
             let finalURL = destDir.appendingPathComponent(finalName)
-            try? FileManager.default.removeItem(at: finalURL)
-            try FileManager.default.moveItem(at: tempURL, to: finalURL)
-            return finalName
+            do {
+                try FileManager.default.moveItem(at: downloaded, to: finalURL)
+            } catch {
+                try? FileManager.default.removeItem(at: downloaded)
+                throw error
+            }
+            downloadedFileName = finalName
         } catch {
-            showAlert(message: "下载失败：\(error.localizedDescription)")
-            return nil
+            if let tempURL { try? FileManager.default.removeItem(at: tempURL) }
+            // 用户主动取消不弹错误
+            if !error.isUserCancellation {
+                showAlert(message: "下载失败：\(error.localizedDescription)")
+            }
         }
     }
 
@@ -223,7 +268,24 @@ final class BackupViewModel: ObservableObject {
     }
 }
 
+private extension Error {
+    /// 是否为用户主动取消（Task 取消在 URLSession 中表现为 URLError.cancelled，包在 APIError 里）
+    var isUserCancellation: Bool {
+        if self is CancellationError { return true }
+        if let apiError = self as? APIError, case .networkError(let inner) = apiError {
+            if let urlError = inner as? URLError, urlError.code == .cancelled { return true }
+            return inner is CancellationError
+        }
+        return false
+    }
+}
+
 // MARK: - 进度页参数
+
+/// 提交备份/恢复的失败信息（Result 的 Failure 需遵循 Error）
+struct BackupSubmitError: Error {
+    let message: String
+}
 
 /// 备份/恢复任务进度页状态
 struct BackupProgressState: Equatable {
@@ -244,7 +306,6 @@ struct BackupListView: View {
     /// 待跳转的任务进度（表单关闭后再压栈，避免 sheet 与 push 同时动画冲突）
     @State private var pendingProgress: BackupProgressState?
     @State private var progress: BackupProgressState?
-    @State private var downloadedFileName: String?
 
     init(target: BackupTarget) {
         _vm = StateObject(wrappedValue: BackupViewModel(
@@ -257,6 +318,16 @@ struct BackupListView: View {
         Group {
             if vm.isLoading && vm.records.isEmpty {
                 ProgressView("加载中…")
+            } else if vm.records.isEmpty && vm.loadFailed {
+                ContentUnavailableView {
+                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text("无法连接服务器，请检查网络后重试")
+                } actions: {
+                    Button("重试") {
+                        Task { await vm.refresh() }
+                    }
+                }
             } else if vm.records.isEmpty {
                 ContentUnavailableView(
                     "暂无备份",
@@ -283,24 +354,28 @@ struct BackupListView: View {
         }
         .sheet(isPresented: $showCreate) {
             BackupCreateSheet(target: vm.target) { secret, description, args in
-                guard let taskID = await vm.createBackup(
-                    secret: secret, description: description, args: args
-                ) else { return false }
-                pendingProgress = BackupProgressState(
-                    taskID: taskID, title: "备份 \(vm.target.detailName)", latest: true
-                )
-                return true
+                switch await vm.createBackup(secret: secret, description: description, args: args) {
+                case .success(let taskID):
+                    pendingProgress = BackupProgressState(
+                        taskID: taskID, title: "备份 \(vm.target.detailName)", latest: true
+                    )
+                    return nil
+                case .failure(let error):
+                    return error.message
+                }
             }
         }
         .sheet(item: $recoveringRecord) { record in
             BackupRecoverSheet(record: record, target: vm.target) { secret, timeout, dropAll in
-                guard let taskID = await vm.recover(
-                    record: record, secret: secret, timeout: timeout, dropAllCollections: dropAll
-                ) else { return false }
-                pendingProgress = BackupProgressState(
-                    taskID: taskID, title: "恢复 \(vm.target.detailName)", latest: false
-                )
-                return true
+                switch await vm.recover(record: record, secret: secret, timeout: timeout, dropAllCollections: dropAll) {
+                case .success(let taskID):
+                    pendingProgress = BackupProgressState(
+                        taskID: taskID, title: "恢复 \(vm.target.detailName)", latest: false
+                    )
+                    return nil
+                case .failure(let error):
+                    return error.message
+                }
             }
         }
         .navigationDestination(isPresented: Binding(
@@ -354,13 +429,13 @@ struct BackupListView: View {
         .alert(
             "下载完成",
             isPresented: Binding(
-                get: { downloadedFileName != nil },
-                set: { if !$0 { downloadedFileName = nil } }
+                get: { vm.downloadedFileName != nil },
+                set: { if !$0 { vm.downloadedFileName = nil } }
             )
         ) {
             Button("好的", role: .cancel) {}
         } message: {
-            Text("已保存到「文件」App：我的 iPhone/1PanelClient/\(downloadedFileName ?? "")")
+            Text("已保存到「文件」App：我的 iPhone/1PanelClient/\(vm.downloadedFileName ?? "")")
         }
     }
 
@@ -374,14 +449,11 @@ struct BackupListView: View {
                         targetType: vm.target.type,
                         targetName: vm.target.name,
                         targetDetailName: vm.target.detailName,
-                        isDownloading: vm.downloadingRecordID == record.id,
+                        isDownloading: vm.downloadingRecordIDs.contains(record.id),
                         downloadProgress: vm.downloadProgress[record.id],
                         isDeleting: vm.deletingRecordID == record.id,
-                        onDownload: {
-                            Task {
-                                downloadedFileName = await vm.downloadRecord(record)
-                            }
-                        },
+                        onDownload: { vm.startDownload(record) },
+                        onCancelDownload: { vm.cancelDownload(record) },
                         onRecover: { recoveringRecord = record },
                         onDelete: { deletingRecord = record }
                     )
@@ -412,6 +484,7 @@ private struct BackupRecordCard: View {
     let downloadProgress: Double?
     let isDeleting: Bool
     let onDownload: () -> Void
+    let onCancelDownload: () -> Void
     let onRecover: () -> Void
     let onDelete: () -> Void
 
@@ -461,9 +534,13 @@ private struct BackupRecordCard: View {
                 Spacer(minLength: 0)
             }
 
-            // 操作：下载 / 恢复 / 删除
+            // 操作：下载（进行中可取消）/ 恢复 / 删除
             HStack(spacing: 8) {
-                cardButton(title: isDownloading ? "下载中" : "下载", icon: "arrow.down.circle", color: .blue, loading: isDownloading, action: onDownload)
+                if isDownloading {
+                    cardButton(title: "取消", icon: "stop.circle.fill", color: .red, loading: false, action: onCancelDownload)
+                } else {
+                    cardButton(title: "下载", icon: "arrow.down.circle", color: .blue, loading: false, action: onDownload)
+                }
                 cardButton(title: "恢复", icon: "arrow.counterclockwise", color: .green, loading: false, action: onRecover)
                 cardButton(title: "删除", icon: "trash", color: .red, loading: isDeleting, action: onDelete)
             }
@@ -536,8 +613,8 @@ private struct BackupRecordCard: View {
 /// 新增备份：压缩密码 + 描述（MySQL 系多一个备份参数多选）
 private struct BackupCreateSheet: View {
     let target: BackupTarget
-    /// 返回 true 表示提交成功，表单自行关闭
-    let onSubmit: (_ secret: String, _ description: String, _ args: [String]) async -> Bool
+    /// 返回 nil 表示提交成功（表单自行关闭）；返回非 nil 为失败原因（表单内弹提示）
+    let onSubmit: (_ secret: String, _ description: String, _ args: [String]) async -> String?
 
     @Environment(\.dismiss) private var dismiss
     @State private var secret = ""
@@ -546,6 +623,7 @@ private struct BackupCreateSheet: View {
     @State private var selectedArgs: Set<String> = []
     @State private var showArgsPicker = false
     @State private var isSubmitting = false
+    @State private var submitError: String?
 
     var body: some View {
         NavigationStack {
@@ -577,7 +655,7 @@ private struct BackupCreateSheet: View {
                 if target.isMySQLFamily {
                     Section {
                         NavigationLink {
-                            BackupArgsPicker(dbType: target.type, selection: $selectedArgs)
+                            BackupArgsPicker(dbType: target.baseType, selection: $selectedArgs)
                         } label: {
                             HStack {
                                 Text("备份参数")
@@ -606,13 +684,26 @@ private struct BackupCreateSheet: View {
                     Button(isSubmitting ? "提交中…" : "确认") {
                         Task {
                             isSubmitting = true
-                            let ok = await onSubmit(secret, description, Array(selectedArgs).sorted())
+                            let error = await onSubmit(secret, description, Array(selectedArgs).sorted())
                             isSubmitting = false
-                            if ok { dismiss() }
+                            if let error {
+                                submitError = error
+                            } else {
+                                dismiss()
+                            }
                         }
                     }
                     .disabled(isSubmitting)
                 }
+            }
+            // 提交失败提示挂在本表单内（挂到被 sheet 覆盖的父视图上不会弹出）
+            .alert("提交失败", isPresented: Binding(
+                get: { submitError != nil },
+                set: { if !$0 { submitError = nil } }
+            )) {
+                Button("好的", role: .cancel) {}
+            } message: {
+                Text(submitError ?? "")
             }
         }
     }
@@ -624,12 +715,14 @@ private struct BackupCreateSheet: View {
 private struct BackupRecoverSheet: View {
     let record: BackupRecord
     let target: BackupTarget
-    let onSubmit: (_ secret: String, _ timeout: Int, _ dropAllCollections: Bool) async -> Bool
+    /// 返回 nil 表示提交成功（表单自行关闭）；返回非 nil 为失败原因（表单内弹提示）
+    let onSubmit: (_ secret: String, _ timeout: Int, _ dropAllCollections: Bool) async -> String?
 
     @Environment(\.dismiss) private var dismiss
     @State private var secret = ""
     @State private var showSecret = false
     @State private var isSubmitting = false
+    @State private var submitError: String?
 
     // 超时时间（仅数据库类备份）
     @State private var timeoutValue = 30
@@ -724,13 +817,26 @@ private struct BackupRecoverSheet: View {
                         Task {
                             isSubmitting = true
                             let timeout = max(1, timeoutValue) * timeoutUnit.multiplier
-                            let ok = await onSubmit(secret, timeout, dropAllCollections)
+                            let error = await onSubmit(secret, timeout, dropAllCollections)
                             isSubmitting = false
-                            if ok { dismiss() }
+                            if let error {
+                                submitError = error
+                            } else {
+                                dismiss()
+                            }
                         }
                     }
                     .disabled(isSubmitting || timeoutValue < 1)
                 }
+            }
+            // 提交失败提示挂在本表单内（挂到被 sheet 覆盖的父视图上不会弹出）
+            .alert("提交失败", isPresented: Binding(
+                get: { submitError != nil },
+                set: { if !$0 { submitError = nil } }
+            )) {
+                Button("好的", role: .cancel) {}
+            } message: {
+                Text(submitError ?? "")
             }
         }
     }

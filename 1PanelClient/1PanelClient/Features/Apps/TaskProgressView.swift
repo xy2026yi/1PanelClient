@@ -194,6 +194,8 @@ struct TaskProgressView: View {
                     as: TaskLogResponse.self
                 )
                 lines = resp.lines ?? []
+                // 成功即重置失败计数：长任务中偶发失败不应累计到中断阈值
+                pollCount = 0
                 if let status = resp.taskStatus {
                     taskStatus = status
                 }
