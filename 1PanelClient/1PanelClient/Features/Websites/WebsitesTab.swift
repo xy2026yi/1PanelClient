@@ -240,6 +240,7 @@ struct WebsiteDetailView: View {
     @State private var isOperating = false
     @State private var pendingToggle: Bool?
     @State private var isStatusExpanded = false
+    @State private var showBackup = false
 
     /// 当前服务器配置（根目录跳转文件管理用）
     private var server: ServerConfig {
@@ -350,16 +351,8 @@ struct WebsiteDetailView: View {
                 WebsiteLinkFab(url: url)
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showEditSheet = true
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                }
-                .disabled(detail == nil)
-                .accessibilityLabel("编辑网站")
-            }
+        .navigationDestination(isPresented: $showBackup) {
+            BackupListView(target: websiteBackupTarget)
         }
         .task {
             await loadDetail()
@@ -453,9 +446,24 @@ struct WebsiteDetailView: View {
             actionButton(
                 title: isRunning ? "停止" : "启用",
                 icon: isRunning ? "stop.fill" : "play.fill",
-                color: isRunning ? .orange : .green
+                color: isRunning ? .orange : .green,
+                busy: isOperating
             ) {
                 pendingToggle = !isRunning
+            }
+            actionButton(
+                title: "备份",
+                icon: "externaldrive.badge.timemachine",
+                color: .blue
+            ) {
+                showBackup = true
+            }
+            actionButton(
+                title: "编辑",
+                icon: "pencil",
+                color: .cyan
+            ) {
+                showEditSheet = true
             }
         }
     }
@@ -465,11 +473,12 @@ struct WebsiteDetailView: View {
         title: String,
         icon: String,
         color: Color,
+        busy: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                if isOperating {
+                if busy {
                     ProgressView()
                         .scaleEffect(0.7)
                         .frame(width: 22, height: 22)
@@ -489,6 +498,13 @@ struct WebsiteDetailView: View {
         }
         .buttonStyle(.plain)
         .disabled(isOperating)
+    }
+
+    /// 网站备份目标（type=website；后端按 website.alias 查库，备份记录也以 alias 存
+    /// 储，与网页端一致优先传 alias，主域名仅作兜底）
+    private var websiteBackupTarget: BackupTarget {
+        let alias = detail?.alias ?? website.alias ?? website.primaryDomain ?? website.displayName
+        return BackupTarget(type: "website", name: alias, detailName: alias)
     }
 
     private func toggleStatus(current: String?, to running: Bool) async {
