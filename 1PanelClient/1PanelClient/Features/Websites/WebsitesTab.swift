@@ -288,8 +288,7 @@ struct WebsiteDetailView: View {
                 }
 
                 // 操作入口（HTTPS / 日志 / 反代 / 配置文件）
-                Section {
-                    NavigationLink {
+                Section {                    NavigationLink {
                         WebsiteHTTPSView(websiteId: website.id, vm: vm)
                     } label: {
                         HStack {
@@ -326,15 +325,6 @@ struct WebsiteDetailView: View {
                             .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
-                }
-
-                // 危险区（与其他详情页一致：删除放底部独立 Section）
-                Section {
-                    Button(role: .destructive) {
-                        showDeleteSheet = true
-                    } label: {
-                        Label("删除网站", systemImage: "trash")
-                    }
                 }
             } else {
                 Section {
@@ -464,6 +454,13 @@ struct WebsiteDetailView: View {
                 color: .cyan
             ) {
                 showEditSheet = true
+            }
+            actionButton(
+                title: "删除",
+                icon: "trash",
+                color: .red
+            ) {
+                showDeleteSheet = true
             }
         }
     }

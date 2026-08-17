@@ -82,7 +82,7 @@ nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
         case "deployment": return "一键部署"
         case "proxy":      return "反向代理"
         case "runtime":    return "运行环境"
-        case "static":     return "静态部署"
+        case "static":     return "静态网站"
         case "subsite":    return "子网站"
         case "stream":     return "TCP/UDP"
         default:           return rawType ?? "未知"
