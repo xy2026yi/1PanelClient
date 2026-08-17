@@ -73,14 +73,19 @@ nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
 
     /// 类型显示名
     var typeDisplayName: String {
-        switch (type ?? "").lowercased() {
+        Website.typeDisplayName(for: type)
+    }
+
+    /// 类型原始值 → 中文显示名（Website / WebsiteFull 共用）
+    static func typeDisplayName(for rawType: String?) -> String {
+        switch (rawType ?? "").lowercased() {
         case "deployment": return "一键部署"
         case "proxy":      return "反向代理"
         case "runtime":    return "运行环境"
-        case "static":     return "静态网站"
+        case "static":     return "静态部署"
         case "subsite":    return "子网站"
         case "stream":     return "TCP/UDP"
-        default:           return type ?? "未知"
+        default:           return rawType ?? "未知"
         }
     }
 
@@ -351,6 +356,11 @@ nonisolated struct WebsiteFull: Decodable {
         case "error", "failed":   return .red
         default:                  return .secondary
         }
+    }
+
+    /// 类型中文显示名（与 Website.typeDisplayName 映射保持一致）
+    var typeDisplayName: String {
+        Website.typeDisplayName(for: type)
     }
 }
 

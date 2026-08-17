@@ -271,7 +271,7 @@ struct WebsiteDetailView: View {
                     if let domain = d.primaryDomain, !domain.isEmpty {
                         InfoRow("主域名", value: domain)
                     }
-                    InfoRow("类型", value: d.type ?? website.typeDisplayName)
+                    InfoRow("类型", value: Website.typeDisplayName(for: d.type ?? website.type))
                     if let p = d.sitePath, !p.isEmpty {
                         NavigationLink {
                             FilesView(server: server, initialPath: p)
@@ -410,14 +410,14 @@ struct WebsiteDetailView: View {
         HStack(spacing: 12) {
             IconBadge(systemName: "globe", color: .blue)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(website.displayName)
-                    .font(.body.bold())
-                    .lineLimit(1)
-                Text(detail?.type ?? website.typeDisplayName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(website.displayName)
+                        .font(.body.bold())
+                        .lineLimit(1)
+                    Text(Website.typeDisplayName(for: detail?.type ?? website.type))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             Spacer()
             HStack(spacing: 4) {
                 StatusDot(color: detail?.statusColor ?? .secondary)
