@@ -866,7 +866,11 @@ struct DatabaseConnInfoView: View {
         }
         .navigationTitle("连接信息")
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await vm.loadConnInfo() }
+        .refreshable {
+            async let conn: () = vm.loadConnInfo()
+            async let remote: () = vm.loadRemote()
+            _ = await (conn, remote)
+        }
         .sheet(isPresented: $showServicePasswordSheet) {
             ChangePasswordSheet(
                 title: "修改 \(vm.system.displayName) 密码",

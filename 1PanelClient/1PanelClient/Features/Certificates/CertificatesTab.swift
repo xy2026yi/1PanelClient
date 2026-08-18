@@ -66,7 +66,7 @@ struct CertificatesTab: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {
-                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
                 }
             }
         }
@@ -279,8 +279,11 @@ struct CertificateDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                EllipsisMenuButton {
-                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                // 既非 Acme 也非手动证书时无菜单项，隐藏按钮避免弹出空气泡
+                if !menuEntries.isEmpty {
+                    EllipsisMenuButton {
+                        withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
+                    }
                 }
             }
         }

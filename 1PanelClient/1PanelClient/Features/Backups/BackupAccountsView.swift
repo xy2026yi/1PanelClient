@@ -901,6 +901,8 @@ struct BackupAccountEditView: View {
             endpointHost = endpoint.host
             bucket = account.bucket ?? ""
             bucketManual = !(account.bucket ?? "").isEmpty
+            // 保留 timeout 等其他键（与 OSS 一致）
+            extraVars = vars.values.filter { !["endpointItem", "endpoint"].contains($0.key) }
         case .oss:
             let endpoint = Self.splitProto(vars["endpoint"]?.stringValue ?? "")
             if let proto = endpoint.proto { endpointProto = proto }
