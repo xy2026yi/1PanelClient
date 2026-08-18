@@ -23,4 +23,9 @@ nonisolated struct ServerConfig: Identifiable, Codable, Hashable, Sendable {
         while url.hasSuffix("/") { url.removeLast() }
         return url
     }
+
+    /// 是否为 HTTP 明文连接（无 TLS，API Key 与数据可被链路窃听）
+    var isPlainHTTP: Bool {
+        URLComponents(string: normalizedBaseURL)?.scheme?.lowercased() == "http"
+    }
 }

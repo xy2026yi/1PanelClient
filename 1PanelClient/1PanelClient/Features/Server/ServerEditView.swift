@@ -18,10 +18,17 @@ struct ServerEditView: View {
     @State private var apiKey: String = ""
     @State private var testing = false
     @State private var testResult: TestResult?
+    @State private var showPlainHTTPWarning = false
+    @AppStorage(SecurityGate.httpsOnlyKey) private var httpsOnly = false
 
     struct TestResult {
         let success: Bool
         let message: String
+    }
+
+    /// 输入中的地址是否为 http:// 明文（含协议省略时的默认行为见 normalizedBaseURL）
+    private var draftIsPlainHTTP: Bool {
+        ServerConfig(id: UUID(), name: name, baseURL: baseURL, apiKey: apiKey).isPlainHTTP
     }
 
     var body: some View {
@@ -45,6 +52,11 @@ struct ServerEditView: View {
                 SecureField("API Key", text: $apiKey)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                if draftIsPlainHTTP {
+                    Label("HTTP 明文连接：API Key 与数据可能被链路窃听，建议改用 https://", systemImage: "lock.open")
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                }
             }
 
             Section {
@@ -87,6 +99,16 @@ struct ServerEditView: View {
             }
         }
         .onAppear { loadIfEditing() }
+        .confirmationDialog(
+            "该面板使用 HTTP 明文连接",
+            isPresented: $showPlainHTTPWarning,
+            titleVisibility: .visible
+        ) {
+            Button("仍然保存", role: .destructive) { performSave() }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("HTTP 明文连接下，API Key 与服务器数据可能被同一网络内的攻击者窃听或篡改。建议为面板配置 HTTPS 后再用 https:// 地址连接。")
+        }
     }
 
     private func loadIfEditing() {
@@ -97,6 +119,21 @@ struct ServerEditView: View {
     }
 
     private func save() {
+        if draftIsPlainHTTP {
+            if httpsOnly {
+                testResult = TestResult(
+                    success: false,
+                    message: "已开启「仅允许 HTTPS 连接」：请在 设置 → 安全 关闭该限制，或改用 https:// 地址"
+                )
+                return
+            }
+            showPlainHTTPWarning = true
+            return
+        }
+        performSave()
+    }
+
+    private func performSave() {
         let s = ServerConfig(
             id: editing?.id ?? UUID(),
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -109,6 +146,13 @@ struct ServerEditView: View {
     }
 
     private func runTest() {
+        if draftIsPlainHTTP && httpsOnly {
+            testResult = TestResult(
+                success: false,
+                message: "已开启「仅允许 HTTPS 连接」：请在 设置 → 安全 关闭该限制，或改用 https:// 地址"
+            )
+            return
+        }
         testing = true
         testResult = nil
         let server = ServerConfig(

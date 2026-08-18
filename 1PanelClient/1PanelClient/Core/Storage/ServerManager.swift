@@ -18,10 +18,9 @@ final class ServerManager: ObservableObject {
     private let storage = UserDefaults.standard
     private let serversKey = "servers.v1"
     private let currentKey = "currentServer.v1"
-    /// API Key 的 UserDefaults 镜像前缀：模拟器重装 app 后 Keychain 条目可能整体不可读
-    /// （读出空 Key，所有请求被 1Panel 拒绝「API 接口密钥错误」），镜像兜底保证已保存
-    /// 的服务器仍可连接；真机上 Keychain 稳定，Keychain 始终优先
-    private let keyMirrorPrefix = "apikey.mirror."
+    /// 旧版本曾把 API Key 明文镜像到 UserDefaults（模拟器 Keychain 兜底），存在被
+    /// 备份提取的风险，已移除；该前缀仅用于启动时的一次性迁移，迁移后立即删除明文
+    private static let legacyKeyMirrorPrefix = "apikey.mirror."
 
     var current: ServerConfig? {
         guard let id = currentServerID else { return servers.first }
@@ -29,6 +28,7 @@ final class ServerManager: ObservableObject {
     }
 
     private init() {
+        migrateLegacyKeyMirrors()
         load()
     }
 
@@ -52,7 +52,6 @@ final class ServerManager: ObservableObject {
     func remove(_ server: ServerConfig) {
         servers.removeAll { $0.id == server.id }
         KeychainStore.delete(for: server.id.uuidString)
-        storage.removeObject(forKey: keyMirrorPrefix + server.id.uuidString)
         persistServers()
         if currentServerID == server.id {
             setCurrent(servers.first?.id)
@@ -74,7 +73,7 @@ final class ServerManager: ObservableObject {
         }
     }
 
-    // MARK: - 持久化（敏感字段进 Keychain，另写 UserDefaults 镜像兜底）
+    // MARK: - 持久化（敏感字段只进 Keychain，不落 UserDefaults）
 
     private func persistServers() {
         let safe: [[String: String]] = servers.map { s in
@@ -88,13 +87,22 @@ final class ServerManager: ObservableObject {
 
         for s in servers {
             KeychainStore.save(s.apiKey, for: s.id.uuidString)
-            #if targetEnvironment(simulator)
-            // 模拟器重装后 Keychain 条目可能整体不可读，写镜像兜底
-            storage.set(s.apiKey, forKey: keyMirrorPrefix + s.id.uuidString)
-            #else
-            // 真机 Keychain 稳定，不落明文镜像；顺带清理历史版本可能写入的镜像
-            storage.removeObject(forKey: keyMirrorPrefix + s.id.uuidString)
-            #endif
+        }
+    }
+
+    /// 一次性迁移：旧版本在模拟器上写入的 API Key 明文镜像读回 Keychain 后删除，
+    /// 保证 UserDefaults 中不再留存任何密钥明文
+    private func migrateLegacyKeyMirrors() {
+        let mirrorKeys = storage.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix(Self.legacyKeyMirrorPrefix) }
+        guard !mirrorKeys.isEmpty else { return }
+        for key in mirrorKeys {
+            let id = String(key.dropFirst(Self.legacyKeyMirrorPrefix.count))
+            if let value = storage.string(forKey: key), !value.isEmpty,
+               (KeychainStore.read(for: id) ?? "").isEmpty {
+                KeychainStore.save(value, for: id)
+            }
+            storage.removeObject(forKey: key)
         }
     }
 
@@ -104,17 +112,11 @@ final class ServerManager: ObservableObject {
             guard let idStr = d["id"], let id = UUID(uuidString: idStr),
                   let name = d["name"], let baseURL = d["baseURL"] else { return nil }
             let (kcValue, status) = KeychainStore.readWithStatus(for: id.uuidString)
-            var apiKey = kcValue ?? ""
-            #if targetEnvironment(simulator)
-            if apiKey.isEmpty {
-                apiKey = storage.string(forKey: keyMirrorPrefix + id.uuidString) ?? ""
-            }
-            #endif
             #if DEBUG
             Logger(subsystem: "com.xy.1PanelClient.debug", category: "keychain")
-                .warning("[KEYCHAIN-DEBUG] id=\(id.uuidString, privacy: .public) status=\(status) keychainLen=\(kcValue?.count ?? -1) finalLen=\(apiKey.count)")
+                .warning("[KEYCHAIN-DEBUG] id=\(id.uuidString, privacy: .public) status=\(status) keychainLen=\(kcValue?.count ?? -1)")
             #endif
-            return ServerConfig(id: id, name: name, baseURL: baseURL, apiKey: apiKey)
+            return ServerConfig(id: id, name: name, baseURL: baseURL, apiKey: kcValue ?? "")
         }
         if let idStr = storage.string(forKey: currentKey), let id = UUID(uuidString: idStr) {
             currentServerID = id

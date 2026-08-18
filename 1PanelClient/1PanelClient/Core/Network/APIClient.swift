@@ -45,13 +45,18 @@ final class APIClient {
 
     // MARK: - Token 签名
 
+    /// 1Panel v2 签名：Token = MD5("1panel" + apiKey + timestamp)。
+    /// 纯函数独立出来，便于单测固定向量
+    nonisolated static func token(apiKey: String, timestamp: String) -> String {
+        let raw = "1panel" + apiKey + timestamp
+        let digest = Insecure.MD5.hash(data: Data(raw.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
     private func generateHeaders() -> [String: String] {
         let timestamp = String(Int(Date().timeIntervalSince1970))
-        let raw = "1panel" + server.apiKey + timestamp
-        let digest = Insecure.MD5.hash(data: Data(raw.utf8))
-        let token = digest.map { String(format: "%02x", $0) }.joined()
         return [
-            "1Panel-Token": token,
+            "1Panel-Token": Self.token(apiKey: server.apiKey, timestamp: timestamp),
             "1Panel-Timestamp": timestamp,
             "Content-Type": "application/json"
         ]
@@ -66,6 +71,7 @@ final class APIClient {
         queryItems: [URLQueryItem]? = nil,
         as type: T.Type
     ) async throws -> T {
+        try SecurityGate.check(server)
         guard var components = URLComponents(string: server.normalizedBaseURL + path) else {
             throw APIError.invalidURL
         }
@@ -120,8 +126,8 @@ final class APIClient {
                 if let empty = (T.self as? EmptyInitializable.Type)?.emptyInstance() as? T {
                     return empty
                 }
-                if T.self == EmptyResponse.self {
-                    return EmptyResponse() as! T
+                if T.self == EmptyResponse.self, let empty = EmptyResponse() as? T {
+                    return empty
                 }
                 // 非集合类型的 data:null 无法回退空值：给出明确提示而不是空 message 的「业务错误200」
                 throw APIError.businessError(200, "接口未返回数据")
@@ -147,6 +153,7 @@ final class APIClient {
         method: String = "POST",
         body: (any Encodable)? = nil
     ) async throws -> Data {
+        try SecurityGate.check(server)
         guard let url = URL(string: server.normalizedBaseURL + path) else {
             throw APIError.invalidURL
         }
@@ -183,6 +190,7 @@ final class APIClient {
     /// 获取二进制图片数据（如应用图标）
     /// 返回原始 Data，调用方需自行包装成 UIImage
     func fetchImage(path: String, queryItems: [URLQueryItem]? = nil) async throws -> Data {
+        try SecurityGate.check(server)
         guard var components = URLComponents(string: server.normalizedBaseURL + path) else {
             throw APIError.invalidURL
         }
@@ -240,6 +248,7 @@ final class APIClient {
         mimeType: String,
         fileData: Data
     ) async throws {
+        try SecurityGate.check(server)
         guard let url = URL(string: server.normalizedBaseURL + path) else {
             throw APIError.invalidURL
         }
@@ -249,18 +258,18 @@ final class APIClient {
 
         // 普通字段
         for (name, value) in fields {
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
-            body.append("\(value)\r\n".data(using: .utf8)!)
+            body.append(Data("--\(boundary)\r\n".utf8))
+            body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
+            body.append(Data("\(value)\r\n".utf8))
         }
         // 文件字段
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"\(fileFieldName)\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(Data("--\(boundary)\r\n".utf8))
+        body.append(Data("Content-Disposition: form-data; name=\"\(fileFieldName)\"; filename=\"\(fileName)\"\r\n".utf8))
+        body.append(Data("Content-Type: \(mimeType)\r\n\r\n".utf8))
         body.append(fileData)
-        body.append("\r\n".data(using: .utf8)!)
+        body.append(Data("\r\n".utf8))
         // 结束边界
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        body.append(Data("--\(boundary)--\r\n".utf8))
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -308,6 +317,7 @@ final class APIClient {
         fileName: String,
         progress: (@Sendable (Double) -> Void)? = nil
     ) async throws -> URL {
+        try SecurityGate.check(server)
         guard var components = URLComponents(string: server.normalizedBaseURL + path) else {
             throw APIError.invalidURL
         }
@@ -393,6 +403,11 @@ final class APIClient {
         path: String,
         queryItems: [URLQueryItem]
     ) -> AsyncThrowingStream<String, Error> {
+        do {
+            try SecurityGate.check(server)
+        } catch {
+            return AsyncThrowingStream { $0.finish(throwing: error) }
+        }
         var components = URLComponents(string: server.normalizedBaseURL + path)
         components?.queryItems = queryItems
         guard let url = components?.url else {

@@ -10,6 +10,7 @@ struct SettingsTab: View {
     @Binding var atRoot: Bool
     @State private var showAbout = false
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
+    @AppStorage(SecurityGate.httpsOnlyKey) private var httpsOnly = false
 
     init(atRoot: Binding<Bool> = .constant(true)) {
         self._atRoot = atRoot
@@ -35,6 +36,15 @@ struct SettingsTab: View {
                 Text("外观")
             } footer: {
                 Text("跟随系统时随设备外观自动切换")
+            }
+
+            // MARK: - 安全
+            Section {
+                Toggle("仅允许 HTTPS 连接", isOn: $httpsOnly)
+            } header: {
+                Text("安全")
+            } footer: {
+                Text("开启后拒绝所有 http:// 明文面板地址，防止 API Key 与数据在链路中被窃听；自托管面板若使用 HTTP 明文访问需保持关闭")
             }
 
             // MARK: - 关于
@@ -141,8 +151,10 @@ struct AboutDetailView: View {
                 LabeledContent("API 版本", value: "v2")
             }
             Section {
-                Link(destination: URL(string: "https://1panel.cn")!) {
-                    Label("1Panel 官网", systemImage: "safari")
+                if let url = URL(string: "https://1panel.cn") {
+                    Link(destination: url) {
+                        Label("1Panel 官网", systemImage: "safari")
+                    }
                 }
             }
         }

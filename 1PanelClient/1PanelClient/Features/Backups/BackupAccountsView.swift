@@ -581,7 +581,7 @@ struct BackupAccountEditView: View {
     @State private var validationMessage = ""
 
     private var isEdit: Bool { existing != nil }
-    private var isLocal: Bool { isEdit && existing!.isLocal }
+    private var isLocal: Bool { existing?.isLocal ?? false }
 
     var body: some View {
         Form {

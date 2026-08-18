@@ -24,7 +24,7 @@ iOS 客户端 for [1Panel](https://1panel.cn) — 开源 Linux 服务器运维�
 ### 设置
 - 多服务器管理（Keychain 安全存储）
 - 服务器连接测试
-- ATS 配置（HTTP 明文连接支持）
+- 仅允许 HTTPS 连接开关（默认关闭；开启后拒绝所有 http:// 明文面板地址，HTTP 地址保存时也会给出明文风险提示）
 
 ## 截图
 
@@ -32,9 +32,9 @@ iOS 客户端 for [1Panel](https://1panel.cn) — 开源 Linux 服务器运维�
 
 ## 环境要求
 
-- iOS 17.0+
-- Xcode 15+（推荐 Xcode 26 beta）
-- 1Panel v2（面板端需开启 OpenAPI 并创建 API Key）
+- iOS 26.0+（与工程部署目标一致）
+- Xcode 26+
+- 1Panel v2（面板端需开启 OpenAPI 并创建 API Key；不支持 v1）
 
 ## 安装
 
@@ -52,7 +52,7 @@ iOS 客户端 for [1Panel](https://1panel.cn) — 开源 Linux 服务器运维�
 
 ```bash
 git clone https://github.com/你的用户名/1PanelClient.git
-cd 1PanelClient/1PanelClient
+cd 1PanelClient
 ```
 
 用 Xcode 打开 `1PanelClient.xcodeproj`，修改 Bundle ID 和 Team，连接真机 Build & Run。
@@ -68,6 +68,16 @@ cd 1PanelClient
 ```
 
 生成的 IPA 为未签名版本，适用于 LiveContainer 或侧载工具。
+
+## 运行测试
+
+```bash
+cd 1PanelClient
+xcodebuild test -project 1PanelClient.xcodeproj -scheme 1PanelClient \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+```
+
+或在 Xcode 中直接 Cmd+U。首批测试覆盖：Token 签名算法（MD5 固定向量）、Keychain 增删改查、API 业务信封解析、连接安全策略（http 明文识别 / 仅 HTTPS 拦截）。
 
 ## 项目结构
 
@@ -99,6 +109,7 @@ cd 1PanelClient
 │   │   └── Settings/               # 设置
 │   └── Shared/                     # 公共组件、国际化
 ├── 1PanelClient.xcodeproj/
+├── 1PanelClientTests/              # 单元测试（Swift Testing）
 └── build-ipa.sh                    # IPA 打包脚本
 ```
 
@@ -108,7 +119,7 @@ cd 1PanelClient
 |------|------|
 | 语言 | Swift 5 |
 | UI 框架 | SwiftUI（NavigationStack push 导航） |
-| 最低版本 | iOS 17.0 |
+| 最低版本 | iOS 26.0 |
 | 网络 | URLSession + Combine |
 | 终端 | 原生 URLSessionWebSocketTask |
 | 安全存储 | Keychain Services |
