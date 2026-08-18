@@ -204,14 +204,16 @@ final class AppsViewModel: ObservableObject {
         showUpgradeSheet = true
 
         do {
+            // 服务端已按 CompareVersion(仅更高版本)/忽略记录/跨版本规则过滤，
+            // 客户端不再按 detailId 二次过滤：应用商店原地升版本号时，
+            // 可升级目标与当前安装是同一条 detail 记录，过滤会把唯一版本滤没
             let versions: [AppVersion] = try await client.send(
                 path: APIEndpoint.appsUpdateVersions.path,
                 body: AppUpdateVersionsRequest(appInstallId: app.id),
                 queryItems: [URLQueryItem(name: "operateNode", value: "local")],
                 as: [AppVersion].self
             )
-            let currentDetailId = app.appDetailID ?? -1
-            self.availableVersions = versions.filter { $0.detailId != currentDetailId }
+            self.availableVersions = versions
         } catch let err as APIError {
             showAlert(message: "查询版本失败：\(err.errorDescription ?? "未知错误")")
             showUpgradeSheet = false
