@@ -69,6 +69,14 @@ enum APIEndpoint {
     case websitesProxiesUpdate    // POST 创建/编辑/删除反向代理
     case websitesProxiesFile      // POST 读取/保存反向代理源文
     case websitesProxiesStatus    // POST 启用/停用反向代理
+    case websitesConfig           // POST 读取网站配置（默认文档/流量限制）
+    case websitesConfigUpdate     // POST 更新网站配置（默认文档/流量限制）
+    case websitesRedirectList     // POST 获取重定向列表
+    case websitesRedirectUpdate   // POST 创建/编辑/删除/启停重定向
+    case websitesRedirectFile     // POST 保存重定向源文
+    case websitesAuths            // POST 获取密码访问配置
+    case websitesAuthsUpdate      // POST 创建/编辑/删除/启停密码访问账号
+    case websitesDomains          // GET  获取网站域名列表（:id 路径参数）
 
     // MARK: - SSL 证书（独立管理）
     case websitesSSLList          // POST 分页查询证书
@@ -347,6 +355,14 @@ enum APIEndpoint {
         case .websitesUpdate:        return "/api/v2/websites/update"
         case .websitesOperate:       return "/api/v2/websites/operate"
         case .websitesDetail:        return "/api/v2/websites/:id"
+        case .websitesConfig:        return "/api/v2/websites/config"
+        case .websitesConfigUpdate:  return "/api/v2/websites/config/update"
+        case .websitesRedirectList:  return "/api/v2/websites/redirect"
+        case .websitesRedirectUpdate: return "/api/v2/websites/redirect/update"
+        case .websitesRedirectFile:  return "/api/v2/websites/redirect/file"
+        case .websitesAuths:         return "/api/v2/websites/auths"
+        case .websitesAuthsUpdate:   return "/api/v2/websites/auths/update"
+        case .websitesDomains:       return "/api/v2/websites/domains/:id"
         case .websitesNginxConfig:   return "/api/v2/websites/:id/config/openresty"
         case .websitesNginxUpdate:   return "/api/v2/websites/nginx/update"
         case .websitesLogRead:       return "/api/v2/files/read/website?operateNode=local"
@@ -539,7 +555,7 @@ enum APIEndpoint {
              .appsIgnoredList, .appsStoreDetail,
              .appsInstalledDeleteCheck, .appsInstalledParams,
              .appStoreSettingConfig,
-             .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead,
+             .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead, .websitesDomains,
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
              .containersListStats, .containersStats, .containersDockerStatus, .containersImageAll,
              .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,

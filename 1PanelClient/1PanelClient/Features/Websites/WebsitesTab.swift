@@ -15,6 +15,7 @@ struct WebsitesTab: View {
     @State private var showCreateSheet = false
     @State private var showCerts = false
     @State private var showOpenRestyConfig = false
+    @State private var showMenu = false
 
 
     init(manager: ServerManager) {
@@ -50,15 +51,18 @@ struct WebsitesTab: View {
             // SSL 证书入口：仅非搜索态显示
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            showCerts = true
-                        } label: {
-                            Label("SSL 证书", systemImage: "lock.shield")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
+                    EllipsisMenuButton {
+                        withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
                     }
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: "证书") { showCerts = true },
+                ]) {
+                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
             }
         }
@@ -241,6 +245,14 @@ struct WebsiteDetailView: View {
     @State private var pendingToggle: Bool?
     @State private var isStatusExpanded = false
     @State private var showBackup = false
+    // 三点菜单 / 抽屉导航目标
+    @State private var showProxies = false
+    @State private var showNginx = false
+    @State private var showDefaultDoc = false
+    @State private var showLimitConn = false
+    @State private var showRedirects = false
+    @State private var showAuths = false
+    @State private var showMenu = false
 
     /// 当前服务器配置（根目录跳转文件管理用）
     private var server: ServerConfig {
@@ -287,8 +299,9 @@ struct WebsiteDetailView: View {
                     SectionLabel(title: "基本信息", systemImage: "doc.text")
                 }
 
-                // 操作入口（HTTPS / 日志 / 反代 / 配置文件）
-                Section {                    NavigationLink {
+                // 操作入口（HTTPS / 日志）
+                Section {
+                    NavigationLink {
                         WebsiteHTTPSView(websiteId: website.id, vm: vm)
                     } label: {
                         HStack {
@@ -311,20 +324,6 @@ struct WebsiteDetailView: View {
                             .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
-                    NavigationLink {
-                        WebsiteProxiesView(websiteId: website.id, vm: vm)
-                    } label: {
-                        Label("反向代理", systemImage: "arrow.left.arrow.right")
-                            .foregroundStyle(.primary)
-                    }
-                    .buttonStyle(.plain)
-                    NavigationLink {
-                        WebsiteNginxView(websiteId: website.id, vm: vm)
-                    } label: {
-                        Label("配置文件", systemImage: "doc.text")
-                            .foregroundStyle(.primary)
-                    }
-                    .buttonStyle(.plain)
                 }
             } else {
                 Section {
@@ -335,6 +334,29 @@ struct WebsiteDetailView: View {
         }
         .navigationTitle(website.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        // 右上角三点菜单：反代 / 默认文档 / 流量限制 / 重定向 / 密码访问 / 其他
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                EllipsisMenuButton {
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: "反向代理") { showProxies = true },
+                    .action(title: "默认文档") { showDefaultDoc = true },
+                    .action(title: "流量限制") { showLimitConn = true },
+                    .action(title: "重定向") { showRedirects = true },
+                    .action(title: "密码访问") { showAuths = true },
+                    .divider,
+                    .action(title: "其他") { showEditSheet = true },
+                ]) {
+                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
+                }
+            }
+        }
         // 右下角悬浮：浏览器打开网站链接（protocol + primaryDomain）
         .overlay(alignment: .bottomTrailing) {
             if let url = website.browserURL {
@@ -343,6 +365,24 @@ struct WebsiteDetailView: View {
         }
         .navigationDestination(isPresented: $showBackup) {
             BackupListView(target: websiteBackupTarget)
+        }
+        .navigationDestination(isPresented: $showProxies) {
+            WebsiteProxiesView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showNginx) {
+            WebsiteNginxView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showDefaultDoc) {
+            WebsiteDefaultDocView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showLimitConn) {
+            WebsiteLimitConnView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showRedirects) {
+            WebsiteRedirectView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showAuths) {
+            WebsiteAuthsView(websiteId: website.id, vm: vm)
         }
         .task {
             await loadDetail()
@@ -448,10 +488,10 @@ struct WebsiteDetailView: View {
             }
             actionButton(
                 title: "编辑",
-                icon: "pencil",
+                icon: "doc.text",
                 color: .cyan
             ) {
-                showEditSheet = true
+                showNginx = true
             }
             actionButton(
                 title: "删除",
@@ -1386,6 +1426,164 @@ final class WebsitesViewModel: ObservableObject {
         } catch {
             showAlert(message: "保存失败：\(error.localizedDescription)")
             return false
+        }
+    }
+
+    // MARK: - 网站配置（默认文档 / 流量限制）
+
+    /// 读取网站配置；失败返回 nil
+    func loadWebsiteConfig(websiteId: Int, scope: String, operate: String? = nil, params: WebsiteConfigParams? = nil) async -> WebsiteConfigResponse? {
+        let req = WebsiteConfigRequest(operate: operate, scope: scope, websiteId: websiteId, params: params)
+        do {
+            return try await client.send(
+                path: APIEndpoint.websitesConfig.path,
+                body: req,
+                as: WebsiteConfigResponse.self
+            )
+        } catch let err as APIError {
+            showAlert(message: "读取配置失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "读取配置失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// 更新网站配置（默认文档 operate=update / 流量限制 启停 add|delete）
+    func updateWebsiteConfig(websiteId: Int, operate: String, scope: String, params: WebsiteConfigParams) async -> Bool {
+        let req = WebsiteConfigUpdateRequest(operate: operate, scope: scope, websiteId: websiteId, params: params)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesConfigUpdate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "保存失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    // MARK: - 重定向
+
+    func loadRedirects(websiteId: Int) async -> [WebsiteRedirect] {
+        let req = WebsiteRedirectListRequest(websiteID: websiteId)
+        do {
+            let resp: WebsiteRedirectsResponse = try await client.send(
+                path: APIEndpoint.websitesRedirectList.path,
+                body: req,
+                as: WebsiteRedirectsResponse.self
+            )
+            return resp.items ?? []
+        } catch {
+            // 一键部署等类型可能返回 data=null，按空列表处理
+            return []
+        }
+    }
+
+    func operateRedirect(_ req: WebsiteRedirectUpdateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesRedirectUpdate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "操作失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func saveRedirectFile(websiteId: Int, name: String, content: String) async -> Bool {
+        let req = WebsiteRedirectFileRequest(name: name, websiteID: websiteId, content: content)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesRedirectFile.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "保存失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    // MARK: - 密码访问
+
+    func loadAuths(websiteId: Int) async -> WebsiteAuthsResponse? {
+        let req = WebsiteAuthsListRequest(websiteID: websiteId)
+        do {
+            return try await client.send(
+                path: APIEndpoint.websitesAuths.path,
+                body: req,
+                as: WebsiteAuthsResponse.self
+            )
+        } catch let err as APIError {
+            showAlert(message: "读取密码访问失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "读取密码访问失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func operateAuth(websiteId: Int, operate: String, username: String = "", password: String = "", remark: String = "") async -> Bool {
+        let req = WebsiteAuthsUpdateRequest(
+            websiteID: websiteId,
+            operate: operate,
+            username: username,
+            password: password,
+            remark: remark
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesAuthsUpdate.path,
+                body: req,
+                as: EmptyResponse.self
+            )
+            return true
+        } catch let err as APIError {
+            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            return false
+        } catch {
+            showAlert(message: "操作失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    // MARK: - 网站域名列表
+
+    func loadWebsiteDomains(websiteId: Int) async -> [WebsiteDomainItem] {
+        let path = APIEndpoint.websitesDomains.path.replacingOccurrences(of: ":id", with: String(websiteId))
+        do {
+            return try await client.send(path: path, method: "GET", as: [WebsiteDomainItem].self)
+        } catch {
+            return []
+        }
+    }
+}
+
+/// 重定向列表响应包装（data 可能是 null 或数组）
+private struct WebsiteRedirectsResponse: Decodable {
+    let items: [WebsiteRedirect]?
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let arr = try? container.decode([WebsiteRedirect].self) {
+            items = arr
+        } else {
+            items = nil
         }
     }
 }
@@ -2450,6 +2648,7 @@ struct OpenRestyConfigView: View {
     @State private var isLoading = false
     @State private var isSaving = false
     @State private var showResetConfirm = false
+    @State private var showMenu = false
 
     var body: some View {
         Group {
@@ -2466,22 +2665,22 @@ struct OpenRestyConfigView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
+                EllipsisMenuButton {
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: "保存", isDisabled: isSaving || isLoading || configText == originalText) {
                         Task { await save() }
-                    } label: {
-                        Label("保存", systemImage: "checkmark.circle")
-                    }
-                    .disabled(isSaving || isLoading || configText == originalText)
-
-                    Button(role: .destructive) {
+                    },
+                    .action(title: "还原默认", role: .destructive, isDisabled: isSaving || isLoading) {
                         showResetConfirm = true
-                    } label: {
-                        Label("还原默认配置", systemImage: "arrow.counterclockwise")
-                    }
-                    .disabled(isSaving || isLoading)
-                } label: {
-                    Image(systemName: "ellipsis.circle")
+                    },
+                ]) {
+                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
             }
         }
