@@ -14,6 +14,7 @@ struct AppStoreTab: View {
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
     @State private var isSearching = false
+    @State private var showMenu = false
 
 
     init(manager: ServerManager) {
@@ -48,26 +49,23 @@ struct AppStoreTab: View {
             // 同步菜单：仅非搜索态显示
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            Task { await vm.syncRemote() }
-                        } label: {
-                            Label("更新远程应用", systemImage: "arrow.triangle.pull")
-                        }
-                        .disabled(vm.isSyncing)
-                        Button {
-                            Task { await vm.syncLocal() }
-                        } label: {
-                            Label("同步本地应用", systemImage: "arrow.triangle.2.circlepath")
-                        }
-                        .disabled(vm.isSyncing)
-                    } label: {
-                        if vm.isSyncing {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "ellipsis.circle")
-                        }
+                    EllipsisMenuButton(isLoading: vm.isSyncing) {
+                        withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
                     }
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: "更新远程", isDisabled: vm.isSyncing) {
+                        Task { await vm.syncRemote() }
+                    },
+                    .action(title: "同步本地", isDisabled: vm.isSyncing) {
+                        Task { await vm.syncLocal() }
+                    },
+                ]) {
+                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
             }
         }
@@ -208,6 +206,22 @@ struct AppStoreDetailView: View {
                 }
             }
 
+            // 相关链接（应用页面固定展示，其余链接存在才显示）
+            Section("相关链接") {
+                if let url = URL(string: "https://apps.fit2cloud.com/1panel/\(appKey)") {
+                    Link(destination: url) { Label("应用页面", systemImage: "arrow.up.right.square") }
+                }
+                if let website = detail.website, let url = URL(string: website) {
+                    Link(destination: url) { Label("官方网站", systemImage: "globe") }
+                }
+                if let doc = detail.document, let url = URL(string: doc) {
+                    Link(destination: url) { Label("文档", systemImage: "book") }
+                }
+                if let github = detail.github, let url = URL(string: github) {
+                    Link(destination: url) { Label("GitHub", systemImage: "network") }
+                }
+            }
+
             // 描述
             if let readme = detail.readMe, !readme.isEmpty {
                 Section("介绍") {
@@ -221,24 +235,6 @@ struct AppStoreDetailView: View {
             if let tags = detail.tags, !tags.isEmpty {
                 Section("标签") {
                     FlowingTags(tags: tags.compactMap { $0.name })
-                }
-            }
-
-            // 相关链接
-            let hasLinks = (detail.website != nil && !(detail.website?.isEmpty ?? true)) ||
-                          (detail.document != nil && !(detail.document?.isEmpty ?? true)) ||
-                          (detail.github != nil && !(detail.github?.isEmpty ?? true))
-            if hasLinks {
-                Section("相关链接") {
-                    if let website = detail.website, let url = URL(string: website) {
-                        Link(destination: url) { Label("官方网站", systemImage: "globe") }
-                    }
-                    if let doc = detail.document, let url = URL(string: doc) {
-                        Link(destination: url) { Label("文档", systemImage: "book") }
-                    }
-                    if let github = detail.github, let url = URL(string: github) {
-                        Link(destination: url) { Label("GitHub", systemImage: "network") }
-                    }
                 }
             }
         }

@@ -148,6 +148,7 @@ struct CADetailView: View {
     @State private var tab: CADetailTab = .info
     @State private var showIssue = false
     @State private var pendingDelete = false
+    @State private var showMenu = false
 
     private enum CADetailTab: String, CaseIterable, Identifiable {
         case info = "机构详情"
@@ -179,20 +180,19 @@ struct CADetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        showIssue = true
-                    } label: {
-                        Label("签发证书", systemImage: "doc.badge.plus")
-                    }
-                    Divider()
-                    Button(role: .destructive) {
-                        pendingDelete = true
-                    } label: {
-                        Label("删除", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
+                EllipsisMenuButton {
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: "签发证书") { showIssue = true },
+                    .divider,
+                    .action(title: "删除", role: .destructive) { pendingDelete = true },
+                ]) {
+                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
             }
         }

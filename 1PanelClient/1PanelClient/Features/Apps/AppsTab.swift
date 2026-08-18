@@ -15,6 +15,7 @@ struct AppsTab: View {
     @State private var showStore = false
     @State private var showIgnored = false
     @State private var showSettings = false
+    @State private var showMenu = false
 
 
     init(manager: ServerManager) {
@@ -68,21 +69,20 @@ struct AppsTab: View {
         .toolbar {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            showIgnored = true
-                        } label: {
-                            Label("忽略应用", systemImage: "eye.slash")
-                        }
-                        Button {
-                            showSettings = true
-                        } label: {
-                            Label("设置", systemImage: "gearshape")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
+                    EllipsisMenuButton {
+                        withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
                     }
                     .accessibilityLabel("更多")
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: "忽略应用") { showIgnored = true },
+                    .action(title: "设置") { showSettings = true },
+                ]) {
+                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
             }
         }
@@ -296,30 +296,6 @@ struct AppDetailView: View {
                 }
                 .buttonStyle(.plain)
             }
-
-            // 相关链接
-            if let links = app.app {
-                Section("相关链接") {
-                    if let website = links.website, let url = URL(string: website) {
-                        Link("官方网站", destination: url)
-                    }
-                    if let doc = links.document, let url = URL(string: doc) {
-                        Link("文档", destination: url)
-                    }
-                    if let github = links.github, let url = URL(string: github) {
-                        Link("GitHub", destination: url)
-                    }
-                }
-            }
-
-            // 危险区（与数据库/进程详情一致：卸载放底部独立 Section）
-            Section {
-                Button(role: .destructive) {
-                    Task { await prepareUninstall() }
-                } label: {
-                    Label("卸载应用", systemImage: "trash")
-                }
-            }
         }
         .refreshable {
             await vm.refresh()
@@ -408,7 +384,7 @@ struct AppDetailView: View {
 
     // MARK: - 展开操作按钮
 
-    /// 第一行：停止/启动、重启、重建、编辑；第二行：备份（+ 可更新时的升级）
+    /// 第一行：停止/启动、重启、重建、编辑；第二行：备份（+ 可更新时的升级）、卸载
     private var actionButtonsRow: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
@@ -457,6 +433,13 @@ struct AppDetailView: View {
                     ) {
                         Task { await vm.loadVersions(for: currentApp) }
                     }
+                }
+                actionButton(
+                    title: "卸载",
+                    icon: "trash",
+                    color: .red
+                ) {
+                    Task { await prepareUninstall() }
                 }
             }
         }

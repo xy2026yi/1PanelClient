@@ -1474,6 +1474,7 @@ struct WAFCcSettingsView: View {
     @State private var isSaving = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
+    @State private var showMenu = false
 
     private let client: APIClient
 
@@ -1528,11 +1529,18 @@ struct WAFCcSettingsView: View {
         .onAppear { loadConfig() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button("保存默认") { Task { await save(applyWebsite: nil) } }
-                    Button("应用到网站") { Task { await save(applyWebsite: true) } }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
+                EllipsisMenuButton {
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: "保存默认") { Task { await save(applyWebsite: nil) } },
+                    .action(title: "应用到网站") { Task { await save(applyWebsite: true) } },
+                ]) {
+                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
             }
         }

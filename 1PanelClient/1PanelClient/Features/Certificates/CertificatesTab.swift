@@ -18,6 +18,7 @@ struct CertificatesTab: View {
     @State private var showAcme = false
     @State private var showDns = false
     @State private var showCA = false
+    @State private var showMenu = false
 
 
     init(manager: ServerManager) {
@@ -64,25 +65,20 @@ struct CertificatesTab: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        showAcme = true
-                    } label: {
-                        Label("Acme 账户", systemImage: "person.badge.key")
-                    }
-                    Button {
-                        showDns = true
-                    } label: {
-                        Label("DNS 账户", systemImage: "globe.asia.australia")
-                    }
-                    Divider()
-                    Button {
-                        showCA = true
-                    } label: {
-                        Label("自签证书", systemImage: "certificate")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
+                EllipsisMenuButton {
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: "Acme 账户") { showAcme = true },
+                    .action(title: "DNS 账户") { showDns = true },
+                    .divider,
+                    .action(title: "自签证书") { showCA = true },
+                ]) {
+                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
             }
         }
@@ -212,6 +208,20 @@ struct CertificateDetailView: View {
     @State private var showUpdateSheet = false
     @State private var showEditView = false
     @State private var pendingRenew = false
+    @State private var showMenu = false
+
+    /// 详情菜单项：Acme 证书（编辑/重新申请）与手动证书（更新内容）互斥
+    private var menuEntries: [EllipsisMenuEntry] {
+        var entries: [EllipsisMenuEntry] = []
+        if isAcmeCert {
+            entries.append(.action(title: "编辑") { showEditView = true })
+            entries.append(.action(title: "重新申请") { pendingRenew = true })
+        }
+        if isManualCert {
+            entries.append(.action(title: "更新内容") { showUpdateSheet = true })
+        }
+        return entries
+    }
     @State private var pendingDelete = false
     @State private var isRenewing = false
     @State private var logLines: [String] = []
@@ -269,28 +279,15 @@ struct CertificateDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    if isAcmeCert {
-                        Button {
-                            showEditView = true
-                        } label: {
-                            Label("编辑", systemImage: "pencil")
-                        }
-                        Button {
-                            pendingRenew = true
-                        } label: {
-                            Label("重新申请", systemImage: "arrow.clockwise")
-                        }
-                    }
-                    if isManualCert {
-                        Button {
-                            showUpdateSheet = true
-                        } label: {
-                            Label("更新证书内容", systemImage: "arrow.triangle.2.circlepath")
-                        }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
+                EllipsisMenuButton {
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: menuEntries) {
+                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
             }
         }

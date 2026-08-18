@@ -207,24 +207,17 @@ struct TerminalView: View {
 
     private var toolbarMenu: some View {
         Menu {
-            Button {
+            Button(session.isConnected ? "断开连接" : "重新连接") {
                 if session.isConnected {
                     session.disconnect()
                 } else {
                     session.connect()
                 }
-            } label: {
-                Label(
-                    session.isConnected ? "断开连接" : "重新连接",
-                    systemImage: session.isConnected ? "stop.circle" : "play.circle"
-                )
             }
-            Button {
+            Button("清屏") {
                 emulator.clear()
-            } label: {
-                Label("清屏", systemImage: "trash")
             }
-            Toggle("自动滚动到底部", isOn: $autoScroll)
+            Toggle("自动滚动", isOn: $autoScroll)
         } label: {
             Image(systemName: "ellipsis.circle")
         }

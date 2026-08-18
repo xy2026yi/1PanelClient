@@ -318,6 +318,17 @@ struct ContainerDetailView: View {
     @State private var isStatusExpanded = false
 
     private var isRunning: Bool { container.state.lowercased() == "running" }
+    private var isPaused: Bool { container.state.lowercased() == "paused" }
+    private var statusText: String {
+        if isRunning { return "运行中" }
+        if isPaused { return "已暂停" }
+        return "已停止"
+    }
+    private var statusColor: Color {
+        if isRunning { return .green }
+        if isPaused { return .orange }
+        return .gray
+    }
 
     var body: some View {
         List {
@@ -360,20 +371,6 @@ struct ContainerDetailView: View {
                     Label("监控", systemImage: "chart.xyaxis.line")
                 }
                 .buttonStyle(.plain)
-            }
-
-            // 危险区（与数据库/进程/应用详情一致：删除放底部独立 Section）
-            Section {
-                Button(role: .destructive) {
-                    if container.isFromApp == true {
-                        menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
-                        showMenuAlert = true
-                    } else {
-                        pendingDelete = true
-                    }
-                } label: {
-                    Label("删除容器", systemImage: "trash")
-                }
             }
         }
         .navigationTitle(container.displayName)
@@ -460,14 +457,14 @@ struct ContainerDetailView: View {
                 Text(container.displayName)
                     .font(.body.bold())
                     .lineLimit(1)
-                Text(isRunning ? "运行中" : "已停止")
+                Text(statusText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
             HStack(spacing: 4) {
-                StatusDot(color: isRunning ? .green : .gray)
-                Text(isRunning ? "运行中" : "已停止")
+                StatusDot(color: statusColor)
+                Text(statusText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -522,6 +519,16 @@ struct ContainerDetailView: View {
 
     private var operationsRow2: some View {
         HStack(spacing: 8) {
+            // 运行中可暂停，已暂停可恢复，其余状态不显示
+            if isRunning || isPaused {
+                actionButton(
+                    title: isPaused ? "恢复" : "暂停",
+                    icon: isPaused ? "play.circle" : "pause.fill",
+                    color: .mint
+                ) {
+                    pendingAction = isPaused ? "unpause" : "pause"
+                }
+            }
             actionButton(
                 title: "升级",
                 icon: "arrow.up.circle",
@@ -535,6 +542,18 @@ struct ContainerDetailView: View {
                 color: .cyan
             ) {
                 showEdit = true
+            }
+            actionButton(
+                title: "删除",
+                icon: "trash",
+                color: .red
+            ) {
+                if container.isFromApp == true {
+                    menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
+                    showMenuAlert = true
+                } else {
+                    pendingDelete = true
+                }
             }
         }
     }
@@ -576,6 +595,8 @@ struct ContainerDetailView: View {
         case "start":   return "启动"
         case "restart": return "重启"
         case "kill":    return "关闭"
+        case "pause":   return "暂停"
+        case "unpause": return "恢复"
         default:        return action
         }
     }
@@ -1268,7 +1289,7 @@ struct ContainerImageView: View {
     @State private var showPull = false
     @State private var showRepos = false
     @State private var showPruneSelect = false
-    @State private var pruneMode = false  // false=未使用, true=未标签
+    @State private var showMenu = false
     /// 左滑删除的待确认镜像
     @State private var pendingDeleteImage: ContainerImage?
 
@@ -1304,30 +1325,22 @@ struct ContainerImageView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button { showPull = true } label: {
-                        Label("拉取镜像", systemImage: "arrow.down.circle")
-                    }
-                    Button { showRepos = true } label: {
-                        Label("仓库", systemImage: "shippingbox")
-                    }
-                    Divider()
-                    Button {
-                        pruneMode = false
-                        showPruneSelect = true
-                    } label: {
-                        Label("清理未使用镜像", systemImage: "trash.slash")
-                    }
-                    Button {
-                        pruneMode = true
-                        showPruneSelect = true
-                    } label: {
-                        Label("清理未标签镜像", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
+                EllipsisMenuButton {
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
                 }
                 .disabled(vm.imageOperating)
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: "拉取镜像") { showPull = true },
+                    .action(title: "仓库") { showRepos = true },
+                    .divider,
+                    .action(title: "清理镜像") { showPruneSelect = true },
+                ]) {
+                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
+                }
             }
         }
         .navigationDestination(isPresented: $showPull) {
@@ -1337,7 +1350,7 @@ struct ContainerImageView: View {
             RepoListView(vm: vm)
         }
         .navigationDestination(isPresented: $showPruneSelect) {
-            ImagePruneSelectView(vm: vm, isUntaggedMode: pruneMode)
+            ImagePruneSelectView(vm: vm)
         }
         .alert("提示", isPresented: $vm.showAlert) {
             Button("好的", role: .cancel) {}
@@ -1845,7 +1858,8 @@ struct RepoRow: View {
 
 struct ImagePruneSelectView: View {
     @ObservedObject var vm: ContainersViewModel
-    let isUntaggedMode: Bool
+    /// false=清理未使用镜像，true=清理未标签镜像（页顶分段切换）
+    @State private var isUntaggedMode = false
 
     @State private var selectedIDs: Set<String> = []
     @State private var isDeleting = false
@@ -1872,57 +1886,73 @@ struct ImagePruneSelectView: View {
     }
 
     var body: some View {
-        Group {
-            if filteredImages.isEmpty {
-                ContentUnavailableView(
-                    isUntaggedMode ? "暂无未标签镜像" : "暂无未使用镜像",
-                    systemImage: "checkmark.seal",
-                    description: Text("没有可清理的镜像")
-                )
-            } else {
-                List(selection: $selectedIDs) {
-                    Section {
-                        ForEach(filteredImages) { img in
-                            HStack {
-                                if let tag = img.tags?.first, !tag.isEmpty {
-                                    Text(tag)
-                                        .font(.system(.subheadline, design: .monospaced))
-                                } else {
-                                    Text("<none>")
-                                        .font(.system(.subheadline, design: .monospaced))
+        VStack(spacing: 0) {
+            Picker("清理模式", selection: $isUntaggedMode) {
+                Text("清理未使用镜像").tag(false)
+                Text("清理未标签镜像").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+
+            Group {
+                if filteredImages.isEmpty {
+                    ContentUnavailableView(
+                        isUntaggedMode ? "暂无未标签镜像" : "暂无未使用镜像",
+                        systemImage: "checkmark.seal",
+                        description: Text("没有可清理的镜像")
+                    )
+                    .frame(maxHeight: .infinity)
+                } else {
+                    List(selection: $selectedIDs) {
+                        Section {
+                            ForEach(filteredImages) { img in
+                                HStack {
+                                    if let tag = img.tags?.first, !tag.isEmpty {
+                                        Text(tag)
+                                            .font(.system(.subheadline, design: .monospaced))
+                                    } else {
+                                        Text("<none>")
+                                            .font(.system(.subheadline, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Text(img.sizeDisplay)
+                                        .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
+                                .tag(img.id)
+                            }
+                        } header: {
+                            HStack {
+                                Text(isUntaggedMode ? "未标签镜像（\(filteredImages.count)）" : "未使用镜像（\(filteredImages.count)）")
                                 Spacer()
-                                Text(img.sizeDisplay)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .tag(img.id)
-                        }
-                    } header: {
-                        HStack {
-                            Text(isUntaggedMode ? "未标签镜像（\(filteredImages.count)）" : "未使用镜像（\(filteredImages.count)）")
-                            Spacer()
-                            Button {
-                                if allSelected {
-                                    selectedIDs.removeAll()
-                                } else {
-                                    selectedIDs = Set(filteredImages.map(\.id))
+                                Button {
+                                    if allSelected {
+                                        selectedIDs.removeAll()
+                                    } else {
+                                        selectedIDs = Set(filteredImages.map(\.id))
+                                    }
+                                } label: {
+                                    Text(allSelected ? "取消全选" : "全选")
+                                        .font(.caption)
                                 }
-                            } label: {
-                                Text(allSelected ? "取消全选" : "全选")
-                                    .font(.caption)
+                                .buttonStyle(.borderless)
                             }
-                            .buttonStyle(.borderless)
                         }
                     }
+                    .environment(\.editMode, .constant(.active))
+                    .listStyle(.insetGrouped)
                 }
-                .environment(\.editMode, .constant(.active))
-                .listStyle(.insetGrouped)
             }
+            .frame(maxHeight: .infinity)
         }
-        .navigationTitle(isUntaggedMode ? "清理未标签镜像" : "清理未使用镜像")
+        .navigationTitle("清理镜像")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: isUntaggedMode) { _, _ in
+            // 两种模式的候选集不同，切换后清空已选
+            selectedIDs.removeAll()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -2125,6 +2155,8 @@ final class ContainersViewModel: ObservableObject {
         case "start": opName = "启动"
         case "restart": opName = "重启"
         case "kill": opName = "关闭"
+        case "pause": opName = "暂停"
+        case "unpause": opName = "恢复"
         case "remove": opName = "删除"
         default: opName = operation
         }
