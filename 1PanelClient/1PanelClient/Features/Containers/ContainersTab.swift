@@ -305,6 +305,7 @@ private struct PortsInfoRow: View {
 struct ContainerDetailView: View {
     let server: ServerConfig
     @ObservedObject var vm: ContainersViewModel
+    @Environment(\.dismiss) private var dismiss
     /// 最新容器状态（下拉刷新 / 暂停等任务完成后更新），初始为进入时的快照
     @State private var current: Container
 
@@ -438,7 +439,12 @@ struct ContainerDetailView: View {
         .alert("删除容器", isPresented: $pendingDelete) {
             Button("取消", role: .cancel) {}
             Button("删除", role: .destructive) {
-                Task { await vm.operateContainer(name: current.name, operation: "remove") }
+                Task {
+                    if await vm.operateContainer(name: current.name, operation: "remove") {
+                        // 删除成功后刷新，容器已不存在时 refreshContainer 会退出本页
+                        await refreshContainer()
+                    }
+                }
             }
         } message: {
             Text("确定删除容器「\(current.displayName)」吗？删除后不可恢复。")
@@ -648,11 +654,14 @@ struct ContainerDetailView: View {
         }
     }
 
-    /// 下拉刷新 / 任务完成后刷新：重拉容器列表并更新本页快照
+    /// 下拉刷新 / 任务完成后刷新：重拉容器列表并按 containerID 更新本页快照；
+    /// 列表中已不存在（如已删除）时退出详情页
     private func refreshContainer() async {
         await vm.refresh()
         if let updated = vm.containers.first(where: { $0.containerID == current.containerID }) {
             current = updated
+        } else {
+            dismiss()
         }
     }
 }
@@ -1374,7 +1383,7 @@ struct ContainerImageView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {
-                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
                 }
                 .disabled(vm.imageOperating)
             }
@@ -2194,7 +2203,8 @@ final class ContainersViewModel: ObservableObject {
 
     // MARK: - 单个容器操作（stop/start/restart/kill）
 
-    func operateContainer(name: String, operation: String) async {
+    @discardableResult
+    func operateContainer(name: String, operation: String) async -> Bool {
         containerOperating = true
         defer { containerOperating = false }
         let opName: String
@@ -2217,8 +2227,10 @@ final class ContainersViewModel: ObservableObject {
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
             showAlert(message: "\(opName)容器「\(name)」任务已提交")
+            return true
         } catch {
             showAlert(message: "\(opName)容器失败：\(error.localizedDescription)")
+            return false
         }
     }
 

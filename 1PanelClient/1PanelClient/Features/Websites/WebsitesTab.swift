@@ -52,7 +52,7 @@ struct WebsitesTab: View {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
                     EllipsisMenuButton {
-                        withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                        withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
                     }
                 }
             }
@@ -338,7 +338,7 @@ struct WebsiteDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {
-                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
                 }
             }
         }
@@ -2666,7 +2666,7 @@ struct OpenRestyConfigView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {
-                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
                 }
             }
         }

@@ -70,7 +70,7 @@ struct AppsTab: View {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
                     EllipsisMenuButton {
-                        withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                        withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
                     }
                     .accessibilityLabel("更多")
                 }

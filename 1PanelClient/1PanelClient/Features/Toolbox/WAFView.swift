@@ -1530,7 +1530,7 @@ struct WAFCcSettingsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {
-                    withAnimation(.easeOut(duration: 0.18)) { showMenu = true }
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
                 }
             }
         }
