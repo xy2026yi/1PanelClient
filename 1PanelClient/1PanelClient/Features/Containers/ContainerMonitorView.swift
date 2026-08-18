@@ -222,12 +222,14 @@ struct ContainerMonitorChart: View {
         // 固定 0 起点 + 最小值域 1，避免数据恒为 0（如空闲 CPU）时值域退化为 [0,0]、
         // 自动刻度不渲染导致左侧无百分比标签
         .chartYScale(domain: 0...yHeadroom)
+        // X 值域两侧留 3% 垫，单点/极短跨度时避免值域退化 [t,t] 不渲染刻度
+        .chartXScale(domain: xDomain)
         .chartXAxis {
-            // 显式步长 + 统一 HH:mm:ss 格式：默认轴会在点少时逐点打标签、
-            // 拥挤时截断出残缺文字；跨度不足一个步长时退回自动（少量标签）
-            AxisMarks(values: xMarks) { value in
+            // 刻度取图表内部 2~3 个均匀位置（避开左右边缘的标签裁切区），
+            // 数量固定不随采样点增多跳变；统一 HH:mm:ss 格式
+            AxisMarks(values: xMarkDates) { value in
                 AxisGridLine()
-                AxisValueLabel(centered: false) {
+                AxisValueLabel(centered: true) {
                     if let d = value.as(Date.self) {
                         Text(Self.timeFormatter.string(from: d))
                     }
@@ -326,26 +328,34 @@ struct ContainerMonitorChart: View {
         max((points.map(\.value).max() ?? 0) * 1.15, 1)
     }
 
-    /// X 轴刻度：按数据时间跨度选 3~4 个「整洁」间隔；跨度不足一个步长时退回自动
-    private var xMarks: AxisMarkValues {
+    /// X 值域：数据范围两侧各留 3%（至少 2s）垫，保证单点/极短跨度时刻度可渲染
+    private var xDomain: ClosedRange<Date> {
         let dates = points.map(\.date)
-        guard let first = dates.min(), let last = dates.max() else {
-            return .automatic(desiredCount: 2)
+        guard let first = dates.min(), let last = dates.max(), last >= first else {
+            return Date()...Date().addingTimeInterval(1)
         }
-        let stride = Self.xStrideSeconds(span: last.timeIntervalSince(first))
-        if last.timeIntervalSince(first) < Double(stride) {
-            return .automatic(desiredCount: 2)
-        }
-        return .stride(by: .second, count: stride)
+        let pad = max(last.timeIntervalSince(first) * 0.03, 2)
+        return first.addingTimeInterval(-pad)...last.addingTimeInterval(pad)
     }
 
-    /// 从 5s 到 1h 的整洁步长中取首个 ≥ 跨度/3 的值
-    private static func xStrideSeconds(span: TimeInterval) -> Int {
-        let target = max(span / 3, 1)
-        for nice in [5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600] where Double(nice) >= target {
-            return nice
+    /// X 轴刻度时间：图内部 2~3 个均匀位置（避开边缘裁切），跨度足够时取整到 5s/30s；
+    /// 单点时标数据自身时间
+    private var xMarkDates: [Date] {
+        let dates = points.map(\.date)
+        guard let first = dates.min(), let last = dates.max(), last > first else {
+            return dates.isEmpty ? [] : [dates[0]]
         }
-        return 3600
+        let span = last.timeIntervalSince(first)
+        // 跨度 ≥40s 显示 3 个，否则 2 个；位置整体内收 18%
+        let fractions: [Double] = span >= 40 ? [0.18, 0.5, 0.82] : [0.22, 0.78]
+        // 跨度足够时秒数取整更整洁；极短跨度取整会重合，保持原值
+        let roundTo: Double = span >= 240 ? 30 : (span >= 20 ? 5 : 1)
+        let marks = fractions.map { f -> Date in
+            let t = first.addingTimeInterval(span * f).timeIntervalSince1970
+            return Date(timeIntervalSince1970: (t / roundTo).rounded() * roundTo)
+        }
+        let unique = Array(Set(marks)).sorted()
+        return unique.count >= 2 ? unique : fractions.map { first.addingTimeInterval(span * $0) }
     }
 
     private static let timeFormatter: DateFormatter = {
