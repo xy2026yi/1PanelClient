@@ -198,66 +198,64 @@ struct ContainerMonitorChart: View {
     let unit: String
 
     @State private var selectedDate: Date?
+    /// 图表绘图区（相对图表整体 frame），自绘时间轴据此与数据区对齐
+    @State private var plotRect: CGRect = .zero
 
     var body: some View {
         let seriesCounts = Dictionary(grouping: points, by: \.kind).mapValues(\.count)
-        return Chart(points) { p in
-            LineMark(x: .value("时间", p.date), y: .value("值", p.value))
-                .foregroundStyle(by: .value("类型", p.kind))
-            // 数据点过少时折线画不出来，补圆点让单点也可见
-            if (seriesCounts[p.kind] ?? 0) <= 2 {
-                PointMark(x: .value("时间", p.date), y: .value("值", p.value))
+        return VStack(spacing: 2) {
+            Chart(points) { p in
+                LineMark(x: .value("时间", p.date), y: .value("值", p.value))
                     .foregroundStyle(by: .value("类型", p.kind))
-                    .symbolSize(30)
+                // 数据点过少时折线画不出来，补圆点让单点也可见
+                if (seriesCounts[p.kind] ?? 0) <= 2 {
+                    PointMark(x: .value("时间", p.date), y: .value("值", p.value))
+                        .foregroundStyle(by: .value("类型", p.kind))
+                        .symbolSize(30)
+                }
+                if let sel = selectedDate {
+                    RuleMark(x: .value("选中", sel))
+                        .foregroundStyle(.secondary.opacity(0.5))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                }
             }
-            if let sel = selectedDate {
-                RuleMark(x: .value("选中", sel))
-                    .foregroundStyle(.secondary.opacity(0.5))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            }
-        }
-        .chartForegroundStyleScale(styles)
-        // 图表下方不显示系列名图例行（拖动浮层已按颜色标注各系列）
-        .chartLegend(.hidden)
-        // 固定 0 起点 + 最小值域 1，避免数据恒为 0（如空闲 CPU）时值域退化为 [0,0]、
-        // 自动刻度不渲染导致左侧无百分比标签
-        .chartYScale(domain: 0...yHeadroom)
-        // X 值域两侧留 3% 垫，单点/极短跨度时避免值域退化 [t,t] 不渲染刻度
-        .chartXScale(domain: xDomain)
-        .chartXAxis {
-            // 刻度取图表内部 2~3 个均匀位置（避开左右边缘的标签裁切区），
-            // 数量固定不随采样点增多跳变；统一 HH:mm:ss 格式
-            AxisMarks(values: xMarkDates) { value in
-                AxisGridLine()
-                AxisValueLabel(centered: true) {
-                    if let d = value.as(Date.self) {
-                        Text(Self.timeFormatter.string(from: d))
+            .chartForegroundStyleScale(styles)
+            // 图表下方不显示系列名图例行（拖动浮层已按颜色标注各系列）
+            .chartLegend(.hidden)
+            // 固定 0 起点 + 最小值域 1，避免数据恒为 0（如空闲 CPU）时值域退化为 [0,0]、
+            // 自动刻度不渲染导致左侧无百分比标签
+            .chartYScale(domain: 0...yHeadroom)
+            // X 值域：多点时用数据原始范围（折线贴满左右），单点左右各垫 2s 防退化
+            .chartXScale(domain: xDomain)
+            // 时间标签自绘（见 timeAxis）：系统轴的自动碰撞会把多点标签丢弃/裁切，
+            // 单点时干脆不渲染，无法稳定控制
+            .chartXAxis(.hidden)
+            .chartYAxis {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                    AxisGridLine()
+                    AxisValueLabel {
+                        if let v = value.as(Double.self) {
+                            Text(Self.axisText(v, unit: unit))
+                        }
                     }
                 }
             }
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
-                AxisGridLine()
-                AxisValueLabel {
-                    if let v = value.as(Double.self) {
-                        Text(Self.axisText(v, unit: unit))
-                    }
-                }
-            }
-        }
-        .frame(height: 120)
-        .chartOverlay { proxy in
-            GeometryReader { geo in
-                // 手势层：触摸 x → 日期
-                Rectangle()
-                    .fill(.clear)
+            .frame(height: 120)
+            .chartOverlay { proxy in
+                GeometryReader { geo in
+                    // 手势层：触摸 x → 日期
+                    Rectangle()
+                        .fill(.clear)
                     .contentShape(Rectangle())
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { gesture in
                                 guard let plotAnchor = proxy.plotFrame else { return }
                                 let plotFrame = geo[plotAnchor]
+                                // 记录绘图区位置，供下方自绘时间轴对齐数据区
+                                if plotFrame != plotRect {
+                                    plotRect = plotFrame
+                                }
                                 let x = gesture.location.x - plotFrame.minX
                                 guard x >= 0, x <= plotFrame.width,
                                       let date: Date = proxy.value(atX: x) else { return }
@@ -277,6 +275,49 @@ struct ContainerMonitorChart: View {
                 }
             }
         }
+
+            timeAxis
+        }
+    }
+
+    // MARK: 自绘时间轴
+
+    /// 图表下方的时间标签行：位置取数据跨度固定比例处，与绘图区精确对齐，
+    /// 不经过系统轴的碰撞/裁切逻辑，单点时也稳定显示一个居中标签
+    private var timeAxis: some View {
+        GeometryReader { geo in
+            ForEach(Array(timeMarks.enumerated()), id: \.offset) { _, mark in
+                Text(Self.timeFormatter.string(from: mark.date))
+                    .font(.caption2)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .position(
+                        x: plotRect.minX + plotRect.width * mark.fraction,
+                        y: geo.size.height / 2
+                    )
+            }
+        }
+        .frame(height: 14)
+    }
+
+    /// 时间标签集合：单点居中 1 个；跨度 <40s 两个；≥40s 三个（首尾内收，秒数尽量取整）
+    private var timeMarks: [(date: Date, fraction: CGFloat)] {
+        let dates = points.map(\.date)
+        guard let first = dates.min(), let last = dates.max(), last > first else {
+            return dates.isEmpty ? [] : [(dates[0], 0.5)]
+        }
+        let span = last.timeIntervalSince(first)
+        let fractions: [CGFloat] = span >= 40 ? [0.18, 0.5, 0.82] : [0.22, 0.78]
+        // 跨度足够时秒数取整更整洁；极短跨度取整会重合，保持原值
+        let roundTo: Double = span >= 240 ? 30 : (span >= 20 ? 5 : 1)
+        let rounded: [(Date, CGFloat)] = fractions.map { f in
+            let t = first.addingTimeInterval(span * Double(f)).timeIntervalSince1970
+            return (Date(timeIntervalSince1970: (t / roundTo).rounded() * roundTo), f)
+        }
+        let uniqueDates = Set(rounded.map(\.0))
+        return uniqueDates.count == rounded.count ? rounded
+            : fractions.map { (first.addingTimeInterval(span * Double($0)), $0) }
     }
 
     /// 选中时间的各系列数值（按值降序，返回已格式化文本）
@@ -328,34 +369,16 @@ struct ContainerMonitorChart: View {
         max((points.map(\.value).max() ?? 0) * 1.15, 1)
     }
 
-    /// X 值域：数据范围两侧各留 3%（至少 2s）垫，保证单点/极短跨度时刻度可渲染
+    /// X 值域：多点时用数据原始范围（折线贴满左右边缘），仅单点左右各垫 2s 防值域退化
     private var xDomain: ClosedRange<Date> {
         let dates = points.map(\.date)
         guard let first = dates.min(), let last = dates.max(), last >= first else {
             return Date()...Date().addingTimeInterval(1)
         }
-        let pad = max(last.timeIntervalSince(first) * 0.03, 2)
-        return first.addingTimeInterval(-pad)...last.addingTimeInterval(pad)
-    }
-
-    /// X 轴刻度时间：图内部 2~3 个均匀位置（避开边缘裁切），跨度足够时取整到 5s/30s；
-    /// 单点时标数据自身时间
-    private var xMarkDates: [Date] {
-        let dates = points.map(\.date)
-        guard let first = dates.min(), let last = dates.max(), last > first else {
-            return dates.isEmpty ? [] : [dates[0]]
+        if last > first {
+            return first...last
         }
-        let span = last.timeIntervalSince(first)
-        // 跨度 ≥40s 显示 3 个，否则 2 个；位置整体内收 18%
-        let fractions: [Double] = span >= 40 ? [0.18, 0.5, 0.82] : [0.22, 0.78]
-        // 跨度足够时秒数取整更整洁；极短跨度取整会重合，保持原值
-        let roundTo: Double = span >= 240 ? 30 : (span >= 20 ? 5 : 1)
-        let marks = fractions.map { f -> Date in
-            let t = first.addingTimeInterval(span * f).timeIntervalSince1970
-            return Date(timeIntervalSince1970: (t / roundTo).rounded() * roundTo)
-        }
-        let unique = Array(Set(marks)).sorted()
-        return unique.count >= 2 ? unique : fractions.map { first.addingTimeInterval(span * $0) }
+        return first.addingTimeInterval(-2)...first.addingTimeInterval(2)
     }
 
     private static let timeFormatter: DateFormatter = {
