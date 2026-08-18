@@ -1,0 +1,23 @@
+included:
+  - 1PanelClient/1PanelClient
+  - 1PanelClient/1PanelClientTests
+
+# 首次接入阶段从宽（当前存在 1500+ 行的巨型文件与 SwiftUI 深嵌套），
+# 阶段 3 拆分完成后逐步收紧并恢复默认规则
+disabled_rules:
+  - file_length
+  - type_body_length
+  - function_body_length
+  - function_parameter_count
+  - cyclomatic_complexity
+  - nesting
+  - large_tuple
+  - multiple_closures_with_trailing_closure
+
+line_length:
+  warning: 400
+  error: 600
+
+identifier_name:
+  min_length:
+    warning: 1

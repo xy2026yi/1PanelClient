@@ -1,6 +1,11 @@
 name: Build IPA
 
 on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -13,6 +18,23 @@ jobs:
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: SwiftLint（未安装时跳过）
+        run: |
+          if command -v swiftlint >/dev/null 2>&1; then
+            swiftlint --config .swiftlint.yml
+          else
+            echo "::warning::swiftlint 未安装，已跳过（brew install swiftlint）"
+          fi
+
+      - name: Run Unit Tests
+        run: |
+          cd 1PanelClient
+          xcodebuild test \
+            -project 1PanelClient.xcodeproj \
+            -scheme 1PanelClient \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -quiet
 
       - name: Build Archive
         run: |
