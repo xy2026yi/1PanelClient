@@ -74,7 +74,7 @@ struct TerminalHostsView: View {
             set: { if !$0 { connectedHost = nil } }
         )) {
             if let host = connectedHost {
-                TerminalView(
+                TerminalScreen(
                     server: server,
                     target: .sshHost(id: host.id, cols: 80, rows: 24),
                     title: host.displayName
@@ -90,7 +90,7 @@ struct TerminalHostsView: View {
     private var localSection: some View {
         Section {
             NavigationLink {
-                TerminalView(
+                TerminalScreen(
                     server: server,
                     target: .host(cols: 80, rows: 24),
                     title: localTitle ?? "本机"

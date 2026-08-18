@@ -615,13 +615,13 @@ struct DatabaseSystemView: View {
             DatabaseConnInfoView(vm: vm)
         }
         .navigationDestination(isPresented: $showRedisTerminal) {
-            TerminalView(
+            TerminalScreen(
                 server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
                 target: .redis(name: vm.system.database, cols: 80, rows: 24)
             )
         }
         .navigationDestination(isPresented: $showDatabaseTerminal) {
-            TerminalView(
+            TerminalScreen(
                 server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
                 target: .database(
                     databaseType: vm.system.type,
@@ -634,7 +634,7 @@ struct DatabaseSystemView: View {
         // 连接就绪后自动下发 mongosh（与网页端行为一致）
         .navigationDestination(isPresented: $showContainerTerminal) {
             if let container = vm.check?.containerName {
-                TerminalView(
+                TerminalScreen(
                     server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
                     target: .container(containerID: container, user: "", command: "/bin/sh", cols: 80, rows: 24),
                     initialCommand: vm.mongoInitialCommand
@@ -993,10 +993,10 @@ struct ChangePasswordSheet: View {
                             Spacer()
                             Button { showCurrent.toggle() } label: {
                                 Image(systemName: showCurrent ? "eye.slash" : "eye")
-                            }
+                            }.accessibilityLabel(showCurrent ? "隐藏密码" : "显示密码")
                             Button { UIPasteboard.general.string = cur } label: {
                                 Image(systemName: "doc.on.doc")
-                            }
+                            }.accessibilityLabel("复制密码")
                         }
                     }
                 }
@@ -1016,7 +1016,7 @@ struct ChangePasswordSheet: View {
                         Button { showNew.toggle() } label: {
                             Image(systemName: showNew ? "eye.slash" : "eye")
                                 .foregroundStyle(.secondary)
-                        }
+                        }.accessibilityLabel(showNew ? "隐藏密码" : "显示密码")
                     }
                     Button {
                         newPassword = randomPassword()
@@ -1105,10 +1105,10 @@ struct RedisPasswordSheet: View {
                         Spacer()
                         Button { showCurrent.toggle() } label: {
                             Image(systemName: showCurrent ? "eye.slash" : "eye")
-                        }
+                        }.accessibilityLabel(showCurrent ? "隐藏密码" : "显示密码")
                         Button { UIPasteboard.general.string = cur } label: {
                             Image(systemName: "doc.on.doc")
-                        }
+                        }.accessibilityLabel("复制密码")
                     }
                 }
             }

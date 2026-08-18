@@ -201,7 +201,7 @@ struct ScriptDetailView: View {
             }
         }
         .navigationDestination(isPresented: $showTerminal) {
-            TerminalView(
+            TerminalScreen(
                 server: server,
                 target: .scriptRun(scriptID: script.id, cols: 80, rows: 24),
                 title: script.displayName

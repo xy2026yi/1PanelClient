@@ -134,7 +134,8 @@ private struct WSResize: Encodable {
 
 @MainActor
 final class TerminalSession: ObservableObject {
-    let emulator = TerminalEmulator()
+    /// 终端输出回调：SwiftTerm 渲染面注入，收到服务端字节流后喂入其 VT 引擎
+    var onOutput: ((Data) -> Void)?
 
     @Published private(set) var isConnected = false
     @Published private(set) var isConnecting = false
@@ -148,7 +149,6 @@ final class TerminalSession: ObservableObject {
     private var session: URLSession!
     private var receiveTask: Task<Void, Never>?
     private var pingTask: Task<Void, Never>?
-    private var emulatorCancellable: AnyCancellable?
 
     /// 收到原始字节时是否直接当文本喂入（true）；否则解析 JSON+base64
     private var rawFrameMode = false
@@ -161,11 +161,6 @@ final class TerminalSession: ObservableObject {
         config.timeoutIntervalForRequest = 30
         config.waitsForConnectivity = false
         self.session = URLSession(configuration: config)
-        emulator.resize(cols: target.cols, rows: target.rows)
-        emulatorCancellable = emulator.objectWillChange
-            .sink { [weak self] in
-                self?.objectWillChange.send()
-            }
     }
 
     deinit {
@@ -207,7 +202,7 @@ final class TerminalSession: ObservableObject {
         guard !isConnecting, !isConnected else { return }
         guard let url = makeWebSocketURL() else {
             errorMessage = "无法构造终端连接地址"
-            emulator.feed("\u{1B}[31m无法构造终端连接地址\u{1B}[0m\r\n")
+            emit("\u{1B}[31m无法构造终端连接地址\u{1B}[0m\r\n")
             return
         }
         var request = URLRequest(url: url)
@@ -248,10 +243,15 @@ final class TerminalSession: ObservableObject {
     /// 发送用户输入（JSON + base64 包装，匹配 1Panel 终端协议）
     /// 1Panel 终端后端要求客户端输入用 {"type":"cmd","data":"<base64>"} 格式
     func send(_ text: String) {
+        send(data: Data(text.utf8))
+    }
+
+    /// 字节级发送（SwiftTerm 键盘输入/快捷键走这里），协议包装同上
+    func send(data: Data) {
         guard let task else { return }
-        let b64 = Data(text.utf8).base64EncodedString()
-        guard let data = try? JSONEncoder().encode(WSPayload(type: "cmd", data: b64)),
-              let str = String(data: data, encoding: .utf8) else { return }
+        let b64 = data.base64EncodedString()
+        guard let payload = try? JSONEncoder().encode(WSPayload(type: "cmd", data: b64)),
+              let str = String(data: payload, encoding: .utf8) else { return }
         Task {
             do { try await task.send(.string(str)) }
             catch { /* 发送失败静默 */ }
@@ -270,7 +270,6 @@ final class TerminalSession: ObservableObject {
     /// 通知后端终端尺寸变更
     func sendResize(cols: Int, rows: Int) {
         guard let task else { return }
-        emulator.resize(cols: cols, rows: rows)
         guard let data = try? JSONEncoder().encode(WSResize(type: "resize", cols: cols, rows: rows)),
               let str = String(data: data, encoding: .utf8) else { return }
         Task {
@@ -312,7 +311,7 @@ final class TerminalSession: ObservableObject {
         case .data(let data):
             // 二进制帧直接当字节流
             rawFrameMode = true
-            emulator.feed(data)
+            emit(data)
         @unknown default:
             break
         }
@@ -330,9 +329,9 @@ final class TerminalSession: ObservableObject {
                 case "cmd":
                     if let b64 = obj["data"] as? String,
                        let decoded = Data(base64Encoded: b64) {
-                        emulator.feed(decoded)
+                        emit(decoded)
                     } else if let raw = obj["data"] as? String {
-                        emulator.feed(raw)
+                        emit(Data(raw.utf8))
                     }
                     return
                 case "resize", "ping", "pong":
@@ -344,7 +343,16 @@ final class TerminalSession: ObservableObject {
         }
         // 原始文本帧：切到 raw 模式，后续发送也用原始帧
         rawFrameMode = true
-        emulator.feed(text)
+        emit(Data(text.utf8))
+    }
+
+    /// 把服务端/本地产生的终端字节流交给渲染面
+    private func emit(_ text: String) {
+        emit(Data(text.utf8))
+    }
+
+    private func emit(_ data: Data) {
+        onOutput?(data)
     }
 
     private func handleDisconnect(error: Error) {
@@ -357,7 +365,7 @@ final class TerminalSession: ObservableObject {
             msg = "连接已断开：\(error.localizedDescription)"
         }
         errorMessage = msg
-        emulator.feed("\r\n\u{1B}[31m\(msg)\u{1B}[0m\r\n")
+        emit("\r\n\u{1B}[31m\(msg)\u{1B}[0m\r\n")
     }
 
     // MARK: - 心跳
@@ -373,7 +381,7 @@ final class TerminalSession: ObservableObject {
                 guard let self, let err else { return }
                 let msg = "\r\n\u{1B}[33mping 失败：\(err.localizedDescription)\u{1B}[0m\r\n"
                 Task { @MainActor in
-                    self.emulator.feed(msg)
+                    self.emit(msg)
                 }
             }
         }
