@@ -15,7 +15,7 @@ struct WebsiteDetailView: View {
     @State private var detail: WebsiteFull?
     @State private var isLoadingDetail = false
     @State private var showDeleteSheet = false
-    @State private var showEditSheet = false
+    @State private var showEdit = false
     @State private var isOperating = false
     @State private var pendingToggle: Bool?
     @State private var isStatusExpanded = false
@@ -120,13 +120,12 @@ struct WebsiteDetailView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
+                    .action(title: "基础信息") { showEdit = true },
                     .action(title: "反向代理") { showProxies = true },
                     .action(title: "默认文档") { showDefaultDoc = true },
                     .action(title: "流量限制") { showLimitConn = true },
                     .action(title: "重定向") { showRedirects = true },
                     .action(title: "密码访问") { showAuths = true },
-                    .divider,
-                    .action(title: "其他") { showEditSheet = true },
                 ]) {
                     withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
@@ -159,6 +158,19 @@ struct WebsiteDetailView: View {
         .navigationDestination(isPresented: $showAuths) {
             WebsiteAuthsView(websiteId: website.id, vm: vm)
         }
+        .navigationDestination(isPresented: $showEdit) {
+            if let d = detail {
+                WebsiteEditView(detail: d, vm: vm) {
+                    Task {
+                        await loadDetail()
+                        await vm.refresh()
+                    }
+                }
+            } else {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
         .task {
             await loadDetail()
         }
@@ -169,16 +181,6 @@ struct WebsiteDetailView: View {
         }
         .sheet(isPresented: $showDeleteSheet) {
             WebsiteDeleteSheet(website: website, vm: vm)
-        }
-        .sheet(isPresented: $showEditSheet) {
-            if let d = detail {
-                WebsiteEditSheet(detail: d, vm: vm) {
-                    Task {
-                        await loadDetail()
-                        await vm.refresh()
-                    }
-                }
-            }
         }
         .alert(
             (pendingToggle == true) ? "启用" : "停止",
@@ -334,7 +336,7 @@ struct WebsiteDetailView: View {
 
 /// 编辑网站基础信息：POST /websites/update 仅接收主域名/备注等少量字段，
 /// 其余字段（IPV6/expireDate/favorite/分组）按当前详情原样回填，避免被零值覆盖。
-struct WebsiteEditSheet: View {
+struct WebsiteEditView: View {
     let detail: WebsiteFull
     @ObservedObject var vm: WebsitesViewModel
     let onSaved: () -> Void
@@ -357,47 +359,42 @@ struct WebsiteEditSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("example.com", text: $primaryDomain)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                } header: {
-                    Text("主域名")
-                } footer: {
-                    Text("网站的主访问域名，修改后请确保域名解析已指向本服务器")
-                }
-
-                Section {
-                    TextField("备注（可选）", text: $remark)
-                } header: {
-                    Text("备注")
-                }
+        Form {
+            Section {
+                TextField("example.com", text: $primaryDomain)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+            } header: {
+                Text("主域名")
+            } footer: {
+                Text("网站的主访问域名，修改后请确保域名解析已指向本服务器")
             }
-            .navigationTitle("编辑网站")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(isSaving ? "保存中…" : "保存") {
-                        Task {
-                            isSaving = true
-                            var req = WebsiteUpdateRequest(from: detail)
-                            req.primaryDomain = trimmedDomain
-                            req.remark = remark
-                            if await vm.updateWebsite(req) {
-                                onSaved()
-                                dismiss()
-                            }
-                            isSaving = false
+
+            Section {
+                TextField("备注（可选）", text: $remark)
+            } header: {
+                Text("备注")
+            }
+        }
+        .navigationTitle("编辑网站")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button(isSaving ? "保存中…" : "保存") {
+                    Task {
+                        isSaving = true
+                        var req = WebsiteUpdateRequest(from: detail)
+                        req.primaryDomain = trimmedDomain
+                        req.remark = remark
+                        if await vm.updateWebsite(req) {
+                            onSaved()
+                            dismiss()
                         }
+                        isSaving = false
                     }
-                    .disabled(trimmedDomain.isEmpty || isSaving)
                 }
+                .disabled(trimmedDomain.isEmpty || isSaving)
             }
         }
     }
