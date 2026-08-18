@@ -2,10 +2,10 @@
 //  BackupAccountsView.swift
 //  1PanelClient
 //
-//  备份账号管理：MINIO / WebDAV / SFTP 账号 列表 / 新增 / 编辑 / 删除。
+//  备份账号管理：MINIO / 阿里云OSS / WebDAV / SFTP 账号 列表 / 新增 / 编辑 / 删除。
 //  新增与编辑需先「连接测试」通过才能保存（与网页端一致）；
 //  accessKey / credential 以 base64 提交（后端解码），凭证仅在勾选
-//  「记住认证信息」后才会回显。接口字段通过 logs/备份账号.md 抓包验证。
+//  「记住认证信息」后才会回显。接口字段通过 logs/备份账号.md、logs/0818-新增备份.md 抓包验证。
 //
 
 import SwiftUI
@@ -43,6 +43,7 @@ nonisolated struct BackupAccount: Decodable, Identifiable {
 /// 客户端支持创建/编辑的备份账号类型（LOCAL 仅可编辑）
 enum BackupAccountType: String, CaseIterable, Identifiable {
     case minio = "MINIO"
+    case oss = "OSS"
     case webdav = "WebDAV"
     case sftp = "SFTP"
 
@@ -50,8 +51,40 @@ enum BackupAccountType: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .minio:  return "MINIO"
+        case .oss:    return "阿里云OSS"
         case .webdav: return "WebDAV"
         case .sftp:   return "SFTP"
+        }
+    }
+}
+
+/// 阿里云OSS 存储类型（vars.scType）
+enum OSSStorageType: String, CaseIterable, Identifiable {
+    case standard = "Standard"
+    case ia = "IA"
+    case archive = "Archive"
+    case coldArchive = "ColdArchive"
+
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .standard:    return "标准存储"
+        case .ia:          return "低频存储"
+        case .archive:     return "归档存储"
+        case .coldArchive: return "深度归档存储"
+        }
+    }
+
+    var remark: String {
+        switch self {
+        case .standard:
+            return "适用于实时访问的大量热点文件、频繁的数据交互等业务场景"
+        case .ia:
+            return "适用于较低访问频率（例如平均每月访问频率1到2次）的业务场景，最少存储30天"
+        case .archive:
+            return "适用于极低访问频率（例如半年访问1次）的业务场景"
+        case .coldArchive:
+            return "适用于极低访问频率（例如1年访问1～2次）的业务场景"
         }
     }
 }
@@ -225,11 +258,10 @@ final class BackupAccountsViewModel: ObservableObject {
         }
     }
 
-    /// 获取存储桶列表（MINIO）；vars 仅含完整 endpoint
-    func fetchBuckets(type: String, endpoint: String, accessKey: String, credential: String) async -> [String] {
-        let vars = BackupVarsJSON(["endpoint": .string(endpoint)]).jsonString
+    /// 获取存储桶列表（MINIO / 阿里云OSS）；MINIO 仅含 endpoint，OSS 另带 scType
+    func fetchBuckets(type: String, vars: BackupVarsJSON, accessKey: String, credential: String) async -> [String] {
         let req = BackupBucketsRequest(
-            isPublic: false, type: type, vars: vars,
+            isPublic: false, type: type, vars: vars.jsonString,
             accessKey: accessKey, credential: credential
         )
         do {
@@ -332,7 +364,7 @@ struct BackupAccountsView: View {
                 ContentUnavailableView(
                     "暂无备份账号",
                     systemImage: "externaldrive.badge.icloud",
-                    description: Text("点击右下角 + 添加 MINIO / WebDAV / SFTP 备份账号")
+                    description: Text("点击右下角 + 添加 MINIO / 阿里云OSS / WebDAV / SFTP 备份账号")
                 )
             } else {
                 accountList
@@ -444,6 +476,7 @@ struct BackupAccountRow: View {
         switch account.type {
         case "LOCAL":  return ("internaldrive", .gray)
         case "MINIO":  return ("externaldrive.badge.icloud", .orange)
+        case "OSS":    return ("externaldrive.badge.icloud", .indigo)
         case "WebDAV": return ("externaldrive.connected.to.line.below", .blue)
         case "SFTP":   return ("externaldrive.badge.timemachine", .green)
         default:       return ("externaldrive", .purple)
@@ -511,7 +544,7 @@ struct BackupAccountEditView: View {
     @State private var rememberAuth = false
     @State private var backupPath = ""
 
-    // MINIO
+    // MINIO / 阿里云OSS（共用 Endpoint 与桶表单）
     @State private var accessKeyID = ""
     @State private var secretKey = ""
     @State private var endpointProto = "https"
@@ -520,6 +553,9 @@ struct BackupAccountEditView: View {
     @State private var bucket = ""
     @State private var buckets: [String] = []
     @State private var isLoadingBuckets = false
+
+    // 阿里云OSS
+    @State private var ossScType: OSSStorageType = .standard
 
     // WebDAV
     @State private var webdavAddress = ""
@@ -556,6 +592,7 @@ struct BackupAccountEditView: View {
             } else {
                 switch type {
                 case .minio:  minioSections
+                case .oss:    ossSections
                 case .webdav: webdavSection
                 case .sftp:   sftpSections
                 }
@@ -623,8 +660,8 @@ struct BackupAccountEditView: View {
         }
     }
 
-    @ViewBuilder
-    private var minioSections: some View {
+    /// MINIO / 阿里云OSS 共用：Access Key 凭证
+    private var credentialsSection: some View {
         Section {
             TextField("Access Key ID", text: $accessKeyID)
                 .textInputAutocapitalization(.never)
@@ -633,7 +670,10 @@ struct BackupAccountEditView: View {
         } header: {
             Text("认证信息")
         }
+    }
 
+    /// MINIO / 阿里云OSS 共用：协议 + Endpoint 地址
+    private var endpointSection: some View {
         Section {
             Picker("协议", selection: $endpointProto) {
                 Text("http").tag("http")
@@ -647,7 +687,10 @@ struct BackupAccountEditView: View {
         } header: {
             Text("Endpoint")
         }
+    }
 
+    /// MINIO / 阿里云OSS 共用：桶下拉（获取桶）/ 手动输入
+    private var bucketSection: some View {
         Section {
             Toggle("手动输入桶名", isOn: $bucketManual)
             if bucketManual {
@@ -678,6 +721,31 @@ struct BackupAccountEditView: View {
         } footer: {
             Text("默认从 Endpoint 拉取桶列表；开启手动输入可直接填写桶名")
         }
+    }
+
+    @ViewBuilder
+    private var minioSections: some View {
+        credentialsSection
+        endpointSection
+        bucketSection
+    }
+
+    @ViewBuilder
+    private var ossSections: some View {
+        credentialsSection
+        endpointSection
+        Section {
+            Picker("存储类型", selection: $ossScType) {
+                ForEach(OSSStorageType.allCases) { t in
+                    Text(t.displayName).tag(t)
+                }
+            }
+        } header: {
+            Text("存储类型")
+        } footer: {
+            Text(ossScType.remark)
+        }
+        bucketSection
     }
 
     private var webdavSection: some View {
@@ -812,6 +880,7 @@ struct BackupAccountEditView: View {
         [
             name, type.rawValue, String(rememberAuth), backupPath,
             accessKeyID, secretKey, endpointProto, endpointHost, String(bucketManual), bucket,
+            ossScType.rawValue,
             webdavAddress, webdavUsername, webdavPassword,
             sftpAddress, String(sftpPort), sftpUsername, sftpAuthMode.rawValue,
             sftpPassword, sftpPrivateKey, sftpPassPhrase,
@@ -832,6 +901,17 @@ struct BackupAccountEditView: View {
             endpointHost = endpoint.host
             bucket = account.bucket ?? ""
             bucketManual = !(account.bucket ?? "").isEmpty
+        case .oss:
+            let endpoint = Self.splitProto(vars["endpoint"]?.stringValue ?? "")
+            if let proto = endpoint.proto { endpointProto = proto }
+            endpointHost = endpoint.host
+            bucket = account.bucket ?? ""
+            bucketManual = !(account.bucket ?? "").isEmpty
+            if let sc = vars["scType"]?.stringValue, let t = OSSStorageType(rawValue: sc) {
+                ossScType = t
+            }
+            // 保留 timeout 等其他键
+            extraVars = vars.values.filter { !["scType", "endpointItem", "endpoint"].contains($0.key) }
         case .webdav:
             webdavAddress = vars["address"]?.stringValue ?? ""
         case .sftp:
@@ -848,7 +928,7 @@ struct BackupAccountEditView: View {
         // 凭证仅记住认证时回显（服务端返回 base64，解码展示），且只填入当前类型对应的字段
         if rememberAuth {
             switch type {
-            case .minio:
+            case .minio, .oss:
                 accessKeyID = Self.decodeBase64(account.accessKey)
                 secretKey = Self.decodeBase64(account.credential)
             case .webdav:
@@ -894,7 +974,7 @@ struct BackupAccountEditView: View {
         }
         guard !isLocal else { return nil }
         switch type {
-        case .minio:
+        case .minio, .oss:
             if accessKeyID.isEmpty { return "请填写 Access Key ID" }
             if secretKey.isEmpty { return "请填写 Secret Key" }
             if endpointHost.isEmpty { return "请填写 Endpoint 地址" }
@@ -920,6 +1000,11 @@ struct BackupAccountEditView: View {
             let host = endpointHost.trimmingCharacters(in: .whitespaces)
             vars["endpointItem"] = .string(host)
             vars["endpoint"] = .string("\(endpointProto)://\(host)")
+        case .oss:
+            let host = endpointHost.trimmingCharacters(in: .whitespaces)
+            vars["scType"] = .string(ossScType.rawValue)
+            vars["endpointItem"] = .string(host)
+            vars["endpoint"] = .string("\(endpointProto)://\(host)")
         case .webdav:
             vars["address"] = .string(webdavAddress.trimmingCharacters(in: .whitespaces))
         case .sftp:
@@ -938,13 +1023,13 @@ struct BackupAccountEditView: View {
 
     /// 构造提交/测试共用请求体（凭证 base64）
     private func buildOperate() -> BackupAccountOperate {
-        // LOCAL 内置账号没有 MINIO/WebDAV/SFTP 表单，vars 沿用服务端原值，
-        // 避免把 MINIO 形状的空表单数据覆写进记录
+        // LOCAL 内置账号没有 MINIO/OSS/WebDAV/SFTP 表单，vars 沿用服务端原值，
+        // 避免把其他类型形状的空表单数据覆写进记录
         let vars: BackupVarsJSON = isLocal ? BackupVarsJSON.parse(existing?.vars) : buildVars()
         let userKey: String
         let secret: String
         switch type {
-        case .minio:
+        case .minio, .oss:
             userKey = Self.encodeBase64(accessKeyID)
             secret = Self.encodeBase64(secretKey)
         case .webdav:
@@ -987,9 +1072,22 @@ struct BackupAccountEditView: View {
         isLoadingBuckets = true
         defer { isLoadingBuckets = false }
         let host = endpointHost.trimmingCharacters(in: .whitespaces)
+        // OSS 的拉桶 vars 需携带 scType，MINIO 仅 endpoint
+        let vars: BackupVarsJSON
+        switch type {
+        case .minio:
+            vars = BackupVarsJSON(["endpoint": .string("\(endpointProto)://\(host)")])
+        case .oss:
+            vars = BackupVarsJSON([
+                "scType": .string(ossScType.rawValue),
+                "endpoint": .string("\(endpointProto)://\(host)"),
+            ])
+        case .webdav, .sftp:
+            return
+        }
         let list = await vm.fetchBuckets(
-            type: BackupAccountType.minio.rawValue,
-            endpoint: "\(endpointProto)://\(host)",
+            type: type.rawValue,
+            vars: vars,
             accessKey: Self.encodeBase64(accessKeyID),
             credential: Self.encodeBase64(secretKey)
         )
