@@ -17,6 +17,8 @@ struct ServiceAction: Identifiable {
     let icon: String
     let color: Color
     var isDisabled: Bool = false
+    /// 自定义图标 asset 名（模板渲染），非空时优先于 SF Symbol
+    var customIcon: String? = nil
     let action: () -> Void
 
     var id: String { title }
@@ -102,8 +104,9 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
         .padding(.vertical, 2)
     }
 
+    /// 4 列自适应网格：≤4 个按钮单行展示，更多时自动换行
     private var actionsRow: some View {
-        HStack(spacing: 8) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
             ForEach(actions) { act in
                 actionButton(act)
             }
@@ -120,8 +123,7 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
                         .scaleEffect(0.7)
                         .frame(width: 22, height: 22)
                 } else {
-                    Image(systemName: act.icon)
-                        .font(.title3)
+                    actionIcon(act)
                         .foregroundStyle(act.color)
                         .frame(width: 22, height: 22)
                 }
@@ -135,6 +137,20 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
         }
         .buttonStyle(.plain)
         .disabled(isOperating || act.isDisabled)
+    }
+
+    /// 自定义图标（如 logs/创建数据库.svg）与 SF Symbol 同尺寸着色展示
+    @ViewBuilder
+    private func actionIcon(_ act: ServiceAction) -> some View {
+        if let custom = act.customIcon {
+            Image(custom)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+        } else {
+            Image(systemName: act.icon)
+                .font(.title3)
+        }
     }
 }
 

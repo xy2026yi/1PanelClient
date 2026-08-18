@@ -575,9 +575,8 @@ struct DatabaseSystemView: View {
     @StateObject private var vm: DatabaseSystemViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showCreate = false
-    @State private var showServicePasswordSheet = false
+    @State private var showConnInfo = false
     @State private var showRedisTerminal = false
-    @State private var showRedisPasswordSheet = false
     @State private var showDatabaseTerminal = false
     @State private var showContainerTerminal = false
     @State private var pendingAction: String?
@@ -593,7 +592,6 @@ struct DatabaseSystemView: View {
     var body: some View {
         List {
             statusSection
-            connInfoSection
             if vm.supportsDatabaseList {
                 databaseListSection
             }
@@ -605,21 +603,6 @@ struct DatabaseSystemView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.refresh() }
         .task { await vm.refresh() }
-        .overlay(alignment: .bottomTrailing) {
-            if vm.supportsDatabaseList {
-                MenuFloatingActionButton {
-                    Button { showCreate = true } label: {
-                        Label("创建数据库", systemImage: "cylinder.badge.plus")
-                    }
-                    if vm.supportsUserManagement {
-                        Button { showCreateUser = true } label: {
-                            Label("创建用户", systemImage: "person.badge.plus")
-                        }
-                    }
-                }
-                .accessibilityLabel("创建数据库或用户")
-            }
-        }
         .navigationDestination(isPresented: $showCreate) {
             CreateDatabaseView(system: vm.system) { await vm.loadDatabases() }
         }
@@ -628,13 +611,8 @@ struct DatabaseSystemView: View {
                 await vm.loadUsers()
             }
         }
-        .sheet(isPresented: $showServicePasswordSheet) {
-            ChangePasswordSheet(
-                title: "修改 \(vm.system.displayName) 密码",
-                currentPassword: vm.connInfo?.password
-            ) { newPassword in
-                Task { await vm.changeServicePassword(newPassword) }
-            }
+        .navigationDestination(isPresented: $showConnInfo) {
+            DatabaseConnInfoView(vm: vm)
         }
         .navigationDestination(isPresented: $showRedisTerminal) {
             TerminalView(
@@ -661,19 +639,6 @@ struct DatabaseSystemView: View {
                     target: .container(containerID: container, user: "", command: "/bin/sh", cols: 80, rows: 24),
                     initialCommand: vm.mongoInitialCommand
                 )
-            }
-        }
-        .sheet(isPresented: $showRedisPasswordSheet) {
-            RedisPasswordSheet(
-                currentPassword: vm.connInfo?.password
-            ) { newPassword in
-                Task {
-                    let ok = await vm.changeRedisPassword(newPassword)
-                    if ok {
-                        await vm.operate("restart")
-                        await vm.loadConnInfo()
-                    }
-                }
             }
         }
         .alert(
@@ -739,32 +704,9 @@ struct DatabaseSystemView: View {
                 statusColor: check.isRunning ? .green : .red,
                 isOperating: vm.isOperating,
                 isExpanded: $isStatusExpanded,
-                actions: [
-                    ServiceAction(
-                        title: check.isRunning ? "停止" : "启动",
-                        icon: check.isRunning ? "stop.fill" : "play.fill",
-                        color: check.isRunning ? .orange : .green
-                    ) { pendingAction = check.isRunning ? "stop" : "start" },
-                    ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
-                        pendingAction = "restart"
-                    },
-                    ServiceAction(
-                        title: "终端",
-                        icon: "terminal",
-                        color: .teal,
-                        isDisabled: vm.isMongoDB && (check.containerName?.isEmpty ?? true)
-                    ) {
-                        if vm.isRedis {
-                            showRedisTerminal = true
-                        } else if vm.isMongoDB {
-                            showContainerTerminal = true
-                        } else {
-                            showDatabaseTerminal = true
-                        }
-                    }
-                ]
+                actions: drawerActions(check)
             ) {
-                IconBadge(systemName: "cylinder.split.1x2", color: .purple, size: 44)
+                EmptyView()
             }
         } else {
             Section {
@@ -773,46 +715,51 @@ struct DatabaseSystemView: View {
         }
     }
 
-    // MARK: 连接信息
-
-    private var connInfoSection: some View {
-        Section {
-            if let ci = vm.connInfo {
-                InfoRow(key: "容器地址", value: ci.containerName ?? vm.system.address ?? "-")
-                if let port = ci.port { InfoRow(key: "端口", value: "\(port)") }
-                InfoRow(key: "外部地址", value: "127.0.0.1")
-                if let user = ci.username, !user.isEmpty {
-                    InfoRow(key: "用户名", value: user)
+    /// 抽屉操作：启停/重启/终端 + 连接信息 + 创建数据库/用户
+    private func drawerActions(_ check: AppInstallCheck) -> [ServiceAction] {
+        var actions: [ServiceAction] = [
+            ServiceAction(
+                title: check.isRunning ? "停止" : "启动",
+                icon: check.isRunning ? "stop.fill" : "play.fill",
+                color: check.isRunning ? .orange : .green
+            ) { pendingAction = check.isRunning ? "stop" : "start" },
+            ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+                pendingAction = "restart"
+            },
+            ServiceAction(
+                title: "终端",
+                icon: "terminal",
+                color: .teal,
+                isDisabled: vm.isMongoDB && (check.containerName?.isEmpty ?? true)
+            ) {
+                if vm.isRedis {
+                    showRedisTerminal = true
+                } else if vm.isMongoDB {
+                    showContainerTerminal = true
+                } else {
+                    showDatabaseTerminal = true
                 }
-
-                if vm.supportsRemoteAccess {
-                    Toggle(isOn: Binding(
-                        get: { vm.remoteAccess },
-                        set: { on in Task { await vm.toggleRemote(on) } }
-                    )) {
-                        Label("远程访问", systemImage: "network")
-                    }
-                    .disabled(vm.isOperating)
-                }
-
-                if let pwd = ci.password, !pwd.isEmpty {
-                    PasswordRow(password: pwd)
-                    Button {
-                        if vm.isRedis {
-                            showRedisPasswordSheet = true
-                        } else {
-                            showServicePasswordSheet = true
-                        }
-                    } label: {
-                        Label("修改密码", systemImage: "key")
-                    }
-                }
-            } else {
-                HStack { Spacer(); ProgressView(); Spacer() }
-            }
-        } header: {
-            SectionLabel(title: "连接信息", systemImage: "link")
+            },
+            ServiceAction(title: "连接信息", icon: "link", color: .cyan) {
+                showConnInfo = true
+            },
+        ]
+        if vm.supportsDatabaseList {
+            actions.append(ServiceAction(
+                title: "创建数据库",
+                icon: "cylinder",
+                color: .indigo,
+                customIcon: "icon-create-database"
+            ) {
+                showCreate = true
+            })
         }
+        if vm.supportsUserManagement {
+            actions.append(ServiceAction(title: "创建用户", icon: "person.badge.plus", color: .mint) {
+                showCreateUser = true
+            })
+        }
+        return actions
     }
 
     // MARK: 数据库列表
@@ -866,6 +813,80 @@ struct DatabaseSystemView: View {
             }
         } header: {
             SectionLabel(title: "用户（\(vm.users.count)）", systemImage: "person.2")
+        }
+    }
+}
+
+// MARK: - 连接信息页（由详情页抽屉「连接信息」进入）
+
+struct DatabaseConnInfoView: View {
+    @ObservedObject var vm: DatabaseSystemViewModel
+    @State private var showServicePasswordSheet = false
+    @State private var showRedisPasswordSheet = false
+
+    var body: some View {
+        List {
+            Section {
+                if let ci = vm.connInfo {
+                    InfoRow(key: "容器地址", value: ci.containerName ?? vm.system.address ?? "-")
+                    if let port = ci.port { InfoRow(key: "端口", value: "\(port)") }
+                    InfoRow(key: "外部地址", value: "127.0.0.1")
+                    if let user = ci.username, !user.isEmpty {
+                        InfoRow(key: "用户名", value: user)
+                    }
+
+                    if vm.supportsRemoteAccess {
+                        Toggle(isOn: Binding(
+                            get: { vm.remoteAccess },
+                            set: { on in Task { await vm.toggleRemote(on) } }
+                        )) {
+                            Label("远程访问", systemImage: "network")
+                        }
+                        .disabled(vm.isOperating)
+                    }
+
+                    if let pwd = ci.password, !pwd.isEmpty {
+                        PasswordRow(password: pwd)
+                        Button {
+                            if vm.isRedis {
+                                showRedisPasswordSheet = true
+                            } else {
+                                showServicePasswordSheet = true
+                            }
+                        } label: {
+                            Label("修改密码", systemImage: "key")
+                        }
+                    }
+                } else {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                }
+            } header: {
+                SectionLabel(title: "连接信息", systemImage: "link")
+            }
+        }
+        .navigationTitle("连接信息")
+        .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await vm.loadConnInfo() }
+        .sheet(isPresented: $showServicePasswordSheet) {
+            ChangePasswordSheet(
+                title: "修改 \(vm.system.displayName) 密码",
+                currentPassword: vm.connInfo?.password
+            ) { newPassword in
+                Task { await vm.changeServicePassword(newPassword) }
+            }
+        }
+        .sheet(isPresented: $showRedisPasswordSheet) {
+            RedisPasswordSheet(
+                currentPassword: vm.connInfo?.password
+            ) { newPassword in
+                Task {
+                    let ok = await vm.changeRedisPassword(newPassword)
+                    if ok {
+                        await vm.operate("restart")
+                        await vm.loadConnInfo()
+                    }
+                }
+            }
         }
     }
 }
