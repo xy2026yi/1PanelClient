@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ServersView: View {
     @ObservedObject var manager: ServerManager
+    @ObservedObject private var health = ServerHealthMonitor.shared
     @State private var showAdd = false
     @State private var editingServer: ServerConfig?
     @State private var serverToRemove: ServerConfig?
@@ -20,6 +21,7 @@ struct ServersView: View {
                     ServerRow(
                         server: server,
                         isCurrent: server.id == manager.currentServerID,
+                        health: health.state(for: server.id),
                         onTap: {
                             manager.select(server)
                         },
@@ -36,14 +38,22 @@ struct ServersView: View {
                     }
                 }
             } footer: {
-                Text("单击切换服务器，长按编辑，左滑移除")
+                Text("单击切换服务器，长按编辑，左滑移除；下拉刷新健康状态")
             }
+        }
+        .refreshable {
+            await health.checkAll()
+        }
+        .onAppear {
+            health.start()
+        }
+        .onDisappear {
+            health.stop()
         }
         .navigationTitle("服务器")
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton { showAdd = true }
-                .accessibilityLabel("添加服务器")
+            FloatingActionButton(accessibilityText: "添加服务器") { showAdd = true }
         }
         .navigationDestination(isPresented: $showAdd) {
             ServerEditView(manager: manager, presentedAsSheet: false)
@@ -73,10 +83,12 @@ struct ServersView: View {
     }
 }
 
-/// 服务器行：样式与设置页「当前服务器」一致（图标 + 名称 + 地址），当前服务器带选中标记
+/// 服务器行：样式与设置页「当前服务器」一致（图标 + 名称 + 地址），当前服务器带选中标记，
+/// 尾部健康徽标：绿=在线 红=离线 灰=未检测
 private struct ServerRow: View {
     let server: ServerConfig
     let isCurrent: Bool
+    let health: ServerHealth
     let onTap: () -> Void
     let onLongPress: () -> Void
 
@@ -88,12 +100,26 @@ private struct ServerRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(server.name)
                     .font(.headline)
-                Text(server.normalizedBaseURL)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    if server.apiKey.isEmpty {
+                        Label("API Key 已失效，长按重新录入", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .lineLimit(1)
+                    }
+                    if server.isPlainHTTP {
+                        Label("HTTP", systemImage: "lock.open")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.orange)
+                    }
+                    Text(server.normalizedBaseURL)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
             Spacer()
+            healthBadge
             if isCurrent {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
@@ -103,5 +129,24 @@ private struct ServerRow: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
         .onLongPressGesture(perform: onLongPress)
+    }
+
+    @ViewBuilder
+    private var healthBadge: some View {
+        switch health {
+        case .unknown:
+            StatusDot(color: .gray, diameter: 8)
+                .accessibilityLabel("健康状态未知")
+        case .checking:
+            ProgressView()
+                .controlSize(.mini)
+                .accessibilityLabel("正在检测连接")
+        case .online(let host):
+            StatusDot(color: .green, diameter: 8)
+                .accessibilityLabel("在线\(host.isEmpty ? "" : "：\(host)")")
+        case .offline(let msg):
+            StatusDot(color: .red, diameter: 8)
+                .accessibilityLabel("离线：\(msg)")
+        }
     }
 }

@@ -40,6 +40,7 @@ struct EllipsisMenuButton: View {
                 Image(systemName: "ellipsis.circle")
             }
         }
+        .accessibilityLabel(isLoading ? "加载中" : "更多操作")
     }
 }
 

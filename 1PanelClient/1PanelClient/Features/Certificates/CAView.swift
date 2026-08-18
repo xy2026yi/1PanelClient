@@ -41,6 +41,7 @@ struct CAListView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
+                    .accessibilityLabel("刷新")
             }
         }
         .overlay(alignment: .bottomTrailing) {

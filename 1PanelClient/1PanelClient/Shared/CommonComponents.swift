@@ -172,6 +172,7 @@ struct CheckRow: View {
             }
         }
         .contentShape(Rectangle())
+        .accessibilityValue(isSelected ? "已选中" : "")
     }
 }
 
@@ -182,6 +183,8 @@ struct CheckRow: View {
 struct FloatingActionButton: View {
     var systemImage: String = "plus"
     var color: Color = .accentColor
+    /// VoiceOver 读出的操作描述（如「添加服务器」「创建数据库」）
+    var accessibilityText: String = "添加"
     let action: () -> Void
 
     var body: some View {
@@ -193,6 +196,7 @@ struct FloatingActionButton: View {
                 .background(color, in: Circle())
                 .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
         }
+        .accessibilityLabel(accessibilityText)
         .padding(.trailing, 20)
         .padding(.bottom, 20)
     }
@@ -204,6 +208,8 @@ struct FloatingActionButton: View {
 struct MenuFloatingActionButton<MenuItems: View>: View {
     var systemImage: String = "plus"
     var color: Color = .accentColor
+    /// VoiceOver 读出的操作描述（如「创建」）
+    var accessibilityText: String = "添加"
     @ViewBuilder let menuItems: () -> MenuItems
 
     var body: some View {
@@ -217,6 +223,7 @@ struct MenuFloatingActionButton<MenuItems: View>: View {
                 .background(color, in: Circle())
                 .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
         }
+        .accessibilityLabel(accessibilityText)
         .padding(.trailing, 20)
         .padding(.bottom, 20)
     }
