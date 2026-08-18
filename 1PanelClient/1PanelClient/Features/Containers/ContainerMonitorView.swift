@@ -219,6 +219,21 @@ struct ContainerMonitorChart: View {
         .chartForegroundStyleScale(styles)
         // 图表下方不显示系列名图例行（拖动浮层已按颜色标注各系列）
         .chartLegend(.hidden)
+        // 固定 0 起点 + 最小值域 1，避免数据恒为 0（如空闲 CPU）时值域退化为 [0,0]、
+        // 自动刻度不渲染导致左侧无百分比标签
+        .chartYScale(domain: 0...yHeadroom)
+        .chartXAxis {
+            // 显式步长 + 统一 HH:mm:ss 格式：默认轴会在点少时逐点打标签、
+            // 拥挤时截断出残缺文字；跨度不足一个步长时退回自动（少量标签）
+            AxisMarks(values: xMarks) { value in
+                AxisGridLine()
+                AxisValueLabel(centered: false) {
+                    if let d = value.as(Date.self) {
+                        Text(Self.timeFormatter.string(from: d))
+                    }
+                }
+            }
+        }
         .chartYAxis {
             AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
                 AxisGridLine()
@@ -305,6 +320,39 @@ struct ContainerMonitorChart: View {
               let last = points.map(\.date).max() else { return date }
         return min(max(date, first), last)
     }
+
+    /// Y 轴上限：数据最大值留 15% 余量，下限至少 1 个单位（全 0/极小值时刻度仍可读）
+    private var yHeadroom: Double {
+        max((points.map(\.value).max() ?? 0) * 1.15, 1)
+    }
+
+    /// X 轴刻度：按数据时间跨度选 3~4 个「整洁」间隔；跨度不足一个步长时退回自动
+    private var xMarks: AxisMarkValues {
+        let dates = points.map(\.date)
+        guard let first = dates.min(), let last = dates.max() else {
+            return .automatic(desiredCount: 2)
+        }
+        let stride = Self.xStrideSeconds(span: last.timeIntervalSince(first))
+        if last.timeIntervalSince(first) < Double(stride) {
+            return .automatic(desiredCount: 2)
+        }
+        return .stride(by: .second, count: stride)
+    }
+
+    /// 从 5s 到 1h 的整洁步长中取首个 ≥ 跨度/3 的值
+    private static func xStrideSeconds(span: TimeInterval) -> Int {
+        let target = max(span / 3, 1)
+        for nice in [5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600] where Double(nice) >= target {
+            return nice
+        }
+        return 3600
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss"
+        return f
+    }()
 
     /// Y 轴刻度文本：整数直接拼单位（30KB），小数保留一位（0.5KB）
     private static func axisText(_ value: Double, unit: String) -> String {
