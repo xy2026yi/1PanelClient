@@ -609,7 +609,8 @@ struct WebsiteRedirectEditView: View {
             type: type,
             redirect: method,
             path: type == "path" ? path : "",
-            target: (is404 && redirectRoot) ? "" : target,
+            // 404 重定向到首页时服务端要求 target 非空，固定传 "http://"
+            target: (is404 && redirectRoot) ? "http://" : target,
             filePath: redirect?.filePath ?? "",
             content: redirect?.content ?? "",
             redirectRoot: redirectRoot

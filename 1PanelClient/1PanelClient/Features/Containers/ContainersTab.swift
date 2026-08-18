@@ -316,6 +316,9 @@ struct ContainerDetailView: View {
     @State private var pendingDelete = false
     @State private var pendingAction: String?
     @State private var isStatusExpanded = false
+    /// 暂停/恢复任务进度（非空时 push TaskProgressView）
+    @State private var progressTaskID: String?
+    @State private var progressTitle = ""
 
     private var isRunning: Bool { container.state.lowercased() == "running" }
     private var isPaused: Bool { container.state.lowercased() == "paused" }
@@ -393,6 +396,22 @@ struct ContainerDetailView: View {
                 ),
                 title: container.displayName
             )
+        }
+        // 暂停/恢复任务进度页；完成或转后台后刷新列表并返回
+        .navigationDestination(isPresented: Binding(
+            get: { progressTaskID != nil },
+            set: { if !$0 { progressTaskID = nil } }
+        )) {
+            if let taskID = progressTaskID {
+                TaskProgressView(taskID: taskID, title: progressTitle) { _ in
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(400))
+                        await vm.refresh()
+                    }
+                    progressTaskID = nil
+                    return true
+                }
+            }
         }
         .sheet(isPresented: $showTerminalCommandPicker) {
             TerminalCommandPicker(command: $terminalCommand) {
@@ -605,7 +624,17 @@ struct ContainerDetailView: View {
         let action = pendingAction
         pendingAction = nil
         guard let action else { return }
-        Task { await vm.operateContainer(name: container.name, operation: action) }
+        Task {
+            // 暂停/恢复为异步任务，提交后进入任务进度页轮询日志
+            if action == "pause" || action == "unpause" {
+                progressTitle = action == "pause" ? "暂停容器" : "恢复容器"
+                if let taskID = await vm.operateContainerTask(name: container.name, operation: action) {
+                    progressTaskID = taskID
+                }
+            } else {
+                await vm.operateContainer(name: container.name, operation: action)
+            }
+        }
     }
 }
 
@@ -2171,6 +2200,27 @@ final class ContainersViewModel: ObservableObject {
             showAlert(message: "\(opName)容器「\(name)」任务已提交")
         } catch {
             showAlert(message: "\(opName)容器失败：\(error.localizedDescription)")
+        }
+    }
+
+    /// 提交容器操作并返回 taskID（供 TaskProgressView 轮询进度）；失败返回 nil
+    func operateContainerTask(name: String, operation: String) async -> String? {
+        containerOperating = true
+        defer { containerOperating = false }
+        let taskID = UUID().uuidString
+        let req = ContainerOperateRequest(names: [name], operation: operation, taskID: taskID)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersOperate.path,
+                body: req, as: EmptyResponse.self
+            )
+            return taskID
+        } catch let err as APIError {
+            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "操作失败：\(error.localizedDescription)")
+            return nil
         }
     }
 
