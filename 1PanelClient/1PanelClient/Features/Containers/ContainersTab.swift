@@ -303,9 +303,17 @@ private struct PortsInfoRow: View {
 // MARK: - 容器详情页
 
 struct ContainerDetailView: View {
-    let container: Container
     let server: ServerConfig
     @ObservedObject var vm: ContainersViewModel
+    /// 最新容器状态（下拉刷新 / 暂停等任务完成后更新），初始为进入时的快照
+    @State private var current: Container
+
+    init(container: Container, server: ServerConfig, vm: ContainersViewModel) {
+        self.server = server
+        self.vm = vm
+        _current = State(initialValue: container)
+    }
+
     @State private var showMenuAlert = false
     @State private var menuAlertMessage = ""
     @State private var showUpgrade = false
@@ -320,8 +328,8 @@ struct ContainerDetailView: View {
     @State private var progressTaskID: String?
     @State private var progressTitle = ""
 
-    private var isRunning: Bool { container.state.lowercased() == "running" }
-    private var isPaused: Bool { container.state.lowercased() == "paused" }
+    private var isRunning: Bool { current.state.lowercased() == "running" }
+    private var isPaused: Bool { current.state.lowercased() == "paused" }
     private var statusText: String {
         if isRunning { return "运行中" }
         if isPaused { return "已暂停" }
@@ -338,63 +346,66 @@ struct ContainerDetailView: View {
             statusSection
 
             Section("基本信息") {
-                if let img = container.imageName, !img.isEmpty {
+                if let img = current.imageName, !img.isEmpty {
                     InfoRow("镜像", value: img)
                 }
-                if let app = container.appName, !app.isEmpty {
+                if let app = current.appName, !app.isEmpty {
                     NavigationLink {
-                        AppDetailFromContainerView(container: container, server: server)
+                        AppDetailFromContainerView(container: current, server: server)
                     } label: {
                         InfoRow("应用程序", value: app)
                     }
                     .buttonStyle(.plain)
                 }
-                if let sites = container.websites, !sites.isEmpty {
+                if let sites = current.websites, !sites.isEmpty {
                     InfoRow("网站", value: sites.joined(separator: "\n"))
                 }
-                if let ports = container.ports, !ports.isEmpty {
+                if let ports = current.ports, !ports.isEmpty {
                     PortsInfoRow(ports: ports)
                 }
-                InfoRow("运行时长", value: container.runTime ?? "—")
-                if let created = container.createTime, !created.isEmpty {
+                InfoRow("运行时长", value: current.runTime ?? "—")
+                if let created = current.createTime, !created.isEmpty {
                     InfoRow("创建时间", value: String(created.prefix(19)))
                 }
             }
 
             Section {
                 NavigationLink {
-                    ContainerLogView(container: container, vm: vm)
+                    ContainerLogView(container: current, vm: vm)
                 } label: {
                     Label("日志", systemImage: "doc.text")
                 }
                 .buttonStyle(.plain)
                 NavigationLink {
-                    ContainerMonitorView(container: container)
+                    ContainerMonitorView(container: current)
                 } label: {
                     Label("监控", systemImage: "chart.xyaxis.line")
                 }
                 .buttonStyle(.plain)
             }
         }
-        .navigationTitle(container.displayName)
+        .navigationTitle(current.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable {
+            await refreshContainer()
+        }
         .navigationDestination(isPresented: $showUpgrade) {
-            ContainerUpgradeView(container: container, vm: vm)
+            ContainerUpgradeView(container: current, vm: vm)
         }
         .navigationDestination(isPresented: $showEdit) {
-            ContainerEditView(container: container, vm: vm)
+            ContainerEditView(container: current, vm: vm)
         }
         .navigationDestination(isPresented: $showTerminal) {
             TerminalView(
                 server: server,
                 target: .container(
-                    containerID: container.containerID,
+                    containerID: current.containerID,
                     user: "",
                     command: terminalCommand,
                     cols: 80,
                     rows: 24
                 ),
-                title: container.displayName
+                title: current.displayName
             )
         }
         // 暂停/恢复任务进度页；完成或转后台后刷新列表并返回
@@ -406,7 +417,7 @@ struct ContainerDetailView: View {
                 TaskProgressView(taskID: taskID, title: progressTitle) { _ in
                     Task {
                         try? await Task.sleep(for: .milliseconds(400))
-                        await vm.refresh()
+                        await refreshContainer()
                     }
                     progressTaskID = nil
                     return true
@@ -427,10 +438,10 @@ struct ContainerDetailView: View {
         .alert("删除容器", isPresented: $pendingDelete) {
             Button("取消", role: .cancel) {}
             Button("删除", role: .destructive) {
-                Task { await vm.operateContainer(name: container.name, operation: "remove") }
+                Task { await vm.operateContainer(name: current.name, operation: "remove") }
             }
         } message: {
-            Text("确定删除容器「\(container.displayName)」吗？删除后不可恢复。")
+            Text("确定删除容器「\(current.displayName)」吗？删除后不可恢复。")
         }
         .alert(
             pendingAction.map { containerActionDisplayName($0) } ?? "",
@@ -473,7 +484,7 @@ struct ContainerDetailView: View {
     private var headerRow: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(container.displayName)
+                Text(current.displayName)
                     .font(.body.bold())
                     .lineLimit(1)
                 Text(statusText)
@@ -567,7 +578,7 @@ struct ContainerDetailView: View {
                 icon: "trash",
                 color: .red
             ) {
-                if container.isFromApp == true {
+                if current.isFromApp == true {
                     menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
                     showMenuAlert = true
                 } else {
@@ -628,12 +639,20 @@ struct ContainerDetailView: View {
             // 暂停/恢复为异步任务，提交后进入任务进度页轮询日志
             if action == "pause" || action == "unpause" {
                 progressTitle = action == "pause" ? "暂停容器" : "恢复容器"
-                if let taskID = await vm.operateContainerTask(name: container.name, operation: action) {
+                if let taskID = await vm.operateContainerTask(name: current.name, operation: action) {
                     progressTaskID = taskID
                 }
             } else {
-                await vm.operateContainer(name: container.name, operation: action)
+                await vm.operateContainer(name: current.name, operation: action)
             }
+        }
+    }
+
+    /// 下拉刷新 / 任务完成后刷新：重拉容器列表并更新本页快照
+    private func refreshContainer() async {
+        await vm.refresh()
+        if let updated = vm.containers.first(where: { $0.containerID == current.containerID }) {
+            current = updated
         }
     }
 }
