@@ -316,7 +316,7 @@ struct OverviewTab: View {
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.apps) } label: {
-                StatCard(title: "应用", count: b.appInstalledNumber, icon: "app.badge", color: .blue, updateCount: vm.appUpdateCount, customIcon: "icon-apps")
+                StatCard(title: "应用", count: b.appInstalledNumber, icon: "app.badge", color: .blue, updateCount: vm.appUpdateCount, customIcon: "icon-apps-o")
             }
             .buttonStyle(PressableCardStyle())
 
@@ -505,7 +505,7 @@ struct RingStatView: View {
     }
 }
 
-/// 资源统计卡左上角图标：默认 SF Symbol，可换内置自绘图标（docker 鲸鱼 / 应用四宫格）
+/// 资源统计卡左上角图标：默认 SF Symbol，可换内置自绘图标（docker 鲸鱼 / 应用空心四宫格）
 struct StatCard: View {
     let title: String
     let count: Int?
@@ -558,7 +558,7 @@ struct StatCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    /// 自定义图标（logs/docker.svg 鲸鱼、logs/应用.svg 四宫格）与 SF Symbol 同尺寸展示
+    /// 自定义图标（logs/docker.svg 鲸鱼、logs/应用APP_o.svg 空心四宫格）与 SF Symbol 同尺寸展示
     @ViewBuilder
     private var iconView: some View {
         if let customIcon {
