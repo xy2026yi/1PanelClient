@@ -60,7 +60,7 @@ struct WebsitesTab: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: "证书") { showCerts = true },
+                    .action(title: "SSL证书") { showCerts = true },
                 ]) {
                     withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
