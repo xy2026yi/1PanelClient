@@ -64,7 +64,14 @@ struct ContainerDetailView: View {
                     .buttonStyle(.plain)
                 }
                 if let sites = current.websites, !sites.isEmpty {
-                    InfoRow("网站", value: sites.joined(separator: "\n"))
+                    ForEach(sites, id: \.self) { site in
+                        NavigationLink {
+                            WebsiteDetailFromContainerView(domain: site, server: server)
+                        } label: {
+                            InfoRow("网站", value: site)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 if let ports = current.ports, !ports.isEmpty {
                     PortsInfoRow(ports: ports)
@@ -408,6 +415,52 @@ struct AppDetailFromContainerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if vm.apps.isEmpty { await vm.refresh() }
+        }
+    }
+}
+
+/// 容器详情 → 关联网站详情：
+/// 容器接口的 websites 为「主域名:端口」形式，搜索网站列表后按 primaryDomain /
+/// 去端口的域名（alias）匹配，直接展示网站详情页（返回即回容器详情）
+struct WebsiteDetailFromContainerView: View {
+    let domain: String
+    let server: ServerConfig
+    @StateObject private var vm: WebsitesViewModel
+
+    init(domain: String, server: ServerConfig) {
+        self.domain = domain
+        self.server = server
+        _vm = StateObject(wrappedValue: WebsitesViewModel(server: server))
+    }
+
+    /// 去掉端口后的域名（adg.domain.xyz:443 → adg.domain.xyz）
+    private var host: String {
+        domain.split(separator: ":", maxSplits: 1).first.map(String.init) ?? domain
+    }
+
+    private var matchedWebsite: Website? {
+        vm.websites.first { $0.primaryDomain == domain }
+            ?? vm.websites.first { $0.primaryDomain == host || $0.alias == host }
+    }
+
+    var body: some View {
+        Group {
+            if vm.isLoading && vm.websites.isEmpty {
+                ProgressView("加载中…")
+            } else if let website = matchedWebsite {
+                WebsiteDetailView(website: website, vm: vm)
+            } else {
+                ContentUnavailableView(
+                    "未找到网站",
+                    systemImage: "globe",
+                    description: Text("未找到域名「\(host)」对应的网站，可能已被删除")
+                )
+            }
+        }
+        .navigationTitle("网站")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if vm.websites.isEmpty { await vm.search(query: "") }
         }
     }
 }
