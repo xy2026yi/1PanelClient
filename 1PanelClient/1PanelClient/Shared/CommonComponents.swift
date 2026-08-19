@@ -11,13 +11,15 @@ import SwiftUI
 
 struct ToastOverlay: ViewModifier {
     @Binding var message: String?
+    var systemImage: String = "checkmark.circle.fill"
+    var iconColor: Color = .green
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .top) {
             if let msg = message {
                 HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                    Image(systemName: systemImage)
+                        .foregroundStyle(iconColor)
                     Text(msg)
                         .font(.subheadline.weight(.medium))
                 }
@@ -34,9 +36,12 @@ struct ToastOverlay: ViewModifier {
 }
 
 extension View {
-    /// 显示自动消失的轻量提示（2 秒后自动消失，无需用户确认）
-    func toastOverlay(message: Binding<String?>) -> some View {
-        modifier(ToastOverlay(message: message))
+    /// 显示自动消失的轻量提示（2 秒后自动消失，无需用户确认）；
+    /// 默认绿色对勾（成功语义），失败提示传 exclamationmark.triangle.fill + orange
+    func toastOverlay(message: Binding<String?>,
+                      systemImage: String = "checkmark.circle.fill",
+                      iconColor: Color = .green) -> some View {
+        modifier(ToastOverlay(message: message, systemImage: systemImage, iconColor: iconColor))
     }
 }
 

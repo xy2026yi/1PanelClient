@@ -21,10 +21,17 @@ final class ContainerMonitorViewModel: ObservableObject {
     @Published var netTXPoints: [MonitorPoint] = []    // 上行 KB/s
     @Published var netRXPoints: [MonitorPoint] = []    // 下行 KB/s
     @Published var errorMessage: String?
+    /// 轻提示（自动消失）：已有数据后采样持续失败时提示一次
+    @Published var toastMessage: String?
 
-    /// 每系列最多保留采样点数：图表窗口为 12 个采样位（两端边缘也是采样位），
-    /// 满后旧样本从左侧推出
-    private let maxPoints = 12
+    /// 连续失败计数：达到阈值后轻提示（错误页仅在完全没有数据时显示）
+    private var consecutiveFailures = 0
+    private static let failureToastThreshold = 3
+    private var toastTask: Task<Void, Never>?
+
+    /// 每系列最多保留采样点数：与图表窗口采样位保持同源
+    /// （满后旧样本从左侧推出）
+    private let maxPoints = MonitorSlotWindow.slotCount
     private let client: APIClient
 
     init(server: ServerConfig) {
@@ -40,6 +47,7 @@ final class ContainerMonitorViewModel: ObservableObject {
                 path: path, method: APIEndpoint.containersStats.method, as: ContainerStatsSnapshot.self
             )
             errorMessage = nil
+            consecutiveFailures = 0
             // X 网格取本地采样时刻：服务器 shotTime 受缓存/抖动影响且可能出现重复值，
             // 直接采用会让时间标签间隔忽大忽小（12s/13s/15s 混杂）
             let date = Date()
@@ -52,6 +60,23 @@ final class ContainerMonitorViewModel: ObservableObject {
             push(.init(date: date, value: stats.networkRX ?? 0), into: &netRXPoints)
         } catch {
             errorMessage = error.localizedDescription
+            // 已有数据时不打断图表，连续失败到阈值后轻提示一次
+            if !cpuPoints.isEmpty {
+                consecutiveFailures += 1
+                if consecutiveFailures == Self.failureToastThreshold {
+                    showToast("监控数据获取失败，图表显示为最近数据")
+                }
+            }
+        }
+    }
+
+    /// 显示自动消失的轻提示（2 秒）
+    private func showToast(_ message: String) {
+        toastTask?.cancel()
+        toastMessage = message
+        toastTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            if !Task.isCancelled { self?.toastMessage = nil }
         }
     }
 
@@ -94,6 +119,9 @@ struct ContainerMonitorView: View {
         .environment(\.defaultMinListRowHeight, 32)
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
+        .toastOverlay(message: $vm.toastMessage,
+                      systemImage: "exclamationmark.triangle.fill",
+                      iconColor: .orange)
         .onChange(of: scenePhase) { _, phase in
             isSceneActive = phase == .active
         }
@@ -189,15 +217,8 @@ struct ContainerMonitorView: View {
 /// 点击/拖动选中采样位：每条曲线在该位显示同色圆点，
 /// 数值气泡水平居中于选中位置、悬浮于最高一条曲线的上方（再次点击同一位取消选中）。
 struct ContainerMonitorChart: View {
-    /// 窗口采样位总数（首尾贴住绘图区边缘）
-    static let slotCount = 12
-    /// 绘图区高度（Y 轴顶部预留比例按此换算）
+    /// 图表高度（Y 轴顶部预留比例按此换算）
     private static let plotHeight: CGFloat = 120
-    /// 绘图区两端的留白（采样位单位）：X 值域向两侧各扩这么多，
-    /// 首尾时间标签居中后完整落在行内、两端数据点不被边缘裁半
-    private static let edgePad = 0.5
-    /// X 值域总跨度（11 个采样间隔 + 两端留白）
-    private static let xSpan = Double(slotCount - 1) + 2 * edgePad
     /// 画竖向虚线的采样位（内部 10 个、等距；两端边缘采样位不画）
     private static let dashSlots = Array(1...10)
     /// 时间标签的采样位（正对采样位居中；首尾为窗口两端）。
@@ -220,8 +241,9 @@ struct ContainerMonitorChart: View {
     @State private var labelWidth: CGFloat = 0
 
     var body: some View {
-        let plotted = plottedPoints
-        let slots = slotByDate
+        let window = MonitorSlotWindow(points: points)
+        let plotted = window.inWindow(points)
+        let slots = window.slotByDate
         let seriesCounts = Dictionary(grouping: plotted, by: \.kind).mapValues(\.count)
         return VStack(spacing: 2) {
             Chart {
@@ -267,7 +289,7 @@ struct ContainerMonitorChart: View {
             // 自动刻度不渲染导致左侧无百分比标签
             .chartYScale(domain: 0...yHeadroom)
             // 固定采样窗口（两端各留半个采样位边距），虚线/标签位置恒定不动
-            .chartXScale(domain: -Self.edgePad...Double(Self.slotCount - 1) + Self.edgePad)
+            .chartXScale(domain: MonitorSlotWindow.xDomain)
             // 时间标签自绘（见 timeAxis）：系统轴的自动碰撞会丢弃/裁切标签，位置无法稳定控制
             .chartXAxis(.hidden)
             .chartYAxis {
@@ -292,13 +314,13 @@ struct ContainerMonitorChart: View {
                         .gesture(
                             DragGesture(minimumDistance: 0)
                                 .onChanged { gesture in
-                                    guard plotFrame.width > 0, !sampleDates.isEmpty else { return }
+                                    guard plotFrame.width > 0, !window.dates.isEmpty else { return }
                                     if slotAtGestureStart == nil {
                                         slotAtGestureStart = selectedSlot
                                     }
                                     let x = gesture.location.x - plotFrame.minX
                                     guard x >= 0, x <= plotFrame.width else { return }
-                                    selectedSlot = slot(atX: x, plotWidth: plotFrame.width)
+                                    selectedSlot = window.slot(atX: x, plotWidth: plotFrame.width)
                                 }
                                 .onEnded { _ in
                                     // 再次点击已选中的采样位取消；拖到别的位松手则保持新选中
@@ -322,7 +344,7 @@ struct ContainerMonitorChart: View {
                         let entries = entries(atSlot: sel)
                         if let topValue = entries.map(\.value).max() {
                             let xCenter = plotFrame.minX
-                                + plotFrame.width * xFraction(Double(sel))
+                                + plotFrame.width * MonitorSlotWindow.xFraction(Double(sel))
                             let yTop = plotFrame.minY
                                 + plotFrame.height * (1 - topValue / yHeadroom)
                             let halfW = bubbleSize.width / 2, halfH = bubbleSize.height / 2
@@ -339,6 +361,9 @@ struct ContainerMonitorChart: View {
 
             timeAxis
         }
+        // VoiceOver：图表整体作为一个元素朗读摘要（折线内容无法逐点访问）
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
 
     // MARK: 自绘时间轴
@@ -348,18 +373,19 @@ struct ContainerMonitorChart: View {
     /// （由左至右逐个出现，末位标签在窗口填满时出现）。
     /// 两端留白后首尾标签已能完整居中；字体放大超出版心时仍收回边界内不被裁切（兜底）。
     private var timeAxis: some View {
-        GeometryReader { geo in
+        let window = MonitorSlotWindow(points: points)
+        return GeometryReader { geo in
             ForEach(Self.labelSlots, id: \.self) { slot in
-                if slot < sampleDates.count {
-                    Text(Self.timeFormatter.string(from: sampleDates[slot]))
+                if slot < window.dates.count {
+                    Text(Self.timeFormatter.string(from: window.dates[slot]))
                         .font(.caption2)
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
-                        .fixedSize()
-                        .position(
-                            x: clampedLabelX(slot, rowWidth: geo.size.width),
-                            y: geo.size.height / 2
-                        )
+                    .fixedSize()
+                    .position(
+                        x: clampedLabelX(slot, rowWidth: geo.size.width),
+                        y: geo.size.height / 2
+                    )
                 }
             }
         }
@@ -383,7 +409,7 @@ struct ContainerMonitorChart: View {
 
     /// 标签水平位置：正对采样位居中，首尾收回本行边界内
     private func clampedLabelX(_ slot: Int, rowWidth: CGFloat) -> CGFloat {
-        let x = plotRect.minX + plotRect.width * xFraction(Double(slot))
+        let x = plotRect.minX + plotRect.width * MonitorSlotWindow.xFraction(Double(slot))
         let half = labelWidth / 2
         return min(max(x, half), rowWidth - half)
     }
@@ -397,40 +423,11 @@ struct ContainerMonitorChart: View {
         }
     }
 
-    // MARK: 数据映射
-
-    /// 窗口内的采样时刻（全部系列去重升序，只保留最近 12 个）
-    private var sampleDates: [Date] {
-        Array(Set(points.map(\.date)).sorted().suffix(Self.slotCount))
-    }
-
-    /// 采样时刻 → 窗口内采样位（0...11）
-    private var slotByDate: [Date: Int] {
-        Dictionary(sampleDates.enumerated().map { ($1, $0) }, uniquingKeysWith: { a, _ in a })
-    }
-
-    /// 落在窗口内的数据点
-    private var plottedPoints: [LoadSeriesPoint] {
-        let slots = slotByDate
-        return points.filter { slots[$0.date] != nil }
-    }
-
-    /// 采样位（0...11）→ 绘图区水平比例（两端各留半个采样位）
-    private func xFraction(_ x: Double) -> CGFloat {
-        CGFloat((x + Self.edgePad) / Self.xSpan)
-    }
-
-    /// 触摸 x → 就近吸附的采样位（限制在已有样本范围内）
-    private func slot(atX x: CGFloat, plotWidth: CGFloat) -> Int? {
-        let v = Double(x / plotWidth) * Self.xSpan - Self.edgePad
-        let clamped = min(max(Int(v.rounded()), 0), sampleDates.count - 1)
-        return clamped >= 0 ? clamped : nil
-    }
-
     /// 选中采样位上指定系列的数值
     private func value(atSlot slot: Int, kind: String) -> Double? {
-        guard slot < sampleDates.count else { return nil }
-        let date = sampleDates[slot]
+        let dates = MonitorSlotWindow(points: points).dates
+        guard slot < dates.count else { return nil }
+        let date = dates[slot]
         return points.first { $0.kind == kind && $0.date == date }?.value
     }
 
@@ -470,10 +467,21 @@ struct ContainerMonitorChart: View {
     /// 保证选中最高点时气泡仍能完整悬于线上方；下限至少 1 个单位（全 0 时刻度仍可读）。
     /// 预留不依赖气泡实测尺寸——气泡只在选中后才被测量，那样 Y 轴会在首次选中时跳变
     private var yHeadroom: Double {
-        let peak = plottedPoints.map(\.value).max() ?? 0
+        let peak = MonitorSlotWindow(points: points).inWindow(points).map(\.value).max() ?? 0
         let bubbleHeight: Double = styles.count <= 1 ? 21 : 37   // 1 行 ≈ 21pt、2 行 ≈ 37pt
         let reserve = min((bubbleHeight + 12) / Double(Self.plotHeight), 0.45)
         return max(peak / (1 - reserve), peak * 1.15, 1)
+    }
+
+    /// 无障碍摘要：折线内容 VoiceOver 无法读取，以各系列最新采样值代替
+    private var accessibilitySummary: String {
+        let parts = Array(styles).compactMap { kind, _ -> String? in
+            guard let latest = points.filter { $0.kind == kind }.max(by: { $0.date < $1.date }) else {
+                return nil
+            }
+            return "\(kind)最新\(String(format: "%.2f%@", latest.value, unit))"
+        }
+        return parts.isEmpty ? "监控折线图，暂无数据" : "监控折线图：" + parts.joined(separator: "，")
     }
 
     private static let timeFormatter: DateFormatter = {
