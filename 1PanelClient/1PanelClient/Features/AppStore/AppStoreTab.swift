@@ -15,8 +15,6 @@ struct AppStoreTab: View {
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var showMenu = false
-    /// 同步远程前的确认提示
-    @State private var showRemoteSyncConfirm = false
     /// 同步本地任务的进度页（taskID 非空时 push TaskProgressView）
     @State private var syncTaskID: String?
 
@@ -63,7 +61,7 @@ struct AppStoreTab: View {
             if showMenu {
                 EllipsisMenuPopup(entries: [
                     .action(title: "更新远程", isDisabled: vm.isSyncing) {
-                        showRemoteSyncConfirm = true
+                        Task { await vm.syncRemote() }
                     },
                     .action(title: "同步本地", isDisabled: vm.isSyncing) {
                         Task {
@@ -77,18 +75,7 @@ struct AppStoreTab: View {
                 }
             }
         }
-        .confirmationDialog(
-            "更新远程应用",
-            isPresented: $showRemoteSyncConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("继续同步", role: .destructive) {
-                Task { await vm.syncRemote() }
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("将从远程应用商店同步最新应用数据，期间应用列表可能短暂不可用。确定继续吗？")
-        }
+        .toastOverlay(message: $vm.toastMessage)
         .navigationDestination(isPresented: Binding(
             get: { syncTaskID != nil },
             set: { if !$0 { syncTaskID = nil } }
@@ -914,6 +901,9 @@ final class AppStoreViewModel: ObservableObject {
     // 提示
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// 轻提示（短暂显示后自动消失，如远程同步完成）
+    @Published var toastMessage: String?
+    private var toastTask: Task<Void, Never>?
 
     let client: APIClient
 
@@ -995,27 +985,63 @@ final class AppStoreViewModel: ObservableObject {
 
     // MARK: - 同步应用商店
 
-    /// 更新远程应用（从远程商店拉取最新应用列表到本地）
+    /// 更新远程应用（从远程商店拉取最新应用列表到本地）。
+    /// 无进度页：后台轮询任务日志，完成时轻提示并刷新列表
     func syncRemote() async {
         isSyncing = true
         defer { isSyncing = false }
 
-        let req = ReqWithTaskID(taskID: UUID().uuidString)
+        let taskID = UUID().uuidString
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.appsSyncRemote.path,
-                body: req,
+                body: ReqWithTaskID(taskID: taskID),
                 as: EmptyResponse.self
             )
-            showAlert(message: "远程应用更新请求已提交，正在后台同步…")
-            // 同步后刷新应用列表
-            try? await Task.sleep(for: .seconds(1))
-            await refresh()
         } catch let err as APIError {
             showAlert(message: "同步失败：\(err.errorDescription ?? "未知错误")")
+            return
         } catch {
             showAlert(message: "同步失败：\(error.localizedDescription)")
+            return
         }
+
+        if await waitTaskDone(taskID: taskID) {
+            showToast("远程应用同步完成")
+            await refresh()
+        } else {
+            showAlert(message: "远程应用同步失败，请稍后在任务日志中查看详情")
+        }
+    }
+
+    /// 轮询任务日志直到任务结束（Success/Failed）；连续 20 次请求失败或超 10 分钟按失败处理
+    private func waitTaskDone(taskID: String) async -> Bool {
+        let req = TaskLogReadRequest(
+            id: 0, type: "task", name: "",
+            page: 1, pageSize: 500,
+            latest: true,
+            taskID: taskID,
+            taskType: "", taskOperate: "", resourceID: 0
+        )
+        var failures = 0
+        for _ in 0..<(10 * 60 / 3) {
+            do {
+                let resp: TaskLogResponse = try await client.send(
+                    path: APIEndpoint.logsTaskRead.path,
+                    body: req, as: TaskLogResponse.self
+                )
+                failures = 0
+                if let status = resp.taskStatus, status.lowercased() != "executing" {
+                    return status.lowercased() == "success"
+                }
+            } catch {
+                // 任务日志文件尚未创建等偶发错误不中断轮询
+                failures += 1
+                if failures > 20 { return false }
+            }
+            try? await Task.sleep(for: .seconds(3))
+        }
+        return false
     }
 
     /// 同步本地应用（将本地已安装应用状态同步到面板），返回任务 ID 供进度页轮询
@@ -1065,5 +1091,14 @@ final class AppStoreViewModel: ObservableObject {
     private func showAlert(message: String) {
         alertMessage = message
         showAlert = true
+    }
+
+    func showToast(_ message: String) {
+        toastTask?.cancel()
+        toastMessage = message
+        toastTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run { self?.toastMessage = nil }
+        }
     }
 }
