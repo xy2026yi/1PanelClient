@@ -11,6 +11,7 @@ struct SettingsTab: View {
     @State private var showAbout = false
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
     @AppStorage(SecurityGate.httpsOnlyKey) private var httpsOnly = false
+    @State private var languageRaw = L10n.shared.language.rawValue
 
     init(atRoot: Binding<Bool> = .constant(true)) {
         self._atRoot = atRoot
@@ -38,6 +39,19 @@ struct SettingsTab: View {
                 Text("跟随系统时随设备外观自动切换")
             }
 
+            // MARK: - 语言
+            Section {
+                Picker(L10n.t("语言"), selection: $languageRaw) {
+                    ForEach(L10n.Language.allCases) { lang in
+                        Text(lang.displayName).tag(lang.rawValue)
+                    }
+                }
+            } header: {
+                Text(L10n.t("语言"))
+            } footer: {
+                Text(L10n.t("切换后立即生效"))
+            }
+
             // MARK: - 安全
             Section {
                 Toggle("仅允许 HTTPS 连接", isOn: $httpsOnly)
@@ -58,6 +72,9 @@ struct SettingsTab: View {
         }
         .onChange(of: showAbout) { _, show in
             atRoot = !show
+        }
+        .onChange(of: languageRaw) { _, new in
+            L10n.shared.setLanguage(L10n.Language(rawValue: new) ?? .system)
         }
     }
 }

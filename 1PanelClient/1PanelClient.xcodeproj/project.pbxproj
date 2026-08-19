@@ -140,11 +140,12 @@
 				};
 			};
 			buildConfigurationList = 14904F5B2FE7BFC6009BA44F /* Build configuration list for PBXProject "1PanelClient" */;
-			developmentRegion = en;
+			developmentRegion = zh-Hans;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = 14904F572FE7BFC6009BA44F;
 			minimizedProjectReferenceProxies = 1;

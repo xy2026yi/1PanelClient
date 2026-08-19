@@ -4,13 +4,13 @@
 //
 //  1Panel 部分 API 字段（如脚本库 name/description）以 i18n 映射字符串返回：
 //  {"en": "Install Docker", "zh-hant": "安装 Docker"}
-//  本工具将其解析为当前偏好的中文（简/繁）文本，纯文本则原样返回。
+//  本工具将其解析为按 App 当前生效语言（L10n）匹配的文本，纯文本则原样返回。
 //
 
 import Foundation
 
-/// 解析 1Panel i18n 映射字符串，提取中文（优先简体），无中文时回退英文。
-/// 非 i18n 格式的纯文本直接原样返回。
+/// 解析 1Panel i18n 映射字符串，按 App 当前生效语言取值（英文时英文优先，否则中文优先），
+/// 均缺失时回退首项。非 i18n 格式的纯文本直接原样返回。
 nonisolated func resolveI18n(_ raw: String) -> String {
     let s = raw.trimmingCharacters(in: .whitespaces)
     guard s.hasPrefix("{") && s.hasSuffix("}") else { return raw }
@@ -25,13 +25,13 @@ nonisolated func resolveI18n(_ raw: String) -> String {
     return resolveI18nLoose(s) ?? raw
 }
 
-/// 从语言映射中按简体→繁体→英文→首项优先级取值
+/// 从语言映射中取值：App 生效语言为英文时 en → 中文 → 首项，否则中文（简→繁）→ 英文 → 首项
 private nonisolated func pickLang(_ dict: [String: String]) -> String? {
-    let prefs = ["zh-CN", "zh-Hans", "zh-hant", "zh-Hant", "zh-TW", "zh-tw", "zh"]
+    let zhPrefs = ["zh-CN", "zh-Hans", "zh-hant", "zh-Hant", "zh-TW", "zh-tw", "zh"]
+    let prefs = L10n.shared.isEnglishEffective ? ["en"] + zhPrefs : zhPrefs + ["en"]
     for p in prefs {
         if let v = dict[p], !v.isEmpty { return v }
     }
-    if let v = dict["en"], !v.isEmpty { return v }
     for (_, v) in dict where !v.isEmpty { return v }
     return nil
 }
