@@ -9,7 +9,7 @@ import Charts
 
 // MARK: - 容器监控页
 
-/// 单容器实时监控：按所选间隔轮询 /containers/stats/:id，
+/// 单容器实时监控：每 5 秒轮询 /containers/stats/:id，
 /// CPU / 内存(含缓存) / 磁盘I/O / 网络 四张曲线图（仅标题+图表）
 @MainActor
 final class ContainerMonitorViewModel: ObservableObject {
@@ -22,8 +22,9 @@ final class ContainerMonitorViewModel: ObservableObject {
     @Published var netRXPoints: [MonitorPoint] = []    // 下行 KB/s
     @Published var errorMessage: String?
 
-    /// 每系列最多保留采样点数（与网页端一致保留 20 个）
-    private let maxPoints = 20
+    /// 每系列最多保留采样点数：图表窗口为 12 个采样位（两端边缘也是采样位），
+    /// 满后旧样本从左侧推出
+    private let maxPoints = 12
     private let client: APIClient
 
     init(server: ServerConfig) {
@@ -39,7 +40,9 @@ final class ContainerMonitorViewModel: ObservableObject {
                 path: path, method: APIEndpoint.containersStats.method, as: ContainerStatsSnapshot.self
             )
             errorMessage = nil
-            guard let date = MonitorDate.parse(stats.shotTime ?? "") else { return }
+            // X 网格取本地采样时刻：服务器 shotTime 受缓存/抖动影响且可能出现重复值，
+            // 直接采用会让时间标签间隔忽大忽小（12s/13s/15s 混杂）
+            let date = Date()
             push(.init(date: date, value: stats.cpuPercent ?? 0), into: &cpuPoints)
             push(.init(date: date, value: stats.memory ?? 0), into: &memPoints)
             push(.init(date: date, value: stats.cache ?? 0), into: &cachePoints)
@@ -63,8 +66,6 @@ final class ContainerMonitorViewModel: ObservableObject {
 struct ContainerMonitorView: View {
     let container: Container
     @StateObject private var vm: ContainerMonitorViewModel
-    /// 刷新间隔（秒），默认 5s
-    @State private var interval = 5
     @Environment(\.scenePhase) private var scenePhase
     @State private var isSceneActive = true
 
@@ -77,19 +78,6 @@ struct ContainerMonitorView: View {
 
     var body: some View {
         List {
-            Section {
-                Picker("刷新间隔", selection: $interval) {
-                    Text("3s").tag(3)
-                    Text("5s").tag(5)
-                    Text("10s").tag(10)
-                    Text("30s").tag(30)
-                    Text("60s").tag(60)
-                }
-                .pickerStyle(.segmented)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowSeparator(.hidden)
-            }
-
             if let err = vm.errorMessage, vm.cpuPoints.isEmpty {
                 Section {
                     ContentUnavailableView(
@@ -109,13 +97,13 @@ struct ContainerMonitorView: View {
         .onChange(of: scenePhase) { _, phase in
             isSceneActive = phase == .active
         }
-        // 按所选间隔轮询（仅页面存活且 App 前台活跃时采样）
+        // 每 5 秒轮询一次（仅页面存活且 App 前台活跃时采样）
         .task {
             while !Task.isCancelled {
                 if isSceneActive {
                     await vm.sample(containerID: container.containerID)
                 }
-                try? await Task.sleep(for: .seconds(interval))
+                try? await Task.sleep(for: .seconds(5))
             }
         }
     }
@@ -139,7 +127,7 @@ struct ContainerMonitorView: View {
 
     // MARK: 图表区（标题 + 图表）
 
-    /// - Parameter styles: 双曲线各自的系列名与颜色（拖动浮层按此过滤显示，传入本图表实际包含的系列）
+    /// - Parameter styles: 双曲线各自的系列名与颜色（数值气泡按此过滤显示，传入本图表实际包含的系列）
     @ViewBuilder
     private func monitorSection(
         _ title: String,
@@ -188,47 +176,99 @@ struct ContainerMonitorView: View {
     }
 }
 
-// MARK: - 可拖动查看数值的监控图表
+// MARK: - 固定采样网格的监控图表
 
-/// 折线图 + 拖动浮层：按住图表横向滑动显示竖排数值（按值降序，颜色与曲线一致），
-/// 交互与管理 - 监控的磁盘 I/O / 网络图表相同
+/// 折线图 + 固定采样网格 + 点选查看数值：
+/// X 轴为固定 12 个采样位的窗口，绘图区两端各留半个采样位边距
+/// （首尾数据点不贴边、时间标签正对采样位居中后完整落在行内）；
+/// 中间 10 个采样位（1...10）各画一条等距竖向虚线，两端边缘采样位不画；
+/// 时间标签固定 4 个，正对采样位居中显示（采样位 0、4、8、11——
+/// 中间两个正好在虚线正下方，首尾在窗口两端），相邻标签之间隔 3/3/2 条虚线；
+/// 初始样本由左至右逐位填充（时间标签随之从左至右出现），
+/// 窗口满后保留最近 12 个样本、曲线向左推进；
+/// 点击/拖动选中采样位：每条曲线在该位显示同色圆点，
+/// 数值气泡水平居中于选中位置、悬浮于最高一条曲线的上方（再次点击同一位取消选中）。
 struct ContainerMonitorChart: View {
+    /// 窗口采样位总数（首尾贴住绘图区边缘）
+    static let slotCount = 12
+    /// 绘图区高度（Y 轴顶部预留比例按此换算）
+    private static let plotHeight: CGFloat = 120
+    /// 绘图区两端的留白（采样位单位）：X 值域向两侧各扩这么多，
+    /// 首尾时间标签居中后完整落在行内、两端数据点不被边缘裁半
+    private static let edgePad = 0.5
+    /// X 值域总跨度（11 个采样间隔 + 两端留白）
+    private static let xSpan = Double(slotCount - 1) + 2 * edgePad
+    /// 画竖向虚线的采样位（内部 10 个、等距；两端边缘采样位不画）
+    private static let dashSlots = Array(1...10)
+    /// 时间标签的采样位（正对采样位居中；首尾为窗口两端）。
+    /// 相邻间隔 4/4/3 个采样位——间隔 2（如 9→11）加上贴边收回后间隙为负，标签会互相重叠
+    private static let labelSlots = [0, 4, 8, 11]
+
     let points: [LoadSeriesPoint]
     let styles: KeyValuePairs<String, Color>
     let unit: String
 
-    @State private var selectedDate: Date?
-    /// 图表绘图区（相对图表整体 frame），自绘时间轴据此与数据区对齐
+    @State private var selectedSlot: Int?
+    /// 本次手势开始前已选中的采样位（松手时判断「点击已选位 → 取消」）
+    @State private var slotAtGestureStart: Int?
+    /// 图表绘图区（相对图表整体 frame），自绘时间轴与气泡据此与数据区对齐
     @State private var plotRect: CGRect = .zero
+    /// 数值气泡实际尺寸（position 按中心定位，计算与最高线的间距用）
+    @State private var bubbleSize: CGSize = .zero
+    /// 时间标签宽度（标签均为 8 字符等宽数字、宽度一致，测一次即可），
+    /// 供首尾标签贴边收回计算
+    @State private var labelWidth: CGFloat = 0
 
     var body: some View {
-        let seriesCounts = Dictionary(grouping: points, by: \.kind).mapValues(\.count)
+        let plotted = plottedPoints
+        let slots = slotByDate
+        let seriesCounts = Dictionary(grouping: plotted, by: \.kind).mapValues(\.count)
         return VStack(spacing: 2) {
-            Chart(points) { p in
-                LineMark(x: .value("时间", p.date), y: .value("值", p.value))
-                    .foregroundStyle(by: .value("类型", p.kind))
-                // 数据点过少时折线画不出来，补圆点让单点也可见
-                if (seriesCounts[p.kind] ?? 0) <= 2 {
-                    PointMark(x: .value("时间", p.date), y: .value("值", p.value))
-                        .foregroundStyle(by: .value("类型", p.kind))
-                        .symbolSize(30)
+            Chart {
+                // 固定网格虚线（画在最底层）：内部 10 个采样位，等距；
+                // 两端边缘采样位（0 和 11）也绘数据点但不画虚线
+                ForEach(Self.dashSlots, id: \.self) { slot in
+                    RuleMark(x: .value("网格", Double(slot)))
+                        .foregroundStyle(Color.secondary.opacity(0.3))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 }
-                if let sel = selectedDate {
-                    RuleMark(x: .value("选中", sel))
-                        .foregroundStyle(.secondary.opacity(0.5))
+
+                ForEach(plotted) { p in
+                    LineMark(x: .value("采样位", Double(slots[p.date] ?? 0)),
+                             y: .value("值", p.value))
+                        .foregroundStyle(by: .value("类型", p.kind))
+                    // 数据点过少时折线画不出来，补圆点让单点也可见
+                    if (seriesCounts[p.kind] ?? 0) <= 2 {
+                        PointMark(x: .value("采样位", Double(slots[p.date] ?? 0)),
+                                  y: .value("值", p.value))
+                            .foregroundStyle(by: .value("类型", p.kind))
+                            .symbolSize(30)
+                    }
+                }
+
+                // 选中采样位：深色虚线 + 每条曲线一个同色圆点
+                if let sel = selectedSlot {
+                    RuleMark(x: .value("选中", Double(sel)))
+                        .foregroundStyle(Color.primary.opacity(0.45))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    ForEach(Array(styles), id: \.key) { kind, color in
+                        if let v = value(atSlot: sel, kind: kind) {
+                            PointMark(x: .value("选中", Double(sel)), y: .value("值", v))
+                                .foregroundStyle(color)
+                                .symbolSize(90)
+                        }
+                    }
                 }
             }
             .chartForegroundStyleScale(styles)
-            // 图表下方不显示系列名图例行（拖动浮层已按颜色标注各系列）
+            // 图表下方不显示系列名图例行（气泡/圆点已按颜色标注各系列）
             .chartLegend(.hidden)
             // 固定 0 起点 + 最小值域 1，避免数据恒为 0（如空闲 CPU）时值域退化为 [0,0]、
             // 自动刻度不渲染导致左侧无百分比标签
             .chartYScale(domain: 0...yHeadroom)
-            // X 值域：多点时用数据原始范围（折线贴满左右），单点左右各垫 2s 防退化
-            .chartXScale(domain: xDomain)
-            // 时间标签自绘（见 timeAxis）：系统轴的自动碰撞会把多点标签丢弃/裁切，
-            // 单点时干脆不渲染，无法稳定控制
+            // 固定采样窗口（两端各留半个采样位边距），虚线/标签位置恒定不动
+            .chartXScale(domain: -Self.edgePad...Double(Self.slotCount - 1) + Self.edgePad)
+            // 时间标签自绘（见 timeAxis）：系统轴的自动碰撞会丢弃/裁切标签，位置无法稳定控制
             .chartXAxis(.hidden)
             .chartYAxis {
                 AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
@@ -240,41 +280,62 @@ struct ContainerMonitorChart: View {
                     }
                 }
             }
-            .frame(height: 120)
+            .frame(height: Self.plotHeight)
             .chartOverlay { proxy in
                 GeometryReader { geo in
-                    // 手势层：触摸 x → 日期
+                    let plotFrame = proxy.plotFrame.map { geo[$0] } ?? .zero
+
+                    // 手势层：触摸 x → 就近吸附到采样位
                     Rectangle()
                         .fill(.clear)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { gesture in
-                                guard let plotAnchor = proxy.plotFrame else { return }
-                                let plotFrame = geo[plotAnchor]
-                                // 记录绘图区位置，供下方自绘时间轴对齐数据区
-                                if plotFrame != plotRect {
-                                    plotRect = plotFrame
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { gesture in
+                                    guard plotFrame.width > 0, !sampleDates.isEmpty else { return }
+                                    if slotAtGestureStart == nil {
+                                        slotAtGestureStart = selectedSlot
+                                    }
+                                    let x = gesture.location.x - plotFrame.minX
+                                    guard x >= 0, x <= plotFrame.width else { return }
+                                    selectedSlot = slot(atX: x, plotWidth: plotFrame.width)
                                 }
-                                let x = gesture.location.x - plotFrame.minX
-                                guard x >= 0, x <= plotFrame.width,
-                                      let date: Date = proxy.value(atX: x) else { return }
-                                selectedDate = clampDate(date)
-                            }
-                            .onEnded { _ in selectedDate = nil }
-                    )
+                                .onEnded { _ in
+                                    // 再次点击已选中的采样位取消；拖到别的位松手则保持新选中
+                                    if selectedSlot != nil, selectedSlot == slotAtGestureStart {
+                                        selectedSlot = nil
+                                    }
+                                    slotAtGestureStart = nil
+                                }
+                        )
 
-                // 选中浮层：竖排显示各系列数值（值大的在最上面），颜色与曲线一致
-                if let sel = selectedDate {
-                    let entries = sortedEntries(at: sel)
-                    let x = proxy.position(forX: sel) ?? 0
-                    // 靠右边缘时翻转到左侧
-                    let flip = x + 128 > geo.size.width
-                    tooltip(entries)
-                        .offset(x: flip ? x - 128 : x + 12, y: 10)
+                    // 布局期间同步绘图区位置，供自绘时间轴/气泡对齐数据区
+                    // （不能只靠手势回调更新——用户不触摸时 plotRect 永远是 .zero）
+                    Color.clear
+                        .onAppear { plotRect = plotFrame }
+                        .onChange(of: plotFrame) { _, new in plotRect = new }
+
+                    // 数值气泡：水平居中于选中位置（贴边时收回边界内），
+                    // 悬浮于选中采样位最高一条曲线的上方——y 按值域直接换算，
+                    // 不走 proxy.position(forY:)（其返回值不稳，会导致气泡贴顶）
+                    if let sel = selectedSlot, plotFrame.width > 0 {
+                        let entries = entries(atSlot: sel)
+                        if let topValue = entries.map(\.value).max() {
+                            let xCenter = plotFrame.minX
+                                + plotFrame.width * xFraction(Double(sel))
+                            let yTop = plotFrame.minY
+                                + plotFrame.height * (1 - topValue / yHeadroom)
+                            let halfW = bubbleSize.width / 2, halfH = bubbleSize.height / 2
+                            let bx = min(max(xCenter, halfW + 4), geo.size.width - halfW - 4)
+                            // 最高点贴近顶部放不下时，气泡收进图表内
+                            let by = max(yTop - 12 - halfH, halfH + 2)
+                            tooltip(entries)
+                                .background(bubbleTracker)
+                                .position(x: bx, y: by)
+                        }
+                    }
                 }
             }
-        }
 
             timeAxis
         }
@@ -282,103 +343,137 @@ struct ContainerMonitorChart: View {
 
     // MARK: 自绘时间轴
 
-    /// 图表下方的时间标签行：位置取数据跨度固定比例处，与绘图区精确对齐，
-    /// 不经过系统轴的碰撞/裁切逻辑，单点时也稳定显示一个居中标签
+    /// 图表下方的时间标签行：正对各自采样位居中（0、4、8、11），
+    /// 显示该采样位的实际时间；初始阶段数据填到哪个标签位，该标签才出现
+    /// （由左至右逐个出现，末位标签在窗口填满时出现）。
+    /// 两端留白后首尾标签已能完整居中；字体放大超出版心时仍收回边界内不被裁切（兜底）。
     private var timeAxis: some View {
         GeometryReader { geo in
-            ForEach(Array(timeMarks.enumerated()), id: \.offset) { _, mark in
-                Text(Self.timeFormatter.string(from: mark.date))
-                    .font(.caption2)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .fixedSize()
-                    .position(
-                        x: plotRect.minX + plotRect.width * mark.fraction,
-                        y: geo.size.height / 2
-                    )
-            }
-        }
-        .frame(height: 14)
-    }
-
-    /// 时间标签集合：单点居中 1 个；跨度 <40s 两个；≥40s 三个（首尾内收，秒数尽量取整）
-    private var timeMarks: [(date: Date, fraction: CGFloat)] {
-        let dates = points.map(\.date)
-        guard let first = dates.min(), let last = dates.max(), last > first else {
-            return dates.isEmpty ? [] : [(dates[0], 0.5)]
-        }
-        let span = last.timeIntervalSince(first)
-        let fractions: [CGFloat] = span >= 40 ? [0.18, 0.5, 0.82] : [0.22, 0.78]
-        // 跨度足够时秒数取整更整洁；极短跨度取整会重合，保持原值
-        let roundTo: Double = span >= 240 ? 30 : (span >= 20 ? 5 : 1)
-        let rounded: [(Date, CGFloat)] = fractions.map { f in
-            let t = first.addingTimeInterval(span * Double(f)).timeIntervalSince1970
-            return (Date(timeIntervalSince1970: (t / roundTo).rounded() * roundTo), f)
-        }
-        let uniqueDates = Set(rounded.map(\.0))
-        return uniqueDates.count == rounded.count ? rounded
-            : fractions.map { (first.addingTimeInterval(span * Double($0)), $0) }
-    }
-
-    /// 选中时间的各系列数值（按值降序，返回已格式化文本）
-    private func sortedEntries(at date: Date) -> [(title: String, text: String, color: Color)] {
-        var raw: [(String, Double, Color)] = []
-        for (kind, color) in styles {
-            raw.append((kind, nearestValue(to: date, kind: kind) ?? 0, color))
-        }
-        return raw.sorted { $0.1 > $1.1 }
-            .map { ($0.0, String(format: "%.2f%@", $0.1, unit), $0.2) }
-    }
-
-    /// 图内数值浮层（竖排，颜色与曲线一致）
-    private func tooltip(_ entries: [(title: String, text: String, color: Color)]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(entries, id: \.title) { entry in
-                HStack(spacing: 5) {
-                    StatusDot(color: entry.color)
-                    Text(entry.title).foregroundStyle(entry.color)
-                    Spacer(minLength: 4)
-                    Text(entry.text).monospacedDigit().foregroundStyle(entry.color)
+            ForEach(Self.labelSlots, id: \.self) { slot in
+                if slot < sampleDates.count {
+                    Text(Self.timeFormatter.string(from: sampleDates[slot]))
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                        .position(
+                            x: clampedLabelX(slot, rowWidth: geo.size.width),
+                            y: geo.size.height / 2
+                        )
                 }
             }
         }
+        .frame(height: 26)   // 与 Y 轴底部刻度文字拉开距离，避免最左时间标签贴住 Y 轴文本
+        .background(timeLabelSizer)
+    }
+
+    /// 隐藏的「00:00:00」模板：随字体大小测出标签宽度（所有标签同宽）
+    private var timeLabelSizer: some View {
+        Text("00:00:00")
+            .font(.caption2)
+            .monospacedDigit()
+            .fixedSize()
+            .hidden()
+            .background(GeometryReader { g in
+                Color.clear
+                    .onAppear { labelWidth = g.size.width }
+                    .onChange(of: g.size.width) { _, new in labelWidth = new }
+            })
+    }
+
+    /// 标签水平位置：正对采样位居中，首尾收回本行边界内
+    private func clampedLabelX(_ slot: Int, rowWidth: CGFloat) -> CGFloat {
+        let x = plotRect.minX + plotRect.width * xFraction(Double(slot))
+        let half = labelWidth / 2
+        return min(max(x, half), rowWidth - half)
+    }
+
+    /// 测量气泡实际尺寸（position 按中心定位，计算与最高线的间距用）
+    private var bubbleTracker: some View {
+        GeometryReader { g in
+            Color.clear
+                .onAppear { bubbleSize = g.size }
+                .onChange(of: g.size) { _, new in bubbleSize = new }
+        }
+    }
+
+    // MARK: 数据映射
+
+    /// 窗口内的采样时刻（全部系列去重升序，只保留最近 12 个）
+    private var sampleDates: [Date] {
+        Array(Set(points.map(\.date)).sorted().suffix(Self.slotCount))
+    }
+
+    /// 采样时刻 → 窗口内采样位（0...11）
+    private var slotByDate: [Date: Int] {
+        Dictionary(sampleDates.enumerated().map { ($1, $0) }, uniquingKeysWith: { a, _ in a })
+    }
+
+    /// 落在窗口内的数据点
+    private var plottedPoints: [LoadSeriesPoint] {
+        let slots = slotByDate
+        return points.filter { slots[$0.date] != nil }
+    }
+
+    /// 采样位（0...11）→ 绘图区水平比例（两端各留半个采样位）
+    private func xFraction(_ x: Double) -> CGFloat {
+        CGFloat((x + Self.edgePad) / Self.xSpan)
+    }
+
+    /// 触摸 x → 就近吸附的采样位（限制在已有样本范围内）
+    private func slot(atX x: CGFloat, plotWidth: CGFloat) -> Int? {
+        let v = Double(x / plotWidth) * Self.xSpan - Self.edgePad
+        let clamped = min(max(Int(v.rounded()), 0), sampleDates.count - 1)
+        return clamped >= 0 ? clamped : nil
+    }
+
+    /// 选中采样位上指定系列的数值
+    private func value(atSlot slot: Int, kind: String) -> Double? {
+        guard slot < sampleDates.count else { return nil }
+        let date = sampleDates[slot]
+        return points.first { $0.kind == kind && $0.date == date }?.value
+    }
+
+    /// 选中采样位各系列数值（按值降序，最高一条线的数值排最上）
+    private func entries(atSlot slot: Int) -> [(title: String, text: String, color: Color, value: Double)] {
+        var raw: [(String, Double, Color)] = []
+        for (kind, color) in styles {
+            if let v = value(atSlot: slot, kind: kind) {
+                raw.append((kind, v, color))
+            }
+        }
+        return raw.sorted { $0.1 > $1.1 }
+            .map { ($0.0, String(format: "%.2f%@", $0.1, unit), $0.2, $0.1) }
+    }
+
+    /// 数值气泡（竖排，系列名与数值间一个空格，颜色与曲线一致；
+    /// 气泡宽度固定，文本过长时整体轻微缩放而不是加宽）
+    private func tooltip(_ entries: [(title: String, text: String, color: Color, value: Double)]) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ForEach(entries, id: \.title) { entry in
+                Text("\(entry.title) \(entry.text)")
+                    .monospacedDigit()
+                    .foregroundStyle(entry.color)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+        }
         .font(.caption2)
-        .frame(width: 112, alignment: .leading)
-        .padding(.vertical, 6)
-        .padding(.horizontal, 8)
+        .frame(width: 74)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 5)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
         .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
     }
 
-    /// 距目标时间最近的指定系列数值
-    private func nearestValue(to date: Date, kind: String) -> Double? {
-        points.filter { $0.kind == kind }
-            .min { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }?
-            .value
-    }
-
-    /// 把手势日期限制在数据时间范围内
-    private func clampDate(_ date: Date) -> Date {
-        guard let first = points.map(\.date).min(),
-              let last = points.map(\.date).max() else { return date }
-        return min(max(date, first), last)
-    }
-
-    /// Y 轴上限：数据最大值留 15% 余量，下限至少 1 个单位（全 0/极小值时刻度仍可读）
+    /// Y 轴上限：顶部为数值气泡固定预留空间（按系列数估算气泡高度 + 与线的间距），
+    /// 保证选中最高点时气泡仍能完整悬于线上方；下限至少 1 个单位（全 0 时刻度仍可读）。
+    /// 预留不依赖气泡实测尺寸——气泡只在选中后才被测量，那样 Y 轴会在首次选中时跳变
     private var yHeadroom: Double {
-        max((points.map(\.value).max() ?? 0) * 1.15, 1)
-    }
-
-    /// X 值域：多点时用数据原始范围（折线贴满左右边缘），仅单点左右各垫 2s 防值域退化
-    private var xDomain: ClosedRange<Date> {
-        let dates = points.map(\.date)
-        guard let first = dates.min(), let last = dates.max(), last >= first else {
-            return Date()...Date().addingTimeInterval(1)
-        }
-        if last > first {
-            return first...last
-        }
-        return first.addingTimeInterval(-2)...first.addingTimeInterval(2)
+        let peak = plottedPoints.map(\.value).max() ?? 0
+        let bubbleHeight: Double = styles.count <= 1 ? 21 : 37   // 1 行 ≈ 21pt、2 行 ≈ 37pt
+        let reserve = min((bubbleHeight + 12) / Double(Self.plotHeight), 0.45)
+        return max(peak / (1 - reserve), peak * 1.15, 1)
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -395,4 +490,3 @@ struct ContainerMonitorChart: View {
         return String(format: "%.1f%@", value, unit)
     }
 }
-
