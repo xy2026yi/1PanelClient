@@ -210,7 +210,7 @@ struct CertificateDetailView: View {
     @State private var pendingRenew = false
     @State private var showMenu = false
 
-    /// 详情菜单项：Acme 证书（编辑/重新申请）与手动证书（更新内容）互斥
+    /// 详情菜单项：Acme 证书（编辑/重新申请）与手动证书（更新证书）互斥
     private var menuEntries: [EllipsisMenuEntry] {
         var entries: [EllipsisMenuEntry] = []
         if isAcmeCert {
@@ -218,7 +218,7 @@ struct CertificateDetailView: View {
             entries.append(.action(title: "重新申请") { pendingRenew = true })
         }
         if isManualCert {
-            entries.append(.action(title: "更新内容") { showUpdateSheet = true })
+            entries.append(.action(title: "更新证书") { showUpdateSheet = true })
         }
         return entries
     }
