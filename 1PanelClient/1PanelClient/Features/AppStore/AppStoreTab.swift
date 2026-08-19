@@ -15,6 +15,10 @@ struct AppStoreTab: View {
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var showMenu = false
+    /// 同步远程前的确认提示
+    @State private var showRemoteSyncConfirm = false
+    /// 同步本地任务的进度页（taskID 非空时 push TaskProgressView）
+    @State private var syncTaskID: String?
 
 
     init(manager: ServerManager) {
@@ -59,13 +63,44 @@ struct AppStoreTab: View {
             if showMenu {
                 EllipsisMenuPopup(entries: [
                     .action(title: "更新远程", isDisabled: vm.isSyncing) {
-                        Task { await vm.syncRemote() }
+                        showRemoteSyncConfirm = true
                     },
                     .action(title: "同步本地", isDisabled: vm.isSyncing) {
-                        Task { await vm.syncLocal() }
+                        Task {
+                            if let taskID = await vm.syncLocal() {
+                                syncTaskID = taskID
+                            }
+                        }
                     },
                 ]) {
                     withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
+                }
+            }
+        }
+        .confirmationDialog(
+            "更新远程应用",
+            isPresented: $showRemoteSyncConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("继续同步", role: .destructive) {
+                Task { await vm.syncRemote() }
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("将从远程应用商店同步最新应用数据，期间应用列表可能短暂不可用。确定继续吗？")
+        }
+        .navigationDestination(isPresented: Binding(
+            get: { syncTaskID != nil },
+            set: { if !$0 { syncTaskID = nil } }
+        )) {
+            if let taskID = syncTaskID {
+                TaskProgressView(taskID: taskID, title: "同步本地应用") { isDone in
+                    Task { await vm.refresh() }
+                    if isDone {
+                        syncTaskID = nil
+                        return true
+                    }
+                    return false
                 }
             }
         }
@@ -962,32 +997,17 @@ final class AppStoreViewModel: ObservableObject {
 
     /// 更新远程应用（从远程商店拉取最新应用列表到本地）
     func syncRemote() async {
-        await performSync(
-            endpoint: .appsSyncRemote,
-            successMsg: "远程应用更新请求已提交，正在后台同步…"
-        )
-    }
-
-    /// 同步本地应用（将本地已安装应用状态同步到面板）
-    func syncLocal() async {
-        await performSync(
-            endpoint: .appsSyncLocal,
-            successMsg: "本地应用同步请求已提交，正在后台同步…"
-        )
-    }
-
-    private func performSync(endpoint: APIEndpoint, successMsg: String) async {
         isSyncing = true
         defer { isSyncing = false }
 
         let req = ReqWithTaskID(taskID: UUID().uuidString)
         do {
             let _: EmptyResponse = try await client.send(
-                path: endpoint.path,
+                path: APIEndpoint.appsSyncRemote.path,
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: successMsg)
+            showAlert(message: "远程应用更新请求已提交，正在后台同步…")
             // 同步后刷新应用列表
             try? await Task.sleep(for: .seconds(1))
             await refresh()
@@ -995,6 +1015,28 @@ final class AppStoreViewModel: ObservableObject {
             showAlert(message: "同步失败：\(err.errorDescription ?? "未知错误")")
         } catch {
             showAlert(message: "同步失败：\(error.localizedDescription)")
+        }
+    }
+
+    /// 同步本地应用（将本地已安装应用状态同步到面板），返回任务 ID 供进度页轮询
+    func syncLocal() async -> String? {
+        isSyncing = true
+        defer { isSyncing = false }
+
+        let taskID = UUID().uuidString
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.appsSyncLocal.path,
+                body: ReqWithTaskID(taskID: taskID),
+                as: EmptyResponse.self
+            )
+            return taskID
+        } catch let err as APIError {
+            showAlert(message: "同步失败：\(err.errorDescription ?? "未知错误")")
+            return nil
+        } catch {
+            showAlert(message: "同步失败：\(error.localizedDescription)")
+            return nil
         }
     }
 
