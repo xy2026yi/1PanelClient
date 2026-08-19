@@ -21,18 +21,18 @@ struct CAListView: View {
     var body: some View {
         Group {
             if isLoading && accounts.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if accounts.isEmpty {
                 ContentUnavailableView(
-                    "暂无自签证书机构",
+                    L10n.t("暂无自签证书机构"),
                     systemImage: "certificate",
-                    description: Text("点击右下角按钮创建第一个 CA 机构")
+                    description: Text(L10n.t("点击右下角按钮创建第一个 CA 机构"))
                 )
             } else {
                 accountList
             }
         }
-        .navigationTitle("自签证书")
+        .navigationTitle(L10n.t("自签证书"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -41,28 +41,28 @@ struct CAListView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
-                    .accessibilityLabel("刷新")
+                    .accessibilityLabel(L10n.t("刷新"))
             }
         }
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
                 showCreate = true
             })
-            .accessibilityLabel("创建机构")
+            .accessibilityLabel(L10n.t("创建机构"))
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateCAView(vm: vm) {
                 Task { await load() }
             }
         }
-        .alert("删除", isPresented: Binding(
+        .alert(L10n.t("删除"), isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
         )) {
-            Button("取消", role: .cancel) {
+            Button(L10n.t("取消"), role: .cancel) {
                 pendingDelete = nil
             }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("确认"), role: .destructive) {
                 if let account = pendingDelete {
                     Task {
                         if await vm.deleteCA(id: account.id) {
@@ -73,7 +73,7 @@ struct CAListView: View {
             }
         } message: {
             if let account = pendingDelete {
-                Text("将对以下证书颁发机构进行 删除 操作，是否继续？\n\n\(account.name)")
+                Text(L10n.f("将对以下证书颁发机构进行 删除 操作，是否继续？\n\n%@", account.name))
             }
         }
         .task { await load() }
@@ -93,7 +93,7 @@ struct CAListView: View {
                     Button(role: .destructive) {
                         pendingDelete = account
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label(L10n.t("删除"), systemImage: "trash")
                     }
                 }
             }
@@ -122,7 +122,7 @@ struct CARow: View {
             )
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(ca.name.isEmpty ? "（未命名）" : ca.name)
+                Text(ca.name.isEmpty ? L10n.t("（未命名）") : ca.name)
                     .font(.body.bold())
                     .lineLimit(1)
                 Text(SSLKeyType(rawValue: ca.keyType)?.displayName ?? ca.keyType)
@@ -163,7 +163,7 @@ struct CADetailView: View {
             Section {
                 Picker("", selection: $tab) {
                     ForEach(CADetailTab.allCases) { t in
-                        Text(t.rawValue).tag(t)
+                        Text(L10n.t(t.rawValue)).tag(t)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -173,8 +173,8 @@ struct CADetailView: View {
 
             switch tab {
             case .info:    infoSection
-            case .cert:    pemSection(title: "证书", content: (detail ?? ca).csr)
-            case .privKey: pemSection(title: "私钥", content: (detail ?? ca).privateKey)
+            case .cert:    pemSection(title: L10n.t("证书"), content: (detail ?? ca).csr)
+            case .privKey: pemSection(title: L10n.t("私钥"), content: (detail ?? ca).privateKey)
             }
         }
         .navigationTitle((detail ?? ca).name)
@@ -189,9 +189,9 @@ struct CADetailView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: "签发证书") { showIssue = true },
+                    .action(title: L10n.t("签发证书")) { showIssue = true },
                     .divider,
-                    .action(title: "删除", role: .destructive) { pendingDelete = true },
+                    .action(title: L10n.t("删除"), role: .destructive) { pendingDelete = true },
                 ]) {
                     withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
@@ -200,13 +200,13 @@ struct CADetailView: View {
         .navigationDestination(isPresented: $showIssue) {
             IssueCertificateView(ca: detail ?? ca, vm: vm)
         }
-        .alert("删除", isPresented: $pendingDelete) {
-            Button("取消", role: .cancel) {}
-            Button("确认", role: .destructive) {
+        .alert(L10n.t("删除"), isPresented: $pendingDelete) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("确认"), role: .destructive) {
                 Task { await doDelete() }
             }
         } message: {
-            Text("将对以下证书颁发机构进行 删除 操作，是否继续？\n\n\((detail ?? ca).name)")
+            Text(L10n.f("将对以下证书颁发机构进行 删除 操作，是否继续？\n\n%@", (detail ?? ca).name))
         }
         .task { await loadDetail() }
     }
@@ -214,24 +214,24 @@ struct CADetailView: View {
     private var infoSection: some View {
         let d = detail ?? ca
         return Section {
-            InfoRow("名称", value: d.name)
-            InfoRow("证书主体名称(CN)", value: d.commonName ?? "—")
-            InfoRow("颁发组织", value: d.organization ?? "—")
+            InfoRow(L10n.t("名称"), value: d.name)
+            InfoRow(L10n.t("证书主体名称(CN)"), value: d.commonName ?? "—")
+            InfoRow(L10n.t("颁发组织"), value: d.organization ?? "—")
             if let unit = d.organizationUint, !unit.isEmpty {
-                InfoRow("部门", value: unit)
+                InfoRow(L10n.t("部门"), value: unit)
             }
             if let country = d.country, !country.isEmpty {
-                InfoRow("国家代号", value: country)
+                InfoRow(L10n.t("国家代号"), value: country)
             }
             if let province = d.province, !province.isEmpty {
-                InfoRow("省份", value: province)
+                InfoRow(L10n.t("省份"), value: province)
             }
             if let city = d.city, !city.isEmpty {
-                InfoRow("城市", value: city)
+                InfoRow(L10n.t("城市"), value: city)
             }
-            InfoRow("密钥算法", value: SSLKeyType(rawValue: d.keyType)?.displayName ?? d.keyType)
+            InfoRow(L10n.t("密钥算法"), value: SSLKeyType(rawValue: d.keyType)?.displayName ?? d.keyType)
         } header: {
-            Text("机构详情")
+            Text(L10n.t("机构详情"))
         }
     }
 
@@ -244,7 +244,7 @@ struct CADetailView: View {
             } else {
                 HStack {
                     ProgressView()
-                    Text("加载中…")
+                    Text(L10n.t("加载中…"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -291,53 +291,53 @@ struct CreateCAView: View {
     var body: some View {
         Form {
             Section {
-                TextField("机构名称", text: $name)
+                TextField(L10n.t("机构名称"), text: $name)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("基本信息")
+                Text(L10n.t("基本信息"))
             }
 
             Section {
-                TextField("证书主体名称(CN)", text: $commonName)
+                TextField(L10n.t("证书主体名称(CN)"), text: $commonName)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                TextField("公司/组织", text: $organization)
+                TextField(L10n.t("公司/组织"), text: $organization)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                TextField("部门（可选）", text: $organizationUint)
+                TextField(L10n.t("部门（可选）"), text: $organizationUint)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("组织信息")
+                Text(L10n.t("组织信息"))
             }
 
             Section {
-                TextField("国家代号", text: $country)
+                TextField(L10n.t("国家代号"), text: $country)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                TextField("省份（可选）", text: $province)
+                TextField(L10n.t("省份（可选）"), text: $province)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                TextField("城市（可选）", text: $city)
+                TextField(L10n.t("城市（可选）"), text: $city)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("地区信息")
+                Text(L10n.t("地区信息"))
             }
 
             Section {
-                Picker("密钥算法", selection: $keyType) {
+                Picker(L10n.t("密钥算法"), selection: $keyType) {
                     ForEach(SSLKeyType.allCases) { k in
                         Text(k.displayName).tag(k)
                     }
                 }
                 .pickerStyle(.menu)
             } header: {
-                Text("密钥")
+                Text(L10n.t("密钥"))
             }
         }
-        .navigationTitle("创建机构")
+        .navigationTitle(L10n.t("创建机构"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -347,33 +347,33 @@ struct CreateCAView: View {
                     if isSubmitting {
                         ProgressView()
                     } else {
-                        Text("创建").bold()
+                        Text(L10n.t("创建")).bold()
                     }
                 }
                 .disabled(isSubmitting)
             }
         }
         .alert(validationMessage, isPresented: $showValidationAlert) {
-            Button("好", role: .cancel) {}
+            Button(L10n.t("好"), role: .cancel) {}
         }
     }
 
     private func submit() async {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
-            validationMessage = "请填写机构名称"
+            validationMessage = L10n.t("请填写机构名称")
             showValidationAlert = true
             return
         }
         let trimmedCN = commonName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedCN.isEmpty else {
-            validationMessage = "请填写证书主体名称(CN)"
+            validationMessage = L10n.t("请填写证书主体名称(CN)")
             showValidationAlert = true
             return
         }
         let trimmedOrg = organization.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedOrg.isEmpty else {
-            validationMessage = "请填写公司/组织"
+            validationMessage = L10n.t("请填写公司/组织")
             showValidationAlert = true
             return
         }
@@ -425,8 +425,8 @@ struct IssueCertificateView: View {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .year: return "年"
-            case .day:  return "天"
+            case .year: return L10n.t("年")
+            case .day:  return L10n.t("天")
             }
         }
     }
@@ -434,60 +434,60 @@ struct IssueCertificateView: View {
     var body: some View {
         Form {
             Section {
-                TextField("域名（一行一个）", text: $domains, axis: .vertical)
+                TextField(L10n.t("域名（一行一个）"), text: $domains, axis: .vertical)
                     .lineLimit(3, reservesSpace: true)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                TextField("备注（可选）", text: $description_)
+                TextField(L10n.t("备注（可选）"), text: $description_)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("基本信息")
+                Text(L10n.t("基本信息"))
             } footer: {
-                Text("一行一个域名，支持 * 和 IP 地址")
+                Text(L10n.t("一行一个域名，支持 * 和 IP 地址"))
             }
 
             Section {
-                Picker("密钥算法", selection: $keyType) {
+                Picker(L10n.t("密钥算法"), selection: $keyType) {
                     ForEach(SSLKeyType.allCases) { k in
                         Text(k.displayName).tag(k)
                     }
                 }
                 .pickerStyle(.menu)
 
-                Stepper("有效期：\(time) \(unit.displayName)", value: $time, in: 1...9999)
-                Picker("单位", selection: $unit) {
+                Stepper(L10n.f("有效期：%ld %@", time, unit.displayName), value: $time, in: 1...9999)
+                Picker(L10n.t("单位"), selection: $unit) {
                     ForEach(ExpireUnit.allCases) { u in
                         Text(u.displayName).tag(u)
                     }
                 }
                 .pickerStyle(.segmented)
 
-                Toggle("自动续签", isOn: $autoRenew)
+                Toggle(L10n.t("自动续签"), isOn: $autoRenew)
             } header: {
-                Text("证书配置")
+                Text(L10n.t("证书配置"))
             }
 
             Section {
-                Toggle("推送证书到本地目录", isOn: $pushDir.animation())
+                Toggle(L10n.t("推送证书到本地目录"), isOn: $pushDir.animation())
                 if pushDir {
-                    TextField("目录路径", text: $dir)
+                    TextField(L10n.t("目录路径"), text: $dir)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
             }
 
             Section {
-                Toggle("申请证书之后执行脚本", isOn: $execShell.animation())
+                Toggle(L10n.t("申请证书之后执行脚本"), isOn: $execShell.animation())
                 if execShell {
-                    TextField("脚本内容", text: $shell, axis: .vertical)
+                    TextField(L10n.t("脚本内容"), text: $shell, axis: .vertical)
                         .lineLimit(5, reservesSpace: true)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
             }
         }
-        .navigationTitle("签发证书")
+        .navigationTitle(L10n.t("签发证书"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -497,28 +497,28 @@ struct IssueCertificateView: View {
                     if isSubmitting {
                         ProgressView()
                     } else {
-                        Text("签发").bold()
+                        Text(L10n.t("签发")).bold()
                     }
                 }
                 .disabled(isSubmitting)
             }
         }
         .alert(validationMessage, isPresented: $showValidationAlert) {
-            Button("好", role: .cancel) {}
+            Button(L10n.t("好"), role: .cancel) {}
         }
     }
 
     private func submit() async {
         let trimmedDomains = domains.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedDomains.isEmpty else {
-            validationMessage = "请填写域名"
+            validationMessage = L10n.t("请填写域名")
             showValidationAlert = true
             return
         }
         if pushDir {
             let trimmedDir = dir.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmedDir.isEmpty else {
-                validationMessage = "请填写推送目录路径"
+                validationMessage = L10n.t("请填写推送目录路径")
                 showValidationAlert = true
                 return
             }

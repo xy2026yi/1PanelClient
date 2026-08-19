@@ -21,36 +21,36 @@ struct AcmeAccountListView: View {
     var body: some View {
         Group {
             if isLoading && accounts.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if accounts.isEmpty {
                 ContentUnavailableView(
-                    "暂无 Acme 账户",
+                    L10n.t("暂无 Acme 账户"),
                     systemImage: "person.badge.key",
-                    description: Text("点击右下角「创建账户」添加第一个 Acme 账户")
+                    description: Text(L10n.t("点击右下角「创建账户」添加第一个 Acme 账户"))
                 )
             } else {
                 accountList
             }
         }
-        .navigationTitle("Acme 账户")
+        .navigationTitle(L10n.t("Acme 账户"))
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
                 showCreate = true
             })
-            .accessibilityLabel("创建账户")
+            .accessibilityLabel(L10n.t("创建账户"))
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateAcmeAccountView(vm: vm)
         }
-        .alert("删除 Acme 账户", isPresented: Binding(
+        .alert(L10n.t("删除 Acme 账户"), isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
         )) {
-            Button("取消", role: .cancel) {
+            Button(L10n.t("取消"), role: .cancel) {
                 pendingDelete = nil
             }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("确认"), role: .destructive) {
                 if let account = pendingDelete {
                     Task {
                         if await vm.deleteAcmeAccount(id: account.id) {
@@ -61,7 +61,7 @@ struct AcmeAccountListView: View {
             }
         } message: {
             if let account = pendingDelete {
-                Text("确定要删除账户「\(account.email)」吗？此操作不可撤销。")
+                Text(L10n.f("确定要删除账户「%@」吗？此操作不可撤销。", account.email))
             }
         }
         .task { await load() }
@@ -75,7 +75,7 @@ struct AcmeAccountListView: View {
                         Button(role: .destructive) {
                             pendingDelete = account
                         } label: {
-                            Label("删除", systemImage: "trash")
+                            Label(L10n.t("删除"), systemImage: "trash")
                         }
                     }
             }
@@ -104,7 +104,7 @@ struct AcmeAccountRow: View {
             )
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(account.email.isEmpty ? "（未设置邮箱）" : account.email)
+                Text(account.email.isEmpty ? L10n.t("（未设置邮箱）") : account.email)
                     .font(.body.bold())
                     .lineLimit(1)
                 HStack(spacing: 6) {
@@ -142,30 +142,30 @@ struct CreateAcmeAccountView: View {
     var body: some View {
         Form {
             Section {
-                TextField("邮箱", text: $email)
+                TextField(L10n.t("邮箱"), text: $email)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("邮箱")
+                Text(L10n.t("邮箱"))
             }
 
             Section {
-                Picker("账户类型", selection: $type) {
+                Picker(L10n.t("账户类型"), selection: $type) {
                     ForEach(AcmeType.allCases) { t in
                         Text(t.displayName).tag(t)
                     }
                 }
                 .pickerStyle(.menu)
 
-                Picker("密钥算法", selection: $keyType) {
+                Picker(L10n.t("密钥算法"), selection: $keyType) {
                     ForEach(SSLKeyType.allCases) { k in
                         Text(k.displayName).tag(k)
                     }
                 }
                 .pickerStyle(.menu)
             } header: {
-                Text("账户配置")
+                Text(L10n.t("账户配置"))
             }
 
             if type == .googlecloud {
@@ -177,19 +177,19 @@ struct CreateAcmeAccountView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 } header: {
-                    Text("EAB 凭证")
+                    Text(L10n.t("EAB 凭证"))
                 }
             }
 
             if type == .custom {
                 Section {
-                    TextField("ACME 服务 URL", text: $caDirURL)
+                    TextField(L10n.t("ACME 服务 URL"), text: $caDirURL)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    Toggle("使用 EAB 认证", isOn: $useEAB.animation())
+                    Toggle(L10n.t("使用 EAB 认证"), isOn: $useEAB.animation())
                 } header: {
-                    Text("自定义服务")
+                    Text(L10n.t("自定义服务"))
                 }
 
                 if useEAB {
@@ -201,18 +201,18 @@ struct CreateAcmeAccountView: View {
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                     } header: {
-                        Text("EAB 凭证")
+                        Text(L10n.t("EAB 凭证"))
                     }
                 }
             }
 
             Section {
-                Toggle("使用代理", isOn: $useProxy)
+                Toggle(L10n.t("使用代理"), isOn: $useProxy)
             } header: {
-                Text("网络")
+                Text(L10n.t("网络"))
             }
         }
-        .navigationTitle("创建 Acme 账户")
+        .navigationTitle(L10n.t("创建 Acme 账户"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -222,14 +222,14 @@ struct CreateAcmeAccountView: View {
                     if isSubmitting {
                         ProgressView()
                     } else {
-                        Text("创建").bold()
+                        Text(L10n.t("创建")).bold()
                     }
                 }
                 .disabled(isSubmitting)
             }
         }
-        .alert("请填写邮箱", isPresented: $showValidationAlert) {
-            Button("好", role: .cancel) {}
+        .alert(L10n.t("请填写邮箱"), isPresented: $showValidationAlert) {
+            Button(L10n.t("好"), role: .cancel) {}
         }
     }
 
@@ -274,36 +274,36 @@ struct DNSAccountListView: View {
     var body: some View {
         Group {
             if isLoading && accounts.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if accounts.isEmpty {
                 ContentUnavailableView(
-                    "暂无 DNS 账户",
+                    L10n.t("暂无 DNS 账户"),
                     systemImage: "globe.asia.australia",
-                    description: Text("点击右下角「创建账户」添加第一个 DNS 账户")
+                    description: Text(L10n.t("点击右下角「创建账户」添加第一个 DNS 账户"))
                 )
             } else {
                 accountList
             }
         }
-        .navigationTitle("DNS 账户")
+        .navigationTitle(L10n.t("DNS 账户"))
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
                 showCreate = true
             })
-            .accessibilityLabel("创建账户")
+            .accessibilityLabel(L10n.t("创建账户"))
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateDNSAccountView(vm: vm)
         }
-        .alert("删除 DNS 账户", isPresented: Binding(
+        .alert(L10n.t("删除 DNS 账户"), isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
         )) {
-            Button("取消", role: .cancel) {
+            Button(L10n.t("取消"), role: .cancel) {
                 pendingDelete = nil
             }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("确认"), role: .destructive) {
                 if let account = pendingDelete {
                     Task {
                         if await vm.deleteDnsAccount(id: account.id) {
@@ -314,7 +314,7 @@ struct DNSAccountListView: View {
             }
         } message: {
             if let account = pendingDelete {
-                Text("确定要删除账户「\(account.name)」吗？此操作不可撤销。")
+                Text(L10n.f("确定要删除账户「%@」吗？此操作不可撤销。", account.name))
             }
         }
         .task { await load() }
@@ -334,7 +334,7 @@ struct DNSAccountListView: View {
                     Button(role: .destructive) {
                         pendingDelete = account
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label(L10n.t("删除"), systemImage: "trash")
                     }
                 }
             }
@@ -363,7 +363,7 @@ struct DNSAccountRow: View {
             )
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(account.name.isEmpty ? "（未命名）" : account.name)
+                Text(account.name.isEmpty ? L10n.t("（未命名）") : account.name)
                     .font(.body.bold())
                     .lineLimit(1)
                 Text(DnsType(rawValue: account.type)?.displayName ?? account.type)
@@ -411,27 +411,27 @@ struct CreateDNSAccountView: View {
     var body: some View {
         Form {
             Section {
-                TextField("名称", text: $name)
+                TextField(L10n.t("名称"), text: $name)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("名称")
+                Text(L10n.t("名称"))
             }
 
             Section {
-                Picker("类型", selection: $type) {
+                Picker(L10n.t("类型"), selection: $type) {
                     ForEach(DnsType.allCases) { t in
                         Text(t.displayName).tag(t)
                     }
                 }
                 .pickerStyle(.menu)
             } header: {
-                Text("类型")
+                Text(L10n.t("类型"))
             }
 
             dynamicFields
         }
-        .navigationTitle(isEdit ? "编辑 DNS 账户" : "创建 DNS 账户")
+        .navigationTitle(isEdit ? L10n.t("编辑 DNS 账户") : L10n.t("创建 DNS 账户"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -441,14 +441,14 @@ struct CreateDNSAccountView: View {
                     if isSubmitting {
                         ProgressView()
                     } else {
-                        Text(isEdit ? "保存" : "创建").bold()
+                        Text(isEdit ? L10n.t("保存") : L10n.t("创建")).bold()
                     }
                 }
                 .disabled(isSubmitting)
             }
         }
         .alert(validationMessage, isPresented: $showValidationAlert) {
-            Button("好", role: .cancel) {}
+            Button(L10n.t("好"), role: .cancel) {}
         }
         .task {
             if let account = existingAccount { prefill(from: account) }
@@ -480,12 +480,12 @@ struct CreateDNSAccountView: View {
                     .autocorrectionDisabled()
                 SecureField("Secret Key", text: $secretKey)
             } header: {
-                Text("阿里云凭证")
+                Text(L10n.t("阿里云凭证"))
             }
 
         case .CloudFlare:
             Section {
-                TextField("EMAIL（可选）", text: $email)
+                TextField(L10n.t("EMAIL（可选）"), text: $email)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -493,7 +493,7 @@ struct CreateDNSAccountView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("Cloudflare 凭证")
+                Text(L10n.t("Cloudflare 凭证"))
             }
 
         case .TencentCloud:
@@ -503,7 +503,7 @@ struct CreateDNSAccountView: View {
                     .autocorrectionDisabled()
                 SecureField("Secret Key", text: $secretKey)
             } header: {
-                Text("腾讯云凭证")
+                Text(L10n.t("腾讯云凭证"))
             }
 
         case .HuaweiCloud:
@@ -512,25 +512,25 @@ struct CreateDNSAccountView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 SecureField("Secret Key", text: $secretKey)
-                TextField("Region（可选）", text: $region)
+                TextField(L10n.t("Region（可选）"), text: $region)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("华为云凭证")
+                Text(L10n.t("华为云凭证"))
             }
 
         case .CloudDns:
             Section {
-                TextField("Client ID（可选）", text: $clientID)
+                TextField(L10n.t("Client ID（可选）"), text: $clientID)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                TextField("Email（可选）", text: $email)
+                TextField(L10n.t("Email（可选）"), text: $email)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 SecureField("Password", text: $password)
             } header: {
-                Text("CloudDNS 凭证")
+                Text(L10n.t("CloudDNS 凭证"))
             }
 
         case .NameSilo:
@@ -539,7 +539,7 @@ struct CreateDNSAccountView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("NameSilo 凭证")
+                Text(L10n.t("NameSilo 凭证"))
             }
 
         case .NameCheap:
@@ -551,7 +551,7 @@ struct CreateDNSAccountView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("NameCheap 凭证")
+                Text(L10n.t("NameCheap 凭证"))
             }
         }
     }
@@ -559,14 +559,14 @@ struct CreateDNSAccountView: View {
     private func submit() async {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
-            validationMessage = "请填写名称"
+            validationMessage = L10n.t("请填写名称")
             showValidationAlert = true
             return
         }
 
         let auth = buildAuth()
         guard !auth.isEmpty else {
-            validationMessage = "请填写完整的凭证信息"
+            validationMessage = L10n.t("请填写完整的凭证信息")
             showValidationAlert = true
             return
         }

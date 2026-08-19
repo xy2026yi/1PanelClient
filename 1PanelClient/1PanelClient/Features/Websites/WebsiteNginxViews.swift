@@ -20,12 +20,12 @@ struct WebsiteNginxView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载配置…")
+                ProgressView(L10n.t("加载配置…"))
             } else {
                 configEditor
             }
         }
-        .navigationTitle("配置文件")
+        .navigationTitle(L10n.t("配置文件"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isEditing {
@@ -33,7 +33,7 @@ struct WebsiteNginxView: View {
                     Button {
                         Task { await save() }
                     } label: {
-                        if isSaving { ProgressView() } else { Text("保存").bold() }
+                        if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                     }
                     .disabled(isSaving)
                 }
@@ -86,7 +86,7 @@ struct WebsiteNginxView: View {
                         content = config?.content ?? content
                     }
                 } label: {
-                    Label(isEditing ? "取消编辑" : "编辑配置", systemImage: isEditing ? "xmark" : "pencil")
+                    Label(isEditing ? L10n.t("取消编辑") : L10n.t("编辑配置"), systemImage: isEditing ? "xmark" : "pencil")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -129,7 +129,7 @@ struct OpenRestyConfigView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else {
                 TextEditor(text: $configText)
                     .font(.system(.caption, design: .monospaced))
@@ -149,10 +149,10 @@ struct OpenRestyConfigView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: "保存", isDisabled: isSaving || isLoading || configText == originalText) {
+                    .action(title: L10n.t("保存"), isDisabled: isSaving || isLoading || configText == originalText) {
                         Task { await save() }
                     },
-                    .action(title: "还原默认", role: .destructive, isDisabled: isSaving || isLoading) {
+                    .action(title: L10n.t("还原默认"), role: .destructive, isDisabled: isSaving || isLoading) {
                         showResetConfirm = true
                     },
                 ]) {
@@ -161,13 +161,13 @@ struct OpenRestyConfigView: View {
             }
         }
         .task { await loadConfig() }
-        .alert("还原默认配置", isPresented: $showResetConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("确认还原", role: .destructive) {
+        .alert(L10n.t("还原默认配置"), isPresented: $showResetConfirm) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("确认还原"), role: .destructive) {
                 Task { await resetConfig() }
             }
         } message: {
-            Text("将用默认配置覆盖当前内容，是否继续？")
+            Text(L10n.t("将用默认配置覆盖当前内容，是否继续？"))
         }
     }
 

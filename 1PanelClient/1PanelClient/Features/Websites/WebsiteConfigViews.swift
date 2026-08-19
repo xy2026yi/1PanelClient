@@ -22,7 +22,7 @@ struct WebsiteDefaultDocView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else {
                 VStack(spacing: 0) {
                     TextEditor(text: $docText)
@@ -35,7 +35,7 @@ struct WebsiteDefaultDocView: View {
                 .background(Color(.secondarySystemBackground))
             }
         }
-        .navigationTitle("默认文档")
+        .navigationTitle(L10n.t("默认文档"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -45,7 +45,7 @@ struct WebsiteDefaultDocView: View {
                     if isSaving {
                         ProgressView()
                     } else {
-                        Text("更新").bold()
+                        Text(L10n.t("更新")).bold()
                     }
                 }
                 .disabled(isLoading || isSaving || docText.isEmpty)
@@ -95,14 +95,14 @@ struct WebsiteLimitConnView: View {
     }
 
     private static let schemes: [LimitScheme] = [
-        .init(name: "当前",    perserver: 300, perip: 25, rate: 512),
-        .init(name: "论坛/博客", perserver: 300, perip: 25, rate: 512),
-        .init(name: "图片站",  perserver: 200, perip: 10, rate: 1024),
-        .init(name: "下载站",  perserver: 50,  perip: 3,  rate: 2048),
-        .init(name: "商城",    perserver: 500, perip: 10, rate: 2048),
-        .init(name: "门户",    perserver: 400, perip: 15, rate: 1024),
-        .init(name: "企业",    perserver: 60,  perip: 10, rate: 512),
-        .init(name: "视频",    perserver: 150, perip: 4,  rate: 1024),
+        .init(name: L10n.t("当前"),    perserver: 300, perip: 25, rate: 512),
+        .init(name: L10n.t("论坛/博客"), perserver: 300, perip: 25, rate: 512),
+        .init(name: L10n.t("图片站"),  perserver: 200, perip: 10, rate: 1024),
+        .init(name: L10n.t("下载站"),  perserver: 50,  perip: 3,  rate: 2048),
+        .init(name: L10n.t("商城"),    perserver: 500, perip: 10, rate: 2048),
+        .init(name: L10n.t("门户"),    perserver: 400, perip: 15, rate: 1024),
+        .init(name: L10n.t("企业"),    perserver: 60,  perip: 10, rate: 512),
+        .init(name: L10n.t("视频"),    perserver: 150, perip: 4,  rate: 1024),
     ]
 
     @State private var enable = false
@@ -117,13 +117,13 @@ struct WebsiteLimitConnView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("启用", isOn: Binding(
+                Toggle(L10n.t("启用"), isOn: Binding(
                     get: { enable },
                     set: { on in Task { await toggle(on) } }
                 ))
                 .disabled(isToggling)
 
-                Picker("限制方案", selection: $schemeIndex) {
+                Picker(L10n.t("限制方案"), selection: $schemeIndex) {
                     ForEach(Self.schemes.indices, id: \.self) { i in
                         Text(Self.schemes[i].name).tag(i)
                     }
@@ -138,7 +138,7 @@ struct WebsiteLimitConnView: View {
                 }
 
                 HStack {
-                    Text("并发限制")
+                    Text(L10n.t("并发限制"))
                     Spacer()
                     TextField("300", text: $perserver)
                         .keyboardType(.numberPad)
@@ -146,7 +146,7 @@ struct WebsiteLimitConnView: View {
                         .frame(width: 96)
                 }
                 HStack {
-                    Text("单IP限制")
+                    Text(L10n.t("单IP限制"))
                     Spacer()
                     TextField("25", text: $perip)
                         .keyboardType(.numberPad)
@@ -154,7 +154,7 @@ struct WebsiteLimitConnView: View {
                         .frame(width: 96)
                 }
                 HStack {
-                    Text("单请求限速")
+                    Text(L10n.t("单请求限速"))
                     Spacer()
                     TextField("512", text: $rate)
                         .keyboardType(.numberPad)
@@ -162,9 +162,9 @@ struct WebsiteLimitConnView: View {
                         .frame(width: 96)
                 }
             } header: {
-                Text("流量限制")
+                Text(L10n.t("流量限制"))
             } footer: {
-                Text("选择限制方案后自动填入内置参数，可手动调整；单请求限速单位为 KB/s")
+                Text(L10n.t("选择限制方案后自动填入内置参数，可手动调整；单请求限速单位为 KB/s"))
             }
 
             Section {
@@ -176,7 +176,7 @@ struct WebsiteLimitConnView: View {
                         if isSaving {
                             ProgressView()
                         } else {
-                            Text(enable ? "保存更新" : "启用并更新").bold()
+                            Text(enable ? L10n.t("保存更新") : L10n.t("启用并更新")).bold()
                         }
                         Spacer()
                     }
@@ -184,7 +184,7 @@ struct WebsiteLimitConnView: View {
                 .disabled(isSaving || isLoading)
             }
         }
-        .navigationTitle("流量限制")
+        .navigationTitle(L10n.t("流量限制"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
     }
@@ -272,18 +272,18 @@ struct WebsiteRedirectView: View {
     var body: some View {
         Group {
             if isLoading && redirects.isEmpty {
-                ProgressView("加载重定向…")
+                ProgressView(L10n.t("加载重定向…"))
             } else if redirects.isEmpty {
                 ContentUnavailableView(
-                    "暂无重定向",
+                    L10n.t("暂无重定向"),
                     systemImage: "arrow.uturn.turn.right",
-                    description: Text("点击右上角创建第一个重定向规则")
+                    description: Text(L10n.t("点击右上角创建第一个重定向规则"))
                 )
             } else {
                 list
             }
         }
-        .navigationTitle("重定向")
+        .navigationTitle(L10n.t("重定向"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -311,25 +311,25 @@ struct WebsiteRedirectView: View {
             set: { if !$0 { actionRedirect = nil } }
         )) {
             ActionBottomSheet(
-                title: actionRedirect?.displayName ?? "重定向",
+                title: actionRedirect?.displayName ?? L10n.t("重定向"),
                 items: [
                     ActionMenuItem(
-                        title: actionRedirect?.enable == true ? "关闭" : "开启",
+                        title: actionRedirect?.enable == true ? L10n.t("关闭") : L10n.t("开启"),
                         icon: actionRedirect?.enable == true ? "stop.fill" : "play.fill",
                         color: actionRedirect?.enable == true ? .orange : .green
                     ) {
                         let r = actionRedirect
                         Task { if let r { await toggle(r) } }
                     },
-                    ActionMenuItem(title: "编辑", icon: "pencil", color: .blue) {
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
                         editingRedirect = actionRedirect
                         showEdit = true
                     },
-                    ActionMenuItem(title: "源文", icon: "doc.text", color: .teal) {
+                    ActionMenuItem(title: L10n.t("源文"), icon: "doc.text", color: .teal) {
                         sourceRedirect = actionRedirect
                         showSource = true
                     },
-                    ActionMenuItem(title: "删除", icon: "trash", color: .red, role: .destructive) {
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         pendingDelete = actionRedirect
                     },
                 ],
@@ -339,14 +339,14 @@ struct WebsiteRedirectView: View {
             .presentationDragIndicator(.visible)
         }
         .alert(
-            "删除",
+            L10n.t("删除"),
             isPresented: Binding(
                 get: { pendingDelete != nil },
                 set: { if !$0 { pendingDelete = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingDelete = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 if let r = pendingDelete {
                     Task { await deleteRedirect(r) }
                 }
@@ -354,7 +354,7 @@ struct WebsiteRedirectView: View {
             }
         } message: {
             if let r = pendingDelete {
-                Text("将对以下重定向进行 删除 操作，是否继续？\n\n\(r.displayName)")
+                Text(L10n.f("将对以下重定向进行 删除 操作，是否继续？\n\n%@", r.displayName))
             }
         }
     }
@@ -368,7 +368,7 @@ struct WebsiteRedirectView: View {
                             .font(.body.bold())
                         Spacer()
                         if r.enable == true {
-                            Text("已启用")
+                            Text(L10n.t("已启用"))
                                 .font(.caption2)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -376,7 +376,7 @@ struct WebsiteRedirectView: View {
                                 .foregroundStyle(.green)
                                 .clipShape(Capsule())
                         } else {
-                            Text("已停用")
+                            Text(L10n.t("已停用"))
                                 .font(.caption2)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -404,7 +404,7 @@ struct WebsiteRedirectView: View {
                     Button(role: .destructive) {
                         pendingDelete = r
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label(L10n.t("删除"), systemImage: "trash")
                     }
                 }
             }
@@ -417,7 +417,7 @@ struct WebsiteRedirectView: View {
     private func subtitle(_ r: WebsiteRedirect) -> String {
         var parts = [r.typeDisplayName, r.redirect ?? "301"]
         if r.redirectRoot == true {
-            parts.append("重定向到首页")
+            parts.append(L10n.t("重定向到首页"))
         } else if r.type == "path" {
             parts.append(r.path ?? "")
         } else if let d = r.domains?.first, !d.isEmpty {
@@ -495,63 +495,63 @@ struct WebsiteRedirectEditView: View {
 
     var body: some View {
         Form {
-            Section("基本信息") {
-                TextField("名称", text: $name)
+            Section(L10n.t("基本信息")) {
+                TextField(L10n.t("名称"), text: $name)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .disabled(is404 || isEdit)
-                Picker("类型", selection: $type) {
-                    Text("域名").tag("domain")
-                    Text("路径").tag("path")
+                Picker(L10n.t("类型"), selection: $type) {
+                    Text(L10n.t("域名")).tag("domain")
+                    Text(L10n.t("路径")).tag("path")
                     Text("404").tag("404")
                 }
                 .pickerStyle(.segmented)
                 .disabled(isEdit)
-                Picker("方式", selection: $method) {
+                Picker(L10n.t("方式"), selection: $method) {
                     Text("301").tag("301")
                     Text("302").tag("302")
                 }
                 .pickerStyle(.segmented)
             }
 
-            Section("规则") {
+            Section(L10n.t("规则")) {
                 if type == "domain" {
-                    Picker("域名", selection: $selectedDomain) {
-                        Text(domains.isEmpty ? "未获取" : "请选择").tag("")
+                    Picker(L10n.t("域名"), selection: $selectedDomain) {
+                        Text(domains.isEmpty ? L10n.t("未获取") : L10n.t("请选择")).tag("")
                         ForEach(domains) { d in
                             Text(d.domain ?? "").tag(d.domain ?? "")
                         }
                     }
                 } else if type == "path" {
-                    TextField("路径 (例如 /ai)", text: $path)
+                    TextField(L10n.t("路径 (例如 /ai)"), text: $path)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 } else {
-                    Toggle("重定向到首页", isOn: $redirectRoot)
+                    Toggle(L10n.t("重定向到首页"), isOn: $redirectRoot)
                 }
 
                 if !(is404 && redirectRoot) {
-                    TextField("目标URL地址 (http://…)", text: $target)
+                    TextField(L10n.t("目标URL地址 (http://…)"), text: $target)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
 
                 if !is404 {
-                    Toggle("保留URI参数", isOn: $keepPath)
+                    Toggle(L10n.t("保留URI参数"), isOn: $keepPath)
                 }
             }
 
-            Section("状态") {
-                Toggle("启用", isOn: $enable)
+            Section(L10n.t("状态")) {
+                Toggle(L10n.t("启用"), isOn: $enable)
             }
         }
-        .navigationTitle(isEdit ? "编辑重定向" : "创建重定向")
+        .navigationTitle(isEdit ? L10n.t("编辑重定向") : L10n.t("创建重定向"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isEdit ? "保存" : "创建") {
+                Button(isEdit ? L10n.t("保存") : L10n.t("创建")) {
                     Task { await save() }
                 }
                 .disabled(!canSubmit || isSaving)
@@ -650,7 +650,7 @@ struct WebsiteRedirectSourceView: View {
             .textInputAutocapitalization(.never)
             .padding(.horizontal, 4)
             .background(Color(.secondarySystemBackground))
-        .navigationTitle("源文：\(redirect.displayName)")
+        .navigationTitle(L10n.f("源文：%@", redirect.displayName))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -660,7 +660,7 @@ struct WebsiteRedirectSourceView: View {
                     if isSaving {
                         ProgressView()
                     } else {
-                        Text("保存").bold()
+                        Text(L10n.t("保存")).bold()
                     }
                 }
                 .disabled(isSaving || !hasChanges)
@@ -707,12 +707,12 @@ struct WebsiteAuthsView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else {
                 list
             }
         }
-        .navigationTitle("密码访问")
+        .navigationTitle(L10n.t("密码访问"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -732,14 +732,14 @@ struct WebsiteAuthsView: View {
             }
         }
         .alert(
-            "删除",
+            L10n.t("删除"),
             isPresented: Binding(
                 get: { pendingDelete != nil },
                 set: { if !$0 { pendingDelete = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingDelete = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 if let item = pendingDelete {
                     Task { await deleteItem(item) }
                 }
@@ -747,11 +747,11 @@ struct WebsiteAuthsView: View {
             }
         } message: {
             if let item = pendingDelete {
-                Text("确定删除访问账号「\(item.username ?? "")」吗？")
+                Text(L10n.f("确定删除访问账号「%@」吗？", item.username ?? ""))
             }
         }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
@@ -760,18 +760,18 @@ struct WebsiteAuthsView: View {
     private var list: some View {
         List {
             Section {
-                Toggle("启用密码访问", isOn: Binding(
+                Toggle(L10n.t("启用密码访问"), isOn: Binding(
                     get: { enable },
                     set: { on in Task { await toggle(on) } }
                 ))
                 .disabled(isToggling || items.isEmpty)
             } footer: {
-                Text("开启后访问网站需输入账号密码；未创建账号时不可开启")
+                Text(L10n.t("开启后访问网站需输入账号密码；未创建账号时不可开启"))
             }
 
-            Section("访问账号") {
+            Section(L10n.t("访问账号")) {
                 if items.isEmpty {
-                    Text("暂无账号")
+                    Text(L10n.t("暂无账号"))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
@@ -801,7 +801,7 @@ struct WebsiteAuthsView: View {
                         Button(role: .destructive) {
                             pendingDelete = item
                         } label: {
-                            Label("删除", systemImage: "trash")
+                            Label(L10n.t("删除"), systemImage: "trash")
                         }
                     }
                 }
@@ -861,13 +861,13 @@ struct WebsiteAuthEditView: View {
 
     var body: some View {
         Form {
-            Section("账号") {
-                TextField("用户名", text: $username)
+            Section(L10n.t("账号")) {
+                TextField(L10n.t("用户名"), text: $username)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .disabled(isEdit)
                 HStack {
-                    SecureField("密码", text: $password)
+                    SecureField(L10n.t("密码"), text: $password)
                     Button {
                         password = Self.randomPassword()
                     } label: {
@@ -875,14 +875,14 @@ struct WebsiteAuthEditView: View {
                     }
                     .buttonStyle(.borderless)
                 }
-                TextField("备注", text: $remark)
+                TextField(L10n.t("备注"), text: $remark)
             }
         }
-        .navigationTitle(isEdit ? "编辑账号" : "创建账号")
+        .navigationTitle(isEdit ? L10n.t("编辑账号") : L10n.t("创建账号"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isEdit ? "保存" : "创建") {
+                Button(isEdit ? L10n.t("保存") : L10n.t("创建")) {
                     Task { await save() }
                 }
                 .disabled(!canSubmit || isSaving)

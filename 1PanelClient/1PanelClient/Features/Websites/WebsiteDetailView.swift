@@ -37,7 +37,7 @@ struct WebsiteDetailView: View {
     var body: some View {
         List {
             if isLoadingDetail && detail == nil {
-                Section { HStack { ProgressView(); Text("加载中…") } }
+                Section { HStack { ProgressView(); Text(L10n.t("加载中…")) } }
             } else if let d = detail {
                 // 状态与操作（下拉抽屉，与容器详情一致）
                 Section {
@@ -53,25 +53,25 @@ struct WebsiteDetailView: View {
                 // 基本信息
                 Section {
                     if let alias = d.alias, !alias.isEmpty {
-                        InfoRow("别名", value: alias)
+                        InfoRow(L10n.t("别名"), value: alias)
                     }
                     if let domain = d.primaryDomain, !domain.isEmpty {
-                        InfoRow("主域名", value: domain)
+                        InfoRow(L10n.t("主域名"), value: domain)
                     }
-                    InfoRow("类型", value: Website.typeDisplayName(for: d.type ?? website.type))
+                    InfoRow(L10n.t("类型"), value: Website.typeDisplayName(for: d.type ?? website.type))
                     if let p = d.sitePath, !p.isEmpty {
                         NavigationLink {
                             FilesView(server: server, initialPath: p)
                         } label: {
-                            InfoRow("根目录", value: p)
+                            InfoRow(L10n.t("根目录"), value: p)
                         }
                         .buttonStyle(.plain)
                     }
                     if let created = d.createdAt, !created.isEmpty {
-                        InfoRow("创建时间", value: String(created.prefix(19)))
+                        InfoRow(L10n.t("创建时间"), value: String(created.prefix(19)))
                     }
                 } header: {
-                    SectionLabel(title: "基本信息", systemImage: "doc.text")
+                    SectionLabel(title: L10n.t("基本信息"), systemImage: "doc.text")
                 }
 
                 // 操作入口（HTTPS / 日志）
@@ -95,15 +95,15 @@ struct WebsiteDetailView: View {
                     NavigationLink {
                         WebsiteLogPage(websiteId: website.id, vm: vm)
                     } label: {
-                        Label("日志", systemImage: "doc.text.magnifyingglass")
+                        Label(L10n.t("日志"), systemImage: "doc.text.magnifyingglass")
                             .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
                 }
             } else {
                 Section {
-                    InfoRow("主域名", value: website.primaryDomain ?? "—")
-                    InfoRow("类型", value: website.typeDisplayName)
+                    InfoRow(L10n.t("主域名"), value: website.primaryDomain ?? "—")
+                    InfoRow(L10n.t("类型"), value: website.typeDisplayName)
                 }
             }
         }
@@ -120,12 +120,12 @@ struct WebsiteDetailView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: "基础信息") { showEdit = true },
-                    .action(title: "反向代理") { showProxies = true },
-                    .action(title: "默认文档") { showDefaultDoc = true },
-                    .action(title: "流量限制") { showLimitConn = true },
-                    .action(title: "重定向") { showRedirects = true },
-                    .action(title: "密码访问") { showAuths = true },
+                    .action(title: L10n.t("基础信息")) { showEdit = true },
+                    .action(title: L10n.t("反向代理")) { showProxies = true },
+                    .action(title: L10n.t("默认文档")) { showDefaultDoc = true },
+                    .action(title: L10n.t("流量限制")) { showLimitConn = true },
+                    .action(title: L10n.t("重定向")) { showRedirects = true },
+                    .action(title: L10n.t("密码访问")) { showAuths = true },
                 ]) {
                     withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
@@ -183,21 +183,21 @@ struct WebsiteDetailView: View {
             WebsiteDeleteSheet(website: website, vm: vm)
         }
         .alert(
-            (pendingToggle == true) ? "启用" : "停止",
+            (pendingToggle == true) ? L10n.t("启用") : L10n.t("停止"),
             isPresented: Binding(
                 get: { pendingToggle != nil },
                 set: { if !$0 { pendingToggle = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingToggle = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingToggle = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 let target = pendingToggle
                 pendingToggle = nil
                 guard let target else { return }
                 Task { await toggleStatus(current: detail?.status, to: target) }
             }
         } message: {
-            Text("将对网站「\(website.displayName)」进行 \(pendingToggle == true ? "启用" : "停止") 操作，是否继续？")
+            Text(L10n.f("将对网站「%@」进行 %@ 操作，是否继续？", website.displayName, pendingToggle == true ? L10n.t("启用") : L10n.t("停止")))
         }
     }
 
@@ -249,7 +249,7 @@ struct WebsiteDetailView: View {
     private var operationsRow: some View {
         HStack(spacing: 8) {
             actionButton(
-                title: isRunning ? "停止" : "启用",
+                title: isRunning ? L10n.t("停止") : L10n.t("启用"),
                 icon: isRunning ? "stop.fill" : "play.fill",
                 color: isRunning ? .orange : .green,
                 busy: isOperating
@@ -257,21 +257,21 @@ struct WebsiteDetailView: View {
                 pendingToggle = !isRunning
             }
             actionButton(
-                title: "备份",
+                title: L10n.t("备份"),
                 icon: "externaldrive.badge.timemachine",
                 color: .blue
             ) {
                 showBackup = true
             }
             actionButton(
-                title: "编辑",
+                title: L10n.t("编辑"),
                 icon: "doc.text",
                 color: .cyan
             ) {
                 showNginx = true
             }
             actionButton(
-                title: "删除",
+                title: L10n.t("删除"),
                 icon: "trash",
                 color: .red
             ) {
@@ -366,22 +366,22 @@ struct WebsiteEditView: View {
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
             } header: {
-                Text("主域名")
+                Text(L10n.t("主域名"))
             } footer: {
-                Text("网站的主访问域名，修改后请确保域名解析已指向本服务器")
+                Text(L10n.t("网站的主访问域名，修改后请确保域名解析已指向本服务器"))
             }
 
             Section {
-                TextField("备注（可选）", text: $remark)
+                TextField(L10n.t("备注（可选）"), text: $remark)
             } header: {
-                Text("备注")
+                Text(L10n.t("备注"))
             }
         }
-        .navigationTitle("编辑网站")
+        .navigationTitle(L10n.t("编辑网站"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button(isSaving ? "保存中…" : "保存") {
+                Button(isSaving ? L10n.t("保存中…") : L10n.t("保存")) {
                     Task {
                         isSaving = true
                         var req = WebsiteUpdateRequest(from: detail)
@@ -425,30 +425,30 @@ struct WebsiteDeleteSheet: View {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.red)
-                        Text("确定要删除 \(website.displayName) 吗？")
+                        Text(L10n.f("确定要删除 %@ 吗？", website.displayName))
                             .bold()
                     }
                 } footer: {
-                    Text("删除操作不可撤销，请谨慎操作")
+                    Text(L10n.t("删除操作不可撤销，请谨慎操作"))
                 }
 
-                Section("删除选项") {
-                    Toggle("强制删除", isOn: $forceDelete)
-                    Toggle("删除备份", isOn: $deleteBackup)
+                Section(L10n.t("删除选项")) {
+                    Toggle(L10n.t("强制删除"), isOn: $forceDelete)
+                    Toggle(L10n.t("删除备份"), isOn: $deleteBackup)
                     if isDeployment {
-                        Toggle("删除关联应用", isOn: $deleteApp)
+                        Toggle(L10n.t("删除关联应用"), isOn: $deleteApp)
                     }
-                    Toggle("删除数据库", isOn: $deleteDB)
+                    Toggle(L10n.t("删除数据库"), isOn: $deleteDB)
                 }
             }
-            .navigationTitle("删除网站")
+            .navigationTitle(L10n.t("删除网站"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .destructiveAction) {
-                    Button("删除", role: .destructive) {
+                    Button(L10n.t("删除"), role: .destructive) {
                         Task { await performDelete() }
                     }
                     .disabled(isDeleting)

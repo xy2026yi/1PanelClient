@@ -53,7 +53,7 @@ struct ApplyCertificateView: View {
                 acmeForm
             }
         }
-        .navigationTitle(isEdit ? "编辑证书" : "申请证书")
+        .navigationTitle(isEdit ? L10n.t("编辑证书") : L10n.t("申请证书"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -63,7 +63,7 @@ struct ApplyCertificateView: View {
                     if isSubmitting {
                         ProgressView()
                     } else {
-                        Text(isEdit ? "保存" : "申请").bold()
+                        Text(isEdit ? L10n.t("保存") : L10n.t("申请")).bold()
                     }
                 }
                 .disabled(primaryDomain.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting)
@@ -80,33 +80,33 @@ struct ApplyCertificateView: View {
     private var selfSignedForm: some View {
         Form {
             Section {
-                TextField("主域名", text: $primaryDomain)
+                TextField(L10n.t("主域名"), text: $primaryDomain)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("域名")
+                Text(L10n.t("域名"))
             }
 
             Section {
-                TextField("其他域名（一行一个）", text: $otherDomains, axis: .vertical)
+                TextField(L10n.t("其他域名（一行一个）"), text: $otherDomains, axis: .vertical)
                     .lineLimit(3, reservesSpace: true)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("其他域名")
+                Text(L10n.t("其他域名"))
             }
 
             Section {
-                TextField("备注", text: $description_)
+                TextField(L10n.t("备注"), text: $description_)
             } header: {
-                Text("备注")
+                Text(L10n.t("备注"))
             }
 
             Section {
-                InfoRow("密钥算法", value: selectedKeyType.displayName)
-                Toggle("自动续签", isOn: $autoRenew)
+                InfoRow(L10n.t("密钥算法"), value: selectedKeyType.displayName)
+                Toggle(L10n.t("自动续签"), isOn: $autoRenew)
             } header: {
-                Text("配置")
+                Text(L10n.t("配置"))
             }
         }
     }
@@ -115,35 +115,35 @@ struct ApplyCertificateView: View {
 
     private var acmeForm: some View {
         Form {
-            Section("域名") {
-                TextField("主域名（必填）", text: $primaryDomain)
+            Section(L10n.t("域名")) {
+                TextField(L10n.t("主域名（必填）"), text: $primaryDomain)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                TextField("其他域名（可选，一行一个）", text: $otherDomains, axis: .vertical)
+                TextField(L10n.t("其他域名（可选，一行一个）"), text: $otherDomains, axis: .vertical)
                     .lineLimit(3, reservesSpace: true)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                TextField("备注（可选）", text: $description_)
+                TextField(L10n.t("备注（可选）"), text: $description_)
             }
 
-            Section("申请配置") {
-                Picker("Acme 账户", selection: $selectedAcmeId) {
+            Section(L10n.t("申请配置")) {
+                Picker(L10n.t("Acme 账户"), selection: $selectedAcmeId) {
                     ForEach(acmeAccounts) { acc in
                         Text("\(acc.email) (\(AcmeType(rawValue: acc.type)?.displayName ?? acc.type))")
                             .tag(acc.id)
                     }
                 }
 
-                Picker("密匙算法", selection: $selectedKeyType) {
+                Picker(L10n.t("密匙算法"), selection: $selectedKeyType) {
                     ForEach(SSLKeyType.allCases) { Text($0.displayName).tag($0) }
                 }
 
-                Picker("验证方式", selection: $selectedProvider) {
+                Picker(L10n.t("验证方式"), selection: $selectedProvider) {
                     ForEach(SSLProvider.allCases) { Text($0.displayName).tag($0) }
                 }
 
                 if selectedProvider == .dnsAccount {
-                    Picker("DNS 账户", selection: $selectedDnsId) {
+                    Picker(L10n.t("DNS 账户"), selection: $selectedDnsId) {
                         ForEach(dnsAccounts) { acc in
                             Text("\(acc.name) (\(DnsType(rawValue: acc.type)?.displayName ?? acc.type))")
                                 .tag(acc.id)
@@ -151,40 +151,40 @@ struct ApplyCertificateView: View {
                     }
                 }
 
-                Toggle("自动续签", isOn: $autoRenew)
+                Toggle(L10n.t("自动续签"), isOn: $autoRenew)
             }
 
             Section {
-                Toggle("禁用 CNAME", isOn: $disableCNAME)
-                Toggle("跳过 DNS 校验", isOn: $skipDNS)
-                TextField("DNS 服务器 1（可选）", text: $nameserver1)
+                Toggle(L10n.t("禁用 CNAME"), isOn: $disableCNAME)
+                Toggle(L10n.t("跳过 DNS 校验"), isOn: $skipDNS)
+                TextField(L10n.t("DNS 服务器 1（可选）"), text: $nameserver1)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                TextField("DNS 服务器 2（可选）", text: $nameserver2)
+                TextField(L10n.t("DNS 服务器 2（可选）"), text: $nameserver2)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("高级设置")
+                Text(L10n.t("高级设置"))
             } footer: {
-                Text("禁用 CNAME：有 CNAME 配置的域名如果申请失败可以开启。跳过 DNS 校验：如果出现申请超时问题请开启，其他情况请勿开启。")
+                Text(L10n.t("禁用 CNAME：有 CNAME 配置的域名如果申请失败可以开启。跳过 DNS 校验：如果出现申请超时问题请开启，其他情况请勿开启。"))
             }
 
             Section {
-                Toggle("推送证书到本地", isOn: $pushDir)
+                Toggle(L10n.t("推送证书到本地"), isOn: $pushDir)
                 if pushDir {
-                    TextField("推送路径（如 /tmp）", text: $dir)
+                    TextField(L10n.t("推送路径（如 /tmp）"), text: $dir)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
-                Toggle("申请证书之后执行脚本", isOn: $execShell)
+                Toggle(L10n.t("申请证书之后执行脚本"), isOn: $execShell)
                 if execShell {
-                    TextField("脚本内容", text: $shell, axis: .vertical)
+                    TextField(L10n.t("脚本内容"), text: $shell, axis: .vertical)
                         .lineLimit(5, reservesSpace: true)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
             } header: {
-                Text("其他选项")
+                Text(L10n.t("其他选项"))
             }
         }
     }

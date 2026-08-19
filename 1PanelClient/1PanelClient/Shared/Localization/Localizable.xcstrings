@@ -23,6 +23,17 @@
         }
       }
     },
+    "%@失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ failed: %@"
+          }
+        }
+      }
+    },
     "%@容器「%@」任务已提交" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -89,6 +100,17 @@
         }
       }
     },
+    "ACME 服务 URL" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ACME Service URL"
+          }
+        }
+      }
+    },
     "API Key 已失效，长按重新录入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -122,6 +144,28 @@
         }
       }
     },
+    "Acme 账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ACME Account"
+          }
+        }
+      }
+    },
+    "Acme 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ACME Account"
+          }
+        }
+      }
+    },
     "CPU 权重" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -133,6 +177,83 @@
         }
       }
     },
+    "Client ID（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client ID (optional)"
+          }
+        }
+      }
+    },
+    "CloudDNS 凭证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudDNS Credentials"
+          }
+        }
+      }
+    },
+    "Cloudflare 凭证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloudflare Credentials"
+          }
+        }
+      }
+    },
+    "DNS 服务器 1（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DNS Server 1 (optional)"
+          }
+        }
+      }
+    },
+    "DNS 服务器 2（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DNS Server 2 (optional)"
+          }
+        }
+      }
+    },
+    "DNS 账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DNS Account"
+          }
+        }
+      }
+    },
+    "DNS 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DNS Account"
+          }
+        }
+      }
+    },
     "Docker 未安装或加载失败" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -140,6 +261,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Docker is not installed or failed to load"
+          }
+        }
+      }
+    },
+    "EAB 凭证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EAB Credentials"
+          }
+        }
+      }
+    },
+    "EMAIL（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email (optional)"
+          }
+        }
+      }
+    },
+    "Email（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email (optional)"
+          }
+        }
+      }
+    },
+    "HSTS 包含子域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HSTS includeSubDomains"
           }
         }
       }
@@ -166,6 +331,116 @@
         }
       }
     },
+    "HTTP 自动跳转 HTTPS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP → HTTPS Redirect"
+          }
+        }
+      }
+    },
+    "HTTP 配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP Config"
+          }
+        }
+      }
+    },
+    "HTTPS 端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS Port"
+          }
+        }
+      }
+    },
+    "HTTPS 配置已保存，正在重载 OpenResty…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS config saved, reloading OpenResty…"
+          }
+        }
+      }
+    },
+    "NameCheap 凭证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NameCheap Credentials"
+          }
+        }
+      }
+    },
+    "NameSilo 凭证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NameSilo Credentials"
+          }
+        }
+      }
+    },
+    "OpenResty 未安装或加载失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenResty is not installed or failed to load"
+          }
+        }
+      }
+    },
+    "Region（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Region (optional)"
+          }
+        }
+      }
+    },
+    "SSL 证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSL Certificates"
+          }
+        }
+      }
+    },
+    "SSL证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSL Certificates"
+          }
+        }
+      }
+    },
     "http 仓库添加授信需要重启 Docker 服务" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -177,6 +452,17 @@
         }
       }
     },
+    "一行一个域名，支持 * 和 IP 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One domain per line; * and IP addresses supported"
+          }
+        }
+      }
+    },
     "上一步" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -184,6 +470,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back"
+          }
+        }
+      }
+    },
+    "上传" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload"
+          }
+        }
+      }
+    },
+    "上传方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload Method"
+          }
+        }
+      }
+    },
+    "上传证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload Certificate"
           }
         }
       }
@@ -217,6 +536,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Download URL"
+          }
+        }
+      }
+    },
+    "下载站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Site"
+          }
+        }
+      }
+    },
+    "主域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primary Domain"
+          }
+        }
+      }
+    },
+    "主域名（必填）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primary Domain (required)"
           }
         }
       }
@@ -298,6 +650,28 @@
         }
       }
     },
+    "仅 HTTP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP Only"
+          }
+        }
+      }
+    },
+    "仅 HTTPS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS Only"
+          }
+        }
+      }
+    },
     "仅允许 HTTPS 连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -305,6 +679,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HTTPS-only Connections"
+          }
+        }
+      }
+    },
+    "仅显示类型为「网站」且未被使用的已安装应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only installed apps of type Website that are not in use"
           }
         }
       }
@@ -353,6 +738,39 @@
         }
       }
     },
+    "代理地址：%@%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proxy URL: %@%@"
+          }
+        }
+      }
+    },
+    "代理目标" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proxy Target"
+          }
+        }
+      }
+    },
+    "企业" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Business"
+          }
+        }
+      }
+    },
     "优化 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -360,6 +778,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Improved %ld"
+          }
+        }
+      }
+    },
+    "使用 EAB 认证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use EAB"
           }
         }
       }
@@ -375,6 +804,17 @@
         }
       }
     },
+    "使用代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Proxy"
+          }
+        }
+      }
+    },
     "保存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -382,6 +822,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Save"
+          }
+        }
+      }
+    },
+    "保存中…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving…"
+          }
+        }
+      }
+    },
+    "保存失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save failed: %@"
+          }
+        }
+      }
+    },
+    "保存更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Changes"
+          }
+        }
+      }
+    },
+    "保留URI参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep URI Arguments"
           }
         }
       }
@@ -430,6 +914,17 @@
         }
       }
     },
+    "公司/组织" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Company / Organization"
+          }
+        }
+      }
+    },
     "公开" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -470,6 +965,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Close"
+          }
+        }
+      }
+    },
+    "其他域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other Domains"
+          }
+        }
+      }
+    },
+    "其他域名（一行一个）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other domains (one per line)"
+          }
+        }
+      }
+    },
+    "其他域名（可选，一行一个）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other domains (optional, one per line)"
+          }
+        }
+      }
+    },
+    "其他选项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other Options"
           }
         }
       }
@@ -551,6 +1090,39 @@
         }
       }
     },
+    "创建 Acme 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create ACME Account"
+          }
+        }
+      }
+    },
+    "创建 DNS 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create DNS Account"
+          }
+        }
+      }
+    },
+    "创建中…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creating…"
+          }
+        }
+      }
+    },
     "创建仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -558,6 +1130,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Registry"
+          }
+        }
+      }
+    },
+    "创建代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Proxy"
+          }
+        }
+      }
+    },
+    "创建失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create failed: %@"
           }
         }
       }
@@ -606,6 +1200,61 @@
         }
       }
     },
+    "创建机构" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Authority"
+          }
+        }
+      }
+    },
+    "创建网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Website"
+          }
+        }
+      }
+    },
+    "创建账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Account"
+          }
+        }
+      }
+    },
+    "创建账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Account"
+          }
+        }
+      }
+    },
+    "创建重定向" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Redirect"
+          }
+        }
+      }
+    },
     "删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -613,6 +1262,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete"
+          }
+        }
+      }
+    },
+    "删除 Acme 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete ACME Account"
+          }
+        }
+      }
+    },
+    "删除 DNS 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete DNS Account"
           }
         }
       }
@@ -639,6 +1310,39 @@
         }
       }
     },
+    "删除关联应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove App Link"
+          }
+        }
+      }
+    },
+    "删除备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Backup"
+          }
+        }
+      }
+    },
+    "删除失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete failed: %@"
+          }
+        }
+      }
+    },
     "删除容器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -646,6 +1350,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Container"
+          }
+        }
+      }
+    },
+    "删除操作不可撤销，请谨慎操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deletion cannot be undone — proceed with care"
+          }
+        }
+      }
+    },
+    "删除数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Database"
+          }
+        }
+      }
+    },
+    "删除网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Website"
+          }
+        }
+      }
+    },
+    "删除证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Certificate"
+          }
+        }
+      }
+    },
+    "删除选项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Options"
           }
         }
       }
@@ -694,6 +1453,39 @@
         }
       }
     },
+    "别名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alias"
+          }
+        }
+      }
+    },
+    "到期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires"
+          }
+        }
+      }
+    },
+    "刷新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh"
+          }
+        }
+      }
+    },
     "加载 Docker 状态…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -701,6 +1493,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading Docker status…"
+          }
+        }
+      }
+    },
+    "加载 HTTPS 配置…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading HTTPS config…"
+          }
+        }
+      }
+    },
+    "加载 HTTPS 配置失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load HTTPS config: %@"
+          }
+        }
+      }
+    },
+    "加载 OpenResty 状态…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading OpenResty status…"
           }
         }
       }
@@ -727,6 +1552,39 @@
         }
       }
     },
+    "加载反向代理…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading proxies…"
+          }
+        }
+      }
+    },
+    "加载失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load"
+          }
+        }
+      }
+    },
+    "加载失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load: %@"
+          }
+        }
+      }
+    },
     "加载容器配置…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -734,6 +1592,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading container config…"
+          }
+        }
+      }
+    },
+    "加载应用列表…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading apps…"
           }
         }
       }
@@ -756,6 +1625,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load logs: %@"
+          }
+        }
+      }
+    },
+    "加载详情失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load details: %@"
+          }
+        }
+      }
+    },
+    "加载配置…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading config…"
+          }
+        }
+      }
+    },
+    "加载配置失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load config: %@"
+          }
+        }
+      }
+    },
+    "加载重定向…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading redirects…"
           }
         }
       }
@@ -815,6 +1728,17 @@
         }
       }
     },
+    "华为云凭证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Huawei Cloud Credentials"
+          }
+        }
+      }
+    },
     "协议" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -826,6 +1750,28 @@
         }
       }
     },
+    "单IP限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per-IP Limit"
+          }
+        }
+      }
+    },
+    "单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unit"
+          }
+        }
+      }
+    },
     "单击切换服务器，长按编辑，左滑移除；下拉刷新健康状态" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -833,6 +1779,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap to switch server, long press to edit, swipe left to remove; pull down to refresh health"
+          }
+        }
+      }
+    },
+    "单请求限速" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per-Request Rate"
+          }
+        }
+      }
+    },
+    "反向代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reverse Proxy"
           }
         }
       }
@@ -866,6 +1834,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "取消编辑" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel Editing"
           }
         }
       }
@@ -925,6 +1904,94 @@
         }
       }
     },
+    "启用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable"
+          }
+        }
+      }
+    },
+    "启用 HTTPS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable HTTPS"
+          }
+        }
+      }
+    },
+    "启用密码访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Password Access"
+          }
+        }
+      }
+    },
+    "启用并更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply & Update"
+          }
+        }
+      }
+    },
+    "商城" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Online Store"
+          }
+        }
+      }
+    },
+    "国家代号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Country Code"
+          }
+        }
+      }
+    },
+    "图片站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Gallery"
+          }
+        }
+      }
+    },
+    "在浏览器打开网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in Browser"
+          }
+        }
+      }
+    },
     "在线" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -943,6 +2010,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Online: %@"
+          }
+        }
+      }
+    },
+    "地区信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location"
+          }
+        }
+      }
+    },
+    "城市" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "City"
+          }
+        }
+      }
+    },
+    "城市（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "City (optional)"
+          }
+        }
+      }
+    },
+    "域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domains"
+          }
+        }
+      }
+    },
+    "域名（一行一个）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domains (one per line)"
+          }
+        }
+      }
+    },
+    "基本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basic"
           }
         }
       }
@@ -980,6 +2113,39 @@
         }
       }
     },
+    "备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup"
+          }
+        }
+      }
+    },
+    "备注" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes"
+          }
+        }
+      }
+    },
+    "备注（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes (optional)"
+          }
+        }
+      }
+    },
     "外观" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -991,6 +2157,28 @@
         }
       }
     },
+    "天" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day(s)"
+          }
+        }
+      }
+    },
+    "好" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
     "好的" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -998,6 +2186,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "如 /home/user/fullchain.pem" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. /home/user/fullchain.pem"
+          }
+        }
+      }
+    },
+    "如 /home/user/privkey.pem" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. /home/user/privkey.pem"
           }
         }
       }
@@ -1042,6 +2252,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Security"
+          }
+        }
+      }
+    },
+    "完整地址：%@%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full URL: %@%@"
           }
         }
       }
@@ -1112,6 +2333,17 @@
         }
       }
     },
+    "密匙算法" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key Algorithm"
+          }
+        }
+      }
+    },
     "密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1119,6 +2351,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Password"
+          }
+        }
+      }
+    },
+    "密码访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password Access"
+          }
+        }
+      }
+    },
+    "密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Key"
+          }
+        }
+      }
+    },
+    "密钥算法" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key Algorithm"
           }
         }
       }
@@ -1134,6 +2399,50 @@
         }
       }
     },
+    "将对 OpenResty 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to OpenResty?"
+          }
+        }
+      }
+    },
+    "将对以下反向代理进行 删除 操作，是否继续？\n\n%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the following reverse proxy?\n\n%@"
+          }
+        }
+      }
+    },
+    "将对以下证书颁发机构进行 删除 操作，是否继续？\n\n%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the following certificate authority?\n\n%@"
+          }
+        }
+      }
+    },
+    "将对以下重定向进行 删除 操作，是否继续？\n\n%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the following redirect?\n\n%@"
+          }
+        }
+      }
+    },
     "将对容器进行 %@ 操作，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1145,6 +2454,39 @@
         }
       }
     },
+    "将对网站「%@」进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to website \"%@\"?"
+          }
+        }
+      }
+    },
+    "将用新的证书内容替换「%@」。原证书的 ID 保持不变，已绑定该证书的网站会自动生效。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace \"%@\" with the new certificate content? Its ID stays the same and bound sites update automatically."
+          }
+        }
+      }
+    },
+    "将用默认配置覆盖当前内容，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overwrite the current content with defaults?"
+          }
+        }
+      }
+    },
     "将移除该服务器的连接配置与已保存的 API 密钥，此操作不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1152,6 +2494,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This removes the server's connection settings and saved API key. This cannot be undone."
+          }
+        }
+      }
+    },
+    "将重新申请证书「%@」，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-apply certificate \"%@\"?"
           }
         }
       }
@@ -1255,6 +2608,17 @@
         }
       }
     },
+    "已重新提交申请" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Application resubmitted"
+          }
+        }
+      }
+    },
     "平台" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1262,6 +2626,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Platform"
+          }
+        }
+      }
+    },
+    "年" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year(s)"
+          }
+        }
+      }
+    },
+    "并发限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concurrency Limit"
           }
         }
       }
@@ -1288,6 +2674,17 @@
         }
       }
     },
+    "开启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable"
+          }
+        }
+      }
+    },
     "开启后将强制重新拉取镜像，忽略本地缓存。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1310,6 +2707,28 @@
         }
       }
     },
+    "开启后访问网站需输入账号密码；未创建账号时不可开启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visitors must enter a username and password; create an account before enabling"
+          }
+        }
+      }
+    },
+    "强制删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Delete"
+          }
+        }
+      }
+    },
     "强制拉取镜像" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1317,6 +2736,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Force Pull"
+          }
+        }
+      }
+    },
+    "当前" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current"
           }
         }
       }
@@ -1387,6 +2817,17 @@
         }
       }
     },
+    "手动导入的证书不支持自动续签和重新申请" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manually imported certificates do not support auto-renewal or re-apply"
+          }
+        }
+      }
+    },
     "拉取中…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1431,6 +2872,39 @@
         }
       }
     },
+    "推送证书到本地" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Push to Local"
+          }
+        }
+      }
+    },
+    "推送证书到本地目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Push Certificate to Local Directory"
+          }
+        }
+      }
+    },
+    "推送路径（如 /tmp）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Push Path (e.g. /tmp)"
+          }
+        }
+      }
+    },
     "提交中…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1449,6 +2923,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notice"
+          }
+        }
+      }
+    },
+    "搜索域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search domains"
           }
         }
       }
@@ -1486,6 +2971,17 @@
         }
       }
     },
+    "支持的协议版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supported TLS Versions"
+          }
+        }
+      }
+    },
     "收起" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1515,6 +3011,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Added %ld"
+          }
+        }
+      }
+    },
+    "方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Method"
           }
         }
       }
@@ -1585,6 +3092,28 @@
         }
       }
     },
+    "暂无 Acme 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No ACME accounts"
+          }
+        }
+      }
+    },
+    "暂无 DNS 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No DNS accounts"
+          }
+        }
+      }
+    },
     "暂无仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1592,6 +3121,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No registries"
+          }
+        }
+      }
+    },
+    "暂无反向代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No reverse proxies"
+          }
+        }
+      }
+    },
+    "暂无可用应用，请先在应用页面安装一个网站类应用（如 WordPress）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No apps available — install a website app (e.g. WordPress) first"
           }
         }
       }
@@ -1629,6 +3180,17 @@
         }
       }
     },
+    "暂无日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No logs"
+          }
+        }
+      }
+    },
     "暂无更新日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1662,6 +3224,61 @@
         }
       }
     },
+    "暂无网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No websites"
+          }
+        }
+      }
+    },
+    "暂无自签证书机构" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No certificate authorities"
+          }
+        }
+      }
+    },
+    "暂无证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No certificates"
+          }
+        }
+      }
+    },
+    "暂无账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No accounts"
+          }
+        }
+      }
+    },
+    "暂无重定向" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No redirects"
+          }
+        }
+      }
+    },
     "暂无镜像" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1669,6 +3286,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No images"
+          }
+        }
+      }
+    },
+    "暂未产生%@记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No %@ records yet"
           }
         }
       }
@@ -1750,6 +3378,17 @@
         }
       }
     },
+    "更新失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update failed: %@"
+          }
+        }
+      }
+    },
     "更新容器「%@」任务已提交" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1768,6 +3407,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Update container failed: %@"
+          }
+        }
+      }
+    },
+    "更新证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Certificate"
+          }
+        }
+      }
+    },
+    "有效期至 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valid until %@"
+          }
+        }
+      }
+    },
+    "有效期：%ld %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Validity: %ld %@"
           }
         }
       }
@@ -1801,6 +3473,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Server Info"
+          }
+        }
+      }
+    },
+    "服务器文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server File"
           }
         }
       }
@@ -1915,6 +3598,17 @@
         }
       }
     },
+    "未获取" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not retrieved"
+          }
+        }
+      }
+    },
     "未连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1937,6 +3631,28 @@
         }
       }
     },
+    "机构名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "机构详情" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "查看监控" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1955,6 +3671,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "stdin"
+          }
+        }
+      }
+    },
+    "根目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -2010,6 +3737,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No images to prune"
+          }
+        }
+      }
+    },
+    "流量限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate Limit"
           }
         }
       }
@@ -2190,6 +3928,105 @@
         }
       }
     },
+    "源文" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source"
+          }
+        }
+      }
+    },
+    "源文：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source: %@"
+          }
+        }
+      }
+    },
+    "点击右上角创建第一个反向代理路由" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the top-right button to create your first proxy route"
+          }
+        }
+      }
+    },
+    "点击右上角创建第一个重定向规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the top-right button to create your first redirect rule"
+          }
+        }
+      }
+    },
+    "点击右下角 + 创建第一个网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + at the bottom right to create your first website"
+          }
+        }
+      }
+    },
+    "点击右下角「+」申请或上传第一张证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap \"+\" at the bottom right to apply for or upload your first certificate"
+          }
+        }
+      }
+    },
+    "点击右下角「创建账户」添加第一个 Acme 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap \"Create Account\" at the bottom right to add your first ACME account"
+          }
+        }
+      }
+    },
+    "点击右下角「创建账户」添加第一个 DNS 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap \"Create Account\" at the bottom right to add your first DNS account"
+          }
+        }
+      }
+    },
+    "点击右下角按钮创建第一个 CA 机构" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the bottom-right button to create your first certificate authority"
+          }
+        }
+      }
+    },
     "点击查看详情" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2256,6 +4093,17 @@
         }
       }
     },
+    "状态详情" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status Details"
+          }
+        }
+      }
+    },
     "环境变量" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2267,6 +4115,28 @@
         }
       }
     },
+    "环境检查失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environment check failed: %@"
+          }
+        }
+      }
+    },
+    "生效时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effective"
+          }
+        }
+      }
+    },
     "用户名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2274,6 +4144,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Username"
+          }
+        }
+      }
+    },
+    "申请" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply"
+          }
+        }
+      }
+    },
+    "申请失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply failed: %@"
+          }
+        }
+      }
+    },
+    "申请或上传证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply or Upload Certificate"
+          }
+        }
+      }
+    },
+    "申请方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply Method"
+          }
+        }
+      }
+    },
+    "申请日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Application Log"
+          }
+        }
+      }
+    },
+    "申请证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply for Certificate"
+          }
+        }
+      }
+    },
+    "申请证书之后执行脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Script After Applying"
+          }
+        }
+      }
+    },
+    "申请配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply Config"
           }
         }
       }
@@ -2322,6 +4280,50 @@
         }
       }
     },
+    "目录路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Directory Path"
+          }
+        }
+      }
+    },
+    "目标URL地址 (http://…)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target URL (http://…)"
+          }
+        }
+      }
+    },
+    "目标地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target"
+          }
+        }
+      }
+    },
+    "目标地址 (host:port)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target (host:port)"
+          }
+        }
+      }
+    },
     "目标镜像" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2329,6 +4331,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Target Image"
+          }
+        }
+      }
+    },
+    "省份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "State / Province"
+          }
+        }
+      }
+    },
+    "省份（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "State / Province (optional)"
           }
         }
       }
@@ -2355,6 +4379,28 @@
         }
       }
     },
+    "确定删除访问账号「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete access account \"%@\"?"
+          }
+        }
+      }
+    },
+    "确定删除证书「%@」吗？删除后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete certificate \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
     "确定删除镜像「%@」吗？删除后不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2362,6 +4408,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete image \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确定要删除 %@ 吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete %@?"
+          }
+        }
+      }
+    },
+    "确定要删除证书「%@」吗？此操作不可撤销。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete certificate \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确定要删除账户「%@」吗？此操作不可撤销。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete account \"%@\"? This cannot be undone."
           }
         }
       }
@@ -2388,6 +4467,17 @@
         }
       }
     },
+    "确认申请" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm"
+          }
+        }
+      }
+    },
     "确认输入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2395,6 +4485,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Type to Confirm"
+          }
+        }
+      }
+    },
+    "确认还原" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Restore"
           }
         }
       }
@@ -2421,6 +4522,28 @@
         }
       }
     },
+    "禁用 CNAME" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable CNAME"
+          }
+        }
+      }
+    },
+    "禁用 CNAME：有 CNAME 配置的域名如果申请失败可以开启。跳过 DNS 校验：如果出现申请超时问题请开启，其他情况请勿开启。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable CNAME: enable if applying fails for domains with CNAME records. Skip DNS check: enable only for apply timeouts."
+          }
+        }
+      }
+    },
     "离线" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2439,6 +4562,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Offline: %@"
+          }
+        }
+      }
+    },
+    "私钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Key"
+          }
+        }
+      }
+    },
+    "私钥内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Key Content"
+          }
+        }
+      }
+    },
+    "私钥文件路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Key Path"
+          }
+        }
+      }
+    },
+    "私钥（PRIVATE KEY）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Key (PRIVATE KEY)"
           }
         }
       }
@@ -2487,6 +4654,17 @@
         }
       }
     },
+    "端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port"
+          }
+        }
+      }
+    },
     "端口映射" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2505,6 +4683,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Policy"
+          }
+        }
+      }
+    },
+    "签发" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Issue"
+          }
+        }
+      }
+    },
+    "签发失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Issue failed: %@"
+          }
+        }
+      }
+    },
+    "签发证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Issue Certificate"
           }
         }
       }
@@ -2542,6 +4753,39 @@
         }
       }
     },
+    "粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "粘贴以 -----BEGIN PRIVATE KEY----- 开头的完整内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "粘贴内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste Content"
+          }
+        }
+      }
+    },
     "系统信息" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2571,6 +4815,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "System Details"
+          }
+        }
+      }
+    },
+    "组织信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organization"
           }
         }
       }
@@ -2608,6 +4863,17 @@
         }
       }
     },
+    "编辑 DNS 账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit DNS Account"
+          }
+        }
+      }
+    },
     "编辑仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2615,6 +4881,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Registry"
+          }
+        }
+      }
+    },
+    "编辑代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Proxy"
           }
         }
       }
@@ -2641,6 +4918,61 @@
         }
       }
     },
+    "编辑网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Website"
+          }
+        }
+      }
+    },
+    "编辑证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Certificate"
+          }
+        }
+      }
+    },
+    "编辑账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Account"
+          }
+        }
+      }
+    },
+    "编辑配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Config"
+          }
+        }
+      }
+    },
+    "编辑重定向" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Redirect"
+          }
+        }
+      }
+    },
     "网格" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2663,6 +4995,50 @@
         }
       }
     },
+    "网站创建请求已提交，正在后台配置…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website creation submitted, configuring in the background…"
+          }
+        }
+      }
+    },
+    "网站删除成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website deleted"
+          }
+        }
+      }
+    },
+    "网站的主访问域名，修改后请确保域名解析已指向本服务器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The site's primary domain — make sure DNS points to this server after changing it"
+          }
+        }
+      }
+    },
+    "网站类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website Type"
+          }
+        }
+      }
+    },
     "网络" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2674,6 +5050,28 @@
         }
       }
     },
+    "脚本内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script Content"
+          }
+        }
+      }
+    },
+    "腾讯云凭证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tencent Cloud Credentials"
+          }
+        }
+      }
+    },
     "自动删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2681,6 +5079,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto Remove"
+          }
+        }
+      }
+    },
+    "自动续签" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Renew"
+          }
+        }
+      }
+    },
+    "自定义服务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Service"
+          }
+        }
+      }
+    },
+    "自签证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Self-signed"
           }
         }
       }
@@ -2718,6 +5149,28 @@
         }
       }
     },
+    "规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rules"
+          }
+        }
+      }
+    },
+    "视频" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
+          }
+        }
+      }
+    },
     "认证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2729,6 +5182,17 @@
         }
       }
     },
+    "论坛/博客" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forum / Blog"
+          }
+        }
+      }
+    },
     "设置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2736,6 +5200,149 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Settings"
+          }
+        }
+      }
+    },
+    "访问日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access Log"
+          }
+        }
+      }
+    },
+    "访问账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access Accounts"
+          }
+        }
+      }
+    },
+    "证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate"
+          }
+        }
+      }
+    },
+    "证书上传成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate uploaded"
+          }
+        }
+      }
+    },
+    "证书主体名称(CN)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Common Name (CN)"
+          }
+        }
+      }
+    },
+    "证书信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Info"
+          }
+        }
+      }
+    },
+    "证书内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Content"
+          }
+        }
+      }
+    },
+    "证书已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate deleted"
+          }
+        }
+      }
+    },
+    "证书已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate updated"
+          }
+        }
+      }
+    },
+    "证书文件路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Path"
+          }
+        }
+      }
+    },
+    "证书申请已提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate application submitted"
+          }
+        }
+      }
+    },
+    "证书配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Config"
+          }
+        }
+      }
+    },
+    "证书（CERTIFICATE）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate (CERTIFICATE)"
           }
         }
       }
@@ -2784,6 +5391,116 @@
         }
       }
     },
+    "请填写公司/组织" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Company / organization is required"
+          }
+        }
+      }
+    },
+    "请填写名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name is required"
+          }
+        }
+      }
+    },
+    "请填写域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domain is required"
+          }
+        }
+      }
+    },
+    "请填写完整的凭证信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Complete credentials are required"
+          }
+        }
+      }
+    },
+    "请填写推送目录路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Push directory path is required"
+          }
+        }
+      }
+    },
+    "请填写机构名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authority name is required"
+          }
+        }
+      }
+    },
+    "请填写证书主体名称(CN)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Common Name (CN) is required"
+          }
+        }
+      }
+    },
+    "请填写邮箱" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email is required"
+          }
+        }
+      }
+    },
+    "请选择" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select…"
+          }
+        }
+      }
+    },
+    "请选择证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a certificate"
+          }
+        }
+      }
+    },
     "读取" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2795,6 +5512,28 @@
         }
       }
     },
+    "读取密码访问失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to read password access: %@"
+          }
+        }
+      }
+    },
+    "读取配置失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to read config: %@"
+          }
+        }
+      }
+    },
     "负载" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2802,6 +5541,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Load"
+          }
+        }
+      }
+    },
+    "账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        }
+      }
+    },
+    "账户类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account Type"
+          }
+        }
+      }
+    },
+    "账户配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account Config"
           }
         }
       }
@@ -2839,6 +5611,61 @@
         }
       }
     },
+    "路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path"
+          }
+        }
+      }
+    },
+    "路径 (例如 /ai)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path (e.g. /ai)"
+          }
+        }
+      }
+    },
+    "路径 (例如 /api)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path (e.g. /api)"
+          }
+        }
+      }
+    },
+    "路由" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Routing"
+          }
+        }
+      }
+    },
+    "跳过 DNS 校验" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip DNS Check"
+          }
+        }
+      }
+    },
     "输入镜像名后回车继续添加，支持同时拉取多个镜像。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2846,6 +5673,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Press Return after each image name to add more; multiple images can be pulled at once."
+          }
+        }
+      }
+    },
+    "过期时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires At"
           }
         }
       }
@@ -2883,6 +5721,39 @@
         }
       }
     },
+    "还原失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore failed: %@"
+          }
+        }
+      }
+    },
+    "还原默认" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Defaults"
+          }
+        }
+      }
+    },
+    "还原默认配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Default Config"
+          }
+        }
+      }
+    },
     "这台服务器上没有容器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2916,6 +5787,17 @@
         }
       }
     },
+    "追踪" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analytics"
+          }
+        }
+      }
+    },
     "选中" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2938,6 +5820,28 @@
         }
       }
     },
+    "选择应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose App"
+          }
+        }
+      }
+    },
+    "选择证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Certificate"
+          }
+        }
+      }
+    },
     "选择镜像" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2945,6 +5849,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose Image"
+          }
+        }
+      }
+    },
+    "选择限制方案后自动填入内置参数，可手动调整；单请求限速单位为 KB/s" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picking a preset fills in built-in parameters which you can adjust; per-request rate is in KB/s"
+          }
+        }
+      }
+    },
+    "邮箱" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        }
+      }
+    },
+    "部门" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Department"
+          }
+        }
+      }
+    },
+    "部门（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Department (optional)"
+          }
+        }
+      }
+    },
+    "配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Config"
+          }
+        }
+      }
+    },
+    "配置保存成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Config saved"
+          }
+        }
+      }
+    },
+    "配置已保存，OpenResty 正在重载…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Config saved, reloading OpenResty…"
+          }
+        }
+      }
+    },
+    "配置文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Config File"
           }
         }
       }
@@ -2982,6 +5974,39 @@
         }
       }
     },
+    "重定向" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirects"
+          }
+        }
+      }
+    },
+    "重定向到首页" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect to Home"
+          }
+        }
+      }
+    },
+    "重新申请" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-apply"
+          }
+        }
+      }
+    },
     "重试" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2989,6 +6014,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Retry"
+          }
+        }
+      }
+    },
+    "重载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reload"
+          }
+        }
+      }
+    },
+    "错误日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error Log"
           }
         }
       }
@@ -3059,6 +6106,39 @@
         }
       }
     },
+    "门户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portal"
+          }
+        }
+      }
+    },
+    "阿里云凭证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alibaba Cloud Credentials"
+          }
+        }
+      }
+    },
+    "限制方案" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preset"
+          }
+        }
+      }
+    },
     "面板 IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3092,6 +6172,28 @@
         }
       }
     },
+    "颁发组织" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Issuing Organization"
+          }
+        }
+      }
+    },
+    "预览：%@:%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview: %@:%ld"
+          }
+        }
+      }
+    },
     "首页" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3103,6 +6205,17 @@
         }
       }
     },
+    "验证方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verification"
+          }
+        }
+      }
+    },
     "高级" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3110,6 +6223,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Advanced"
+          }
+        }
+      }
+    },
+    "高级设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced"
+          }
+        }
+      }
+    },
+    "默认文档" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Documents"
+          }
+        }
+      }
+    },
+    "（未命名）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(Untitled)"
+          }
+        }
+      }
+    },
+    "（未设置邮箱）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(no email)"
           }
         }
       }

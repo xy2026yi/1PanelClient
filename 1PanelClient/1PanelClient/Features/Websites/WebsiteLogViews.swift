@@ -12,8 +12,8 @@ enum WebsiteLogType {
 
     var displayName: String {
         switch self {
-        case .access: return "访问日志"
-        case .error:  return "错误日志"
+        case .access: return L10n.t("访问日志")
+        case .error:  return L10n.t("错误日志")
         }
     }
 
@@ -54,8 +54,8 @@ struct WebsiteLogPage: View {
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $selectedTab) {
-                Text("访问日志").tag(WebsiteLogType.access)
-                Text("错误日志").tag(WebsiteLogType.error)
+                Text(L10n.t("访问日志")).tag(WebsiteLogType.access)
+                Text(L10n.t("错误日志")).tag(WebsiteLogType.error)
             }
             .pickerStyle(.segmented)
             .padding()
@@ -63,13 +63,13 @@ struct WebsiteLogPage: View {
             Divider()
 
             if isLoading && lines.isEmpty {
-                ProgressView("加载日志…")
+                ProgressView(L10n.t("加载日志…"))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if lines.isEmpty {
                 ContentUnavailableView(
-                    "暂无日志",
+                    L10n.t("暂无日志"),
                     systemImage: selectedTab.icon,
-                    description: Text("暂未产生\(selectedTab.displayName)记录")
+                    description: Text(L10n.f("暂未产生%@记录", selectedTab.displayName))
                 )
             } else {
                 ScrollViewReader { proxy in
@@ -93,12 +93,12 @@ struct WebsiteLogPage: View {
                 }
             }
         }
-        .navigationTitle("日志")
+        .navigationTitle(L10n.t("日志"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Toggle(isOn: $isTracking) {
-                    Label("追踪", systemImage: "waveform.badge.eye")
+                    Label(L10n.t("追踪"), systemImage: "waveform.badge.eye")
                 }
                 .toggleStyle(.button)
                 .tint(isTracking ? .green : .secondary)
@@ -160,12 +160,12 @@ struct WebsiteLogView: View {
         NavigationStack {
             Group {
                 if isLoading && lines.isEmpty {
-                    ProgressView("加载日志…")
+                    ProgressView(L10n.t("加载日志…"))
                 } else if lines.isEmpty {
                     ContentUnavailableView(
-                        "暂无日志",
+                        L10n.t("暂无日志"),
                         systemImage: logType.icon,
-                        description: Text("暂未产生\(logType.displayName)记录")
+                        description: Text(L10n.f("暂未产生%@记录", logType.displayName))
                     )
                 } else {
                     ScrollView {
@@ -186,7 +186,7 @@ struct WebsiteLogView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") { dismiss() }
+                    Button(L10n.t("关闭")) { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

@@ -149,9 +149,9 @@ final class WebsitesViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
         } catch let err as APIError {
-            return (false, "环境检查失败：\(err.errorDescription ?? "未知错误")")
+            return (false, L10n.f("环境检查失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            return (false, "环境检查失败：\(error.localizedDescription)")
+            return (false, L10n.f("环境检查失败：%@", error.localizedDescription))
         }
 
         // 提交创建
@@ -163,11 +163,11 @@ final class WebsitesViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            return (true, "网站创建请求已提交，正在后台配置…")
+            return (true, L10n.t("网站创建请求已提交，正在后台配置…"))
         } catch let err as APIError {
-            return (false, "创建失败：\(err.errorDescription ?? "未知错误")")
+            return (false, L10n.f("创建失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            return (false, "创建失败：\(error.localizedDescription)")
+            return (false, L10n.f("创建失败：%@", error.localizedDescription))
         }
     }
 
@@ -188,13 +188,13 @@ final class WebsitesViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             deletedWebsiteId = id
-            showAlert(message: "网站删除成功")
+            showAlert(message: L10n.t("网站删除成功"))
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
         } catch let err as APIError {
-            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "删除失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
         }
     }
 
@@ -239,7 +239,7 @@ final class WebsitesViewModel: ObservableObject {
             try? await Task.sleep(for: .seconds(1))
             await loadOpenResty(force: true)
         } catch {
-            showAlert(message: "\(op.displayName)失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("%@失败：%@", op.displayName, error.localizedDescription))
         }
     }
 
@@ -255,10 +255,10 @@ final class WebsitesViewModel: ObservableObject {
                 as: WebsiteFull.self
             )
         } catch let err as APIError {
-            showAlert(message: "加载详情失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载详情失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "加载详情失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载详情失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -273,10 +273,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "操作失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -293,10 +293,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "保存失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -313,10 +313,10 @@ final class WebsitesViewModel: ObservableObject {
                 as: WebsiteNginxConfig.self
             )
         } catch let err as APIError {
-            showAlert(message: "加载配置失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载配置失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "加载配置失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载配置失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -329,13 +329,13 @@ final class WebsitesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "配置已保存，OpenResty 正在重载…")
+            showAlert(message: L10n.t("配置已保存，OpenResty 正在重载…"))
             return true
         } catch let err as APIError {
-            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "保存失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -386,10 +386,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return resp.content ?? ""
         } catch let err as APIError {
-            showAlert(message: "读取配置失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("读取配置失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "读取配置失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("读取配置失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -402,13 +402,13 @@ final class WebsitesViewModel: ObservableObject {
                 body: Req(content: content, backup: backup),
                 as: EmptyResponse.self
             )
-            showAlert(message: "配置保存成功")
+            showAlert(message: L10n.t("配置保存成功"))
             return true
         } catch let err as APIError {
-            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "保存失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -423,10 +423,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return content
         } catch let err as APIError {
-            showAlert(message: "还原失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("还原失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "还原失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("还原失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -443,10 +443,10 @@ final class WebsitesViewModel: ObservableObject {
                 as: WebsiteHTTPS.self
             )
         } catch let err as APIError {
-            showAlert(message: "加载 HTTPS 配置失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载 HTTPS 配置失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "加载 HTTPS 配置失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载 HTTPS 配置失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -464,10 +464,10 @@ final class WebsitesViewModel: ObservableObject {
             // 会在用户返回主页面时才弹出。改由调用方（WebsiteHTTPSView）显示轻量 toast。
             return true
         } catch let err as APIError {
-            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "保存失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -505,10 +505,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "操作失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -529,10 +529,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "操作失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -547,10 +547,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "保存失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -567,10 +567,10 @@ final class WebsitesViewModel: ObservableObject {
                 as: WebsiteConfigResponse.self
             )
         } catch let err as APIError {
-            showAlert(message: "读取配置失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("读取配置失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "读取配置失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("读取配置失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -586,10 +586,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "保存失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -620,10 +620,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "操作失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -638,10 +638,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "保存失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -657,10 +657,10 @@ final class WebsitesViewModel: ObservableObject {
                 as: WebsiteAuthsResponse.self
             )
         } catch let err as APIError {
-            showAlert(message: "读取密码访问失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("读取密码访问失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "读取密码访问失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("读取密码访问失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -681,10 +681,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "操作失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
             return false
         }
     }

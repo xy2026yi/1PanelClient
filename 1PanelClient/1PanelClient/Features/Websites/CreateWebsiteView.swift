@@ -34,8 +34,8 @@ struct CreateWebsiteView: View {
 
     var body: some View {
         Form {
-            Section("类型") {
-                Picker("网站类型", selection: $selectedType) {
+            Section(L10n.t("类型")) {
+                Picker(L10n.t("网站类型"), selection: $selectedType) {
                     ForEach(WebsiteType.allCases) { t in
                             Label(t.displayName, systemImage: t.icon).tag(t)
                         }
@@ -48,24 +48,24 @@ struct CreateWebsiteView: View {
                 }
 
                 Section {
-                    TextField("主域名", text: $primaryDomain)
+                    TextField(L10n.t("主域名"), text: $primaryDomain)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     HStack {
-                        Text("端口")
+                        Text(L10n.t("端口"))
                         Spacer()
-                        TextField("端口", value: $port, format: .number)
+                        TextField(L10n.t("端口"), value: $port, format: .number)
                             .keyboardType(.numberPad)
                             .frame(width: 80)
                             .multilineTextAlignment(.trailing)
                     }
-                    TextField("备注（可选）", text: $remark)
+                    TextField(L10n.t("备注（可选）"), text: $remark)
                 } header: {
-                    Text("域名")
+                    Text(L10n.t("域名"))
                 } footer: {
                     if !primaryDomain.isEmpty {
-                        Text("预览：\(primaryDomain):\(port)")
+                        Text(L10n.f("预览：%@:%ld", primaryDomain, port))
                             .font(.caption.monospaced())
                             .foregroundStyle(.blue)
                     }
@@ -83,14 +83,14 @@ struct CreateWebsiteView: View {
 
                 // SSL
                 Section {
-                    Toggle("启用 HTTPS", isOn: $enableSSL)
+                    Toggle(L10n.t("启用 HTTPS"), isOn: $enableSSL)
                     if enableSSL {
-                        Picker("SSL 证书", selection: $selectedSSLId) {
-                            Text("请选择证书").tag(nil as Int?)
+                        Picker(L10n.t("SSL 证书"), selection: $selectedSSLId) {
+                            Text(L10n.t("请选择证书")).tag(nil as Int?)
                             ForEach(vm.availableSSLs) { ssl in
                                 VStack(alignment: .leading) {
                                     Text(ssl.displayName)
-                                    Text("有效期至 \(ssl.displayExpireDate)")
+                                    Text(L10n.f("有效期至 %@", ssl.displayExpireDate))
                                         .font(.caption2)
                                         .foregroundStyle(ssl.isExpired ? .red : .secondary)
                                 }
@@ -107,16 +107,16 @@ struct CreateWebsiteView: View {
                     Section {
                         HStack {
                             ProgressView()
-                            Text("创建中…")
+                            Text(L10n.t("创建中…"))
                         }
                     }
                 }
             }
-            .navigationTitle("创建网站")
+            .navigationTitle(L10n.t("创建网站"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("创建") {
+                    Button(L10n.t("创建")) {
                         Task { await performCreate() }
                     }
                     .disabled(!canSubmit || vm.isCreating)
@@ -129,7 +129,7 @@ struct CreateWebsiteView: View {
                 Task { await vm.loadCreateData(type: newType) }
             }
             .alert(localAlertMessage ?? "", isPresented: $showLocalAlert) {
-                Button("好") {
+                Button(L10n.t("好")) {
                     if didCreateSucceed {
                         dismiss()
                     }
@@ -142,14 +142,14 @@ struct CreateWebsiteView: View {
     private var deploymentSection: some View {
         Section {
             if vm.isLoadingCreateData {
-                HStack { ProgressView(); Text("加载应用列表…") }
+                HStack { ProgressView(); Text(L10n.t("加载应用列表…")) }
             } else if vm.availableApps.isEmpty {
-                Text("暂无可用应用，请先在应用页面安装一个网站类应用（如 WordPress）")
+                Text(L10n.t("暂无可用应用，请先在应用页面安装一个网站类应用（如 WordPress）"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                Picker("选择应用", selection: $selectedAppInstallId) {
-                    Text("请选择").tag(nil as Int?)
+                Picker(L10n.t("选择应用"), selection: $selectedAppInstallId) {
+                    Text(L10n.t("请选择")).tag(nil as Int?)
                     ForEach(vm.availableApps) { app in
                         Text("\(app.appName ?? app.name ?? "") (v\(app.version ?? ""))")
                             .tag(app.id as Int?)
@@ -157,9 +157,9 @@ struct CreateWebsiteView: View {
                 }
             }
         } header: {
-            Text("应用")
+            Text(L10n.t("应用"))
         } footer: {
-            Text("仅显示类型为「网站」且未被使用的已安装应用")
+            Text(L10n.t("仅显示类型为「网站」且未被使用的已安装应用"))
         }
     }
 
@@ -167,19 +167,19 @@ struct CreateWebsiteView: View {
     @ViewBuilder
     private var proxySection: some View {
         Section {
-            Picker("协议", selection: $proxyProtocol) {
+            Picker(L10n.t("协议"), selection: $proxyProtocol) {
                 Text("http://").tag("http://")
                 Text("https://").tag("https://")
             }
-            TextField("目标地址", text: $proxyAddress)
+            TextField(L10n.t("目标地址"), text: $proxyAddress)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
         } header: {
-            Text("代理目标")
+            Text(L10n.t("代理目标"))
         } footer: {
             if !proxyAddress.isEmpty {
-                Text("代理地址：\(proxyProtocol)\(proxyAddress)")
+                Text(L10n.f("代理地址：%@%@", proxyProtocol, proxyAddress))
                     .font(.caption.monospaced())
                     .foregroundStyle(.blue)
             }

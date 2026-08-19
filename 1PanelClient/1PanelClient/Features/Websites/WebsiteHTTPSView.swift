@@ -79,15 +79,15 @@ struct WebsiteHTTPSView: View {
 
     private let availableProtocols = ["TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"]
     private let availableHttpConfigs = [
-        ("HTTPToHTTPS", "HTTP 自动跳转 HTTPS"),
-        ("HTTPOnly",    "仅 HTTP"),
-        ("HTTPSOnly",   "仅 HTTPS"),
+        ("HTTPToHTTPS", L10n.t("HTTP 自动跳转 HTTPS")),
+        ("HTTPOnly",    L10n.t("仅 HTTP")),
+        ("HTTPSOnly",   L10n.t("仅 HTTPS")),
     ]
 
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载 HTTPS 配置…")
+                ProgressView(L10n.t("加载 HTTPS 配置…"))
             } else {
                 editor
             }
@@ -100,7 +100,7 @@ struct WebsiteHTTPSView: View {
                 Button {
                     Task { await save() }
                 } label: {
-                    if isSaving { ProgressView() } else { Text("保存").bold() }
+                    if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
                 .disabled(isSaving)
             }
@@ -115,18 +115,18 @@ struct WebsiteHTTPSView: View {
 
     private var editor: some View {
         Form {
-            Section("基本") {
-                Toggle("启用 HTTPS", isOn: $enable)
+            Section(L10n.t("基本")) {
+                Toggle(L10n.t("启用 HTTPS"), isOn: $enable)
                 if enable {
-                    Picker("HTTP 配置", selection: $httpConfig) {
+                    Picker(L10n.t("HTTP 配置"), selection: $httpConfig) {
                         ForEach(availableHttpConfigs, id: \.0) { v in
                             Text(v.1).tag(v.0)
                         }
                     }
                     HStack {
-                        Text("HTTPS 端口")
+                        Text(L10n.t("HTTPS 端口"))
                         Spacer()
-                        TextField("端口", text: $httpsPort)
+                        TextField(L10n.t("端口"), text: $httpsPort)
                             .keyboardType(.numberPad)
                             .frame(width: 80)
                             .multilineTextAlignment(.trailing)
@@ -135,12 +135,12 @@ struct WebsiteHTTPSView: View {
             }
 
             if enable {
-                Section("SSL 证书") {
-                    Picker("选择证书", selection: $selectedSSLId) {
+                Section(L10n.t("SSL 证书")) {
+                    Picker(L10n.t("选择证书"), selection: $selectedSSLId) {
                         ForEach(vm.availableSSLs) { ssl in
                             VStack(alignment: .leading) {
                                 Text(ssl.displayName)
-                                Text("有效期至 \(ssl.displayExpireDate)")
+                                Text(L10n.f("有效期至 %@", ssl.displayExpireDate))
                                     .font(.caption2)
                                     .foregroundStyle(ssl.isExpired ? .red : .secondary)
                             }
@@ -149,15 +149,15 @@ struct WebsiteHTTPSView: View {
                     }
                 }
 
-                Section("支持的协议版本") {
+                Section(L10n.t("支持的协议版本")) {
                     FlowingTLSPills(selected: $sslProtocol)
                 }
 
-                Section("高级") {
+                Section(L10n.t("高级")) {
                     Toggle("HTTP/3 (QUIC)", isOn: $http3)
                     Toggle("HSTS", isOn: $hsts)
                     if hsts {
-                        Toggle("HSTS 包含子域名", isOn: $hstsIncludeSubDomains)
+                        Toggle(L10n.t("HSTS 包含子域名"), isOn: $hstsIncludeSubDomains)
                     }
                 }
             }
@@ -201,7 +201,7 @@ struct WebsiteHTTPSView: View {
         )
         let ok = await vm.updateHTTPSConfig(websiteId: websiteId, sslId: sslId, req: req)
         if ok {
-            showToast("HTTPS 配置已保存，正在重载 OpenResty…")
+            showToast(L10n.t("HTTPS 配置已保存，正在重载 OpenResty…"))
         }
         await load()
     }

@@ -27,7 +27,7 @@ struct WebsitesTab: View {
     var body: some View {
         rootContent
         .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-            Button("好", role: .cancel) {}
+            Button(L10n.t("好"), role: .cancel) {}
         }
         .task { await vm.refresh() }
     }
@@ -36,7 +36,7 @@ struct WebsitesTab: View {
     var rootContent: some View {
         Group {
             if vm.isLoading && vm.websites.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else {
                 websiteList
             }
@@ -44,8 +44,8 @@ struct WebsitesTab: View {
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
-            title: "网站",
-            prompt: "搜索域名"
+            title: L10n.t("网站"),
+            prompt: L10n.t("搜索域名")
         )
         .toolbar {
             // SSL 证书入口：仅非搜索态显示
@@ -60,7 +60,7 @@ struct WebsitesTab: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: "SSL证书") { showCerts = true },
+                    .action(title: L10n.t("SSL证书")) { showCerts = true },
                 ]) {
                     withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
@@ -70,7 +70,7 @@ struct WebsitesTab: View {
             FloatingActionButton(action: {
                 showCreateSheet = true
             })
-            .accessibilityLabel("创建网站")
+            .accessibilityLabel(L10n.t("创建网站"))
         }
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
@@ -98,20 +98,20 @@ struct WebsitesTab: View {
                 Section {
                     if let err = vm.errorMessage, !err.isEmpty {
                         ContentUnavailableView {
-                            Label("加载失败", systemImage: "wifi.exclamationmark")
+                            Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                         } description: {
                             Text(err)
                         } actions: {
-                            Button("重试") {
+                            Button(L10n.t("重试")) {
                                 Task { await vm.refresh() }
                             }
                             .buttonStyle(.borderedProminent)
                         }
                     } else {
                         ContentUnavailableView(
-                            "暂无网站",
+                            L10n.t("暂无网站"),
                             systemImage: "globe",
-                            description: Text("点击右下角 + 创建第一个网站")
+                            description: Text(L10n.t("点击右下角 + 创建第一个网站"))
                         )
                     }
                 }
@@ -152,29 +152,29 @@ struct OpenRestyCard: View {
         Group {
             if vm.isLoadingOpenResty && vm.openresty == nil {
                 Section {
-                    ServiceStatusLoadingRow(text: "加载 OpenResty 状态…")
+                    ServiceStatusLoadingRow(text: L10n.t("加载 OpenResty 状态…"))
                 }
             } else if let app = vm.openresty {
                 ServiceStatusCard(
                     title: "OpenResty",
                     subtitle: app.version.flatMap { $0.isEmpty ? nil : "v\($0)" },
-                    statusText: app.status ?? "未知",
+                    statusText: app.status ?? L10n.t("未知"),
                     statusColor: app.statusColor,
                     isOperating: vm.openRestyOperating,
                     isExpanded: $isExpanded,
                     actions: [
                         ServiceAction(
-                            title: app.isRunning ? "停止" : "启动",
+                            title: app.isRunning ? L10n.t("停止") : L10n.t("启动"),
                             icon: app.isRunning ? "stop.fill" : "play.fill",
                             color: app.isRunning ? .orange : .green
                         ) { pendingAction = app.isRunning ? "stop" : "start" },
-                        ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+                        ServiceAction(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
                             pendingAction = "restart"
                         },
-                        ServiceAction(title: "重载", icon: "arrow.clockwise", color: .teal) {
+                        ServiceAction(title: L10n.t("重载"), icon: "arrow.clockwise", color: .teal) {
                             pendingAction = "reload"
                         },
-                        ServiceAction(title: "配置", icon: "slider.horizontal.3", color: .purple) {
+                        ServiceAction(title: L10n.t("配置"), icon: "slider.horizontal.3", color: .purple) {
                             showConfig = true
                         }
                     ]
@@ -184,7 +184,7 @@ struct OpenRestyCard: View {
                 }
             } else {
                 Section {
-                    ServiceStatusFailedRow(text: "OpenResty 未安装或加载失败")
+                    ServiceStatusFailedRow(text: L10n.t("OpenResty 未安装或加载失败"))
                 }
             }
         }
@@ -195,21 +195,21 @@ struct OpenRestyCard: View {
                 set: { if !$0 { pendingAction = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingAction = nil }
-            Button("确认", role: .destructive) { executeOpenRestyAction() }
+            Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
+            Button(L10n.t("确认"), role: .destructive) { executeOpenRestyAction() }
         } message: {
             if let action = pendingAction {
-                Text("将对 OpenResty 进行 \(openRestyActionDisplayName(action)) 操作，是否继续？")
+                Text(L10n.f("将对 OpenResty 进行 %@ 操作，是否继续？", openRestyActionDisplayName(action)))
             }
         }
     }
 
     private func openRestyActionDisplayName(_ action: String) -> String {
         switch action {
-        case "stop":    return "停止"
-        case "start":   return "启动"
-        case "restart": return "重启"
-        case "reload":  return "重载"
+        case "stop":    return L10n.t("停止")
+        case "start":   return L10n.t("启动")
+        case "restart": return L10n.t("重启")
+        case "reload":  return L10n.t("重载")
         default:        return action
         }
     }
@@ -298,7 +298,7 @@ struct WebsiteLinkFab: View {
         }
         .padding(.trailing, 20)
         .padding(.bottom, 20)
-        .accessibilityLabel("在浏览器打开网站")
+        .accessibilityLabel(L10n.t("在浏览器打开网站"))
     }
 }
 

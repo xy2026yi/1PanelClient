@@ -31,7 +31,7 @@ struct CertificatesTab: View {
         rootContent
         .task { await vm.refresh() }
         .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-            Button("好", role: .cancel) {}
+            Button(L10n.t("好"), role: .cancel) {}
         }
     }
 
@@ -39,29 +39,29 @@ struct CertificatesTab: View {
     var rootContent: some View {
         Group {
             if vm.isLoading && vm.certificates.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if let err = vm.errorMessage, !err.isEmpty, vm.certificates.isEmpty {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(err)
                 } actions: {
-                    Button("重试") {
+                    Button(L10n.t("重试")) {
                         Task { await vm.refresh() }
                     }
                     .buttonStyle(.borderedProminent)
                 }
             } else if vm.certificates.isEmpty {
                 ContentUnavailableView(
-                    "暂无证书",
+                    L10n.t("暂无证书"),
                     systemImage: "lock.shield",
-                    description: Text("点击右下角「+」申请或上传第一张证书")
+                    description: Text(L10n.t("点击右下角「+」申请或上传第一张证书"))
                 )
             } else {
                 certList
             }
         }
-        .navigationTitle("SSL 证书")
+        .navigationTitle(L10n.t("SSL 证书"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -73,10 +73,10 @@ struct CertificatesTab: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: "Acme 账户") { showAcme = true },
-                    .action(title: "DNS 账户") { showDns = true },
+                    .action(title: L10n.t("Acme 账户")) { showAcme = true },
+                    .action(title: L10n.t("DNS 账户")) { showDns = true },
                     .divider,
-                    .action(title: "自签证书") { showCA = true },
+                    .action(title: L10n.t("自签证书")) { showCA = true },
                 ]) {
                     withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
@@ -85,13 +85,13 @@ struct CertificatesTab: View {
         .overlay(alignment: .bottomTrailing) {
             MenuFloatingActionButton {
                 Button { showApply = true } label: {
-                    Label("申请证书", systemImage: "arrow.down.circle")
+                    Label(L10n.t("申请证书"), systemImage: "arrow.down.circle")
                 }
                 Button { showUpload = true } label: {
-                    Label("上传证书", systemImage: "icloud.and.arrow.up")
+                    Label(L10n.t("上传证书"), systemImage: "icloud.and.arrow.up")
                 }
             }
-            .accessibilityLabel("申请或上传证书")
+            .accessibilityLabel(L10n.t("申请或上传证书"))
         }
         .navigationDestination(isPresented: $showUpload) {
             UploadCertificateView(vm: vm)
@@ -122,7 +122,7 @@ struct CertificatesTab: View {
                     Button(role: .destructive) {
                         vm.pendingDeleteCert = cert
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label(L10n.t("删除"), systemImage: "trash")
                     }
                 }
             }
@@ -131,14 +131,14 @@ struct CertificatesTab: View {
         .refreshable {
             await vm.refresh()
         }
-        .alert("删除证书", isPresented: Binding(
+        .alert(L10n.t("删除证书"), isPresented: Binding(
             get: { vm.pendingDeleteCert != nil },
             set: { if !$0 { vm.pendingDeleteCert = nil } }
         )) {
-            Button("取消", role: .cancel) {
+            Button(L10n.t("取消"), role: .cancel) {
                 vm.pendingDeleteCert = nil
             }
-            Button("删除", role: .destructive) {
+            Button(L10n.t("删除"), role: .destructive) {
                 if let cert = vm.pendingDeleteCert {
                     Task {
                         await vm.delete(cert: cert)
@@ -147,7 +147,7 @@ struct CertificatesTab: View {
             }
         } message: {
             if let cert = vm.pendingDeleteCert {
-                Text("确定要删除证书「\(cert.displayName)」吗？此操作不可撤销。")
+                Text(L10n.f("确定要删除证书「%@」吗？此操作不可撤销。", cert.displayName))
             }
         }
     }
@@ -187,7 +187,7 @@ struct CertificateRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(cert.displayExpireDate)
                     .font(.caption.bold())
-                Text("到期")
+                Text(L10n.t("到期"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -214,11 +214,11 @@ struct CertificateDetailView: View {
     private var menuEntries: [EllipsisMenuEntry] {
         var entries: [EllipsisMenuEntry] = []
         if isAcmeCert {
-            entries.append(.action(title: "编辑") { showEditView = true })
-            entries.append(.action(title: "重新申请") { pendingRenew = true })
+            entries.append(.action(title: L10n.t("编辑")) { showEditView = true })
+            entries.append(.action(title: L10n.t("重新申请")) { pendingRenew = true })
         }
         if isManualCert {
-            entries.append(.action(title: "更新证书") { showUpdateSheet = true })
+            entries.append(.action(title: L10n.t("更新证书")) { showUpdateSheet = true })
         }
         return entries
     }
@@ -251,7 +251,7 @@ struct CertificateDetailView: View {
             Section {
                 Picker("", selection: $tab) {
                     ForEach(visibleTabs) { t in
-                        Text(t.rawValue).tag(t)
+                        Text(L10n.t(t.rawValue)).tag(t)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -261,8 +261,8 @@ struct CertificateDetailView: View {
 
             switch tab {
             case .info:     infoSection
-            case .cert:     pemSection(title: "证书内容", content: (detail ?? cert).pem)
-            case .privKey:  pemSection(title: "私钥内容", content: (detail ?? cert).privateKey)
+            case .cert:     pemSection(title: L10n.t("证书内容"), content: (detail ?? cert).pem)
+            case .privKey:  pemSection(title: L10n.t("私钥内容"), content: (detail ?? cert).privateKey)
             case .log:      logSection
             }
 
@@ -271,7 +271,7 @@ struct CertificateDetailView: View {
                 Button(role: .destructive) {
                     pendingDelete = true
                 } label: {
-                    Label("删除证书", systemImage: "trash")
+                    Label(L10n.t("删除证书"), systemImage: "trash")
                 }
             }
         }
@@ -300,17 +300,17 @@ struct CertificateDetailView: View {
         .navigationDestination(isPresented: $showEditView) {
             ApplyCertificateView(vm: vm, existingCert: detail ?? cert)
         }
-        .alert("重新申请", isPresented: $pendingRenew) {
-            Button("取消", role: .cancel) {}
-            Button("确认申请", role: .destructive) {
+        .alert(L10n.t("重新申请"), isPresented: $pendingRenew) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("确认申请"), role: .destructive) {
                 Task { await renewCert() }
             }
         } message: {
-            Text("将重新申请证书「\((detail ?? cert).displayName)」，是否继续？")
+            Text(L10n.f("将重新申请证书「%@」，是否继续？", (detail ?? cert).displayName))
         }
-        .alert("删除证书", isPresented: $pendingDelete) {
-            Button("取消", role: .cancel) {}
-            Button("删除", role: .destructive) {
+        .alert(L10n.t("删除证书"), isPresented: $pendingDelete) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("删除"), role: .destructive) {
                 let target = detail ?? cert
                 Task {
                     await vm.delete(cert: target)
@@ -318,7 +318,7 @@ struct CertificateDetailView: View {
                 }
             }
         } message: {
-            Text("确定删除证书「\((detail ?? cert).displayName)」吗？删除后不可恢复。")
+            Text(L10n.f("确定删除证书「%@」吗？删除后不可恢复。", (detail ?? cert).displayName))
         }
         .task { await loadDetail() }
         .onChange(of: vm.needsRefresh) { _, refreshed in
@@ -344,38 +344,38 @@ struct CertificateDetailView: View {
     private var infoSection: some View {
         let d = detail ?? cert
         return Section {
-            InfoRow("主域名", value: d.primaryDomain ?? "—")
-            InfoRow("其他域名", value: d.displayDomains)
-            InfoRow("证书主体名称(CN)", value: d.displayType)
-            InfoRow("颁发组织", value: d.displayOrganization)
-            InfoRow("申请方式", value: d.providerDisplay)
+            InfoRow(L10n.t("主域名"), value: d.primaryDomain ?? "—")
+            InfoRow(L10n.t("其他域名"), value: d.displayDomains)
+            InfoRow(L10n.t("证书主体名称(CN)"), value: d.displayType)
+            InfoRow(L10n.t("颁发组织"), value: d.displayOrganization)
+            InfoRow(L10n.t("申请方式"), value: d.providerDisplay)
 
             if (d.provider ?? "").lowercased() == "dnsaccount" {
                 if let dns = d.dnsAccount, !dns.name.isEmpty {
-                    InfoRow("DNS 账号", value: dns.name)
+                    InfoRow(L10n.t("DNS 账号"), value: dns.name)
                 }
                 if let acc = d.acmeAccount, !acc.email.isEmpty {
-                    InfoRow("Acme 账号", value: acc.email)
+                    InfoRow(L10n.t("Acme 账号"), value: acc.email)
                 }
             }
 
-            InfoRow("生效时间", value: d.displayStartDate)
-            InfoRow("过期时间", value: d.displayExpireDate)
+            InfoRow(L10n.t("生效时间"), value: d.displayStartDate)
+            InfoRow(L10n.t("过期时间"), value: d.displayExpireDate)
 
             if d.pushDir == true {
-                InfoRow("推送证书到本地目录", value: d.dir ?? "")
+                InfoRow(L10n.t("推送证书到本地目录"), value: d.dir ?? "")
             }
             if d.execShell == true {
-                InfoRow("申请证书之后执行脚本", value: d.shell ?? "")
+                InfoRow(L10n.t("申请证书之后执行脚本"), value: d.shell ?? "")
             }
 
-            InfoRow("状态", value: d.statusDisplay)
+            InfoRow(L10n.t("状态"), value: d.statusDisplay)
             if let msg = d.message, !msg.isEmpty {
-                InfoRow("状态详情", value: msg)
+                InfoRow(L10n.t("状态详情"), value: msg)
             }
 
             if isAcmeCert {
-                Toggle("自动续签", isOn: Binding(
+                Toggle(L10n.t("自动续签"), isOn: Binding(
                     get: { d.autoRenew ?? false },
                     set: { newVal in
                         Task {
@@ -387,15 +387,15 @@ struct CertificateDetailView: View {
             }
 
             if let desc = d.description, !desc.isEmpty {
-                InfoRow("备注", value: desc)
+                InfoRow(L10n.t("备注"), value: desc)
             }
         } header: {
-            Text("证书信息")
+            Text(L10n.t("证书信息"))
         } footer: {
             if isAcmeCert {
                 EmptyView()
             } else {
-                Text("手动导入的证书不支持自动续签和重新申请")
+                Text(L10n.t("手动导入的证书不支持自动续签和重新申请"))
             }
         }
     }
@@ -409,7 +409,7 @@ struct CertificateDetailView: View {
             } else {
                 HStack {
                     ProgressView()
-                    Text("加载中…")
+                    Text(L10n.t("加载中…"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -424,12 +424,12 @@ struct CertificateDetailView: View {
             if isLoadingLog && logLines.isEmpty {
                 HStack {
                     ProgressView()
-                    Text("加载日志…")
+                    Text(L10n.t("加载日志…"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             } else if logLines.isEmpty {
-                Text("暂无日志")
+                Text(L10n.t("暂无日志"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
@@ -441,7 +441,7 @@ struct CertificateDetailView: View {
                 }
             }
         } header: {
-            Text("申请日志")
+            Text(L10n.t("申请日志"))
         } footer: {
             if let path = (detail ?? cert).logPath, !path.isEmpty {
                 Text(path)
@@ -501,23 +501,23 @@ struct UploadCertificateView: View {
     var body: some View {
         Form {
             Section {
-                Picker("上传方式", selection: $mode) {
+                Picker(L10n.t("上传方式"), selection: $mode) {
                     ForEach(UploadMode.allCases) { m in
-                        Text(m.rawValue).tag(m)
+                        Text(L10n.t(m.rawValue)).tag(m)
                     }
                 }
                 .pickerStyle(.segmented)
 
-                TextField("备注（可选）", text: $description)
+                TextField(L10n.t("备注（可选）"), text: $description)
             } header: {
                 if isUpdate {
-                    Text("更新证书")
+                    Text(L10n.t("更新证书"))
                 } else {
-                    Text("上传方式")
+                    Text(L10n.t("上传方式"))
                 }
             } footer: {
                 if isUpdate {
-                    Text("将用新的证书内容替换「\(existingCert?.displayName ?? "")」。原证书的 ID 保持不变，已绑定该证书的网站会自动生效。")
+                    Text(L10n.f("将用新的证书内容替换「%@」。原证书的 ID 保持不变，已绑定该证书的网站会自动生效。", existingCert?.displayName ?? ""))
                 } else {
                     EmptyView()
                 }
@@ -529,27 +529,27 @@ struct UploadCertificateView: View {
                     TextEditor(text: $privateKey)
                         .font(.system(.caption, design: .monospaced))
                         .frame(minHeight: 120)
-                } header: { Text("私钥（PRIVATE KEY）") }
-                footer: { Text("粘贴以 -----BEGIN PRIVATE KEY----- 开头的完整内容") }
+                } header: { Text(L10n.t("私钥（PRIVATE KEY）")) }
+                footer: { Text(L10n.t("粘贴以 -----BEGIN PRIVATE KEY----- 开头的完整内容")) }
 
                 Section {
                     TextEditor(text: $certificate)
                         .font(.system(.caption, design: .monospaced))
                         .frame(minHeight: 120)
-                } header: { Text("证书（CERTIFICATE）") }
-                footer: { Text("粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容") }
+                } header: { Text(L10n.t("证书（CERTIFICATE）")) }
+                footer: { Text(L10n.t("粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容")) }
 
             case .local:
                 Section {
-                    TextField("如 /home/user/privkey.pem", text: $privateKeyPath)
-                } header: { Text("私钥文件路径") }
+                    TextField(L10n.t("如 /home/user/privkey.pem"), text: $privateKeyPath)
+                } header: { Text(L10n.t("私钥文件路径")) }
 
                 Section {
-                    TextField("如 /home/user/fullchain.pem", text: $certificatePath)
-                } header: { Text("证书文件路径") }
+                    TextField(L10n.t("如 /home/user/fullchain.pem"), text: $certificatePath)
+                } header: { Text(L10n.t("证书文件路径")) }
             }
         }
-        .navigationTitle(isUpdate ? "更新证书" : "上传证书")
+        .navigationTitle(isUpdate ? L10n.t("更新证书") : L10n.t("上传证书"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -559,7 +559,7 @@ struct UploadCertificateView: View {
                     if vm.isUploading {
                         ProgressView()
                     } else {
-                        Text(isUpdate ? "保存" : "上传").bold()
+                        Text(isUpdate ? L10n.t("保存") : L10n.t("上传")).bold()
                     }
                 }
                 .disabled(!canSubmit || vm.isUploading)
@@ -635,10 +635,10 @@ final class CertificatesViewModel: ObservableObject {
             certificates = resp.items ?? []
         } catch let err as APIError {
             errorMessage = err.errorDescription
-            showAlert(message: "加载失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
             errorMessage = error.localizedDescription
-            showAlert(message: "加载失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
         }
     }
 
@@ -652,7 +652,7 @@ final class CertificatesViewModel: ObservableObject {
                 as: WebsiteSSLCert.self
             )
         } catch {
-            showAlert(message: "加载详情失败：\((error as? APIError)?.errorDescription ?? error.localizedDescription)")
+            showAlert(message: L10n.f("加载详情失败：%@", (error as? APIError)?.errorDescription ?? error.localizedDescription))
             return nil
         }
     }
@@ -666,15 +666,15 @@ final class CertificatesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: isUpdate ? "证书已更新" : "证书上传成功")
+            showAlert(message: isUpdate ? L10n.t("证书已更新") : L10n.t("证书上传成功"))
             await refresh()
             needsRefresh = true
             return true
         } catch let err as APIError {
-            showAlert(message: "\(isUpdate ? "更新" : "上传")失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("%@失败：%@", isUpdate ? L10n.t("更新") : L10n.t("上传"), err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "\(isUpdate ? "更新" : "上传")失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("%@失败：%@", isUpdate ? L10n.t("更新") : L10n.t("上传"), error.localizedDescription))
             return false
         }
     }
@@ -687,12 +687,12 @@ final class CertificatesViewModel: ObservableObject {
                 body: WebsiteSSLDeleteRequest(ids: [cert.id]),
                 as: EmptyResponse.self
             )
-            showAlert(message: "证书已删除")
+            showAlert(message: L10n.t("证书已删除"))
             await refresh()
         } catch let err as APIError {
-            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "删除失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
         }
     }
 
@@ -705,14 +705,14 @@ final class CertificatesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "证书申请已提交")
+            showAlert(message: L10n.t("证书申请已提交"))
             await refresh()
             return true
         } catch let err as APIError {
-            showAlert(message: "申请失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("申请失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "申请失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("申请失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -724,13 +724,13 @@ final class CertificatesViewModel: ObservableObject {
                 body: WebsiteSSLObtainRequest(id: id),
                 as: EmptyResponse.self
             )
-            showAlert(message: "已重新提交申请")
+            showAlert(message: L10n.t("已重新提交申请"))
             return true
         } catch let err as APIError {
-            showAlert(message: "申请失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("申请失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "申请失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("申请失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -745,9 +745,9 @@ final class CertificatesViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
         } catch let err as APIError {
-            showAlert(message: "更新失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("更新失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "更新失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("更新失败：%@", error.localizedDescription))
         }
     }
 
@@ -776,10 +776,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return resp.items ?? []
         } catch let err as APIError {
-            showAlert(message: "加载失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return []
         } catch {
-            showAlert(message: "加载失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
             return []
         }
     }
@@ -793,10 +793,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "创建失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("创建失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "创建失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("创建失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -811,10 +811,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "删除失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -830,10 +830,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return resp.items ?? []
         } catch let err as APIError {
-            showAlert(message: "加载失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return []
         } catch {
-            showAlert(message: "加载失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
             return []
         }
     }
@@ -853,10 +853,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "创建失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("创建失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "创建失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("创建失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -871,10 +871,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "删除失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -888,10 +888,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "保存失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -907,10 +907,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return resp.items ?? []
         } catch let err as APIError {
-            showAlert(message: "加载失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return []
         } catch {
-            showAlert(message: "加载失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
             return []
         }
     }
@@ -925,7 +925,7 @@ final class CertificatesViewModel: ObservableObject {
                 as: CertificateAuthority.self
             )
         } catch {
-            showAlert(message: "加载详情失败：\((error as? APIError)?.errorDescription ?? error.localizedDescription)")
+            showAlert(message: L10n.f("加载详情失败：%@", (error as? APIError)?.errorDescription ?? error.localizedDescription))
             return nil
         }
     }
@@ -939,10 +939,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "创建失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("创建失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "创建失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("创建失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -957,10 +957,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "删除失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -974,10 +974,10 @@ final class CertificatesViewModel: ObservableObject {
             )
             return true
         } catch let err as APIError {
-            showAlert(message: "签发失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("签发失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "签发失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("签发失败：%@", error.localizedDescription))
             return false
         }
     }

@@ -24,18 +24,18 @@ struct WebsiteProxiesView: View {
     var body: some View {
         Group {
             if isLoading && proxies.isEmpty {
-                ProgressView("加载反向代理…")
+                ProgressView(L10n.t("加载反向代理…"))
             } else if proxies.isEmpty {
                 ContentUnavailableView(
-                    "暂无反向代理",
+                    L10n.t("暂无反向代理"),
                     systemImage: "arrow.left.arrow.right",
-                    description: Text("点击右上角创建第一个反向代理路由")
+                    description: Text(L10n.t("点击右上角创建第一个反向代理路由"))
                 )
             } else {
                 list
             }
         }
-        .navigationTitle("反向代理")
+        .navigationTitle(L10n.t("反向代理"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -69,25 +69,25 @@ struct WebsiteProxiesView: View {
             set: { if !$0 { actionProxy = nil } }
         )) {
             ActionBottomSheet(
-                title: actionProxy?.displayName ?? "反向代理",
+                title: actionProxy?.displayName ?? L10n.t("反向代理"),
                 items: [
                     ActionMenuItem(
-                        title: actionProxy?.enable == true ? "关闭" : "开启",
+                        title: actionProxy?.enable == true ? L10n.t("关闭") : L10n.t("开启"),
                         icon: actionProxy?.enable == true ? "stop.fill" : "play.fill",
                         color: actionProxy?.enable == true ? .orange : .green
                     ) {
                         let proxy = actionProxy
                         Task { if let proxy { await toggleProxy(proxy) } }
                     },
-                    ActionMenuItem(title: "编辑", icon: "pencil", color: .blue) {
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
                         editingProxy = actionProxy
                         showEditSheet = true
                     },
-                    ActionMenuItem(title: "源文", icon: "doc.text", color: .teal) {
+                    ActionMenuItem(title: L10n.t("源文"), icon: "doc.text", color: .teal) {
                         sourceProxy = actionProxy
                         showSourceSheet = true
                     },
-                    ActionMenuItem(title: "删除", icon: "trash", color: .red, role: .destructive) {
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         pendingDeleteProxy = actionProxy
                     },
                 ],
@@ -97,14 +97,14 @@ struct WebsiteProxiesView: View {
             .presentationDragIndicator(.visible)
         }
         .alert(
-            "删除",
+            L10n.t("删除"),
             isPresented: Binding(
                 get: { pendingDeleteProxy != nil },
                 set: { if !$0 { pendingDeleteProxy = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingDeleteProxy = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDeleteProxy = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 if let proxy = pendingDeleteProxy {
                     Task { await deleteProxy(proxy) }
                 }
@@ -112,7 +112,7 @@ struct WebsiteProxiesView: View {
             }
         } message: {
             if let proxy = pendingDeleteProxy {
-                Text("将对以下反向代理进行 删除 操作，是否继续？\n\n\(proxy.displayName)")
+                Text(L10n.f("将对以下反向代理进行 删除 操作，是否继续？\n\n%@", proxy.displayName))
             }
         }
     }
@@ -126,7 +126,7 @@ struct WebsiteProxiesView: View {
                             .font(.body.bold())
                         Spacer()
                         if p.enable == true {
-                            Text("已启用")
+                            Text(L10n.t("已启用"))
                                 .font(.caption2)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -134,7 +134,7 @@ struct WebsiteProxiesView: View {
                                 .foregroundStyle(.green)
                                 .clipShape(Capsule())
                         } else {
-                            Text("已停用")
+                            Text(L10n.t("已停用"))
                                 .font(.caption2)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -161,7 +161,7 @@ struct WebsiteProxiesView: View {
                     Button(role: .destructive) {
                         pendingDeleteProxy = p
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label(L10n.t("删除"), systemImage: "trash")
                     }
                 }
             }
@@ -228,43 +228,43 @@ struct WebsiteProxyEditView: View {
 
     var body: some View {
         Form {
-            Section("路由") {
-                TextField("名称", text: $name)
+            Section(L10n.t("路由")) {
+                TextField(L10n.t("名称"), text: $name)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                TextField("路径 (例如 /api)", text: $match)
+                TextField(L10n.t("路径 (例如 /api)"), text: $match)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
 
             Section {
-                Picker("协议", selection: $proxyProtocol) {
+                Picker(L10n.t("协议"), selection: $proxyProtocol) {
                     Text("http://").tag("http://")
                     Text("https://").tag("https://")
                 }
-                TextField("目标地址 (host:port)", text: $proxyAddress)
+                TextField(L10n.t("目标地址 (host:port)"), text: $proxyAddress)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
-                Text("代理目标")
+                Text(L10n.t("代理目标"))
             } footer: {
                 if !proxyAddress.isEmpty {
-                    Text("完整地址：\(proxyProtocol)\(proxyAddress)")
+                    Text(L10n.f("完整地址：%@%@", proxyProtocol, proxyAddress))
                         .font(.caption.monospaced())
                         .foregroundStyle(.blue)
                 }
             }
 
-            Section("状态") {
-                Toggle("启用", isOn: $enable)
+            Section(L10n.t("状态")) {
+                Toggle(L10n.t("启用"), isOn: $enable)
             }
         }
-        .navigationTitle(isEdit ? "编辑代理" : "创建代理")
+        .navigationTitle(isEdit ? L10n.t("编辑代理") : L10n.t("创建代理"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isEdit ? "保存" : "创建") {
+                Button(isEdit ? L10n.t("保存") : L10n.t("创建")) {
                     Task { await save() }
                 }
                 .disabled(!canSubmit || isSaving)
@@ -336,7 +336,7 @@ struct WebsiteProxySourceView: View {
             .textInputAutocapitalization(.never)
             .padding(.horizontal, 4)
             .background(Color(.secondarySystemBackground))
-        .navigationTitle("源文：\(proxy.displayName)")
+        .navigationTitle(L10n.f("源文：%@", proxy.displayName))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -346,7 +346,7 @@ struct WebsiteProxySourceView: View {
                     if isSaving {
                         ProgressView()
                     } else {
-                        Text("保存").bold()
+                        Text(L10n.t("保存")).bold()
                     }
                 }
                 .disabled(isSaving || !hasChanges)
