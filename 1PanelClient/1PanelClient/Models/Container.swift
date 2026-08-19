@@ -226,16 +226,12 @@ nonisolated struct ImagePullRequest: Encodable {
     let imageName: [String]
 }
 
-// MARK: - 删除镜像请求（POST /containers/image/delete）
+// MARK: - 删除镜像请求（POST /containers/image/remove）
 
+/// names 为完整镜像 ID（sha256:...）；同一镜像的多个 tag 行共用一个 ID，调用方需去重
 nonisolated struct ImageDeleteRequest: Encodable {
+    let taskID: String
     let names: [String]
-    let user: String
-
-    init(names: [String], user: String = "") {
-        self.names = names
-        self.user = user
-    }
 }
 
 // MARK: - 镜像（GET /containers/image/all）

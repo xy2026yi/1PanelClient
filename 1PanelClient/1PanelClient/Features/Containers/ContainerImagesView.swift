@@ -15,6 +15,8 @@ struct ContainerImageView: View {
     @State private var showMenu = false
     /// 左滑删除的待确认镜像
     @State private var pendingDeleteImage: ContainerImage?
+    /// 删除任务进度（taskID 非空时 push TaskProgressView）
+    @State private var deleteTaskID: String?
 
     var body: some View {
         Group {
@@ -86,12 +88,26 @@ struct ContainerImageView: View {
         )) {
             Button("取消", role: .cancel) { pendingDeleteImage = nil }
             Button("删除", role: .destructive) {
-                if let img = pendingDeleteImage, let name = img.tags?.first, !name.isEmpty {
-                    Task { _ = await vm.deleteImages(names: [name]) }
+                // 删除接口要求完整镜像 ID（sha256:...），tag 名会返回 404
+                if let img = pendingDeleteImage {
+                    Task { deleteTaskID = await vm.deleteImages(names: [img.id]) }
                 }
             }
         } message: {
             Text("确定删除镜像「\(pendingDeleteImage?.displayName ?? "")」吗？删除后不可恢复。")
+        }
+        // 删除任务进度页；完成或转后台后刷新列表并返回
+        .navigationDestination(isPresented: Binding(
+            get: { deleteTaskID != nil },
+            set: { if !$0 { deleteTaskID = nil } }
+        )) {
+            if let taskID = deleteTaskID {
+                TaskProgressView(taskID: taskID, title: "删除镜像") { _ in
+                    Task { await vm.loadImages() }
+                    deleteTaskID = nil
+                    return true
+                }
+            }
         }
         .task {
             if vm.images.isEmpty { await vm.loadImages() }
@@ -269,6 +285,8 @@ struct ImagePruneSelectView: View {
 
     @State private var selectedIDs: Set<String> = []
     @State private var isDeleting = false
+    /// 删除任务进度（taskID 非空时 push TaskProgressView）
+    @State private var deleteTaskID: String?
 
     private var filteredImages: [ContainerImage] {
         if isUntaggedMode {
@@ -278,13 +296,13 @@ struct ImagePruneSelectView: View {
         }
     }
 
-    private var selectedImageNames: [String] {
-        filteredImages
-            .filter { selectedIDs.contains($0.id) }
-            .compactMap { img -> String? in
-                if let tag = img.tags?.first, !tag.isEmpty { return tag }
-                return nil
-            }
+    /// 待删除镜像的完整 ID（sha256:...）；同一镜像可能同时存在带/不带 tag 两行，需去重
+    private var selectedImageIDs: [String] {
+        Array(Set(
+            filteredImages
+                .filter { selectedIDs.contains($0.id) }
+                .map { $0.id }
+        ))
     }
 
     private var allSelected: Bool {
@@ -359,6 +377,20 @@ struct ImagePruneSelectView: View {
             // 两种模式的候选集不同，切换后清空已选
             selectedIDs.removeAll()
         }
+        // 删除任务进度页；完成或转后台后刷新列表并返回
+        .navigationDestination(isPresented: Binding(
+            get: { deleteTaskID != nil },
+            set: { if !$0 { deleteTaskID = nil } }
+        )) {
+            if let taskID = deleteTaskID {
+                TaskProgressView(taskID: taskID, title: "清理镜像") { _ in
+                    Task { await vm.loadImages() }
+                    deleteTaskID = nil
+                    selectedIDs.removeAll()
+                    return true
+                }
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -380,14 +412,11 @@ struct ImagePruneSelectView: View {
     }
 
     private func deleteSelected() async {
-        let names = selectedImageNames
-        guard !names.isEmpty else { return }
+        let ids = selectedImageIDs
+        guard !ids.isEmpty else { return }
         isDeleting = true
-        let ok = await vm.deleteImages(names: names)
+        deleteTaskID = await vm.deleteImages(names: ids)
         isDeleting = false
-        if ok {
-            selectedIDs.removeAll()
-        }
     }
 }
 

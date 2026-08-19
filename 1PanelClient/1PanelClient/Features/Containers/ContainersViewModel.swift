@@ -580,20 +580,22 @@ final class ContainersViewModel: ObservableObject {
 
     // MARK: - 删除镜像
 
-    func deleteImages(names: [String]) async -> Bool {
+    /// 删除指定镜像（POST /containers/image/remove），返回任务 ID 供进度页轮询
+    @discardableResult
+    func deleteImages(names: [String]) async -> String? {
+        guard !names.isEmpty else { return nil }
         imageOperating = true
         defer { imageOperating = false }
-        let req = ImageDeleteRequest(names: names)
+        let req = ImageDeleteRequest(taskID: UUID().uuidString, names: names)
         do {
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.containersImageDelete.path,
+                path: APIEndpoint.containersImageRemove.path,
                 body: req, as: EmptyResponse.self
             )
-            await loadImages()
-            return true
+            return req.taskID
         } catch {
             showAlert(message: "删除镜像失败：\(error.localizedDescription)")
-            return false
+            return nil
         }
     }
 
