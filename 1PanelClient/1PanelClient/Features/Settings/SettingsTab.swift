@@ -28,15 +28,15 @@ struct SettingsTab: View {
         List {
             // MARK: - 外观
             Section {
-                Picker("主题", selection: $themeRaw) {
+                Picker(L10n.t("主题"), selection: $themeRaw) {
                     ForEach(AppTheme.allCases) { theme in
                         Text(theme.displayName).tag(theme.rawValue)
                     }
                 }
             } header: {
-                Text("外观")
+                Text(L10n.t("外观"))
             } footer: {
-                Text("跟随系统时随设备外观自动切换")
+                Text(L10n.t("跟随系统时随设备外观自动切换"))
             }
 
             // MARK: - 语言
@@ -54,17 +54,17 @@ struct SettingsTab: View {
 
             // MARK: - 安全
             Section {
-                Toggle("仅允许 HTTPS 连接", isOn: $httpsOnly)
+                Toggle(L10n.t("仅允许 HTTPS 连接"), isOn: $httpsOnly)
             } header: {
-                Text("安全")
+                Text(L10n.t("安全"))
             } footer: {
-                Text("开启后拒绝所有 http:// 明文面板地址，防止 API Key 与数据在链路中被窃听；自托管面板若使用 HTTP 明文访问需保持关闭")
+                Text(L10n.t("开启后拒绝所有 http:// 明文面板地址，防止 API Key 与数据在链路中被窃听；自托管面板若使用 HTTP 明文访问需保持关闭"))
             }
 
             // MARK: - 关于
             AboutSectionView(isPresented: $showAbout)
         }
-        .navigationTitle("设置")
+        .navigationTitle(L10n.t("设置"))
         .navigationBarTitleDisplayMode(.large)
         // navigationDestination 必须挂在 List 外，否则 lazy 容器内会被忽略
         .navigationDestination(isPresented: $showAbout) {
@@ -93,9 +93,9 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .system: return "跟随系统"
-        case .light:  return "亮色"
-        case .dark:   return "暗色"
+        case .system: return L10n.t("跟随系统")
+        case .light:  return L10n.t("亮色")
+        case .dark:   return L10n.t("暗色")
         }
     }
 
@@ -135,7 +135,7 @@ struct AboutSectionView: View {
                             .foregroundStyle(Color.accentColor)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("关于APP")
+                        Text(L10n.t("关于APP"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.primary)
                         Text(appVersion)
@@ -163,19 +163,19 @@ struct AboutDetailView: View {
 
     var body: some View {
         List {
-            Section("版本信息") {
-                LabeledContent("版本", value: appVersion)
-                LabeledContent("API 版本", value: "v2")
+            Section(L10n.t("版本信息")) {
+                LabeledContent(L10n.t("版本"), value: appVersion)
+                LabeledContent(L10n.t("API 版本"), value: "v2")
             }
             Section {
                 if let url = URL(string: "https://1panel.cn") {
                     Link(destination: url) {
-                        Label("1Panel 官网", systemImage: "safari")
+                        Label(L10n.t("1Panel 官网"), systemImage: "safari")
                     }
                 }
             }
         }
-        .navigationTitle("关于APP")
+        .navigationTitle(L10n.t("关于APP"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }

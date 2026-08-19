@@ -121,7 +121,7 @@ struct CopyableInfoRow: View {
 /// 密码信息行：默认打码，可切换明文、一键复制。
 /// 与 InfoRow 同级使用（数据库/用户详情等页面）；`compact: true` 用于嵌套的小字号行。
 struct PasswordRow: View {
-    var key: String = "密码"
+    var key: String = L10n.t("密码")
     let password: String
     var compact: Bool = false
 
@@ -171,12 +171,12 @@ struct PasswordInputRow: View {
     var body: some View {
         HStack {
             if showPassword {
-                TextField("密码", text: $password)
+                TextField(L10n.t("密码"), text: $password)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .font(.system(.body, design: .monospaced))
             } else {
-                SecureField("密码", text: $password)
+                SecureField(L10n.t("密码"), text: $password)
             }
             Button { showPassword.toggle() } label: {
                 Image(systemName: showPassword ? "eye.slash" : "eye")
@@ -217,7 +217,7 @@ struct CheckRow: View {
             }
         }
         .contentShape(Rectangle())
-        .accessibilityValue(isSelected ? "已选中" : "")
+        .accessibilityValue(isSelected ? L10n.t("已选中") : "")
     }
 }
 
@@ -229,7 +229,7 @@ struct FloatingActionButton: View {
     var systemImage: String = "plus"
     var color: Color = .accentColor
     /// VoiceOver 读出的操作描述（如「添加服务器」「创建数据库」）
-    var accessibilityText: String = "添加"
+    var accessibilityText: String = L10n.t("添加")
     let action: () -> Void
 
     var body: some View {
@@ -254,7 +254,7 @@ struct MenuFloatingActionButton<MenuItems: View>: View {
     var systemImage: String = "plus"
     var color: Color = .accentColor
     /// VoiceOver 读出的操作描述（如「创建」）
-    var accessibilityText: String = "添加"
+    var accessibilityText: String = L10n.t("添加")
     @ViewBuilder let menuItems: () -> MenuItems
 
     var body: some View {
@@ -361,7 +361,7 @@ struct ErrorBanner: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 24)
-            Button("重试", action: retry)
+            Button(L10n.t("重试"), action: retry)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.regular)
         }
@@ -417,7 +417,7 @@ struct SearchIconModifier: ViewModifier {
                         Button {
                             endSearch()
                         } label: {
-                            Text("取消")
+                            Text(L10n.t("取消"))
                         }
                     }
                 } else {
@@ -482,11 +482,11 @@ struct TextInputConfirmSheet<Options: View>: View {
     /// 必须完整输入的确认文本
     let expectedText: String
     /// 输入框 Section 标题
-    var fieldLabel: String = "确认输入"
+    var fieldLabel: String = L10n.t("确认输入")
     /// 输入框占位符，默认与确认文本一致
     var fieldPlaceholder: String?
     /// 确认按钮文案
-    var confirmTitle: String = "删除"
+    var confirmTitle: String = L10n.t("删除")
 
     let onConfirm: () -> Void
     @ViewBuilder var options: () -> Options
@@ -495,9 +495,9 @@ struct TextInputConfirmSheet<Options: View>: View {
         title: String,
         message: String,
         expectedText: String,
-        fieldLabel: String = "确认输入",
+        fieldLabel: String = L10n.t("确认输入"),
         fieldPlaceholder: String? = nil,
-        confirmTitle: String = "删除",
+        confirmTitle: String = L10n.t("删除"),
         onConfirm: @escaping () -> Void,
         @ViewBuilder options: @escaping () -> Options = { EmptyView() }
     ) {
@@ -537,7 +537,7 @@ struct TextInputConfirmSheet<Options: View>: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(confirmTitle, role: .destructive) {
@@ -664,7 +664,7 @@ struct ActionBottomSheet: View {
             Button {
                 onDismiss()
             } label: {
-                Text("取消")
+                Text(L10n.t("取消"))
                     .font(.body.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)

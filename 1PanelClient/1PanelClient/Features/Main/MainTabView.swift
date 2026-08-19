@@ -77,9 +77,9 @@ private struct BottomTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            tabItem(.overview, title: "首页", icon: "house")
-            tabItem(.manage, title: "管理", icon: "list.bullet.rectangle.portrait")
-            tabItem(.settings, title: "设置", icon: "gearshape")
+            tabItem(.overview, title: L10n.t("首页"), icon: "house")
+            tabItem(.manage, title: L10n.t("管理"), icon: "list.bullet.rectangle.portrait")
+            tabItem(.settings, title: L10n.t("设置"), icon: "gearshape")
         }
         .padding(.top, 6)
         .padding(.bottom, 2)
@@ -138,7 +138,7 @@ struct WelcomeView: View {
                 VStack(spacing: 8) {
                     Text("1Panel Client")
                         .font(.largeTitle.bold())
-                    Text("管理你的 1Panel 服务器")
+                    Text(L10n.t("管理你的 1Panel 服务器"))
                         .font(.body)
                         .foregroundStyle(.secondary)
                 }
@@ -148,7 +148,7 @@ struct WelcomeView: View {
                 Button {
                     showAdd = true
                 } label: {
-                    Label("添加服务器", systemImage: "plus.circle.fill")
+                    Label(L10n.t("添加服务器"), systemImage: "plus.circle.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
