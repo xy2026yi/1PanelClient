@@ -13,7 +13,7 @@ enum IntentService {
     /// 按 UUID 解析服务器配置（apiKey 从 Keychain 读取，不落入 AppEntity）
     static func server(byID id: UUID) -> ServerConfig? {
         guard let base = ServerManager.shared.servers.first(where: { $0.id == id }) else { return nil }
-        guard let key = KeychainStore.read(for: id.uuidString), !key.isEmpty else {
+        guard let key = KeychainStore.readShared(for: id.uuidString), !key.isEmpty else {
             return base
         }
         return ServerConfig(id: base.id, name: base.name, baseURL: base.baseURL, apiKey: key)
@@ -22,7 +22,7 @@ enum IntentService {
     /// Intent 未指定服务器时用当前服务器
     static func currentServer() -> ServerConfig? {
         guard let base = ServerManager.shared.current else { return nil }
-        guard let key = KeychainStore.read(for: base.id.uuidString), !key.isEmpty else {
+        guard let key = KeychainStore.readShared(for: base.id.uuidString), !key.isEmpty else {
             return base
         }
         return ServerConfig(id: base.id, name: base.name, baseURL: base.baseURL, apiKey: key)

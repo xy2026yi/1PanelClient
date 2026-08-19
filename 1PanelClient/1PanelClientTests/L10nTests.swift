@@ -39,7 +39,8 @@ struct L10nTests {
     @Test("f 格式化插值（中/英各自成句）")
     func formatInterpolation() throws {
         withLanguage(.english) {
-            #expect(L10n.f("加载失败：%@", "timeout") == "加载失败：timeout")
+            // 该词条已入 catalog（批 6 翻译为 Failed to load: %@）
+            #expect(L10n.f("加载失败：%@", "timeout") == "Failed to load: timeout")
         }
         withLanguage(.zhHans) {
             #expect(L10n.f("%@ 个容器", 3) == "3 个容器")

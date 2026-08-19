@@ -24,8 +24,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent          # 1PanelClient/
-SRC_DIRS = [ROOT / "1PanelClient"]
-XCSTRINGS = ROOT / "1PanelClient" / "Shared" / "Localization" / "Localizable.xcstrings"
+SRC_DIRS = [ROOT / "1PanelClient", ROOT / "PanelShared"]
+XCSTRINGS = ROOT / "PanelShared" / "Shared" / "Localization" / "Localizable.xcstrings"
 
 # 运行时动态查表的 key（enum rawValue 经 L10n.t(x.rawValue) 使用，静态扫描不可见）
 DYNAMIC_KEYS = {

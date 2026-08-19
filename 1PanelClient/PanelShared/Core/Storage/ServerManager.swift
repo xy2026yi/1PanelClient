@@ -15,7 +15,9 @@ final class ServerManager: ObservableObject {
     @Published private(set) var servers: [ServerConfig] = []
     @Published private(set) var currentServerID: UUID?
 
-    private let storage = UserDefaults.standard
+    /// App Group 存储：主 App 与小组件扩展共享服务器列表；
+    /// 未签名分发时退化为进程内 UserDefaults（仅主 App 可见）
+    private let storage = AppGroup.defaults ?? .standard
     private let serversKey = "servers.v1"
     private let currentKey = "currentServer.v1"
     /// 旧版本曾把 API Key 明文镜像到 UserDefaults（模拟器 Keychain 兜底），存在被
@@ -93,6 +95,7 @@ final class ServerManager: ObservableObject {
     /// 一次性迁移：旧版本在模拟器上写入的 API Key 明文镜像读回 Keychain 后删除，
     /// 保证 UserDefaults 中不再留存任何密钥明文
     private func migrateLegacyKeyMirrors() {
+        migrateStandardToGroupIfNeeded()
         let mirrorKeys = storage.dictionaryRepresentation().keys
             .filter { $0.hasPrefix(Self.legacyKeyMirrorPrefix) }
         guard !mirrorKeys.isEmpty else { return }
@@ -121,5 +124,20 @@ final class ServerManager: ObservableObject {
         if let idStr = storage.string(forKey: currentKey), let id = UUID(uuidString: idStr) {
             currentServerID = id
         }
+    }
+
+    /// 一次性迁移：存量单进程 UserDefaults → App Group（迁移成功后清除旧键）
+    private func migrateStandardToGroupIfNeeded() {
+        guard let group = AppGroup.defaults, group !== storage else { return }
+        let std = UserDefaults.standard
+        guard let arr = std.array(forKey: serversKey) as? [[String: String]],
+              !arr.isEmpty,
+              group.array(forKey: serversKey) == nil else { return }
+        group.set(arr, forKey: serversKey)
+        if let current = std.string(forKey: currentKey) {
+            group.set(current, forKey: currentKey)
+        }
+        std.removeObject(forKey: serversKey)
+        std.removeObject(forKey: currentKey)
     }
 }
