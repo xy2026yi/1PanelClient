@@ -241,8 +241,13 @@ struct OverviewTab: View {
                 .accessibilityLabel("查看监控")
             }
 
-            // 负载 / CPU / 内存 固定一排（点击圆环区域与右上角箭头一样跳转监控）
-            HStack(alignment: .top, spacing: 4) {
+            // 负载 / CPU / 内存 + 各存储挂载点：统一 4 列网格平铺
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 4),
+                GridItem(.flexible(), spacing: 4),
+                GridItem(.flexible(), spacing: 4),
+                GridItem(.flexible(), spacing: 4)
+            ], spacing: 12) {
                 RingStatView(
                     percent: min(cur.loadUsagePercent ?? 0, 100),
                     color: .teal,
@@ -269,36 +274,23 @@ struct OverviewTab: View {
                     footer: formatUsedOverTotal(cur.memoryUsed, cur.memoryTotal),
                     compact: true
                 )
+
+                ForEach(Array(disks.enumerated()), id: \.offset) { _, disk in
+                    let pct = disk.usedPercent ?? 0
+                    RingStatView(
+                        percent: min(pct, 100),
+                        color: .orange,
+                        topText: String(format: "%.2f%%", pct),
+                        bottomText: disk.path?.isEmpty == false ? disk.path! : "存储",
+                        footer: formatUsedOverTotal(disk.used, disk.total),
+                        compact: true
+                    )
+                }
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 2)
             .contentShape(Rectangle())
             .onTapGesture { tapManage(.monitor) }
-
-            // 各存储挂载点：网格平铺（3 列），无需横滑即可见
-            if !disks.isEmpty {
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 4),
-                    GridItem(.flexible(), spacing: 4),
-                    GridItem(.flexible(), spacing: 4)
-                ], spacing: 12) {
-                    ForEach(Array(disks.enumerated()), id: \.offset) { _, disk in
-                        let pct = disk.usedPercent ?? 0
-                        RingStatView(
-                            percent: min(pct, 100),
-                            color: .orange,
-                            topText: String(format: "%.2f%%", pct),
-                            bottomText: disk.path?.isEmpty == false ? disk.path! : "存储",
-                            footer: formatUsedOverTotal(disk.used, disk.total),
-                            compact: true
-                        )
-                    }
-                }
-                .padding(.horizontal, 2)
-                .padding(.bottom, 4)
-                .contentShape(Rectangle())
-                .onTapGesture { tapManage(.monitor) }
-            }
         }
         .padding()
         .background(.regularMaterial)
