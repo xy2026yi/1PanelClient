@@ -828,9 +828,9 @@ struct DatabaseConnInfoView: View {
         List {
             Section {
                 if let ci = vm.connInfo {
-                    InfoRow(key: "容器地址", value: ci.containerName ?? vm.system.address ?? "-")
-                    if let port = ci.port { InfoRow(key: "端口", value: "\(port)") }
-                    InfoRow(key: "外部地址", value: "127.0.0.1")
+                    CopyableInfoRow(key: "容器地址", value: ci.containerName ?? vm.system.address ?? "-")
+                    if let port = ci.port { CopyableInfoRow(key: "端口", value: "\(port)") }
+                    CopyableInfoRow(key: "外部地址", value: "127.0.0.1")
                     if let user = ci.username, !user.isEmpty {
                         InfoRow(key: "用户名", value: user)
                     }

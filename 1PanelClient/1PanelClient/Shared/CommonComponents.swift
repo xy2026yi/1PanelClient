@@ -71,6 +71,46 @@ struct InfoRow: View {
     }
 }
 
+// MARK: - 可复制信息行（key-value + 一键复制）
+
+/// 带复制按钮的信息行：与 InfoRow 同布局，右侧追加减号复制图标（连接信息等场景）。
+struct CopyableInfoRow: View {
+    let key: String
+    let value: String
+
+    init(key: String, value: String) {
+        self.key = key
+        self.value = value
+    }
+
+    /// 便捷初始化：`CopyableInfoRow("端口", value: x)`
+    init(_ key: String, value: String) {
+        self.key = key
+        self.value = value
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(key)
+                .foregroundStyle(.secondary)
+                .fixedSize()
+            Spacer(minLength: 12)
+            Text(value)
+                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            Button {
+                UIPasteboard.general.string = value
+            } label: {
+                Image(systemName: "doc.on.doc")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+        }
+        .font(.subheadline)
+    }
+}
+
 // MARK: - 密码展示行（••• + 显示切换 + 复制）
 
 /// 密码信息行：默认打码，可切换明文、一键复制。
