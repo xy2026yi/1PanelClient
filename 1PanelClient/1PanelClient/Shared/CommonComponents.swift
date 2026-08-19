@@ -347,7 +347,8 @@ struct SectionLabel: View {
 
 /// 把 `.searchable` 替换为图标触发的搜索模式：
 /// - 非搜索态：正常标题 + 右上角放大镜
-/// - 搜索态：左=返回(退出搜索) / 中=输入框 / 右=取消，占据整行
+/// - 搜索态：中=输入框 / 右=取消，占据整行
+/// （使用处均为 push 进入的子页面，导航栏自带返回按钮，不再叠加自定义返回箭头）
 struct SearchIconModifier: ViewModifier {
     @Binding var text: String
     @Binding var isSearching: Bool
@@ -360,13 +361,6 @@ struct SearchIconModifier: ViewModifier {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if isSearching {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            endSearch()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                        }
-                    }
                     ToolbarItem(placement: .principal) {
                         TextField(prompt, text: $text)
                             .textFieldStyle(.plain)
