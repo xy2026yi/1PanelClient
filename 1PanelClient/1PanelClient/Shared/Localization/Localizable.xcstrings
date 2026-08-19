@@ -12,6 +12,50 @@
         }
       }
     },
+    "%@ Docker 失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Docker failed: %@"
+          }
+        }
+      }
+    },
+    "%@容器「%@」任务已提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ container \"%@\" task submitted"
+          }
+        }
+      }
+    },
+    "%@容器失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ container failed: %@"
+          }
+        }
+      }
+    },
+    "%@最新%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ latest %@"
+          }
+        }
+      }
+    },
     "%ld 个更新" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -78,6 +122,28 @@
         }
       }
     },
+    "CPU 权重" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU Shares"
+          }
+        }
+      }
+    },
+    "Docker 未安装或加载失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docker is not installed or failed to load"
+          }
+        }
+      }
+    },
     "HTTP 明文连接下，API Key 与服务器数据可能被同一网络内的攻击者窃听或篡改。建议为面板配置 HTTPS 后再用 https:// 地址连接。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -100,6 +166,61 @@
         }
       }
     },
+    "http 仓库添加授信需要重启 Docker 服务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trusting an http registry requires restarting the Docker service"
+          }
+        }
+      }
+    },
+    "上一步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
+    "上行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TX"
+          }
+        }
+      }
+    },
+    "下行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RX"
+          }
+        }
+      }
+    },
+    "下载地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download URL"
+          }
+        }
+      }
+    },
     "主机名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -118,6 +239,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Host Address"
+          }
+        }
+      }
+    },
+    "主机目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host Path"
+          }
+        }
+      }
+    },
+    "主机目录 → 容器目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host path → container path"
+          }
+        }
+      }
+    },
+    "主机端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host Port"
           }
         }
       }
@@ -166,6 +320,39 @@
         }
       }
     },
+    "仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registries"
+          }
+        }
+      }
+    },
+    "仓库同步任务已提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registry sync task submitted"
+          }
+        }
+      }
+    },
+    "仓库名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registry URL"
+          }
+        }
+      }
+    },
     "优化 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -173,6 +360,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Improved %ld"
+          }
+        }
+      }
+    },
+    "使用中" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Use"
           }
         }
       }
@@ -199,6 +397,28 @@
         }
       }
     },
+    "值" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Value"
+          }
+        }
+      }
+    },
+    "停止" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        }
+      }
+    },
     "健康状态未知" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -206,6 +426,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Health status unknown"
+          }
+        }
+      }
+    },
+    "公开" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public"
+          }
+        }
+      }
+    },
+    "共享" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared"
           }
         }
       }
@@ -221,6 +463,17 @@
         }
       }
     },
+    "关闭" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        }
+      }
+    },
     "内存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -228,6 +481,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Memory"
+          }
+        }
+      }
+    },
+    "内存上限" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory Limit"
           }
         }
       }
@@ -254,6 +518,17 @@
         }
       }
     },
+    "写入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write"
+          }
+        }
+      }
+    },
     "切换后立即生效" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -261,6 +536,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Takes effect immediately"
+          }
+        }
+      }
+    },
+    "创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create"
+          }
+        }
+      }
+    },
+    "创建仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Registry"
+          }
+        }
+      }
+    },
+    "创建容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Container"
+          }
+        }
+      }
+    },
+    "创建容器「%@」任务已提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create container \"%@\" task submitted"
+          }
+        }
+      }
+    },
+    "创建容器失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create container failed: %@"
+          }
+        }
+      }
+    },
+    "创建时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Created"
           }
         }
       }
@@ -276,13 +617,90 @@
         }
       }
     },
-    "加载中" : {
+    "删除仓库" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loading"
+            "value" : "Delete Registry"
+          }
+        }
+      }
+    },
+    "删除仓库失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete registry failed: %@"
+          }
+        }
+      }
+    },
+    "删除容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Container"
+          }
+        }
+      }
+    },
+    "删除镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Image"
+          }
+        }
+      }
+    },
+    "删除镜像失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete image failed: %@"
+          }
+        }
+      }
+    },
+    "删除（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete (%ld)"
+          }
+        }
+      }
+    },
+    "删除（所有）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete (all)"
+          }
+        }
+      }
+    },
+    "加载 Docker 状态…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading Docker status…"
           }
         }
       }
@@ -294,6 +712,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading…"
+          }
+        }
+      }
+    },
+    "加载仓库…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading registries…"
+          }
+        }
+      }
+    },
+    "加载容器配置…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading container config…"
+          }
+        }
+      }
+    },
+    "加载日志…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading logs…"
+          }
+        }
+      }
+    },
+    "加载日志失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load logs: %@"
+          }
+        }
+      }
+    },
+    "加载镜像…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading images…"
+          }
+        }
+      }
+    },
+    "升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade"
+          }
+        }
+      }
+    },
+    "升级 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade %@"
+          }
+        }
+      }
+    },
+    "升级容器「%@」任务已提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade container \"%@\" task submitted"
+          }
+        }
+      }
+    },
+    "升级容器失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade container failed: %@"
+          }
+        }
+      }
+    },
+    "协议" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protocol"
           }
         }
       }
@@ -342,6 +870,50 @@
         }
       }
     },
+    "同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync"
+          }
+        }
+      }
+    },
+    "同步仓库失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync registry failed: %@"
+          }
+        }
+      }
+    },
+    "名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        }
+      }
+    },
+    "启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        }
+      }
+    },
     "启动时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -375,6 +947,39 @@
         }
       }
     },
+    "基本信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basics"
+          }
+        }
+      }
+    },
+    "基础" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basic"
+          }
+        }
+      }
+    },
+    "基础信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basic Info"
+          }
+        }
+      }
+    },
     "外观" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -393,6 +998,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "如 nginx-test" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. nginx-test"
+          }
+        }
+      }
+    },
+    "如 nginx:latest" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. nginx:latest"
           }
         }
       }
@@ -430,6 +1057,61 @@
         }
       }
     },
+    "容器名称和镜像不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container name and image are required"
+          }
+        }
+      }
+    },
+    "容器目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Path"
+          }
+        }
+      }
+    },
+    "容器端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Port"
+          }
+        }
+      }
+    },
+    "容器端口 → 主机端口，如 80 → 8080" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container port → host port, e.g. 80 → 8080"
+          }
+        }
+      }
+    },
+    "宿主机可用：CPU %ld 核" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host capacity: %ld CPU cores"
+          }
+        }
+      }
+    },
     "密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -441,6 +1123,28 @@
         }
       }
     },
+    "将对 Docker 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to Docker?"
+          }
+        }
+      }
+    },
+    "将对容器进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to the container?"
+          }
+        }
+      }
+    },
     "将移除该服务器的连接配置与已保存的 API 密钥，此操作不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -448,6 +1152,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This removes the server's connection settings and saved API key. This cannot be undone."
+          }
+        }
+      }
+    },
+    "展开全部 %ld 条" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show all %ld"
+          }
+        }
+      }
+    },
+    "已停止" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopped"
           }
         }
       }
@@ -474,6 +1200,17 @@
         }
       }
     },
+    "已固定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pinned"
+          }
+        }
+      }
+    },
     "已开启「仅允许 HTTPS 连接」：请在 设置 → 安全 关闭该限制，或改用 https:// 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -481,6 +1218,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "\"HTTPS-only Connections\" is on: turn it off in Settings → Security, or use an https:// address"
+          }
+        }
+      }
+    },
+    "已暂停" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
+          }
+        }
+      }
+    },
+    "已认证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authenticated"
           }
         }
       }
@@ -518,6 +1277,28 @@
         }
       }
     },
+    "应用程序" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        }
+      }
+    },
+    "开启后将强制重新拉取镜像，忽略本地缓存。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force re-pull the image and ignore local cache."
+          }
+        }
+      }
+    },
     "开启后拒绝所有 http:// 明文面板地址，防止 API Key 与数据在链路中被窃听；自托管面板若使用 HTTP 明文访问需保持关闭" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -525,6 +1306,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "When enabled, all plain-text http:// panel addresses are rejected to prevent API keys and data from being intercepted. Keep this off if your self-hosted panel is accessed over plain HTTP."
+          }
+        }
+      }
+    },
+    "强制拉取镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Pull"
           }
         }
       }
@@ -540,6 +1332,116 @@
         }
       }
     },
+    "总是拉取最新镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always Pull Latest"
+          }
+        }
+      }
+    },
+    "总是拉取镜像（force pull）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always pull image (force pull)"
+          }
+        }
+      }
+    },
+    "恢复" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume"
+          }
+        }
+      }
+    },
+    "恢复容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume Container"
+          }
+        }
+      }
+    },
+    "所有" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
+          }
+        }
+      }
+    },
+    "拉取中…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulling…"
+          }
+        }
+      }
+    },
+    "拉取镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull Images"
+          }
+        }
+      }
+    },
+    "拉取镜像失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull image failed: %@"
+          }
+        }
+      }
+    },
+    "挂载卷" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volumes"
+          }
+        }
+      }
+    },
+    "提交中…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Submitting…"
+          }
+        }
+      }
+    },
     "提示" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -547,6 +1449,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notice"
+          }
+        }
+      }
+    },
+    "搜索容器名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search containers"
+          }
+        }
+      }
+    },
+    "操作 http 类型仓库需要重启 Docker 服务。\n如果确认操作，请手动输入 '立即重启'" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operating on an http registry requires restarting the Docker service.\nTo confirm, type 'Restart Now'"
+          }
+        }
+      }
+    },
+    "操作失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operation failed: %@"
+          }
+        }
+      }
+    },
+    "收起" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapse"
           }
         }
       }
@@ -584,6 +1530,17 @@
         }
       }
     },
+    "日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logs"
+          }
+        }
+      }
+    },
     "时区" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -606,6 +1563,72 @@
         }
       }
     },
+    "暂停" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        }
+      }
+    },
+    "暂停容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause Container"
+          }
+        }
+      }
+    },
+    "暂无仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No registries"
+          }
+        }
+      }
+    },
+    "暂无容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No containers"
+          }
+        }
+      }
+    },
+    "暂无已配置的仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No registries configured"
+          }
+        }
+      }
+    },
+    "暂无数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No data"
+          }
+        }
+      }
+    },
     "暂无更新日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -617,6 +1640,39 @@
         }
       }
     },
+    "暂无未使用镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No unused images"
+          }
+        }
+      }
+    },
+    "暂无未标签镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No untagged images"
+          }
+        }
+      }
+    },
+    "暂无镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No images"
+          }
+        }
+      }
+    },
     "暗色" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -624,6 +1680,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dark"
+          }
+        }
+      }
+    },
+    "暴露所有端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expose All Ports"
           }
         }
       }
@@ -661,6 +1728,17 @@
         }
       }
     },
+    "更新仓库失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update registry failed: %@"
+          }
+        }
+      }
+    },
     "更新任务已提交，请稍后查看面板状态" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -668,6 +1746,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Update submitted — check the panel status in a moment"
+          }
+        }
+      }
+    },
+    "更新容器「%@」任务已提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update container \"%@\" task submitted"
+          }
+        }
+      }
+    },
+    "更新容器失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update container failed: %@"
           }
         }
       }
@@ -705,6 +1805,83 @@
         }
       }
     },
+    "未使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unused"
+          }
+        }
+      }
+    },
+    "未使用镜像（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unused images (%ld)"
+          }
+        }
+      }
+    },
+    "未安装" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Installed"
+          }
+        }
+      }
+    },
+    "未找到关联应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No linked app found"
+          }
+        }
+      }
+    },
+    "未找到域名「%@」对应的网站，可能已被删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No website found for \"%@\" — it may have been deleted"
+          }
+        }
+      }
+    },
+    "未找到网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website not found"
+          }
+        }
+      }
+    },
+    "未标签镜像（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untagged images (%ld)"
+          }
+        }
+      }
+    },
     "未检测" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -723,6 +1900,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unknown"
+          }
+        }
+      }
+    },
+    "未知错误" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown error"
           }
         }
       }
@@ -760,6 +1948,17 @@
         }
       }
     },
+    "标准输入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "stdin"
+          }
+        }
+      }
+    },
     "检测中" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -771,6 +1970,17 @@
         }
       }
     },
+    "模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode"
+          }
+        }
+      }
+    },
     "正在检测连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -778,6 +1988,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Testing connection"
+          }
+        }
+      }
+    },
+    "正常" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running"
+          }
+        }
+      }
+    },
+    "没有可清理的镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No images to prune"
           }
         }
       }
@@ -804,6 +2036,39 @@
         }
       }
     },
+    "添加仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Registry"
+          }
+        }
+      }
+    },
+    "添加仓库失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add registry failed: %@"
+          }
+        }
+      }
+    },
+    "添加挂载卷" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Volume"
+          }
+        }
+      }
+    },
     "添加服务器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -811,6 +2076,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Server"
+          }
+        }
+      }
+    },
+    "添加环境变量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Environment Variable"
+          }
+        }
+      }
+    },
+    "添加端口映射" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Port Mapping"
+          }
+        }
+      }
+    },
+    "清理容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prune Containers"
+          }
+        }
+      }
+    },
+    "清理容器任务已提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container prune task submitted"
+          }
+        }
+      }
+    },
+    "清理容器失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prune containers failed: %@"
+          }
+        }
+      }
+    },
+    "清理未使用镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prune Unused Images"
+          }
+        }
+      }
+    },
+    "清理未标签镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prune Untagged Images"
+          }
+        }
+      }
+    },
+    "清理模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prune Mode"
+          }
+        }
+      }
+    },
+    "清理镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prune Images"
+          }
+        }
+      }
+    },
+    "清理镜像失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prune images failed: %@"
           }
         }
       }
@@ -859,6 +2234,17 @@
         }
       }
     },
+    "特权模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privileged"
+          }
+        }
+      }
+    },
     "状态" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -866,6 +2252,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Status"
+          }
+        }
+      }
+    },
+    "环境变量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environment"
+          }
+        }
+      }
+    },
+    "用户名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username"
           }
         }
       }
@@ -881,6 +2289,105 @@
         }
       }
     },
+    "监控折线图，暂无数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monitor chart, no data"
+          }
+        }
+      }
+    },
+    "监控折线图：" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monitor chart: "
+          }
+        }
+      }
+    },
+    "监控数据获取失败，图表显示为最近数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load monitor data — showing the most recent"
+          }
+        }
+      }
+    },
+    "目标镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target Image"
+          }
+        }
+      }
+    },
+    "确定删除仓库「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete registry \"%@\"?"
+          }
+        }
+      }
+    },
+    "确定删除容器「%@」吗？删除后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete container \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确定删除镜像「%@」吗？删除后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete image \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确认" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm"
+          }
+        }
+      }
+    },
+    "确认拉取" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull"
+          }
+        }
+      }
+    },
     "确认输入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -888,6 +2395,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Type to Confirm"
+          }
+        }
+      }
+    },
+    "磁盘 I/O" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk I/O"
           }
         }
       }
@@ -958,6 +2476,39 @@
         }
       }
     },
+    "立即重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Now"
+          }
+        }
+      }
+    },
+    "端口映射" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ports"
+          }
+        }
+      }
+    },
+    "策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Policy"
+          }
+        }
+      }
+    },
     "管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -976,6 +2527,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Manage your 1Panel servers"
+          }
+        }
+      }
+    },
+    "类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type"
           }
         }
       }
@@ -1013,6 +2575,61 @@
         }
       }
     },
+    "终端" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminal"
+          }
+        }
+      }
+    },
+    "缓存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache"
+          }
+        }
+      }
+    },
+    "编辑" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        }
+      }
+    },
+    "编辑仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Registry"
+          }
+        }
+      }
+    },
+    "编辑容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Container"
+          }
+        }
+      }
+    },
     "编辑服务器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1020,6 +2637,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Server"
+          }
+        }
+      }
+    },
+    "网格" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grid"
           }
         }
       }
@@ -1035,6 +2663,72 @@
         }
       }
     },
+    "网络" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network"
+          }
+        }
+      }
+    },
+    "自动删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Remove"
+          }
+        }
+      }
+    },
+    "获取容器配置失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load container config"
+          }
+        }
+      }
+    },
+    "获取容器配置失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load container config: %@"
+          }
+        }
+      }
+    },
+    "获取监控数据失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load monitor data"
+          }
+        }
+      }
+    },
+    "认证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auth"
+          }
+        }
+      }
+    },
     "设置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1042,6 +2736,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Settings"
+          }
+        }
+      }
+    },
+    "该容器关联的应用不存在或已被卸载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app linked to this container no longer exists"
+          }
+        }
+      }
+    },
+    "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This container was created by an app and cannot be deleted directly. Delete the app in Apps and the container will be removed with it."
           }
         }
       }
@@ -1068,6 +2784,17 @@
         }
       }
     },
+    "读取" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read"
+          }
+        }
+      }
+    },
     "负载" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1075,6 +2802,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Load"
+          }
+        }
+      }
+    },
+    "资源限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resources"
           }
         }
       }
@@ -1101,6 +2839,39 @@
         }
       }
     },
+    "输入镜像名后回车继续添加，支持同时拉取多个镜像。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press Return after each image name to add more; multiple images can be pulled at once."
+          }
+        }
+      }
+    },
+    "运行中" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running"
+          }
+        }
+      }
+    },
+    "运行时长" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running For"
+          }
+        }
+      }
+    },
     "运行时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1112,6 +2883,105 @@
         }
       }
     },
+    "这台服务器上没有容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No containers on this server"
+          }
+        }
+      }
+    },
+    "这台服务器上没有配置镜像仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No image registries configured on this server"
+          }
+        }
+      }
+    },
+    "这台服务器上没有镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No images on this server"
+          }
+        }
+      }
+    },
+    "选中" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected"
+          }
+        }
+      }
+    },
+    "选择已有镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Existing Image"
+          }
+        }
+      }
+    },
+    "选择镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Image"
+          }
+        }
+      }
+    },
+    "采样位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Samples"
+          }
+        }
+      }
+    },
+    "重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart"
+          }
+        }
+      }
+    },
+    "重启策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Policy"
+          }
+        }
+      }
+    },
     "重试" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1119,6 +2989,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Retry"
+          }
+        }
+      }
+    },
+    "镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Images"
+          }
+        }
+      }
+    },
+    "镜像不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image is required"
+          }
+        }
+      }
+    },
+    "镜像仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registries"
+          }
+        }
+      }
+    },
+    "镜像名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image"
+          }
+        }
+      }
+    },
+    "镜像名:标签" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "image:tag"
+          }
+        }
+      }
+    },
+    "镜像名（回车添加）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image (Return to add)"
           }
         }
       }
@@ -1163,6 +3099,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Home"
+          }
+        }
+      }
+    },
+    "高级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced"
+          }
+        }
+      }
+    },
+    "，内存 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", %@ memory"
           }
         }
       }

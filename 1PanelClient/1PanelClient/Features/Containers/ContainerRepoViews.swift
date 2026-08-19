@@ -19,12 +19,12 @@ struct RepoListView: View {
     var body: some View {
         Group {
             if isLoading && repos.isEmpty {
-                ProgressView("加载仓库…")
+                ProgressView(L10n.t("加载仓库…"))
             } else if repos.isEmpty {
                 ContentUnavailableView(
-                    "暂无仓库",
+                    L10n.t("暂无仓库"),
                     systemImage: "shippingbox",
-                    description: Text("这台服务器上没有配置镜像仓库")
+                    description: Text(L10n.t("这台服务器上没有配置镜像仓库"))
                 )
             } else {
                 List {
@@ -39,12 +39,12 @@ struct RepoListView: View {
                             Button(role: .destructive) {
                                 pendingDelete = repo
                             } label: {
-                                Label("删除", systemImage: "trash")
+                                Label(L10n.t("删除"), systemImage: "trash")
                             }
                             Button {
                                 Task { await sync(repo) }
                             } label: {
-                                Label("同步", systemImage: "arrow.triangle.2.circlepath")
+                                Label(L10n.t("同步"), systemImage: "arrow.triangle.2.circlepath")
                             }
                             .tint(.blue)
                         }
@@ -54,11 +54,11 @@ struct RepoListView: View {
                 .refreshable { await loadRepos() }
             }
         }
-        .navigationTitle("仓库")
+        .navigationTitle(L10n.t("仓库"))
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton { showCreate = true }
-                .accessibilityLabel("创建仓库")
+                .accessibilityLabel(L10n.t("创建仓库"))
         }
         .navigationDestination(isPresented: $showCreate) {
             RepoFormView(editing: nil, vm: vm) { await loadRepos() }
@@ -67,14 +67,14 @@ struct RepoListView: View {
             RepoFormView(editing: repo, vm: vm) { await loadRepos() }
         }
         .alert(
-            "删除仓库",
+            L10n.t("删除仓库"),
             isPresented: Binding(
                 get: { pendingDelete != nil },
                 set: { if !$0 { pendingDelete = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingDelete = nil }
-            Button("删除", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
+            Button(L10n.t("删除"), role: .destructive) {
                 let repo = pendingDelete
                 pendingDelete = nil
                 if let repo {
@@ -87,11 +87,11 @@ struct RepoListView: View {
             }
         } message: {
             if let repo = pendingDelete {
-                Text("确定删除仓库「\(repo.name ?? "")」吗？")
+                Text(L10n.f("确定删除仓库「%@」吗？", repo.name ?? ""))
             }
         }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
@@ -166,12 +166,12 @@ struct RepoFormView: View {
         Form {
             if confirmStep {
                 Section {
-                    Label("操作 http 类型仓库需要重启 Docker 服务。\n如果确认操作，请手动输入 '立即重启'", systemImage: "exclamationmark.triangle.fill")
+                    Label(L10n.t("操作 http 类型仓库需要重启 Docker 服务。\n如果确认操作，请手动输入 '立即重启'"), systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                         .font(.subheadline)
                 }
-                Section("确认") {
-                    TextField("立即重启", text: $restartConfirm)
+                Section(L10n.t("确认")) {
+                    TextField(L10n.t("立即重启"), text: $restartConfirm)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }
@@ -179,44 +179,44 @@ struct RepoFormView: View {
                 formSection
             }
         }
-        .navigationTitle(isEditing ? "编辑仓库" : "添加仓库")
+        .navigationTitle(isEditing ? L10n.t("编辑仓库") : L10n.t("添加仓库"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             // http 二次确认步骤：前导按钮回到表单步骤（替代原 sheet 的「取消」分支）
             if confirmStep {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("上一步") {
+                    Button(L10n.t("上一步")) {
                         confirmStep = false
                         restartConfirm = ""
                     }
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isSaving ? "提交中…" : (confirmStep ? "确认" : "确认")) {
+                Button(isSaving ? L10n.t("提交中…") : (confirmStep ? L10n.t("确认") : L10n.t("确认"))) {
                     Task { await submit() }
                 }
-                .disabled(!canSubmit || isSaving || (confirmStep && restartConfirm != "立即重启"))
+                .disabled(!canSubmit || isSaving || (confirmStep && restartConfirm != L10n.t("立即重启")))
             }
         }
     }
 
     private var formSection: some View {
         Section {
-            TextField("名称", text: $name)
+            TextField(L10n.t("名称"), text: $name)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            Toggle("认证", isOn: $useAuth)
+            Toggle(L10n.t("认证"), isOn: $useAuth)
             if useAuth {
-                TextField("用户名", text: $username)
+                TextField(L10n.t("用户名"), text: $username)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 if !isEditing {
                     HStack {
                         Group {
                             if showPassword {
-                                TextField("密码", text: $password)
+                                TextField(L10n.t("密码"), text: $password)
                             } else {
-                                SecureField("密码", text: $password)
+                                SecureField(L10n.t("密码"), text: $password)
                             }
                         }
                         .textInputAutocapitalization(.never)
@@ -228,16 +228,16 @@ struct RepoFormView: View {
                     }
                 }
             }
-            TextField("下载地址", text: $downloadUrl)
+            TextField(L10n.t("下载地址"), text: $downloadUrl)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .keyboardType(.URL)
-            Picker("协议", selection: $useHTTPS) {
+            Picker(L10n.t("协议"), selection: $useHTTPS) {
                 Text("https").tag(true)
                 Text("http").tag(false)
             }
             .pickerStyle(.segmented)
-            Text("http 仓库添加授信需要重启 Docker 服务")
+            Text(L10n.t("http 仓库添加授信需要重启 Docker 服务"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -295,7 +295,7 @@ struct RepoRow: View {
         HStack(spacing: 12) {
             IconBadge(systemName: "shippingbox.fill", color: .indigo, size: 34, cornerRadius: 8)
             VStack(alignment: .leading, spacing: 3) {
-                Text(repo.name ?? "未知")
+                Text(repo.name ?? L10n.t("未知"))
                     .font(.subheadline.bold())
                 if let url = repo.downloadUrl, !url.isEmpty {
                     Text(url)
@@ -305,14 +305,14 @@ struct RepoRow: View {
                 }
                 HStack(spacing: 6) {
                     if repo.auth == true {
-                        StatusBadge(text: "已认证", color: .green)
+                        StatusBadge(text: L10n.t("已认证"), color: .green)
                     } else {
-                        StatusBadge(text: "公开", color: .gray)
+                        StatusBadge(text: L10n.t("公开"), color: .gray)
                     }
                     if let status = repo.status, !status.isEmpty {
                         let isSuccess = status.lowercased() == "success"
                         StatusBadge(
-                            text: isSuccess ? "正常" : status,
+                            text: isSuccess ? L10n.t("正常") : status,
                             color: isSuccess ? .green : .orange                        )
                     }
                 }

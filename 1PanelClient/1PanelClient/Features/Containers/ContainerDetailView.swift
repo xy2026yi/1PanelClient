@@ -37,9 +37,9 @@ struct ContainerDetailView: View {
     private var isRunning: Bool { current.state.lowercased() == "running" }
     private var isPaused: Bool { current.state.lowercased() == "paused" }
     private var statusText: String {
-        if isRunning { return "运行中" }
-        if isPaused { return "已暂停" }
-        return "已停止"
+        if isRunning { return L10n.t("运行中") }
+        if isPaused { return L10n.t("已暂停") }
+        return L10n.t("已停止")
     }
     private var statusColor: Color {
         if isRunning { return .green }
@@ -51,15 +51,15 @@ struct ContainerDetailView: View {
         List {
             statusSection
 
-            Section("基本信息") {
+            Section(L10n.t("基本信息")) {
                 if let img = current.imageName, !img.isEmpty {
-                    InfoRow("镜像", value: img)
+                    InfoRow(L10n.t("镜像"), value: img)
                 }
                 if let app = current.appName, !app.isEmpty {
                     NavigationLink {
                         AppDetailFromContainerView(container: current, server: server)
                     } label: {
-                        InfoRow("应用程序", value: app)
+                        InfoRow(L10n.t("应用程序"), value: app)
                     }
                     .buttonStyle(.plain)
                 }
@@ -68,7 +68,7 @@ struct ContainerDetailView: View {
                         NavigationLink {
                             WebsiteDetailFromContainerView(domain: site, server: server)
                         } label: {
-                            InfoRow("网站", value: site)
+                            InfoRow(L10n.t("网站"), value: site)
                         }
                         .buttonStyle(.plain)
                     }
@@ -76,9 +76,9 @@ struct ContainerDetailView: View {
                 if let ports = current.ports, !ports.isEmpty {
                     PortsInfoRow(ports: ports)
                 }
-                InfoRow("运行时长", value: current.runTime ?? "—")
+                InfoRow(L10n.t("运行时长"), value: current.runTime ?? "—")
                 if let created = current.createTime, !created.isEmpty {
-                    InfoRow("创建时间", value: String(created.prefix(19)))
+                    InfoRow(L10n.t("创建时间"), value: String(created.prefix(19)))
                 }
             }
 
@@ -86,13 +86,13 @@ struct ContainerDetailView: View {
                 NavigationLink {
                     ContainerLogView(container: current, vm: vm)
                 } label: {
-                    Label("日志", systemImage: "doc.text")
+                    Label(L10n.t("日志"), systemImage: "doc.text")
                 }
                 .buttonStyle(.plain)
                 NavigationLink {
                     ContainerMonitorView(container: current)
                 } label: {
-                    Label("监控", systemImage: "chart.xyaxis.line")
+                    Label(L10n.t("监控"), systemImage: "chart.xyaxis.line")
                 }
                 .buttonStyle(.plain)
             }
@@ -143,14 +143,14 @@ struct ContainerDetailView: View {
                 showTerminal = true
             }
         }
-        .alert("提示", isPresented: $showMenuAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $showMenuAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(menuAlertMessage)
         }
-        .alert("删除容器", isPresented: $pendingDelete) {
-            Button("取消", role: .cancel) {}
-            Button("删除", role: .destructive) {
+        .alert(L10n.t("删除容器"), isPresented: $pendingDelete) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("删除"), role: .destructive) {
                 Task {
                     if await vm.operateContainer(name: current.name, operation: "remove") {
                         // 删除成功后刷新，容器已不存在时 refreshContainer 会退出本页
@@ -159,7 +159,7 @@ struct ContainerDetailView: View {
                 }
             }
         } message: {
-            Text("确定删除容器「\(current.displayName)」吗？删除后不可恢复。")
+            Text(L10n.f("确定删除容器「%@」吗？删除后不可恢复。", current.displayName))
         }
         .alert(
             pendingAction.map { containerActionDisplayName($0) } ?? "",
@@ -168,15 +168,15 @@ struct ContainerDetailView: View {
                 set: { if !$0 { pendingAction = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingAction = nil }
-            Button("确认", role: .destructive) { executeContainerAction() }
+            Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
+            Button(L10n.t("确认"), role: .destructive) { executeContainerAction() }
         } message: {
             if let action = pendingAction {
-                Text("将对容器进行 \(containerActionDisplayName(action)) 操作，是否继续？")
+                Text(L10n.f("将对容器进行 %@ 操作，是否继续？", containerActionDisplayName(action)))
             }
         }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
@@ -235,28 +235,28 @@ struct ContainerDetailView: View {
     private var operationsRow1: some View {
         HStack(spacing: 8) {
             actionButton(
-                title: isRunning ? "停止" : "启动",
+                title: isRunning ? L10n.t("停止") : L10n.t("启动"),
                 icon: isRunning ? "stop.fill" : "play.fill",
                 color: isRunning ? .orange : .green
             ) {
                 pendingAction = isRunning ? "stop" : "start"
             }
             actionButton(
-                title: "重启",
+                title: L10n.t("重启"),
                 icon: "arrow.triangle.2.circlepath",
                 color: .blue
             ) {
                 pendingAction = "restart"
             }
             actionButton(
-                title: "关闭",
+                title: L10n.t("关闭"),
                 icon: "xmark",
                 color: .red
             ) {
                 pendingAction = "kill"
             }
             actionButton(
-                title: "终端",
+                title: L10n.t("终端"),
                 icon: "terminal",
                 color: .teal
             ) {
@@ -270,7 +270,7 @@ struct ContainerDetailView: View {
             // 运行中可暂停，已暂停可恢复，其余状态不显示
             if isRunning || isPaused {
                 actionButton(
-                    title: isPaused ? "恢复" : "暂停",
+                    title: isPaused ? L10n.t("恢复") : L10n.t("暂停"),
                     icon: isPaused ? "play.circle" : "pause.fill",
                     color: .mint
                 ) {
@@ -278,26 +278,26 @@ struct ContainerDetailView: View {
                 }
             }
             actionButton(
-                title: "升级",
+                title: L10n.t("升级"),
                 icon: "arrow.up.circle",
                 color: .purple
             ) {
                 showUpgrade = true
             }
             actionButton(
-                title: "编辑",
+                title: L10n.t("编辑"),
                 icon: "pencil",
                 color: .cyan
             ) {
                 showEdit = true
             }
             actionButton(
-                title: "删除",
+                title: L10n.t("删除"),
                 icon: "trash",
                 color: .red
             ) {
                 if current.isFromApp == true {
-                    menuAlertMessage = "该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。"
+                    menuAlertMessage = L10n.t("该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。")
                     showMenuAlert = true
                 } else {
                     pendingDelete = true
@@ -339,12 +339,12 @@ struct ContainerDetailView: View {
 
     private func containerActionDisplayName(_ action: String) -> String {
         switch action {
-        case "stop":    return "停止"
-        case "start":   return "启动"
-        case "restart": return "重启"
-        case "kill":    return "关闭"
-        case "pause":   return "暂停"
-        case "unpause": return "恢复"
+        case "stop":    return L10n.t("停止")
+        case "start":   return L10n.t("启动")
+        case "restart": return L10n.t("重启")
+        case "kill":    return L10n.t("关闭")
+        case "pause":   return L10n.t("暂停")
+        case "unpause": return L10n.t("恢复")
         default:        return action
         }
     }
@@ -356,7 +356,7 @@ struct ContainerDetailView: View {
         Task {
             // 暂停/恢复为异步任务，提交后进入任务进度页轮询日志
             if action == "pause" || action == "unpause" {
-                progressTitle = action == "pause" ? "暂停容器" : "恢复容器"
+                progressTitle = action == "pause" ? L10n.t("暂停容器") : L10n.t("恢复容器")
                 if let taskID = await vm.operateContainerTask(name: current.name, operation: action) {
                     progressTaskID = taskID
                 }
@@ -400,18 +400,18 @@ struct AppDetailFromContainerView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if let app = matchedApp {
                 AppDetailView(app: app, vm: vm)
             } else {
                 ContentUnavailableView(
-                    "未找到关联应用",
+                    L10n.t("未找到关联应用"),
                     systemImage: "app.badge",
-                    description: Text(vm.errorMessage ?? "该容器关联的应用不存在或已被卸载")
+                    description: Text(vm.errorMessage ?? L10n.t("该容器关联的应用不存在或已被卸载"))
                 )
             }
         }
-        .navigationTitle("应用程序")
+        .navigationTitle(L10n.t("应用程序"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if vm.apps.isEmpty { await vm.refresh() }
@@ -446,18 +446,18 @@ struct WebsiteDetailFromContainerView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.websites.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if let website = matchedWebsite {
                 WebsiteDetailView(website: website, vm: vm)
             } else {
                 ContentUnavailableView(
-                    "未找到网站",
+                    L10n.t("未找到网站"),
                     systemImage: "globe",
-                    description: Text("未找到域名「\(host)」对应的网站，可能已被删除")
+                    description: Text(L10n.f("未找到域名「%@」对应的网站，可能已被删除", host))
                 )
             }
         }
-        .navigationTitle("网站")
+        .navigationTitle(L10n.t("网站"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if vm.websites.isEmpty { await vm.search(query: "") }
@@ -480,7 +480,7 @@ struct ContainerLogView: View {
                     if isLoading && lines.isEmpty {
                         HStack(spacing: 8) {
                             ProgressView()
-                            Text("加载日志…")
+                            Text(L10n.t("加载日志…"))
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -508,7 +508,7 @@ struct ContainerLogView: View {
             .background(Color(.secondarySystemBackground))
             // 进入页面即定位到底部（最新日志），内容增长时保持贴底
             .defaultScrollAnchor(.bottom)
-            .navigationTitle("日志")
+            .navigationTitle(L10n.t("日志"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -545,7 +545,7 @@ struct ContainerLogView: View {
         } catch {
             isLoading = false
             if lines.isEmpty {
-                errorMessage = "加载日志失败：\(error.localizedDescription)"
+                errorMessage = L10n.f("加载日志失败：%@", error.localizedDescription)
             }
         }
     }

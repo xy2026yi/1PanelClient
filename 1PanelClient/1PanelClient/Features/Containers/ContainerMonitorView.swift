@@ -64,7 +64,7 @@ final class ContainerMonitorViewModel: ObservableObject {
             if !cpuPoints.isEmpty {
                 consecutiveFailures += 1
                 if consecutiveFailures == Self.failureToastThreshold {
-                    showToast("监控数据获取失败，图表显示为最近数据")
+                    showToast(L10n.t("监控数据获取失败，图表显示为最近数据"))
                 }
             }
         }
@@ -106,18 +106,18 @@ struct ContainerMonitorView: View {
             if let err = vm.errorMessage, vm.cpuPoints.isEmpty {
                 Section {
                     ContentUnavailableView(
-                        "获取监控数据失败", systemImage: "exclamationmark.triangle", description: Text(err)
+                        L10n.t("获取监控数据失败"), systemImage: "exclamationmark.triangle", description: Text(err)
                     )
                 }
             } else {
                 monitorSection("CPU", single: vm.cpuPoints, color: .blue, unit: "%")
-                monitorSection("内存", dual: memorySeries, styles: ["内存": .purple, "缓存": .orange], unit: "MB")
-                monitorSection("磁盘 I/O", dual: ioSeries, styles: ["读取": .blue, "写入": .orange], unit: "MB")
-                monitorSection("网络", dual: networkSeries, styles: ["上行": .green, "下行": .purple], unit: "KB")
+                monitorSection(L10n.t("内存"), dual: memorySeries, styles: [L10n.t("内存"): .purple, L10n.t("缓存"): .orange], unit: "MB")
+                monitorSection(L10n.t("磁盘 I/O"), dual: ioSeries, styles: [L10n.t("读取"): .blue, L10n.t("写入"): .orange], unit: "MB")
+                monitorSection(L10n.t("网络"), dual: networkSeries, styles: [L10n.t("上行"): .green, L10n.t("下行"): .purple], unit: "KB")
             }
         }
         .environment(\.defaultMinListRowHeight, 32)
-        .navigationTitle("监控")
+        .navigationTitle(L10n.t("监控"))
         .navigationBarTitleDisplayMode(.inline)
         .toastOverlay(message: $vm.toastMessage,
                       systemImage: "exclamationmark.triangle.fill",
@@ -139,18 +139,18 @@ struct ContainerMonitorView: View {
     // MARK: 数据系列
 
     private var memorySeries: [LoadSeriesPoint] {
-        vm.memPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "内存") }
-            + vm.cachePoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "缓存") }
+        vm.memPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("内存")) }
+            + vm.cachePoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("缓存")) }
     }
 
     private var ioSeries: [LoadSeriesPoint] {
-        vm.ioReadPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "读取") }
-            + vm.ioWritePoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "写入") }
+        vm.ioReadPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("读取")) }
+            + vm.ioWritePoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("写入")) }
     }
 
     private var networkSeries: [LoadSeriesPoint] {
-        vm.netTXPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "上行") }
-            + vm.netRXPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "下行") }
+        vm.netTXPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("上行")) }
+            + vm.netRXPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("下行")) }
     }
 
     // MARK: 图表区（标题 + 图表）
@@ -196,7 +196,7 @@ struct ContainerMonitorView: View {
     }
 
     private var chartPlaceholder: some View {
-        Text("暂无数据")
+        Text(L10n.t("暂无数据"))
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity)
@@ -250,32 +250,32 @@ struct ContainerMonitorChart: View {
                 // 固定网格虚线（画在最底层）：内部 10 个采样位，等距；
                 // 两端边缘采样位（0 和 11）也绘数据点但不画虚线
                 ForEach(Self.dashSlots, id: \.self) { slot in
-                    RuleMark(x: .value("网格", Double(slot)))
+                    RuleMark(x: .value(L10n.t("网格"), Double(slot)))
                         .foregroundStyle(Color.secondary.opacity(0.3))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 }
 
                 ForEach(plotted) { p in
-                    LineMark(x: .value("采样位", Double(slots[p.date] ?? 0)),
-                             y: .value("值", p.value))
-                        .foregroundStyle(by: .value("类型", p.kind))
+                    LineMark(x: .value(L10n.t("采样位"), Double(slots[p.date] ?? 0)),
+                             y: .value(L10n.t("值"), p.value))
+                        .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
                     // 数据点过少时折线画不出来，补圆点让单点也可见
                     if (seriesCounts[p.kind] ?? 0) <= 2 {
-                        PointMark(x: .value("采样位", Double(slots[p.date] ?? 0)),
-                                  y: .value("值", p.value))
-                            .foregroundStyle(by: .value("类型", p.kind))
+                        PointMark(x: .value(L10n.t("采样位"), Double(slots[p.date] ?? 0)),
+                                  y: .value(L10n.t("值"), p.value))
+                            .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
                             .symbolSize(30)
                     }
                 }
 
                 // 选中采样位：深色虚线 + 每条曲线一个同色圆点
                 if let sel = selectedSlot {
-                    RuleMark(x: .value("选中", Double(sel)))
+                    RuleMark(x: .value(L10n.t("选中"), Double(sel)))
                         .foregroundStyle(Color.primary.opacity(0.45))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                     ForEach(Array(styles), id: \.key) { kind, color in
                         if let v = value(atSlot: sel, kind: kind) {
-                            PointMark(x: .value("选中", Double(sel)), y: .value("值", v))
+                            PointMark(x: .value(L10n.t("选中"), Double(sel)), y: .value(L10n.t("值"), v))
                                 .foregroundStyle(color)
                                 .symbolSize(90)
                         }
@@ -479,9 +479,9 @@ struct ContainerMonitorChart: View {
             guard let latest = points.filter { $0.kind == kind }.max(by: { $0.date < $1.date }) else {
                 return nil
             }
-            return "\(kind)最新\(String(format: "%.2f%@", latest.value, unit))"
+            return L10n.f("%@最新%@", kind, String(format: "%.2f%@", latest.value, unit))
         }
-        return parts.isEmpty ? "监控折线图，暂无数据" : "监控折线图：" + parts.joined(separator: "，")
+        return parts.isEmpty ? L10n.t("监控折线图，暂无数据") : L10n.t("监控折线图：") + parts.joined(separator: "，")
     }
 
     private static let timeFormatter: DateFormatter = {

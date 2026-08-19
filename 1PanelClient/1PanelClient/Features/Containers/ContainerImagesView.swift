@@ -21,12 +21,12 @@ struct ContainerImageView: View {
     var body: some View {
         Group {
             if vm.isLoadingImages && vm.images.isEmpty {
-                ProgressView("加载镜像…")
+                ProgressView(L10n.t("加载镜像…"))
             } else if vm.images.isEmpty {
                 ContentUnavailableView(
-                    "暂无镜像",
+                    L10n.t("暂无镜像"),
                     systemImage: "square.stack.3d.up",
-                    description: Text(vm.errorMessage ?? "这台服务器上没有镜像")
+                    description: Text(vm.errorMessage ?? L10n.t("这台服务器上没有镜像"))
                 )
             } else {
                 List {
@@ -36,7 +36,7 @@ struct ContainerImageView: View {
                                 Button(role: .destructive) {
                                     pendingDeleteImage = img
                                 } label: {
-                                    Label("删除", systemImage: "trash")
+                                    Label(L10n.t("删除"), systemImage: "trash")
                                 }
                                 .disabled(img.isUsed == true || (img.tags?.first ?? "").isEmpty)
                             }
@@ -46,7 +46,7 @@ struct ContainerImageView: View {
                 .refreshable { await vm.loadImages() }
             }
         }
-        .navigationTitle("镜像")
+        .navigationTitle(L10n.t("镜像"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -59,10 +59,10 @@ struct ContainerImageView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: "拉取镜像") { showPull = true },
-                    .action(title: "仓库") { showRepos = true },
+                    .action(title: L10n.t("拉取镜像")) { showPull = true },
+                    .action(title: L10n.t("仓库")) { showRepos = true },
                     .divider,
-                    .action(title: "清理镜像") { showPruneSelect = true },
+                    .action(title: L10n.t("清理镜像")) { showPruneSelect = true },
                 ]) {
                     withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
@@ -77,24 +77,24 @@ struct ContainerImageView: View {
         .navigationDestination(isPresented: $showPruneSelect) {
             ImagePruneSelectView(vm: vm)
         }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
-        .alert("删除镜像", isPresented: Binding(
+        .alert(L10n.t("删除镜像"), isPresented: Binding(
             get: { pendingDeleteImage != nil },
             set: { if !$0 { pendingDeleteImage = nil } }
         )) {
-            Button("取消", role: .cancel) { pendingDeleteImage = nil }
-            Button("删除", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDeleteImage = nil }
+            Button(L10n.t("删除"), role: .destructive) {
                 // 删除接口要求完整镜像 ID（sha256:...），tag 名会返回 404
                 if let img = pendingDeleteImage {
                     Task { deleteTaskID = await vm.deleteImages(names: [img.id]) }
                 }
             }
         } message: {
-            Text("确定删除镜像「\(pendingDeleteImage?.displayName ?? "")」吗？删除后不可恢复。")
+            Text(L10n.f("确定删除镜像「%@」吗？删除后不可恢复。", pendingDeleteImage?.displayName ?? ""))
         }
         // 删除任务进度页；完成或转后台后刷新列表并返回
         .navigationDestination(isPresented: Binding(
@@ -102,7 +102,7 @@ struct ContainerImageView: View {
             set: { if !$0 { deleteTaskID = nil } }
         )) {
             if let taskID = deleteTaskID {
-                TaskProgressView(taskID: taskID, title: "删除镜像") { _ in
+                TaskProgressView(taskID: taskID, title: L10n.t("删除镜像")) { _ in
                     Task { await vm.loadImages() }
                     deleteTaskID = nil
                     return true
@@ -130,12 +130,12 @@ struct ImageRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if image.isUsed == true {
-                        StatusBadge(text: "使用中", color: .green)
+                        StatusBadge(text: L10n.t("使用中"), color: .green)
                     } else {
-                        StatusBadge(text: "未使用", color: .gray)
+                        StatusBadge(text: L10n.t("未使用"), color: .gray)
                     }
                     if image.isPinned == true {
-                        StatusBadge(text: "已固定", color: .orange)
+                        StatusBadge(text: L10n.t("已固定"), color: .orange)
                     }
                 }
             }
@@ -167,17 +167,17 @@ struct PullImageView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("镜像仓库", isOn: $fromRepo)
+                Toggle(L10n.t("镜像仓库"), isOn: $fromRepo)
 
                 if fromRepo {
                     if repos.isEmpty {
-                        Text("暂无已配置的仓库")
+                        Text(L10n.t("暂无已配置的仓库"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        Picker("仓库名", selection: $selectedRepoID) {
+                        Picker(L10n.t("仓库名"), selection: $selectedRepoID) {
                             ForEach(repos) { repo in
-                                Text(repo.name ?? "未知").tag(repo.id)
+                                Text(repo.name ?? L10n.t("未知")).tag(repo.id)
                             }
                         }
                     }
@@ -205,23 +205,23 @@ struct PullImageView: View {
                 HStack {
                     Image(systemName: "plus.circle")
                         .foregroundStyle(.secondary)
-                    TextField("镜像名（回车添加）", text: $imageNameInput)
+                    TextField(L10n.t("镜像名（回车添加）"), text: $imageNameInput)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .onSubmit {
                             addImage()
                         }
                     if !imageNameInput.isEmpty {
-                        Button("添加") {
+                        Button(L10n.t("添加")) {
                             addImage()
                         }
                         .buttonStyle(.borderless)
                     }
                 }
             } header: {
-                Text("镜像名")
+                Text(L10n.t("镜像名"))
             } footer: {
-                Text("输入镜像名后回车继续添加，支持同时拉取多个镜像。")
+                Text(L10n.t("输入镜像名后回车继续添加，支持同时拉取多个镜像。"))
             }
 
             Section {
@@ -230,14 +230,14 @@ struct PullImageView: View {
                 } label: {
                     HStack {
                         if isPulling { ProgressView().scaleEffect(0.8) }
-                        Text(isPulling ? "拉取中…" : "确认拉取")
+                        Text(isPulling ? L10n.t("拉取中…") : L10n.t("确认拉取"))
                             .frame(maxWidth: .infinity)
                     }
                 }
                 .disabled(!canPull || isPulling)
             }
         }
-        .navigationTitle("拉取镜像")
+        .navigationTitle(L10n.t("拉取镜像"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             repos = await vm.loadRepos()
@@ -245,7 +245,7 @@ struct PullImageView: View {
         }
         .navigationDestination(isPresented: $showTaskProgress) {
             if let taskID = pullTaskID {
-                TaskProgressView(taskID: taskID, title: "拉取镜像") { _ in
+                TaskProgressView(taskID: taskID, title: L10n.t("拉取镜像")) { _ in
                     Task { await vm.loadImages() }
                     return false
                 }
@@ -324,9 +324,9 @@ struct ImagePruneSelectView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("清理模式", selection: $isUntaggedMode) {
-                Text("清理未使用镜像").tag(false)
-                Text("清理未标签镜像").tag(true)
+            Picker(L10n.t("清理模式"), selection: $isUntaggedMode) {
+                Text(L10n.t("清理未使用镜像")).tag(false)
+                Text(L10n.t("清理未标签镜像")).tag(true)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal)
@@ -335,9 +335,9 @@ struct ImagePruneSelectView: View {
             Group {
                 if filteredImages.isEmpty {
                     ContentUnavailableView(
-                        isUntaggedMode ? "暂无未标签镜像" : "暂无未使用镜像",
+                        isUntaggedMode ? L10n.t("暂无未标签镜像") : L10n.t("暂无未使用镜像"),
                         systemImage: "checkmark.seal",
-                        description: Text("没有可清理的镜像")
+                        description: Text(L10n.t("没有可清理的镜像"))
                     )
                     .frame(maxHeight: .infinity)
                 } else {
@@ -345,7 +345,7 @@ struct ImagePruneSelectView: View {
                         Section {
                             // 「所有」勾选项：勾选后删除走 prune 接口直接清理全部
                             HStack {
-                                Text("所有")
+                                Text(L10n.t("所有"))
                                     .font(.subheadline.bold())
                                 Spacer()
                                 Text(allSizeDisplay)
@@ -372,7 +372,7 @@ struct ImagePruneSelectView: View {
                                 .tag(img.id)
                             }
                         } header: {
-                            Text(isUntaggedMode ? "未标签镜像（\(filteredImages.count)）" : "未使用镜像（\(filteredImages.count)）")
+                            Text(isUntaggedMode ? L10n.f("未标签镜像（%ld）", filteredImages.count) : L10n.f("未使用镜像（%ld）", filteredImages.count))
                         }
                     }
                     .environment(\.editMode, .constant(.active))
@@ -381,7 +381,7 @@ struct ImagePruneSelectView: View {
             }
             .frame(maxHeight: .infinity)
         }
-        .navigationTitle("清理镜像")
+        .navigationTitle(L10n.t("清理镜像"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: isUntaggedMode) { _, _ in
             // 两种模式的候选集不同，切换后清空已选
@@ -403,7 +403,7 @@ struct ImagePruneSelectView: View {
             set: { if !$0 { deleteTaskID = nil } }
         )) {
             if let taskID = deleteTaskID {
-                TaskProgressView(taskID: taskID, title: "清理镜像") { _ in
+                TaskProgressView(taskID: taskID, title: L10n.t("清理镜像")) { _ in
                     Task { await vm.loadImages() }
                     deleteTaskID = nil
                     selectedIDs.removeAll()
@@ -419,7 +419,7 @@ struct ImagePruneSelectView: View {
                     if isDeleting {
                         ProgressView()
                     } else {
-                        Text(isSelectAll ? "删除（所有）" : "删除（\(selectedIDs.count)）")
+                        Text(isSelectAll ? L10n.t("删除（所有）") : L10n.f("删除（%ld）", selectedIDs.count))
                             .fontWeight(.medium)
                     }
                 }

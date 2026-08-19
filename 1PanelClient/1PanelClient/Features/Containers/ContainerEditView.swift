@@ -23,22 +23,22 @@ struct ContainerUpgradeView: View {
 
     var body: some View {
         Form {
-            Section("目标镜像") {
-                TextField("镜像名:标签", text: $image)
+            Section(L10n.t("目标镜像")) {
+                TextField(L10n.t("镜像名:标签"), text: $image)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .font(.system(.body, design: .monospaced))
                 if image.trimmingCharacters(in: .whitespaces).isEmpty {
-                    Text("镜像不能为空")
+                    Text(L10n.t("镜像不能为空"))
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
             }
 
             Section {
-                Toggle("总是拉取镜像（force pull）", isOn: $forcePull)
+                Toggle(L10n.t("总是拉取镜像（force pull）"), isOn: $forcePull)
             } footer: {
-                Text("开启后将强制重新拉取镜像，忽略本地缓存。")
+                Text(L10n.t("开启后将强制重新拉取镜像，忽略本地缓存。"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -52,7 +52,7 @@ struct ContainerUpgradeView: View {
                             ProgressView()
                                 .tint(.white)
                         }
-                        Text("升级")
+                        Text(L10n.t("升级"))
                             .frame(maxWidth: .infinity)
                             .font(.headline)
                     }
@@ -62,10 +62,10 @@ struct ContainerUpgradeView: View {
             }
             .listRowBackground(Color.clear)
         }
-        .navigationTitle("升级 \(container.name)")
+        .navigationTitle(L10n.f("升级 %@", container.name))
         .navigationBarTitleDisplayMode(.inline)
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {
                 if vm.lastAlertIsSuccess {
                     dismiss()
                 }
@@ -105,7 +105,7 @@ struct ContainerEditView: View {
                 Section {
                     HStack(spacing: 10) {
                         ProgressView()
-                        Text("加载容器配置…")
+                        Text(L10n.t("加载容器配置…"))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -119,9 +119,9 @@ struct ContainerEditView: View {
                         .foregroundStyle(.red)
                 }
             } else if let info {
-                Section("基础") {
+                Section(L10n.t("基础")) {
                     HStack {
-                        Text("名称")
+                        Text(L10n.t("名称"))
                             .foregroundStyle(.secondary)
                         Spacer()
                         Text(info.name)
@@ -131,7 +131,7 @@ struct ContainerEditView: View {
                 }
 
                 Section {
-                    TextField("镜像名:标签", text: $image, axis: .horizontal)
+                    TextField(L10n.t("镜像名:标签"), text: $image, axis: .horizontal)
                         .font(.system(.body, design: .monospaced))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -143,7 +143,7 @@ struct ContainerEditView: View {
                         } label: {
                             HStack {
                                 Image(systemName: "square.stack.3d.up")
-                                Text(image.isEmpty ? "选择镜像" : "选择镜像")
+                                Text(image.isEmpty ? L10n.t("选择镜像") : L10n.t("选择镜像"))
                                 Spacer()
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.caption)
@@ -152,21 +152,21 @@ struct ContainerEditView: View {
                         }
                     }
                 } header: {
-                    Text("镜像")
+                    Text(L10n.t("镜像"))
                 } footer: {
                     if image.trimmingCharacters(in: .whitespaces).isEmpty {
-                        Text("镜像不能为空")
+                        Text(L10n.t("镜像不能为空"))
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
                 }
 
                 Section {
-                    Toggle("强制拉取镜像", isOn: $forcePull)
-                    Toggle("暴露所有端口", isOn: $publishAllPorts)
+                    Toggle(L10n.t("强制拉取镜像"), isOn: $forcePull)
+                    Toggle(L10n.t("暴露所有端口"), isOn: $publishAllPorts)
                 }
 
-                Section("环境变量") {
+                Section(L10n.t("环境变量")) {
                     ForEach(envs.indices, id: \.self) { i in
                         TextField("KEY=VALUE", text: Binding(
                             get: { envs[i] },
@@ -182,12 +182,12 @@ struct ContainerEditView: View {
                     Button {
                         envs.append("")
                     } label: {
-                        Label("添加环境变量", systemImage: "plus")
+                        Label(L10n.t("添加环境变量"), systemImage: "plus")
                     }
                 }
             }
         }
-        .navigationTitle("编辑容器")
+        .navigationTitle(L10n.t("编辑容器"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -197,14 +197,14 @@ struct ContainerEditView: View {
                     if vm.containerOperating {
                         ProgressView()
                     } else {
-                        Text("保存").fontWeight(.medium)
+                        Text(L10n.t("保存")).fontWeight(.medium)
                     }
                 }
                 .disabled(info == nil || image.trimmingCharacters(in: .whitespaces).isEmpty || vm.containerOperating)
             }
         }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {
                 if vm.lastAlertIsSuccess {
                     dismiss()
                 }
@@ -222,7 +222,7 @@ struct ContainerEditView: View {
         defer { isLoading = false }
         if vm.imageOptions.isEmpty { await vm.loadImageOptions() }
         guard let i = await vm.loadContainerInfo(name: container.name) else {
-            loadError = vm.alertMessage.isEmpty ? "获取容器配置失败" : vm.alertMessage
+            loadError = vm.alertMessage.isEmpty ? L10n.t("获取容器配置失败") : vm.alertMessage
             return
         }
         info = i

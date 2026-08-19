@@ -129,7 +129,7 @@ final class ContainersViewModel: ObservableObject {
     func operateDocker(operation: String) async {
         dockerOperating = true
         defer { dockerOperating = false }
-        let opName = operation == "start" ? "启动" : (operation == "stop" ? "停止" : "重启")
+        let opName = operation == "start" ? L10n.t("启动") : (operation == "stop" ? L10n.t("停止") : L10n.t("重启"))
         let req = DockerOperateRequest(operation: operation)
         do {
             let _: EmptyResponse = try await client.send(
@@ -140,7 +140,7 @@ final class ContainersViewModel: ObservableObject {
             await loadDockerStatus(force: true)
             await load(query: "")
         } catch {
-            showAlert(message: "\(opName) Docker 失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("%@ Docker 失败：%@", opName, error.localizedDescription))
         }
     }
 
@@ -159,9 +159,9 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: "清理容器任务已提交")
+            showAlert(message: L10n.t("清理容器任务已提交"))
         } catch {
-            showAlert(message: "清理容器失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("清理容器失败：%@", error.localizedDescription))
         }
     }
 
@@ -173,13 +173,13 @@ final class ContainersViewModel: ObservableObject {
         defer { containerOperating = false }
         let opName: String
         switch operation {
-        case "stop": opName = "停止"
-        case "start": opName = "启动"
-        case "restart": opName = "重启"
-        case "kill": opName = "关闭"
-        case "pause": opName = "暂停"
-        case "unpause": opName = "恢复"
-        case "remove": opName = "删除"
+        case "stop": opName = L10n.t("停止")
+        case "start": opName = L10n.t("启动")
+        case "restart": opName = L10n.t("重启")
+        case "kill": opName = L10n.t("关闭")
+        case "pause": opName = L10n.t("暂停")
+        case "unpause": opName = L10n.t("恢复")
+        case "remove": opName = L10n.t("删除")
         default: opName = operation
         }
         let req = ContainerOperateRequest(names: [name], operation: operation, taskID: UUID().uuidString)
@@ -190,10 +190,10 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: "\(opName)容器「\(name)」任务已提交")
+            showAlert(message: L10n.f("%@容器「%@」任务已提交", opName, name))
             return true
         } catch {
-            showAlert(message: "\(opName)容器失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("%@容器失败：%@", opName, error.localizedDescription))
             return false
         }
     }
@@ -211,10 +211,10 @@ final class ContainersViewModel: ObservableObject {
             )
             return taskID
         } catch let err as APIError {
-            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "操作失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -234,9 +234,9 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: "升级容器「\(name)」任务已提交", isSuccess: true)
+            showAlert(message: L10n.f("升级容器「%@」任务已提交", name), isSuccess: true)
         } catch {
-            showAlert(message: "升级容器失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("升级容器失败：%@", error.localizedDescription))
         }
     }
 
@@ -270,7 +270,7 @@ final class ContainersViewModel: ObservableObject {
                 as: ContainerInfo.self
             )
         } catch {
-            showAlert(message: "获取容器配置失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("获取容器配置失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -315,7 +315,7 @@ final class ContainersViewModel: ObservableObject {
     func createContainer(draft: ContainerCreateDraft) async {
         guard !draft.name.trimmingCharacters(in: .whitespaces).isEmpty,
               !draft.image.trimmingCharacters(in: .whitespaces).isEmpty else {
-            showAlert(message: "容器名称和镜像不能为空")
+            showAlert(message: L10n.t("容器名称和镜像不能为空"))
             return
         }
         containerOperating = true
@@ -374,9 +374,9 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: "创建容器「\(draft.name)」任务已提交", isSuccess: true)
+            showAlert(message: L10n.f("创建容器「%@」任务已提交", draft.name), isSuccess: true)
         } catch {
-            showAlert(message: "创建容器失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("创建容器失败：%@", error.localizedDescription))
         }
     }
 
@@ -439,9 +439,9 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: "更新容器「\(info.name)」任务已提交", isSuccess: true)
+            showAlert(message: L10n.f("更新容器「%@」任务已提交", info.name), isSuccess: true)
         } catch {
-            showAlert(message: "更新容器失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("更新容器失败：%@", error.localizedDescription))
         }
     }
 
@@ -478,7 +478,7 @@ final class ContainersViewModel: ObservableObject {
             )
             return taskID
         } catch {
-            showAlert(message: "清理镜像失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("清理镜像失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -501,7 +501,7 @@ final class ContainersViewModel: ObservableObject {
             )
             return req.taskID
         } catch {
-            showAlert(message: "拉取镜像失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("拉取镜像失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -535,7 +535,7 @@ final class ContainersViewModel: ObservableObject {
             )
             return true
         } catch {
-            showAlert(message: "添加仓库失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("添加仓库失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -547,7 +547,7 @@ final class ContainersViewModel: ObservableObject {
             )
             return true
         } catch {
-            showAlert(message: "更新仓库失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("更新仓库失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -560,7 +560,7 @@ final class ContainersViewModel: ObservableObject {
             )
             return true
         } catch {
-            showAlert(message: "删除仓库失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除仓库失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -571,10 +571,10 @@ final class ContainersViewModel: ObservableObject {
                 path: APIEndpoint.containersRepoSync.path,
                 body: RepoIDRequest(id: id), as: EmptyResponse.self
             )
-            showAlert(message: "仓库同步任务已提交")
+            showAlert(message: L10n.t("仓库同步任务已提交"))
             return true
         } catch {
-            showAlert(message: "同步仓库失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("同步仓库失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -595,7 +595,7 @@ final class ContainersViewModel: ObservableObject {
             )
             return req.taskID
         } catch {
-            showAlert(message: "删除镜像失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除镜像失败：%@", error.localizedDescription))
             return nil
         }
     }

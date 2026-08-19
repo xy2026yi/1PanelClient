@@ -32,12 +32,12 @@ struct ContainersTab: View {
     var rootContent: some View {
         Group {
             if vm.isLoading && vm.containers.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if vm.containers.isEmpty && vm.dockerStatus == nil {
                 ContentUnavailableView(
-                    "暂无容器",
+                    L10n.t("暂无容器"),
                     systemImage: "shippingbox",
-                    description: Text(vm.errorMessage ?? "这台服务器上没有容器")
+                    description: Text(vm.errorMessage ?? L10n.t("这台服务器上没有容器"))
                 )
             } else {
                 containerList
@@ -46,11 +46,11 @@ struct ContainersTab: View {
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
-            title: "容器",
-            prompt: "搜索容器名"
+            title: L10n.t("容器"),
+            prompt: L10n.t("搜索容器名")
         )
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
@@ -58,7 +58,7 @@ struct ContainersTab: View {
             FloatingActionButton(action: {
                 showCreate = true
             })
-            .accessibilityLabel("创建容器")
+            .accessibilityLabel(L10n.t("创建容器"))
         }
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
@@ -83,7 +83,7 @@ struct ContainersTab: View {
 
             if vm.containers.isEmpty {
                 Section {
-                    Text(vm.errorMessage ?? "这台服务器上没有容器")
+                    Text(vm.errorMessage ?? L10n.t("这台服务器上没有容器"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -116,7 +116,7 @@ struct DockerStatusCard: View {
         Group {
             if vm.isLoadingDocker && vm.dockerStatus == nil {
                 Section {
-                    ServiceStatusLoadingRow(text: "加载 Docker 状态…")
+                    ServiceStatusLoadingRow(text: L10n.t("加载 Docker 状态…"))
                 }
             } else if vm.dockerStatus != nil {
                 ServiceStatusCard(
@@ -127,17 +127,17 @@ struct DockerStatusCard: View {
                     isExpanded: $isExpanded,
                     actions: [
                         ServiceAction(
-                            title: isRunning ? "停止" : "启动",
+                            title: isRunning ? L10n.t("停止") : L10n.t("启动"),
                             icon: isRunning ? "stop.fill" : "play.fill",
                             color: isRunning ? .orange : .green
                         ) { pendingAction = isRunning ? "stop" : "start" },
-                        ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+                        ServiceAction(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
                             pendingAction = "restart"
                         },
-                        ServiceAction(title: "清理容器", icon: "trash", color: .pink) {
+                        ServiceAction(title: L10n.t("清理容器"), icon: "trash", color: .pink) {
                             pendingAction = "prune"
                         },
-                        ServiceAction(title: "镜像", icon: "square.stack.3d.up", color: .teal) {
+                        ServiceAction(title: L10n.t("镜像"), icon: "square.stack.3d.up", color: .teal) {
                             Task {
                                 await vm.loadImages()
                                 onShowImages()
@@ -150,7 +150,7 @@ struct DockerStatusCard: View {
                 }
             } else {
                 Section {
-                    ServiceStatusFailedRow(text: "Docker 未安装或加载失败", detail: vm.dockerErrorMessage)
+                    ServiceStatusFailedRow(text: L10n.t("Docker 未安装或加载失败"), detail: vm.dockerErrorMessage)
                 }
             }
         }
@@ -161,26 +161,26 @@ struct DockerStatusCard: View {
                 set: { if !$0 { pendingAction = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingAction = nil }
-            Button("确认", role: .destructive) { executePendingAction() }
+            Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
+            Button(L10n.t("确认"), role: .destructive) { executePendingAction() }
         } message: {
             if let action = pendingAction {
-                Text("将对 Docker 进行 \(actionDisplayName(action)) 操作，是否继续？")
+                Text(L10n.f("将对 Docker 进行 %@ 操作，是否继续？", actionDisplayName(action)))
             }
         }
     }
 
     private var statusText: String {
-        guard let status = vm.dockerStatus else { return "未知" }
-        return status.isExist == false ? "未安装" : (isRunning ? "运行中" : "已停止")
+        guard let status = vm.dockerStatus else { return L10n.t("未知") }
+        return status.isExist == false ? L10n.t("未安装") : (isRunning ? L10n.t("运行中") : L10n.t("已停止"))
     }
 
     private func actionDisplayName(_ action: String) -> String {
         switch action {
-        case "stop":   return "停止"
-        case "start":  return "启动"
-        case "restart":return "重启"
-        case "prune":  return "清理容器"
+        case "stop":   return L10n.t("停止")
+        case "start":  return L10n.t("启动")
+        case "restart":return L10n.t("重启")
+        case "prune":  return L10n.t("清理容器")
         default:       return action
         }
     }
@@ -268,7 +268,7 @@ struct PortsInfoRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Text("端口映射")
+                Text(L10n.t("端口映射"))
                     .foregroundStyle(.secondary)
                     .fixedSize()
                 Spacer(minLength: 12)
@@ -283,7 +283,7 @@ struct PortsInfoRow: View {
                     withAnimation { isExpanded.toggle() }
                 } label: {
                     Label(
-                        isExpanded ? "收起" : "展开全部 \(ports.count) 条",
+                        isExpanded ? L10n.t("收起") : L10n.f("展开全部 %ld 条", ports.count),
                         systemImage: isExpanded ? "chevron.up" : "chevron.down"
                     )
                     .font(.caption)
