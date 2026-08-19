@@ -23,6 +23,28 @@
         }
       }
     },
+    "%@ 备份参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Backup Options"
+          }
+        }
+      }
+    },
+    "%@ 重建请求已提交，容器正在后台重建…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ rebuild submitted, container is rebuilding in the background…"
+          }
+        }
+      }
+    },
     "%@失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -85,6 +107,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld entries"
+          }
+        }
+      }
+    },
+    "%ld 次" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld times"
+          }
+        }
+      }
+    },
+    "%ld 项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld items"
+          }
+        }
+      }
+    },
+    "(空)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(empty)"
           }
         }
       }
@@ -173,6 +228,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CPU Shares"
+          }
+        }
+      }
+    },
+    "CPU 核心" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU Cores"
           }
         }
       }
@@ -298,6 +364,17 @@
         }
       }
     },
+    "Endpoint 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endpoint URL"
+          }
+        }
+      }
+    },
     "HSTS 包含子域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -327,6 +404,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plain HTTP connection: the API key and data can be intercepted in transit. Prefer https://"
+          }
+        }
+      }
+    },
+    "HTTP 端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP Port"
           }
         }
       }
@@ -507,6 +595,17 @@
         }
       }
     },
+    "上次：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last: %@"
+          }
+        }
+      }
+    },
     "上行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -529,6 +628,28 @@
         }
       }
     },
+    "下载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        }
+      }
+    },
+    "下载中…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading…"
+          }
+        }
+      }
+    },
     "下载地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -540,6 +661,28 @@
         }
       }
     },
+    "下载失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download failed: %@"
+          }
+        }
+      }
+    },
+    "下载完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download complete"
+          }
+        }
+      }
+    },
     "下载站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -547,6 +690,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Download Site"
+          }
+        }
+      }
+    },
+    "不导出GTID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip GTID"
+          }
+        }
+      }
+    },
+    "不指定用户时，服务器将以默认用户执行脚本。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If no user is set, the script runs as the server's default user."
+          }
+        }
+      }
+    },
+    "不锁定所有表进行备份，适用于高并发的数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back up without locking all tables — suitable for highly concurrent databases"
+          }
+        }
+      }
+    },
+    "不锁定表" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Table Lock"
+          }
+        }
+      }
+    },
+    "与计划任务中备份数据库的参数一致；不选则使用默认方式备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same options as database backup in scheduled tasks; defaults are used when nothing is selected"
           }
         }
       }
@@ -705,6 +903,17 @@
         }
       }
     },
+    "从脚本库选择" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose from Library"
+          }
+        }
+      }
+    },
     "仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -760,6 +969,116 @@
         }
       }
     },
+    "以下选项将作为 升级 / 卸载 / 安装 应用时的默认勾选项，可在操作时手动修改。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These become the default checkboxes when upgrading / uninstalling / installing apps and can be changed per operation."
+          }
+        }
+      }
+    },
+    "任务「%@」已%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task \"%@\" %@"
+          }
+        }
+      }
+    },
+    "任务「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "任务「%@」已开始执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task \"%@\" started"
+          }
+        }
+      }
+    },
+    "任务「%@」已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task \"%@\" updated"
+          }
+        }
+      }
+    },
+    "任务名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task Name"
+          }
+        }
+      }
+    },
+    "任务类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task Type"
+          }
+        }
+      }
+    },
+    "任务设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task Settings"
+          }
+        }
+      }
+    },
+    "任务详情" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task Details"
+          }
+        }
+      }
+    },
+    "任务进度" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task Progress"
+          }
+        }
+      }
+    },
     "企业" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -778,6 +1097,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Improved %ld"
+          }
+        }
+      }
+    },
+    "低频存储" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Infrequent Access"
           }
         }
       }
@@ -811,6 +1141,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Use Proxy"
+          }
+        }
+      }
+    },
+    "使用单一事务备份InnoDB表，适用于大数据量的备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back up InnoDB tables in a single transaction — suitable for large datasets"
+          }
+        }
+      }
+    },
+    "使用自定义配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Custom Config"
+          }
+        }
+      }
+    },
+    "使用自定义配置升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade with Custom Config"
+          }
+        }
+      }
+    },
+    "使用默认配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Default Config"
+          }
+        }
+      }
+    },
+    "使用默认配置升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade with Default Config"
           }
         }
       }
@@ -870,6 +1255,28 @@
         }
       }
     },
+    "保留份数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retain Copies"
+          }
+        }
+      }
+    },
+    "保留份数：%ld 份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retain %ld copies"
+          }
+        }
+      }
+    },
     "修复 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -877,6 +1284,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fixed %ld"
+          }
+        }
+      }
+    },
+    "修改后将重建容器使参数生效。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changing this rebuilds the container to take effect."
+          }
+        }
+      }
+    },
+    "修改后服务器会将现有备份文件移动到新目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Existing backup files will be moved to the new directory"
           }
         }
       }
@@ -903,6 +1332,28 @@
         }
       }
     },
+    "停用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable"
+          }
+        }
+      }
+    },
+    "停用任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable Task"
+          }
+        }
+      }
+    },
     "健康状态未知" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -910,6 +1361,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Health status unknown"
+          }
+        }
+      }
+    },
+    "全部" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
+          }
+        }
+      }
+    },
+    "全部应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Apps"
+          }
+        }
+      }
+    },
+    "全部数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Databases"
+          }
+        }
+      }
+    },
+    "全部网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Websites"
           }
         }
       }
@@ -1035,6 +1530,17 @@
         }
       }
     },
+    "内存限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory Limit"
+          }
+        }
+      }
+    },
     "内核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1057,6 +1563,17 @@
         }
       }
     },
+    "内置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built-in"
+          }
+        }
+      }
+    },
     "写入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1064,6 +1581,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Write"
+          }
+        }
+      }
+    },
+    "分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minute(s)"
+          }
+        }
+      }
+    },
+    "分钟：%ld 分" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minute: %ld"
           }
         }
       }
@@ -1222,6 +1761,17 @@
         }
       }
     },
+    "创建计划任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Task"
+          }
+        }
+      }
+    },
     "创建账号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1310,6 +1860,17 @@
         }
       }
     },
+    "删除任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Task"
+          }
+        }
+      }
+    },
     "删除关联应用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1321,6 +1882,17 @@
         }
       }
     },
+    "删除后不可恢复，可选择是否同时删除已生成的备份文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deletion cannot be undone; optionally delete generated backup files as well"
+          }
+        }
+      }
+    },
     "删除备份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1328,6 +1900,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Backup"
+          }
+        }
+      }
+    },
+    "删除备份账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Backup Account"
           }
         }
       }
@@ -1372,6 +1955,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Database"
+          }
+        }
+      }
+    },
+    "删除此周期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Schedule"
           }
         }
       }
@@ -1552,6 +2146,28 @@
         }
       }
     },
+    "加载参数…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading parameters…"
+          }
+        }
+      }
+    },
+    "加载参数失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load parameters: %@"
+          }
+        }
+      }
+    },
     "加载反向代理…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1559,6 +2175,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading proxies…"
+          }
+        }
+      }
+    },
+    "加载备份失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load backups: %@"
+          }
+        }
+      }
+    },
+    "加载备份账号失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load backup accounts: %@"
           }
         }
       }
@@ -1607,6 +2245,28 @@
         }
       }
     },
+    "加载应用设置失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load app settings: %@"
+          }
+        }
+      }
+    },
+    "加载新版本配置失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load new version config: %@"
+          }
+        }
+      }
+    },
     "加载日志…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1636,6 +2296,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load details: %@"
+          }
+        }
+      }
+    },
+    "加载配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Config"
           }
         }
       }
@@ -1706,6 +2377,39 @@
         }
       }
     },
+    "升级前备份应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back Up App Before Upgrade"
+          }
+        }
+      }
+    },
+    "升级后删除旧镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Old Images After Upgrade"
+          }
+        }
+      }
+    },
+    "升级失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade failed: %@"
+          }
+        }
+      }
+    },
     "升级容器「%@」任务已提交" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1724,6 +2428,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upgrade container failed: %@"
+          }
+        }
+      }
+    },
+    "升级将替换 docker-compose.yml，如有自定义修改请查看对比" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrading replaces docker-compose.yml — review the diff if you customized it"
+          }
+        }
+      }
+    },
+    "升级应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade App"
+          }
+        }
+      }
+    },
+    "升级选项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade Options"
           }
         }
       }
@@ -1761,6 +2498,17 @@
         }
       }
     },
+    "单一事务备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Single Transaction"
+          }
+        }
+      }
+    },
     "单位" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1790,6 +2538,105 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Per-Request Rate"
+          }
+        }
+      }
+    },
+    "危险操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Danger"
+          }
+        }
+      }
+    },
+    "卸载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall"
+          }
+        }
+      }
+    },
+    "卸载 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall %@"
+          }
+        }
+      }
+    },
+    "卸载失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall failed: %@"
+          }
+        }
+      }
+    },
+    "卸载应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall App"
+          }
+        }
+      }
+    },
+    "压缩密码用于加密备份文件，恢复时需输入相同密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The compression password encrypts the backup; enter the same password to restore"
+          }
+        }
+      }
+    },
+    "压缩密码（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compression Password (optional)"
+          }
+        }
+      }
+    },
+    "参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parameters"
+          }
+        }
+      }
+    },
+    "参数更新请求已提交，应用正在后台重建中…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parameter update submitted, app is rebuilding in the background…"
           }
         }
       }
@@ -1838,6 +2685,39 @@
         }
       }
     },
+    "取消忽略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unignore"
+          }
+        }
+      }
+    },
+    "取消忽略升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unignore Upgrades"
+          }
+        }
+      }
+    },
+    "取消忽略失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unignore failed: %@"
+          }
+        }
+      }
+    },
     "取消编辑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1845,6 +2725,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cancel Editing"
+          }
+        }
+      }
+    },
+    "可升级到" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgradable To"
+          }
+        }
+      }
+    },
+    "可多选；不选任何参数则使用默认方式备份。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multiple selection; defaults are used when nothing is selected."
+          }
+        }
+      }
+    },
+    "可多选；不选任何参数则使用默认方式备份。所选参数将以 args / argItems 形式提交给服务端。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multiple selection; defaults are used when nothing is selected. Selected options are sent as args / argItems."
+          }
+        }
+      }
+    },
+    "可选的 mysqldump 参数，支持多选，用于优化大数据量或特殊场景的备份。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional mysqldump options for large datasets or special backup scenarios."
+          }
+        }
+      }
+    },
+    "同时删除备份文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also Delete Backup Files"
+          }
+        }
+      }
+    },
+    "同时删除数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also Delete Database"
           }
         }
       }
@@ -1878,6 +2824,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name"
+          }
+        }
+      }
+    },
+    "后台运行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run in Background"
           }
         }
       }
@@ -1926,6 +2883,17 @@
         }
       }
     },
+    "启用任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Task"
+          }
+        }
+      }
+    },
     "启用密码访问" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1944,6 +2912,105 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply & Update"
+          }
+        }
+      }
+    },
+    "周一" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mon"
+          }
+        }
+      }
+    },
+    "周三" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wed"
+          }
+        }
+      }
+    },
+    "周二" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tue"
+          }
+        }
+      }
+    },
+    "周五" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fri"
+          }
+        }
+      }
+    },
+    "周六" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sat"
+          }
+        }
+      }
+    },
+    "周四" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thu"
+          }
+        }
+      }
+    },
+    "周日" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sun"
+          }
+        }
+      }
+    },
+    "周期 %ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule %ld"
+          }
+        }
+      }
+    },
+    "周期类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule Type"
           }
         }
       }
@@ -2021,6 +3088,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Location"
+          }
+        }
+      }
+    },
+    "地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address"
+          }
+        }
+      }
+    },
+    "地址（含 http(s)://）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address (with http(s)://)"
           }
         }
       }
@@ -2113,6 +3202,17 @@
         }
       }
     },
+    "填 0 表示不限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0 means unlimited"
+          }
+        }
+      }
+    },
     "备份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2120,6 +3220,193 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Backup"
+          }
+        }
+      }
+    },
+    "备份 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back Up %@"
+          }
+        }
+      }
+    },
+    "备份内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup Contents"
+          }
+        }
+      }
+    },
+    "备份参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup Options"
+          }
+        }
+      }
+    },
+    "备份存放位置：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backups stored in: %@"
+          }
+        }
+      }
+    },
+    "备份对象" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup Target"
+          }
+        }
+      }
+    },
+    "备份应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back Up App"
+          }
+        }
+      }
+    },
+    "备份提交失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup submit failed: %@"
+          }
+        }
+      }
+    },
+    "备份数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back Up Database"
+          }
+        }
+      }
+    },
+    "备份时不导出GTID信息，适用于组复制环境中的数据库恢复" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip GTID during backup — for restoring in group-replication environments"
+          }
+        }
+      }
+    },
+    "备份时设置了压缩密码才需要填写" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only needed if the backup was created with a compression password"
+          }
+        }
+      }
+    },
+    "备份目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup Directory"
+          }
+        }
+      }
+    },
+    "备份网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back Up Website"
+          }
+        }
+      }
+    },
+    "备份记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup Records"
+          }
+        }
+      }
+    },
+    "备份记录缺少文件名，无法下载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup record has no file name — cannot download"
+          }
+        }
+      }
+    },
+    "备份设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup Settings"
+          }
+        }
+      }
+    },
+    "备份账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup Accounts"
+          }
+        }
+      }
+    },
+    "备份选项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup Options"
           }
         }
       }
@@ -2164,6 +3451,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Day(s)"
+          }
+        }
+      }
+    },
+    "失败重试次数：%ld 次" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry on failure: %ld times"
           }
         }
       }
@@ -2245,6 +3543,28 @@
         }
       }
     },
+    "存储桶" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bucket"
+          }
+        }
+      }
+    },
+    "存储类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage Class"
+          }
+        }
+      }
+    },
     "安全" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2252,6 +3572,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Security"
+          }
+        }
+      }
+    },
+    "安装" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install"
+          }
+        }
+      }
+    },
+    "安装应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install App"
+          }
+        }
+      }
+    },
+    "安装时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed"
+          }
+        }
+      }
+    },
+    "完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
           }
         }
       }
@@ -2274,6 +3638,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Containers"
+          }
+        }
+      }
+    },
+    "容器名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container"
           }
         }
       }
@@ -2322,6 +3697,17 @@
         }
       }
     },
+    "容器配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Config"
+          }
+        }
+      }
+    },
     "宿主机可用：CPU %ld 核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2355,6 +3741,17 @@
         }
       }
     },
+    "密码认证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password Auth"
+          }
+        }
+      }
+    },
     "密码访问" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2384,6 +3781,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Key Algorithm"
+          }
+        }
+      }
+    },
+    "对比/编辑" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diff / Edit"
+          }
+        }
+      }
+    },
+    "将使用备份「%@」覆盖恢复，恢复期间服务可能短暂中断。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore from backup \"%@\"? Services may be briefly interrupted."
           }
         }
       }
@@ -2465,6 +3884,17 @@
         }
       }
     },
+    "将对选中应用程序进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to the selected app?"
+          }
+        }
+      }
+    },
     "将用新的证书内容替换「%@」。原证书的 ID 保持不变，已绑定该证书的网站会自动生效。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2509,6 +3939,28 @@
         }
       }
     },
+    "小时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hour(s)"
+          }
+        }
+      }
+    },
+    "小时：%ld 时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hour: %ld"
+          }
+        }
+      }
+    },
     "展开全部 %ld 条" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2516,6 +3968,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show all %ld"
+          }
+        }
+      }
+    },
+    "左滑可取消忽略，恢复升级检查" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe left to unignore and resume upgrade checks"
+          }
+        }
+      }
+    },
+    "已保存到「文件」App：我的 iPhone/1PanelClient/%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved to the Files app: On My iPhone/1PanelClient/%@"
           }
         }
       }
@@ -2542,6 +4016,28 @@
         }
       }
     },
+    "已取消忽略升级，后续将正常检查更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unignored — upgrade checks resumed"
+          }
+        }
+      }
+    },
+    "已启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Started"
+          }
+        }
+      }
+    },
     "已启用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2549,6 +4045,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enabled"
+          }
+        }
+      }
+    },
+    "已启用自定义 docker-compose.yml，请仔细检查内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A custom docker-compose.yml is enabled — review it carefully"
           }
         }
       }
@@ -2575,6 +4082,50 @@
         }
       }
     },
+    "已忽略 v%@ 的升级提示" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade to v%@ ignored"
+          }
+        }
+      }
+    },
+    "已忽略升级 (%ld)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignored (%ld)"
+          }
+        }
+      }
+    },
+    "已忽略该应用的所有升级提示" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All upgrade notices for this app are ignored"
+          }
+        }
+      }
+    },
+    "已断开" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnected"
+          }
+        }
+      }
+    },
     "已暂停" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2582,6 +4133,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paused"
+          }
+        }
+      }
+    },
+    "已添加 %ld 个周期，将按各周期分别执行。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld schedules added — each runs on its own."
           }
         }
       }
@@ -2663,6 +4225,50 @@
         }
       }
     },
+    "应用信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Info"
+          }
+        }
+      }
+    },
+    "应用名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Name"
+          }
+        }
+      }
+    },
+    "应用已经关联以下资源，请检查后重试！\n应用 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app is still linked to the following resources:\n%@"
+          }
+        }
+      }
+    },
+    "应用日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Logs"
+          }
+        }
+      }
+    },
     "应用程序" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2674,6 +4280,17 @@
         }
       }
     },
+    "应用设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Settings"
+          }
+        }
+      }
+    },
     "开启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2681,6 +4298,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enable"
+          }
+        }
+      }
+    },
+    "开启「记住认证信息」后凭证加密存储在服务器，编辑时可直接回显；备份目录为该账号下的备份存放路径，需手动填写（如 /backup）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With \"Remember credentials\" on, credentials are encrypted on the server and pre-filled when editing; the backup directory is the path under this account (e.g. /backup)"
+          }
+        }
+      }
+    },
+    "开启后将在恢复前删除当前数据库中的全部集合" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete all collections in the current database before restoring"
           }
         }
       }
@@ -2740,6 +4379,17 @@
         }
       }
     },
+    "归档存储" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archive"
+          }
+        }
+      }
+    },
     "当前" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2758,6 +4408,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current %@ → Latest %@"
+          }
+        }
+      }
+    },
+    "当前 docker-compose.yml" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current docker-compose.yml"
+          }
+        }
+      }
+    },
+    "当前版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Version"
+          }
+        }
+      }
+    },
+    "忽略升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore Upgrade"
+          }
+        }
+      }
+    },
+    "忽略应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore App"
+          }
+        }
+      }
+    },
+    "忽略所有升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore All Upgrades"
+          }
+        }
+      }
+    },
+    "忽略所有版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore All Versions"
+          }
+        }
+      }
+    },
+    "忽略此版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore This Version"
+          }
+        }
+      }
+    },
+    "忽略版本 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore Version %@"
           }
         }
       }
@@ -2795,6 +4533,39 @@
         }
       }
     },
+    "恢复 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore %@"
+          }
+        }
+      }
+    },
+    "恢复前清空当前数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Database Before Restore"
+          }
+        }
+      }
+    },
+    "恢复备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Backup"
+          }
+        }
+      }
+    },
     "恢复容器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2802,6 +4573,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Resume Container"
+          }
+        }
+      }
+    },
+    "恢复提交失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore submit failed: %@"
+          }
+        }
+      }
+    },
+    "恢复操作超过该时长将被中断，默认 30 分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restores exceeding this duration are aborted; default 30 minutes"
+          }
+        }
+      }
+    },
+    "恢复选项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Options"
           }
         }
       }
@@ -2824,6 +4628,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Manually imported certificates do not support auto-renewal or re-apply"
+          }
+        }
+      }
+    },
+    "手动输入桶名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter Bucket Manually"
+          }
+        }
+      }
+    },
+    "执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run"
+          }
+        }
+      }
+    },
+    "执行周期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule"
+          }
+        }
+      }
+    },
+    "执行失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed"
+          }
+        }
+      }
+    },
+    "执行失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run failed: %@"
+          }
+        }
+      }
+    },
+    "执行成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Succeeded"
+          }
+        }
+      }
+    },
+    "执行日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Logs"
+          }
+        }
+      }
+    },
+    "执行用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run As"
+          }
+        }
+      }
+    },
+    "执行记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Records"
+          }
+        }
+      }
+    },
+    "执行设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Settings"
           }
         }
       }
@@ -2905,6 +4819,28 @@
         }
       }
     },
+    "描述" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description"
+          }
+        }
+      }
+    },
+    "描述（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description (optional)"
+          }
+        }
+      }
+    },
     "提交中…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2912,6 +4848,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Submitting…"
+          }
+        }
+      }
+    },
+    "提交失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Submit failed"
           }
         }
       }
@@ -2949,6 +4896,28 @@
         }
       }
     },
+    "搜索已安装应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search installed apps"
+          }
+        }
+      }
+    },
+    "搜索脚本名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search scripts"
+          }
+        }
+      }
+    },
     "操作 http 类型仓库需要重启 Docker 服务。\n如果确认操作，请手动输入 '立即重启'" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2967,6 +4936,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Operation failed: %@"
+          }
+        }
+      }
+    },
+    "支持添加多个周期，任务将在每个设定的时间点执行。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add multiple schedules — the task runs at each of them."
           }
         }
       }
@@ -3004,6 +4984,17 @@
         }
       }
     },
+    "数据库类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Database Type"
+          }
+        }
+      }
+    },
     "新增 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3011,6 +5002,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Added %ld"
+          }
+        }
+      }
+    },
+    "新增备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Backup"
+          }
+        }
+      }
+    },
+    "新版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Version"
           }
         }
       }
@@ -3026,6 +5039,28 @@
         }
       }
     },
+    "无可用版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No versions available"
+          }
+        }
+      }
+    },
+    "无法加载参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not load parameters"
+          }
+        }
+      }
+    },
     "无法获取服务器信息，请检查 API Key 和网络" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3033,6 +5068,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Could not load server info. Check the API key and network."
+          }
+        }
+      }
+    },
+    "无法连接服务器，请检查网络后重试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot reach the server — check the network and try again"
           }
         }
       }
@@ -3048,6 +5094,17 @@
         }
       }
     },
+    "日期：%ld 号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day: %ld"
+          }
+        }
+      }
+    },
     "时区" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3055,6 +5112,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Time Zone"
+          }
+        }
+      }
+    },
+    "星期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weekday"
           }
         }
       }
@@ -3147,6 +5215,28 @@
         }
       }
     },
+    "暂无备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No backups"
+          }
+        }
+      }
+    },
+    "暂无备份账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No backup accounts"
+          }
+        }
+      }
+    },
     "暂无容器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3158,6 +5248,17 @@
         }
       }
     },
+    "暂无已安装应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No installed apps"
+          }
+        }
+      }
+    },
     "暂无已配置的仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3165,6 +5266,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No registries configured"
+          }
+        }
+      }
+    },
+    "暂无忽略记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No ignored versions"
+          }
+        }
+      }
+    },
+    "暂无执行记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No run records"
           }
         }
       }
@@ -3235,6 +5358,17 @@
         }
       }
     },
+    "暂无脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No scripts"
+          }
+        }
+      }
+    },
     "暂无自签证书机构" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3242,6 +5376,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No certificate authorities"
+          }
+        }
+      }
+    },
+    "暂无计划任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No scheduled tasks"
           }
         }
       }
@@ -3323,6 +5468,17 @@
         }
       }
     },
+    "更多" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        }
+      }
+    },
     "更多操作" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3378,6 +5534,17 @@
         }
       }
     },
+    "更新参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Parameters"
+          }
+        }
+      }
+    },
     "更新失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3407,6 +5574,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Update container failed: %@"
+          }
+        }
+      }
+    },
+    "更新应用设置失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update app settings failed: %@"
           }
         }
       }
@@ -3510,6 +5688,17 @@
         }
       }
     },
+    "未命名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untitled"
+          }
+        }
+      }
+    },
     "未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3532,6 +5721,17 @@
         }
       }
     },
+    "未找到名为「%@」的容器，可能已被移除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container \"%@\" not found — it may have been removed"
+          }
+        }
+      }
+    },
     "未找到域名「%@」对应的网站，可能已被删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3539,6 +5739,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No website found for \"%@\" — it may have been deleted"
+          }
+        }
+      }
+    },
+    "未找到容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container not found"
           }
         }
       }
@@ -3587,6 +5798,17 @@
         }
       }
     },
+    "未知应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown app"
+          }
+        }
+      }
+    },
     "未知错误" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3605,6 +5827,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not retrieved"
+          }
+        }
+      }
+    },
+    "未获取到新版本配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No new version config received"
           }
         }
       }
@@ -3631,6 +5864,17 @@
         }
       }
     },
+    "本机账号（LOCAL）为面板内置账号，不可删除；点击账号可编辑" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The LOCAL account is built into the panel and cannot be deleted; tap an account to edit it"
+          }
+        }
+      }
+    },
     "机构名称" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3653,6 +5897,17 @@
         }
       }
     },
+    "查看日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Logs"
+          }
+        }
+      }
+    },
     "查看监控" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3660,6 +5915,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "View Monitor"
+          }
+        }
+      }
+    },
+    "查询可用版本…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking versions…"
+          }
+        }
+      }
+    },
+    "查询版本失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version check failed: %@"
+          }
+        }
+      }
+    },
+    "标准存储" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
           }
         }
       }
@@ -3675,6 +5963,17 @@
         }
       }
     },
+    "核" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "core(s)"
+          }
+        }
+      }
+    },
     "根目录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3682,6 +5981,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Root Directory"
+          }
+        }
+      }
+    },
+    "桶" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bucket"
+          }
+        }
+      }
+    },
+    "桶: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bucket: %@"
+          }
+        }
+      }
+    },
+    "桶名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bucket Name"
           }
         }
       }
@@ -3708,6 +6040,39 @@
         }
       }
     },
+    "正在升级…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrading…"
+          }
+        }
+      }
+    },
+    "正在执行…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running…"
+          }
+        }
+      }
+    },
+    "正在更新…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updating…"
+          }
+        }
+      }
+    },
     "正在检测连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3730,6 +6095,72 @@
         }
       }
     },
+    "此操作不可恢复。请输入任务名称「%@」以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cannot be undone. Type the task name \"%@\" to confirm deletion."
+          }
+        }
+      }
+    },
+    "此操作不可恢复。请输入应用名称「%@」以确认卸载。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cannot be undone. Type the app name \"%@\" to confirm uninstalling."
+          }
+        }
+      }
+    },
+    "每周" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weekly"
+          }
+        }
+      }
+    },
+    "每天" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily"
+          }
+        }
+      }
+    },
+    "每小时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hourly"
+          }
+        }
+      }
+    },
+    "每月" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly"
+          }
+        }
+      }
+    },
     "没有可清理的镜像" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3737,6 +6168,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No images to prune"
+          }
+        }
+      }
+    },
+    "没有被忽略升级的应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No apps with ignored upgrades"
+          }
+        }
+      }
+    },
+    "流式接收中…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaming…"
           }
         }
       }
@@ -3759,6 +6212,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Test Connection"
+          }
+        }
+      }
+    },
+    "测试通过后才能保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pass the connection test before saving"
+          }
+        }
+      }
+    },
+    "深度归档存储" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deep Archive"
           }
         }
       }
@@ -3792,6 +6267,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add registry failed: %@"
+          }
+        }
+      }
+    },
+    "添加周期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Schedule"
+          }
+        }
+      }
+    },
+    "添加备份账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Backup Account"
           }
         }
       }
@@ -3928,6 +6425,17 @@
         }
       }
     },
+    "清除全部" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear All"
+          }
+        }
+      }
+    },
     "源文" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3946,6 +6454,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Source: %@"
+          }
+        }
+      }
+    },
+    "点击任务详情中的「立即执行」生成第一条记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap \"Run Now\" in task details to create the first record"
+          }
+        }
+      }
+    },
+    "点击右上角创建第一个任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the top-right button to create your first task"
           }
         }
       }
@@ -3972,6 +6502,17 @@
         }
       }
     },
+    "点击右下角 + 创建第一个备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + at the bottom right to create the first backup"
+          }
+        }
+      }
+    },
     "点击右下角 + 创建第一个网站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3979,6 +6520,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap + at the bottom right to create your first website"
+          }
+        }
+      }
+    },
+    "点击右下角 + 添加 MINIO / 阿里云OSS / WebDAV / SFTP 备份账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + at the bottom right to add a MINIO / Alibaba OSS / WebDAV / SFTP account"
           }
         }
       }
@@ -4280,6 +6832,17 @@
         }
       }
     },
+    "目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Directory"
+          }
+        }
+      }
+    },
     "目录路径" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4335,6 +6898,17 @@
         }
       }
     },
+    "直接升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade Directly"
+          }
+        }
+      }
+    },
     "省份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4368,6 +6942,28 @@
         }
       }
     },
+    "确定删除任务「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete task \"%@\"?"
+          }
+        }
+      }
+    },
+    "确定删除备份「%@」吗？删除后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete backup \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
     "确定删除容器「%@」吗？删除后不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4397,6 +6993,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete certificate \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确定删除账号「%@」吗？使用该账号的计划任务备份将失败。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete account \"%@\"? Scheduled backups using it will fail."
           }
         }
       }
@@ -4452,6 +7059,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm"
+          }
+        }
+      }
+    },
+    "确认名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Name"
           }
         }
       }
@@ -4588,6 +7206,17 @@
         }
       }
     },
+    "私钥密码（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Key Password (optional)"
+          }
+        }
+      }
+    },
     "私钥文件路径" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4599,6 +7228,17 @@
         }
       }
     },
+    "私钥认证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Key Auth"
+          }
+        }
+      }
+    },
     "私钥（PRIVATE KEY）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4606,6 +7246,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Private Key (PRIVATE KEY)"
+          }
+        }
+      }
+    },
+    "秒" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Second(s)"
           }
         }
       }
@@ -4643,6 +7294,17 @@
         }
       }
     },
+    "立即执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Now"
+          }
+        }
+      }
+    },
     "立即重启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4665,6 +7327,17 @@
         }
       }
     },
+    "端口外部访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expose Port"
+          }
+        }
+      }
+    },
     "端口映射" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4672,6 +7345,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ports"
+          }
+        }
+      }
+    },
+    "等待中…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting…"
           }
         }
       }
@@ -4786,6 +7470,17 @@
         }
       }
     },
+    "系统" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        }
+      }
+    },
     "系统信息" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4793,6 +7488,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "System Info"
+          }
+        }
+      }
+    },
+    "系统快照" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Snapshot"
           }
         }
       }
@@ -4874,6 +7580,17 @@
         }
       }
     },
+    "编辑 docker-compose.yml" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit docker-compose.yml"
+          }
+        }
+      }
+    },
     "编辑仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4892,6 +7609,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Proxy"
+          }
+        }
+      }
+    },
+    "编辑任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Task"
+          }
+        }
+      }
+    },
+    "编辑后将使用自定义内容覆盖默认编排文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your custom content overrides the default compose file"
+          }
+        }
+      }
+    },
+    "编辑备份账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Backup Account"
           }
         }
       }
@@ -4925,6 +7675,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Website"
+          }
+        }
+      }
+    },
+    "编辑计划任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Task"
           }
         }
       }
@@ -5050,6 +7811,17 @@
         }
       }
     },
+    "耗时 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Took %@"
+          }
+        }
+      }
+    },
     "脚本内容" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5057,6 +7829,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Script Content"
+          }
+        }
+      }
+    },
+    "脚本库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script Library"
+          }
+        }
+      }
+    },
+    "脚本库为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script library is empty"
           }
         }
       }
@@ -5105,6 +7899,17 @@
         }
       }
     },
+    "自定义配置（可编辑）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom config (editable)"
+          }
+        }
+      }
+    },
     "自签证书" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5112,6 +7917,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Self-signed"
+          }
+        }
+      }
+    },
+    "范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scope"
           }
         }
       }
@@ -5138,6 +7954,28 @@
         }
       }
     },
+    "获取桶" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Buckets"
+          }
+        }
+      }
+    },
+    "获取桶失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load buckets: %@"
+          }
+        }
+      }
+    },
     "获取监控数据失败" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5145,6 +7983,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load monitor data"
+          }
+        }
+      }
+    },
+    "行数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lines"
+          }
+        }
+      }
+    },
+    "表达式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expression"
           }
         }
       }
@@ -5171,6 +8031,17 @@
         }
       }
     },
+    "计划任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled Tasks"
+          }
+        }
+      }
+    },
     "认证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5178,6 +8049,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auth"
+          }
+        }
+      }
+    },
+    "认证与目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auth & Directory"
+          }
+        }
+      }
+    },
+    "认证信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Credentials"
+          }
+        }
+      }
+    },
+    "认证方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auth Method"
+          }
+        }
+      }
+    },
+    "记住认证信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remember Credentials"
+          }
+        }
+      }
+    },
+    "记录加载失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load records: %@"
           }
         }
       }
@@ -5369,6 +8295,61 @@
         }
       }
     },
+    "该应用当前未在忽略列表中" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app is not in the ignore list"
+          }
+        }
+      }
+    },
+    "该应用暂无更高版本可供升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No newer version available"
+          }
+        }
+      }
+    },
+    "该应用暂未产生日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No logs yet"
+          }
+        }
+      }
+    },
+    "该应用被以下网站使用：%@。请先在「工具箱 → 网站」中删除对应网站（删除时可勾选删除关联应用），再卸载此应用。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app is used by: %@. Delete those websites first (check \"also delete the app\") before uninstalling."
+          }
+        }
+      }
+    },
+    "该账号未记住认证信息，凭证需重新填写" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Credentials are not remembered for this account — re-enter them"
+          }
+        }
+      }
+    },
     "该面板使用 HTTP 明文连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5380,6 +8361,17 @@
         }
       }
     },
+    "详情" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        }
+      }
+    },
     "语言" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5387,6 +8379,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Language"
+          }
+        }
+      }
+    },
+    "请先通过连接测试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pass the connection test first"
+          }
+        }
+      }
+    },
+    "请填写 Access Key ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access Key ID is required"
+          }
+        }
+      }
+    },
+    "请填写 Endpoint 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endpoint URL is required"
+          }
+        }
+      }
+    },
+    "请填写 Secret Key" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secret Key is required"
           }
         }
       }
@@ -5413,6 +8449,17 @@
         }
       }
     },
+    "请填写地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address is required"
+          }
+        }
+      }
+    },
     "请填写域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5431,6 +8478,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Complete credentials are required"
+          }
+        }
+      }
+    },
+    "请填写密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password is required"
           }
         }
       }
@@ -5457,6 +8515,28 @@
         }
       }
     },
+    "请填写用户名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username is required"
+          }
+        }
+      }
+    },
+    "请填写私钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private key is required"
+          }
+        }
+      }
+    },
     "请填写证书主体名称(CN)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5479,6 +8559,28 @@
         }
       }
     },
+    "请稍后重试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again later"
+          }
+        }
+      }
+    },
+    "请返回后重新打开升级对比，或检查版本接口是否返回 dockerCompose 字段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go back and reopen the upgrade diff, or check whether the version API returns the dockerCompose field"
+          }
+        }
+      }
+    },
     "请选择" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5486,6 +8588,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Select…"
+          }
+        }
+      }
+    },
+    "请选择或填写桶" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select or enter a bucket"
           }
         }
       }
@@ -5585,6 +8698,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Resources"
+          }
+        }
+      }
+    },
+    "超时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout"
+          }
+        }
+      }
+    },
+    "超时与重试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout & Retry"
+          }
+        }
+      }
+    },
+    "超时单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout Unit"
+          }
+        }
+      }
+    },
+    "超时时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout"
+          }
+        }
+      }
+    },
+    "超时时间：%ld %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout: %ld %@"
+          }
+        }
+      }
+    },
+    "跟随最新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track Latest"
           }
         }
       }
@@ -5721,6 +8900,50 @@
         }
       }
     },
+    "近24小时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last 24 h"
+          }
+        }
+      }
+    },
+    "近2小时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last 2 h"
+          }
+        }
+      }
+    },
+    "近30分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last 30 min"
+          }
+        }
+      }
+    },
+    "近7天" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last 7 days"
+          }
+        }
+      }
+    },
     "还原失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5765,6 +8988,17 @@
         }
       }
     },
+    "这台服务器上没有已安装的应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No installed apps on this server"
+          }
+        }
+      }
+    },
     "这台服务器上没有配置镜像仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5787,6 +9021,50 @@
         }
       }
     },
+    "进入应用商店" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open App Store"
+          }
+        }
+      }
+    },
+    "连接信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection"
+          }
+        }
+      }
+    },
+    "连接失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection failed"
+          }
+        }
+      }
+    },
+    "连接测试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test Connection"
+          }
+        }
+      }
+    },
     "追踪" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5794,6 +9072,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Analytics"
+          }
+        }
+      }
+    },
+    "适用于实时访问的大量热点文件、频繁的数据交互等业务场景" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For frequently accessed hot data and heavy interactive workloads"
+          }
+        }
+      }
+    },
+    "适用于极低访问频率（例如1年访问1～2次）的业务场景" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For extremely rare access (about once or twice a year)"
+          }
+        }
+      }
+    },
+    "适用于极低访问频率（例如半年访问1次）的业务场景" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For extremely rare access (about once every six months)"
+          }
+        }
+      }
+    },
+    "适用于较低访问频率（例如平均每月访问频率1到2次）的业务场景，最少存储30天" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For infrequent access (once or twice a month); minimum 30-day storage"
           }
         }
       }
@@ -5860,6 +9182,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Picking a preset fills in built-in parameters which you can adjust; per-request rate is in KB/s"
+          }
+        }
+      }
+    },
+    "选项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Options"
+          }
+        }
+      }
+    },
+    "逐行读取" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Row by Row"
+          }
+        }
+      }
+    },
+    "逐行读取数据，而不是将整个表加载到内存中，适用于大数据量和低内存机器的备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read rows one by one instead of loading the whole table into memory — for large datasets on low-memory machines"
+          }
+        }
+      }
+    },
+    "通过" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pass"
           }
         }
       }
@@ -5941,6 +9307,17 @@
         }
       }
     },
+    "配置模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Config Mode"
+          }
+        }
+      }
+    },
     "采样位" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5974,6 +9351,17 @@
         }
       }
     },
+    "重启规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Policy"
+          }
+        }
+      }
+    },
     "重定向" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5996,6 +9384,17 @@
         }
       }
     },
+    "重建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuild"
+          }
+        }
+      }
+    },
     "重新申请" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6007,6 +9406,17 @@
         }
       }
     },
+    "重置为新版本默认值" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset to New Version Defaults"
+          }
+        }
+      }
+    },
     "重试" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6014,6 +9424,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Retry"
+          }
+        }
+      }
+    },
+    "重试次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retries"
           }
         }
       }
@@ -6117,6 +9538,17 @@
         }
       }
     },
+    "阿里云OSS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alibaba OSS"
+          }
+        }
+      }
+    },
     "阿里云凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6135,6 +9567,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preset"
+          }
+        }
+      }
+    },
+    "需交互" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interactive"
+          }
+        }
+      }
+    },
+    "需要交互输入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requires Interactive Input"
           }
         }
       }
@@ -6238,6 +9692,50 @@
         }
       }
     },
+    "默认" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default"
+          }
+        }
+      }
+    },
+    "默认从 Endpoint 拉取桶列表；开启手动输入可直接填写桶名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buckets are listed from the Endpoint by default; enable manual entry to type a bucket name"
+          }
+        }
+      }
+    },
+    "默认关闭。开启后升级请求会删除旧镜像以释放存储空间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off by default. When on, upgrades delete old images to free up space."
+          }
+        }
+      }
+    },
+    "默认打开端口外部访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expose the port by default"
+          }
+        }
+      }
+    },
     "默认文档" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6245,6 +9743,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Documents"
+          }
+        }
+      }
+    },
+    "默认（不指定）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default (none)"
+          }
+        }
+      }
+    },
+    "默认（无）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default (none)"
           }
         }
       }

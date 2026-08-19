@@ -33,11 +33,11 @@ struct AppLogView: View {
     }
 
     private let sinceOptions: [(value: String, label: String)] = [
-        ("all", "全部"),
-        ("30m", "近30分钟"),
-        ("2h", "近2小时"),
-        ("24h", "近24小时"),
-        ("7d", "近7天")
+        ("all", L10n.t("全部")),
+        ("30m", L10n.t("近30分钟")),
+        ("2h", L10n.t("近2小时")),
+        ("24h", L10n.t("近24小时")),
+        ("7d", L10n.t("近7天"))
     ]
 
     var body: some View {
@@ -61,7 +61,7 @@ struct AppLogView: View {
                 .padding(.vertical, 6)
                 .background(Color(.secondarySystemBackground))
         }
-        .navigationTitle("应用日志")
+        .navigationTitle(L10n.t("应用日志"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -95,7 +95,7 @@ struct AppLogView: View {
 
             // 行数
             HStack(spacing: 4) {
-                Text("行数")
+                Text(L10n.t("行数"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Picker("", selection: $tail) {
@@ -115,14 +115,14 @@ struct AppLogView: View {
             if isLoading {
                 ProgressView()
                     .scaleEffect(0.7)
-                Text("流式接收中…")
+                Text(L10n.t("流式接收中…"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                     .font(.caption)
-                Text("已断开")
+                Text(L10n.t("已断开"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -131,7 +131,7 @@ struct AppLogView: View {
                 isFollowing = true
                 scrollToBottomTrigger += 1
             } label: {
-                Label("跟随最新", systemImage: "arrow.down")
+                Label(L10n.t("跟随最新"), systemImage: "arrow.down")
                     .font(.caption)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
@@ -146,13 +146,13 @@ struct AppLogView: View {
     @ViewBuilder
     private var logContent: some View {
         if logLines.isEmpty && isLoading {
-            ProgressView("加载日志…")
+            ProgressView(L10n.t("加载日志…"))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if logLines.isEmpty {
             ContentUnavailableView(
-                "暂无日志",
+                L10n.t("暂无日志"),
                 systemImage: "doc.text",
-                description: Text(errorMessage ?? "该应用暂未产生日志")
+                description: Text(errorMessage ?? L10n.t("该应用暂未产生日志"))
             )
         } else {
             ScrollViewReader { proxy in

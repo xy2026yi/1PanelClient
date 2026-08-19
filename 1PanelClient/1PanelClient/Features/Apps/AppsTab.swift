@@ -26,8 +26,8 @@ struct AppsTab: View {
 
     var body: some View {
         rootContent
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
@@ -43,12 +43,12 @@ struct AppsTab: View {
     var rootContent: some View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if vm.apps.isEmpty {
                 ContentUnavailableView(
-                    "暂无已安装应用",
+                    L10n.t("暂无已安装应用"),
                     systemImage: "shippingbox",
-                    description: Text(vm.errorMessage ?? "这台服务器上没有已安装的应用")
+                    description: Text(vm.errorMessage ?? L10n.t("这台服务器上没有已安装的应用"))
                 )
             } else {
                 appList
@@ -57,14 +57,14 @@ struct AppsTab: View {
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
-            title: "应用",
-            prompt: "搜索已安装应用"
+            title: L10n.t("应用"),
+            prompt: L10n.t("搜索已安装应用")
         )
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
                 showStore = true
             })
-            .accessibilityLabel("进入应用商店")
+            .accessibilityLabel(L10n.t("进入应用商店"))
         }
         .toolbar {
             if !isSearching {
@@ -72,15 +72,15 @@ struct AppsTab: View {
                     EllipsisMenuButton {
                         withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
                     }
-                    .accessibilityLabel("更多")
+                    .accessibilityLabel(L10n.t("更多"))
                 }
             }
         }
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: "忽略应用") { showIgnored = true },
-                    .action(title: "设置") { showSettings = true },
+                    .action(title: L10n.t("忽略应用")) { showIgnored = true },
+                    .action(title: L10n.t("设置")) { showSettings = true },
                 ]) {
                     withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
@@ -117,17 +117,17 @@ struct AppsTab: View {
                         if app.isRunning {
                             Button {
                                 Task { await vm.operate(app: app, op: .stop) }
-                            } label: { Label("停止", systemImage: "stop.fill") }
+                            } label: { Label(L10n.t("停止"), systemImage: "stop.fill") }
                             .tint(.orange)
                         } else {
                             Button {
                                 Task { await vm.operate(app: app, op: .start) }
-                            } label: { Label("启动", systemImage: "play.fill") }
+                            } label: { Label(L10n.t("启动"), systemImage: "play.fill") }
                             .tint(.green)
                         }
                         Button {
                             Task { await vm.operate(app: app, op: .restart) }
-                        } label: { Label("重启", systemImage: "arrow.triangle.2.circlepath") }
+                        } label: { Label(L10n.t("重启"), systemImage: "arrow.triangle.2.circlepath") }
                         .tint(.blue)
                     }
                 }
@@ -178,7 +178,7 @@ struct AppRow: View {
                             .foregroundStyle(.secondary)
                     }
                     if app.canUpdate == true {
-                        StatusBadge(text: "有更新", color: .orange, icon: "arrow.up.circle.fill")
+                        StatusBadge(text: L10n.t("有更新"), color: .orange, icon: "arrow.up.circle.fill")
                     }
                 }
             }
@@ -187,7 +187,7 @@ struct AppRow: View {
 
             HStack(spacing: 4) {
                 StatusDot(color: app.statusColor)
-                Text(app.isRunning ? "已启动" : (app.status ?? "未知"))
+                Text(app.isRunning ? L10n.t("已启动") : (app.status ?? L10n.t("未知")))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

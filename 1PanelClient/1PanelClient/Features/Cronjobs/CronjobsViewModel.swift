@@ -66,10 +66,10 @@ final class CronjobsViewModel: ObservableObject {
             cronjobs = resp.items ?? []
         } catch let err as APIError {
             errorMessage = err.errorDescription
-            showAlert(message: "加载失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
             errorMessage = error.localizedDescription
-            showAlert(message: "加载失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
         }
     }
 
@@ -81,11 +81,11 @@ final class CronjobsViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             await refresh()
-            showToast("任务「\(job.name ?? "")」已开始执行")
+            showToast(L10n.f("任务「%@」已开始执行", job.name ?? ""))
         } catch let err as APIError {
-            showAlert(message: "执行失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("执行失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "执行失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("执行失败：%@", error.localizedDescription))
         }
     }
 
@@ -98,11 +98,11 @@ final class CronjobsViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             await refresh()
-            showToast("任务「\(job.name ?? "")」已\(enabled ? "启用" : "停用")")
+            showToast(L10n.f("任务「%@」已%@", job.name ?? "", enabled ? L10n.t("启用") : L10n.t("停用")))
         } catch let err as APIError {
-            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "操作失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
         }
     }
 
@@ -120,14 +120,14 @@ final class CronjobsViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             deleteCleanData = false
-            showToast("任务「\(job.name ?? "")」已删除")
+            showToast(L10n.f("任务「%@」已删除", job.name ?? ""))
             await refresh()
             return true
         } catch let err as APIError {
-            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "删除失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -144,10 +144,10 @@ final class CronjobsViewModel: ObservableObject {
             await refresh()
             return true
         } catch let err as APIError {
-            showAlert(message: "创建失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("创建失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "创建失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("创建失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -163,14 +163,14 @@ final class CronjobsViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showToast("任务「\(req.name)」已更新")
+            showToast(L10n.f("任务「%@」已更新", req.name))
             await refresh()
             return true
         } catch let err as APIError {
-            showAlert(message: "更新失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("更新失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "更新失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("更新失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -185,10 +185,10 @@ final class CronjobsViewModel: ObservableObject {
             )
             return info
         } catch let err as APIError {
-            showAlert(message: "加载详情失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载详情失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "加载详情失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载详情失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -218,9 +218,9 @@ final class CronjobsViewModel: ObservableObject {
             )
             records = resp.items ?? []
         } catch let err as APIError {
-            showAlert(message: "记录加载失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("记录加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "记录加载失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("记录加载失败：%@", error.localizedDescription))
         }
     }
 

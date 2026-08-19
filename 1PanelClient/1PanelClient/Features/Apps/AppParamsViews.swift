@@ -34,32 +34,32 @@ struct UpdateParamsView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载参数…")
+                ProgressView(L10n.t("加载参数…"))
             } else if let resp = paramsResp {
                 paramsForm(resp)
             } else {
                 ContentUnavailableView {
-                    Label("无法加载参数", systemImage: "exclamationmark.triangle")
+                    Label(L10n.t("无法加载参数"), systemImage: "exclamationmark.triangle")
                 } description: {
-                    Text(loadError ?? "请稍后重试")
+                    Text(loadError ?? L10n.t("请稍后重试"))
                 } actions: {
-                    Button("重试") { Task { await load() } }
+                    Button(L10n.t("重试")) { Task { await load() } }
                 }
             }
         }
-        .navigationTitle("更新参数")
+        .navigationTitle(L10n.t("更新参数"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("更新") {
+                Button(L10n.t("更新")) {
                     Task { await performUpdate() }
                 }
                 .disabled(!hasLoaded || vm.isUpdatingParams)
             }
         }
         .task { await load() }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
@@ -79,41 +79,41 @@ struct UpdateParamsView: View {
                         }
                     }
                 } header: {
-                    Text("参数")
+                    Text(L10n.t("参数"))
                 } footer: {
-                    Text("修改后将重建容器使参数生效。")
+                    Text(L10n.t("修改后将重建容器使参数生效。"))
                 }
             }
 
             // 容器配置
             Section {
                 HStack {
-                    Text("容器名").foregroundStyle(.secondary)
+                    Text(L10n.t("容器名")).foregroundStyle(.secondary)
                     Spacer()
                     TextField("", text: $containerName)
                         .multilineTextAlignment(.trailing)
                 }
-                Toggle("端口外部访问", isOn: $allowPort)
-                Picker("重启规则", selection: $restartPolicy) {
+                Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
+                Picker(L10n.t("重启规则"), selection: $restartPolicy) {
                     ForEach(restartPolicies, id: \.self) { Text($0).tag($0) }
                 }
             } header: {
-                Text("容器配置")
+                Text(L10n.t("容器配置"))
             }
 
             // 资源限制
             Section {
                 HStack {
-                    Text("CPU 核心").foregroundStyle(.secondary)
+                    Text(L10n.t("CPU 核心")).foregroundStyle(.secondary)
                     Spacer()
                     TextField("0", value: $cpuQuota, format: .number)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
-                    Text("核").foregroundStyle(.secondary).font(.caption)
+                    Text(L10n.t("核")).foregroundStyle(.secondary).font(.caption)
                 }
                 HStack {
-                    Text("内存限制").foregroundStyle(.secondary)
+                    Text(L10n.t("内存限制")).foregroundStyle(.secondary)
                     Spacer()
                     TextField("0", value: $memoryLimit, format: .number)
                         .keyboardType(.numberPad)
@@ -126,14 +126,14 @@ struct UpdateParamsView: View {
                     .frame(width: 80)
                 }
             } header: {
-                Text("资源限制")
+                Text(L10n.t("资源限制"))
             } footer: {
-                Text("填 0 表示不限制")
+                Text(L10n.t("填 0 表示不限制"))
             }
 
             // docker-compose
             Section {
-                Toggle("编辑 docker-compose.yml", isOn: $editCompose)
+                Toggle(L10n.t("编辑 docker-compose.yml"), isOn: $editCompose)
                     .onChange(of: editCompose) { _, isOn in
                         if isOn && customCompose.isEmpty {
                             customCompose = resp.dockerCompose ?? resp.rawCompose ?? ""
@@ -149,7 +149,7 @@ struct UpdateParamsView: View {
                         .font(.system(.caption, design: .monospaced))
                         .frame(minHeight: 200)
                 } footer: {
-                    Text("编辑后将使用自定义内容覆盖默认编排文件")
+                    Text(L10n.t("编辑后将使用自定义内容覆盖默认编排文件"))
                 }
             }
 
@@ -159,7 +159,7 @@ struct UpdateParamsView: View {
                     CodePreview(text: raw, color: .secondary)
                         .frame(minHeight: 140)
                 } header: {
-                    Text("当前 docker-compose.yml")
+                    Text(L10n.t("当前 docker-compose.yml"))
                 }
             }
 
@@ -167,7 +167,7 @@ struct UpdateParamsView: View {
                 Section {
                     HStack {
                         ProgressView()
-                        Text("正在更新…")
+                        Text(L10n.t("正在更新…"))
                     }
                 }
             }
@@ -324,27 +324,27 @@ struct ComposeEditorView: View {
             // 模式切换
             Section {
                 Toggle(isOn: $useCustom) {
-                    Label(useCustom ? "使用自定义配置" : "使用默认配置",
+                    Label(useCustom ? L10n.t("使用自定义配置") : L10n.t("使用默认配置"),
                           systemImage: useCustom ? "wand.and.stars" : "doc")
                 }
                 .tint(.orange)
 
                 if useCustom {
-                    Text("已启用自定义 docker-compose.yml，请仔细检查内容")
+                    Text(L10n.t("已启用自定义 docker-compose.yml，请仔细检查内容"))
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }
             } header: {
-                Text("配置模式")
+                Text(L10n.t("配置模式"))
             }
 
             Section {
-                Toggle("升级后删除旧镜像", isOn: $deleteOldImage)
+                Toggle(L10n.t("升级后删除旧镜像"), isOn: $deleteOldImage)
                     .tint(.orange)
             } header: {
-                Text("升级选项")
+                Text(L10n.t("升级选项"))
             } footer: {
-                Text("默认关闭。开启后升级请求会删除旧镜像以释放存储空间")
+                Text(L10n.t("默认关闭。开启后升级请求会删除旧镜像以释放存储空间"))
             }
 
             // 操作按钮
@@ -369,7 +369,7 @@ struct ComposeEditorView: View {
                 } label: {
                     HStack {
                         Spacer()
-                        Label(useCustom ? "使用自定义配置升级" : "使用默认配置升级",
+                        Label(useCustom ? L10n.t("使用自定义配置升级") : L10n.t("使用默认配置升级"),
                               systemImage: "arrow.up.circle.fill")
                         Spacer()
                     }
@@ -381,7 +381,7 @@ struct ComposeEditorView: View {
                 if vm.upgradingVersionId != nil {
                     HStack(spacing: 6) {
                         ProgressView()
-                        Text("正在升级…")
+                        Text(L10n.t("正在升级…"))
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -394,7 +394,7 @@ struct ComposeEditorView: View {
                     .frame(minHeight: 160)
             } header: {
                 HStack {
-                    Text("当前版本")
+                    Text(L10n.t("当前版本"))
                     Spacer()
                     Text("v\(app.version ?? "?")")
                         .font(.caption.monospaced())
@@ -412,9 +412,9 @@ struct ComposeEditorView: View {
                         .background(Color(.secondarySystemBackground))
                 } else if newCompose.isEmpty {
                     ContentUnavailableView(
-                        "未获取到新版本配置",
+                        L10n.t("未获取到新版本配置"),
                         systemImage: "doc.text.magnifyingglass",
-                        description: Text("请返回后重新打开升级对比，或检查版本接口是否返回 dockerCompose 字段")
+                        description: Text(L10n.t("请返回后重新打开升级对比，或检查版本接口是否返回 dockerCompose 字段"))
                     )
                     .frame(minHeight: 160)
                 } else {
@@ -423,7 +423,7 @@ struct ComposeEditorView: View {
                 }
             } header: {
                 HStack {
-                    Text(useCustom ? "自定义配置（可编辑）" : "新版本")
+                    Text(useCustom ? L10n.t("自定义配置（可编辑）") : L10n.t("新版本"))
                     Spacer()
                     Text("v\(version.version ?? "?")")
                         .font(.caption.monospaced())
@@ -437,7 +437,7 @@ struct ComposeEditorView: View {
                     Button(role: .destructive) {
                         editedCompose = newCompose
                     } label: {
-                        Label("重置为新版本默认值", systemImage: "arrow.counterclockwise")
+                        Label(L10n.t("重置为新版本默认值"), systemImage: "arrow.counterclockwise")
                     }
                 }
             }
@@ -459,7 +459,7 @@ struct CodePreview: View {
 
     var body: some View {
         ScrollView {
-            Text(text.isEmpty ? "(空)" : text)
+            Text(text.isEmpty ? L10n.t("(空)") : text)
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(color)
                 .frame(maxWidth: .infinity, alignment: .leading)

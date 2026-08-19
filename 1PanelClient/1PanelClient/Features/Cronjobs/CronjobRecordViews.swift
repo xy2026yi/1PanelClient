@@ -15,14 +15,14 @@ struct CronjobRecordsView: View {
     var body: some View {
         List {
             if vm.isLoadingRecords && vm.records.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
             } else if vm.records.isEmpty {
                 ContentUnavailableView(
-                    "暂无执行记录",
+                    L10n.t("暂无执行记录"),
                     systemImage: "list.bullet.rectangle",
-                    description: Text("点击任务详情中的「立即执行」生成第一条记录")
+                    description: Text(L10n.t("点击任务详情中的「立即执行」生成第一条记录"))
                 )
                 .listRowBackground(Color.clear)
             } else {
@@ -36,7 +36,7 @@ struct CronjobRecordsView: View {
                 }
             }
         }
-        .navigationTitle("执行记录")
+        .navigationTitle(L10n.t("执行记录"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.loadRecords(jobId: job.id) }
         .refreshable { await vm.loadRecords(jobId: job.id) }
@@ -68,7 +68,7 @@ struct CronjobRecordRow: View {
                         .foregroundStyle(record.statusColor)
                 }
                 HStack(spacing: 8) {
-                    Text("耗时 \(record.durationDisplay)")
+                    Text(L10n.f("耗时 %@", record.durationDisplay))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if let msg = record.message, !msg.isEmpty {
@@ -97,7 +97,7 @@ struct CronjobLogView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 if vm.isLoadingLog && vm.logLines.isEmpty {
-                    ProgressView("加载中…")
+                    ProgressView(L10n.t("加载中…"))
                         .padding()
                 } else if let err = vm.logError {
                     Text(err)
@@ -105,7 +105,7 @@ struct CronjobLogView: View {
                         .font(.callout)
                         .padding()
                 } else if vm.logLines.isEmpty {
-                    Text("暂无日志")
+                    Text(L10n.t("暂无日志"))
                         .foregroundStyle(.secondary)
                         .padding()
                 } else {
@@ -121,7 +121,7 @@ struct CronjobLogView: View {
             .padding(.vertical, 8)
         }
         .background(Color(.systemBackground))
-        .navigationTitle("执行日志")
+        .navigationTitle(L10n.t("执行日志"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.loadLog(taskID: taskID) }
     }

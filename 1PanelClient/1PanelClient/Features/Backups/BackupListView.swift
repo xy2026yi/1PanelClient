@@ -80,7 +80,7 @@ final class BackupViewModel: ObservableObject {
         } catch {
             // 刷新失败保留已加载数据；首屏失败进入可重试的空态
             if records.isEmpty { loadFailed = true }
-            showAlert(message: "加载备份失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载备份失败：%@", error.localizedDescription))
             return
         }
 
@@ -132,7 +132,7 @@ final class BackupViewModel: ObservableObject {
             )
             return .success(taskID)
         } catch {
-            return .failure(BackupSubmitError(message: "备份提交失败：\(error.localizedDescription)"))
+            return .failure(BackupSubmitError(message: L10n.f("备份提交失败：%@", error.localizedDescription)))
         }
     }
 
@@ -152,7 +152,7 @@ final class BackupViewModel: ObservableObject {
             )
             return .success(taskID)
         } catch {
-            return .failure(BackupSubmitError(message: "恢复提交失败：\(error.localizedDescription)"))
+            return .failure(BackupSubmitError(message: L10n.f("恢复提交失败：%@", error.localizedDescription)))
         }
     }
 
@@ -168,7 +168,7 @@ final class BackupViewModel: ObservableObject {
             )
             await refresh()
         } catch {
-            showAlert(message: "删除失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
         }
     }
 
@@ -189,7 +189,7 @@ final class BackupViewModel: ObservableObject {
     /// 完成后置 downloadedFileName 弹出保存位置提示。
     private func downloadRecord(_ record: BackupRecord) async {
         guard let rawName = record.fileName, !rawName.isEmpty else {
-            showAlert(message: "备份记录缺少文件名，无法下载")
+            showAlert(message: L10n.t("备份记录缺少文件名，无法下载"))
             return
         }
         // 本地保存只用最后一段文件名，防止服务端异常数据拼出目录穿越路径
@@ -243,7 +243,7 @@ final class BackupViewModel: ObservableObject {
             if let tempURL { try? FileManager.default.removeItem(at: tempURL) }
             // 用户主动取消不弹错误
             if !error.isUserCancellation {
-                showAlert(message: "下载失败：\(error.localizedDescription)")
+                showAlert(message: L10n.f("下载失败：%@", error.localizedDescription))
             }
         }
     }
@@ -319,34 +319,34 @@ struct BackupListView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.records.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if vm.records.isEmpty && vm.loadFailed {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
-                    Text("无法连接服务器，请检查网络后重试")
+                    Text(L10n.t("无法连接服务器，请检查网络后重试"))
                 } actions: {
-                    Button("重试") {
+                    Button(L10n.t("重试")) {
                         Task { await vm.refresh() }
                     }
                 }
             } else if vm.records.isEmpty {
                 ContentUnavailableView(
-                    "暂无备份",
+                    L10n.t("暂无备份"),
                     systemImage: "externaldrive.badge.timemachine",
-                    description: Text("点击右下角 + 创建第一个备份")
+                    description: Text(L10n.t("点击右下角 + 创建第一个备份"))
                 )
             } else {
                 recordList
             }
         }
-        .navigationTitle("备份")
+        .navigationTitle(L10n.t("备份"))
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
                 showCreate = true
             })
-            .accessibilityLabel("新增备份")
+            .accessibilityLabel(L10n.t("新增备份"))
         }
         .task {
             await vm.refresh()
@@ -359,7 +359,7 @@ struct BackupListView: View {
                 switch await vm.createBackup(secret: secret, description: description, args: args) {
                 case .success(let taskID):
                     pendingProgress = BackupProgressState(
-                        taskID: taskID, title: "备份 \(vm.target.detailName)", latest: true
+                        taskID: taskID, title: L10n.f("备份 %@", vm.target.detailName), latest: true
                     )
                     return nil
                 case .failure(let error):
@@ -372,7 +372,7 @@ struct BackupListView: View {
                 switch await vm.recover(record: record, secret: secret, timeout: timeout, dropAllCollections: dropAll) {
                 case .success(let taskID):
                     pendingProgress = BackupProgressState(
-                        taskID: taskID, title: "恢复 \(vm.target.detailName)", latest: false
+                        taskID: taskID, title: L10n.f("恢复 %@", vm.target.detailName), latest: false
                     )
                     return nil
                 case .failure(let error):
@@ -405,14 +405,14 @@ struct BackupListView: View {
             }
         }
         .alert(
-            "删除备份",
+            L10n.t("删除备份"),
             isPresented: Binding(
                 get: { deletingRecord != nil },
                 set: { if !$0 { deletingRecord = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { deletingRecord = nil }
-            Button("删除", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { deletingRecord = nil }
+            Button(L10n.t("删除"), role: .destructive) {
                 if let record = deletingRecord {
                     Task { await vm.deleteRecord(record) }
                 }
@@ -420,24 +420,24 @@ struct BackupListView: View {
             }
         } message: {
             if let record = deletingRecord {
-                Text("确定删除备份「\(record.fileName ?? "—")」吗？删除后不可恢复。")
+                Text(L10n.f("确定删除备份「%@」吗？删除后不可恢复。", record.fileName ?? "—"))
             }
         }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
         .alert(
-            "下载完成",
+            L10n.t("下载完成"),
             isPresented: Binding(
                 get: { vm.downloadedFileName != nil },
                 set: { if !$0 { vm.downloadedFileName = nil } }
             )
         ) {
-            Button("好的", role: .cancel) {}
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
-            Text("已保存到「文件」App：我的 iPhone/1PanelClient/\(vm.downloadedFileName ?? "")")
+            Text(L10n.f("已保存到「文件」App：我的 iPhone/1PanelClient/%@", vm.downloadedFileName ?? ""))
         }
     }
 
@@ -461,10 +461,10 @@ struct BackupListView: View {
                     )
                 }
             } header: {
-                SectionLabel(title: "备份记录", systemImage: "externaldrive.badge.timemachine")
+                SectionLabel(title: L10n.t("备份记录"), systemImage: "externaldrive.badge.timemachine")
             } footer: {
                 if let dir = vm.backupDir, !dir.isEmpty {
-                    Text("备份存放位置：\(dir)")
+                    Text(L10n.f("备份存放位置：%@", dir))
                 }
             }
         }
@@ -512,9 +512,9 @@ private struct BackupRecordCard: View {
 
             // 类型 / 名称 / 详情
             HStack(spacing: 6) {
-                metaBadge("类型", value: targetType)
-                metaBadge("名称", value: targetName)
-                metaBadge("详情", value: targetDetailName)
+                metaBadge(L10n.t("类型"), value: targetType)
+                metaBadge(L10n.t("名称"), value: targetName)
+                metaBadge(L10n.t("详情"), value: targetDetailName)
             }
 
             // 时间 + 状态 + 描述
@@ -539,12 +539,12 @@ private struct BackupRecordCard: View {
             // 操作：下载（进行中可取消）/ 恢复 / 删除
             HStack(spacing: 8) {
                 if isDownloading {
-                    cardButton(title: "取消", icon: "stop.circle.fill", color: .red, loading: false, action: onCancelDownload)
+                    cardButton(title: L10n.t("取消"), icon: "stop.circle.fill", color: .red, loading: false, action: onCancelDownload)
                 } else {
-                    cardButton(title: "下载", icon: "arrow.down.circle", color: .blue, loading: false, action: onDownload)
+                    cardButton(title: L10n.t("下载"), icon: "arrow.down.circle", color: .blue, loading: false, action: onDownload)
                 }
-                cardButton(title: "恢复", icon: "arrow.counterclockwise", color: .green, loading: false, action: onRecover)
-                cardButton(title: "删除", icon: "trash", color: .red, loading: isDeleting, action: onDelete)
+                cardButton(title: L10n.t("恢复"), icon: "arrow.counterclockwise", color: .green, loading: false, action: onRecover)
+                cardButton(title: L10n.t("删除"), icon: "trash", color: .red, loading: isDeleting, action: onDelete)
             }
             .padding(.top, 2)
 
@@ -560,7 +560,7 @@ private struct BackupRecordCard: View {
                     } else {
                         ProgressView()
                             .scaleEffect(0.7)
-                        Text("下载中…")
+                        Text(L10n.t("下载中…"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -633,11 +633,11 @@ private struct BackupCreateSheet: View {
                 Section {
                     HStack {
                         if showSecret {
-                            TextField("压缩密码（可选）", text: $secret)
+                            TextField(L10n.t("压缩密码（可选）"), text: $secret)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                         } else {
-                            SecureField("压缩密码（可选）", text: $secret)
+                            SecureField(L10n.t("压缩密码（可选）"), text: $secret)
                         }
                         Button {
                             showSecret.toggle()
@@ -647,11 +647,11 @@ private struct BackupCreateSheet: View {
                         }
                         .buttonStyle(.borderless)
                     }
-                    TextField("描述（可选）", text: $description)
+                    TextField(L10n.t("描述（可选）"), text: $description)
                 } header: {
-                    Text("备份选项")
+                    Text(L10n.t("备份选项"))
                 } footer: {
-                    Text("压缩密码用于加密备份文件，恢复时需输入相同密码")
+                    Text(L10n.t("压缩密码用于加密备份文件，恢复时需输入相同密码"))
                 }
 
                 if target.isMySQLFamily {
@@ -660,30 +660,30 @@ private struct BackupCreateSheet: View {
                             BackupArgsPicker(dbType: target.baseType, selection: $selectedArgs)
                         } label: {
                             HStack {
-                                Text("备份参数")
+                                Text(L10n.t("备份参数"))
                                 Spacer()
                                 if selectedArgs.isEmpty {
-                                    Text("默认")
+                                    Text(L10n.t("默认"))
                                         .foregroundStyle(.secondary)
                                 } else {
-                                    Text("\(selectedArgs.count) 项")
+                                    Text(L10n.f("%ld 项", selectedArgs.count))
                                         .foregroundStyle(.blue)
                                 }
                             }
                         }
                     } footer: {
-                        Text("与计划任务中备份数据库的参数一致；不选则使用默认方式备份")
+                        Text(L10n.t("与计划任务中备份数据库的参数一致；不选则使用默认方式备份"))
                     }
                 }
             }
-            .navigationTitle("新增备份")
+            .navigationTitle(L10n.t("新增备份"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isSubmitting ? "提交中…" : "确认") {
+                    Button(isSubmitting ? L10n.t("提交中…") : L10n.t("确认")) {
                         Task {
                             isSubmitting = true
                             let error = await onSubmit(secret, description, Array(selectedArgs).sorted())
@@ -699,11 +699,11 @@ private struct BackupCreateSheet: View {
                 }
             }
             // 提交失败提示挂在本表单内（挂到被 sheet 覆盖的父视图上不会弹出）
-            .alert("提交失败", isPresented: Binding(
+            .alert(L10n.t("提交失败"), isPresented: Binding(
                 get: { submitError != nil },
                 set: { if !$0 { submitError = nil } }
             )) {
-                Button("好的", role: .cancel) {}
+                Button(L10n.t("好的"), role: .cancel) {}
             } message: {
                 Text(submitError ?? "")
             }
@@ -733,9 +733,9 @@ private struct BackupRecoverSheet: View {
     @State private var dropAllCollections = false
 
     enum TimeoutUnit: String, CaseIterable, Identifiable {
-        case second = "秒"
-        case minute = "分钟"
-        case hour = "小时"
+case second = "秒"
+case minute = "分钟"
+case hour = "小时"
         var id: String { rawValue }
         var multiplier: Int {
             switch self {
@@ -750,7 +750,7 @@ private struct BackupRecoverSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("将使用备份「\(record.fileName ?? "—")」覆盖恢复，恢复期间服务可能短暂中断。")
+                    Text(L10n.f("将使用备份「%@」覆盖恢复，恢复期间服务可能短暂中断。", record.fileName ?? "—"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -758,11 +758,11 @@ private struct BackupRecoverSheet: View {
                 Section {
                     HStack {
                         if showSecret {
-                            TextField("压缩密码（可选）", text: $secret)
+                            TextField(L10n.t("压缩密码（可选）"), text: $secret)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                         } else {
-                            SecureField("压缩密码（可选）", text: $secret)
+                            SecureField(L10n.t("压缩密码（可选）"), text: $secret)
                         }
                         Button {
                             showSecret.toggle()
@@ -773,15 +773,15 @@ private struct BackupRecoverSheet: View {
                         .buttonStyle(.borderless)
                     }
                 } header: {
-                    Text("恢复选项")
+                    Text(L10n.t("恢复选项"))
                 } footer: {
-                    Text("备份时设置了压缩密码才需要填写")
+                    Text(L10n.t("备份时设置了压缩密码才需要填写"))
                 }
 
                 if target.isDatabase {
                     Section {
                         HStack {
-                            Text("超时时间")
+                            Text(L10n.t("超时时间"))
                             Spacer()
                             TextField("30", value: $timeoutValue, format: .number)
                                 .keyboardType(.numberPad)
@@ -789,33 +789,33 @@ private struct BackupRecoverSheet: View {
                                 .frame(width: 64)
                             Picker("", selection: $timeoutUnit) {
                                 ForEach(TimeoutUnit.allCases) { u in
-                                    Text(u.rawValue).tag(u)
+                                    Text(L10n.t(u.rawValue)).tag(u)
                                 }
                             }
                             .labelsHidden()
                             .pickerStyle(.menu)
                         }
                     } footer: {
-                        Text("恢复操作超过该时长将被中断，默认 30 分钟")
+                        Text(L10n.t("恢复操作超过该时长将被中断，默认 30 分钟"))
                     }
                 }
 
                 if target.isMongoDB {
                     Section {
-                        Toggle("恢复前清空当前数据库", isOn: $dropAllCollections)
+                        Toggle(L10n.t("恢复前清空当前数据库"), isOn: $dropAllCollections)
                     } footer: {
-                        Text("开启后将在恢复前删除当前数据库中的全部集合")
+                        Text(L10n.t("开启后将在恢复前删除当前数据库中的全部集合"))
                     }
                 }
             }
-            .navigationTitle("恢复备份")
+            .navigationTitle(L10n.t("恢复备份"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isSubmitting ? "提交中…" : "确认") {
+                    Button(isSubmitting ? L10n.t("提交中…") : L10n.t("确认")) {
                         Task {
                             isSubmitting = true
                             let timeout = max(1, timeoutValue) * timeoutUnit.multiplier
@@ -832,11 +832,11 @@ private struct BackupRecoverSheet: View {
                 }
             }
             // 提交失败提示挂在本表单内（挂到被 sheet 覆盖的父视图上不会弹出）
-            .alert("提交失败", isPresented: Binding(
+            .alert(L10n.t("提交失败"), isPresented: Binding(
                 get: { submitError != nil },
                 set: { if !$0 { submitError = nil } }
             )) {
-                Button("好的", role: .cancel) {}
+                Button(L10n.t("好的"), role: .cancel) {}
             } message: {
                 Text(submitError ?? "")
             }
@@ -889,14 +889,14 @@ private struct BackupArgsPicker: View {
                     .buttonStyle(.plain)
                 }
             } footer: {
-                Text("可多选；不选任何参数则使用默认方式备份。")
+                Text(L10n.t("可多选；不选任何参数则使用默认方式备份。"))
             }
         }
-        .navigationTitle("备份参数")
+        .navigationTitle(L10n.t("备份参数"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("清除全部") { selection.removeAll() }
+                Button(L10n.t("清除全部")) { selection.removeAll() }
                     .disabled(selection.isEmpty)
             }
         }

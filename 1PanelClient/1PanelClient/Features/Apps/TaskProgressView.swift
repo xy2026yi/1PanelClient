@@ -88,7 +88,7 @@ struct TaskProgressView: View {
                             HStack(spacing: 6) {
                                 ProgressView()
                                     .scaleEffect(0.7)
-                                Text("等待中…")
+                                Text(L10n.t("等待中…"))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -113,7 +113,7 @@ struct TaskProgressView: View {
                         let handled = onComplete?(true) ?? false
                         if !handled { dismiss() }
                     } label: {
-                        Text("完成")
+                        Text(L10n.t("完成"))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
                     }
@@ -123,7 +123,7 @@ struct TaskProgressView: View {
                         let handled = onComplete?(false) ?? false
                         if !handled { dismiss() }
                     } label: {
-                        Text("后台运行")
+                        Text(L10n.t("后台运行"))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
                     }
@@ -132,7 +132,7 @@ struct TaskProgressView: View {
             }
             .padding()
         }
-        .navigationTitle("任务进度")
+        .navigationTitle(L10n.t("任务进度"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(isDone)
         .task {
@@ -160,9 +160,9 @@ struct TaskProgressView: View {
 
     private var statusText: String {
         switch taskStatus.lowercased() {
-        case "executing": return "正在执行…"
-        case "success":   return "执行成功"
-        case "failed":    return "执行失败"
+        case "executing": return L10n.t("正在执行…")
+        case "success":   return L10n.t("执行成功")
+        case "failed":    return L10n.t("执行失败")
         default:          return taskStatus
         }
     }

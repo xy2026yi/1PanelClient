@@ -62,23 +62,23 @@ struct ScriptLibraryView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.scripts.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if let err = vm.errorMessage, !err.isEmpty, vm.scripts.isEmpty {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(err)
                 } actions: {
-                    Button("重试") {
+                    Button(L10n.t("重试")) {
                         Task { await vm.load() }
                     }
                     .buttonStyle(.borderedProminent)
                 }
             } else if vm.scripts.isEmpty {
                 ContentUnavailableView(
-                    "暂无脚本",
+                    L10n.t("暂无脚本"),
                     systemImage: "doc.text",
-                    description: Text("脚本库为空")
+                    description: Text(L10n.t("脚本库为空"))
                 )
             } else {
                 scriptList
@@ -87,8 +87,8 @@ struct ScriptLibraryView: View {
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
-            title: "脚本库",
-            prompt: "搜索脚本名"
+            title: L10n.t("脚本库"),
+            prompt: L10n.t("搜索脚本名")
         )
         .task { if vm.scripts.isEmpty { await vm.load() } }
         .onChange(of: searchText) { _, newValue in
@@ -146,10 +146,10 @@ struct ScriptRow: View {
                 }
                 HStack(spacing: 6) {
                     if script.isSystem == true {
-                        StatusBadge(text: "系统", color: .blue)
+                        StatusBadge(text: L10n.t("系统"), color: .blue)
                     }
                     if script.isInteractive == true {
-                        StatusBadge(text: "需交互", color: .orange)
+                        StatusBadge(text: L10n.t("需交互"), color: .orange)
                     }
                 }
             }
@@ -168,21 +168,21 @@ struct ScriptDetailView: View {
 
     var body: some View {
         List {
-            Section("基本信息") {
-                InfoRow("名称", value: script.displayName)
+            Section(L10n.t("基本信息")) {
+                InfoRow(L10n.t("名称"), value: script.displayName)
                 if let desc = script.displayDescription, !desc.isEmpty {
-                    InfoRow("描述", value: desc)
+                    InfoRow(L10n.t("描述"), value: desc)
                 }
                 if script.isInteractive == true {
-                    InfoRow("类型", value: "需要交互输入")
+                    InfoRow(L10n.t("类型"), value: L10n.t("需要交互输入"))
                 }
                 if let t = script.createdAt, !t.isEmpty {
-                    InfoRow("创建时间", value: t.prefix(19).description)
+                    InfoRow(L10n.t("创建时间"), value: t.prefix(19).description)
                 }
             }
 
             if let code = script.script, !code.isEmpty {
-                Section("脚本内容") {
+                Section(L10n.t("脚本内容")) {
                     Text(code)
                         .font(.system(.caption, design: .monospaced))
                         .textSelection(.enabled)
@@ -196,7 +196,7 @@ struct ScriptDetailView: View {
                 Button {
                     showTerminal = true
                 } label: {
-                    Text("安装").fontWeight(.medium)
+                    Text(L10n.t("安装")).fontWeight(.medium)
                 }
             }
         }

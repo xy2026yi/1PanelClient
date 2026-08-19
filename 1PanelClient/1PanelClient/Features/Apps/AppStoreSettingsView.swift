@@ -15,44 +15,44 @@ struct AppStoreSettingsView: View {
     var body: some View {
         Group {
             if vm.isLoadingAppStoreConfig && vm.appStoreConfig == nil {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else {
                 Form {
                     Section {
-                        Text("以下选项将作为 升级 / 卸载 / 安装 应用时的默认勾选项，可在操作时手动修改。")
+                        Text(L10n.t("以下选项将作为 升级 / 卸载 / 安装 应用时的默认勾选项，可在操作时手动修改。"))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
 
-                    Section("卸载应用") {
+                    Section(L10n.t("卸载应用")) {
                         settingToggle(
-                            title: "删除备份",
+                            title: L10n.t("删除备份"),
                             scope: .uninstallDeleteBackup,
                             isOn: vm.appStoreConfig?.isUninstallDeleteBackup ?? false
                         )
                         settingToggle(
-                            title: "删除镜像",
+                            title: L10n.t("删除镜像"),
                             scope: .uninstallDeleteImage,
                             isOn: vm.appStoreConfig?.isUninstallDeleteImage ?? false
                         )
                     }
 
-                    Section("升级应用") {
+                    Section(L10n.t("升级应用")) {
                         settingToggle(
-                            title: "升级前备份应用",
+                            title: L10n.t("升级前备份应用"),
                             scope: .upgradeBackup,
                             isOn: vm.appStoreConfig?.isUpgradeBackup ?? true
                         )
                         settingToggle(
-                            title: "升级后删除旧镜像",
+                            title: L10n.t("升级后删除旧镜像"),
                             scope: .upgradeDeleteImage,
                             isOn: vm.appStoreConfig?.isUpgradeDeleteImage ?? false
                         )
                     }
 
-                    Section("安装应用") {
+                    Section(L10n.t("安装应用")) {
                         settingToggle(
-                            title: "默认打开端口外部访问",
+                            title: L10n.t("默认打开端口外部访问"),
                             scope: .installAllowPort,
                             isOn: vm.appStoreConfig?.isInstallAllowPort ?? false
                         )
@@ -60,7 +60,7 @@ struct AppStoreSettingsView: View {
                 }
             }
         }
-        .navigationTitle("应用设置")
+        .navigationTitle(L10n.t("应用设置"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if vm.appStoreConfig == nil {

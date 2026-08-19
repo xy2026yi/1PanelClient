@@ -53,29 +53,29 @@ struct AppDetailView: View {
         listContent
             .sheet(isPresented: $showUninstall) {
                 TextInputConfirmSheet(
-                    title: "卸载 \(app.displayName)",
-                    message: "此操作不可恢复。请输入应用名称「\(app.displayName)」以确认卸载。",
+                    title: L10n.f("卸载 %@", app.displayName),
+                    message: L10n.f("此操作不可恢复。请输入应用名称「%@」以确认卸载。", app.displayName),
                     expectedText: app.displayName,
-                    fieldLabel: "确认名称",
-                    fieldPlaceholder: "应用名称",
-                    confirmTitle: "卸载"
+                    fieldLabel: L10n.t("确认名称"),
+                    fieldPlaceholder: L10n.t("应用名称"),
+                    confirmTitle: L10n.t("卸载")
                 ) {
                     Task { await performUninstall() }
                 } options: {
-                    Section("选项") {
+                    Section(L10n.t("选项")) {
                         if app.linkDB == true {
-                            Toggle("同时删除数据库", isOn: $uninstallDeleteDB)
+                            Toggle(L10n.t("同时删除数据库"), isOn: $uninstallDeleteDB)
                         }
-                        Toggle("删除备份", isOn: $uninstallDeleteBackup)
-                        Toggle("删除镜像", isOn: $uninstallDeleteImage)
-                        Toggle("强制删除", isOn: $uninstallForceDelete)
+                        Toggle(L10n.t("删除备份"), isOn: $uninstallDeleteBackup)
+                        Toggle(L10n.t("删除镜像"), isOn: $uninstallDeleteImage)
+                        Toggle(L10n.t("强制删除"), isOn: $uninstallForceDelete)
                     }
                 }
             }
         .navigationDestination(isPresented: $showUninstallProgress) {
             TaskProgressView(
                 taskID: uninstallTaskID,
-                title: "卸载 \(app.displayName)",
+                title: L10n.f("卸载 %@", app.displayName),
                 onComplete: { isDone in
                     vm.needsRefresh = true
                     if isDone {
@@ -88,8 +88,8 @@ struct AppDetailView: View {
                 }
             )
         }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
@@ -114,18 +114,18 @@ struct AppDetailView: View {
             }
 
             // 应用信息（精简）
-            Section("应用信息") {
+            Section(L10n.t("应用信息")) {
                 if let port = app.httpPort, port > 0 {
-                    InfoRow("HTTP 端口", value: "\(port)")
+                    InfoRow(L10n.t("HTTP 端口"), value: "\(port)")
                 }
                 if let ports = app.httpsPort, ports > 0 {
-                    InfoRow("HTTPS 端口", value: "\(ports)")
+                    InfoRow(L10n.t("HTTPS 端口"), value: "\(ports)")
                 }
                 if let path = app.path, !path.isEmpty {
                     NavigationLink {
                         FilesView(server: server, initialPath: path)
                     } label: {
-                        InfoRow("目录", value: path)
+                        InfoRow(L10n.t("目录"), value: path)
                     }
                     .buttonStyle(.plain)
                 }
@@ -133,7 +133,7 @@ struct AppDetailView: View {
                     NavigationLink {
                         ContainerDetailFromAppView(app: app, server: server)
                     } label: {
-                        InfoRow("容器名", value: container)
+                        InfoRow(L10n.t("容器名"), value: container)
                     }
                     .buttonStyle(.plain)
                 }
@@ -142,13 +142,13 @@ struct AppDetailView: View {
                         NavigationLink {
                             WebsiteDetailView(website: site, vm: websitesVM)
                         } label: {
-                            InfoRow("网站", value: site.displayName)
+                            InfoRow(L10n.t("网站"), value: site.displayName)
                         }
                         .buttonStyle(.plain)
                     }
                 }
                 if let created = app.createdAt, !created.isEmpty {
-                    InfoRow("安装时间", value: String(created.prefix(19)))
+                    InfoRow(L10n.t("安装时间"), value: String(created.prefix(19)))
                 }
             }
 
@@ -157,7 +157,7 @@ struct AppDetailView: View {
                 NavigationLink {
                     AppLogView(app: app, vm: vm)
                 } label: {
-                    Label("查看日志", systemImage: "doc.text.magnifyingglass")
+                    Label(L10n.t("查看日志"), systemImage: "doc.text.magnifyingglass")
                 }
                 .buttonStyle(.plain)
             }
@@ -188,15 +188,15 @@ struct AppDetailView: View {
                 set: { if !$0 { pendingAction = nil } }
             )
         ) {
-            Button("取消", role: .cancel) {
+            Button(L10n.t("取消"), role: .cancel) {
                 pendingAction = nil
             }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("确认"), role: .destructive) {
                 executePendingAction()
             }
         } message: {
             if let action = pendingAction {
-                Text("将对选中应用程序进行 \(actionDisplayName(action)) 操作，是否继续？")
+                Text(L10n.f("将对选中应用程序进行 %@ 操作，是否继续？", actionDisplayName(action)))
             }
         }
         .onDisappear {
@@ -226,7 +226,7 @@ struct AppDetailView: View {
                 }
                 HStack(spacing: 4) {
                     StatusDot(color: currentApp.statusColor)
-                    Text((currentApp.status ?? "未知").capitalized)
+                    Text((currentApp.status ?? L10n.t("未知")).capitalized)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -254,28 +254,28 @@ struct AppDetailView: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 actionButton(
-                    title: currentApp.isRunning ? "停止" : "启动",
+                    title: currentApp.isRunning ? L10n.t("停止") : L10n.t("启动"),
                     icon: currentApp.isRunning ? "stop.fill" : "play.fill",
                     color: currentApp.isRunning ? .orange : .green
                 ) {
                     pendingAction = currentApp.isRunning ? "stop" : "start"
                 }
                 actionButton(
-                    title: "重启",
+                    title: L10n.t("重启"),
                     icon: "arrow.triangle.2.circlepath",
                     color: .blue
                 ) {
                     pendingAction = "restart"
                 }
                 actionButton(
-                    title: "重建",
+                    title: L10n.t("重建"),
                     icon: "hammer",
                     color: .indigo
                 ) {
                     pendingAction = "rebuild"
                 }
                 actionButton(
-                    title: "编辑",
+                    title: L10n.t("编辑"),
                     icon: "slider.horizontal.3",
                     color: .teal
                 ) {
@@ -284,7 +284,7 @@ struct AppDetailView: View {
             }
             HStack(spacing: 8) {
                 actionButton(
-                    title: "备份",
+                    title: L10n.t("备份"),
                     icon: "externaldrive.badge.timemachine",
                     color: .purple
                 ) {
@@ -292,7 +292,7 @@ struct AppDetailView: View {
                 }
                 if currentApp.canUpdate == true {
                     actionButton(
-                        title: "升级",
+                        title: L10n.t("升级"),
                         icon: "arrow.up.circle",
                         color: .orange
                     ) {
@@ -300,7 +300,7 @@ struct AppDetailView: View {
                     }
                 }
                 actionButton(
-                    title: "卸载",
+                    title: L10n.t("卸载"),
                     icon: "trash",
                     color: .red
                 ) {
@@ -366,10 +366,10 @@ struct AppDetailView: View {
 
     private func actionDisplayName(_ action: String) -> String {
         switch action {
-        case "stop":     return "停止"
-        case "start":    return "启动"
-        case "restart":  return "重启"
-        case "rebuild":  return "重建"
+        case "stop":     return L10n.t("停止")
+        case "start":    return L10n.t("启动")
+        case "restart":  return L10n.t("重启")
+        case "rebuild":  return L10n.t("重建")
         default:         return action
         }
     }
@@ -411,18 +411,18 @@ struct ContainerDetailFromAppView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.containers.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if let container = vm.containers.first(where: { $0.name == app.container }) {
                 ContainerDetailView(container: container, server: server, vm: vm)
             } else {
                 ContentUnavailableView(
-                    "未找到容器",
+                    L10n.t("未找到容器"),
                     systemImage: "shippingbox",
-                    description: Text(vm.errorMessage ?? "未找到名为「\(app.container ?? "—")」的容器，可能已被移除")
+                    description: Text(vm.errorMessage ?? L10n.f("未找到名为「%@」的容器，可能已被移除", app.container ?? "—"))
                 )
             }
         }
-        .navigationTitle("容器")
+        .navigationTitle(L10n.t("容器"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if vm.containers.isEmpty { await vm.refresh() }

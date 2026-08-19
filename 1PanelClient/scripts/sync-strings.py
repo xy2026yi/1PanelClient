@@ -27,6 +27,12 @@ ROOT = Path(__file__).resolve().parent.parent          # 1PanelClient/
 SRC_DIRS = [ROOT / "1PanelClient"]
 XCSTRINGS = ROOT / "1PanelClient" / "Shared" / "Localization" / "Localizable.xcstrings"
 
+# 运行时动态查表的 key（enum rawValue 经 L10n.t(x.rawValue) 使用，静态扫描不可见）
+DYNAMIC_KEYS = {
+    "服务器文件", "粘贴内容", "证书信息", "证书", "私钥", "日志", "机构详情",
+    "分钟", "小时", "秒", "每小时", "每天", "每周", "每月",
+}
+
 CALL_RE = re.compile(r'L10n\.[tf]\s*\(\s*"')
 # 字符串字面量扫描：起始引号后逐字符处理转义与插值
 LIT_START = re.compile(r'"')
@@ -113,7 +119,7 @@ def main() -> int:
         }
         added += 1
 
-    unused = sorted(set(strings) - keys)
+    unused = sorted(set(strings) - keys - DYNAMIC_KEYS)
     pruned = 0
     if args.prune:
         for k in unused:

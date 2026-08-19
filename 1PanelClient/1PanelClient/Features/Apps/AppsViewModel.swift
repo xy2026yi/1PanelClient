@@ -181,16 +181,16 @@ final class AppsViewModel: ObservableObject {
             )
             // rebuild 是异步操作，状态不会立即变化，需要明确反馈
             if op == .rebuild {
-                showAlert(message: "\(app.displayName) 重建请求已提交，容器正在后台重建…")
+                showAlert(message: L10n.f("%@ 重建请求已提交，容器正在后台重建…", app.displayName))
                 needsRefresh = true
             }
             // 所有操作都刷新列表，让详情页 currentApp 能反映最新状态
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
         } catch let err as APIError {
-            showAlert(message: "\(op.displayName)失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("%@失败：%@", op.displayName, err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "\(op.displayName)失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("%@失败：%@", op.displayName, error.localizedDescription))
         }
     }
 
@@ -215,10 +215,10 @@ final class AppsViewModel: ObservableObject {
             )
             self.availableVersions = versions
         } catch let err as APIError {
-            showAlert(message: "查询版本失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("查询版本失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             showUpgradeSheet = false
         } catch {
-            showAlert(message: "查询版本失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("查询版本失败：%@", error.localizedDescription))
             showUpgradeSheet = false
         }
         isLoadingVersions = false
@@ -254,10 +254,10 @@ final class AppsViewModel: ObservableObject {
             }
             return true
         } catch let err as APIError {
-            showAlert(message: "加载新版本配置失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载新版本配置失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "加载新版本配置失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载新版本配置失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -296,9 +296,9 @@ final class AppsViewModel: ObservableObject {
             upgradeTaskID = taskID
             showUpgradeProgress = true
         } catch let err as APIError {
-            showAlert(message: "升级失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("升级失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "升级失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("升级失败：%@", error.localizedDescription))
         }
     }
 
@@ -316,7 +316,7 @@ final class AppsViewModel: ObservableObject {
             scope: "version",
             appDetailID: version.detailId
         )
-        await performIgnore(req: req, app: app, successMsg: "已忽略 v\(version.version ?? "") 的升级提示")
+        await performIgnore(req: req, app: app, successMsg: L10n.f("已忽略 v%@ 的升级提示", version.version ?? ""))
     }
 
     /// 忽略所有版本的升级（在详情页）
@@ -326,7 +326,7 @@ final class AppsViewModel: ObservableObject {
             scope: "all",
             appDetailID: nil
         )
-        await performIgnore(req: req, app: app, successMsg: "已忽略该应用的所有升级提示")
+        await performIgnore(req: req, app: app, successMsg: L10n.t("已忽略该应用的所有升级提示"))
     }
 
     private func performIgnore(req: AppIgnoreUpgradeRequest, app: AppInstall, successMsg: String) async {
@@ -342,9 +342,9 @@ final class AppsViewModel: ObservableObject {
             // 不立即修改 apps 数组（会破坏 NavigationStack），标记返回列表时再刷新
             needsRefresh = true
         } catch let err as APIError {
-            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "操作失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
         }
     }
 
@@ -353,7 +353,7 @@ final class AppsViewModel: ObservableObject {
     /// 取消指定应用的忽略升级（直接用已加载的 ignoredRecordID）
     func cancelIgnoreUpgrade(app: AppInstall) async {
         guard let recordID = app.ignoredRecordID else {
-            showAlert(message: "该应用当前未在忽略列表中")
+            showAlert(message: L10n.t("该应用当前未在忽略列表中"))
             return
         }
         do {
@@ -362,12 +362,12 @@ final class AppsViewModel: ObservableObject {
                 body: ReqWithID(id: recordID),
                 as: EmptyResponse.self
             )
-            showAlert(message: "已取消忽略升级，后续将正常检查更新")
+            showAlert(message: L10n.t("已取消忽略升级，后续将正常检查更新"))
             needsRefresh = true
         } catch let err as APIError {
-            showAlert(message: "取消忽略失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("取消忽略失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "取消忽略失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("取消忽略失败：%@", error.localizedDescription))
         }
     }
 
@@ -389,10 +389,10 @@ final class AppsViewModel: ObservableObject {
             self.loadedParams = resp
             return resp
         } catch let err as APIError {
-            showAlert(message: "加载参数失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载参数失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "加载参数失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载参数失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -411,9 +411,9 @@ final class AppsViewModel: ObservableObject {
             )
             self.appStoreConfig = resp
         } catch let err as APIError {
-            showAlert(message: "加载应用设置失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("加载应用设置失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "加载应用设置失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("加载应用设置失败：%@", error.localizedDescription))
         }
     }
 
@@ -437,9 +437,9 @@ final class AppsViewModel: ObservableObject {
             case .installAllowPort:      appStoreConfig?.installAllowPort = status
             }
         } catch let err as APIError {
-            showAlert(message: "更新应用设置失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("更新应用设置失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "更新应用设置失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("更新应用设置失败：%@", error.localizedDescription))
         }
     }
 
@@ -455,12 +455,12 @@ final class AppsViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             paramsUpdated = true
-            showAlert(message: "参数更新请求已提交，应用正在后台重建中…")
+            showAlert(message: L10n.t("参数更新请求已提交，应用正在后台重建中…"))
             needsRefresh = true
         } catch let err as APIError {
-            showAlert(message: "更新失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("更新失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "更新失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("更新失败：%@", error.localizedDescription))
         }
     }
 
@@ -496,7 +496,7 @@ final class AppsViewModel: ObservableObject {
             }
             if !linked.isEmpty {
                 let names = linked.map { $0.displayName }.joined(separator: "、")
-                showAlert(message: "该应用被以下网站使用：\(names)。请先在「工具箱 → 网站」中删除对应网站（删除时可勾选删除关联应用），再卸载此应用。")
+                showAlert(message: L10n.f("该应用被以下网站使用：%@。请先在「工具箱 → 网站」中删除对应网站（删除时可勾选删除关联应用），再卸载此应用。", names))
                 return
             }
         } catch {
@@ -514,7 +514,7 @@ final class AppsViewModel: ObservableObject {
             )
             if !linked.isEmpty {
                 let names = linked.map { "\($0.name ?? "未知")" }.joined(separator: "、")
-                showAlert(message: "应用已经关联以下资源，请检查后重试！\n应用 \(names)")
+                showAlert(message: L10n.f("应用已经关联以下资源，请检查后重试！\n应用 %@", names))
                 return
             }
         } catch {
@@ -539,9 +539,9 @@ final class AppsViewModel: ObservableObject {
             uninstallDone = true
             needsRefresh = true
         } catch let err as APIError {
-            showAlert(message: "卸载失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("卸载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "卸载失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("卸载失败：%@", error.localizedDescription))
         }
     }
 }

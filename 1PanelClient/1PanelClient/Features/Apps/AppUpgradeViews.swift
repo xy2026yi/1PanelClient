@@ -16,18 +16,18 @@ struct UpgradeSheetView: View {
     var body: some View {
         Group {
             if vm.isLoadingVersions {
-                ProgressView("查询可用版本…")
+                ProgressView(L10n.t("查询可用版本…"))
             } else if vm.availableVersions.isEmpty {
                 ContentUnavailableView(
-                    "无可用版本",
+                    L10n.t("无可用版本"),
                     systemImage: "arrow.up.circle.slash",
-                    description: Text("该应用暂无更高版本可供升级")
+                    description: Text(L10n.t("该应用暂无更高版本可供升级"))
                 )
             } else {
                 versionList
             }
         }
-        .navigationTitle("升级 \(app.displayName)")
+        .navigationTitle(L10n.f("升级 %@", app.displayName))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             // 确保应用设置已加载，用于「升级后删除旧镜像」默认勾选
@@ -36,8 +36,8 @@ struct UpgradeSheetView: View {
             }
             deleteOldImage = vm.appStoreConfig?.isUpgradeDeleteImage ?? false
         }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {
                 if vm.pendingDismissUpgrade {
                     vm.pendingDismissUpgrade = false
                     vm.showUpgradeSheet = false
@@ -60,7 +60,7 @@ struct UpgradeSheetView: View {
         .navigationDestination(isPresented: $vm.showUpgradeProgress) {
             TaskProgressView(
                 taskID: vm.upgradeTaskID,
-                title: "升级 \(app.displayName)",
+                title: L10n.f("升级 %@", app.displayName),
                 onComplete: { isDone in
                     vm.needsRefresh = true
                     // 重置进度状态，避免重新进入时残留
@@ -84,24 +84,24 @@ struct UpgradeSheetView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
-                    Text("升级将替换 docker-compose.yml，如有自定义修改请查看对比")
+                    Text(L10n.t("升级将替换 docker-compose.yml，如有自定义修改请查看对比"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("提示")
+                Text(L10n.t("提示"))
             }
 
             Section {
-                Toggle("升级后删除旧镜像", isOn: $deleteOldImage)
+                Toggle(L10n.t("升级后删除旧镜像"), isOn: $deleteOldImage)
                     .tint(.orange)
             } header: {
-                Text("升级选项")
+                Text(L10n.t("升级选项"))
             } footer: {
-                Text("默认关闭。开启后升级请求会删除旧镜像以释放存储空间")
+                Text(L10n.t("默认关闭。开启后升级请求会删除旧镜像以释放存储空间"))
             }
 
-            Section("可升级到") {
+            Section(L10n.t("可升级到")) {
                 ForEach(vm.availableVersions) { ver in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -131,7 +131,7 @@ struct UpgradeSheetView: View {
                                     )
                                 }
                             } label: {
-                                Label("直接升级", systemImage: "arrow.up.circle.fill")
+                                Label(L10n.t("直接升级"), systemImage: "arrow.up.circle.fill")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.borderedProminent)
@@ -149,11 +149,11 @@ struct UpgradeSheetView: View {
                                     HStack {
                                         ProgressView()
                                             .scaleEffect(0.7)
-                                        Text("加载配置")
+                                        Text(L10n.t("加载配置"))
                                     }
                                     .frame(maxWidth: .infinity)
                                 } else {
-                                    Label("对比/编辑", systemImage: "doc.text.magnifyingglass")
+                                    Label(L10n.t("对比/编辑"), systemImage: "doc.text.magnifyingglass")
                                         .frame(maxWidth: .infinity)
                                 }
                             }
@@ -167,7 +167,7 @@ struct UpgradeSheetView: View {
                         Button(role: .destructive) {
                             Task { await vm.ignoreUpgrade(app: app, version: ver) }
                         } label: {
-                            Label("忽略此版本", systemImage: "eye.slash")
+                            Label(L10n.t("忽略此版本"), systemImage: "eye.slash")
                         }
                     }
                 }
@@ -178,14 +178,14 @@ struct UpgradeSheetView: View {
                 Button(role: .destructive) {
                     Task { await vm.ignoreUpgrade(app: app) }
                 } label: {
-                    Label("忽略所有升级", systemImage: "eye.slash")
+                    Label(L10n.t("忽略所有升级"), systemImage: "eye.slash")
                 }
 
                 if app.ignoredRecordID != nil {
                     Button {
                         Task { await vm.cancelIgnoreUpgrade(app: app) }
                     } label: {
-                        Label("取消忽略升级", systemImage: "eye")
+                        Label(L10n.t("取消忽略升级"), systemImage: "eye")
                     }
                 }
             }
@@ -204,12 +204,12 @@ struct IgnoredAppsView: View {
     var body: some View {
         Group {
             if isLoading && ignored.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if ignored.isEmpty {
                 ContentUnavailableView(
-                    "暂无忽略记录",
+                    L10n.t("暂无忽略记录"),
                     systemImage: "eye.slash",
-                    description: Text("没有被忽略升级的应用")
+                    description: Text(L10n.t("没有被忽略升级的应用"))
                 )
             } else {
                 List {
@@ -219,14 +219,14 @@ struct IgnoredAppsView: View {
                                 Image(systemName: "shippingbox")
                                     .foregroundStyle(.secondary)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.name ?? "未知应用")
+                                    Text(item.name ?? L10n.t("未知应用"))
                                         .font(.body.bold())
                                     if item.scope == "all" {
-                                        Text("忽略所有版本")
+                                        Text(L10n.t("忽略所有版本"))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     } else if let v = item.version, !v.isEmpty {
-                                        Text("忽略版本 \(v)")
+                                        Text(L10n.f("忽略版本 %@", v))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
@@ -237,21 +237,21 @@ struct IgnoredAppsView: View {
                                 Button(role: .destructive) {
                                     Task { await cancelIgnore(recordId: item.id) }
                                 } label: {
-                                    Label("取消忽略", systemImage: "eye")
+                                    Label(L10n.t("取消忽略"), systemImage: "eye")
                                 }
                             }
                         }
                     } header: {
-                        Text("已忽略升级 (\(ignored.count))")
+                        Text(L10n.f("已忽略升级 (%ld)", ignored.count))
                     } footer: {
-                        Text("左滑可取消忽略，恢复升级检查")
+                        Text(L10n.t("左滑可取消忽略，恢复升级检查"))
                     }
                 }
                 .listStyle(.insetGrouped)
                 .refreshable { await load() }
             }
         }
-        .navigationTitle("忽略升级")
+        .navigationTitle(L10n.t("忽略升级"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
     }
@@ -267,10 +267,10 @@ struct IgnoredAppsView: View {
             )
         } catch let err as APIError {
             // 无忽略记录时服务端返回 data=null，APIClient 已回退为空数组
-            vm.alertMessage = "加载失败：\(err.errorDescription ?? "未知错误")"
+            vm.alertMessage = L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误"))
             vm.showAlert = true
         } catch {
-            vm.alertMessage = "加载失败：\(error.localizedDescription)"
+            vm.alertMessage = L10n.f("加载失败：%@", error.localizedDescription)
             vm.showAlert = true
         }
     }
@@ -286,7 +286,7 @@ struct IgnoredAppsView: View {
             ignored.removeAll { $0.id == recordId }
             vm.needsRefresh = true
         } catch {
-            vm.alertMessage = "取消忽略失败：\(error.localizedDescription)"
+            vm.alertMessage = L10n.f("取消忽略失败：%@", error.localizedDescription)
             vm.showAlert = true
         }
     }

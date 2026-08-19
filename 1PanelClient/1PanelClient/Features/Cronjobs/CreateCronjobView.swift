@@ -67,10 +67,10 @@ struct CreateCronjobView: View {
 
     /// MySQL / MariaDB 备份参数选项（含参数值、简短说明、详细说明）
     static let backupParamOptions: [(value: String, summary: String, detail: String)] = [
-        ("--single-transaction", "单一事务备份", "使用单一事务备份InnoDB表，适用于大数据量的备份"),
-        ("--quick", "逐行读取", "逐行读取数据，而不是将整个表加载到内存中，适用于大数据量和低内存机器的备份"),
-        ("--skip-lock-tables", "不锁定表", "不锁定所有表进行备份，适用于高并发的数据库"),
-        ("--set-gtid-purged=OFF", "不导出GTID", "备份时不导出GTID信息，适用于组复制环境中的数据库恢复")
+        ("--single-transaction", L10n.t("单一事务备份"), L10n.t("使用单一事务备份InnoDB表，适用于大数据量的备份")),
+        ("--quick", L10n.t("逐行读取"), L10n.t("逐行读取数据，而不是将整个表加载到内存中，适用于大数据量和低内存机器的备份")),
+        ("--skip-lock-tables", L10n.t("不锁定表"), L10n.t("不锁定所有表进行备份，适用于高并发的数据库")),
+        ("--set-gtid-purged=OFF", L10n.t("不导出GTID"), L10n.t("备份时不导出GTID信息，适用于组复制环境中的数据库恢复"))
     ]
 
     /// 返回当前数据库类型可用的备份参数选项。
@@ -163,10 +163,10 @@ struct CreateCronjobView: View {
 
     var body: some View {
         Form {
-            Section("基本信息") {
-                TextField("任务名称", text: $name)
+            Section(L10n.t("基本信息")) {
+                TextField(L10n.t("任务名称"), text: $name)
 
-                Picker("任务类型", selection: $type) {
+                Picker(L10n.t("任务类型"), selection: $type) {
                     ForEach(CronjobType.allCases) { t in
                         Label(t.displayName, systemImage: t.icon).tag(t)
                     }
@@ -181,14 +181,14 @@ struct CreateCronjobView: View {
                 Button {
                     schedules.append(ScheduleItem())
                 } label: {
-                    Label("添加周期", systemImage: "plus.circle")
+                    Label(L10n.t("添加周期"), systemImage: "plus.circle")
                         .foregroundStyle(Color.accentColor)
                 }
                 .disabled(schedules.count >= 10)
             } header: {
-                Text("执行周期")
+                Text(L10n.t("执行周期"))
             } footer: {
-                Text(schedules.count > 1 ? "已添加 \(schedules.count) 个周期，将按各周期分别执行。" : "支持添加多个周期，任务将在每个设定的时间点执行。")
+                Text(schedules.count > 1 ? L10n.f("已添加 %ld 个周期，将按各周期分别执行。", schedules.count) : L10n.t("支持添加多个周期，任务将在每个设定的时间点执行。"))
             }
 
             switch type {
@@ -197,31 +197,31 @@ struct CreateCronjobView: View {
                     Button {
                         showScriptPicker = true
                     } label: {
-                        Label("从脚本库选择", systemImage: "books.vertical")
+                        Label(L10n.t("从脚本库选择"), systemImage: "books.vertical")
                             .foregroundStyle(Color.accentColor)
                     }
                     TextEditor(text: $script)
                         .font(.system(.caption, design: .monospaced))
                         .frame(minHeight: 160)
-                } header: { Text("脚本内容") }
+                } header: { Text(L10n.t("脚本内容")) }
 
                 Section {
-                    Picker("执行用户", selection: $user) {
-                        Text("默认（不指定）").tag("")
+                    Picker(L10n.t("执行用户"), selection: $user) {
+                        Text(L10n.t("默认（不指定）")).tag("")
                         ForEach(vm.systemUsers, id: \.self) { u in
                             Text(u).tag(u)
                         }
                     }
                 } header: {
-                    Text("执行设置")
+                    Text(L10n.t("执行设置"))
                 } footer: {
-                    Text("不指定用户时，服务器将以默认用户执行脚本。")
+                    Text(L10n.t("不指定用户时，服务器将以默认用户执行脚本。"))
                 }
 
             case .app:
-                Section("备份应用") {
-                    Picker("范围", selection: $appSelection) {
-                        Text("全部应用").tag("all")
+                Section(L10n.t("备份应用")) {
+                    Picker(L10n.t("范围"), selection: $appSelection) {
+                        Text(L10n.t("全部应用")).tag("all")
                         ForEach(vm.installedApps, id: \.id) { app in
                             Text(app.name ?? "—").tag(app.key ?? "")
                         }
@@ -230,9 +230,9 @@ struct CreateCronjobView: View {
                 backupSection
 
             case .website:
-                Section("备份网站") {
-                    Picker("范围", selection: $websiteSelection) {
-                        Text("全部网站").tag("all")
+                Section(L10n.t("备份网站")) {
+                    Picker(L10n.t("范围"), selection: $websiteSelection) {
+                        Text(L10n.t("全部网站")).tag("all")
                         ForEach(vm.websiteOptions, id: \.id) { site in
                             Text(site.alias ?? site.primaryDomain ?? "—").tag(String(site.id))
                         }
@@ -241,8 +241,8 @@ struct CreateCronjobView: View {
                 backupSection
 
             case .database:
-                Section("备份数据库") {
-                    Picker("数据库类型", selection: $dbType) {
+                Section(L10n.t("备份数据库")) {
+                    Picker(L10n.t("数据库类型"), selection: $dbType) {
                         ForEach(DBBackupType.allCases) { t in
                             Text(t.displayName).tag(t)
                         }
@@ -253,8 +253,8 @@ struct CreateCronjobView: View {
                         Task { await vm.loadDBItems(dbType: newType.rawValue) }
                     }
 
-                    Picker("范围", selection: $dbSelection) {
-                        Text("全部数据库").tag("all")
+                    Picker(L10n.t("范围"), selection: $dbSelection) {
+                        Text(L10n.t("全部数据库")).tag("all")
                         ForEach(vm.dbItems, id: \.id) { item in
                             Text(item.name ?? "—").tag(String(item.id))
                         }
@@ -267,7 +267,7 @@ struct CreateCronjobView: View {
                             showBackupParamsPicker = true
                         } label: {
                             HStack {
-                                Text("备份参数")
+                                Text(L10n.t("备份参数"))
                                 Spacer()
                                 Text(backupParamsSummary)
                                     .foregroundStyle(.secondary)
@@ -280,9 +280,9 @@ struct CreateCronjobView: View {
                         }
                         .buttonStyle(.plain)
                     } header: {
-                        Text("备份参数")
+                        Text(L10n.t("备份参数"))
                     } footer: {
-                        Text("可选的 mysqldump 参数，支持多选，用于优化大数据量或特殊场景的备份。")
+                        Text(L10n.t("可选的 mysqldump 参数，支持多选，用于优化大数据量或特殊场景的备份。"))
                     }
                 }
 
@@ -293,17 +293,17 @@ struct CreateCronjobView: View {
 
             case .clean, .ntp, .syncIpGroup:
                 // 这三种类型无备份账号、无类型特定配置，仅需保留份数
-                Section("任务设置") {
-                    Stepper("保留份数：\(retainCopies) 份", value: $retainCopies, in: 1...100)
+                Section(L10n.t("任务设置")) {
+                    Stepper(L10n.f("保留份数：%ld 份", retainCopies), value: $retainCopies, in: 1...100)
                 }
             }
 
             // 超时与重试（所有任务类型通用，放在各类型设置之后）
-            Section("超时与重试") {
-                Stepper("失败重试次数：\(retryTimes) 次", value: $retryTimes, in: 0...10)
-                Picker("超时单位", selection: $timeoutUnit) {
+            Section(L10n.t("超时与重试")) {
+                Stepper(L10n.f("失败重试次数：%ld 次", retryTimes), value: $retryTimes, in: 0...10)
+                Picker(L10n.t("超时单位"), selection: $timeoutUnit) {
                     ForEach(TimeoutUnit.allCases) { u in
-                        Text(u.rawValue).tag(u)
+                        Text(L10n.t(u.rawValue)).tag(u)
                     }
                 }
                 .onChange(of: timeoutUnit) { oldUnit, newUnit in
@@ -312,10 +312,10 @@ struct CreateCronjobView: View {
                     let newValue = max(1, totalSeconds / newUnit.multiplier)
                     timeoutValue = newValue
                 }
-                Stepper("超时时间：\(timeoutValue) \(timeoutUnit.rawValue)", value: $timeoutValue, in: 1...9999)
+                Stepper(L10n.f("超时时间：%ld %@", timeoutValue, L10n.t(timeoutUnit.rawValue)), value: $timeoutValue, in: 1...9999)
             }
         }
-        .navigationTitle(isEditing ? "编辑计划任务" : "创建计划任务")
+        .navigationTitle(isEditing ? L10n.t("编辑计划任务") : L10n.t("创建计划任务"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -325,7 +325,7 @@ struct CreateCronjobView: View {
                     if vm.isCreating {
                         ProgressView()
                     } else {
-                        Text(isEditing ? "保存" : "创建").bold()
+                        Text(isEditing ? L10n.t("保存") : L10n.t("创建")).bold()
                     }
                 }
                 .disabled(name.isEmpty || vm.isCreating)
@@ -349,7 +349,7 @@ struct CreateCronjobView: View {
                 }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button("取消") { showScriptPicker = false }
+                        Button(L10n.t("取消")) { showScriptPicker = false }
                     }
                 }
             }
@@ -362,17 +362,17 @@ struct CreateCronjobView: View {
     /// 备份参数摘要（用于创建表单的右侧预览文本）
     private var backupParamsSummary: String {
         if dbBackupParams.isEmpty {
-            return "默认（无）"
+            return L10n.t("默认（无）")
         }
         return dbBackupParams.sorted().joined(separator: ", ")
     }
 
     @ViewBuilder
     private var backupSection: some View {
-        Section("备份设置") {
-            Stepper("保留份数：\(retainCopies) 份", value: $retainCopies, in: 1...100)
+        Section(L10n.t("备份设置")) {
+            Stepper(L10n.f("保留份数：%ld 份", retainCopies), value: $retainCopies, in: 1...100)
 
-            Picker("备份账号", selection: $backupAccountID) {
+            Picker(L10n.t("备份账号"), selection: $backupAccountID) {
                 ForEach(vm.backupAccounts, id: \.id) { acc in
                     Text(acc.name ?? "—").tag(acc.id)
                 }
@@ -388,7 +388,7 @@ struct CreateCronjobView: View {
         VStack(alignment: .leading, spacing: 14) {
             // 顶部：周期标题 + 删除按钮
             HStack {
-                Text("周期 \(index(of: item.wrappedValue) + 1)")
+                Text(L10n.f("周期 %ld", index(of: item.wrappedValue) + 1))
                     .font(.subheadline.bold())
                     .foregroundStyle(.primary)
                 Spacer()
@@ -401,38 +401,38 @@ struct CreateCronjobView: View {
                             .foregroundStyle(.red)
                     }
                     .buttonStyle(.plain)
-                            .accessibilityLabel("删除此周期")
+                            .accessibilityLabel(L10n.t("删除此周期"))
                 }
             }
 
             // 周期类型
-            Picker("周期类型", selection: item.specType) {
+            Picker(L10n.t("周期类型"), selection: item.specType) {
                 ForEach(SpecType.allCases) { s in
-                    Text(s.rawValue).tag(s)
+                    Text(L10n.t(s.rawValue)).tag(s)
                 }
             }
 
             // 小时 / 分钟：每个 Stepper 单独成行并增加垂直留白，
             // 避免相邻 Stepper 的加减按钮视觉/点击区域重叠。
-            Stepper("小时：\(item.wrappedValue.hour) 时", value: item.hour, in: 0...23)
+            Stepper(L10n.f("小时：%ld 时", item.wrappedValue.hour), value: item.hour, in: 0...23)
                 .padding(.vertical, 2)
-            Stepper("分钟：\(item.wrappedValue.minute) 分", value: item.minute, in: 0...59)
+            Stepper(L10n.f("分钟：%ld 分", item.wrappedValue.minute), value: item.minute, in: 0...59)
                 .padding(.vertical, 2)
 
             if item.wrappedValue.specType == .perWeek {
-                Picker("星期", selection: item.week) {
+                Picker(L10n.t("星期"), selection: item.week) {
                     ForEach(0..<7) { w in
                         Text(weekDay(w)).tag(w)
                     }
                 }
             }
             if item.wrappedValue.specType == .perMonth {
-                Stepper("日期：\(item.wrappedValue.day) 号", value: item.day, in: 1...28)
+                Stepper(L10n.f("日期：%ld 号", item.wrappedValue.day), value: item.day, in: 1...28)
             }
 
             // 预览生成的 cron 表达式
             HStack {
-                Text("表达式")
+                Text(L10n.t("表达式"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -452,7 +452,7 @@ struct CreateCronjobView: View {
     }
 
     private func weekDay(_ w: Int) -> String {
-        let names = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+        let names = [L10n.t("周日"), L10n.t("周一"), L10n.t("周二"), L10n.t("周三"), L10n.t("周四"), L10n.t("周五"), L10n.t("周六")]
         return names[w]
     }
 
@@ -667,20 +667,20 @@ struct BackupParamsPickerView: View {
                         .buttonStyle(.plain)
                     }
                 } header: {
-                    Text("\(dbType.displayName) 备份参数")
+                    Text(L10n.f("%@ 备份参数", dbType.displayName))
                 } footer: {
-                    Text("可多选；不选任何参数则使用默认方式备份。所选参数将以 args / argItems 形式提交给服务端。")
+                    Text(L10n.t("可多选；不选任何参数则使用默认方式备份。所选参数将以 args / argItems 形式提交给服务端。"))
                 }
             }
-            .navigationTitle("备份参数")
+            .navigationTitle(L10n.t("备份参数"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") { dismiss() }
+                    Button(L10n.t("完成")) { dismiss() }
                         .bold()
                 }
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("清除全部") {
+                    Button(L10n.t("清除全部")) {
                         selection.removeAll()
                     }
                     .disabled(selection.isEmpty)

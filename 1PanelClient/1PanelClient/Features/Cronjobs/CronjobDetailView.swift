@@ -28,17 +28,17 @@ struct CronjobDetailView: View {
 
     var body: some View {
         List {
-            Section("基本信息") {
-                InfoRow("名称", value: currentJob.name ?? "—")
-                InfoRow("类型", value: currentJob.jobType.displayName)
-                InfoRow("执行周期", value: currentJob.specDisplay)
-                InfoRow("状态", value: currentJob.isEnabled ? "启用" : "停用")
-                InfoRow("保留份数", value: currentJob.retainCopiesDisplay)
+            Section(L10n.t("基本信息")) {
+                InfoRow(L10n.t("名称"), value: currentJob.name ?? "—")
+                InfoRow(L10n.t("类型"), value: currentJob.jobType.displayName)
+                InfoRow(L10n.t("执行周期"), value: currentJob.specDisplay)
+                InfoRow(L10n.t("状态"), value: currentJob.isEnabled ? L10n.t("启用") : L10n.t("停用"))
+                InfoRow(L10n.t("保留份数"), value: currentJob.retainCopiesDisplay)
                 if let r = currentJob.retryTimes, r > 0 {
-                    InfoRow("重试次数", value: "\(r) 次")
+                    InfoRow(L10n.t("重试次数"), value: L10n.f("%ld 次", r))
                 }
                 if let t = currentJob.timeout, t > 0 {
-                    InfoRow("超时", value: "\(t)\(currentJob.timeoutUnit ?? "s")")
+                    InfoRow(L10n.t("超时"), value: "\(t)\(currentJob.timeoutUnit ?? "s")")
                 }
             }
 
@@ -46,10 +46,10 @@ struct CronjobDetailView: View {
             switch currentJob.jobType {
             case .shell:
                 if let user = currentJob.user, !user.isEmpty {
-                    Section("执行设置") {
-                        InfoRow("执行用户", value: user)
+                    Section(L10n.t("执行设置")) {
+                        InfoRow(L10n.t("执行用户"), value: user)
                         if currentJob.inContainer == true {
-                            InfoRow("容器", value: currentJob.containerName ?? "—")
+                            InfoRow(L10n.t("容器"), value: currentJob.containerName ?? "—")
                         }
                     }
                 }
@@ -58,27 +58,27 @@ struct CronjobDetailView: View {
                         Text(script)
                             .font(.system(.caption, design: .monospaced))
                             .textSelection(.enabled)
-                    } header: { Text("脚本内容") }
+                    } header: { Text(L10n.t("脚本内容")) }
                 }
             case .app:
-                Section("备份内容") {
-                    InfoRow("备份对象", value: currentJob.appID == "all" ? "全部应用" : (currentJob.appID ?? "—"))
+                Section(L10n.t("备份内容")) {
+                    InfoRow(L10n.t("备份对象"), value: currentJob.appID == "all" ? L10n.t("全部应用") : (currentJob.appID ?? "—"))
                 }
             case .website:
-                Section("备份内容") {
-                    InfoRow("备份对象", value: currentJob.website == "all" ? "全部网站" : (currentJob.website ?? "—"))
+                Section(L10n.t("备份内容")) {
+                    InfoRow(L10n.t("备份对象"), value: currentJob.website == "all" ? L10n.t("全部网站") : (currentJob.website ?? "—"))
                 }
             case .database:
-                Section("备份内容") {
-                    InfoRow("数据库类型", value: currentJob.dbTypeDisplay)
-                    InfoRow("备份对象", value: currentJob.dbName == "all" ? "全部数据库" : (currentJob.dbName ?? "—"))
+                Section(L10n.t("备份内容")) {
+                    InfoRow(L10n.t("数据库类型"), value: currentJob.dbTypeDisplay)
+                    InfoRow(L10n.t("备份对象"), value: currentJob.dbName == "all" ? L10n.t("全部数据库") : (currentJob.dbName ?? "—"))
                     if currentJob.dbTypeDisplay == "MySQL" || currentJob.dbTypeDisplay == "MariaDB" {
-                        InfoRow("备份参数", value: currentJob.dbBackupParamsDisplay)
+                        InfoRow(L10n.t("备份参数"), value: currentJob.dbBackupParamsDisplay)
                     }
                 }
             case .snapshot:
-                Section("备份内容") {
-                    InfoRow("类型", value: "系统快照")
+                Section(L10n.t("备份内容")) {
+                    InfoRow(L10n.t("类型"), value: L10n.t("系统快照"))
                 }
             case .clean, .ntp, .syncIpGroup:
                 // 缓存清理 / 同步服务器时间 / 同步 WAF IP 组：无类型特定详情
@@ -90,24 +90,24 @@ struct CronjobDetailView: View {
                 Button {
                     Task { await vm.handle(job: currentJob) }
                 } label: {
-                    Label("立即执行", systemImage: "play.fill")
+                    Label(L10n.t("立即执行"), systemImage: "play.fill")
                 }
                 Button {
                     Task { await vm.updateStatus(job: currentJob, enabled: !currentJob.isEnabled) }
                 } label: {
-                    Label(currentJob.isEnabled ? "停用任务" : "启用任务",
+                    Label(currentJob.isEnabled ? L10n.t("停用任务") : L10n.t("启用任务"),
                           systemImage: currentJob.isEnabled ? "pause.fill" : "checkmark.circle.fill")
                 }
                 NavigationLink {
                     CronjobRecordsView(job: currentJob, vm: vm)
                 } label: {
-                    Label("执行记录", systemImage: "list.bullet.rectangle")
+                    Label(L10n.t("执行记录"), systemImage: "list.bullet.rectangle")
                 }
                 Button {
                     Task { await loadEditInfo() }
                 } label: {
                     HStack {
-                        Label("编辑任务", systemImage: "pencil")
+                        Label(L10n.t("编辑任务"), systemImage: "pencil")
                         if isLoadingEditInfo {
                             Spacer()
                             ProgressView()
@@ -121,23 +121,23 @@ struct CronjobDetailView: View {
                 Button(role: .destructive) {
                     showDeleteSheet = true
                 } label: {
-                    Label("删除任务", systemImage: "trash")
+                    Label(L10n.t("删除任务"), systemImage: "trash")
                 }
             } header: {
-                Text("危险操作")
+                Text(L10n.t("危险操作"))
             } footer: {
-                Text("删除后不可恢复，可选择是否同时删除已生成的备份文件")
+                Text(L10n.t("删除后不可恢复，可选择是否同时删除已生成的备份文件"))
             }
         }
-        .navigationTitle(currentJob.name ?? "任务详情")
+        .navigationTitle(currentJob.name ?? L10n.t("任务详情"))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showDeleteSheet) {
             TextInputConfirmSheet(
-                title: "删除任务",
-                message: "此操作不可恢复。请输入任务名称「\(currentJob.name ?? "")」以确认删除。",
+                title: L10n.t("删除任务"),
+                message: L10n.f("此操作不可恢复。请输入任务名称「%@」以确认删除。", currentJob.name ?? ""),
                 expectedText: currentJob.name ?? "",
-                fieldLabel: "确认名称",
-                fieldPlaceholder: "任务名称"
+                fieldLabel: L10n.t("确认名称"),
+                fieldPlaceholder: L10n.t("任务名称")
             ) {
                 Task {
                     // 同步删除选项到 ViewModel（delete 方法内部读取 deleteCleanData）
@@ -148,8 +148,8 @@ struct CronjobDetailView: View {
                     }
                 }
             } options: {
-                Section("选项") {
-                    Toggle("同时删除备份文件", isOn: $deleteCleanDataOption)
+                Section(L10n.t("选项")) {
+                    Toggle(L10n.t("同时删除备份文件"), isOn: $deleteCleanDataOption)
                 }
             }
         }
