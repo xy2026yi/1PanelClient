@@ -518,6 +518,28 @@
         }
       }
     },
+    "CPU" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU"
+          }
+        }
+      }
+    },
+    "CPU %@%% · 内存 %@%% · 负载 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU %@%% · Memory %@%% · Load %@"
+          }
+        }
+      }
+    },
     "CPU / 内存 / 磁盘 / 负载、登录异常等资源类告警的可发送时间范围" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6146,6 +6168,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply %@ to the container?"
+          }
+        }
+      }
+    },
+    "将对网站「%@」进行 %@ 操作，任务已提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ on website \"%@\" submitted"
           }
         }
       }
@@ -14858,6 +14891,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connected%@"
+          }
+        }
+      }
+    },
+    "连接成功（%@ 数据暂不可用）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected (%@ monitor data unavailable)"
           }
         }
       }
