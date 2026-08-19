@@ -253,10 +253,11 @@ nonisolated struct ContainerImage: Decodable, Identifiable {
 
     /// 体积展示
     var sizeDisplay: String {
-        formatImageSize(size ?? 0)
+        ContainerImage.formatSize(size ?? 0)
     }
 
-    private func formatImageSize(_ bytes: Int64) -> String {
+    /// 体积格式化（静态方法供「所有」行合计等场景复用）
+    static func formatSize(_ bytes: Int64) -> String {
         let f = Double(bytes)
         if f > 1_073_741_824 { return String(format: "%.2f GB", f / 1_073_741_824) }
         if f > 1_048_576 { return String(format: "%.2f MB", f / 1_048_576) }

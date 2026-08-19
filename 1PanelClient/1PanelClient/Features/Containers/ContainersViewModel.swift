@@ -460,25 +460,26 @@ final class ContainersViewModel: ObservableObject {
         }
     }
 
-    // MARK: - 清理镜像（withTagAll: false=未标签, true=未使用）
+    // MARK: - 清理镜像（POST /containers/prune，withTagAll: false=未标签, true=未使用）
 
-    func pruneImages(withTagAll: Bool) async {
+    /// 走 prune 接口一次性清理全部，返回任务 ID 供进度页轮询
+    @discardableResult
+    func pruneImages(withTagAll: Bool) async -> String? {
         imageOperating = true
         defer { imageOperating = false }
-        let type = withTagAll ? "未使用" : "未标签"
+        let taskID = UUID().uuidString
         let req = ContainerPruneRequest(
-            taskID: UUID().uuidString, pruneType: "image", withTagAll: withTagAll
+            taskID: taskID, pruneType: "image", withTagAll: withTagAll
         )
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.containersPrune.path,
                 body: req, as: EmptyResponse.self
             )
-            try? await Task.sleep(for: .seconds(1))
-            await loadImages()
-            showAlert(message: "清理\(type)镜像任务已提交")
+            return taskID
         } catch {
-            showAlert(message: "清理\(type)镜像失败：\(error.localizedDescription)")
+            showAlert(message: "清理镜像失败：\(error.localizedDescription)")
+            return nil
         }
     }
 

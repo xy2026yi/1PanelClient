@@ -288,6 +288,13 @@ struct ImagePruneSelectView: View {
     /// 删除任务进度（taskID 非空时 push TaskProgressView）
     @State private var deleteTaskID: String?
 
+    /// 「所有」勾选项的选中标识（勾选后删除走 prune 接口直接清理全部）
+    private static let selectAllID = "__all__"
+
+    private var isSelectAll: Bool {
+        selectedIDs.contains(Self.selectAllID)
+    }
+
     private var filteredImages: [ContainerImage] {
         if isUntaggedMode {
             return vm.images.filter { ($0.tags ?? []).isEmpty }
@@ -305,8 +312,14 @@ struct ImagePruneSelectView: View {
         ))
     }
 
-    private var allSelected: Bool {
-        !filteredImages.isEmpty && filteredImages.allSatisfy { selectedIDs.contains($0.id) }
+    /// 「所有」行合计体积（同一镜像的带/不带 tag 多行按 ID 去重）
+    private var allSizeDisplay: String {
+        var seen = Set<String>()
+        var total: Int64 = 0
+        for img in filteredImages where seen.insert(img.id).inserted {
+            total += img.size ?? 0
+        }
+        return ContainerImage.formatSize(total)
     }
 
     var body: some View {
@@ -330,15 +343,26 @@ struct ImagePruneSelectView: View {
                 } else {
                     List(selection: $selectedIDs) {
                         Section {
+                            // 「所有」勾选项：勾选后删除走 prune 接口直接清理全部
+                            HStack {
+                                Text("所有")
+                                    .font(.subheadline.bold())
+                                Spacer()
+                                Text(allSizeDisplay)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .tag(Self.selectAllID)
+
                             ForEach(filteredImages) { img in
                                 HStack {
                                     if let tag = img.tags?.first, !tag.isEmpty {
                                         Text(tag)
                                             .font(.system(.subheadline, design: .monospaced))
                                     } else {
-                                        Text("<none>")
+                                        // 无 tag 镜像显示 ID 前 12 位（如 8541484afbc9）
+                                        Text(img.displayName)
                                             .font(.system(.subheadline, design: .monospaced))
-                                            .foregroundStyle(.secondary)
                                     }
                                     Spacer()
                                     Text(img.sizeDisplay)
@@ -348,21 +372,7 @@ struct ImagePruneSelectView: View {
                                 .tag(img.id)
                             }
                         } header: {
-                            HStack {
-                                Text(isUntaggedMode ? "未标签镜像（\(filteredImages.count)）" : "未使用镜像（\(filteredImages.count)）")
-                                Spacer()
-                                Button {
-                                    if allSelected {
-                                        selectedIDs.removeAll()
-                                    } else {
-                                        selectedIDs = Set(filteredImages.map(\.id))
-                                    }
-                                } label: {
-                                    Text(allSelected ? "取消全选" : "全选")
-                                        .font(.caption)
-                                }
-                                .buttonStyle(.borderless)
-                            }
+                            Text(isUntaggedMode ? "未标签镜像（\(filteredImages.count)）" : "未使用镜像（\(filteredImages.count)）")
                         }
                     }
                     .environment(\.editMode, .constant(.active))
@@ -376,6 +386,16 @@ struct ImagePruneSelectView: View {
         .onChange(of: isUntaggedMode) { _, _ in
             // 两种模式的候选集不同，切换后清空已选
             selectedIDs.removeAll()
+        }
+        .onChange(of: selectedIDs) { old, new in
+            // 「所有」与具体镜像互斥，后勾选的生效
+            if new.contains(Self.selectAllID), new.count > 1 {
+                if old.contains(Self.selectAllID) {
+                    selectedIDs.remove(Self.selectAllID)
+                } else {
+                    selectedIDs = [Self.selectAllID]
+                }
+            }
         }
         // 删除任务进度页；完成或转后台后刷新列表并返回
         .navigationDestination(isPresented: Binding(
@@ -399,7 +419,7 @@ struct ImagePruneSelectView: View {
                     if isDeleting {
                         ProgressView()
                     } else {
-                        Text("删除（\(selectedIDs.count)）")
+                        Text(isSelectAll ? "删除（所有）" : "删除（\(selectedIDs.count)）")
                             .fontWeight(.medium)
                     }
                 }
@@ -412,11 +432,16 @@ struct ImagePruneSelectView: View {
     }
 
     private func deleteSelected() async {
-        let ids = selectedImageIDs
-        guard !ids.isEmpty else { return }
         isDeleting = true
-        deleteTaskID = await vm.deleteImages(names: ids)
-        isDeleting = false
+        defer { isDeleting = false }
+        if isSelectAll {
+            // 勾选「所有」：走 prune 接口直接清理全部（withTagAll：未使用=true / 未标签=false）
+            deleteTaskID = await vm.pruneImages(withTagAll: !isUntaggedMode)
+        } else {
+            let ids = selectedImageIDs
+            guard !ids.isEmpty else { return }
+            deleteTaskID = await vm.deleteImages(names: ids)
+        }
     }
 }
 
