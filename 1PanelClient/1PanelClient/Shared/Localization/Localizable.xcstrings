@@ -3636,8 +3636,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Authority Name"
           }
         }
       }
@@ -3647,8 +3647,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Authority Details"
           }
         }
       }
@@ -3680,8 +3680,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Root Directory"
           }
         }
       }
@@ -4758,8 +4758,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Paste the full content starting with -----BEGIN CERTIFICATE-----"
           }
         }
       }
@@ -4769,8 +4769,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Paste the full content starting with -----BEGIN PRIVATE KEY-----"
           }
         }
       }
