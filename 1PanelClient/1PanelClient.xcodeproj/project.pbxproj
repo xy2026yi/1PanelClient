@@ -34,6 +34,16 @@
 		7C00000000000000000000C1 /* PanelWidgets.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = PanelWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		7C00000000000000000000CE /* Exceptions for "PanelWidgets" target from "PanelWidgets" folder */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7C00000000000000000000C4 /* PanelWidgets */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		14904F622FE7BFC6009BA44F /* 1PanelClient */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -52,6 +62,9 @@
 		};
 		7C00000000000000000000C2 /* PanelWidgets */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7C00000000000000000000CE /* Exceptions for "PanelWidgets" target from "PanelWidgets" folder */,
+			);
 			path = PanelWidgets;
 			sourceTree = "<group>";
 		};
@@ -493,8 +506,12 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9744G2RJJ4;
 				GENERATE_INFOPLIST_FILE = YES;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					AppIntents,
+				);
 				INFOPLIST_FILE = PanelWidgets/Info.plist;
-				EXCLUDED_SOURCE_FILE_NAMES = "Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -523,8 +540,12 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9744G2RJJ4;
 				GENERATE_INFOPLIST_FILE = YES;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					AppIntents,
+				);
 				INFOPLIST_FILE = PanelWidgets/Info.plist;
-				EXCLUDED_SOURCE_FILE_NAMES = "Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

@@ -476,7 +476,7 @@ struct ContainerMonitorChart: View {
     /// 无障碍摘要：折线内容 VoiceOver 无法读取，以各系列最新采样值代替
     private var accessibilitySummary: String {
         let parts = Array(styles).compactMap { kind, _ -> String? in
-            guard let latest = points.filter { $0.kind == kind }.max(by: { $0.date < $1.date }) else {
+            guard let latest = points.filter({ $0.kind == kind }).max(by: { $0.date < $1.date }) else {
                 return nil
             }
             return L10n.f("%@最新%@", kind, String(format: "%.2f%@", latest.value, unit))
