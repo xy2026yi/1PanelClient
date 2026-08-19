@@ -60,7 +60,7 @@ struct OverviewTab: View {
                         showServers = true
                     } label: {
                         VStack(spacing: 1) {
-                            Text(manager.current?.name ?? "未连接")
+                            Text(manager.current?.name ?? L10n.t("未连接"))
                                 .font(.headline)
                             HStack(spacing: 3) {
                                 Text(manager.current?.normalizedBaseURL ?? "")
@@ -134,19 +134,19 @@ struct OverviewTab: View {
             HStack {
                 Image(systemName: "info.circle")
                     .foregroundStyle(.tint)
-                Text("面板信息")
+                Text(L10n.t("面板信息"))
                     .font(.headline)
             }
             Divider()
             // 版本号行：可点击跳转版本更新日志
             HStack {
-                Text("版本")
+                Text(L10n.t("版本"))
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(vm.settingInfo?.systemVersion.flatMap { $0.isEmpty ? nil : $0 } ?? "未知")
+                Text(vm.settingInfo?.systemVersion.flatMap { $0.isEmpty ? nil : $0 } ?? L10n.t("未知"))
                     .foregroundStyle(.primary)
                 if vm.upgradeInfo?.hasUpdate(comparedTo: vm.settingInfo?.systemVersion) == true {
-                    StatusBadge(text: "有更新", color: .orange)
+                    StatusBadge(text: L10n.t("有更新"), color: .orange)
                 }
                 Image(systemName: "chevron.right")
                     .font(.caption2)
@@ -157,16 +157,16 @@ struct OverviewTab: View {
                 showUpgradeLog = true
             }
             if let ip = vm.settingInfo?.systemIP, !ip.isEmpty {
-                InfoRow(key: "面板 IP", value: ip)
+                InfoRow(key: L10n.t("面板 IP"), value: ip)
             }
             if let tz = vm.settingInfo?.timeZone, !tz.isEmpty {
-                InfoRow(key: "时区", value: tz)
+                InfoRow(key: L10n.t("时区"), value: tz)
             }
             if let local = vm.settingInfo?.localTime, !local.isEmpty {
-                InfoRow(key: "本地时间", value: local)
+                InfoRow(key: L10n.t("本地时间"), value: local)
             }
             if let monitor = vm.settingInfo?.monitorStatus, !monitor.isEmpty {
-                InfoRow(key: "监控", value: monitor == "enable" ? "已启用" : "已停用")
+                InfoRow(key: L10n.t("监控"), value: monitor == "enable" ? L10n.t("已启用") : L10n.t("已停用"))
             }
         }
         .padding()
@@ -195,21 +195,21 @@ struct OverviewTab: View {
             HStack {
                 Image(systemName: "desktopcomputer")
                     .foregroundStyle(.tint)
-                Text("系统信息")
+                Text(L10n.t("系统信息"))
                     .font(.headline)
             }
             Divider()
-            InfoRow(key: "主机名", value: b.hostname ?? "-")
-            InfoRow(key: "版本", value: b.prettyDistro ?? "-")
-            InfoRow(key: "内核版本", value: b.kernelVersion ?? "-")
-            InfoRow(key: "系统类型", value: b.kernelArch ?? "-")
-            InfoRow(key: "主机地址", value: b.ipV4Addr ?? "-")
+            InfoRow(key: L10n.t("主机名"), value: b.hostname ?? "-")
+            InfoRow(key: L10n.t("版本"), value: b.prettyDistro ?? "-")
+            InfoRow(key: L10n.t("内核版本"), value: b.kernelVersion ?? "-")
+            InfoRow(key: L10n.t("系统类型"), value: b.kernelArch ?? "-")
+            InfoRow(key: L10n.t("主机地址"), value: b.ipV4Addr ?? "-")
             if let currentInfo = vm.currentInfo ?? b.currentInfo {
                 if let startupTime = currentInfo.timeSinceUptime, !startupTime.isEmpty {
-                    InfoRow(key: "启动时间", value: startupTime)
+                    InfoRow(key: L10n.t("启动时间"), value: startupTime)
                 }
                 if let runningTime = currentInfo.runningTime {
-                    InfoRow(key: "运行时间", value: runningTime.displayText)
+                    InfoRow(key: L10n.t("运行时间"), value: runningTime.displayText)
                 }
             }
         }
@@ -225,7 +225,7 @@ struct OverviewTab: View {
             HStack {
                 Image(systemName: "chart.xyaxis.line")
                     .foregroundStyle(.tint)
-                Text("状态")
+                Text(L10n.t("状态"))
                     .font(.headline)
                 Spacer()
                 // 跳转 管理-监控（onSelectManageItem 机制）；chevron 表达「进入」语义
@@ -238,7 +238,7 @@ struct OverviewTab: View {
                         .frame(width: 24, height: 24)
                         .contentShape(Rectangle())
                 }
-                .accessibilityLabel("查看监控")
+                .accessibilityLabel(L10n.t("查看监控"))
             }
 
             // 负载 / CPU / 内存 + 各存储挂载点：统一 4 列网格平铺
@@ -252,7 +252,7 @@ struct OverviewTab: View {
                     percent: min(cur.loadUsagePercent ?? 0, 100),
                     color: .teal,
                     topText: String(format: "%.2f%%", cur.loadUsagePercent ?? 0),
-                    bottomText: "负载",
+                    bottomText: L10n.t("负载"),
                     footer: format2(cur.load1),
                     compact: true
                 )
@@ -262,7 +262,7 @@ struct OverviewTab: View {
                     color: .blue,
                     topText: String(format: "%.2f%%", cur.cpuUsedPercent ?? 0),
                     bottomText: "CPU",
-                    footer: "\(format2(cur.cpuUsed)) / \(cur.cpuTotal ?? 0) 核",
+                    footer: L10n.f("%@ / %ld 核", format2(cur.cpuUsed), cur.cpuTotal ?? 0),
                     compact: true
                 )
 
@@ -270,7 +270,7 @@ struct OverviewTab: View {
                     percent: min(cur.memoryUsedPercent ?? 0, 100),
                     color: .purple,
                     topText: String(format: "%.2f%%", cur.memoryUsedPercent ?? 0),
-                    bottomText: "内存",
+                    bottomText: L10n.t("内存"),
                     footer: formatUsedOverTotal(cur.memoryUsed, cur.memoryTotal),
                     compact: true
                 )
@@ -281,7 +281,7 @@ struct OverviewTab: View {
                         percent: min(pct, 100),
                         color: .orange,
                         topText: String(format: "%.2f%%", pct),
-                        bottomText: disk.path?.isEmpty == false ? disk.path! : "存储",
+                        bottomText: disk.path?.isEmpty == false ? disk.path! : L10n.t("存储"),
                         footer: formatUsedOverTotal(disk.used, disk.total),
                         compact: true
                     )
@@ -303,22 +303,22 @@ struct OverviewTab: View {
             GridItem(.flexible(), spacing: 12)
         ], spacing: 12) {
             Button { tapManage(.websites) } label: {
-                StatCard(title: "网站", count: b.websiteNumber, icon: "globe", color: .green)
+                StatCard(title: L10n.t("网站"), count: b.websiteNumber, icon: "globe", color: .green)
             }
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.apps) } label: {
-                StatCard(title: "应用", count: b.appInstalledNumber, icon: "app.badge", color: .blue, updateCount: vm.appUpdateCount, customIcon: "icon-apps-o")
+                StatCard(title: L10n.t("应用"), count: b.appInstalledNumber, icon: "app.badge", color: .blue, updateCount: vm.appUpdateCount, customIcon: "icon-apps-o")
             }
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.database) } label: {
-                StatCard(title: "数据库", count: b.databaseNumber, icon: "cylinder.split.1x2", color: .purple)
+                StatCard(title: L10n.t("数据库"), count: b.databaseNumber, icon: "cylinder.split.1x2", color: .purple)
             }
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.containers) } label: {
-                StatCard(title: "容器", count: vm.containerCount, icon: "shippingbox", color: .blue, customIcon: "icon-docker")
+                StatCard(title: L10n.t("容器"), count: vm.containerCount, icon: "shippingbox", color: .blue, customIcon: "icon-docker")
             }
             .buttonStyle(PressableCardStyle())
         }
@@ -341,16 +341,16 @@ struct OverviewTab: View {
             HStack {
                 Image(systemName: "desktopcomputer")
                     .foregroundStyle(.tint)
-                Text("服务器信息")
+                Text(L10n.t("服务器信息"))
                     .font(.headline)
             }
             Divider()
-            InfoRow(key: "主机名", value: d.hostname)
-            InfoRow(key: "时区", value: d.timeZone)
-            InfoRow(key: "本地时间", value: d.localTime)
+            InfoRow(key: L10n.t("主机名"), value: d.hostname)
+            InfoRow(key: L10n.t("时区"), value: d.timeZone)
+            InfoRow(key: L10n.t("本地时间"), value: d.localTime)
             InfoRow(key: "NTP", value: d.ntp ?? "-")
             InfoRow(key: "DNS", value: d.dns.joined(separator: ", "))
-            InfoRow(key: "Hosts", value: "\(d.hosts.count) 条")
+            InfoRow(key: "Hosts", value: L10n.f("%ld 条", d.hosts.count))
         }
         .padding()
         .background(.regularMaterial)
@@ -362,19 +362,19 @@ struct OverviewTab: View {
             HStack {
                 Image(systemName: "info.bubble")
                     .foregroundStyle(.tint)
-                Text("系统详情")
+                Text(L10n.t("系统详情"))
                     .font(.headline)
             }
             Divider()
             if let distro = os.prettyDistro, !distro.isEmpty {
-                InfoRow(key: "发行版", value: distro)
+                InfoRow(key: L10n.t("发行版"), value: distro)
             }
             if let p = os.platform, !p.isEmpty {
-                InfoRow(key: "平台", value: "\(p) \(os.platformVersion ?? "")")
+                InfoRow(key: L10n.t("平台"), value: "\(p) \(os.platformVersion ?? "")")
             }
-            InfoRow(key: "内核", value: "\(os.kernelVersion ?? "-") (\(os.kernelArch ?? "-"))")
+            InfoRow(key: L10n.t("内核"), value: "\(os.kernelVersion ?? "-") (\(os.kernelArch ?? "-"))")
             if let size = os.diskSize {
-                InfoRow(key: "磁盘总量", value: formatBytes(size))
+                InfoRow(key: L10n.t("磁盘总量"), value: formatBytes(size))
             }
         }
         .padding()
@@ -538,7 +538,7 @@ struct StatCard: View {
                     .monospacedDigit()
                 Spacer()
                 if let updates = updateCount, updates > 0 {
-                    Text("\(updates)个更新")
+                    Text(L10n.f("%ld 个更新", updates))
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }
@@ -657,7 +657,7 @@ final class OverviewViewModel: ObservableObject {
 
         // 仅在完全无数据时才显示错误（刷新失败时保留旧数据）
         if base == nil && osInfo == nil && deviceInfo == nil {
-            self.errorMessage = "无法获取服务器信息，请检查 API Key 和网络"
+            self.errorMessage = L10n.t("无法获取服务器信息，请检查 API Key 和网络")
         }
     }
 
@@ -709,10 +709,10 @@ struct PanelUpgradeView: View {
         ScrollView {
             VStack(spacing: 16) {
                 if isLoading && releases.isEmpty {
-                    ProgressView("加载中…")
+                    ProgressView(L10n.t("加载中…"))
                         .frame(maxWidth: .infinity, minHeight: 200)
                 } else if releases.isEmpty {
-                    ContentUnavailableView("暂无更新日志", systemImage: "doc.text.magnifyingglass")
+                    ContentUnavailableView(L10n.t("暂无更新日志"), systemImage: "doc.text.magnifyingglass")
                 } else {
                     if upgradeInfo?.hasUpdate(comparedTo: currentVersion) == true, let latest = upgradeInfo?.latestVersion {
                         updateBanner(latestVersion: latest)
@@ -725,14 +725,14 @@ struct PanelUpgradeView: View {
             }
             .padding()
         }
-        .navigationTitle("版本更新日志")
+        .navigationTitle(L10n.t("版本更新日志"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadReleases() }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
@@ -743,9 +743,9 @@ struct PanelUpgradeView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("发现新版本")
+                    Text(L10n.t("发现新版本"))
                         .font(.headline)
-                    Text("当前 \(currentVersion ?? "未知") → 最新 \(latestVersion)")
+                    Text(L10n.f("当前 %@ → 最新 %@", currentVersion ?? L10n.t("未知"), latestVersion))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -753,7 +753,7 @@ struct PanelUpgradeView: View {
                 Button {
                     Task { await upgrade(to: latestVersion) }
                 } label: {
-                    Label(isUpgrading ? "更新中…" : "更新", systemImage: "arrow.down.circle.fill")
+                    Label(isUpgrading ? L10n.t("更新中…") : L10n.t("更新"), systemImage: "arrow.down.circle.fill")
                         .font(.callout)
                 }
                 .buttonStyle(.borderedProminent)
@@ -785,13 +785,13 @@ struct PanelUpgradeView: View {
                 }
                 Spacer()
                 if let newCount = release.newCount, newCount > 0 {
-                    StatusBadge(text: "新增 \(newCount)", color: .green)
+                    StatusBadge(text: L10n.f("新增 %ld", newCount), color: .green)
                 }
                 if let optCount = release.optimizationCount, optCount > 0 {
-                    StatusBadge(text: "优化 \(optCount)", color: .blue)
+                    StatusBadge(text: L10n.f("优化 %ld", optCount), color: .blue)
                 }
                 if let fixCount = release.fixCount, fixCount > 0 {
-                    StatusBadge(text: "修复 \(fixCount)", color: .orange)
+                    StatusBadge(text: L10n.f("修复 %ld", fixCount), color: .orange)
                 }
             }
 
@@ -801,7 +801,7 @@ struct PanelUpgradeView: View {
                     .foregroundStyle(.secondary)
                     .lineSpacing(4)
             } else if !isExpanded {
-                Text("点击查看详情")
+                Text(L10n.t("点击查看详情"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -843,7 +843,7 @@ struct PanelUpgradeView: View {
         let req = PanelUpgradeRequest(version: version)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.settingsUpgrade.path, body: req, as: EmptyResponse.self)
-            successMessage = "更新任务已提交，请稍后查看面板状态"
+            successMessage = L10n.t("更新任务已提交，请稍后查看面板状态")
         } catch {
             errorMessage = error.localizedDescription
         }

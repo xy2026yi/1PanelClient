@@ -33,12 +33,12 @@ struct ServersView: View {
                         Button(role: .destructive) {
                             serverToRemove = server
                         } label: {
-                            Label("移除", systemImage: "trash")
+                            Label(L10n.t("移除"), systemImage: "trash")
                         }
                     }
                 }
             } footer: {
-                Text("单击切换服务器，长按编辑，左滑移除；下拉刷新健康状态")
+                Text(L10n.t("单击切换服务器，长按编辑，左滑移除；下拉刷新健康状态"))
             }
         }
         .refreshable {
@@ -50,10 +50,10 @@ struct ServersView: View {
         .onDisappear {
             health.stop()
         }
-        .navigationTitle("服务器")
+        .navigationTitle(L10n.t("服务器"))
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(accessibilityText: "添加服务器") { showAdd = true }
+            FloatingActionButton(accessibilityText: L10n.t("添加服务器")) { showAdd = true }
         }
         .navigationDestination(isPresented: $showAdd) {
             ServerEditView(manager: manager, presentedAsSheet: false)
@@ -63,22 +63,22 @@ struct ServersView: View {
         }
         // 移除服务器前确认（会连带清除 Keychain 中的 API 密钥）
         .confirmationDialog(
-            "移除服务器",
+            L10n.t("移除服务器"),
             isPresented: Binding(
                 get: { serverToRemove != nil },
                 set: { if !$0 { serverToRemove = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button("移除「\(serverToRemove?.name ?? "")」", role: .destructive) {
+            Button(L10n.f("移除「%@」", serverToRemove?.name ?? ""), role: .destructive) {
                 if let server = serverToRemove {
                     manager.remove(server)
                 }
                 serverToRemove = nil
             }
-            Button("取消", role: .cancel) {}
+            Button(L10n.t("取消"), role: .cancel) {}
         } message: {
-            Text("将移除该服务器的连接配置与已保存的 API 密钥，此操作不可恢复。")
+            Text(L10n.t("将移除该服务器的连接配置与已保存的 API 密钥，此操作不可恢复。"))
         }
     }
 }
@@ -102,7 +102,7 @@ private struct ServerRow: View {
                     .font(.headline)
                 HStack(spacing: 4) {
                     if server.apiKey.isEmpty {
-                        Label("API Key 已失效，长按重新录入", systemImage: "exclamationmark.triangle.fill")
+                        Label(L10n.t("API Key 已失效，长按重新录入"), systemImage: "exclamationmark.triangle.fill")
                             .font(.caption)
                             .foregroundStyle(.orange)
                             .lineLimit(1)
@@ -136,17 +136,17 @@ private struct ServerRow: View {
         switch health {
         case .unknown:
             StatusDot(color: .gray, diameter: 8)
-                .accessibilityLabel("健康状态未知")
+                .accessibilityLabel(L10n.t("健康状态未知"))
         case .checking:
             ProgressView()
                 .controlSize(.mini)
-                .accessibilityLabel("正在检测连接")
+                .accessibilityLabel(L10n.t("正在检测连接"))
         case .online(let host):
             StatusDot(color: .green, diameter: 8)
-                .accessibilityLabel("在线\(host.isEmpty ? "" : "：\(host)")")
+                .accessibilityLabel(host.isEmpty ? L10n.t("在线") : L10n.f("在线：%@", host))
         case .offline(let msg):
             StatusDot(color: .red, diameter: 8)
-                .accessibilityLabel("离线：\(msg)")
+                .accessibilityLabel(L10n.f("离线：%@", msg))
         }
     }
 }

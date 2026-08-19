@@ -43,17 +43,17 @@ struct ServerEditView: View {
 
     private var form: some View {
         Form {
-            Section("服务器信息") {
-                TextField("显示名称", text: $name)
+            Section(L10n.t("服务器信息")) {
+                TextField(L10n.t("显示名称"), text: $name)
                     .textInputAutocapitalization(.never)
-                TextField("面板地址", text: $baseURL, prompt: Text("http://10.0.0.1:36130"))
+                TextField(L10n.t("面板地址"), text: $baseURL, prompt: Text("http://10.0.0.1:36130"))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 SecureField("API Key", text: $apiKey)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 if draftIsPlainHTTP {
-                    Label("HTTP 明文连接：API Key 与数据可能被链路窃听，建议改用 https://", systemImage: "lock.open")
+                    Label(L10n.t("HTTP 明文连接：API Key 与数据可能被链路窃听，建议改用 https://"), systemImage: "lock.open")
                         .font(.footnote)
                         .foregroundStyle(.orange)
                 }
@@ -67,7 +67,7 @@ struct ServerEditView: View {
                         if testing {
                             ProgressView()
                         }
-                        Text("测试连接")
+                        Text(L10n.t("测试连接"))
                     }
                 }
                 .disabled(testing || baseURL.isEmpty || apiKey.isEmpty)
@@ -79,35 +79,35 @@ struct ServerEditView: View {
                 }
             }
 
-            Section("提示") {
-                Text("API Key 获取方式：面板 → 设置 → API 接口 → 开启并复制")
+            Section(L10n.t("提示")) {
+                Text(L10n.t("API Key 获取方式：面板 → 设置 → API 接口 → 开启并复制"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle(editing == nil ? "添加服务器" : "编辑服务器")
+        .navigationTitle(editing == nil ? L10n.t("添加服务器") : L10n.t("编辑服务器"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if presentedAsSheet {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") { save() }
+                Button(L10n.t("保存")) { save() }
                     .disabled(name.isEmpty || baseURL.isEmpty || apiKey.isEmpty)
             }
         }
         .onAppear { loadIfEditing() }
         .confirmationDialog(
-            "该面板使用 HTTP 明文连接",
+            L10n.t("该面板使用 HTTP 明文连接"),
             isPresented: $showPlainHTTPWarning,
             titleVisibility: .visible
         ) {
-            Button("仍然保存", role: .destructive) { performSave() }
-            Button("取消", role: .cancel) {}
+            Button(L10n.t("仍然保存"), role: .destructive) { performSave() }
+            Button(L10n.t("取消"), role: .cancel) {}
         } message: {
-            Text("HTTP 明文连接下，API Key 与服务器数据可能被同一网络内的攻击者窃听或篡改。建议为面板配置 HTTPS 后再用 https:// 地址连接。")
+            Text(L10n.t("HTTP 明文连接下，API Key 与服务器数据可能被同一网络内的攻击者窃听或篡改。建议为面板配置 HTTPS 后再用 https:// 地址连接。"))
         }
     }
 
@@ -123,7 +123,7 @@ struct ServerEditView: View {
             if httpsOnly {
                 testResult = TestResult(
                     success: false,
-                    message: "已开启「仅允许 HTTPS 连接」：请在 设置 → 安全 关闭该限制，或改用 https:// 地址"
+                    message: L10n.t("已开启「仅允许 HTTPS 连接」：请在 设置 → 安全 关闭该限制，或改用 https:// 地址")
                 )
                 return
             }
@@ -149,7 +149,7 @@ struct ServerEditView: View {
         if draftIsPlainHTTP && httpsOnly {
             testResult = TestResult(
                 success: false,
-                message: "已开启「仅允许 HTTPS 连接」：请在 设置 → 安全 关闭该限制，或改用 https:// 地址"
+                message: L10n.t("已开启「仅允许 HTTPS 连接」：请在 设置 → 安全 关闭该限制，或改用 https:// 地址")
             )
             return
         }

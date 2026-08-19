@@ -20,10 +20,10 @@ enum ServerHealth: Equatable {
 
     var label: String {
         switch self {
-        case .unknown: return "未检测"
-        case .checking: return "检测中"
-        case .online: return "在线"
-        case .offline: return "离线"
+        case .unknown: return L10n.t("未检测")
+        case .checking: return L10n.t("检测中")
+        case .online: return L10n.t("在线")
+        case .offline: return L10n.t("离线")
         }
     }
 }
