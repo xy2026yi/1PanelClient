@@ -248,19 +248,11 @@ struct IgnoredAppsView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
+                .refreshable { await load() }
             }
         }
         .navigationTitle("忽略升级")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await load() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-        }
         .task { await load() }
     }
 
