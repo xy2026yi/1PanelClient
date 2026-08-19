@@ -64,26 +64,26 @@ struct ProcessView: View {
             statusBar
             contentView
         }
-        .navigationTitle("进程")
+        .navigationTitle(L10n.t("进程"))
         .navigationBarTitleDisplayMode(.inline)
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
-            title: "进程",
+            title: L10n.t("进程"),
             prompt: searchTextPrompt
         )
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     if monitor.mode == .processes {
-                        Picker("排序", selection: $sortOption) {
+                        Picker(L10n.t("排序"), selection: $sortOption) {
                             ForEach(SortOption.allCases) { opt in
                                 Text(opt.rawValue).tag(opt)
                             }
                         }
                         Divider()
                     }
-                    Toggle("自动刷新", isOn: $monitor.isAutoRefresh)
+                    Toggle(L10n.t("自动刷新"), isOn: $monitor.isAutoRefresh)
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -102,30 +102,30 @@ struct ProcessView: View {
                 }
             }
         }
-        .alert("结束进程", isPresented: $showStopConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("结束", role: .destructive) {
+        .alert(L10n.t("结束进程"), isPresented: $showStopConfirm) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("结束"), role: .destructive) {
                 if let target = stopTarget {
                     Task { await monitor.stopProcess(pid: target.pid) }
                 }
             }
         } message: {
             if let target = stopTarget {
-                Text("确定要结束进程「\(target.name)」(PID: \(target.pid)) 吗？此操作不可撤销。")
+                Text(L10n.f("确定要结束进程「%@」(PID: %ld) 吗？此操作不可撤销。", target.name, target.pid))
             }
         }
-        .alert("操作成功", isPresented: Binding(
+        .alert(L10n.t("操作成功"), isPresented: Binding(
             get: { monitor.successMessage != nil },
             set: { if !$0 { monitor.successMessage = nil } }
         )) {
-            Button("好的") { monitor.successMessage = nil }
+            Button(L10n.t("好的")) { monitor.successMessage = nil }
         } message: {
             Text(monitor.successMessage ?? "")
         }
     }
 
     private var searchTextPrompt: String {
-        monitor.mode == .processes ? "搜索进程名称 / PID / 用户" : "搜索进程 / PID / 端口"
+        monitor.mode == .processes ? L10n.t("搜索进程名称 / PID / 用户") : L10n.t("搜索进程 / PID / 端口")
     }
 
     // MARK: - 模式切换（List 首个 Section，与监控/证书详情一致）
@@ -172,15 +172,15 @@ struct ProcessView: View {
     }
 
     private var connectionText: String {
-        if monitor.isConnected { return "已连接" }
-        if monitor.isConnecting { return "连接中…" }
-        return "未连接"
+        if monitor.isConnected { return L10n.t("已连接") }
+        if monitor.isConnecting { return L10n.t("连接中…") }
+        return L10n.t("未连接")
     }
 
     private var itemCountText: String {
         switch monitor.mode {
-        case .processes: return "\(filteredProcesses.count) 个进程"
-        case .network:   return "\(filteredConnections.count) 个连接"
+        case .processes: return L10n.f("%ld 个进程", filteredProcesses.count)
+        case .network:   return L10n.f("%ld 个连接", filteredConnections.count)
         }
     }
 
@@ -194,18 +194,18 @@ struct ProcessView: View {
             if let err = monitor.errorMessage {
                 Section {
                     ContentUnavailableView {
-                        Label("连接失败", systemImage: "wifi.exclamationmark")
+                        Label(L10n.t("连接失败"), systemImage: "wifi.exclamationmark")
                     } description: {
                         Text(err)
                     } actions: {
-                        Button("重试") { monitor.connect() }
+                        Button(L10n.t("重试")) { monitor.connect() }
                             .buttonStyle(.borderedProminent)
                     }
                     .padding(.vertical, 30)
                 }
             } else if monitor.isConnecting && isEmpty {
                 Section {
-                    HStack { Spacer(); ProgressView("正在连接…"); Spacer() }
+                    HStack { Spacer(); ProgressView(L10n.t("正在连接…")); Spacer() }
                         .padding(.vertical, 30)
                 }
             } else if isFilteredEmpty {
@@ -354,43 +354,43 @@ private struct ProcessDetailView: View {
 
     var body: some View {
         List {
-            Section("基本信息") {
+            Section(L10n.t("基本信息")) {
                 InfoRow(key: "PID", value: "\(process.pid)")
-                InfoRow(key: "名称", value: process.name)
-                InfoRow(key: "父进程 PID", value: "\(process.ppid)")
-                InfoRow(key: "用户", value: process.username)
-                InfoRow(key: "状态", value: process.status)
+                InfoRow(key: L10n.t("名称"), value: process.name)
+                InfoRow(key: L10n.t("父进程 PID"), value: "\(process.ppid)")
+                InfoRow(key: L10n.t("用户"), value: process.username)
+                InfoRow(key: L10n.t("状态"), value: process.status)
             }
 
-            Section("资源使用") {
+            Section(L10n.t("资源使用")) {
                 if let cpu = process.cpuPercent, !cpu.isEmpty {
                     InfoRow(key: "CPU", value: cpu)
                 }
                 if let mem = process.rss, !mem.isEmpty {
-                    InfoRow(key: "内存 (RSS)", value: mem)
+                    InfoRow(key: L10n.t("内存 (RSS)"), value: mem)
                 }
                 if let threads = process.numThreads {
-                    InfoRow(key: "线程数", value: "\(threads)")
+                    InfoRow(key: L10n.t("线程数"), value: "\(threads)")
                 }
                 if let conns = process.numConnections {
-                    InfoRow(key: "连接数", value: "\(conns)")
+                    InfoRow(key: L10n.t("连接数"), value: "\(conns)")
                 }
                 if let dr = process.diskRead, !dr.isEmpty {
-                    InfoRow(key: "磁盘读", value: dr)
+                    InfoRow(key: L10n.t("磁盘读"), value: dr)
                 }
                 if let dw = process.diskWrite, !dw.isEmpty {
-                    InfoRow(key: "磁盘写", value: dw)
+                    InfoRow(key: L10n.t("磁盘写"), value: dw)
                 }
             }
 
             if let time = process.startTime, !time.isEmpty {
-                Section("时间") {
-                    InfoRow(key: "启动时间", value: time)
+                Section(L10n.t("时间")) {
+                    InfoRow(key: L10n.t("启动时间"), value: time)
                 }
             }
 
             if let cmd = process.cmdLine, !cmd.isEmpty {
-                Section("命令行") {
+                Section(L10n.t("命令行")) {
                     Text(cmd)
                         .font(.caption.monospaced())
                         .textSelection(.enabled)
@@ -404,7 +404,7 @@ private struct ProcessDetailView: View {
                 } label: {
                     HStack {
                         Spacer()
-                        Label("结束进程", systemImage: "xmark.octagon")
+                        Label(L10n.t("结束进程"), systemImage: "xmark.octagon")
                         Spacer()
                     }
                 }

@@ -45,13 +45,13 @@ nonisolated struct AppStoreApp: Decodable, Identifiable, Hashable, Sendable {
     /// 类型显示名
     var typeDisplayName: String {
         switch (type ?? "").lowercased() {
-        case "website": return "网站"
-        case "runtime": return "运行环境"
-        case "database": return "数据库"
-        case "tool": return "工具"
-        case "security": return "安全"
+        case "website": return L10n.t("网站")
+        case "runtime": return L10n.t("运行环境")
+        case "database": return L10n.t("数据库")
+        case "tool": return L10n.t("工具")
+        case "security": return L10n.t("安全")
         case "ai": return "AI"
-        default: return type ?? "其他"
+        default: return type ?? L10n.t("其他")
         }
     }
 
@@ -174,7 +174,7 @@ nonisolated struct AppFormField: Decodable, Hashable, Sendable {
 
     /// 显示标签（优先中文）
     var displayLabel: String {
-        labelZh ?? labelEn ?? envKey ?? "参数"
+        labelZh ?? labelEn ?? envKey ?? L10n.t("参数")
     }
 }
 

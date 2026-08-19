@@ -36,7 +36,7 @@ struct WAFIPRulesView: View {
             if isLoading && items.isEmpty {
                 ProgressView()
             } else if items.isEmpty {
-                ContentUnavailableView("暂无 IP 规则", systemImage: "ipaddress")
+                ContentUnavailableView(L10n.t("暂无 IP 规则"), systemImage: "ipaddress")
             } else {
                 ForEach(items) { item in
                     HStack {
@@ -72,7 +72,7 @@ struct WAFIPRulesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton { showCreate = true }
-                .accessibilityLabel("添加规则")
+                .accessibilityLabel(L10n.t("添加规则"))
         }
         .refreshable { await loadItems() }
         .task { await loadItems() }
@@ -91,12 +91,12 @@ struct WAFIPRulesView: View {
             set: { if !$0 { actionItem = nil } }
         )) {
             ActionBottomSheet(
-                title: actionItem?.displayValue ?? "IP 规则",
+                title: actionItem?.displayValue ?? L10n.t("IP 规则"),
                 items: [
-                    ActionMenuItem(title: "编辑", icon: "pencil", color: .blue) {
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
                         editingItem = actionItem
                     },
-                    ActionMenuItem(title: "删除", icon: "trash", color: .red, role: .destructive) {
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         pendingDeleteIP = actionItem
                     },
                 ],
@@ -105,24 +105,24 @@ struct WAFIPRulesView: View {
             .presentationDetents([.height(ActionBottomSheet.height(for: 2))])
             .presentationDragIndicator(.visible)
         }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
         .alert(
-            "删除",
+            L10n.t("删除"),
             isPresented: Binding(
                 get: { pendingDeleteIP != nil },
                 set: { if !$0 { pendingDeleteIP = nil } }
             ),
             presenting: pendingDeleteIP
         ) { _ in
-            Button("取消", role: .cancel) { pendingDeleteIP = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDeleteIP = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 let item = pendingDeleteIP
                 pendingDeleteIP = nil
                 if let item = item {
@@ -130,7 +130,7 @@ struct WAFIPRulesView: View {
                 }
             }
         } message: { item in
-            Text("将对 \"\(item.displayValue.isEmpty ? item.name : item.displayValue)\" 进行删除操作，是否继续？")
+            Text(L10n.f("将对 \"%@\" 进行删除操作，是否继续？", item.displayValue.isEmpty ? item.name : item.displayValue))
         }
     }
 
@@ -159,7 +159,7 @@ struct WAFIPRulesView: View {
         )
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleIPUpdate.path, body: req, as: EmptyResponse.self)
-            successMessage = newState == "on" ? "已启用" : "已禁用"
+            successMessage = newState == "on" ? L10n.t("已启用") : L10n.t("已禁用")
             await loadItems()
         } catch {
             errorMessage = error.localizedDescription
@@ -170,7 +170,7 @@ struct WAFIPRulesView: View {
         let req = WAFRuleIPDeleteRequest(name: item.name, scope: scope)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleIPDelete.path, body: req, as: EmptyResponse.self)
-            successMessage = "已删除"
+            successMessage = L10n.t("已删除")
             await loadItems()
         } catch {
             errorMessage = error.localizedDescription
@@ -224,15 +224,15 @@ struct WAFIPRuleFormView: View {
 
     private let typeOptions: [(value: String, label: String)] = [
         ("ipv4", "IPv4"),
-        ("ipArr", "IPv4 范围"),
+        ("ipArr", L10n.t("IPv4 范围")),
         ("ipv6", "IPv6"),
-        ("ipGroup", "IP 组"),
+        ("ipGroup", L10n.t("IP 组")),
     ]
 
     var body: some View {
         Form {
-            Section("类型") {
-                Picker("IP 类型", selection: $ipType) {
+            Section(L10n.t("类型")) {
+                Picker(L10n.t("IP 类型"), selection: $ipType) {
                     ForEach(typeOptions, id: \.value) { Text($0.label).tag($0.value) }
                 }
                 .onChange(of: ipType) { _, _ in
@@ -242,32 +242,32 @@ struct WAFIPRuleFormView: View {
 
             switch ipType {
             case "ipv4":
-                Section("IPv4 地址") {
-                    TextField("例: 192.168.1.1", text: $ipv4)
+                Section(L10n.t("IPv4 地址")) {
+                    TextField(L10n.t("例: 192.168.1.1"), text: $ipv4)
                         .keyboardType(.decimalPad)
                         .autocorrectionDisabled()
                 }
             case "ipArr":
-                Section("IPv4 范围") {
-                    TextField("起始 IP", text: $ipStart)
+                Section(L10n.t("IPv4 范围")) {
+                    TextField(L10n.t("起始 IP"), text: $ipStart)
                         .keyboardType(.decimalPad)
                         .autocorrectionDisabled()
-                    TextField("结束 IP", text: $ipEnd)
+                    TextField(L10n.t("结束 IP"), text: $ipEnd)
                         .keyboardType(.decimalPad)
                         .autocorrectionDisabled()
                 }
             case "ipv6":
-                Section("IPv6 地址") {
-                    TextField("例: 2001:db8::1", text: $ipv6)
+                Section(L10n.t("IPv6 地址")) {
+                    TextField(L10n.t("例: 2001:db8::1"), text: $ipv6)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }
             case "ipGroup":
-                Section("IP 组") {
+                Section(L10n.t("IP 组")) {
                     if ipGroups.isEmpty {
-                        Text("请先创建 IP 组").foregroundStyle(.secondary)
+                        Text(L10n.t("请先创建 IP 组")).foregroundStyle(.secondary)
                     } else {
-                        Picker("选择 IP 组", selection: $ipGroup) {
+                        Picker(L10n.t("选择 IP 组"), selection: $ipGroup) {
                             ForEach(ipGroups) { group in
                                 Text(group.name).tag(group.name)
                             }
@@ -279,19 +279,19 @@ struct WAFIPRuleFormView: View {
             }
 
             if editingItem != nil {
-                Section("状态") {
-                    Toggle("启用", isOn: Binding(
+                Section(L10n.t("状态")) {
+                    Toggle(L10n.t("启用"), isOn: Binding(
                         get: { state == "on" },
                         set: { state = $0 ? "on" : "off" }
                     ))
                 }
             }
 
-            Section("备注") {
-                TextField("描述(可选)", text: $description)
+            Section(L10n.t("备注")) {
+                TextField(L10n.t("描述(可选)"), text: $description)
             }
         }
-        .navigationTitle(editingItem == nil ? "添加 IP 规则" : "编辑 IP 规则")
+        .navigationTitle(editingItem == nil ? L10n.t("添加 IP 规则") : L10n.t("编辑 IP 规则"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -301,7 +301,7 @@ struct WAFIPRuleFormView: View {
                     if isSaving {
                         ProgressView()
                     } else {
-                        Text(editingItem == nil ? "创建" : "保存")
+                        Text(editingItem == nil ? L10n.t("创建") : L10n.t("保存"))
                     }
                 }
                 .disabled(isSaving || !isValid)
@@ -310,11 +310,11 @@ struct WAFIPRuleFormView: View {
         .onAppear {
             if ipType == "ipGroup" { Task { await loadGroups() } }
         }
-        .alert("错误", isPresented: Binding(
+        .alert(L10n.t("错误"), isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )) {
-            Button("好的") { errorMessage = nil }
+            Button(L10n.t("好的")) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }

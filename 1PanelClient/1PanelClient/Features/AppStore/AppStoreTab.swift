@@ -34,7 +34,7 @@ struct AppStoreTab: View {
     var storeRootContent: some View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if vm.apps.isEmpty {
                 ContentUnavailableView.search(text: searchText)
             } else {
@@ -44,8 +44,8 @@ struct AppStoreTab: View {
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
-            title: "应用商店",
-            prompt: "搜索应用商店"
+            title: L10n.t("应用商店"),
+            prompt: L10n.t("搜索应用商店")
         )
         .toolbar {
             // 同步菜单：仅非搜索态显示
@@ -60,10 +60,10 @@ struct AppStoreTab: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: "更新远程", isDisabled: vm.isSyncing) {
+                    .action(title: L10n.t("更新远程"), isDisabled: vm.isSyncing) {
                         Task { await vm.syncRemote() }
                     },
-                    .action(title: "同步本地", isDisabled: vm.isSyncing) {
+                    .action(title: L10n.t("同步本地"), isDisabled: vm.isSyncing) {
                         Task {
                             if let taskID = await vm.syncLocal() {
                                 syncTaskID = taskID
@@ -81,7 +81,7 @@ struct AppStoreTab: View {
             set: { if !$0 { syncTaskID = nil } }
         )) {
             if let taskID = syncTaskID {
-                TaskProgressView(taskID: taskID, title: "同步本地应用") { isDone in
+                TaskProgressView(taskID: taskID, title: L10n.t("同步本地应用")) { isDone in
                     Task { await vm.refresh() }
                     if isDone {
                         syncTaskID = nil
@@ -94,8 +94,8 @@ struct AppStoreTab: View {
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
         }
-        .alert("提示", isPresented: $vm.showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
@@ -115,7 +115,7 @@ struct AppStoreTab: View {
                         }
                     }
                 } header: {
-                    Label("推荐", systemImage: "star.fill")
+                    Label(L10n.t("推荐"), systemImage: "star.fill")
                 }
             }
 
@@ -129,7 +129,7 @@ struct AppStoreTab: View {
                     }
                 }
             } header: {
-                Label("全部应用", systemImage: "square.grid.2x2")
+                Label(L10n.t("全部应用"), systemImage: "square.grid.2x2")
             }
         }
         .listStyle(.insetGrouped)
@@ -150,19 +150,19 @@ struct AppStoreDetailView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载详情…")
+                ProgressView(L10n.t("加载详情…"))
             } else if let detail {
                 detailContent(detail)
             } else {
-                ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle")
+                ContentUnavailableView(L10n.t("加载失败"), systemImage: "exclamationmark.triangle")
             }
         }
-        .navigationTitle(detail?.name ?? "应用详情")
+        .navigationTitle(detail?.name ?? L10n.t("应用详情"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let d = detail, d.installed != true {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("安装") {
+                    Button(L10n.t("安装")) {
                         vm.showInstallSheet(for: d)
                     }
                     .bold()
@@ -197,7 +197,7 @@ struct AppStoreDetailView: View {
                         }
                         Spacer()
                         if detail.installed == true {
-                            Text("已安装")
+                            Text(L10n.t("已安装"))
                                 .font(.caption2.bold())
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
@@ -218,7 +218,7 @@ struct AppStoreDetailView: View {
 
             // 最新版本
             if let latest = detail.latestVersion, !latest.isEmpty {
-                Section("最新版本") {
+                Section(L10n.t("最新版本")) {
                     HStack {
                         Image(systemName: "tag")
                             .foregroundStyle(.tint)
@@ -229,15 +229,15 @@ struct AppStoreDetailView: View {
             }
 
             // 相关链接（应用页面固定展示，其余链接存在才显示）
-            Section("相关链接") {
+            Section(L10n.t("相关链接")) {
                 if let url = URL(string: "https://apps.fit2cloud.com/1panel/\(appKey)") {
-                    Link(destination: url) { Label("应用页面", systemImage: "arrow.up.right.square") }
+                    Link(destination: url) { Label(L10n.t("应用页面"), systemImage: "arrow.up.right.square") }
                 }
                 if let website = detail.website, let url = URL(string: website) {
-                    Link(destination: url) { Label("官方网站", systemImage: "globe") }
+                    Link(destination: url) { Label(L10n.t("官方网站"), systemImage: "globe") }
                 }
                 if let doc = detail.document, let url = URL(string: doc) {
-                    Link(destination: url) { Label("文档", systemImage: "book") }
+                    Link(destination: url) { Label(L10n.t("文档"), systemImage: "book") }
                 }
                 if let github = detail.github, let url = URL(string: github) {
                     Link(destination: url) { Label("GitHub", systemImage: "network") }
@@ -246,7 +246,7 @@ struct AppStoreDetailView: View {
 
             // 描述
             if let readme = detail.readMe, !readme.isEmpty {
-                Section("介绍") {
+                Section(L10n.t("介绍")) {
                     Text(readme)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -255,7 +255,7 @@ struct AppStoreDetailView: View {
 
             // 标签
             if let tags = detail.tags, !tags.isEmpty {
-                Section("标签") {
+                Section(L10n.t("标签")) {
                     FlowingTags(tags: tags.compactMap { $0.name })
                 }
             }
@@ -323,22 +323,22 @@ struct AppInstallView: View {
     var body: some View {
         Group {
             if isLoadingDetail {
-                ProgressView("加载安装参数…")
+                ProgressView(L10n.t("加载安装参数…"))
             } else if let appDetail {
                 installForm(appDetail)
             } else {
                 ContentUnavailableView {
-                    Label("无法加载安装参数", systemImage: "exclamationmark.triangle")
+                    Label(L10n.t("无法加载安装参数"), systemImage: "exclamationmark.triangle")
                 } description: {
-                    Text(loadError ?? "请稍后重试，或尝试其他版本")
+                    Text(loadError ?? L10n.t("请稍后重试，或尝试其他版本"))
                 } actions: {
-                    Button("重试") {
+                    Button(L10n.t("重试")) {
                         Task { await loadDetail() }
                     }
                 }
             }
         }
-        .navigationTitle("安装 \(detail.name ?? "")")
+        .navigationTitle(L10n.f("安装 %@", detail.name ?? ""))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -348,7 +348,7 @@ struct AppInstallView: View {
                     if vm.isInstalling {
                         ProgressView()
                     } else {
-                        Text("安装").bold()
+                        Text(L10n.t("安装")).bold()
                     }
                 }
                 .disabled(installName.isEmpty || vm.isInstalling)
@@ -358,7 +358,7 @@ struct AppInstallView: View {
         .navigationDestination(isPresented: $showProgress) {
             TaskProgressView(
                 taskID: installTaskID,
-                title: "安装 \(detail.name ?? "")",
+                title: L10n.f("安装 %@", detail.name ?? ""),
                 onComplete: { isDone in
                     if isDone {
                         // 通知 AppsTab 关闭 AppStoreTab（连带所有子页面）并刷新列表
@@ -369,8 +369,8 @@ struct AppInstallView: View {
                 }
             )
         }
-        .alert("提示", isPresented: $showResultAlert) {
-            Button("好的", role: .cancel) {
+        .alert(L10n.t("提示"), isPresented: $showResultAlert) {
+            Button(L10n.t("好的"), role: .cancel) {
                 if installSuccess {
                     vm.showInstall = false
                 }
@@ -386,14 +386,14 @@ struct AppInstallView: View {
             // MARK: 基础配置
             Section {
                 HStack {
-                    Text("名称").foregroundStyle(.secondary)
+                    Text(L10n.t("名称")).foregroundStyle(.secondary)
                     TextField(detail.key ?? "app", text: $installName)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
 
                 if let versions = detail.versions, !versions.isEmpty {
-                    Picker("版本", selection: $selectedVersion) {
+                    Picker(L10n.t("版本"), selection: $selectedVersion) {
                         ForEach(versions, id: \.self) { v in
                             Text(v).tag(v)
                         }
@@ -403,9 +403,9 @@ struct AppInstallView: View {
                     }
                 }
             } header: {
-                Text("基础配置")
+                Text(L10n.t("基础配置"))
             } footer: {
-                Text("名称只能包含小写字母、数字和连字符")
+                Text(L10n.t("名称只能包含小写字母、数字和连字符"))
             }
 
             // MARK: 应用参数（动态表单）
@@ -440,54 +440,54 @@ struct AppInstallView: View {
                         }
                     }
                 } header: {
-                    Text("应用参数")
+                    Text(L10n.t("应用参数"))
                 }
             }
 
             // MARK: 高级设置开关
             Section {
-                Toggle("高级设置", isOn: $advancedEnabled)
+                Toggle(L10n.t("高级设置"), isOn: $advancedEnabled)
             }
 
             // MARK: 高级设置详情
             if advancedEnabled {
-                Section("容器") {
+                Section(L10n.t("容器")) {
                     HStack {
-                        Text("容器名称").foregroundStyle(.secondary)
-                        TextField("留空则自动生成", text: $containerName)
+                        Text(L10n.t("容器名称")).foregroundStyle(.secondary)
+                        TextField(L10n.t("留空则自动生成"), text: $containerName)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                     }
-                    Toggle("端口外部访问", isOn: $allowPort)
+                    Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
                     if allowPort {
                         HStack {
-                            Text("绑定主机 IP").foregroundStyle(.secondary)
+                            Text(L10n.t("绑定主机 IP")).foregroundStyle(.secondary)
                             Spacer()
-                            TextField("留空则全部 IP", text: $specifyIP)
+                            TextField(L10n.t("留空则全部 IP"), text: $specifyIP)
                                 .keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing)
                                 .frame(width: 140)
                         }
                     }
-                    Picker("重启规则", selection: $restartPolicy) {
+                    Picker(L10n.t("重启规则"), selection: $restartPolicy) {
                         ForEach(restartPolicies, id: \.self) { Text($0).tag($0) }
                     }
                 }
 
                 Section {
                     HStack {
-                        Text("CPU 核心").foregroundStyle(.secondary)
+                        Text(L10n.t("CPU 核心")).foregroundStyle(.secondary)
                         Spacer()
                         TextField("0", value: $cpuQuota, format: .number)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
-                        Text("核")
+                        Text(L10n.t("核"))
                             .foregroundStyle(.secondary)
                             .font(.caption)
                     }
                     HStack {
-                        Text("内存限制").foregroundStyle(.secondary)
+                        Text(L10n.t("内存限制")).foregroundStyle(.secondary)
                         Spacer()
                         TextField("0", value: $memoryLimit, format: .number)
                             .keyboardType(.numberPad)
@@ -500,14 +500,14 @@ struct AppInstallView: View {
                         .frame(width: 80)
                     }
                 } header: {
-                    Text("资源限制")
+                    Text(L10n.t("资源限制"))
                 } footer: {
-                    Text("填 0 表示不限制")
+                    Text(L10n.t("填 0 表示不限制"))
                 }
 
-                Section("镜像与编排") {
-                    Toggle("拉取镜像", isOn: $pullImage)
-                    Toggle("编辑 docker-compose.yml", isOn: $editCompose)
+                Section(L10n.t("镜像与编排")) {
+                    Toggle(L10n.t("拉取镜像"), isOn: $pullImage)
+                    Toggle(L10n.t("编辑 docker-compose.yml"), isOn: $editCompose)
                         .onChange(of: editCompose) { _, isOn in
                             if isOn && customCompose.isEmpty {
                                 customCompose = appDetail.dockerCompose ?? ""
@@ -523,7 +523,7 @@ struct AppInstallView: View {
                     } header: {
                         Text("docker-compose.yml")
                     } footer: {
-                        Text("编辑后将使用自定义内容覆盖默认编排文件")
+                        Text(L10n.t("编辑后将使用自定义内容覆盖默认编排文件"))
                     }
                 }
             }
@@ -533,7 +533,7 @@ struct AppInstallView: View {
                 Section {
                     HStack {
                         ProgressView()
-                        Text("正在安装…")
+                        Text(L10n.t("正在安装…"))
                     }
                 }
             }
@@ -556,7 +556,7 @@ struct AppInstallView: View {
 
     private func loadDetailForVersion(_ version: String) async {
         guard !version.isEmpty else {
-            loadError = "未找到可用版本"
+            loadError = L10n.t("未找到可用版本")
             return
         }
         // type=app 用于安装新应用（通过 doc/1panel_install_new_app.py 验证）
@@ -584,7 +584,7 @@ struct AppInstallView: View {
                 customCompose = resp.dockerCompose ?? ""
             }
         } catch let err as APIError {
-            loadError = err.errorDescription ?? "服务器返回错误，该应用可能尚未同步安装文件"
+            loadError = err.errorDescription ?? L10n.t("服务器返回错误，该应用可能尚未同步安装文件")
             self.appDetail = nil
         } catch {
             loadError = error.localizedDescription
@@ -684,11 +684,11 @@ struct AppInstallView: View {
             showProgress = true
         } catch let err as APIError {
             installSuccess = false
-            resultMessage = "安装失败：\(err.errorDescription ?? "未知错误")"
+            resultMessage = L10n.f("安装失败：%@", err.errorDescription ?? L10n.t("未知错误"))
             showResultAlert = true
         } catch {
             installSuccess = false
-            resultMessage = "安装失败：\(error.localizedDescription)"
+            resultMessage = L10n.f("安装失败：%@", error.localizedDescription)
             showResultAlert = true
         }
     }
@@ -794,7 +794,7 @@ struct AppStoreRow: View {
                         .clipShape(Capsule())
 
                     if app.installed == true {
-                        Text("已安装")
+                        Text(L10n.t("已安装"))
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -975,11 +975,11 @@ final class AppStoreViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             installSuccess = true
-            showAlert(message: "安装请求已提交，应用正在后台部署中…")
+            showAlert(message: L10n.t("安装请求已提交，应用正在后台部署中…"))
         } catch let err as APIError {
-            showAlert(message: "安装失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("安装失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "安装失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("安装失败：%@", error.localizedDescription))
         }
     }
 
@@ -999,18 +999,18 @@ final class AppStoreViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
         } catch let err as APIError {
-            showAlert(message: "同步失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("同步失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return
         } catch {
-            showAlert(message: "同步失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("同步失败：%@", error.localizedDescription))
             return
         }
 
         if await waitTaskDone(taskID: taskID) {
-            showToast("远程应用同步完成")
+            showToast(L10n.t("远程应用同步完成"))
             await refresh()
         } else {
-            showAlert(message: "远程应用同步失败，请稍后在任务日志中查看详情")
+            showAlert(message: L10n.t("远程应用同步失败，请稍后在任务日志中查看详情"))
         }
     }
 
@@ -1058,10 +1058,10 @@ final class AppStoreViewModel: ObservableObject {
             )
             return taskID
         } catch let err as APIError {
-            showAlert(message: "同步失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("同步失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return nil
         } catch {
-            showAlert(message: "同步失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("同步失败：%@", error.localizedDescription))
             return nil
         }
     }
@@ -1080,11 +1080,11 @@ final class AppStoreViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: "已忽略该版本升级")
+            showAlert(message: L10n.t("已忽略该版本升级"))
         } catch let err as APIError {
-            showAlert(message: "操作失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "操作失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
         }
     }
 

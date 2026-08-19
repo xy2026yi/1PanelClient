@@ -21,16 +21,16 @@ enum ConnectionTester {
                let code = obj["code"] as? Int {
                 if code == 200 {
                     let host = (obj["data"] as? [String: Any])?["hostname"] as? String
-                    let label = host.map { "：\($0)" } ?? ""
-                    return (true, "连接成功\(label)")
+                    let label = host.map { L10n.f("：%@", $0) } ?? ""
+                    return (true, L10n.f("连接成功%@", label))
                 }
                 let msg = (obj["message"] as? String) ?? ""
-                return (false, msg.isEmpty ? "业务错误（\(code)）" : msg)
+                return (false, msg.isEmpty ? L10n.f("业务错误（%ld）", code) : msg)
             }
             // 非标准 JSON 包装，但 HTTP 200 也算通
-            return (true, "连接成功")
+            return (true, L10n.t("连接成功"))
         } catch let err as APIError {
-            return (false, err.errorDescription ?? "未知错误")
+            return (false, err.errorDescription ?? L10n.t("未知错误"))
         } catch {
             return (false, error.localizedDescription)
         }

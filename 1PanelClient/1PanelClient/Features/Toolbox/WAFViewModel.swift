@@ -44,7 +44,7 @@ final class WAFViewModel: ObservableObject {
         let req = WAFGlobalStateRequest(scope: scope, state: state)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafConfigGlobalState.path, body: req, as: EmptyResponse.self)
-            successMessage = state == "on" ? "已启用" : "已禁用"
+            successMessage = state == "on" ? L10n.t("已启用") : L10n.t("已禁用")
             await loadAll()
         } catch {
             errorMessage = error.localizedDescription

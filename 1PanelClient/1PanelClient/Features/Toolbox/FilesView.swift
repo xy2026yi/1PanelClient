@@ -84,7 +84,7 @@ struct FilesView: View {
             // 文件列表
             fileList
         }
-        .navigationTitle(currentPath == "/" ? "根目录" : (currentPath as NSString).lastPathComponent)
+        .navigationTitle(currentPath == "/" ? L10n.t("根目录") : (currentPath as NSString).lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
             .overlay(alignment: .bottomTrailing) { floatingAddButton }
             .refreshable { await loadDir(currentPath) }
@@ -196,7 +196,7 @@ struct FilesView: View {
             Button {
                 Task { await loadDir(segment.path) }
             } label: {
-                Text(segment.name == "/" ? "根目录" : segment.name)
+                Text(segment.name == "/" ? L10n.t("根目录") : segment.name)
                     .font(.subheadline.weight(isLast ? .semibold : .regular))
                     .foregroundStyle(isLast ? Color.primary : Color.accentColor)
             }
@@ -212,7 +212,7 @@ struct FilesView: View {
         FloatingActionButton {
             showActionSheet = true
         }
-        .accessibilityLabel("操作菜单")
+        .accessibilityLabel(L10n.t("操作菜单"))
     }
 
     @ViewBuilder
@@ -313,7 +313,7 @@ struct FilesView: View {
         let name = url.lastPathComponent
         let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
         let size = (attrs?[.size] as? Int64) ?? 0
-        transfer = TransferState(kind: "上传", fileName: name, total: size)
+        transfer = TransferState(kind: L10n.t("上传"), fileName: name, total: size)
 
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
@@ -341,7 +341,7 @@ struct FilesView: View {
             transfer?.status = .done
         } catch is CancellationError {
             transfer?.status = .failed
-            transfer?.errorText = "已取消"
+            transfer?.errorText = L10n.t("已取消")
         } catch {
             transfer?.status = .failed
             transfer?.errorText = error.localizedDescription
@@ -399,7 +399,7 @@ struct FilesView: View {
     /// 下载文件到本地 Documents 目录（通过 Info.plist 的 UIFileSharingEnabled
     /// 暴露到「文件」App 的 我的iPhone/1PanelClient），同名文件自动加序号
     private func downloadFile(_ item: FileItem) {
-        transfer = TransferState(kind: "下载", fileName: item.name, total: Int64(item.size ?? 0))
+        transfer = TransferState(kind: L10n.t("下载"), fileName: item.name, total: Int64(item.size ?? 0))
         let totalSize = Int64(item.size ?? 0)
         transferTask = Task {
             do {
@@ -437,7 +437,7 @@ struct FilesView: View {
             } catch {
                 if Task.isCancelled {
                     transfer?.status = .failed
-                    transfer?.errorText = "已取消"
+                    transfer?.errorText = L10n.t("已取消")
                 } else {
                     transfer?.status = .failed
                     transfer?.errorText = error.localizedDescription
@@ -493,7 +493,7 @@ struct FilesView: View {
             // 行移除动画竞争，触发 List "attempt to delete item N from
             // section 0" 越界崩溃（同 dfaa430 数据库删除崩溃的修法）
             items.removeAll { $0.path == item.path }
-            successMessage = "已删除"
+            successMessage = L10n.t("已删除")
             await loadDir(currentPath)
         } catch {
             errorMessage = error.localizedDescription
@@ -526,32 +526,32 @@ private struct FilesDialogsModifier: ViewModifier {
             .sheet(item: $renamingItem) { item in
                 FileRenameSheet(item: item, onRenamed: reload)
             }
-            .alert("确认删除", isPresented: Binding(
+            .alert(L10n.t("确认删除"), isPresented: Binding(
                 get: { deletingItem != nil },
                 set: { if !$0 { deletingItem = nil } }
             )) {
-                Button("取消", role: .cancel) { deletingItem = nil }
-                Button("删除", role: .destructive) {
+                Button(L10n.t("取消"), role: .cancel) { deletingItem = nil }
+                Button(L10n.t("删除"), role: .destructive) {
                     if let item = deletingItem { deleteItem(item) }
                 }
             } message: {
                 if let item = deletingItem {
-                    Text("确定要删除\(item.isDir ? "文件夹" : "文件") \"\(item.name)\" 吗？")
+                    Text(L10n.f("确定要删除%@ \"%@\" 吗？", item.isDir ? L10n.t("文件夹") : L10n.t("文件"), item.name))
                 }
             }
-            .alert("前往路径", isPresented: $showPathInput) {
-                TextField("路径", text: $pathInput)
-                Button("取消", role: .cancel) { }
-                Button("前往") {
+            .alert(L10n.t("前往路径"), isPresented: $showPathInput) {
+                TextField(L10n.t("路径"), text: $pathInput)
+                Button(L10n.t("取消"), role: .cancel) { }
+                Button(L10n.t("前往")) {
                     let target = pathInput.trimmingCharacters(in: .whitespaces)
                     if !target.isEmpty { jumpTo(target) }
                 }
             }
-            .alert("提示", isPresented: Binding(
+            .alert(L10n.t("提示"), isPresented: Binding(
                 get: { successMessage != nil || errorMessage != nil },
                 set: { _ in successMessage = nil; errorMessage = nil }
             )) {
-                Button("好的") { successMessage = nil; errorMessage = nil }
+                Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
             } message: {
                 Text(errorMessage ?? successMessage ?? "")
             }
@@ -596,7 +596,7 @@ struct TransferSheet: View {
                     .lineLimit(2)
                     .truncationMode(.middle)
                 if state.status == .done, state.localURL != nil {
-                    Text("已保存到「文件」App · 我的 iPhone/1PanelClient")
+                    Text(L10n.t("已保存到「文件」App · 我的 iPhone/1PanelClient"))
                         .font(.caption)
                         .foregroundStyle(.green)
                 }
@@ -628,7 +628,7 @@ struct TransferSheet: View {
                     Button(role: .destructive) {
                         onCancel()
                     } label: {
-                        Text("取消传输")
+                        Text(L10n.t("取消传输"))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
                     }
@@ -636,7 +636,7 @@ struct TransferSheet: View {
                 }
                 if state.status == .done, let url = state.localURL {
                     ShareLink(item: url) {
-                        Label("分享 / 另存为", systemImage: "square.and.arrow.up")
+                        Label(L10n.t("分享 / 另存为"), systemImage: "square.and.arrow.up")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
                     }
@@ -646,7 +646,7 @@ struct TransferSheet: View {
                     Button {
                         onClose()
                     } label: {
-                        Text("关闭")
+                        Text(L10n.t("关闭"))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
                     }
@@ -662,7 +662,7 @@ struct TransferSheet: View {
 
     private var statusIcon: String {
         switch state.status {
-        case .running: return state.kind == "上传" ? "arrow.up.circle" : "arrow.down.circle"
+        case .running: return state.kind == L10n.t("上传") ? "arrow.up.circle" : "arrow.down.circle"
         case .done:    return "checkmark.circle.fill"
         case .failed:  return "xmark.circle.fill"
         }
@@ -710,7 +710,7 @@ struct FileItemActionSheet: View {
                             Text(item.name)
                                 .font(.headline)
                                 .lineLimit(1)
-                            Text(item.isDir ? "文件夹" : "文件")
+                            Text(item.isDir ? L10n.t("文件夹") : L10n.t("文件"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -718,19 +718,19 @@ struct FileItemActionSheet: View {
                 }
                 Section {
                     if !item.isDir {
-                        actionRow("下载", icon: "arrow.down.circle", color: .green, action: onDownload)
+                        actionRow(L10n.t("下载"), icon: "arrow.down.circle", color: .green, action: onDownload)
                     }
-                    actionRow("重命名", icon: "pencil", color: .blue, action: onRename)
+                    actionRow(L10n.t("重命名"), icon: "pencil", color: .blue, action: onRename)
                 }
                 Section {
-                    actionRow("删除", icon: "trash", color: .red, action: onDelete)
+                    actionRow(L10n.t("删除"), icon: "trash", color: .red, action: onDelete)
                 }
             }
-            .navigationTitle("操作")
+            .navigationTitle(L10n.t("操作"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
             }
         }
@@ -766,21 +766,21 @@ struct FilesActionSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("文件") {
-                    actionRow("上传文件", icon: "arrow.up.circle", color: .blue, action: onUpload)
-                    actionRow("新建文件夹", icon: "folder.badge.plus", color: .orange, action: onCreateDir)
-                    actionRow("新建文件", icon: "doc.badge.plus", color: .teal, action: onCreateFile)
+                Section(L10n.t("文件")) {
+                    actionRow(L10n.t("上传文件"), icon: "arrow.up.circle", color: .blue, action: onUpload)
+                    actionRow(L10n.t("新建文件夹"), icon: "folder.badge.plus", color: .orange, action: onCreateDir)
+                    actionRow(L10n.t("新建文件"), icon: "doc.badge.plus", color: .teal, action: onCreateFile)
                 }
-                Section("跳转") {
-                    actionRow("前往路径", icon: "location", color: .indigo, action: onGoTo)
-                    actionRow("根目录", icon: "house", color: .green, action: onRoot)
+                Section(L10n.t("跳转")) {
+                    actionRow(L10n.t("前往路径"), icon: "location", color: .indigo, action: onGoTo)
+                    actionRow(L10n.t("根目录"), icon: "house", color: .green, action: onRoot)
                 }
             }
-            .navigationTitle("操作")
+            .navigationTitle(L10n.t("操作"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
             }
         }
@@ -850,30 +850,30 @@ struct FileCreateSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(isDir ? "文件夹名称" : "文件名称") {
+                Section(isDir ? L10n.t("文件夹名称") : L10n.t("文件名称")) {
                     TextField(isDir ? "folder_name" : "file.txt", text: $name)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }
             }
-            .navigationTitle(isDir ? "新建文件夹" : "新建文件")
+            .navigationTitle(isDir ? L10n.t("新建文件夹") : L10n.t("新建文件"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("创建") {
+                    Button(L10n.t("创建")) {
                         Task { await create() }
                     }
                     .disabled(isSaving || name.isEmpty)
                 }
             }
-            .alert("错误", isPresented: Binding(
+            .alert(L10n.t("错误"), isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button("好的") { errorMessage = nil }
+                Button(L10n.t("好的")) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }
@@ -920,34 +920,34 @@ struct FileRenameSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("当前名称") {
+                Section(L10n.t("当前名称")) {
                     Text(item.name).foregroundStyle(.secondary)
                 }
-                Section("新名称") {
-                    TextField("输入新名称", text: $newName)
+                Section(L10n.t("新名称")) {
+                    TextField(L10n.t("输入新名称"), text: $newName)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }
             }
-            .navigationTitle("重命名")
+            .navigationTitle(L10n.t("重命名"))
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { newName = item.name }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(L10n.t("保存")) {
                         Task { await rename() }
                     }
                     .disabled(isSaving || newName.isEmpty || newName == item.name)
                 }
             }
-            .alert("错误", isPresented: Binding(
+            .alert(L10n.t("错误"), isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button("好的") { errorMessage = nil }
+                Button(L10n.t("好的")) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }

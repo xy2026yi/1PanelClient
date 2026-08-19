@@ -21,7 +21,7 @@ enum SecurityGate {
         guard httpsOnly, server.isPlainHTTP else { return }
         throw APIError.businessError(
             -1,
-            "已开启「仅允许 HTTPS 连接」：该服务器为 http:// 明文地址，请在 设置 → 安全 关闭该限制，或改用 https:// 地址"
+            L10n.t("已开启「仅允许 HTTPS 连接」：该服务器为 http:// 明文地址，请在 设置 → 安全 关闭该限制，或改用 https:// 地址")
         )
     }
 }

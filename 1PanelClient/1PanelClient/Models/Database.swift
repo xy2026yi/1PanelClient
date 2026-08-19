@@ -127,12 +127,12 @@ nonisolated struct DatabaseItem: Decodable, Identifiable, Hashable {
             return "—"
         }
         if superUser != nil {
-            return isSuperUser ? "超级用户" : "普通用户"
+            return isSuperUser ? L10n.t("超级用户") : L10n.t("普通用户")
         }
         let perm = permission ?? ""
         let ips = permissionIPs ?? ""
         if perm == "%" || perm.isEmpty {
-            return ips.isEmpty ? "所有人(%)" : "指定IP"
+            return ips.isEmpty ? L10n.t("所有人(%)") : L10n.t("指定IP")
         }
         return ips.isEmpty ? perm : ips
     }
@@ -367,10 +367,10 @@ enum MongoPermission: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .dbOwner:   return "数据库所有者"
-        case .read:      return "读取数据"
-        case .readWrite: return "读取和写入数据"
-        case .userAdmin: return "用户管理员"
+        case .dbOwner:   return L10n.t("数据库所有者")
+        case .read:      return L10n.t("读取数据")
+        case .readWrite: return L10n.t("读取和写入数据")
+        case .userAdmin: return L10n.t("用户管理员")
         }
     }
 

@@ -105,10 +105,10 @@ nonisolated struct WebsiteHTTPS: Decodable {
     /// httpConfig 显示名
     var httpConfigDisplay: String {
         switch httpConfig ?? "" {
-        case "HTTPToHTTPS": return "HTTP 自动跳转 HTTPS"
-        case "HTTPOnly":    return "仅 HTTP"
-        case "HTTPSOnly":   return "仅 HTTPS"
-        default:            return httpConfig ?? "默认"
+        case "HTTPToHTTPS": return L10n.t("HTTP 自动跳转 HTTPS")
+        case "HTTPOnly":    return L10n.t("仅 HTTP")
+        case "HTTPSOnly":   return L10n.t("仅 HTTPS")
+        default:            return httpConfig ?? L10n.t("默认")
         }
     }
 }
@@ -171,7 +171,7 @@ nonisolated struct WebsiteProxy: Decodable, Identifiable, Hashable {
 
     var id: String { name ?? UUID().uuidString }
 
-    var displayName: String { name ?? "(未命名)" }
+    var displayName: String { name ?? L10n.t("(未命名)") }
     var displayMatch: String { match ?? "—" }
     var displayProxyPass: String { proxyPass ?? "—" }
 }

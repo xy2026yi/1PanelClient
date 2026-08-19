@@ -51,7 +51,7 @@ struct ManageTab: View {
                     } label: {
                         HStack {
                             Spacer()
-                            Text("移除服务器")
+                            Text(L10n.t("移除服务器"))
                                 .foregroundStyle(.red)
                             Spacer()
                         }
@@ -66,7 +66,7 @@ struct ManageTab: View {
                     } label: {
                         HStack {
                             Spacer()
-                            Text("编辑")
+                            Text(L10n.t("编辑"))
                             Spacer()
                         }
                     }
@@ -86,18 +86,18 @@ struct ManageTab: View {
             }
             // 移除当前服务器前确认（会连带清除 Keychain 中的 API 密钥）
             .confirmationDialog(
-                "移除服务器",
+                L10n.t("移除服务器"),
                 isPresented: $showRemoveServer,
                 titleVisibility: .visible
             ) {
-                Button("移除「\(manager.current?.name ?? "")」", role: .destructive) {
+                Button(L10n.f("移除「%@」", manager.current?.name ?? ""), role: .destructive) {
                     if let server = manager.current {
                         manager.remove(server)
                     }
                 }
-                Button("取消", role: .cancel) {}
+                Button(L10n.t("取消"), role: .cancel) {}
             } message: {
-                Text("将移除当前服务器的连接配置与已保存的 API 密钥，此操作不可恢复。")
+                Text(L10n.t("将移除当前服务器的连接配置与已保存的 API 密钥，此操作不可恢复。"))
             }
         }
         .onChange(of: initialItem) { _, newItem in
@@ -146,7 +146,7 @@ struct ManageTab: View {
                 Spacer()
 
                 if !item.available {
-                    StatusBadge(text: "敬请期待", color: .secondary)
+                    StatusBadge(text: L10n.t("敬请期待"), color: .secondary)
                 }
             }
             .padding(.vertical, 2)
@@ -207,7 +207,7 @@ struct ManageEditView: View {
         NavigationStack {
             List {
                 Section {
-                    Text("隐藏的功能将从管理列表中移除，但不会影响服务器上的实际运行。")
+                    Text(L10n.t("隐藏的功能将从管理列表中移除，但不会影响服务器上的实际运行。"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -239,11 +239,11 @@ struct ManageEditView: View {
                     }
                 }
             }
-            .navigationTitle("自定义功能")
+            .navigationTitle(L10n.t("自定义功能"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") { dismiss() }
+                    Button(L10n.t("完成")) { dismiss() }
                 }
             }
         }
@@ -308,53 +308,53 @@ enum ManageItem: String, Identifiable {
 
     /// 管理页分组（带标题），ManageTab 与「自定义功能」编辑页共用
     static let groups: [(title: String, items: [ManageItem])] = [
-        ("应用", [.apps, .websites, .database, .containers]),
-        ("主机", [.terminal, .files, .monitor, .process, .sshService]),
-        ("安全", [.firewall, .fail2ban, .waf]),
-        ("面板", [.alert, .panelManage, .backupAccount, .cronjob, .logs]),
+        (L10n.t("应用"), [.apps, .websites, .database, .containers]),
+        (L10n.t("主机"), [.terminal, .files, .monitor, .process, .sshService]),
+        (L10n.t("安全"), [.firewall, .fail2ban, .waf]),
+        (L10n.t("面板"), [.alert, .panelManage, .backupAccount, .cronjob, .logs]),
     ]
 
     var title: String {
         switch self {
-        case .apps:        return "应用程序"
-        case .websites:    return "网站"
-        case .database:    return "数据库"
-        case .containers:  return "容器"
-        case .terminal:    return "终端"
-        case .files:       return "文件"
-        case .monitor:     return "监控"
-        case .process:     return "进程"
-        case .sshService:  return "SSH 服务管理"
-        case .firewall:    return "防火墙"
+        case .apps:        return L10n.t("应用程序")
+        case .websites:    return L10n.t("网站")
+        case .database:    return L10n.t("数据库")
+        case .containers:  return L10n.t("容器")
+        case .terminal:    return L10n.t("终端")
+        case .files:       return L10n.t("文件")
+        case .monitor:     return L10n.t("监控")
+        case .process:     return L10n.t("进程")
+        case .sshService:  return L10n.t("SSH 服务管理")
+        case .firewall:    return L10n.t("防火墙")
         case .fail2ban:    return "Fail2ban"
         case .waf:         return "WAF"
-        case .alert:       return "告警通知"
-        case .panelManage: return "面板/服务器管理"
-        case .backupAccount: return "备份账号"
-        case .cronjob:     return "计划任务"
-        case .logs:        return "日志"
+        case .alert:       return L10n.t("告警通知")
+        case .panelManage: return L10n.t("面板/服务器管理")
+        case .backupAccount: return L10n.t("备份账号")
+        case .cronjob:     return L10n.t("计划任务")
+        case .logs:        return L10n.t("日志")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .apps:        return "已安装应用 / 应用商店"
-        case .websites:    return "网站 / SSL 证书"
-        case .database:    return "管理数据库实例"
-        case .containers:  return "Docker 容器"
-        case .terminal:    return "本机终端 / SSH 连接主机"
-        case .files:       return "服务器文件管理"
-        case .monitor:     return "负载 / CPU / 内存 / I/O / 网络"
-        case .process:     return "系统进程监控"
-        case .sshService:  return "面板主机 SSH 服务与配置"
-        case .firewall:    return "防火墙规则"
-        case .fail2ban:    return "SSH 防暴力破解"
-        case .waf:         return "Web 应用防火墙"
-        case .alert:       return "告警规则 / 日志 / 发送方式"
-        case .panelManage: return "重启面板与服务器"
-        case .backupAccount: return "MINIO / WebDAV / SFTP 备份存储"
-        case .cronjob:     return "定时备份与脚本"
-        case .logs:        return "面板 / SSH / 网站日志"
+        case .apps:        return L10n.t("已安装应用 / 应用商店")
+        case .websites:    return L10n.t("网站 / SSL 证书")
+        case .database:    return L10n.t("管理数据库实例")
+        case .containers:  return L10n.t("Docker 容器")
+        case .terminal:    return L10n.t("本机终端 / SSH 连接主机")
+        case .files:       return L10n.t("服务器文件管理")
+        case .monitor:     return L10n.t("负载 / CPU / 内存 / I/O / 网络")
+        case .process:     return L10n.t("系统进程监控")
+        case .sshService:  return L10n.t("面板主机 SSH 服务与配置")
+        case .firewall:    return L10n.t("防火墙规则")
+        case .fail2ban:    return L10n.t("SSH 防暴力破解")
+        case .waf:         return L10n.t("Web 应用防火墙")
+        case .alert:       return L10n.t("告警规则 / 日志 / 发送方式")
+        case .panelManage: return L10n.t("重启面板与服务器")
+        case .backupAccount: return L10n.t("MINIO / WebDAV / SFTP 备份存储")
+        case .cronjob:     return L10n.t("定时备份与脚本")
+        case .logs:        return L10n.t("面板 / SSH / 网站日志")
         }
     }
 

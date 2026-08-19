@@ -33,30 +33,30 @@ struct TerminalHostsView: View {
             hostsSection
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("终端")
+        .navigationTitle(L10n.t("终端"))
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
                 showAddHost = true
             })
-            .accessibilityLabel("添加主机")
+            .accessibilityLabel(L10n.t("添加主机"))
         }
         .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-            Button("好", role: .cancel) {}
+            Button(L10n.t("好"), role: .cancel) {}
         }
         .toastOverlay(message: $vm.toastMessage)
-        .alert("删除主机", isPresented: Binding(
+        .alert(L10n.t("删除主机"), isPresented: Binding(
             get: { vm.pendingDeleteHost != nil },
             set: { if !$0 { vm.pendingDeleteHost = nil } }
         )) {
-            Button("取消", role: .cancel) { vm.pendingDeleteHost = nil }
-            Button("删除", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { vm.pendingDeleteHost = nil }
+            Button(L10n.t("删除"), role: .destructive) {
                 if let host = vm.pendingDeleteHost {
                     Task { await vm.delete(host) }
                 }
             }
         } message: {
-            Text("确定删除主机「\(vm.pendingDeleteHost?.displayName ?? "")」吗？")
+            Text(L10n.f("确定删除主机「%@」吗？", vm.pendingDeleteHost?.displayName ?? ""))
         }
         .navigationDestination(isPresented: $showAddHost) {
             SSHHostEditView(vm: vm, editing: nil)
@@ -93,15 +93,15 @@ struct TerminalHostsView: View {
                 TerminalScreen(
                     server: server,
                     target: .host(cols: 80, rows: 24),
-                    title: localTitle ?? "本机"
+                    title: localTitle ?? L10n.t("本机")
         )
             } label: {
                 HStack(spacing: 12) {
                     IconBadge(systemName: "desktopcomputer", color: .blue)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(localTitle ?? "本机")
+                        Text(localTitle ?? L10n.t("本机"))
                             .font(.body.bold())
-                        Text("面板所在服务器")
+                        Text(L10n.t("面板所在服务器"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -109,9 +109,9 @@ struct TerminalHostsView: View {
                 .padding(.vertical, 4)
             }
         } header: {
-            Text("本机")
+            Text(L10n.t("本机"))
         } footer: {
-            Text("若本机终端无法连接，可将面板服务器地址添加为主机后经 SSH 连接")
+            Text(L10n.t("若本机终端无法连接，可将面板服务器地址添加为主机后经 SSH 连接"))
         }
     }
 
@@ -122,14 +122,14 @@ struct TerminalHostsView: View {
             if vm.isLoading && vm.hosts.isEmpty {
                 HStack {
                     Spacer()
-                    ProgressView("加载中…")
+                    ProgressView(L10n.t("加载中…"))
                     Spacer()
                 }
             } else if vm.hosts.isEmpty {
                 ContentUnavailableView(
-                    "暂无主机",
+                    L10n.t("暂无主机"),
                     systemImage: "rectangle.on.rectangle",
-                    description: Text("点击右下角 + 添加")
+                    description: Text(L10n.t("点击右下角 + 添加"))
                 )
             } else {
                 ForEach(vm.hosts) { host in
@@ -146,20 +146,20 @@ struct TerminalHostsView: View {
                         Button(role: .destructive) {
                             vm.pendingDeleteHost = host
                         } label: {
-                            Label("删除", systemImage: "trash")
+                            Label(L10n.t("删除"), systemImage: "trash")
                         }
 
                         Button {
                             editingHost = host
                         } label: {
-                            Label("编辑", systemImage: "pencil")
+                            Label(L10n.t("编辑"), systemImage: "pencil")
                         }
                         .tint(.blue)
                     }
                 }
             }
         } header: {
-            Text("远程主机")
+            Text(L10n.t("远程主机"))
         }
     }
 
@@ -267,11 +267,11 @@ struct SSHHostEditView: View {
             groupSection
             testSection
         }
-        .navigationTitle(isEditing ? "编辑主机" : "添加主机")
+        .navigationTitle(isEditing ? L10n.t("编辑主机") : L10n.t("添加主机"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("保存") {
+                Button(L10n.t("保存")) {
                     if let req = buildRequest() {
                         Task {
                             isSaving = true
@@ -300,19 +300,19 @@ struct SSHHostEditView: View {
 
     private var basicSection: some View {
         Section {
-            TextField("主机地址", text: $addr)
+            TextField(L10n.t("主机地址"), text: $addr)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            TextField("端口", text: $portText)
+            TextField(L10n.t("端口"), text: $portText)
                 .keyboardType(.numberPad)
-            TextField("用户名", text: $user)
+            TextField(L10n.t("用户名"), text: $user)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            TextField("标题（可选）", text: $name)
-            TextField("描述（可选）", text: $desc)
+            TextField(L10n.t("标题（可选）"), text: $name)
+            TextField(L10n.t("描述（可选）"), text: $desc)
         } header: {
-            Text("基本信息")
+            Text(L10n.t("基本信息"))
         }
     }
 
@@ -320,9 +320,9 @@ struct SSHHostEditView: View {
 
     private var authSection: some View {
         Section {
-            Picker("认证方式", selection: $authMode) {
-                Text("密码认证").tag("password")
-                Text("私钥认证").tag("key")
+            Picker(L10n.t("认证方式"), selection: $authMode) {
+                Text(L10n.t("密码认证")).tag("password")
+                Text(L10n.t("私钥认证")).tag("key")
             }
             .pickerStyle(.segmented)
 
@@ -334,7 +334,7 @@ struct SSHHostEditView: View {
                     .textInputAutocapitalization(.never)
                     .overlay(alignment: .topLeading) {
                         if privateKey.isEmpty {
-                            Text(isEditing ? "私钥（不修改请留空）" : "私钥（粘贴 OPENSSH PRIVATE KEY）")
+                            Text(isEditing ? L10n.t("私钥（不修改请留空）") : L10n.t("私钥（粘贴 OPENSSH PRIVATE KEY）"))
                                 .font(.footnote)
                                 .foregroundStyle(.tertiary)
                                 .padding(.top, 8)
@@ -342,16 +342,16 @@ struct SSHHostEditView: View {
                                 .allowsHitTesting(false)
                         }
                     }
-                SecureField("私钥密码（可选）", text: $passPhrase)
+                SecureField(L10n.t("私钥密码（可选）"), text: $passPhrase)
             } else {
-                SecureField(isEditing ? "密码（不修改请留空）" : "密码", text: $password)
+                SecureField(isEditing ? L10n.t("密码（不修改请留空）") : L10n.t("密码"), text: $password)
             }
 
-            Toggle("记住认证信息", isOn: $rememberPassword)
+            Toggle(L10n.t("记住认证信息"), isOn: $rememberPassword)
         } header: {
-            Text("认证")
+            Text(L10n.t("认证"))
         } footer: {
-            Text("私钥支持粘贴 OPENSSH 格式内容；测试通过后才能保存")
+            Text(L10n.t("私钥支持粘贴 OPENSSH 格式内容；测试通过后才能保存"))
         }
     }
 
@@ -360,9 +360,9 @@ struct SSHHostEditView: View {
     private var groupSection: some View {
         Section {
             if vm.groups.isEmpty {
-                LabeledContent("分组", value: "Default")
+                LabeledContent(L10n.t("分组"), value: "Default")
             } else {
-                Picker("分组", selection: $groupID) {
+                Picker(L10n.t("分组"), selection: $groupID) {
                     ForEach(vm.groups) { group in
                         Text(group.name ?? "Default").tag(group.id)
                     }
@@ -384,7 +384,7 @@ struct SSHHostEditView: View {
                 }
             } label: {
                 HStack {
-                    Label("连接测试", systemImage: "dot.radiowaves.left.and.right")
+                    Label(L10n.t("连接测试"), systemImage: "dot.radiowaves.left.and.right")
                     if isTesting {
                         Spacer()
                         ProgressView()
@@ -394,11 +394,11 @@ struct SSHHostEditView: View {
             .disabled(isTesting || !formValid)
 
             if tested {
-                Label("测试已通过", systemImage: "checkmark.circle.fill")
+                Label(L10n.t("测试已通过"), systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             }
         } footer: {
-            Text("保存前需连接测试通过")
+            Text(L10n.t("保存前需连接测试通过"))
         }
     }
 
@@ -535,14 +535,14 @@ final class SSHHostsViewModel: ObservableObject {
                 as: Bool.self
             )
             if !ok {
-                showAlert(message: "无法连通「\(host.displayName)」，请检查主机状态与认证信息")
+                showAlert(message: L10n.f("无法连通「%@」，请检查主机状态与认证信息", host.displayName))
             }
             return ok
         } catch let err as APIError {
-            showAlert(message: "连接失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("连接失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "连接失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("连接失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -557,16 +557,16 @@ final class SSHHostsViewModel: ObservableObject {
                 as: Bool.self
             )
             if !ok {
-                showAlert(message: "连接测试未通过，请检查地址、端口与认证信息")
+                showAlert(message: L10n.t("连接测试未通过，请检查地址、端口与认证信息"))
             } else {
-                showToast("连接测试通过")
+                showToast(L10n.t("连接测试通过"))
             }
             return ok
         } catch let err as APIError {
-            showAlert(message: "测试失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("测试失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "测试失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("测试失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -580,14 +580,14 @@ final class SSHHostsViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showToast(isCreate ? "主机已添加" : "主机已更新")
+            showToast(isCreate ? L10n.t("主机已添加") : L10n.t("主机已更新"))
             await loadHosts()
             return true
         } catch let err as APIError {
-            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "保存失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -600,12 +600,12 @@ final class SSHHostsViewModel: ObservableObject {
                 body: SSHHostDeleteRequest(ids: [host.id]),
                 as: EmptyResponse.self
             )
-            showToast("主机「\(host.displayName)」已删除")
+            showToast(L10n.f("主机「%@」已删除", host.displayName))
             await loadHosts()
         } catch let err as APIError {
-            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "删除失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
         }
     }
 

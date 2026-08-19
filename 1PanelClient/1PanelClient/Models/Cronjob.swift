@@ -25,14 +25,14 @@ enum CronjobType: String, CaseIterable, Identifiable, Codable {
 
     var displayName: String {
         switch self {
-        case .shell:       return "Shell 脚本"
-        case .app:         return "备份应用"
-        case .website:     return "备份网站"
-        case .database:    return "备份数据库"
-        case .snapshot:    return "系统快照"
-        case .clean:       return "缓存清理"
-        case .ntp:         return "同步服务器时间"
-        case .syncIpGroup: return "同步 WAF IP 组"
+        case .shell:       return L10n.t("Shell 脚本")
+        case .app:         return L10n.t("备份应用")
+        case .website:     return L10n.t("备份网站")
+        case .database:    return L10n.t("备份数据库")
+        case .snapshot:    return L10n.t("系统快照")
+        case .clean:       return L10n.t("缓存清理")
+        case .ntp:         return L10n.t("同步服务器时间")
+        case .syncIpGroup: return L10n.t("同步 WAF IP 组")
         }
     }
 
@@ -147,16 +147,16 @@ nonisolated struct Cronjob: Decodable, Identifiable, Hashable {
     /// 保留份数
     var retainCopiesDisplay: String {
         guard let n = retainCopies, n > 0 else { return "—" }
-        return "\(n) 份"
+        return L10n.f("%ld 份", n)
     }
 
     /// 上次执行状态中文
     var lastStatusDisplay: String {
         switch (lastRecordStatus ?? "").lowercased() {
-        case "success":  return "成功"
-        case "failed":   return "失败"
-        case "waiting":  return "等待中"
-        case "running":  return "执行中"
+        case "success":  return L10n.t("成功")
+        case "failed":   return L10n.t("失败")
+        case "waiting":  return L10n.t("等待中")
+        case "running":  return L10n.t("执行中")
         default:         return lastRecordStatus ?? "—"
         }
     }
@@ -179,7 +179,7 @@ nonisolated struct Cronjob: Decodable, Identifiable, Hashable {
             return items.joined(separator: ", ")
         }
         let raw = args ?? ""
-        return raw.isEmpty ? "默认（无）" : raw.replacingOccurrences(of: ",", with: ", ")
+        return raw.isEmpty ? L10n.t("默认（无）") : raw.replacingOccurrences(of: ",", with: ", ")
     }
 }
 
@@ -335,11 +335,11 @@ nonisolated struct CronjobRecord: Decodable, Identifiable, Hashable {
     /// 状态中文
     var statusDisplay: String {
         switch (status ?? "").lowercased() {
-        case "success":  return "成功"
-        case "failed":   return "失败"
-        case "waiting":  return "等待中"
-        case "running":  return "执行中"
-        default:         return status ?? "未知"
+        case "success":  return L10n.t("成功")
+        case "failed":   return L10n.t("失败")
+        case "waiting":  return L10n.t("等待中")
+        case "running":  return L10n.t("执行中")
+        default:         return status ?? L10n.t("未知")
         }
     }
 
@@ -348,9 +348,9 @@ nonisolated struct CronjobRecord: Decodable, Identifiable, Hashable {
         guard let ms = interval, ms > 0 else { return "—" }
         let secs = ms / 1000
         if secs >= 60 {
-            return "\(secs / 60) 分 \(secs % 60) 秒"
+            return L10n.f("%ld 分 %ld 秒", secs / 60, secs % 60)
         }
-        return "\(secs) 秒"
+        return L10n.f("%ld 秒", secs)
     }
 }
 

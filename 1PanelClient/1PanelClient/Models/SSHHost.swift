@@ -31,7 +31,7 @@ struct SSHHostInfo: Decodable, Identifiable, Hashable {
     /// 行显示名：优先标题，否则 地址
     var displayName: String {
         if let n = name, !n.isEmpty { return n }
-        return addr ?? "未知主机"
+        return addr ?? L10n.t("未知主机")
     }
 
     var endpoint: String {

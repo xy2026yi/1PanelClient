@@ -174,7 +174,7 @@ final class ProcessMonitor: ObservableObject {
     func connect() {
         guard !isConnecting, !isConnected else { return }
         guard let url = makeWebSocketURL() else {
-            errorMessage = "无法构造进程监控连接地址"
+            errorMessage = L10n.t("无法构造进程监控连接地址")
             return
         }
         var request = URLRequest(url: url)
@@ -265,7 +265,7 @@ final class ProcessMonitor: ObservableObject {
             let _: EmptyResponse = try await apiClient.send(
                 path: APIEndpoint.processStop.path, body: req, as: EmptyResponse.self
             )
-            successMessage = "进程 \(pid) 已结束"
+            successMessage = L10n.f("进程 %ld 已结束", pid)
             requestCurrent()
         } catch {
             errorMessage = error.localizedDescription
@@ -326,16 +326,16 @@ final class ProcessMonitor: ObservableObject {
         if let urlErr = error as? URLError {
             switch urlErr.code {
             case .cannotConnectToHost:
-                errorMessage = "无法连接到主机"
+                errorMessage = L10n.t("无法连接到主机")
             case .timedOut:
-                errorMessage = "连接超时"
+                errorMessage = L10n.t("连接超时")
             case .networkConnectionLost:
-                errorMessage = "网络连接已断开"
+                errorMessage = L10n.t("网络连接已断开")
             default:
-                errorMessage = "连接已断开：\(urlErr.localizedDescription)"
+                errorMessage = L10n.f("连接已断开：%@", urlErr.localizedDescription)
             }
         } else {
-            errorMessage = "连接已断开：\(error.localizedDescription)"
+            errorMessage = L10n.f("连接已断开：%@", error.localizedDescription)
         }
     }
 

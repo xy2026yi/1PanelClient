@@ -75,7 +75,7 @@ final class SSHViewModel: ObservableObject {
         let req = SSHOperateRequest(operation: operation)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.sshOperate.path, body: req, as: EmptyResponse.self)
-            successMessage = "操作成功"
+            successMessage = L10n.t("操作成功")
             await loadConfig()
         } catch {
             errorMessage = error.localizedDescription
@@ -88,7 +88,7 @@ final class SSHViewModel: ObservableObject {
         let req = SSHUpdateRequest(key: key, oldValue: oldValue, newValue: newValue)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.sshUpdate.path, body: req, as: EmptyResponse.self)
-            successMessage = "配置已更新"
+            successMessage = L10n.t("配置已更新")
             await loadConfig()
         } catch {
             errorMessage = error.localizedDescription
@@ -120,16 +120,16 @@ struct SSHView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.config == nil {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if let config = vm.config {
                 content(config: config)
             } else if let err = vm.errorMessage {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(err)
                 } actions: {
-                    Button("重试") { Task { await vm.loadConfig() } }
+                    Button(L10n.t("重试")) { Task { await vm.loadConfig() } }
                 }
             }
         }
@@ -137,11 +137,11 @@ struct SSHView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadConfig() }
         .task { await vm.loadConfig() }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { vm.successMessage != nil || vm.errorMessage != nil },
             set: { _ in vm.successMessage = nil; vm.errorMessage = nil }
         )) {
-            Button("好的") { vm.successMessage = nil; vm.errorMessage = nil }
+            Button(L10n.t("好的")) { vm.successMessage = nil; vm.errorMessage = nil }
         } message: {
             Text(vm.errorMessage ?? vm.successMessage ?? "")
         }
@@ -152,25 +152,25 @@ struct SSHView: View {
                 set: { if !$0 { pendingAction = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingAction = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 let op = pendingAction
                 pendingAction = nil
                 if let op { Task { await vm.operate(op) } }
             }
         } message: {
             if let action = pendingAction {
-                Text("将对 SSH 进行 \(sshActionDisplayName(action)) 操作，是否继续？")
+                Text(L10n.f("将对 SSH 进行 %@ 操作，是否继续？", sshActionDisplayName(action)))
             }
         }
         .sheet(item: $editingField) { field in
             switch field {
             case .port:
-                SSHFieldSheet(title: "连接端口", value: vm.config?.port ?? "22", placeholder: "22") { newVal in
+                SSHFieldSheet(title: L10n.t("连接端口"), value: vm.config?.port ?? "22", placeholder: "22") { newVal in
                     Task { await vm.update(key: "Port", oldValue: vm.config?.port ?? "", newValue: newVal) }
                 }
             case .listenAddress:
-                SSHFieldSheet(title: "监听地址", value: vm.config?.listenAddress ?? "", placeholder: "0.0.0.0,::") { newVal in
+                SSHFieldSheet(title: L10n.t("监听地址"), value: vm.config?.listenAddress ?? "", placeholder: "0.0.0.0,::") { newVal in
                     Task { await vm.update(key: "ListenAddress", oldValue: vm.config?.listenAddress ?? "", newValue: newVal) }
                 }
             }
@@ -179,11 +179,11 @@ struct SSHView: View {
 
     private func sshActionDisplayName(_ action: String) -> String {
         switch action {
-        case "stop":    return "停止"
-        case "start":   return "启动"
-        case "restart": return "重启"
-        case "enable":  return "开启自启"
-        case "disable": return "关闭自启"
+        case "stop":    return L10n.t("停止")
+        case "start":   return L10n.t("启动")
+        case "restart": return L10n.t("重启")
+        case "enable":  return L10n.t("开启自启")
+        case "disable": return L10n.t("关闭自启")
         default:        return action
         }
     }
@@ -194,24 +194,24 @@ struct SSHView: View {
             // 服务管理
             ServiceStatusCard(
                 title: "SSH",
-                statusText: config.isActive ? "运行中" : "已停止",
+                statusText: config.isActive ? L10n.t("运行中") : L10n.t("已停止"),
                 statusColor: config.isActive ? .green : .red,
                 isOperating: vm.isOperating,
                 isExpanded: $isServiceExpanded,
                 actions: [
                     ServiceAction(
-                        title: config.isActive ? "停止" : "启动",
+                        title: config.isActive ? L10n.t("停止") : L10n.t("启动"),
                         icon: config.isActive ? "stop.fill" : "play.fill",
                         color: config.isActive ? .orange : .green
                     ) { pendingAction = config.isActive ? "stop" : "start" },
-                    ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+                    ServiceAction(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
                         pendingAction = "restart"
                     }
                 ]
             ) {
                 IconBadge(systemName: "terminal", color: .blue, size: 44)
             } extra: {
-                Toggle("开机自启", isOn: Binding(
+                Toggle(L10n.t("开机自启"), isOn: Binding(
                     get: { config.autoStart },
                     set: { newVal in
                         pendingAction = newVal ? "enable" : "disable"
@@ -224,7 +224,7 @@ struct SSHView: View {
             Section {
                 Button { editingField = .port } label: {
                     HStack {
-                        Text("连接端口")
+                        Text(L10n.t("连接端口"))
                         Spacer()
                         Text(config.port)
                             .foregroundStyle(.secondary)
@@ -238,9 +238,9 @@ struct SSHView: View {
 
                 Button { editingField = .listenAddress } label: {
                     HStack {
-                        Text("监听地址")
+                        Text(L10n.t("监听地址"))
                         Spacer()
-                        Text(config.listenAddress.isEmpty ? "默认" : config.listenAddress)
+                        Text(config.listenAddress.isEmpty ? L10n.t("默认") : config.listenAddress)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                         Image(systemName: "chevron.right")
@@ -251,20 +251,20 @@ struct SSHView: View {
                 }
                 .buttonStyle(.plain)
 
-                Picker("root 用户", selection: Binding(
+                Picker(L10n.t("root 用户"), selection: Binding(
                     get: { config.permitRootLogin },
                     set: { newVal in
                         Task { await vm.update(key: "PermitRootLogin", oldValue: config.permitRootLogin, newValue: newVal) }
                     }
                 )) {
-                    Text("允许 SSH 登陆").tag("yes")
-                    Text("禁止 SSH 登陆").tag("no")
-                    Text("仅允许密钥登陆").tag("without-password")
-                    Text("仅允许预定义命令").tag("forced-commands-only")
+                    Text(L10n.t("允许 SSH 登陆")).tag("yes")
+                    Text(L10n.t("禁止 SSH 登陆")).tag("no")
+                    Text(L10n.t("仅允许密钥登陆")).tag("without-password")
+                    Text(L10n.t("仅允许预定义命令")).tag("forced-commands-only")
                 }
                 .disabled(vm.isOperating)
 
-                Toggle("密码认证", isOn: Binding(
+                Toggle(L10n.t("密码认证"), isOn: Binding(
                     get: { config.passwordAuthentication == "yes" },
                     set: { newVal in
                         Task { await vm.update(key: "PasswordAuthentication", oldValue: config.passwordAuthentication, newValue: newVal ? "yes" : "no") }
@@ -272,7 +272,7 @@ struct SSHView: View {
                 ))
                 .disabled(vm.isOperating)
 
-                Toggle("密钥认证", isOn: Binding(
+                Toggle(L10n.t("密钥认证"), isOn: Binding(
                     get: { config.pubkeyAuthentication == "yes" },
                     set: { newVal in
                         Task { await vm.update(key: "PubkeyAuthentication", oldValue: config.pubkeyAuthentication, newValue: newVal ? "yes" : "no") }
@@ -280,7 +280,7 @@ struct SSHView: View {
                 ))
                 .disabled(vm.isOperating)
 
-                Toggle("反向解析", isOn: Binding(
+                Toggle(L10n.t("反向解析"), isOn: Binding(
                     get: { config.useDNS == "yes" },
                     set: { newVal in
                         Task { await vm.update(key: "UseDNS", oldValue: config.useDNS, newValue: newVal ? "yes" : "no") }
@@ -288,7 +288,7 @@ struct SSHView: View {
                 ))
                 .disabled(vm.isOperating)
             } header: {
-                SectionLabel(title: "基础配置", systemImage: "slider.horizontal.3")
+                SectionLabel(title: L10n.t("基础配置"), systemImage: "slider.horizontal.3")
             }
 
             // 全部配置
@@ -296,7 +296,7 @@ struct SSHView: View {
                 NavigationLink {
                     SSHFullConfigView(server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
                 } label: {
-                    Label("全部配置", systemImage: "doc.text")
+                    Label(L10n.t("全部配置"), systemImage: "doc.text")
                 }
             }
         }
@@ -321,7 +321,7 @@ struct SSHFieldSheet: View {
                     TextField(placeholder, text: $input)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                        .keyboardType(title == "连接端口" ? .numberPad : .default)
+                        .keyboardType(title == L10n.t("连接端口") ? .numberPad : .default)
                 }
             }
             .navigationTitle(title)
@@ -329,10 +329,10 @@ struct SSHFieldSheet: View {
             .onAppear { input = value }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(L10n.t("保存")) {
                         onSave(input)
                         dismiss()
                     }
@@ -366,7 +366,7 @@ struct SSHFullConfigView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else {
                 TextEditor(text: $configText)
                     .font(.system(.caption, design: .monospaced))
@@ -378,18 +378,18 @@ struct SSHFullConfigView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("保存") {
+                Button(L10n.t("保存")) {
                     Task { await save() }
                 }
                 .disabled(isSaving || isLoading)
             }
         }
         .task { await loadConfig() }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
@@ -413,7 +413,7 @@ struct SSHFullConfigView: View {
         let req = SSHFileUpdateRequest(key: "sshdConf", value: configText)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.sshFileUpdate.path, body: req, as: EmptyResponse.self)
-            successMessage = "已保存"
+            successMessage = L10n.t("已保存")
         } catch {
             errorMessage = error.localizedDescription
         }

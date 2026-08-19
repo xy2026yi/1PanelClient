@@ -201,8 +201,8 @@ final class TerminalSession: ObservableObject {
     func connect() {
         guard !isConnecting, !isConnected else { return }
         guard let url = makeWebSocketURL() else {
-            errorMessage = "无法构造终端连接地址"
-            emit("\u{1B}[31m无法构造终端连接地址\u{1B}[0m\r\n")
+            errorMessage = L10n.t("无法构造终端连接地址")
+            emit("\u{1B}[31m" + L10n.t("无法构造终端连接地址") + "\u{1B}[0m\r\n")
             return
         }
         var request = URLRequest(url: url)
@@ -360,9 +360,9 @@ final class TerminalSession: ObservableObject {
         isConnecting = false
         var msg: String
         if let urlErr = error as? URLError {
-            msg = "连接已断开 [code: \(urlErr.code.rawValue)]\n\(urlErr.localizedDescription)"
+            msg = L10n.f("连接已断开 [code: %ld]\n%@", urlErr.code.rawValue, urlErr.localizedDescription)
         } else {
-            msg = "连接已断开：\(error.localizedDescription)"
+            msg = L10n.f("连接已断开：%@", error.localizedDescription)
         }
         errorMessage = msg
         emit("\r\n\u{1B}[31m\(msg)\u{1B}[0m\r\n")
@@ -379,7 +379,7 @@ final class TerminalSession: ObservableObject {
             try? await task.send(.string(heartbeat))
             task.sendPing { [weak self] err in
                 guard let self, let err else { return }
-                let msg = "\r\n\u{1B}[33mping 失败：\(err.localizedDescription)\u{1B}[0m\r\n"
+                let msg = "\r\n\u{1B}[33m" + L10n.f("ping 失败：%@", err.localizedDescription) + "\u{1B}[0m\r\n"
                 Task { @MainActor in
                     self.emit(msg)
                 }

@@ -175,9 +175,9 @@ struct FirewallView: View {
                 } else {
                     Section {
                         ContentUnavailableView(
-                            "暂无端口规则",
+                            L10n.t("暂无端口规则"),
                             systemImage: "flame",
-                            description: Text("点击右下角 + 添加规则")
+                            description: Text(L10n.t("点击右下角 + 添加规则"))
                         )
                         .listRowBackground(Color.clear)
                     }
@@ -194,11 +194,11 @@ struct FirewallView: View {
                         .buttonStyle(.plain)
                     }
                 } header: {
-                    SectionLabel(title: "端口规则（\(vm.rules.count)）", systemImage: "list.bullet.rectangle")
+                    SectionLabel(title: L10n.f("端口规则（%ld）", vm.rules.count), systemImage: "list.bullet.rectangle")
                 }
             }
         }
-        .navigationTitle("防火墙")
+        .navigationTitle(L10n.t("防火墙"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.refresh() }
         .task {
@@ -236,13 +236,13 @@ struct FirewallView: View {
             set: { if !$0 { actionRule = nil } }
         )) {
             ActionBottomSheet(
-                title: actionRule?.port ?? "端口规则",
+                title: actionRule?.port ?? L10n.t("端口规则"),
                 items: [
-                    ActionMenuItem(title: "修改", icon: "pencil", color: .blue) {
+                    ActionMenuItem(title: L10n.t("修改"), icon: "pencil", color: .blue) {
                         let r = actionRule
                         editingRule = r
                     },
-                    ActionMenuItem(title: "删除", icon: "trash", color: .red, role: .destructive) {
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         pendingDeleteRule = actionRule
                     },
                 ],
@@ -252,19 +252,19 @@ struct FirewallView: View {
             .presentationDragIndicator(.visible)
         }
         .alert(
-            pendingDeleteRule.map { "删除端口规则 \($0.port ?? "") ？" } ?? "删除端口规则？",
+            pendingDeleteRule.map { L10n.f("删除端口规则 %@ ？", $0.port ?? "") } ?? L10n.t("删除端口规则？"),
             isPresented: Binding(
                 get: { pendingDeleteRule != nil },
                 set: { if !$0 { pendingDeleteRule = nil } }
             )
         ) {
-            Button("删除", role: .destructive) {
+            Button(L10n.t("删除"), role: .destructive) {
                 if let rule = pendingDeleteRule {
                     pendingDeleteRule = nil
                     Task { await vm.deleteRule(rule) }
                 }
             }
-            Button("取消", role: .cancel) { pendingDeleteRule = nil }
+            Button(L10n.t("取消"), role: .cancel) { pendingDeleteRule = nil }
         }
         .alert(
             pendingUFWOp.map { opTitle($0) } ?? "",
@@ -273,17 +273,17 @@ struct FirewallView: View {
                 set: { if !$0 { pendingUFWOp = nil } }
             )
         ) {
-            Button("立即重启 Docker") {
+            Button(L10n.t("立即重启 Docker")) {
                 let op = pendingUFWOp; pendingUFWOp = nil
                 if let op { Task { await vm.operateUFW(op, withDockerRestart: true) } }
             }
-            Button("稍后手动重启") {
+            Button(L10n.t("稍后手动重启")) {
                 let op = pendingUFWOp; pendingUFWOp = nil
                 if let op { Task { await vm.operateUFW(op, withDockerRestart: false) } }
             }
-            Button("取消", role: .cancel) { pendingUFWOp = nil }
+            Button(L10n.t("取消"), role: .cancel) { pendingUFWOp = nil }
         } message: {
-            Text("启用/停用防火墙可能影响 Docker 网络连通性。是否立即重启 Docker？")
+            Text(L10n.t("启用/停用防火墙可能影响 Docker 网络连通性。是否立即重启 Docker？"))
         }
     }
 
@@ -305,7 +305,7 @@ struct FirewallView: View {
                             }
                             HStack(spacing: 4) {
                                 StatusBadge(
-                                    text: (base.isActive ?? false) ? "运行中" : "已停止",
+                                    text: (base.isActive ?? false) ? L10n.t("运行中") : L10n.t("已停止"),
                                     color: (base.isActive ?? false) ? .green : .red
                                 )
                             }
@@ -330,14 +330,14 @@ struct FirewallView: View {
                     if statusExpanded {
                         HStack(spacing: 8) {
                             firewallActionButton(
-                                title: (base.isActive ?? false) ? "关闭" : "开启",
+                                title: (base.isActive ?? false) ? L10n.t("关闭") : L10n.t("开启"),
                                 icon: (base.isActive ?? false) ? "stop.fill" : "play.fill",
                                 color: (base.isActive ?? false) ? .red : .green
                             ) {
                                 pendingUFWOp = (base.isActive ?? false) ? "stop" : "start"
                             }
                             firewallActionButton(
-                                title: "重启",
+                                title: L10n.t("重启"),
                                 icon: "arrow.triangle.2.circlepath",
                                 color: .orange
                             ) {
@@ -353,7 +353,7 @@ struct FirewallView: View {
                         get: { base.pingBlocked },
                         set: { block in Task { await vm.togglePing(block) } }
                     )) {
-                        Label("禁 ping", systemImage: "antenna.radiowaves.left.and.right.slash")
+                        Label(L10n.t("禁 ping"), systemImage: "antenna.radiowaves.left.and.right.slash")
                     }
                     .disabled(vm.isOperating || (base.isActive != true))
                 } else {
@@ -361,9 +361,9 @@ struct FirewallView: View {
                         Image(systemName: "exclamationmark.shield")
                             .font(.system(size: 36))
                             .foregroundStyle(.orange)
-                        Text("未检测到防火墙")
+                        Text(L10n.t("未检测到防火墙"))
                             .font(.headline)
-                        Text("请在服务器上安装 ufw / firewalld 后使用。")
+                        Text(L10n.t("请在服务器上安装 ufw / firewalld 后使用。"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -380,10 +380,10 @@ struct FirewallView: View {
 
     private func opTitle(_ op: String) -> String {
         switch op {
-        case "start":   return "启动防火墙"
-        case "stop":    return "停用防火墙"
-        case "restart": return "重启防火墙"
-        default:        return "操作防火墙"
+        case "start":   return L10n.t("启动防火墙")
+        case "stop":    return L10n.t("停用防火墙")
+        case "restart": return L10n.t("重启防火墙")
+        default:        return L10n.t("操作防火墙")
         }
     }
 
@@ -430,7 +430,7 @@ struct FirewallRuleRow: View {
                 strategyBadge(rule.strategy)
             }
             if let addr = rule.address, !addr.isEmpty {
-                Text("来源：\(addr)")
+                Text(L10n.f("来源：%@", addr))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -447,10 +447,10 @@ struct FirewallRuleRow: View {
     @ViewBuilder
     private func strategyBadge(_ s: String?) -> some View {
         switch s?.lowercased() {
-        case "accept", "允许":
-            StatusBadge(text: "允许", color: .green, icon: "checkmark")
-        case "drop", "拒绝":
-            StatusBadge(text: "拒绝", color: .red, icon: "xmark")
+        case "accept", L10n.t("允许"):
+            StatusBadge(text: L10n.t("允许"), color: .green, icon: "checkmark")
+        case "drop", L10n.t("拒绝"):
+            StatusBadge(text: L10n.t("拒绝"), color: .red, icon: "xmark")
         default:
             if let s { StatusBadge(text: s, color: .secondary) }
         }
@@ -471,7 +471,7 @@ struct FirewallAddRuleView: View {
     @State private var saving = false
 
     private let protos = ["tcp", "udp"]
-    private let strategies = [("accept", "允许"), ("drop", "拒绝")]
+    private let strategies = [("accept", L10n.t("允许")), ("drop", L10n.t("拒绝"))]
 
     private var isValid: Bool {
         !port.trimmingCharacters(in: .whitespaces).isEmpty
@@ -480,44 +480,44 @@ struct FirewallAddRuleView: View {
     var body: some View {
         Form {
             Section {
-                TextField("端口", text: $port)
+                TextField(L10n.t("端口"), text: $port)
                     .keyboardType(.numbersAndPunctuation)
                     .autocorrectionDisabled()
-                Text("单个端口如 8080，或范围如 3000-3100。")
+                Text(L10n.t("单个端口如 8080，或范围如 3000-3100。"))
                     .font(.caption).foregroundStyle(.secondary)
-            } header: { SectionLabel(title: "端口", systemImage: "number") }
+            } header: { SectionLabel(title: L10n.t("端口"), systemImage: "number") }
 
             Section {
-                Picker("协议", selection: $proto) {
+                Picker(L10n.t("协议"), selection: $proto) {
                     ForEach(protos, id: \.self) { Text($0.uppercased()).tag($0) }
                 }
                 .pickerStyle(.segmented)
-            } header: { SectionLabel(title: "协议", systemImage: "network") }
+            } header: { SectionLabel(title: L10n.t("协议"), systemImage: "network") }
 
             Section {
-                Picker("策略", selection: $strategy) {
+                Picker(L10n.t("策略"), selection: $strategy) {
                     ForEach(strategies, id: \.0) { Text($1).tag($0) }
                 }
                 .pickerStyle(.segmented)
-            } header: { SectionLabel(title: "策略", systemImage: "hand.raised") }
+            } header: { SectionLabel(title: L10n.t("策略"), systemImage: "hand.raised") }
 
             Section {
-                TextField("IP / CIDR，留空=任意", text: $address)
+                TextField(L10n.t("IP / CIDR，留空=任意"), text: $address)
                     .keyboardType(.numbersAndPunctuation)
                     .autocorrectionDisabled()
-                Text("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。")
+                Text(L10n.t("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。"))
                     .font(.caption).foregroundStyle(.secondary)
-            } header: { SectionLabel(title: "来源地址", systemImage: "location") }
+            } header: { SectionLabel(title: L10n.t("来源地址"), systemImage: "location") }
 
             Section {
-                TextField("备注（可选）", text: $description)
-            } header: { SectionLabel(title: "备注", systemImage: "text.alignleft") }
+                TextField(L10n.t("备注（可选）"), text: $description)
+            } header: { SectionLabel(title: L10n.t("备注"), systemImage: "text.alignleft") }
         }
-        .navigationTitle("添加端口规则")
+        .navigationTitle(L10n.t("添加端口规则"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("添加") {
+                Button(L10n.t("添加")) {
                     Task {
                         saving = true
                         let ok = await vm.addRule(
@@ -551,7 +551,7 @@ struct FirewallEditRuleView: View {
     @State private var saving = false
 
     private let protos = ["tcp", "udp"]
-    private let strategies = [("accept", "允许"), ("drop", "拒绝")]
+    private let strategies = [("accept", L10n.t("允许")), ("drop", L10n.t("拒绝"))]
 
     private var isValid: Bool {
         !port.trimmingCharacters(in: .whitespaces).isEmpty
@@ -560,44 +560,44 @@ struct FirewallEditRuleView: View {
     var body: some View {
         Form {
             Section {
-                TextField("端口", text: $port)
+                TextField(L10n.t("端口"), text: $port)
                     .keyboardType(.numbersAndPunctuation)
                     .autocorrectionDisabled()
-                Text("单个端口如 8080，或范围如 3000-3100。")
+                Text(L10n.t("单个端口如 8080，或范围如 3000-3100。"))
                     .font(.caption).foregroundStyle(.secondary)
-            } header: { SectionLabel(title: "端口", systemImage: "number") }
+            } header: { SectionLabel(title: L10n.t("端口"), systemImage: "number") }
 
             Section {
-                Picker("协议", selection: $proto) {
+                Picker(L10n.t("协议"), selection: $proto) {
                     ForEach(protos, id: \.self) { Text($0.uppercased()).tag($0) }
                 }
                 .pickerStyle(.segmented)
-            } header: { SectionLabel(title: "协议", systemImage: "network") }
+            } header: { SectionLabel(title: L10n.t("协议"), systemImage: "network") }
 
             Section {
-                Picker("策略", selection: $strategy) {
+                Picker(L10n.t("策略"), selection: $strategy) {
                     ForEach(strategies, id: \.0) { Text($1).tag($0) }
                 }
                 .pickerStyle(.segmented)
-            } header: { SectionLabel(title: "策略", systemImage: "hand.raised") }
+            } header: { SectionLabel(title: L10n.t("策略"), systemImage: "hand.raised") }
 
             Section {
-                TextField("IP / CIDR，留空=任意", text: $address)
+                TextField(L10n.t("IP / CIDR，留空=任意"), text: $address)
                     .keyboardType(.numbersAndPunctuation)
                     .autocorrectionDisabled()
-                Text("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。")
+                Text(L10n.t("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。"))
                     .font(.caption).foregroundStyle(.secondary)
-            } header: { SectionLabel(title: "来源地址", systemImage: "location") }
+            } header: { SectionLabel(title: L10n.t("来源地址"), systemImage: "location") }
 
             Section {
-                TextField("备注（可选）", text: $description)
-            } header: { SectionLabel(title: "备注", systemImage: "text.alignleft") }
+                TextField(L10n.t("备注（可选）"), text: $description)
+            } header: { SectionLabel(title: L10n.t("备注"), systemImage: "text.alignleft") }
         }
-        .navigationTitle("修改端口规则")
+        .navigationTitle(L10n.t("修改端口规则"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("保存") {
+                Button(L10n.t("保存")) {
                     Task {
                         saving = true
                         let ok = await vm.updateRule(

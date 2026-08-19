@@ -130,7 +130,7 @@ final class APIClient {
                     return empty
                 }
                 // 非集合类型的 data:null 无法回退空值：给出明确提示而不是空 message 的「业务错误200」
-                throw APIError.businessError(200, "接口未返回数据")
+                throw APIError.businessError(200, L10n.t("接口未返回数据"))
             }
             #if DEBUG
             Logger(subsystem: "com.xy.1PanelClient.debug", category: "api")
@@ -221,11 +221,11 @@ final class APIClient {
             throw APIError.htmlBlocked
         }
         guard (200...299).contains(http.statusCode) else {
-            throw APIError.httpError(http.statusCode, "图标请求失败")
+            throw APIError.httpError(http.statusCode, L10n.t("图标请求失败"))
         }
         // 防御：若返回 JSON 错误体（业务错误），抛出
         if let ct = http.value(forHTTPHeaderField: "Content-Type"), ct.contains("application/json") {
-            throw APIError.businessError(500, "图标接口返回 JSON")
+            throw APIError.businessError(500, L10n.t("图标接口返回 JSON"))
         }
         return data
     }
@@ -299,7 +299,7 @@ final class APIClient {
         // 解析业务信封（如 {code:200, message:"1 files upload success"}）
         if let wrapped = try? JSONDecoder().decode(APIResponse<EmptyResponse>.self, from: data) {
             if !wrapped.isSuccess {
-                throw APIError.businessError(wrapped.code, wrapped.message ?? "上传失败")
+                throw APIError.businessError(wrapped.code, wrapped.message ?? L10n.t("上传失败"))
             }
         }
     }
@@ -346,7 +346,7 @@ final class APIClient {
             throw APIError.htmlBlocked
         }
         guard (200...299).contains(http.statusCode) else {
-            throw APIError.httpError(http.statusCode, "下载失败")
+            throw APIError.httpError(http.statusCode, L10n.t("下载失败"))
         }
 
         let totalSize = http.expectedContentLength
@@ -438,7 +438,7 @@ final class APIClient {
                         return
                     }
                     if !(200...299).contains(http.statusCode) {
-                        continuation.finish(throwing: APIError.httpError(http.statusCode, "日志流请求失败"))
+                        continuation.finish(throwing: APIError.httpError(http.statusCode, L10n.t("日志流请求失败")))
                         return
                     }
                     // 逐行读取 SSE 数据

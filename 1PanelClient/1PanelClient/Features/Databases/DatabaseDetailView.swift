@@ -246,7 +246,7 @@ struct DatabaseDetailView: View {
             }
             deleteSection
         }
-        .navigationTitle(vm.database.name ?? "数据库")
+        .navigationTitle(vm.database.name ?? L10n.t("数据库"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showBackup) {
             BackupListView(target: backupTarget)
@@ -258,7 +258,7 @@ struct DatabaseDetailView: View {
             switch sheet {
             case .changePassword:
                 ChangePasswordSheet(
-                    title: "修改密码",
+                    title: L10n.t("修改密码"),
                     currentPassword: vm.database.password
                 ) { newPwd in
                     Task {
@@ -292,11 +292,11 @@ struct DatabaseDetailView: View {
                 }
             case .delete:
                 TextInputConfirmSheet(
-                    title: "删除数据库",
-                    message: "此操作不可恢复。请输入数据库名称「\(vm.database.name ?? "")」以确认删除。",
+                    title: L10n.t("删除数据库"),
+                    message: L10n.f("此操作不可恢复。请输入数据库名称「%@」以确认删除。", vm.database.name ?? ""),
                     expectedText: vm.database.name ?? "",
-                    fieldLabel: "确认名称",
-                    fieldPlaceholder: "数据库名称"
+                    fieldLabel: L10n.t("确认名称"),
+                    fieldPlaceholder: L10n.t("数据库名称")
                 ) {
                     Task {
                         let ok = await vm.delete(forceDelete: forceDeleteOption, deleteBackup: deleteBackupOption)
@@ -306,9 +306,9 @@ struct DatabaseDetailView: View {
                         }
                     }
                 } options: {
-                    Section("选项") {
-                        Toggle("强制删除", isOn: $forceDeleteOption)
-                        Toggle("删除备份", isOn: $deleteBackupOption)
+                    Section(L10n.t("选项")) {
+                        Toggle(L10n.t("强制删除"), isOn: $forceDeleteOption)
+                        Toggle(L10n.t("删除备份"), isOn: $deleteBackupOption)
                     }
                 }
             }
@@ -319,32 +319,32 @@ struct DatabaseDetailView: View {
 
     private var infoSection: some View {
         Section {
-            InfoRow(key: "名称", value: vm.database.name ?? "-")
+            InfoRow(key: L10n.t("名称"), value: vm.database.name ?? "-")
             if let u = vm.database.username, !u.isEmpty {
-                InfoRow(key: "用户名", value: u)
+                InfoRow(key: L10n.t("用户名"), value: u)
             }
             if let pwd = vm.database.password, !pwd.isEmpty {
                 PasswordRow(password: pwd)
             }
             if let f = vm.database.format, !f.isEmpty {
-                InfoRow(key: "字符集", value: f)
+                InfoRow(key: L10n.t("字符集"), value: f)
             }
             if let c = vm.database.collation, !c.isEmpty {
-                InfoRow(key: "排序规则", value: c)
+                InfoRow(key: L10n.t("排序规则"), value: c)
             }
             if let desc = vm.database.description, !desc.isEmpty {
-                InfoRow(key: "备注", value: desc)
+                InfoRow(key: L10n.t("备注"), value: desc)
             }
 
             if vm.isPostgreSQL || vm.isMongoDB {
                 Button {
                     activeSheet = .changePassword
                 } label: {
-                    Label("修改密码", systemImage: "key")
+                    Label(L10n.t("修改密码"), systemImage: "key")
                 }
             }
         } header: {
-            SectionLabel(title: "数据库信息", systemImage: "info.circle")
+            SectionLabel(title: L10n.t("数据库信息"), systemImage: "info.circle")
         }
     }
 
@@ -355,7 +355,7 @@ struct DatabaseDetailView: View {
             NavigationLink {
                 BackupListView(target: backupTarget)
             } label: {
-                Label("备份", systemImage: "externaldrive.badge.timemachine")
+                Label(L10n.t("备份"), systemImage: "externaldrive.badge.timemachine")
             }
             .buttonStyle(.plain)
         }
@@ -365,14 +365,14 @@ struct DatabaseDetailView: View {
 
     private var accessSection: some View {
         Section {
-            InfoRow(key: "当前权限", value: vm.database.permissionDisplay)
+            InfoRow(key: L10n.t("当前权限"), value: vm.database.permissionDisplay)
             Button {
                 activeSheet = .changeAccess
             } label: {
-                Label("修改访问权限", systemImage: "network")
+                Label(L10n.t("修改访问权限"), systemImage: "network")
             }
         } header: {
-            SectionLabel(title: "访问权限", systemImage: "lock.shield")
+            SectionLabel(title: L10n.t("访问权限"), systemImage: "lock.shield")
         }
     }
 
@@ -381,25 +381,25 @@ struct DatabaseDetailView: View {
     private var privilegesSection: some View {
         Section {
             if let u = vm.database.username, !u.isEmpty {
-                InfoRow(key: "绑定用户", value: u)
+                InfoRow(key: L10n.t("绑定用户"), value: u)
             }
             if vm.isMongoDB {
-                InfoRow(key: "当前角色", value: vm.mongoPermission?.displayName ?? "—")
+                InfoRow(key: L10n.t("当前角色"), value: vm.mongoPermission?.displayName ?? "—")
                 Button {
                     activeSheet = .changeMongoPrivileges
                 } label: {
-                    Label("修改权限", systemImage: "person.badge.shield.checkmark")
+                    Label(L10n.t("修改权限"), systemImage: "person.badge.shield.checkmark")
                 }
             } else {
-                InfoRow(key: "当前角色", value: vm.database.permissionDisplay)
+                InfoRow(key: L10n.t("当前角色"), value: vm.database.permissionDisplay)
                 Button {
                     activeSheet = .changePrivileges
                 } label: {
-                    Label("修改权限", systemImage: "person.badge.shield.checkmark")
+                    Label(L10n.t("修改权限"), systemImage: "person.badge.shield.checkmark")
                 }
             }
         } header: {
-            SectionLabel(title: "权限", systemImage: "lock.shield")
+            SectionLabel(title: L10n.t("权限"), systemImage: "lock.shield")
         }
     }
 
@@ -410,7 +410,7 @@ struct DatabaseDetailView: View {
             Button(role: .destructive) {
                 activeSheet = .delete
             } label: {
-                Label("删除数据库", systemImage: "trash")
+                Label(L10n.t("删除数据库"), systemImage: "trash")
             }
         }
     }
@@ -453,35 +453,35 @@ struct ChangeAccessSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("访问权限") {
-                    Picker("权限", selection: $mode) {
+                Section(L10n.t("访问权限")) {
+                    Picker(L10n.t("权限"), selection: $mode) {
                         ForEach(AccessMode.allCases) { m in
-                            Text(m.rawValue).tag(m)
+                            Text(L10n.t(m.rawValue)).tag(m)
                         }
                     }
                     .pickerStyle(.segmented)
 
                     if mode == .ip {
-                        TextField("IP 地址（逗号分隔）", text: $ipList, axis: .vertical)
+                        TextField(L10n.t("IP 地址（逗号分隔）"), text: $ipList, axis: .vertical)
                             .textFieldStyle(.roundedBorder)
                             .lineLimit(2...4)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
                             .font(.system(.body, design: .monospaced))
-                        Text("多个 IP 用逗号分隔，如 192.168.1.100, 10.0.0.5")
+                        Text(L10n.t("多个 IP 用逗号分隔，如 192.168.1.100, 10.0.0.5"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
-            .navigationTitle("访问权限")
+            .navigationTitle(L10n.t("访问权限"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确认") {
+                    Button(L10n.t("确认")) {
                         let value: String
                         if mode == .all {
                             value = "%"
@@ -519,26 +519,26 @@ struct MongoPrivilegesSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("为用户「\(username ?? "-")」设置数据库权限。")
+                    Text(L10n.f("为用户「%@」设置数据库权限。", username ?? "-"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-                Section("权限") {
-                    Picker("角色", selection: $permission) {
+                Section(L10n.t("权限")) {
+                    Picker(L10n.t("角色"), selection: $permission) {
                         ForEach(MongoPermission.allCases) { perm in
                             Text(perm.displayName).tag(perm)
                         }
                     }
                 }
             }
-            .navigationTitle("修改权限")
+            .navigationTitle(L10n.t("修改权限"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确认") {
+                    Button(L10n.t("确认")) {
                         onConfirm(permission)
                         dismiss()
                     }
@@ -569,22 +569,22 @@ struct PGPrivilegesSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("为用户「\(database.username ?? "-")」设置数据库权限。")
+                    Text(L10n.f("为用户「%@」设置数据库权限。", database.username ?? "-"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-                Section("权限") {
-                    Toggle("超级用户", isOn: $superUser)
+                Section(L10n.t("权限")) {
+                    Toggle(L10n.t("超级用户"), isOn: $superUser)
                 }
             }
-            .navigationTitle("修改权限")
+            .navigationTitle(L10n.t("修改权限"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确认") {
+                    Button(L10n.t("确认")) {
                         onConfirm(superUser)
                         dismiss()
                     }

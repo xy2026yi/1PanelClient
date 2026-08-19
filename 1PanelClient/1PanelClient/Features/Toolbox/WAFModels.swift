@@ -93,9 +93,9 @@ nonisolated struct WAFRuleIPItem: Decodable, Identifiable, Hashable {
     var typeLabel: String {
         switch type {
         case "ipv4": return "IPv4"
-        case "ipArr": return "IPv4范围"
+        case "ipArr": return L10n.t("IPv4范围")
         case "ipv6": return "IPv6"
-        case "ipGroup": return "IP组"
+        case "ipGroup": return L10n.t("IP组")
         default: return type
         }
     }

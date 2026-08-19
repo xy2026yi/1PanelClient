@@ -31,7 +31,7 @@ struct WAFIPGroupsView: View {
             if isLoading && items.isEmpty {
                 ProgressView()
             } else if items.isEmpty {
-                ContentUnavailableView("暂无 IP 组", systemImage: "rectangle.on.rectangle.angled")
+                ContentUnavailableView(L10n.t("暂无 IP 组"), systemImage: "rectangle.on.rectangle.angled")
             } else {
                 ForEach(items) { item in
                     Button {
@@ -47,7 +47,7 @@ struct WAFIPGroupsView: View {
                                         .lineLimit(2)
                                 }
                                 if let source = item.source, !source.isEmpty {
-                                    StatusBadge(text: source == "imported" ? "手动" : "远程", color: .blue)
+                                    StatusBadge(text: source == "imported" ? L10n.t("手动") : L10n.t("远程"), color: .blue)
                                 }
                             }
                             Spacer()
@@ -62,17 +62,17 @@ struct WAFIPGroupsView: View {
                         Button(role: .destructive) {
                             pendingDeleteGroup = item
                         } label: {
-                            Label("删除", systemImage: "trash")
+                            Label(L10n.t("删除"), systemImage: "trash")
                         }
                     }
                 }
             }
         }
-        .navigationTitle("IP 组")
+        .navigationTitle(L10n.t("IP 组"))
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton { showCreate = true }
-                .accessibilityLabel("创建 IP 组")
+                .accessibilityLabel(L10n.t("创建 IP 组"))
         }
         .refreshable { await loadItems() }
         .task { await loadItems() }
@@ -86,24 +86,24 @@ struct WAFIPGroupsView: View {
                 Task { await loadItems() }
             }
         }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
         .alert(
-            "删除",
+            L10n.t("删除"),
             isPresented: Binding(
                 get: { pendingDeleteGroup != nil },
                 set: { if !$0 { pendingDeleteGroup = nil } }
             ),
             presenting: pendingDeleteGroup
         ) { _ in
-            Button("取消", role: .cancel) { pendingDeleteGroup = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDeleteGroup = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 let item = pendingDeleteGroup
                 pendingDeleteGroup = nil
                 if let item = item {
@@ -111,7 +111,7 @@ struct WAFIPGroupsView: View {
                 }
             }
         } message: { item in
-            Text("将对 \"\(item.name)\" 进行删除操作，是否继续？")
+            Text(L10n.f("将对 \"%@\" 进行删除操作，是否继续？", item.name))
         }
     }
 
@@ -134,7 +134,7 @@ struct WAFIPGroupsView: View {
         let req = WAFIPGroupDeleteRequest(name: item.name)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafIPGroupDelete.path, body: req, as: EmptyResponse.self)
-            successMessage = "已删除"
+            successMessage = L10n.t("已删除")
             await loadItems()
         } catch {
             errorMessage = error.localizedDescription
@@ -166,17 +166,17 @@ struct WAFCreateIPGroupView: View {
 
     var body: some View {
         Form {
-            Section("名称") {
-                TextField("组名称", text: $name)
+            Section(L10n.t("名称")) {
+                TextField(L10n.t("组名称"), text: $name)
             }
-            Section("导入方式") {
-                Picker("方式", selection: $source) {
-                    Text("手动创建").tag("imported")
-                    Text("远程下载").tag("remoteFile")
+            Section(L10n.t("导入方式")) {
+                Picker(L10n.t("方式"), selection: $source) {
+                    Text(L10n.t("手动创建")).tag("imported")
+                    Text(L10n.t("远程下载")).tag("remoteFile")
                 }
             }
             if source == "imported" {
-                Section("IP 列表") {
+                Section(L10n.t("IP 列表")) {
                     TextEditor(text: $content)
                         .font(.system(.caption, design: .monospaced))
                         .frame(minHeight: 120)
@@ -190,21 +190,21 @@ struct WAFCreateIPGroupView: View {
                 }
             }
         }
-        .navigationTitle("创建 IP 组")
+        .navigationTitle(L10n.t("创建 IP 组"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("创建") {
+                Button(L10n.t("创建")) {
                     Task { await create() }
                 }
                 .disabled(isSaving || name.isEmpty)
             }
         }
-        .alert("错误", isPresented: Binding(
+        .alert(L10n.t("错误"), isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )) {
-            Button("好的") { errorMessage = nil }
+            Button(L10n.t("好的")) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }
@@ -248,21 +248,21 @@ struct WAFIPGroupEditView: View {
 
     var body: some View {
         Form {
-            Section("名称") {
+            Section(L10n.t("名称")) {
                 Text(item.name).foregroundStyle(.secondary)
             }
             if item.source == "remoteFile" {
-                Section("远程 URL") {
+                Section(L10n.t("远程 URL")) {
                     Text(item.remoteURL ?? "—").font(.caption).foregroundStyle(.secondary)
                 }
             }
-            Section("IP 列表") {
+            Section(L10n.t("IP 列表")) {
                 TextEditor(text: $content)
                     .font(.system(.caption, design: .monospaced))
                     .frame(minHeight: 200)
             }
         }
-        .navigationTitle("编辑 IP 组")
+        .navigationTitle(L10n.t("编辑 IP 组"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { content = item.content ?? "" }
         .toolbar {
@@ -273,17 +273,17 @@ struct WAFIPGroupEditView: View {
                     if isSaving {
                         ProgressView()
                     } else {
-                        Text("保存")
+                        Text(L10n.t("保存"))
                     }
                 }
                 .disabled(isSaving)
             }
         }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(successMessage ?? errorMessage ?? "")
         }
@@ -297,7 +297,7 @@ struct WAFIPGroupEditView: View {
         )
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafIPGroupUpdate.path, body: req, as: EmptyResponse.self)
-            successMessage = "已保存"
+            successMessage = L10n.t("已保存")
             onUpdated()
         } catch {
             errorMessage = error.localizedDescription

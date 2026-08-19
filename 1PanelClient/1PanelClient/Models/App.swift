@@ -80,7 +80,7 @@ nonisolated struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
     var displayName: String {
         if let an = appName, !an.isEmpty { return an }
         if let n = name, !n.isEmpty { return n }
-        return serviceName ?? "未命名应用"
+        return serviceName ?? L10n.t("未命名应用")
     }
 
     /// 描述信息（优先 message，其次 appType）
@@ -177,12 +177,12 @@ enum AppOperation: String {
 
     var displayName: String {
         switch self {
-        case .start:    return "启动"
-        case .stop:     return "停止"
-        case .restart:  return "重启"
-        case .upgrade:  return "升级"
-        case .rebuild:  return "重建"
-        case .reload:   return "重载"
+        case .start:    return L10n.t("启动")
+        case .stop:     return L10n.t("停止")
+        case .restart:  return L10n.t("重启")
+        case .upgrade:  return L10n.t("升级")
+        case .rebuild:  return L10n.t("重建")
+        case .reload:   return L10n.t("重载")
         }
     }
 }
@@ -254,7 +254,7 @@ nonisolated struct InstalledParamField: Decodable, Identifiable, Hashable, Senda
 
     /// 显示标签（优先中文）
     var displayLabel: String {
-        labelZh ?? labelEn ?? key ?? "参数"
+        labelZh ?? labelEn ?? key ?? L10n.t("参数")
     }
 
     enum CodingKeys: String, CodingKey {

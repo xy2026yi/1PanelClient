@@ -23,19 +23,19 @@ struct TerminalScreen: View {
         _session = StateObject(wrappedValue: s)
         switch target {
         case .host:
-            self.title = title ?? "终端"
+            self.title = title ?? L10n.t("终端")
         case .sshHost(let id, _, _):
-            self.title = title ?? "SSH 终端"
+            self.title = title ?? L10n.t("SSH 终端")
             _ = id
         case .container(let id, _, _, _, _):
-            self.title = title ?? "容器终端"
+            self.title = title ?? L10n.t("容器终端")
             _ = id
         case .scriptRun:
-            self.title = title ?? "执行脚本"
+            self.title = title ?? L10n.t("执行脚本")
         case .redis:
-            self.title = title ?? "Redis 终端"
+            self.title = title ?? L10n.t("Redis 终端")
         case .database:
-            self.title = title ?? "数据库终端"
+            self.title = title ?? L10n.t("数据库终端")
         }
     }
 
@@ -97,29 +97,29 @@ struct TerminalScreen: View {
 
     private var toolbarMenu: some View {
         Menu {
-            Button(session.isConnected ? "断开连接" : "重新连接") {
+            Button(session.isConnected ? L10n.t("断开连接") : L10n.t("重新连接")) {
                 if session.isConnected {
                     session.disconnect()
                 } else {
                     session.connect()
                 }
             }
-            Button("放大字号") {
+            Button(L10n.t("放大字号")) {
                 fontSize = min(fontSize + 1, 24)
             }
-            Button("缩小字号") {
+            Button(L10n.t("缩小字号")) {
                 fontSize = max(fontSize - 1, 9)
             }
-            Button("清屏") {
+            Button(L10n.t("清屏")) {
                 bridge.view?.getTerminal().softReset()
             }
-            Button("滚动到底部") {
+            Button(L10n.t("滚动到底部")) {
                 bridge.view?.scroll(toPosition: 1)
             }
         } label: {
             Image(systemName: "ellipsis.circle")
         }
-        .accessibilityLabel("更多操作")
+        .accessibilityLabel(L10n.t("更多操作"))
     }
 
     // MARK: - 输入
@@ -143,7 +143,7 @@ struct TerminalCommandPicker: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("预设命令") {
+                Section(L10n.t("预设命令")) {
                     ForEach(presets, id: \.self) { (preset: String) in
                         Button {
                             command = preset
@@ -154,8 +154,8 @@ struct TerminalCommandPicker: View {
                     }
                 }
 
-                Section("自定义") {
-                    TextField("命令路径", text: $command)
+                Section(L10n.t("自定义")) {
+                    TextField(L10n.t("命令路径"), text: $command)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .font(.system(.body, design: .monospaced))
@@ -165,7 +165,7 @@ struct TerminalCommandPicker: View {
                     Button {
                         onConnect()
                     } label: {
-                        Text("连接")
+                        Text(L10n.t("连接"))
                             .frame(maxWidth: .infinity)
                             .font(.headline)
                     }
@@ -174,11 +174,11 @@ struct TerminalCommandPicker: View {
                 }
                 .listRowBackground(Color.clear)
             }
-            .navigationTitle("终端命令")
+            .navigationTitle(L10n.t("终端命令"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
             }
         }

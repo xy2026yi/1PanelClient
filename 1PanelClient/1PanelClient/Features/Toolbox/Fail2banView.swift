@@ -115,7 +115,7 @@ final class Fail2banViewModel: ObservableObject {
         let req = Fail2banUpdateRequest(key: key, value: value)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.fail2banUpdate.path, body: req, as: EmptyResponse.self)
-            successMessage = "配置已更新"
+            successMessage = L10n.t("配置已更新")
             await loadBase()
         } catch {
             errorMessage = error.localizedDescription
@@ -130,7 +130,7 @@ final class Fail2banViewModel: ObservableObject {
         let req = Fail2banOperateRequest(operation: operation)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.fail2banOperate.path, body: req, as: EmptyResponse.self)
-            successMessage = "操作成功"
+            successMessage = L10n.t("操作成功")
             await loadBase()
         } catch {
             errorMessage = error.localizedDescription
@@ -156,7 +156,7 @@ final class Fail2banViewModel: ObservableObject {
         let req = Fail2banIPRequest(operate: operate, ips: ips)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.fail2banOperateSSHD.path, body: req, as: EmptyResponse.self)
-            successMessage = "保存成功"
+            successMessage = L10n.t("保存成功")
             await loadList(status: status)
         } catch {
             errorMessage = error.localizedDescription
@@ -187,24 +187,24 @@ struct Fail2banView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.base == nil {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if let base = vm.base {
                 if base.isExist {
                     content(base: base)
                 } else {
                     ContentUnavailableView {
-                        Label("未安装 Fail2ban", systemImage: "exclamationmark.triangle")
+                        Label(L10n.t("未安装 Fail2ban"), systemImage: "exclamationmark.triangle")
                     } description: {
-                        Text("请在服务器上安装 Fail2ban 后使用")
+                        Text(L10n.t("请在服务器上安装 Fail2ban 后使用"))
                     }
                 }
             } else if let err = vm.errorMessage {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(err)
                 } actions: {
-                    Button("重试") { Task { await vm.loadBase() } }
+                    Button(L10n.t("重试")) { Task { await vm.loadBase() } }
                 }
             }
         }
@@ -212,11 +212,11 @@ struct Fail2banView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadBase() }
         .task { await vm.loadBase() }
-        .alert("操作成功", isPresented: Binding(
+        .alert(L10n.t("操作成功"), isPresented: Binding(
             get: { vm.successMessage != nil },
             set: { if !$0 { vm.successMessage = nil } }
         )) {
-            Button("好的") { vm.successMessage = nil }
+            Button(L10n.t("好的")) { vm.successMessage = nil }
         } message: {
             Text(vm.successMessage ?? "")
         }
@@ -227,33 +227,33 @@ struct Fail2banView: View {
                 set: { if !$0 { pendingAction = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingAction = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 let op = pendingAction
                 pendingAction = nil
                 if let op { Task { await vm.operate(op) } }
             }
         } message: {
             if let action = pendingAction {
-                Text("将对 Fail2ban 进行 \(fail2banActionDisplayName(action)) 操作，是否继续？")
+                Text(L10n.f("将对 Fail2ban 进行 %@ 操作，是否继续？", fail2banActionDisplayName(action)))
             }
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .port:
-                Fail2banNumberSheet(title: "监听 SSH 端口", value: Double(vm.base?.port ?? 22), unit: nil) { val in
+                Fail2banNumberSheet(title: L10n.t("监听 SSH 端口"), value: Double(vm.base?.port ?? 22), unit: nil) { val in
                     Task { await vm.update(key: "port", value: "\(Int(val))") }
                 }
             case .maxRetry:
-                Fail2banNumberSheet(title: "最大重试次数", value: Double(vm.base?.maxRetry ?? 5), unit: nil) { val in
+                Fail2banNumberSheet(title: L10n.t("最大重试次数"), value: Double(vm.base?.maxRetry ?? 5), unit: nil) { val in
                     Task { await vm.update(key: "maxretry", value: "\(Int(val))") }
                 }
             case .banTime:
-                Fail2banTimeSheet(title: "禁用时间", rawValue: vm.base?.banTime ?? "600") { val in
+                Fail2banTimeSheet(title: L10n.t("禁用时间"), rawValue: vm.base?.banTime ?? "600") { val in
                     Task { await vm.update(key: "bantime", value: val) }
                 }
             case .findTime:
-                Fail2banTimeSheet(title: "发现周期", rawValue: vm.base?.findTime ?? "300") { val in
+                Fail2banTimeSheet(title: L10n.t("发现周期"), rawValue: vm.base?.findTime ?? "300") { val in
                     Task { await vm.update(key: "findtime", value: val) }
                 }
             case .banAction:
@@ -265,9 +265,9 @@ struct Fail2banView: View {
                     Task { await vm.update(key: "logpath", value: val) }
                 }
             case .whitelist:
-                Fail2banIPListView(title: "白名单", status: "ignore", vm: vm)
+                Fail2banIPListView(title: L10n.t("白名单"), status: "ignore", vm: vm)
             case .blacklist:
-                Fail2banIPListView(title: "黑名单", status: "banned", vm: vm)
+                Fail2banIPListView(title: L10n.t("黑名单"), status: "banned", vm: vm)
             case .fullConfig:
                 Fail2banFullConfigView(server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
             }
@@ -281,7 +281,7 @@ struct Fail2banView: View {
             Section {
                 HStack(spacing: 12) {
                     Button { activeSheet = .whitelist } label: {
-                        Label("白名单", systemImage: "checkmark.shield")
+                        Label(L10n.t("白名单"), systemImage: "checkmark.shield")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderless)
@@ -290,13 +290,13 @@ struct Fail2banView: View {
                         .frame(height: 24)
 
                     Button { activeSheet = .blacklist } label: {
-                        Label("黑名单", systemImage: "hand.raised")
+                        Label(L10n.t("黑名单"), systemImage: "hand.raised")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderless)
                 }
                 Button { activeSheet = .fullConfig } label: {
-                    Label("全部配置", systemImage: "doc.text")
+                    Label(L10n.t("全部配置"), systemImage: "doc.text")
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -310,24 +310,24 @@ struct Fail2banView: View {
         ServiceStatusCard(
             title: "Fail2ban",
             subtitle: base.version.map { "v\($0)" },
-            statusText: base.isActive ? "运行中" : "已停止",
+            statusText: base.isActive ? L10n.t("运行中") : L10n.t("已停止"),
             statusColor: base.isActive ? .green : .red,
             isOperating: vm.isOperating,
             isExpanded: $isServiceExpanded,
             actions: [
                 ServiceAction(
-                    title: base.isActive ? "停止" : "启动",
+                    title: base.isActive ? L10n.t("停止") : L10n.t("启动"),
                     icon: base.isActive ? "stop.fill" : "play.fill",
                     color: base.isActive ? .orange : .green
                 ) { pendingAction = base.isActive ? "stop" : "start" },
-                ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+                ServiceAction(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
                     pendingAction = "restart"
                 }
             ]
         ) {
             IconBadge(systemName: "shield.lefthalf.filled", color: .indigo, size: 44)
         } extra: {
-            Toggle("开机自启", isOn: Binding(
+            Toggle(L10n.t("开机自启"), isOn: Binding(
                 get: { base.isEnable },
                 set: { newVal in
                     pendingAction = newVal ? "enable" : "disable"
@@ -341,25 +341,25 @@ struct Fail2banView: View {
 
     private func fail2banActionDisplayName(_ action: String) -> String {
         switch action {
-        case "stop":    return "停止"
-        case "start":   return "启动"
-        case "restart": return "重启"
-        case "enable":  return "开启自启"
-        case "disable": return "关闭自启"
+        case "stop":    return L10n.t("停止")
+        case "start":   return L10n.t("启动")
+        case "restart": return L10n.t("重启")
+        case "enable":  return L10n.t("开启自启")
+        case "disable": return L10n.t("关闭自启")
         default:        return action
         }
     }
 
     private func configSection(base: Fail2banBase) -> some View {
         Section {
-            configRow(title: "监听 SSH 端口", value: "\(base.port)") { activeSheet = .port }
-            configRow(title: "最大重试次数", value: "\(base.maxRetry)") { activeSheet = .maxRetry }
-            configRow(title: "禁用时间", value: base.banTime) { activeSheet = .banTime }
-            configRow(title: "发现周期", value: base.findTime) { activeSheet = .findTime }
-            configRow(title: "禁用方式", value: base.banAction) { activeSheet = .banAction }
-            configRow(title: "日志路径", value: base.logPath) { activeSheet = .logPath }
+            configRow(title: L10n.t("监听 SSH 端口"), value: "\(base.port)") { activeSheet = .port }
+            configRow(title: L10n.t("最大重试次数"), value: "\(base.maxRetry)") { activeSheet = .maxRetry }
+            configRow(title: L10n.t("禁用时间"), value: base.banTime) { activeSheet = .banTime }
+            configRow(title: L10n.t("发现周期"), value: base.findTime) { activeSheet = .findTime }
+            configRow(title: L10n.t("禁用方式"), value: base.banAction) { activeSheet = .banAction }
+            configRow(title: L10n.t("日志路径"), value: base.logPath) { activeSheet = .logPath }
         } header: {
-            SectionLabel(title: "基础配置", systemImage: "slider.horizontal.3")
+            SectionLabel(title: L10n.t("基础配置"), systemImage: "slider.horizontal.3")
         }
     }
 
@@ -407,10 +407,10 @@ struct Fail2banNumberSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确认") {
+                    Button(L10n.t("确认")) {
                         if let v = Double(input) { onConfirm(v) }
                         dismiss()
                     }
@@ -433,17 +433,17 @@ struct Fail2banTimeSheet: View {
     @State private var amount: String = ""
     @State private var unit: String = ""
 
-    private let units = ["秒": "s", "分钟": "m", "小时": "h", "天": "d", "年": "y"]
+    private let units = [L10n.t("秒"): "s", L10n.t("分钟"): "m", L10n.t("小时"): "h", L10n.t("天"): "d", L10n.t("年"): "y"]
 
     var body: some View {
         NavigationStack {
             Form {
                 Section(title) {
                     HStack {
-                        TextField("数值", text: $amount)
+                        TextField(L10n.t("数值"), text: $amount)
                             .keyboardType(.numberPad)
                             .textFieldStyle(.roundedBorder)
-                        Picker("单位", selection: $unit) {
+                        Picker(L10n.t("单位"), selection: $unit) {
                             ForEach(Array(units.keys), id: \.self) { label in
                                 Text(label).tag(units[label]!)
                             }
@@ -457,10 +457,10 @@ struct Fail2banTimeSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确认") {
+                    Button(L10n.t("确认")) {
                         onConfirm("\(amount)\(unit)")
                         dismiss()
                     }
@@ -498,10 +498,10 @@ struct Fail2banActionSheet: View {
     @State private var selection = ""
 
     private let actions: [(value: String, label: String, desc: String)] = [
-        ("iptables-allports", "iptables-allports", "通过 iptables 来禁用指定的 IP 地址(所有端口)"),
-        ("iptables-multiport", "iptables-multiport", "通过 iptables 来禁用指定的 IP 地址"),
-        ("firewallcmd-ipset", "firewallcmd-ipset", "通过 firewallcmd ipset 来禁用指定的 IP 地址"),
-        ("ufw", "ufw", "通过 ufw 来禁用指定的 IP 地址"),
+        ("iptables-allports", "iptables-allports", L10n.t("通过 iptables 来禁用指定的 IP 地址(所有端口)")),
+        ("iptables-multiport", "iptables-multiport", L10n.t("通过 iptables 来禁用指定的 IP 地址")),
+        ("firewallcmd-ipset", "firewallcmd-ipset", L10n.t("通过 firewallcmd ipset 来禁用指定的 IP 地址")),
+        ("ufw", "ufw", L10n.t("通过 ufw 来禁用指定的 IP 地址")),
     ]
 
     var body: some View {
@@ -528,11 +528,11 @@ struct Fail2banActionSheet: View {
                     .buttonStyle(.plain)
                 }
             }
-            .navigationTitle("禁用方式")
+            .navigationTitle(L10n.t("禁用方式"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
             }
         }
@@ -554,7 +554,7 @@ struct Fail2banLogPathSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("日志路径") {
+                Section(L10n.t("日志路径")) {
                     TextField("/var/log/auth.log", text: $inputPath)
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
@@ -566,18 +566,18 @@ struct Fail2banLogPathSheet: View {
                     Button {
                         showFileBrowser = true
                     } label: {
-                        Label("从服务器选择文件", systemImage: "folder")
+                        Label(L10n.t("从服务器选择文件"), systemImage: "folder")
                     }
                 }
             }
-            .navigationTitle("日志路径")
+            .navigationTitle(L10n.t("日志路径"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确认") {
+                    Button(L10n.t("确认")) {
                         onConfirm(inputPath)
                         dismiss()
                     }
@@ -646,11 +646,11 @@ struct FileBrowserView: View {
                     }
                 }
             }
-            .navigationTitle(currentPath == "/" ? "根目录" : (currentPath as NSString).lastPathComponent)
+            .navigationTitle(currentPath == "/" ? L10n.t("根目录") : (currentPath as NSString).lastPathComponent)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 if navigationStack.count > 1 {
                     ToolbarItem(placement: .topBarLeading) {
@@ -659,7 +659,7 @@ struct FileBrowserView: View {
                             currentPath = navigationStack.last ?? "/"
                             Task { await loadDir(currentPath) }
                         } label: {
-                            Label("返回", systemImage: "chevron.left")
+                            Label(L10n.t("返回"), systemImage: "chevron.left")
                         }
                     }
                 }
@@ -702,7 +702,7 @@ struct Fail2banIPListView: View {
             List {
                 Section {
                     HStack {
-                        TextField("输入 IP 或 IP 段", text: $newIP)
+                        TextField(L10n.t("输入 IP 或 IP 段"), text: $newIP)
                             .textFieldStyle(.roundedBorder)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
@@ -724,10 +724,10 @@ struct Fail2banIPListView: View {
                         }
                     }
                 }
-                Section("\(isWhitelist ? "白名单" : "黑名单")列表") {
+                Section(L10n.f("%@列表", isWhitelist ? L10n.t("白名单") : L10n.t("黑名单"))) {
                     let ips = isWhitelist ? vm.whitelist : vm.blacklist
                     if ips.isEmpty {
-                        Text("暂无数据").foregroundStyle(.secondary)
+                        Text(L10n.t("暂无数据")).foregroundStyle(.secondary)
                     } else {
                         ForEach(ips, id: \.self) { ip in
                             HStack {
@@ -747,7 +747,7 @@ struct Fail2banIPListView: View {
                                         )
                                     }
                                 } label: {
-                                    Label("删除", systemImage: "trash")
+                                    Label(L10n.t("删除"), systemImage: "trash")
                                 }
                             }
                         }
@@ -758,7 +758,7 @@ struct Fail2banIPListView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") { dismiss() }
+                    Button(L10n.t("完成")) { dismiss() }
                 }
             }
             .task { await vm.loadList(status: status) }
@@ -789,7 +789,7 @@ struct Fail2banFullConfigView: View {
         NavigationStack {
             Group {
                 if isLoading {
-                    ProgressView("加载配置…")
+                    ProgressView(L10n.t("加载配置…"))
                 } else {
                     TextEditor(text: $configText)
                         .font(.system(.caption, design: .monospaced))
@@ -797,24 +797,24 @@ struct Fail2banFullConfigView: View {
                         .textInputAutocapitalization(.never)
                 }
             }
-            .navigationTitle("全部配置")
+            .navigationTitle(L10n.t("全部配置"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("关闭") { dismiss() }
+                    Button(L10n.t("关闭")) { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("保存") {
+                    Button(L10n.t("保存")) {
                         Task { await save() }
                     }
                     .disabled(isLoading || isSaving)
                 }
             }
-            .alert("操作成功", isPresented: Binding(
+            .alert(L10n.t("操作成功"), isPresented: Binding(
                 get: { successMessage != nil },
                 set: { if !$0 { successMessage = nil } }
             )) {
-                Button("好的") { successMessage = nil }
+                Button(L10n.t("好的")) { successMessage = nil }
             } message: {
                 Text(successMessage ?? "")
             }
@@ -837,7 +837,7 @@ struct Fail2banFullConfigView: View {
         let req = Fail2banConfRequest(file: configText)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.fail2banUpdateByConf.path, body: req, as: EmptyResponse.self)
-            successMessage = "配置已保存"
+            successMessage = L10n.t("配置已保存")
         } catch {
             errorMessage = error.localizedDescription
         }

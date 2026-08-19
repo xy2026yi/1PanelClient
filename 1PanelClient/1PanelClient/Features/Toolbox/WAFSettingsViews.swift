@@ -34,39 +34,39 @@ struct WAFCcSettingsView: View {
 
     var body: some View {
         Form {
-            Section("模式") {
-                Picker("模式", selection: $mode) {
-                    Text("URL 模式").tag("uri")
-                    Text("全局模式").tag("global")
+            Section(L10n.t("模式")) {
+                Picker(L10n.t("模式"), selection: $mode) {
+                    Text(L10n.t("URL 模式")).tag("uri")
+                    Text(L10n.t("全局模式")).tag("global")
                 }
             }
-            Section("参数") {
+            Section(L10n.t("参数")) {
                 HStack {
-                    Text("周期")
+                    Text(L10n.t("周期"))
                     Spacer()
                     TextField("", text: $duration)
                         .keyboardType(.numberPad)
                         .frame(width: 80)
                         .multilineTextAlignment(.trailing)
-                    Text("秒").foregroundStyle(.secondary)
+                    Text(L10n.t("秒")).foregroundStyle(.secondary)
                 }
                 HStack {
-                    Text("频率")
+                    Text(L10n.t("频率"))
                     Spacer()
                     TextField("", text: $threshold)
                         .keyboardType(.numberPad)
                         .frame(width: 80)
                         .multilineTextAlignment(.trailing)
-                    Text("次").foregroundStyle(.secondary)
+                    Text(L10n.t("次")).foregroundStyle(.secondary)
                 }
                 HStack {
-                    Text("封禁时间")
+                    Text(L10n.t("封禁时间"))
                     Spacer()
                     TextField("", text: $ipBlockTime)
                         .keyboardType(.numberPad)
                         .frame(width: 80)
                         .multilineTextAlignment(.trailing)
-                    Text("秒").foregroundStyle(.secondary)
+                    Text(L10n.t("秒")).foregroundStyle(.secondary)
                 }
             }
         }
@@ -83,18 +83,18 @@ struct WAFCcSettingsView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: "保存默认") { Task { await save(applyWebsite: nil) } },
-                    .action(title: "应用到网站") { Task { await save(applyWebsite: true) } },
+                    .action(title: L10n.t("保存默认")) { Task { await save(applyWebsite: nil) } },
+                    .action(title: L10n.t("应用到网站")) { Task { await save(applyWebsite: true) } },
                 ]) {
                     withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
                 }
             }
         }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
@@ -126,7 +126,7 @@ struct WAFCcSettingsView: View {
         )
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCc.path, body: req, as: EmptyResponse.self)
-            successMessage = applyWebsite == true ? "已应用到网站" : "已保存"
+            successMessage = applyWebsite == true ? L10n.t("已应用到网站") : L10n.t("已保存")
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -163,33 +163,33 @@ struct WAFAttackCountSettingsView: View {
 
     var body: some View {
         Form {
-            Section("参数") {
+            Section(L10n.t("参数")) {
                 HStack {
-                    Text("周期")
+                    Text(L10n.t("周期"))
                     Spacer()
                     TextField("", text: $duration)
                         .keyboardType(.numberPad)
                         .frame(width: 80)
                         .multilineTextAlignment(.trailing)
-                    Text("秒").foregroundStyle(.secondary)
+                    Text(L10n.t("秒")).foregroundStyle(.secondary)
                 }
                 HStack {
-                    Text("频率")
+                    Text(L10n.t("频率"))
                     Spacer()
                     TextField("", text: $threshold)
                         .keyboardType(.numberPad)
                         .frame(width: 80)
                         .multilineTextAlignment(.trailing)
-                    Text("次").foregroundStyle(.secondary)
+                    Text(L10n.t("次")).foregroundStyle(.secondary)
                 }
                 HStack {
-                    Text("封禁时间")
+                    Text(L10n.t("封禁时间"))
                     Spacer()
                     TextField("", text: $ipBlockTime)
                         .keyboardType(.numberPad)
                         .frame(width: 80)
                         .multilineTextAlignment(.trailing)
-                    Text("秒").foregroundStyle(.secondary)
+                    Text(L10n.t("秒")).foregroundStyle(.secondary)
                 }
             }
         }
@@ -198,15 +198,15 @@ struct WAFAttackCountSettingsView: View {
         .onAppear { loadConfig() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("保存") { Task { await save() } }
+                Button(L10n.t("保存")) { Task { await save() } }
                     .disabled(isSaving)
             }
         }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
@@ -237,7 +237,7 @@ struct WAFAttackCountSettingsView: View {
         )
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCc.path, body: req, as: EmptyResponse.self)
-            successMessage = "已保存"
+            successMessage = L10n.t("已保存")
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -269,24 +269,24 @@ struct WAFLocationUpdateView: View {
                 } label: {
                     HStack {
                         Image(systemName: "globe.asia.australia")
-                        Text("更新 IP 地址库")
+                        Text(L10n.t("更新 IP 地址库"))
                         Spacer()
                         if isUpdating { ProgressView() }
                     }
                 }
             } header: {
-                Text("IP 地址库")
+                Text(L10n.t("IP 地址库"))
             } footer: {
-                Text("更新 GeoIP 数据库以支持基于地理位置的访问控制")
+                Text(L10n.t("更新 GeoIP 数据库以支持基于地理位置的访问控制"))
             }
         }
-        .navigationTitle("IP 地址库")
+        .navigationTitle(L10n.t("IP 地址库"))
         .navigationBarTitleDisplayMode(.inline)
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
@@ -297,7 +297,7 @@ struct WAFLocationUpdateView: View {
         let req = WAFLocationUpdateRequest(type: type)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafLocationUpdate.path, body: req, as: EmptyResponse.self)
-            successMessage = "更新成功"
+            successMessage = L10n.t("更新成功")
         } catch {
             errorMessage = error.localizedDescription
         }

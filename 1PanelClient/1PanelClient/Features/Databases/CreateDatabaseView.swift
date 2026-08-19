@@ -226,21 +226,21 @@ struct CreateDatabaseView: View {
 
     var body: some View {
         Form {
-            Section("基本信息") {
-                TextField("数据库名称", text: $name)
+            Section(L10n.t("基本信息")) {
+                TextField(L10n.t("数据库名称"), text: $name)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
 
             if vm.isPostgreSQL {
                 pgUserSection
-                Section("权限") {
-                    Toggle("超级用户", isOn: $superUser)
+                Section(L10n.t("权限")) {
+                    Toggle(L10n.t("超级用户"), isOn: $superUser)
                 }
             } else if vm.isMongoDB {
                 mongoUserSection
-                Section("权限") {
-                    Picker("角色", selection: $mongoPermission) {
+                Section(L10n.t("权限")) {
+                    Picker(L10n.t("角色"), selection: $mongoPermission) {
                         ForEach(MongoPermission.allCases) { perm in
                             Text(perm.displayName).tag(perm)
                         }
@@ -251,8 +251,8 @@ struct CreateDatabaseView: View {
                 mysqlUserGrantSection
             }
 
-            Section("描述") {
-                TextField("可选描述", text: $description, axis: .vertical)
+            Section(L10n.t("描述")) {
+                TextField(L10n.t("可选描述"), text: $description, axis: .vertical)
                     .lineLimit(2...4)
             }
 
@@ -262,11 +262,11 @@ struct CreateDatabaseView: View {
                 }
             }
         }
-        .navigationTitle("创建数据库")
+        .navigationTitle(L10n.t("创建数据库"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("创建") {
+                Button(L10n.t("创建")) {
                     Task { await submit() }
                 }
                 .disabled(!canCreate || vm.isCreating)
@@ -308,8 +308,8 @@ struct CreateDatabaseView: View {
     // MARK: PostgreSQL 用户（保持原有行为：名称同步）
 
     private var pgUserSection: some View {
-        Section("用户") {
-            TextField("用户名", text: $username)
+        Section(L10n.t("用户")) {
+            TextField(L10n.t("用户名"), text: $username)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .onChange(of: name) { _, newValue in
@@ -322,8 +322,8 @@ struct CreateDatabaseView: View {
     // MARK: MongoDB 用户（名称自动带入同名，可修改）
 
     private var mongoUserSection: some View {
-        Section("用户") {
-            TextField("用户名（默认同名称）", text: $username)
+        Section(L10n.t("用户")) {
+            TextField(L10n.t("用户名（默认同名称）"), text: $username)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             passwordRow
@@ -333,8 +333,8 @@ struct CreateDatabaseView: View {
     // MARK: MySQL 字符集 / 排序规则
 
     private var mysqlCharsetSection: some View {
-        Section("字符集与排序规则") {
-            Picker("字符集", selection: $selectedFormat) {
+        Section(L10n.t("字符集与排序规则")) {
+            Picker(L10n.t("字符集"), selection: $selectedFormat) {
                 ForEach(vm.formats) { fmt in
                     Text(fmt.format).tag(fmt.format)
                 }
@@ -343,8 +343,8 @@ struct CreateDatabaseView: View {
                 selectedCollation = ""
             }
 
-            Picker("排序规则", selection: $selectedCollation) {
-                Text("默认").tag("")
+            Picker(L10n.t("排序规则"), selection: $selectedCollation) {
+                Text(L10n.t("默认")).tag("")
                 ForEach(availableCollations, id: \.self) { col in
                     Text(col).tag(col)
                 }
@@ -356,10 +356,10 @@ struct CreateDatabaseView: View {
 
     private var mysqlUserGrantSection: some View {
         Group {
-            Section("用户授权") {
-                Picker("授权方式", selection: $userGrantMode) {
+            Section(L10n.t("用户授权")) {
+                Picker(L10n.t("授权方式"), selection: $userGrantMode) {
                     ForEach(UserGrantMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(L10n.t(mode.rawValue)).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -369,14 +369,14 @@ struct CreateDatabaseView: View {
             case .none:
                 EmptyView()
             case .select:
-                Section("选择用户") {
+                Section(L10n.t("选择用户")) {
                     if vm.users.isEmpty {
-                        Text("暂无可用用户，请先创建用户或切换为「创建」模式")
+                        Text(L10n.t("暂无可用用户，请先创建用户或切换为「创建」模式"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        Picker("授权用户", selection: $selectedExistingUser) {
-                            Text("请选择...").tag("")
+                        Picker(L10n.t("授权用户"), selection: $selectedExistingUser) {
+                            Text(L10n.t("请选择...")).tag("")
                             ForEach(vm.users) { user in
                                 Text(user.displayName).tag(user.id)
                             }
@@ -384,22 +384,22 @@ struct CreateDatabaseView: View {
                     }
                 }
             case .create:
-                Section("新用户") {
-                    TextField("用户名", text: $username)
+                Section(L10n.t("新用户")) {
+                    TextField(L10n.t("用户名"), text: $username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     passwordRow
                 }
-                Section("权限") {
-                    Picker("权限", selection: $permissionMode) {
+                Section(L10n.t("权限")) {
+                    Picker(L10n.t("权限"), selection: $permissionMode) {
                         ForEach(PermissionMode.allCases) { mode in
-                            Text(mode.rawValue).tag(mode)
+                            Text(L10n.t(mode.rawValue)).tag(mode)
                         }
                     }
                     .pickerStyle(.segmented)
 
                     if permissionMode == .ip {
-                        TextField("IP 地址（逗号分隔）", text: $permissionIPs, axis: .vertical)
+                        TextField(L10n.t("IP 地址（逗号分隔）"), text: $permissionIPs, axis: .vertical)
                             .textFieldStyle(.roundedBorder)
                             .lineLimit(2...4)
                             .autocorrectionDisabled()
@@ -512,25 +512,25 @@ struct CreateDatabaseUserView: View {
 
     var body: some View {
         Form {
-            Section("用户信息") {
-                TextField("用户名", text: $username)
+            Section(L10n.t("用户信息")) {
+                TextField(L10n.t("用户名"), text: $username)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 passwordRow
-                TextField("描述", text: $description, axis: .vertical)
+                TextField(L10n.t("描述"), text: $description, axis: .vertical)
                     .lineLimit(2...4)
             }
 
-            Section("权限") {
-                Picker("访问权限", selection: $permissionMode) {
+            Section(L10n.t("权限")) {
+                Picker(L10n.t("访问权限"), selection: $permissionMode) {
                     ForEach(UserPermissionMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(L10n.t(mode.rawValue)).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
 
                 if permissionMode == .ip {
-                    TextField("IP 地址（逗号分隔）", text: $permissionIPs, axis: .vertical)
+                    TextField(L10n.t("IP 地址（逗号分隔）"), text: $permissionIPs, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
                         .lineLimit(2...4)
                         .autocorrectionDisabled()
@@ -547,11 +547,11 @@ struct CreateDatabaseUserView: View {
                 }
             }
         }
-        .navigationTitle("创建用户")
+        .navigationTitle(L10n.t("创建用户"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("创建") {
+                Button(L10n.t("创建")) {
                     Task { await submit() }
                 }
                 .disabled(!canCreate || vm.isCreating)
@@ -571,9 +571,9 @@ struct CreateDatabaseUserView: View {
 
     @ViewBuilder
     private var associatedDatabasesSection: some View {
-        Section("关联数据库") {
+        Section(L10n.t("关联数据库")) {
             if availableDatabases.isEmpty {
-                Text("暂无可用数据库")
+                Text(L10n.t("暂无可用数据库"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -766,7 +766,7 @@ struct DatabaseUserDetailView: View {
             switch sheet {
             case .changePassword:
                 ChangePasswordSheet(
-                    title: "修改用户密码",
+                    title: L10n.t("修改用户密码"),
                     currentPassword: vm.user.password
                 ) { newPwd in
                     Task {
@@ -790,11 +790,11 @@ struct DatabaseUserDetailView: View {
                 }
             case .delete:
                 TextInputConfirmSheet(
-                    title: "删除用户",
-                    message: "此操作不可恢复。请输入用户名「\(vm.user.username ?? "")」以确认删除。",
+                    title: L10n.t("删除用户"),
+                    message: L10n.f("此操作不可恢复。请输入用户名「%@」以确认删除。", vm.user.username ?? ""),
                     expectedText: vm.user.username ?? "",
-                    fieldLabel: "确认用户名",
-                    fieldPlaceholder: "用户名"
+                    fieldLabel: L10n.t("确认用户名"),
+                    fieldPlaceholder: L10n.t("用户名")
                 ) {
                     Task {
                         let ok = await vm.deleteUser()
@@ -811,42 +811,42 @@ struct DatabaseUserDetailView: View {
     private var infoSection: some View {
         Section {
             if let username = vm.user.username {
-                InfoRow(key: "用户名", value: username)
+                InfoRow(key: L10n.t("用户名"), value: username)
             }
             if let pwd = vm.user.password, !pwd.isEmpty {
                 PasswordRow(password: pwd)
             }
             if let desc = vm.user.description, !desc.isEmpty {
-                InfoRow(key: "描述", value: desc)
+                InfoRow(key: L10n.t("描述"), value: desc)
             }
 
             Button {
                 activeSheet = .changePassword
             } label: {
-                Label("修改密码", systemImage: "key")
+                Label(L10n.t("修改密码"), systemImage: "key")
             }
         } header: {
-            SectionLabel(title: "用户信息", systemImage: "person")
+            SectionLabel(title: L10n.t("用户信息"), systemImage: "person")
         }
     }
 
     private var permissionSection: some View {
         Section {
-            InfoRow(key: "当前权限", value: vm.user.host == "%" ? "所有人(%)" : (vm.user.host ?? "-"))
+            InfoRow(key: L10n.t("当前权限"), value: vm.user.host == "%" ? L10n.t("所有人(%)") : (vm.user.host ?? "-"))
             Button {
                 activeSheet = .editPermission
             } label: {
-                Label("修改权限", systemImage: "network")
+                Label(L10n.t("修改权限"), systemImage: "network")
             }
         } header: {
-            SectionLabel(title: "权限", systemImage: "lock.shield")
+            SectionLabel(title: L10n.t("权限"), systemImage: "lock.shield")
         }
     }
 
     private var grantedDatabasesSection: some View {
         Section {
             if vm.grantedDatabases.isEmpty {
-                Text("无关联数据库")
+                Text(L10n.t("无关联数据库"))
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(vm.grantedDatabases, id: \.self) { dbName in
@@ -868,11 +868,11 @@ struct DatabaseUserDetailView: View {
             Button {
                 activeSheet = .addGrant
             } label: {
-                Label("添加关联数据库", systemImage: "plus.circle")
+                Label(L10n.t("添加关联数据库"), systemImage: "plus.circle")
             }
             .disabled(vm.availableDatabases.filter { !vm.grantedDatabases.contains($0) }.isEmpty)
         } header: {
-            SectionLabel(title: "关联数据库（\(vm.grantedDatabases.count)）", systemImage: "cylinder")
+            SectionLabel(title: L10n.f("关联数据库（%ld）", vm.grantedDatabases.count), systemImage: "cylinder")
         }
     }
 
@@ -883,7 +883,7 @@ struct DatabaseUserDetailView: View {
             Button(role: .destructive) {
                 activeSheet = .delete
             } label: {
-                Label("删除用户", systemImage: "trash")
+                Label(L10n.t("删除用户"), systemImage: "trash")
             }
         }
     }
@@ -930,34 +930,34 @@ struct EditUserPermissionSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("权限") {
-                    Picker("访问权限", selection: $permissionMode) {
+                Section(L10n.t("权限")) {
+                    Picker(L10n.t("访问权限"), selection: $permissionMode) {
                         ForEach(PermissionMode.allCases) { mode in
-                            Text(mode.rawValue).tag(mode)
+                            Text(L10n.t(mode.rawValue)).tag(mode)
                         }
                     }
                     .pickerStyle(.segmented)
 
                     if permissionMode == .ip {
-                        TextField("IP 地址", text: $permissionIPs)
+                        TextField(L10n.t("IP 地址"), text: $permissionIPs)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .font(.system(.body, design: .monospaced))
                     }
                 }
-                Section("描述") {
-                    TextField("描述", text: $description, axis: .vertical)
+                Section(L10n.t("描述")) {
+                    TextField(L10n.t("描述"), text: $description, axis: .vertical)
                         .lineLimit(2...4)
                 }
             }
-            .navigationTitle("修改权限")
+            .navigationTitle(L10n.t("修改权限"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确认") {
+                    Button(L10n.t("确认")) {
                         onConfirm(finalHost, description)
                         dismiss()
                     }
@@ -981,10 +981,10 @@ struct AddGrantSheet: View {
         NavigationStack {
             Form {
                 if availableDatabases.isEmpty {
-                    Text("暂无可关联的数据库")
+                    Text(L10n.t("暂无可关联的数据库"))
                         .foregroundStyle(.secondary)
                 } else {
-                    Section("选择数据库") {
+                    Section(L10n.t("选择数据库")) {
                         ForEach(availableDatabases, id: \.self) { dbName in
                             CheckRow(title: dbName, isSelected: selectedDatabase == dbName)
                                 .onTapGesture {
@@ -994,14 +994,14 @@ struct AddGrantSheet: View {
                     }
                 }
             }
-            .navigationTitle("添加关联数据库")
+            .navigationTitle(L10n.t("添加关联数据库"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确认") {
+                    Button(L10n.t("确认")) {
                         onConfirm(selectedDatabase)
                         dismiss()
                     }

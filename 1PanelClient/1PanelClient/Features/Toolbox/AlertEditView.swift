@@ -49,11 +49,11 @@ struct AlertEditView: View {
             methodSection
             if isEditing { statusSection }
         }
-        .navigationTitle(isEditing ? "编辑告警" : "创建告警")
+        .navigationTitle(isEditing ? L10n.t("编辑告警") : L10n.t("创建告警"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("确认") {
+                Button(L10n.t("确认")) {
                     if let req = buildRequest() {
                         Task {
                             // 成功后自动返回列表，Toast 在列表页展示
@@ -87,16 +87,16 @@ struct AlertEditView: View {
     private var basicSection: some View {
         Section {
             if isEditing {
-                LabeledContent("告警类型", value: editing?.alertType.displayName ?? (editing?.type ?? "未知"))
+                LabeledContent(L10n.t("告警类型"), value: editing?.alertType.displayName ?? (editing?.type ?? L10n.t("未知")))
             } else {
-                Picker("告警类型", selection: $type) {
+                Picker(L10n.t("告警类型"), selection: $type) {
                     ForEach(AlertType.creatable) { t in
                         Text(t.displayName).tag(t)
                     }
                 }
             }
         } header: {
-            Text("基本信息")
+            Text(L10n.t("基本信息"))
         }
     }
 
@@ -104,9 +104,9 @@ struct AlertEditView: View {
 
     private var projectSection: some View {
         Section {
-            Picker(type == .ssl ? "证书" : "网站", selection: $projectAll) {
-                Text("所有").tag(true)
-                Text("指定").tag(false)
+            Picker(type == .ssl ? L10n.t("证书") : L10n.t("网站"), selection: $projectAll) {
+                Text(L10n.t("所有")).tag(true)
+                Text(L10n.t("指定")).tag(false)
             }
             .pickerStyle(.segmented)
 
@@ -114,12 +114,12 @@ struct AlertEditView: View {
                 if vm.isLoadingOptions {
                     HStack {
                         Spacer()
-                        ProgressView("加载中…")
+                        ProgressView(L10n.t("加载中…"))
                         Spacer()
                     }
                 } else {
-                    Picker("选择对象", selection: $selectedProjectID) {
-                        Text("请选择").tag(Int?.none)
+                    Picker(L10n.t("选择对象"), selection: $selectedProjectID) {
+                        Text(L10n.t("请选择")).tag(Int?.none)
                         ForEach(type == .ssl ? vm.sslOptions.map(\.id) : vm.websiteOptions.map(\.id), id: \.self) { id in
                             Text(projectName(id: id)).tag(Int?.some(id))
                         }
@@ -127,10 +127,10 @@ struct AlertEditView: View {
                 }
             }
         } header: {
-            Text("告警对象")
+            Text(L10n.t("告警对象"))
         } footer: {
             if !projectAll && !vm.isLoadingOptions {
-                Text("面板将以剩余天数为准，在到期前触发告警")
+                Text(L10n.t("面板将以剩余天数为准，在到期前触发告警"))
             }
         }
     }
@@ -138,18 +138,18 @@ struct AlertEditView: View {
     /// 对象显示名（证书取 primaryDomain，网站取 primaryDomain/alias）
     private func projectName(id: Int) -> String {
         if type == .ssl {
-            return vm.sslOptions.first(where: { $0.id == id })?.domain ?? "未知"
+            return vm.sslOptions.first(where: { $0.id == id })?.domain ?? L10n.t("未知")
         }
-        return vm.websiteOptions.first(where: { $0.id == id })?.domain ?? "未知"
+        return vm.websiteOptions.first(where: { $0.id == id })?.domain ?? L10n.t("未知")
     }
 
     // MARK: - 磁盘选择（磁盘告警）
 
     private var diskSection: some View {
         Section {
-            Picker("磁盘", selection: $projectAll) {
-                Text("所有").tag(true)
-                Text("指定").tag(false)
+            Picker(L10n.t("磁盘"), selection: $projectAll) {
+                Text(L10n.t("所有")).tag(true)
+                Text(L10n.t("指定")).tag(false)
             }
             .pickerStyle(.segmented)
 
@@ -157,12 +157,12 @@ struct AlertEditView: View {
                 if vm.isLoadingOptions {
                     HStack {
                         Spacer()
-                        ProgressView("加载中…")
+                        ProgressView(L10n.t("加载中…"))
                         Spacer()
                     }
                 } else {
-                    Picker("选择磁盘", selection: $selectedDiskPath) {
-                        Text("请选择").tag(String?.none)
+                    Picker(L10n.t("选择磁盘"), selection: $selectedDiskPath) {
+                        Text(L10n.t("请选择")).tag(String?.none)
                         ForEach(vm.diskOptions) { disk in
                             Text(diskLabel(disk)).tag(String?.some(disk.path))
                         }
@@ -170,10 +170,10 @@ struct AlertEditView: View {
                 }
             }
         } header: {
-            Text("磁盘信息")
+            Text(L10n.t("磁盘信息"))
         } footer: {
             if !projectAll && !vm.isLoadingOptions {
-                Text("选择需要监控的挂载目录")
+                Text(L10n.t("选择需要监控的挂载目录"))
             }
         }
     }
@@ -191,35 +191,35 @@ struct AlertEditView: View {
         Section {
             if type.isLoginType {
                 Stepper(value: $cycle, in: 1...1440) {
-                    LabeledContent("时间窗口", value: "\(cycle) 分钟")
+                    LabeledContent(L10n.t("时间窗口"), value: L10n.f("%ld 分钟", cycle))
                 }
                 Stepper(value: $failCount, in: 1...999) {
-                    LabeledContent("失败次数", value: "\(failCount) 次")
+                    LabeledContent(L10n.t("失败次数"), value: L10n.f("%ld 次", failCount))
                 }
             } else if type.isPercentType {
-                LabeledContent("指定时间", value: "5 分钟")
+                LabeledContent(L10n.t("指定时间"), value: L10n.t("5 分钟"))
                 Stepper(value: $threshold, in: 1...100) {
-                    LabeledContent("平均使用率超过", value: "\(threshold)%")
+                    LabeledContent(L10n.t("平均使用率超过"), value: "\(threshold)%")
                 }
             } else if type.isDisk {
-                Picker("监测类型", selection: $diskMonitorKind) {
-                    Text("占用磁盘").tag(1)
-                    Text("占用百分比").tag(2)
+                Picker(L10n.t("监测类型"), selection: $diskMonitorKind) {
+                    Text(L10n.t("占用磁盘")).tag(1)
+                    Text(L10n.t("占用百分比")).tag(2)
                 }
                 .pickerStyle(.segmented)
                 Stepper(value: $threshold, in: 1...100) {
-                    LabeledContent("使用超过", value: "\(threshold)%")
+                    LabeledContent(L10n.t("使用超过"), value: "\(threshold)%")
                 }
             } else if !type.isSimpleNotice {
                 Stepper(value: $cycle, in: 1...90) {
-                    LabeledContent("剩余天数", value: "\(cycle) 天")
+                    LabeledContent(L10n.t("剩余天数"), value: L10n.f("%ld 天", cycle))
                 }
             }
             Stepper(value: $sendCount, in: 1...99) {
-                LabeledContent("告警次数", value: "\(sendCount) 次")
+                LabeledContent(L10n.t("告警次数"), value: L10n.f("%ld 次", sendCount))
             }
         } header: {
-            Text("触发条件")
+            Text(L10n.t("触发条件"))
         } footer: {
             Text(conditionFooter)
         }
@@ -228,15 +228,15 @@ struct AlertEditView: View {
     private var conditionFooter: String {
         switch type {
         case .sshLogin, .panelLogin:
-            return "窗口时间内登录失败达到次数即触发告警"
+            return L10n.t("窗口时间内登录失败达到次数即触发告警")
         case .cpu, .memory, .load:
-            return "时间窗口固定为监控采集间隔 5 分钟，平均使用率超过阈值即触发"
+            return L10n.t("时间窗口固定为监控采集间隔 5 分钟，平均使用率超过阈值即触发")
         case .disk:
-            return "按监测类型统计磁盘使用，超过阈值即触发"
+            return L10n.t("按监测类型统计磁盘使用，超过阈值即触发")
         case .panelUpdate:
-            return "面板有新版本发布时通知"
+            return L10n.t("面板有新版本发布时通知")
         default:
-            return "证书 / 网站 / 密码到期前，每天检查并按告警次数发送"
+            return L10n.t("证书 / 网站 / 密码到期前，每天检查并按告警次数发送")
         }
     }
 
@@ -250,9 +250,9 @@ struct AlertEditView: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
         } header: {
-            SectionLabel(title: "IP 白名单", systemImage: "checkmark.shield")
+            SectionLabel(title: L10n.t("IP 白名单"), systemImage: "checkmark.shield")
         } footer: {
-            Text("白名单内的 IP 登录失败不会触发告警，每行一个，支持 IP 或 CIDR 网段")
+            Text(L10n.t("白名单内的 IP 登录失败不会触发告警，每行一个，支持 IP 或 CIDR 网段"))
         }
     }
 
@@ -261,28 +261,28 @@ struct AlertEditView: View {
     private var methodSection: some View {
         Section {
             if availableConfigs.isEmpty {
-                Label("请先在「设置」中配置发送方式", systemImage: "exclamationmark.triangle")
+                Label(L10n.t("请先在「设置」中配置发送方式"), systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
             } else {
-                Picker("发送至", selection: $sendMethodAll) {
-                    Text("所有").tag(true)
-                    Text("指定").tag(false)
+                Picker(L10n.t("发送至"), selection: $sendMethodAll) {
+                    Text(L10n.t("所有")).tag(true)
+                    Text(L10n.t("指定")).tag(false)
                 }
                 .pickerStyle(.segmented)
 
                 if !sendMethodAll {
-                    Picker("发送方式", selection: $selectedConfigID) {
-                        Text("请选择").tag(Int?.none)
+                    Picker(L10n.t("发送方式"), selection: $selectedConfigID) {
+                        Text(L10n.t("请选择")).tag(Int?.none)
                         ForEach(availableConfigs) { config in
-                            Text(config.sendConfig.displayName ?? (config.type ?? "未知")).tag(Int?.some(config.id))
+                            Text(config.sendConfig.displayName ?? (config.type ?? L10n.t("未知"))).tag(Int?.some(config.id))
                         }
                     }
                 }
             }
         } header: {
-            Text("告警方式")
+            Text(L10n.t("告警方式"))
         } footer: {
-            Text(availableConfigs.isEmpty ? "告警需要至少一个可用的发送方式" : "触发告警时通过所选方式通知")
+            Text(availableConfigs.isEmpty ? L10n.t("告警需要至少一个可用的发送方式") : L10n.t("触发告警时通过所选方式通知"))
         }
     }
 
@@ -290,7 +290,7 @@ struct AlertEditView: View {
 
     private var statusSection: some View {
         Section {
-            Toggle("启用告警", isOn: $enabled)
+            Toggle(L10n.t("启用告警"), isOn: $enabled)
         }
     }
 
@@ -329,31 +329,31 @@ struct AlertEditView: View {
     private var generatedTitle: String? {
         switch type {
         case .panelPwdEndTime:
-            return "面板密码到期告警"
+            return L10n.t("面板密码到期告警")
         case .cpu:
-            return "CPU 占用过高告警"
+            return L10n.t("CPU 占用过高告警")
         case .memory:
-            return "内存占用过高告警"
+            return L10n.t("内存占用过高告警")
         case .load:
-            return "负载占用过高告警"
+            return L10n.t("负载占用过高告警")
         case .disk:
-            if projectAll { return "磁盘占用过高告警" }
+            if projectAll { return L10n.t("磁盘占用过高告警") }
             guard let path = selectedDiskPath else { return nil }
-            return "挂载目录「\(path)」的磁盘占用过高告警"
+            return L10n.f("挂载目录「%@」的磁盘占用过高告警", path)
         case .sshLogin:
-            return "SSH 登录异常告警"
+            return L10n.t("SSH 登录异常告警")
         case .panelLogin:
-            return "面板登录异常告警"
+            return L10n.t("面板登录异常告警")
         case .ssl:
-            if projectAll { return "所有网站证书到期告警" }
+            if projectAll { return L10n.t("所有网站证书到期告警") }
             guard let id = selectedProjectID else { return nil }
-            return "网站「 \(projectName(id: id)) 」证书到期告警"
+            return L10n.f("网站「 %@ 」证书到期告警", projectName(id: id))
         case .siteEndTime:
-            if projectAll { return "所有网站到期告警" }
+            if projectAll { return L10n.t("所有网站到期告警") }
             guard let id = selectedProjectID else { return nil }
-            return "网站「 \(projectName(id: id)) 」到期告警"
+            return L10n.f("网站「 %@ 」到期告警", projectName(id: id))
         case .panelUpdate:
-            return "面板新版本提醒"
+            return L10n.t("面板新版本提醒")
         case .unknown:
             return nil
         }

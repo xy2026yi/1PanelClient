@@ -15,38 +15,38 @@ struct LogsView: View {
 
     var body: some View {
         List {
-            Section("面板日志") {
+            Section(L10n.t("面板日志")) {
                 NavigationLink {
                     OperationLogView(server: server)
                 } label: {
-                    logMenuRow("操作日志", icon: "square.and.pencil", color: .blue, subtitle: "面板 API 操作记录")
+                    logMenuRow(L10n.t("操作日志"), icon: "square.and.pencil", color: .blue, subtitle: L10n.t("面板 API 操作记录"))
                 }
                 NavigationLink {
                     LoginLogView(server: server)
                 } label: {
-                    logMenuRow("访问日志", icon: "person.badge.key", color: .green, subtitle: "面板登录记录")
+                    logMenuRow(L10n.t("访问日志"), icon: "person.badge.key", color: .green, subtitle: L10n.t("面板登录记录"))
                 }
                 NavigationLink {
                     SystemLogView(server: server)
                 } label: {
-                    logMenuRow("系统日志", icon: "gearshape.2", color: .orange, subtitle: "1Panel 运行日志")
+                    logMenuRow(L10n.t("系统日志"), icon: "gearshape.2", color: .orange, subtitle: L10n.t("1Panel 运行日志"))
                 }
             }
 
-            Section("服务器日志") {
+            Section(L10n.t("服务器日志")) {
                 NavigationLink {
                     SSHLogView(server: server)
                 } label: {
-                    logMenuRow("SSH 登陆日志", icon: "terminal", color: .indigo, subtitle: "SSH 登陆成功/失败记录")
+                    logMenuRow(L10n.t("SSH 登陆日志"), icon: "terminal", color: .indigo, subtitle: L10n.t("SSH 登陆成功/失败记录"))
                 }
                 NavigationLink {
                     WebsiteLogsView(server: server)
                 } label: {
-                    logMenuRow("网站日志", icon: "globe", color: .teal, subtitle: "网站访问日志文件")
+                    logMenuRow(L10n.t("网站日志"), icon: "globe", color: .teal, subtitle: L10n.t("网站访问日志文件"))
                 }
             }
         }
-        .navigationTitle("日志")
+        .navigationTitle(L10n.t("日志"))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -83,18 +83,18 @@ struct OperationLogView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载中…").frame(maxWidth: .infinity, minHeight: 200)
+                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
             } else if let errorMessage {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(errorMessage)
                 } actions: {
-                    Button("重试") { Task { await load() } }
+                    Button(L10n.t("重试")) { Task { await load() } }
                         .buttonStyle(.borderedProminent)
                 }
             } else if items.isEmpty {
-                ContentUnavailableView("暂无操作日志", systemImage: "square.and.pencil")
+                ContentUnavailableView(L10n.t("暂无操作日志"), systemImage: "square.and.pencil")
             } else {
                 List(items) { item in
                     row(item)
@@ -102,7 +102,7 @@ struct OperationLogView: View {
                 .listStyle(.insetGrouped)
             }
         }
-        .navigationTitle("操作日志")
+        .navigationTitle(L10n.t("操作日志"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
@@ -182,18 +182,18 @@ struct LoginLogView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载中…").frame(maxWidth: .infinity, minHeight: 200)
+                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
             } else if let errorMessage {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(errorMessage)
                 } actions: {
-                    Button("重试") { Task { await load() } }
+                    Button(L10n.t("重试")) { Task { await load() } }
                         .buttonStyle(.borderedProminent)
                 }
             } else if items.isEmpty {
-                ContentUnavailableView("暂无访问日志", systemImage: "person.badge.key")
+                ContentUnavailableView(L10n.t("暂无访问日志"), systemImage: "person.badge.key")
             } else {
                 List(items) { item in
                     row(item)
@@ -201,7 +201,7 @@ struct LoginLogView: View {
                 .listStyle(.insetGrouped)
             }
         }
-        .navigationTitle("访问日志")
+        .navigationTitle(L10n.t("访问日志"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
@@ -210,7 +210,7 @@ struct LoginLogView: View {
     private func row(_ item: LoginLogItem) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 8) {
-                Text(item.user?.isEmpty == false ? item.user! : "未知用户")
+                Text(item.user?.isEmpty == false ? item.user! : L10n.t("未知用户"))
                     .font(.subheadline.bold())
                 Text(item.ip ?? "")
                     .font(.caption.monospacedDigit())
@@ -276,22 +276,22 @@ struct SystemLogView: View {
     var body: some View {
         Group {
             if isLoading && dates.isEmpty {
-                ProgressView("加载中…").frame(maxWidth: .infinity, minHeight: 200)
+                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
             } else if let errorMessage, dates.isEmpty {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(errorMessage)
                 } actions: {
-                    Button("重试") { Task { await loadDates() } }
+                    Button(L10n.t("重试")) { Task { await loadDates() } }
                         .buttonStyle(.borderedProminent)
                 }
             } else if dates.isEmpty {
-                ContentUnavailableView("暂无系统日志", systemImage: "gearshape.2")
+                ContentUnavailableView(L10n.t("暂无系统日志"), systemImage: "gearshape.2")
             } else {
                 List {
                     Section {
-                        Picker("日期", selection: $selectedDate) {
+                        Picker(L10n.t("日期"), selection: $selectedDate) {
                             ForEach(dates, id: \.self) { d in
                                 Text(d).tag(d)
                             }
@@ -302,7 +302,7 @@ struct SystemLogView: View {
                     }
                     Section {
                         if lines.isEmpty {
-                            Text("该日期暂无日志")
+                            Text(L10n.t("该日期暂无日志"))
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                         } else {
@@ -317,7 +317,7 @@ struct SystemLogView: View {
                 }
             }
         }
-        .navigationTitle("系统日志")
+        .navigationTitle(L10n.t("系统日志"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {
             await loadDates()
@@ -379,18 +379,18 @@ struct SSHLogView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("加载中…").frame(maxWidth: .infinity, minHeight: 200)
+                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
             } else if let errorMessage {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(errorMessage)
                 } actions: {
-                    Button("重试") { Task { await load() } }
+                    Button(L10n.t("重试")) { Task { await load() } }
                         .buttonStyle(.borderedProminent)
                 }
             } else if items.isEmpty {
-                ContentUnavailableView("暂无 SSH 登陆日志", systemImage: "terminal")
+                ContentUnavailableView(L10n.t("暂无 SSH 登陆日志"), systemImage: "terminal")
             } else {
                 List(items) { item in
                     row(item)
@@ -398,7 +398,7 @@ struct SSHLogView: View {
                 .listStyle(.insetGrouped)
             }
         }
-        .navigationTitle("SSH 登陆日志")
+        .navigationTitle(L10n.t("SSH 登陆日志"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
@@ -482,22 +482,22 @@ struct WebsiteLogsView: View {
     var body: some View {
         Group {
             if isLoading && sites.isEmpty {
-                ProgressView("加载中…").frame(maxWidth: .infinity, minHeight: 200)
+                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
             } else if let errorMessage, sites.isEmpty {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(errorMessage)
                 } actions: {
-                    Button("重试") { Task { await loadSites() } }
+                    Button(L10n.t("重试")) { Task { await loadSites() } }
                         .buttonStyle(.borderedProminent)
                 }
             } else if sites.isEmpty {
-                ContentUnavailableView("暂无网站", systemImage: "globe", description: Text("请先创建网站"))
+                ContentUnavailableView(L10n.t("暂无网站"), systemImage: "globe", description: Text(L10n.t("请先创建网站")))
             } else {
                 List {
                     Section {
-                        Picker("网站", selection: $selectedSiteID) {
+                        Picker(L10n.t("网站"), selection: $selectedSiteID) {
                             ForEach(sites) { site in
                                 Text(site.alias ?? site.primaryDomain ?? "\(site.id)")
                                     .tag(site.id)
@@ -509,7 +509,7 @@ struct WebsiteLogsView: View {
                     }
                     Section {
                         if lines.isEmpty {
-                            Text("该网站暂无访问日志")
+                            Text(L10n.t("该网站暂无访问日志"))
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                         } else {
@@ -524,7 +524,7 @@ struct WebsiteLogsView: View {
                 }
             }
         }
-        .navigationTitle("网站日志")
+        .navigationTitle(L10n.t("网站日志"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {
             await loadSites()

@@ -32,28 +32,28 @@ struct AlertGlobalConfigView: View {
     var body: some View {
         Form {
             Section {
-                DatePicker("开始时间", selection: $noticeStart, displayedComponents: .hourAndMinute)
-                DatePicker("结束时间", selection: $noticeEnd, displayedComponents: .hourAndMinute)
+                DatePicker(L10n.t("开始时间"), selection: $noticeStart, displayedComponents: .hourAndMinute)
+                DatePicker(L10n.t("结束时间"), selection: $noticeEnd, displayedComponents: .hourAndMinute)
             } header: {
-                Text("通知告警")
+                Text(L10n.t("通知告警"))
             } footer: {
-                Text("面板密码 / 证书 / 网站到期、面板更新等通知类告警的可发送时间范围")
+                Text(L10n.t("面板密码 / 证书 / 网站到期、面板更新等通知类告警的可发送时间范围"))
             }
 
             Section {
-                DatePicker("开始时间", selection: $resourceStart, displayedComponents: .hourAndMinute)
-                DatePicker("结束时间", selection: $resourceEnd, displayedComponents: .hourAndMinute)
+                DatePicker(L10n.t("开始时间"), selection: $resourceStart, displayedComponents: .hourAndMinute)
+                DatePicker(L10n.t("结束时间"), selection: $resourceEnd, displayedComponents: .hourAndMinute)
             } header: {
-                Text("资源告警")
+                Text(L10n.t("资源告警"))
             } footer: {
-                Text("CPU / 内存 / 磁盘 / 负载、登录异常等资源类告警的可发送时间范围")
+                Text(L10n.t("CPU / 内存 / 磁盘 / 负载、登录异常等资源类告警的可发送时间范围"))
             }
         }
-        .navigationTitle("全局配置")
+        .navigationTitle(L10n.t("全局配置"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("保存") {
+                Button(L10n.t("保存")) {
                     Task {
                         isSaving = true
                         if await vm.saveConfig(buildRequest()) {
@@ -111,7 +111,7 @@ struct AlertGlobalConfigView: View {
             title: item.title ?? "xpack.alert.commonConfig",
             status: item.status ?? "Enable",
             config: json,
-            displayName: "全局配置"
+            displayName: L10n.t("全局配置")
         )
     }
 

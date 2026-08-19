@@ -42,15 +42,15 @@ struct AlertRule: Decodable, Identifiable, Hashable {
     var conditionDisplay: String {
         switch alertType {
         case .sshLogin, .panelLogin:
-            return "\(cycle ?? 0) 分钟内失败 \(count ?? 0) 次"
+            return L10n.f("%ld 分钟内失败 %ld 次", cycle ?? 0, count ?? 0)
         case .panelPwdEndTime, .ssl, .siteEndTime:
-            return "剩余 \(cycle ?? 0) 天"
+            return L10n.f("剩余 %ld 天", cycle ?? 0)
         case .cpu, .memory, .load:
-            return "5 分钟均值超 \(count ?? 0)%"
+            return L10n.f("5 分钟均值超 %ld%%", count ?? 0)
         case .disk:
-            return (cycle == 1 ? "占用磁盘超 " : "占用百分比超 ") + "\(count ?? 0)%"
+            return (cycle == 1 ? L10n.t("占用磁盘超 ") : L10n.t("占用百分比超 ")) + "\(count ?? 0)%"
         case .panelUpdate:
-            return "面板有新版本时"
+            return L10n.t("面板有新版本时")
         case .unknown:
             return ""
         }
@@ -81,17 +81,17 @@ enum AlertType: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .panelPwdEndTime: return "面板密码到期"
-        case .cpu:             return "CPU 占用过高"
-        case .memory:          return "内存占用过高"
-        case .disk:            return "磁盘占用过高"
-        case .load:            return "负载占用过高"
-        case .ssl:             return "网站证书到期"
-        case .siteEndTime:     return "网站到期"
-        case .sshLogin:        return "SSH 登录异常"
-        case .panelLogin:      return "面板登录异常"
-        case .panelUpdate:     return "面板新版本提醒"
-        case .unknown:         return "未知"
+        case .panelPwdEndTime: return L10n.t("面板密码到期")
+        case .cpu:             return L10n.t("CPU 占用过高")
+        case .memory:          return L10n.t("内存占用过高")
+        case .disk:            return L10n.t("磁盘占用过高")
+        case .load:            return L10n.t("负载占用过高")
+        case .ssl:             return L10n.t("网站证书到期")
+        case .siteEndTime:     return L10n.t("网站到期")
+        case .sshLogin:        return L10n.t("SSH 登录异常")
+        case .panelLogin:      return L10n.t("面板登录异常")
+        case .panelUpdate:     return L10n.t("面板新版本提醒")
+        case .unknown:         return L10n.t("未知")
         }
     }
 
@@ -274,7 +274,7 @@ enum AlertSendType: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .email: return "邮箱通知"
+        case .email: return L10n.t("邮箱通知")
         case .bark:  return "Bark"
         }
     }
@@ -389,7 +389,7 @@ struct AlertSSLOption: Decodable, Identifiable {
     let primaryDomain: String?
     let expireDate: String?
 
-    var domain: String { primaryDomain ?? "未知域名" }
+    var domain: String { primaryDomain ?? L10n.t("未知域名") }
 }
 
 /// 网站下拉项（GET /api/v2/websites/list）
@@ -398,7 +398,7 @@ struct AlertWebsiteOption: Decodable, Identifiable {
     let primaryDomain: String?
     let alias: String?
 
-    var domain: String { primaryDomain ?? alias ?? "未知域名" }
+    var domain: String { primaryDomain ?? alias ?? L10n.t("未知域名") }
 }
 
 /// 磁盘下拉项（GET /api/v2/alert/disks/list，单个告警关联 path）

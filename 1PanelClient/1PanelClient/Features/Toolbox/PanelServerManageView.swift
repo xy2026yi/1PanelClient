@@ -35,45 +35,45 @@ struct PanelServerManageView: View {
         var id: String { rawValue }
 
         var title: String {
-            self == .panel ? "重启面板" : "重启服务器"
+            self == .panel ? L10n.t("重启面板") : L10n.t("重启服务器")
         }
 
         /// 完成后的提示文案
         var successToast: String {
             self == .panel
-                ? "重启指令已发送，面板服务正在重启，几秒后恢复"
-                : "重启指令已发送，服务器将失联 1-2 分钟"
+                ? L10n.t("重启指令已发送，面板服务正在重启，几秒后恢复")
+                : L10n.t("重启指令已发送，服务器将失联 1-2 分钟")
         }
     }
 
     var body: some View {
         List {
             Section {
-                actionRow(.panel, subtitle: "重启 1Panel 面板服务，几秒后自动恢复")
-                actionRow(.system, subtitle: "重启整个服务器，期间将失联 1-2 分钟")
+                actionRow(.panel, subtitle: L10n.t("重启 1Panel 面板服务，几秒后自动恢复"))
+                actionRow(.system, subtitle: L10n.t("重启整个服务器，期间将失联 1-2 分钟"))
             } header: {
-                Text("重启操作")
+                Text(L10n.t("重启操作"))
             } footer: {
-                Text("高危操作，需输入「立即重启」确认")
+                Text(L10n.t("高危操作，需输入「立即重启」确认"))
             }
         }
-        .navigationTitle("面板/服务器管理")
+        .navigationTitle(L10n.t("面板/服务器管理"))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $restartTarget) { target in
             TextInputConfirmSheet(
                 title: target.title,
-                message: "此操作不可恢复。如果确认操作，请手动输入「立即重启」。",
-                expectedText: "立即重启",
-                fieldLabel: "确认输入",
-                fieldPlaceholder: "请输入 立即重启",
-                confirmTitle: "确认重启"
+                message: L10n.t("此操作不可恢复。如果确认操作，请手动输入「立即重启」。"),
+                expectedText: L10n.t("立即重启"),
+                fieldLabel: L10n.t("确认输入"),
+                fieldPlaceholder: L10n.t("请输入 立即重启"),
+                confirmTitle: L10n.t("确认重启")
             ) {
                 Task { await restart(target) }
             }
         }
         .toastOverlay(message: $toastMessage)
-        .alert("提示", isPresented: $showAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(alertMessage ?? "")
         }
@@ -117,7 +117,7 @@ struct PanelServerManageView: View {
             if case .networkError = err {
                 showToast(target.successToast)
             } else {
-                alertMessage = "操作失败：\(err.errorDescription ?? "未知错误")"
+                alertMessage = L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误"))
                 showAlert = true
             }
         } catch {

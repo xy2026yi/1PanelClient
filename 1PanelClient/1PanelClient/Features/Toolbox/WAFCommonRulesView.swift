@@ -35,7 +35,7 @@ struct WAFCommonRulesView: View {
             if isLoading && items.isEmpty {
                 ProgressView()
             } else if items.isEmpty {
-                ContentUnavailableView("暂无通用规则", systemImage: "list.bullet.rectangle.shield")
+                ContentUnavailableView(L10n.t("暂无通用规则"), systemImage: "list.bullet.rectangle.shield")
             } else {
                 ForEach(items) { item in
                     HStack {
@@ -68,7 +68,7 @@ struct WAFCommonRulesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton { showCreate = true }
-                .accessibilityLabel("添加规则")
+                .accessibilityLabel(L10n.t("添加规则"))
         }
         .refreshable { await loadItems() }
         .task { await loadItems() }
@@ -87,12 +87,12 @@ struct WAFCommonRulesView: View {
             set: { if !$0 { actionItem = nil } }
         )) {
             ActionBottomSheet(
-                title: actionItem?.rule ?? "规则",
+                title: actionItem?.rule ?? L10n.t("规则"),
                 items: [
-                    ActionMenuItem(title: "编辑", icon: "pencil", color: .blue) {
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
                         editingItem = actionItem
                     },
-                    ActionMenuItem(title: "删除", icon: "trash", color: .red, role: .destructive) {
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         pendingDeleteRule = actionItem
                     },
                 ],
@@ -101,24 +101,24 @@ struct WAFCommonRulesView: View {
             .presentationDetents([.height(ActionBottomSheet.height(for: 2))])
             .presentationDragIndicator(.visible)
         }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
         .alert(
-            "删除",
+            L10n.t("删除"),
             isPresented: Binding(
                 get: { pendingDeleteRule != nil },
                 set: { if !$0 { pendingDeleteRule = nil } }
             ),
             presenting: pendingDeleteRule
         ) { _ in
-            Button("取消", role: .cancel) { pendingDeleteRule = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDeleteRule = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 let item = pendingDeleteRule
                 pendingDeleteRule = nil
                 if let item = item {
@@ -126,7 +126,7 @@ struct WAFCommonRulesView: View {
                 }
             }
         } message: { item in
-            Text("将对 \"\(item.name)\" 进行删除操作，是否继续？")
+            Text(L10n.f("将对 \"%@\" 进行删除操作，是否继续？", item.name))
         }
     }
 
@@ -154,7 +154,7 @@ struct WAFCommonRulesView: View {
         )
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonUpdate.path, body: req, as: EmptyResponse.self)
-            successMessage = newState == "on" ? "已启用" : "已禁用"
+            successMessage = newState == "on" ? L10n.t("已启用") : L10n.t("已禁用")
             await loadItems()
         } catch {
             errorMessage = error.localizedDescription
@@ -165,7 +165,7 @@ struct WAFCommonRulesView: View {
         let req = WAFCommonRuleDeleteRequest(name: item.name, scope: scope, websiteID: 0)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonDelete.path, body: req, as: EmptyResponse.self)
-            successMessage = "已删除"
+            successMessage = L10n.t("已删除")
             await loadItems()
         } catch {
             errorMessage = error.localizedDescription
@@ -206,16 +206,16 @@ struct WAFCommonRuleFormView: View {
 
     var body: some View {
         Form {
-            Section("规则内容") {
-                TextField("输入规则", text: $rule)
+            Section(L10n.t("规则内容")) {
+                TextField(L10n.t("输入规则"), text: $rule)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
             }
-            Section("备注") {
-                TextField("描述(可选)", text: $description)
+            Section(L10n.t("备注")) {
+                TextField(L10n.t("描述(可选)"), text: $description)
             }
         }
-        .navigationTitle(editingItem == nil ? "添加规则" : "编辑规则")
+        .navigationTitle(editingItem == nil ? L10n.t("添加规则") : L10n.t("编辑规则"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -225,17 +225,17 @@ struct WAFCommonRuleFormView: View {
                     if isSaving {
                         ProgressView()
                     } else {
-                        Text(editingItem == nil ? "创建" : "保存")
+                        Text(editingItem == nil ? L10n.t("创建") : L10n.t("保存"))
                     }
                 }
                 .disabled(isSaving || rule.isEmpty)
             }
         }
-        .alert("错误", isPresented: Binding(
+        .alert(L10n.t("错误"), isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )) {
-            Button("好的") { errorMessage = nil }
+            Button(L10n.t("好的")) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }

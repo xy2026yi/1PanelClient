@@ -61,7 +61,7 @@ nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
     /// 显示名（优先主域名，其次 alias）
     var displayName: String {
         if let d = primaryDomain, !d.isEmpty { return d }
-        return alias ?? "未命名网站"
+        return alias ?? L10n.t("未命名网站")
     }
 
     /// 浏览器访问地址（protocol + primaryDomain，主域名缺省回退 alias；协议缺省按 http）
@@ -79,13 +79,13 @@ nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
     /// 类型原始值 → 中文显示名（Website / WebsiteFull 共用）
     static func typeDisplayName(for rawType: String?) -> String {
         switch (rawType ?? "").lowercased() {
-        case "deployment": return "一键部署"
-        case "proxy":      return "反向代理"
-        case "runtime":    return "运行环境"
-        case "static":     return "静态网站"
-        case "subsite":    return "子网站"
+        case "deployment": return L10n.t("一键部署")
+        case "proxy":      return L10n.t("反向代理")
+        case "runtime":    return L10n.t("运行环境")
+        case "static":     return L10n.t("静态网站")
+        case "subsite":    return L10n.t("子网站")
         case "stream":     return "TCP/UDP"
-        default:           return rawType ?? "未知"
+        default:           return rawType ?? L10n.t("未知")
         }
     }
 
@@ -143,7 +143,7 @@ nonisolated struct WebsiteSSL: Decodable, Identifiable, Hashable, Sendable {
 
     /// 显示名
     var displayName: String {
-        primaryDomain ?? "未知证书"
+        primaryDomain ?? L10n.t("未知证书")
     }
 
     /// 过期日期格式化
@@ -174,9 +174,9 @@ enum WebsiteType: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .deployment: return "一键部署"
-        case .proxy:      return "反向代理"
-        case .staticSite: return "静态网站"
+        case .deployment: return L10n.t("一键部署")
+        case .proxy:      return L10n.t("反向代理")
+        case .staticSite: return L10n.t("静态网站")
         }
     }
 
@@ -190,9 +190,9 @@ enum WebsiteType: String, CaseIterable, Identifiable {
 
     var description: String {
         switch self {
-        case .deployment: return "部署已安装的网站类应用（WordPress 等）"
-        case .proxy:      return "将域名反向代理到指定地址"
-        case .staticSite: return "提供静态文件托管（HTML/CSS/JS）"
+        case .deployment: return L10n.t("部署已安装的网站类应用（WordPress 等）")
+        case .proxy:      return L10n.t("将域名反向代理到指定地址")
+        case .staticSite: return L10n.t("提供静态文件托管（HTML/CSS/JS）")
         }
     }
 }

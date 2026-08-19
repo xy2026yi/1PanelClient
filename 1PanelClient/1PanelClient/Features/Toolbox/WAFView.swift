@@ -23,16 +23,16 @@ struct WAFView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.config == nil {
-                ProgressView("加载中…")
+                ProgressView(L10n.t("加载中…"))
             } else if let config = vm.config {
                 content(config: config)
             } else if let err = vm.errorMessage {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(err)
                 } actions: {
-                    Button("重试") { Task { await vm.loadAll() } }
+                    Button(L10n.t("重试")) { Task { await vm.loadAll() } }
                 }
             }
         }
@@ -40,23 +40,23 @@ struct WAFView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadAll() }
         .task { await vm.loadAll() }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { vm.successMessage != nil || vm.errorMessage != nil },
             set: { _ in vm.successMessage = nil; vm.errorMessage = nil }
         )) {
-            Button("好的") { vm.successMessage = nil; vm.errorMessage = nil }
+            Button(L10n.t("好的")) { vm.successMessage = nil; vm.errorMessage = nil }
         } message: {
             Text(vm.errorMessage ?? vm.successMessage ?? "")
         }
         .alert(
-            pendingAction == "on" ? "启动" : "停止",
+            pendingAction == "on" ? L10n.t("启动") : L10n.t("停止"),
             isPresented: Binding(
                 get: { pendingAction != nil },
                 set: { if !$0 { pendingAction = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingAction = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 let action = pendingAction
                 pendingAction = nil
                 if let action = action {
@@ -64,7 +64,7 @@ struct WAFView: View {
                 }
             }
         } message: {
-            Text("将对 WAF 进行 \(pendingAction == "on" ? "启动" : "停止") 操作，是否继续？")
+            Text(L10n.f("将对 WAF 进行 %@ 操作，是否继续？", pendingAction == "on" ? L10n.t("启动") : L10n.t("停止")))
         }
     }
 
@@ -110,7 +110,7 @@ struct WAFView: View {
                     ruleRow(icon: "person.crop.square", color: .pink, title: "User-Agent", item: config.uaBlack, scope: "UaBlack")
                 }
             } header: {
-                SectionLabel(title: "黑名单", systemImage: "hand.raised")
+                SectionLabel(title: L10n.t("黑名单"), systemImage: "hand.raised")
             }
 
             // 白名单
@@ -131,7 +131,7 @@ struct WAFView: View {
                     ruleRow(icon: "person.crop.square", color: .mint, title: "User-Agent", item: config.uaWhite, scope: "UaWhite")
                 }
             } header: {
-                SectionLabel(title: "白名单", systemImage: "checkmark.shield")
+                SectionLabel(title: L10n.t("白名单"), systemImage: "checkmark.shield")
             }
 
             // IP 组
@@ -139,50 +139,50 @@ struct WAFView: View {
                 NavigationLink {
                     WAFIPGroupsView(server: server)
                 } label: {
-                    Text("IP 组")
+                    Text(L10n.t("IP 组"))
                 }
             }
 
             // 频率限制
             Section {
                 NavigationLink {
-                    WAFCcSettingsView(server: server, config: config.cc, scope: "Cc", title: "访问频率限制")
+                    WAFCcSettingsView(server: server, config: config.cc, scope: "Cc", title: L10n.t("访问频率限制"))
                 } label: {
-                    ccToggleRow(title: "访问频率限制", item: config.cc, scope: "Cc")
+                    ccToggleRow(title: L10n.t("访问频率限制"), item: config.cc, scope: "Cc")
                 }
                 NavigationLink {
-                    WAFAttackCountSettingsView(server: server, config: config.attackCount, scope: "AttackCount", title: "攻击频率限制")
+                    WAFAttackCountSettingsView(server: server, config: config.attackCount, scope: "AttackCount", title: L10n.t("攻击频率限制"))
                 } label: {
-                    ccToggleRow(title: "攻击频率限制", item: config.attackCount, scope: "AttackCount")
+                    ccToggleRow(title: L10n.t("攻击频率限制"), item: config.attackCount, scope: "AttackCount")
                 }
                 NavigationLink {
-                    WAFAttackCountSettingsView(server: server, config: config.notFoundCount, scope: "NotFoundCount", title: "404 频率限制")
+                    WAFAttackCountSettingsView(server: server, config: config.notFoundCount, scope: "NotFoundCount", title: L10n.t("404 频率限制"))
                 } label: {
-                    ccToggleRow(title: "404 频率限制", item: config.notFoundCount, scope: "NotFoundCount")
+                    ccToggleRow(title: L10n.t("404 频率限制"), item: config.notFoundCount, scope: "NotFoundCount")
                 }
             } header: {
-                SectionLabel(title: "频率限制", systemImage: "gauge.with.dots.needle.67percent")
+                SectionLabel(title: L10n.t("频率限制"), systemImage: "gauge.with.dots.needle.67percent")
             }
 
             // 配置
             Section {
                 NavigationLink {
-                    WAFConfigItemView(server: server, title: "恶意 IP 组", scope: "DefaultIpBlack", updateType: "blackIP", item: config.defaultIpBlack)
+                    WAFConfigItemView(server: server, title: L10n.t("恶意 IP 组"), scope: "DefaultIpBlack", updateType: "blackIP", item: config.defaultIpBlack)
                 } label: {
-                    toggleRow(title: "恶意 IP 组", item: config.defaultIpBlack, scope: "DefaultIpBlack")
+                    toggleRow(title: L10n.t("恶意 IP 组"), item: config.defaultIpBlack, scope: "DefaultIpBlack")
                 }
                 NavigationLink {
-                    WAFConfigItemView(server: server, title: "蜘蛛 IP 池", scope: "AllowSpider", updateType: "spiderIP", item: config.allowSpider)
+                    WAFConfigItemView(server: server, title: L10n.t("蜘蛛 IP 池"), scope: "AllowSpider", updateType: "spiderIP", item: config.allowSpider)
                 } label: {
-                    toggleRow(title: "蜘蛛 IP 池", item: config.allowSpider, scope: "AllowSpider")
+                    toggleRow(title: L10n.t("蜘蛛 IP 池"), item: config.allowSpider, scope: "AllowSpider")
                 }
                 NavigationLink {
                     WAFLocationUpdateView(server: server)
                 } label: {
-                    Text("IP 地址库")
+                    Text(L10n.t("IP 地址库"))
                 }
             } header: {
-                SectionLabel(title: "配置", systemImage: "gearshape")
+                SectionLabel(title: L10n.t("配置"), systemImage: "gearshape")
             }
         }
     }
@@ -265,7 +265,7 @@ struct WAFConfigItemView: View {
                         Task { await toggle(newVal) }
                     }
                 )) {
-                    Text("启用")
+                    Text(L10n.t("启用"))
                 }
             } header: {
                 Text(title)
@@ -277,7 +277,7 @@ struct WAFConfigItemView: View {
                 } label: {
                     HStack {
                         Image(systemName: "arrow.triangle.2.circlepath")
-                        Text("更新")
+                        Text(L10n.t("更新"))
                         Spacer()
                         if isUpdating { ProgressView() }
                     }
@@ -286,11 +286,11 @@ struct WAFConfigItemView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button("好的") { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
@@ -300,7 +300,7 @@ struct WAFConfigItemView: View {
         let req = WAFGlobalStateRequest(scope: scope, state: on ? "on" : "off")
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafConfigGlobalState.path, body: req, as: EmptyResponse.self)
-            successMessage = on ? "已启用" : "已禁用"
+            successMessage = on ? L10n.t("已启用") : L10n.t("已禁用")
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -311,7 +311,7 @@ struct WAFConfigItemView: View {
         let req = WAFLocationUpdateRequest(type: updateType)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafLocationUpdate.path, body: req, as: EmptyResponse.self)
-            successMessage = "更新成功"
+            successMessage = L10n.t("更新成功")
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -242,17 +242,17 @@ struct MonitorView: View {
         List {
             if vm.isLoading && !vm.hasLoadedOnce {
                 Section {
-                    HStack { Spacer(); ProgressView("加载监控数据…"); Spacer() }
+                    HStack { Spacer(); ProgressView(L10n.t("加载监控数据…")); Spacer() }
                         .padding(.vertical, 30)
                 }
             } else if let err = vm.errorMessage, vm.cpuPoints.isEmpty, !vm.isLoading {
                 Section {
                     ContentUnavailableView {
-                        Label("加载失败", systemImage: "wifi.exclamationmark")
+                        Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                     } description: {
                         Text(err)
                     } actions: {
-                        Button("重试") { Task { await vm.loadAll() } }
+                        Button(L10n.t("重试")) { Task { await vm.loadAll() } }
                             .buttonStyle(.borderedProminent)
                     }
                 }
@@ -267,7 +267,7 @@ struct MonitorView: View {
         }
         // 卡片内更紧凑的行距
         .environment(\.defaultMinListRowHeight, 32)
-        .navigationTitle("监控")
+        .navigationTitle(L10n.t("监控"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadAll() }
         // App 前后台切换时同步轮询开关
@@ -301,11 +301,11 @@ struct MonitorView: View {
     /// 历史曲线时间范围切换（近 1 小时 / 6 小时 / 24 小时 / 7 天）
     private var rangeSection: some View {
         Section {
-            Picker("时间范围", selection: $vm.hours) {
-                Text("1小时").tag(1)
-                Text("6小时").tag(6)
-                Text("24小时").tag(24)
-                Text("7天").tag(168)
+            Picker(L10n.t("时间范围"), selection: $vm.hours) {
+                Text(L10n.t("1小时")).tag(1)
+                Text(L10n.t("6小时")).tag(6)
+                Text(L10n.t("24小时")).tag(24)
+                Text(L10n.t("7天")).tag(168)
             }
             .pickerStyle(.segmented)
             .segmentedPickerRow()
@@ -319,7 +319,7 @@ struct MonitorView: View {
         Section {
             // 标题行 + 下拉按钮
             HStack {
-                Text("平均负载")
+                Text(L10n.t("平均负载"))
                     .font(.headline)
                 Spacer()
                 Button {
@@ -333,7 +333,7 @@ struct MonitorView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(showLoadChart ? "收起图表" : "展开图表")
+                .accessibilityLabel(showLoadChart ? L10n.t("收起图表") : L10n.t("展开图表"))
             }
             .padding(.top, 8)
             .listRowSeparator(.hidden)
@@ -342,9 +342,9 @@ struct MonitorView: View {
             // 1/5/15 分钟负载（上标签下数值）+ 右侧小型使用率圆环
             HStack(alignment: .center, spacing: 8) {
                 HStack(spacing: 0) {
-                    loadColumn("1分钟", vm.latestLoad1)
-                    loadColumn("5分钟", vm.latestLoad5)
-                    loadColumn("15分钟", vm.latestLoad15)
+                    loadColumn(L10n.t("1分钟"), vm.latestLoad1)
+                    loadColumn(L10n.t("5分钟"), vm.latestLoad5)
+                    loadColumn(L10n.t("15分钟"), vm.latestLoad15)
                 }
                 .frame(maxWidth: .infinity)
 
@@ -375,22 +375,22 @@ struct MonitorView: View {
     /// 负载三曲线图表（1/5/15 分钟），拖动时图表内竖排浮层显示数值（按值降序）
     private var loadChart: some View {
         return Chart(loadAllPoints) { p in
-            LineMark(x: .value("时间", p.date), y: .value("负载", p.value))
-                .foregroundStyle(by: .value("类型", p.kind))
+            LineMark(x: .value(L10n.t("时间"), p.date), y: .value(L10n.t("负载"), p.value))
+                .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
             // 数据点过少时折线画不出来，补圆点让单点也可见
             if loadSeriesSparse {
-                PointMark(x: .value("时间", p.date), y: .value("负载", p.value))
-                    .foregroundStyle(by: .value("类型", p.kind))
+                PointMark(x: .value(L10n.t("时间"), p.date), y: .value(L10n.t("负载"), p.value))
+                    .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
                     .symbolSize(30)
             }
             if let sel = selectedLoadDate {
-                RuleMark(x: .value("选中", sel))
+                RuleMark(x: .value(L10n.t("选中"), sel))
                     .foregroundStyle(.secondary.opacity(0.5))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
         }
         .chartForegroundStyleScale([
-            "1分钟": .blue, "5分钟": .orange, "15分钟": .purple,
+            L10n.t("1分钟"): .blue, L10n.t("5分钟"): .orange, L10n.t("15分钟"): .purple,
         ])
         .chartLegend(.hidden)
         .chartYScale(domain: 0...max(vm.loadAxisMax, 1))
@@ -431,9 +431,9 @@ struct MonitorView: View {
 
     /// 三条曲线的扁平数据（按「类型」分组形成独立系列）
     private var loadAllPoints: [LoadSeriesPoint] {
-        vm.load1Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "1分钟") }
-            + vm.load5Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "5分钟") }
-            + vm.load15Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "15分钟") }
+        vm.load1Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("1分钟")) }
+            + vm.load5Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("5分钟")) }
+            + vm.load15Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("15分钟")) }
     }
 
     /// 任一负载曲线点数 ≤ 2（刚开启监控/时间窗内只有一两个采样）
@@ -444,7 +444,7 @@ struct MonitorView: View {
     /// 图表空数据占位：与图表同高，避免空白坐标轴让用户误以为图表坏了
     private func chartPlaceholder(hint: String? = nil) -> some View {
         VStack(spacing: 6) {
-            Text("暂无监控数据")
+            Text(L10n.t("暂无监控数据"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             if let hint {
@@ -490,9 +490,9 @@ struct MonitorView: View {
     /// 选中时间的三条负载数值（按值降序，返回已格式化文本）
     private func sortedLoadEntries(at date: Date) -> [(title: String, text: String, color: Color)] {
         let raw: [(String, Double?, Color)] = [
-            ("1分钟", nearestValue(to: date, in: vm.load1Points), .blue),
-            ("5分钟", nearestValue(to: date, in: vm.load5Points), .orange),
-            ("15分钟", nearestValue(to: date, in: vm.load15Points), .purple),
+            (L10n.t("1分钟"), nearestValue(to: date, in: vm.load1Points), .blue),
+            (L10n.t("5分钟"), nearestValue(to: date, in: vm.load5Points), .orange),
+            (L10n.t("15分钟"), nearestValue(to: date, in: vm.load15Points), .purple),
         ]
         let sorted = raw.sorted { ($0.1 ?? 0) > ($1.1 ?? 0) }
         var result: [(title: String, text: String, color: Color)] = []
@@ -574,7 +574,7 @@ struct MonitorView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(showCPUChart ? "收起图表" : "展开图表")
+                .accessibilityLabel(showCPUChart ? L10n.t("收起图表") : L10n.t("展开图表"))
             }
             .padding(.top, 8)
             .listRowSeparator(.hidden)
@@ -583,9 +583,9 @@ struct MonitorView: View {
             // 核心 / 已用 / 可用 三列 + 右侧使用率圆环
             HStack(alignment: .center, spacing: 8) {
                 HStack(spacing: 0) {
-                    statColumn("核心", vm.current?.cpuTotal.map(String.init) ?? "—")
-                    statColumn("已用", vm.current?.cpuUsed.map { String(format: "%.2f", $0) } ?? "—")
-                    statColumn("可用", vm.current.map { cur in
+                    statColumn(L10n.t("核心"), vm.current?.cpuTotal.map(String.init) ?? "—")
+                    statColumn(L10n.t("已用"), vm.current?.cpuUsed.map { String(format: "%.2f", $0) } ?? "—")
+                    statColumn(L10n.t("可用"), vm.current.map { cur in
                         let total = Double(cur.cpuTotal ?? 0)
                         let used = cur.cpuUsed ?? 0
                         return String(format: "%.2f", max(total - used, 0))
@@ -622,12 +622,12 @@ struct MonitorView: View {
     private func singleSeriesChart(points: [MonitorPoint], color: Color, title: String, selected: Binding<Date?>, yMax: Double = 100) -> some View {
         Chart(points) { p in
             AreaMark(
-                x: .value("时间", p.date),
+                x: .value(L10n.t("时间"), p.date),
                 y: .value(title, p.value)
             )
             .foregroundStyle(color.opacity(0.12))
             LineMark(
-                x: .value("时间", p.date),
+                x: .value(L10n.t("时间"), p.date),
                 y: .value(title, p.value)
             )
             .foregroundStyle(color)
@@ -635,14 +635,14 @@ struct MonitorView: View {
             // 数据点过少时折线画不出来，补圆点让单点也可见
             if points.count <= 2 {
                 PointMark(
-                    x: .value("时间", p.date),
+                    x: .value(L10n.t("时间"), p.date),
                     y: .value(title, p.value)
                 )
                 .foregroundStyle(color)
                 .symbolSize(30)
             }
             if let sel = selected.wrappedValue {
-                RuleMark(x: .value("选中", sel))
+                RuleMark(x: .value(L10n.t("选中"), sel))
                     .foregroundStyle(.secondary.opacity(0.5))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
@@ -698,7 +698,7 @@ struct MonitorView: View {
         Section {
             // 标题行 + 下拉按钮
             HStack {
-                Text("内存")
+                Text(L10n.t("内存"))
                     .font(.headline)
                 Spacer()
                 Button {
@@ -712,7 +712,7 @@ struct MonitorView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(showMemChart ? "收起图表" : "展开图表")
+                .accessibilityLabel(showMemChart ? L10n.t("收起图表") : L10n.t("展开图表"))
             }
             .padding(.top, 8)
             .listRowSeparator(.hidden)
@@ -721,9 +721,9 @@ struct MonitorView: View {
             // 内存：总计 / 已用 / 可用 三列 + 右侧使用率圆环
             HStack(alignment: .center, spacing: 8) {
                 HStack(spacing: 0) {
-                    statColumn("总计", bytesText(vm.current?.memoryTotal))
-                    statColumn("已用", bytesText(vm.current?.memoryUsed))
-                    statColumn("可用", bytesText(vm.current?.memoryAvailable))
+                    statColumn(L10n.t("总计"), bytesText(vm.current?.memoryTotal))
+                    statColumn(L10n.t("已用"), bytesText(vm.current?.memoryUsed))
+                    statColumn(L10n.t("可用"), bytesText(vm.current?.memoryAvailable))
                 }
                 .frame(maxWidth: .infinity)
 
@@ -747,9 +747,9 @@ struct MonitorView: View {
             // SWAP：总计 / 已用 / 可用 三列 + 右侧使用率圆环（无图表）
             HStack(alignment: .center, spacing: 8) {
                 HStack(spacing: 0) {
-                    statColumn("总计", bytesText(vm.current?.swapMemoryTotal))
-                    statColumn("已用", bytesText(vm.current?.swapMemoryUsed))
-                    statColumn("可用", bytesText(vm.current?.swapMemoryAvailable))
+                    statColumn(L10n.t("总计"), bytesText(vm.current?.swapMemoryTotal))
+                    statColumn(L10n.t("已用"), bytesText(vm.current?.swapMemoryUsed))
+                    statColumn(L10n.t("可用"), bytesText(vm.current?.swapMemoryAvailable))
                 }
                 .frame(maxWidth: .infinity)
 
@@ -765,7 +765,7 @@ struct MonitorView: View {
                     if vm.memPoints.isEmpty {
                         chartPlaceholder()
                     } else {
-                        singleSeriesChart(points: vm.memPoints, color: .purple, title: "内存", selected: $selectedMemDate, yMax: vm.memoryAxisMax)
+                        singleSeriesChart(points: vm.memPoints, color: .purple, title: L10n.t("内存"), selected: $selectedMemDate, yMax: vm.memoryAxisMax)
                     }
                 }
                     .padding(.top, 10)
@@ -787,7 +787,7 @@ struct MonitorView: View {
     private var ioSection: some View {
         Section {
             HStack {
-                Text("磁盘 I/O")
+                Text(L10n.t("磁盘 I/O"))
                     .font(.headline)
                 Spacer()
             }
@@ -797,12 +797,12 @@ struct MonitorView: View {
 
             Group {
                 if ioSeriesPoints.isEmpty {
-                    chartPlaceholder(hint: "若刚开启监控，磁盘 I/O 与网络数据约 5 分钟后开始记录")
+                    chartPlaceholder(hint: L10n.t("若刚开启监控，磁盘 I/O 与网络数据约 5 分钟后开始记录"))
                 } else {
                     dualSeriesChart(
                         points: ioSeriesPoints,
                         unit: "KB",
-                        styles: ["读取": .blue, "写入": .orange],
+                        styles: [L10n.t("读取"): .blue, L10n.t("写入"): .orange],
                         selected: $selectedIODate
                     )
                 }
@@ -819,7 +819,7 @@ struct MonitorView: View {
     private var networkSection: some View {
         Section {
             HStack {
-                Text("网络")
+                Text(L10n.t("网络"))
                     .font(.headline)
                 Spacer()
             }
@@ -829,12 +829,12 @@ struct MonitorView: View {
 
             Group {
                 if networkSeriesPoints.isEmpty {
-                    chartPlaceholder(hint: "若刚开启监控，磁盘 I/O 与网络数据约 5 分钟后开始记录")
+                    chartPlaceholder(hint: L10n.t("若刚开启监控，磁盘 I/O 与网络数据约 5 分钟后开始记录"))
                 } else {
                     dualSeriesChart(
                         points: networkSeriesPoints,
                         unit: "KB",
-                        styles: ["上行": .green, "下行": .purple],
+                        styles: [L10n.t("上行"): .green, L10n.t("下行"): .purple],
                         selected: $selectedNetDate
                     )
                 }
@@ -848,14 +848,14 @@ struct MonitorView: View {
 
     /// 磁盘 I/O 扁平双系列数据
     private var ioSeriesPoints: [LoadSeriesPoint] {
-        vm.ioReadPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "读取") }
-            + vm.ioWritePoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "写入") }
+        vm.ioReadPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("读取")) }
+            + vm.ioWritePoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("写入")) }
     }
 
     /// 网络扁平双系列数据
     private var networkSeriesPoints: [LoadSeriesPoint] {
-        vm.netUpPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "上行") }
-            + vm.netDownPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "下行") }
+        vm.netUpPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("上行")) }
+            + vm.netDownPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("下行")) }
     }
 
     /// 双曲线图表：Y 轴刻度自带单位（如 30KB/20KB/10KB/0KB），
@@ -870,20 +870,20 @@ struct MonitorView: View {
         let seriesCounts = Dictionary(grouping: points, by: \.kind).mapValues(\.count)
         return Chart(points) { p in
             LineMark(
-                x: .value("时间", p.date),
-                y: .value("速率", p.value)
+                x: .value(L10n.t("时间"), p.date),
+                y: .value(L10n.t("速率"), p.value)
             )
-            .foregroundStyle(by: .value("类型", p.kind))
+            .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
             if (seriesCounts[p.kind] ?? 0) <= 2 {
                 PointMark(
-                    x: .value("时间", p.date),
-                    y: .value("速率", p.value)
+                    x: .value(L10n.t("时间"), p.date),
+                    y: .value(L10n.t("速率"), p.value)
                 )
-                .foregroundStyle(by: .value("类型", p.kind))
+                .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
                 .symbolSize(30)
             }
             if let sel = selected.wrappedValue {
-                RuleMark(x: .value("选中", sel))
+                RuleMark(x: .value(L10n.t("选中"), sel))
                     .foregroundStyle(.secondary.opacity(0.5))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }

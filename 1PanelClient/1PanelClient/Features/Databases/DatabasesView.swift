@@ -51,7 +51,7 @@ final class DatabasesViewModel: ObservableObject {
         }
         self.systems = all
         self.errorMessage = (loaded == 0 && all.isEmpty)
-            ? (lastError ?? "数据库列表加载失败，请检查服务器连接")
+            ? (lastError ?? L10n.t("数据库列表加载失败，请检查服务器连接"))
             : nil
         lastError = nil
     }
@@ -61,7 +61,7 @@ final class DatabasesViewModel: ObservableObject {
         do {
             return try await client.send(path: path, method: "GET", as: [DatabaseSystem].self)
         } catch {
-            lastError = "加载失败：\(error.localizedDescription)"
+            lastError = L10n.f("加载失败：%@", error.localizedDescription)
             return nil
         }
     }
@@ -116,11 +116,11 @@ struct DatabasesView: View {
             // 全部请求失败：显示错误态 + 重试（而不是误显示为「未安装」）
             if vm.systems.isEmpty, let msg = vm.errorMessage, !vm.isLoading {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(msg)
                 } actions: {
-                    Button("重试") {
+                    Button(L10n.t("重试")) {
                         Task { await vm.loadSystems() }
                     }
                     .buttonStyle(.borderedProminent)
@@ -132,7 +132,7 @@ struct DatabasesView: View {
                 }
             }
         }
-        .navigationTitle("数据库")
+        .navigationTitle(L10n.t("数据库"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadSystems() }
         .task {
@@ -199,7 +199,7 @@ struct NotInstalledDatabaseRow: View {
                 .opacity(0.4)   // 未安装：图标变淡
             VStack(alignment: .leading, spacing: 3) {
                 Text(category.title).font(.headline).foregroundStyle(.secondary)
-                Text("未安装")
+                Text(L10n.t("未安装"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -232,9 +232,9 @@ struct NotInstalledDatabaseView: View {
                 .opacity(0.5)
 
             VStack(spacing: 8) {
-                Text("\(category.title)未安装")
+                Text(L10n.f("%@未安装", category.title))
                     .font(.headline)
-                Text("请先安装 \(category.title) 后再使用此功能")
+                Text(L10n.f("请先安装 %@ 后再使用此功能", category.title))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -244,7 +244,7 @@ struct NotInstalledDatabaseView: View {
             NavigationLink {
                 AppStoreDetailView(appKey: category.appKey, vm: storeVM)
             } label: {
-                Label("安装 \(category.title)", systemImage: "arrow.down.circle.fill")
+                Label(L10n.f("安装 %@", category.title), systemImage: "arrow.down.circle.fill")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
             }
@@ -648,35 +648,35 @@ struct DatabaseSystemView: View {
                 set: { if !$0 { pendingAction = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { pendingAction = nil }
-            Button("确认", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
+            Button(L10n.t("确认"), role: .destructive) {
                 let op = pendingAction
                 pendingAction = nil
                 if let op { Task { await vm.operate(op) } }
             }
         } message: {
             if let action = pendingAction {
-                Text("将对 \(vm.system.displayName) 进行 \(dbActionDisplayName(action)) 操作，是否继续？")
+                Text(L10n.f("将对 %@ 进行 %@ 操作，是否继续？", vm.system.displayName, dbActionDisplayName(action)))
             }
         }
         .sheet(item: $pendingDeleteDb) { db in
             TextInputConfirmSheet(
-                title: "删除数据库",
-                message: "此操作不可恢复。请输入数据库名称「\(db.name ?? "")」以确认删除。",
+                title: L10n.t("删除数据库"),
+                message: L10n.f("此操作不可恢复。请输入数据库名称「%@」以确认删除。", db.name ?? ""),
                 expectedText: db.name ?? "",
-                fieldLabel: "确认名称",
-                fieldPlaceholder: "数据库名称"
+                fieldLabel: L10n.t("确认名称"),
+                fieldPlaceholder: L10n.t("数据库名称")
             ) {
                 Task { await vm.deleteDatabase(db) }
             }
         }
         .sheet(item: $pendingDeleteUser) { user in
             TextInputConfirmSheet(
-                title: "删除用户",
-                message: "此操作不可恢复。请输入用户名「\(user.username ?? "")」以确认删除。",
+                title: L10n.t("删除用户"),
+                message: L10n.f("此操作不可恢复。请输入用户名「%@」以确认删除。", user.username ?? ""),
                 expectedText: user.username ?? "",
-                fieldLabel: "确认用户名",
-                fieldPlaceholder: "用户名"
+                fieldLabel: L10n.t("确认用户名"),
+                fieldPlaceholder: L10n.t("用户名")
             ) {
                 Task { await vm.deleteUser(user) }
             }
@@ -685,9 +685,9 @@ struct DatabaseSystemView: View {
 
     private func dbActionDisplayName(_ action: String) -> String {
         switch action {
-        case "stop":    return "停止"
-        case "start":   return "启动"
-        case "restart": return "重启"
+        case "stop":    return L10n.t("停止")
+        case "start":   return L10n.t("启动")
+        case "restart": return L10n.t("重启")
         default:        return action
         }
     }
@@ -700,7 +700,7 @@ struct DatabaseSystemView: View {
             ServiceStatusCard(
                 title: check.app ?? vm.system.displayName,
                 subtitle: check.version.flatMap { $0.isEmpty ? nil : "v\($0)" },
-                statusText: check.isRunning ? "运行中" : "已停止",
+                statusText: check.isRunning ? L10n.t("运行中") : L10n.t("已停止"),
                 statusColor: check.isRunning ? .green : .red,
                 isOperating: vm.isOperating,
                 isExpanded: $isStatusExpanded,
@@ -719,15 +719,15 @@ struct DatabaseSystemView: View {
     private func drawerActions(_ check: AppInstallCheck) -> [ServiceAction] {
         var actions: [ServiceAction] = [
             ServiceAction(
-                title: check.isRunning ? "停止" : "启动",
+                title: check.isRunning ? L10n.t("停止") : L10n.t("启动"),
                 icon: check.isRunning ? "stop.fill" : "play.fill",
                 color: check.isRunning ? .orange : .green
             ) { pendingAction = check.isRunning ? "stop" : "start" },
-            ServiceAction(title: "重启", icon: "arrow.triangle.2.circlepath", color: .blue) {
+            ServiceAction(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
                 pendingAction = "restart"
             },
             ServiceAction(
-                title: "终端",
+                title: L10n.t("终端"),
                 icon: "terminal",
                 color: .teal,
                 isDisabled: vm.isMongoDB && (check.containerName?.isEmpty ?? true)
@@ -740,13 +740,13 @@ struct DatabaseSystemView: View {
                     showDatabaseTerminal = true
                 }
             },
-            ServiceAction(title: "连接信息", icon: "link", color: .cyan) {
+            ServiceAction(title: L10n.t("连接信息"), icon: "link", color: .cyan) {
                 showConnInfo = true
             },
         ]
         if vm.supportsDatabaseList {
             actions.append(ServiceAction(
-                title: "创建数据库",
+                title: L10n.t("创建数据库"),
                 icon: "cylinder",
                 color: .indigo,
                 customIcon: "icon-create-database"
@@ -755,7 +755,7 @@ struct DatabaseSystemView: View {
             })
         }
         if vm.supportsUserManagement {
-            actions.append(ServiceAction(title: "创建用户", icon: "person.badge.plus", color: .mint) {
+            actions.append(ServiceAction(title: L10n.t("创建用户"), icon: "person.badge.plus", color: .mint) {
                 showCreateUser = true
             })
         }
@@ -775,16 +775,16 @@ struct DatabaseSystemView: View {
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         pendingDeleteDb = db
-                    } label: { Label("删除", systemImage: "trash") }
+                    } label: { Label(L10n.t("删除"), systemImage: "trash") }
                 }
             }
             if vm.databases.isEmpty {
-                Text("暂无数据库")
+                Text(L10n.t("暂无数据库"))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
         } header: {
-            SectionLabel(title: "数据库（\(vm.databases.count)）", systemImage: "cylinder")
+            SectionLabel(title: L10n.f("数据库（%ld）", vm.databases.count), systemImage: "cylinder")
         }
     }
 
@@ -803,16 +803,16 @@ struct DatabaseSystemView: View {
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         pendingDeleteUser = user
-                    } label: { Label("删除", systemImage: "trash") }
+                    } label: { Label(L10n.t("删除"), systemImage: "trash") }
                 }
             }
             if vm.users.isEmpty {
-                Text("暂无用户")
+                Text(L10n.t("暂无用户"))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
         } header: {
-            SectionLabel(title: "用户（\(vm.users.count)）", systemImage: "person.2")
+            SectionLabel(title: L10n.f("用户（%ld）", vm.users.count), systemImage: "person.2")
         }
     }
 }
@@ -828,11 +828,11 @@ struct DatabaseConnInfoView: View {
         List {
             Section {
                 if let ci = vm.connInfo {
-                    CopyableInfoRow(key: "容器地址", value: ci.containerName ?? vm.system.address ?? "-")
-                    if let port = ci.port { CopyableInfoRow(key: "端口", value: "\(port)") }
-                    CopyableInfoRow(key: "外部地址", value: "127.0.0.1")
+                    CopyableInfoRow(key: L10n.t("容器地址"), value: ci.containerName ?? vm.system.address ?? "-")
+                    if let port = ci.port { CopyableInfoRow(key: L10n.t("端口"), value: "\(port)") }
+                    CopyableInfoRow(key: L10n.t("外部地址"), value: "127.0.0.1")
                     if let user = ci.username, !user.isEmpty {
-                        InfoRow(key: "用户名", value: user)
+                        InfoRow(key: L10n.t("用户名"), value: user)
                     }
 
                     if vm.supportsRemoteAccess {
@@ -840,7 +840,7 @@ struct DatabaseConnInfoView: View {
                             get: { vm.remoteAccess },
                             set: { on in Task { await vm.toggleRemote(on) } }
                         )) {
-                            Label("远程访问", systemImage: "network")
+                            Label(L10n.t("远程访问"), systemImage: "network")
                         }
                         .disabled(vm.isOperating)
                     }
@@ -854,17 +854,17 @@ struct DatabaseConnInfoView: View {
                                 showServicePasswordSheet = true
                             }
                         } label: {
-                            Label("修改密码", systemImage: "key")
+                            Label(L10n.t("修改密码"), systemImage: "key")
                         }
                     }
                 } else {
                     HStack { Spacer(); ProgressView(); Spacer() }
                 }
             } header: {
-                SectionLabel(title: "连接信息", systemImage: "link")
+                SectionLabel(title: L10n.t("连接信息"), systemImage: "link")
             }
         }
-        .navigationTitle("连接信息")
+        .navigationTitle(L10n.t("连接信息"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {
             async let conn: () = vm.loadConnInfo()
@@ -873,7 +873,7 @@ struct DatabaseConnInfoView: View {
         }
         .sheet(isPresented: $showServicePasswordSheet) {
             ChangePasswordSheet(
-                title: "修改 \(vm.system.displayName) 密码",
+                title: L10n.f("修改 %@ 密码", vm.system.displayName),
                 currentPassword: vm.connInfo?.password
             ) { newPassword in
                 Task { await vm.changeServicePassword(newPassword) }
@@ -907,9 +907,9 @@ struct DatabaseUserRow: View {
                 Text(user.displayName)
                     .font(.system(.body, design: .monospaced).bold())
                 if let host = user.host, host == "%" {
-                    StatusBadge(text: "远程", color: .blue, icon: "network")
+                    StatusBadge(text: L10n.t("远程"), color: .blue, icon: "network")
                 } else {
-                    StatusBadge(text: "本机", color: .orange, icon: "lock.shield")
+                    StatusBadge(text: L10n.t("本机"), color: .orange, icon: "lock.shield")
                 }
             }
 
@@ -919,7 +919,7 @@ struct DatabaseUserRow: View {
 
             if !grants.isEmpty {
                 HStack(spacing: 4) {
-                    Text("数据库:").font(.caption).foregroundStyle(.secondary)
+                    Text(L10n.t("数据库:")).font(.caption).foregroundStyle(.secondary)
                     Text(grants.joined(separator: ", "))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -948,9 +948,9 @@ struct DatabaseItemRow: View {
                 // MongoDB 无 permission 字段，不显示本机/远程徽标
                 if !db.isMongoDB {
                     if let perm = db.permission, perm == "%" || perm.isEmpty {
-                        StatusBadge(text: "远程", color: .blue, icon: "network")
+                        StatusBadge(text: L10n.t("远程"), color: .blue, icon: "network")
                     } else {
-                        StatusBadge(text: "本机", color: .orange, icon: "lock.shield")
+                        StatusBadge(text: L10n.t("本机"), color: .orange, icon: "lock.shield")
                     }
                 }
             }
@@ -959,7 +959,7 @@ struct DatabaseItemRow: View {
             }
             HStack(spacing: 8) {
                 if let u = db.username, !u.isEmpty {
-                    Text("用户: \(u)").font(.caption).foregroundStyle(.secondary)
+                    Text(L10n.f("用户: %@", u)).font(.caption).foregroundStyle(.secondary)
                 }
                 if let f = db.format, !f.isEmpty {
                     Text(f).font(.caption2).foregroundStyle(.secondary)
@@ -986,27 +986,27 @@ struct ChangePasswordSheet: View {
         NavigationStack {
             Form {
                 if let cur = currentPassword, !cur.isEmpty {
-                    Section("当前密码") {
+                    Section(L10n.t("当前密码")) {
                         HStack {
                             Text(showCurrent ? cur : String(repeating: "•", count: min(cur.count, 12)))
                                 .font(.system(.body, design: .monospaced))
                             Spacer()
                             Button { showCurrent.toggle() } label: {
                                 Image(systemName: showCurrent ? "eye.slash" : "eye")
-                            }.accessibilityLabel(showCurrent ? "隐藏密码" : "显示密码")
+                            }.accessibilityLabel(showCurrent ? L10n.t("隐藏密码") : L10n.t("显示密码"))
                             Button { UIPasteboard.general.string = cur } label: {
                                 Image(systemName: "doc.on.doc")
-                            }.accessibilityLabel("复制密码")
+                            }.accessibilityLabel(L10n.t("复制密码"))
                         }
                     }
                 }
-                Section("新密码") {
+                Section(L10n.t("新密码")) {
                     HStack {
                         Group {
                             if showNew {
-                                TextField("输入或生成新密码", text: $newPassword)
+                                TextField(L10n.t("输入或生成新密码"), text: $newPassword)
                             } else {
-                                SecureField("输入或生成新密码", text: $newPassword)
+                                SecureField(L10n.t("输入或生成新密码"), text: $newPassword)
                             }
                         }
                         .autocorrectionDisabled()
@@ -1016,13 +1016,13 @@ struct ChangePasswordSheet: View {
                         Button { showNew.toggle() } label: {
                             Image(systemName: showNew ? "eye.slash" : "eye")
                                 .foregroundStyle(.secondary)
-                        }.accessibilityLabel(showNew ? "隐藏密码" : "显示密码")
+                        }.accessibilityLabel(showNew ? L10n.t("隐藏密码") : L10n.t("显示密码"))
                     }
                     Button {
                         newPassword = randomPassword()
                         showNew = true
                     } label: {
-                        Label("生成随机密码", systemImage: "shuffle")
+                        Label(L10n.t("生成随机密码"), systemImage: "shuffle")
                     }
                 }
             }
@@ -1030,10 +1030,10 @@ struct ChangePasswordSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确认") {
+                    Button(L10n.t("确认")) {
                         onConfirm(newPassword)
                         dismiss()
                     }
@@ -1071,24 +1071,24 @@ struct RedisPasswordSheet: View {
                 case .confirm: confirmStep
                 }
             }
-            .navigationTitle("修改 Redis 密码")
+            .navigationTitle(L10n.t("修改 Redis 密码"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if step == .input {
-                        Button("下一步") {
+                        Button(L10n.t("下一步")) {
                             step = .confirm
                         }
                         .disabled(newPassword.isEmpty)
                     } else {
-                        Button("立即重启", role: .destructive) {
+                        Button(L10n.t("立即重启"), role: .destructive) {
                             onConfirm(newPassword)
                             dismiss()
                         }
-                        .disabled(restartConfirm != "立即重启")
+                        .disabled(restartConfirm != L10n.t("立即重启"))
                     }
                 }
             }
@@ -1098,22 +1098,22 @@ struct RedisPasswordSheet: View {
     private var inputStep: some View {
         Form {
             if let cur = currentPassword, !cur.isEmpty {
-                Section("当前密码") {
+                Section(L10n.t("当前密码")) {
                     HStack {
                         Text(showCurrent ? cur : String(repeating: "•", count: min(cur.count, 12)))
                             .font(.system(.body, design: .monospaced))
                         Spacer()
                         Button { showCurrent.toggle() } label: {
                             Image(systemName: showCurrent ? "eye.slash" : "eye")
-                        }.accessibilityLabel(showCurrent ? "隐藏密码" : "显示密码")
+                        }.accessibilityLabel(showCurrent ? L10n.t("隐藏密码") : L10n.t("显示密码"))
                         Button { UIPasteboard.general.string = cur } label: {
                             Image(systemName: "doc.on.doc")
-                        }.accessibilityLabel("复制密码")
+                        }.accessibilityLabel(L10n.t("复制密码"))
                     }
                 }
             }
-            Section("新密码") {
-                TextField("输入或生成新密码", text: $newPassword)
+            Section(L10n.t("新密码")) {
+                TextField(L10n.t("输入或生成新密码"), text: $newPassword)
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -1121,7 +1121,7 @@ struct RedisPasswordSheet: View {
                 Button {
                     newPassword = randomPassword()
                 } label: {
-                    Label("生成随机密码", systemImage: "shuffle")
+                    Label(L10n.t("生成随机密码"), systemImage: "shuffle")
                 }
             }
         }
@@ -1130,14 +1130,14 @@ struct RedisPasswordSheet: View {
     private var confirmStep: some View {
         Form {
             Section {
-                Label("修改密码后需要重启 Redis 才能生效", systemImage: "exclamationmark.triangle.fill")
+                Label(L10n.t("修改密码后需要重启 Redis 才能生效"), systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                Text("请输入「立即重启」以确认操作。")
+                Text(L10n.t("请输入「立即重启」以确认操作。"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-            Section("确认重启") {
-                TextField("请输入「立即重启」", text: $restartConfirm)
+            Section(L10n.t("确认重启")) {
+                TextField(L10n.t("请输入「立即重启」"), text: $restartConfirm)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
             }

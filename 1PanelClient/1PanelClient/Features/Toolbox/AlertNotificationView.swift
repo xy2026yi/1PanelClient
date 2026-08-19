@@ -47,7 +47,7 @@ struct AlertNotificationView: View {
                 await vm.loadCommonConfig()
             }
         }
-        .navigationTitle("告警通知")
+        .navigationTitle(L10n.t("告警通知"))
         .navigationBarTitleDisplayMode(.inline)
         // 右下角悬浮创建按钮（日志段不显示），样式与计划任务页一致
         .overlay(alignment: .bottomTrailing) {
@@ -61,42 +61,42 @@ struct AlertNotificationView: View {
                         showCreateRule = true
                     }
                 }
-                .accessibilityLabel(segment == 2 ? "添加发送方式" : "创建告警")
+                .accessibilityLabel(segment == 2 ? L10n.t("添加发送方式") : L10n.t("创建告警"))
             }
         }
-        .alert("无法创建告警", isPresented: $showNoConfigAlert) {
-            Button("好的", role: .cancel) {}
+        .alert(L10n.t("无法创建告警"), isPresented: $showNoConfigAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
-            Text("请先在「设置」中配置至少一个告警发送方式")
+            Text(L10n.t("请先在「设置」中配置至少一个告警发送方式"))
         }
-        .alert("删除告警", isPresented: Binding(
+        .alert(L10n.t("删除告警"), isPresented: Binding(
             get: { vm.pendingDeleteRule != nil },
             set: { if !$0 { vm.pendingDeleteRule = nil } }
         )) {
-            Button("取消", role: .cancel) { vm.pendingDeleteRule = nil }
-            Button("删除", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { vm.pendingDeleteRule = nil }
+            Button(L10n.t("删除"), role: .destructive) {
                 if let rule = vm.pendingDeleteRule {
                     Task { await vm.delete(rule: rule) }
                 }
             }
         } message: {
-            Text("确定删除告警「\(vm.pendingDeleteRule?.title ?? "")」吗？")
+            Text(L10n.f("确定删除告警「%@」吗？", vm.pendingDeleteRule?.title ?? ""))
         }
         .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-            Button("好", role: .cancel) {}
+            Button(L10n.t("好"), role: .cancel) {}
         }
-        .alert("删除发送方式", isPresented: Binding(
+        .alert(L10n.t("删除发送方式"), isPresented: Binding(
             get: { vm.pendingDeleteConfig != nil },
             set: { if !$0 { vm.pendingDeleteConfig = nil } }
         )) {
-            Button("取消", role: .cancel) { vm.pendingDeleteConfig = nil }
-            Button("删除", role: .destructive) {
+            Button(L10n.t("取消"), role: .cancel) { vm.pendingDeleteConfig = nil }
+            Button(L10n.t("删除"), role: .destructive) {
                 if let config = vm.pendingDeleteConfig {
                     Task { await vm.deleteConfig(config) }
                 }
             }
         } message: {
-            Text("确定删除「\(vm.pendingDeleteConfig?.sendConfig.displayName ?? vm.pendingDeleteConfig?.type ?? "")」吗？使用该方式的告警将无法发送通知")
+            Text(L10n.f("确定删除「%@」吗？使用该方式的告警将无法发送通知", vm.pendingDeleteConfig?.sendConfig.displayName ?? vm.pendingDeleteConfig?.type ?? ""))
         }
         .toastOverlay(message: $vm.toastMessage)
         .sheet(item: $selectedLog) { log in
@@ -130,10 +130,10 @@ struct AlertNotificationView: View {
     // MARK: - 段切换（List 首个 Section，与监控/证书详情一致）
 
     private var segmentPicker: some View {
-        Picker("模块", selection: $segment) {
-            Text("告警").tag(0)
-            Text("日志").tag(1)
-            Text("设置").tag(2)
+        Picker(L10n.t("模块"), selection: $segment) {
+            Text(L10n.t("告警")).tag(0)
+            Text(L10n.t("日志")).tag(1)
+            Text(L10n.t("设置")).tag(2)
         }
         .pickerStyle(.segmented)
         .segmentedPickerRow()
@@ -146,17 +146,17 @@ struct AlertNotificationView: View {
     private var ruleContent: some View {
         if vm.isLoading && vm.rules.isEmpty {
             Section {
-                HStack { Spacer(); ProgressView("加载中…"); Spacer() }
+                HStack { Spacer(); ProgressView(L10n.t("加载中…")); Spacer() }
                     .padding(.vertical, 30)
             }
         } else if let err = vm.errorMessage, !err.isEmpty, vm.rules.isEmpty {
             Section {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(err)
                 } actions: {
-                    Button("重试") {
+                    Button(L10n.t("重试")) {
                         Task { await vm.loadRules() }
                     }
                     .buttonStyle(.borderedProminent)
@@ -166,9 +166,9 @@ struct AlertNotificationView: View {
         } else if vm.rules.isEmpty {
             Section {
                 ContentUnavailableView(
-                    "暂无告警规则",
+                    L10n.t("暂无告警规则"),
                     systemImage: "bell.slash",
-                    description: Text("点击右下角创建第一个告警")
+                    description: Text(L10n.t("点击右下角创建第一个告警"))
                 )
                 .padding(.vertical, 30)
             }
@@ -185,7 +185,7 @@ struct AlertNotificationView: View {
                         Button(role: .destructive) {
                             vm.pendingDeleteRule = rule
                         } label: {
-                            Label("删除", systemImage: "trash")
+                            Label(L10n.t("删除"), systemImage: "trash")
                         }
                     }
                 }
@@ -199,15 +199,15 @@ struct AlertNotificationView: View {
     private var logContent: some View {
         if vm.isLoadingLogs && vm.logs.isEmpty {
             Section {
-                HStack { Spacer(); ProgressView("加载中…"); Spacer() }
+                HStack { Spacer(); ProgressView(L10n.t("加载中…")); Spacer() }
                     .padding(.vertical, 30)
             }
         } else if vm.logs.isEmpty {
             Section {
                 ContentUnavailableView(
-                    "暂无告警日志",
+                    L10n.t("暂无告警日志"),
                     systemImage: "list.bullet.rectangle",
-                    description: Text("告警触发发送后会在这里产生记录")
+                    description: Text(L10n.t("告警触发发送后会在这里产生记录"))
                 )
                 .padding(.vertical, 30)
             }
@@ -231,15 +231,15 @@ struct AlertNotificationView: View {
     private var configContent: some View {
         if vm.isLoadingConfigs && vm.configs.isEmpty && vm.commonConfig == nil {
             Section {
-                HStack { Spacer(); ProgressView("加载中…"); Spacer() }
+                HStack { Spacer(); ProgressView(L10n.t("加载中…")); Spacer() }
                     .padding(.vertical, 30)
             }
         } else if vm.configs.isEmpty && vm.commonConfig == nil {
             Section {
                 ContentUnavailableView(
-                    "暂无发送方式",
+                    L10n.t("暂无发送方式"),
                     systemImage: "envelope.badge",
-                    description: Text("配置邮箱、Bark 等发送方式后才能创建告警")
+                    description: Text(L10n.t("配置邮箱、Bark 等发送方式后才能创建告警"))
                 )
                 .padding(.vertical, 30)
             }
@@ -253,7 +253,7 @@ struct AlertNotificationView: View {
                             IconBadge(systemName: "gearshape", color: .gray)
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("全局配置")
+                                Text(L10n.t("全局配置"))
                                     .font(.body.bold())
                                 Text(globalConfigSubtitle(common))
                                     .font(.caption)
@@ -271,9 +271,9 @@ struct AlertNotificationView: View {
                     configRow(config)
                 }
             } header: {
-                Text("发送方式")
+                Text(L10n.t("发送方式"))
             } footer: {
-                Text("触发告警时通过发送方式通知，左滑可停用或删除")
+                Text(L10n.t("触发告警时通过发送方式通知，左滑可停用或删除"))
             }
         }
     }
@@ -296,14 +296,14 @@ struct AlertNotificationView: View {
             Button(role: .destructive) {
                 vm.pendingDeleteConfig = config
             } label: {
-                Label("删除", systemImage: "trash")
+                Label(L10n.t("删除"), systemImage: "trash")
             }
 
             Button {
                 Task { await vm.toggleConfig(config) }
             } label: {
                 Label(
-                    config.isEnabled ? "停用" : "启用",
+                    config.isEnabled ? L10n.t("停用") : L10n.t("启用"),
                     systemImage: config.isEnabled ? "pause.circle" : "play.circle"
                 )
             }
@@ -316,7 +316,7 @@ struct AlertNotificationView: View {
         let range = item.commonConfig.alertSendTimeRange
         let notice = range?.noticeAlert?.sendTimeRange ?? "—"
         let resource = range?.resourceAlert?.sendTimeRange ?? "—"
-        return "通知 \(notice) · 资源 \(resource)"
+        return L10n.f("通知 %@ · 资源 %@", notice, resource)
     }
 }
 
@@ -337,7 +337,7 @@ struct AlertRuleRow: View {
                 HStack(spacing: 6) {
                     StatusBadge(text: rule.alertType.displayName, color: rule.alertType.color)
                     StatusBadge(
-                        text: rule.isEnabled ? "启用" : "已停用",
+                        text: rule.isEnabled ? L10n.t("启用") : L10n.t("已停用"),
                         color: rule.isEnabled ? .green : .secondary                    )
                 }
 
@@ -388,7 +388,7 @@ struct AlertLogRow: View {
                 Text(alertTimeDisplay(log.createdAt))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(log.isSuccess ? "成功" : "失败")
+                Text(log.isSuccess ? L10n.t("成功") : L10n.t("失败"))
                     .font(.caption2.bold())
                     .foregroundStyle(log.isSuccess ? .green : .red)
             }
@@ -415,11 +415,11 @@ struct AlertConfigRow: View {
             )
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(config.sendConfig.displayName ?? sendType?.displayName ?? (config.type ?? "未知"))
+                Text(config.sendConfig.displayName ?? sendType?.displayName ?? (config.type ?? L10n.t("未知")))
                     .font(.body.bold())
                     .lineLimit(1)
 
-                Text(sendType?.displayName ?? (config.type ?? "未知"))
+                Text(sendType?.displayName ?? (config.type ?? L10n.t("未知")))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -427,7 +427,7 @@ struct AlertConfigRow: View {
             Spacer()
 
             StatusBadge(
-                text: config.isEnabled ? "启用" : "已停用",
+                text: config.isEnabled ? L10n.t("启用") : L10n.t("已停用"),
                 color: config.isEnabled ? .green : .secondary            )
 
             if sendType != nil {
@@ -451,21 +451,21 @@ struct AlertLogDetailView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("发送信息") {
-                    InfoRow(key: "告警", value: log.alertDetail?.title ?? log.alertType.displayName)
-                    InfoRow(key: "类型", value: log.alertType.displayName)
-                    InfoRow(key: "状态", value: log.isSuccess ? "成功" : "失败")
+                Section(L10n.t("发送信息")) {
+                    InfoRow(key: L10n.t("告警"), value: log.alertDetail?.title ?? log.alertType.displayName)
+                    InfoRow(key: L10n.t("类型"), value: log.alertType.displayName)
+                    InfoRow(key: L10n.t("状态"), value: log.isSuccess ? L10n.t("成功") : L10n.t("失败"))
                     if let message = log.message, !message.isEmpty {
-                        InfoRow(key: "信息", value: message)
+                        InfoRow(key: L10n.t("信息"), value: message)
                     }
                     if let project = log.alertDetail?.project, !project.isEmpty {
-                        InfoRow(key: "对象", value: project)
+                        InfoRow(key: L10n.t("对象"), value: project)
                     }
-                    InfoRow(key: "触发时间", value: alertTimeDisplay(log.createdAt))
+                    InfoRow(key: L10n.t("触发时间"), value: alertTimeDisplay(log.createdAt))
                 }
 
                 if let params = log.alertDetail?.params, !params.isEmpty {
-                    Section("告警参数") {
+                    Section(L10n.t("告警参数")) {
                         ForEach(params) { param in
                             InfoRow(key: param.key ?? "—", value: param.value ?? "—")
                         }
@@ -473,18 +473,18 @@ struct AlertLogDetailView: View {
                 }
 
                 if let rule = log.alertRule {
-                    Section("关联规则") {
-                        InfoRow(key: "标题", value: rule.title ?? "—")
-                        InfoRow(key: "剩余天数", value: rule.cycle.map { "\($0) 天" } ?? "—")
-                        InfoRow(key: "状态", value: rule.isEnabled ? "启用" : "停用")
+                    Section(L10n.t("关联规则")) {
+                        InfoRow(key: L10n.t("标题"), value: rule.title ?? "—")
+                        InfoRow(key: L10n.t("剩余天数"), value: rule.cycle.map { L10n.f("%ld 天", $0) } ?? "—")
+                        InfoRow(key: L10n.t("状态"), value: rule.isEnabled ? L10n.t("启用") : L10n.t("停用"))
                     }
                 }
             }
-            .navigationTitle("告警日志")
+            .navigationTitle(L10n.t("告警日志"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") { dismiss() }
+                    Button(L10n.t("完成")) { dismiss() }
                 }
             }
         }
@@ -656,12 +656,12 @@ final class AlertViewModel: ObservableObject {
                 body: AlertDeleteRequest(id: rule.id),
                 as: EmptyResponse.self
             )
-            showToast("告警「\(rule.title ?? "")」已删除")
+            showToast(L10n.f("告警「%@」已删除", rule.title ?? ""))
             await loadRules()
         } catch let err as APIError {
-            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "删除失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
         }
     }
 
@@ -674,14 +674,14 @@ final class AlertViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showToast(isCreate ? "告警已创建" : "告警已更新")
+            showToast(isCreate ? L10n.t("告警已创建") : L10n.t("告警已更新"))
             await loadRules()
             return true
         } catch let err as APIError {
-            showAlert(message: "\(isCreate ? "创建" : "更新")失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("%@失败：%@", isCreate ? L10n.t("创建") : L10n.t("更新"), err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "\(isCreate ? "创建" : "更新")失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("%@失败：%@", isCreate ? L10n.t("创建") : L10n.t("更新"), error.localizedDescription))
             return false
         }
     }
@@ -698,16 +698,16 @@ final class AlertViewModel: ObservableObject {
                 as: Bool.self
             )
             if success {
-                showToast("测试邮件已发送，请查收")
+                showToast(L10n.t("测试邮件已发送，请查收"))
             } else {
-                showAlert(message: "测试发送失败，请检查配置")
+                showAlert(message: L10n.t("测试发送失败，请检查配置"))
             }
             return success
         } catch let err as APIError {
-            showAlert(message: "测试失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("测试失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "测试失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("测试失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -721,7 +721,7 @@ final class AlertViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showToast(successMessage ?? (isCreate ? "发送方式已添加" : "发送方式已更新"))
+            showToast(successMessage ?? (isCreate ? L10n.t("发送方式已添加") : L10n.t("发送方式已更新")))
             if req.type == "common" {
                 await loadCommonConfig()
             } else {
@@ -729,10 +729,10 @@ final class AlertViewModel: ObservableObject {
             }
             return true
         } catch let err as APIError {
-            showAlert(message: "保存失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
             return false
         } catch {
-            showAlert(message: "保存失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
             return false
         }
     }
@@ -747,8 +747,8 @@ final class AlertViewModel: ObservableObject {
             config: item.config ?? "",
             displayName: item.sendConfig.displayName ?? item.title ?? ""
         )
-        let name = req.displayName ?? "发送方式"
-        await saveConfig(req, successMessage: item.isEnabled ? "已停用「\(name)」" : "已启用「\(name)」")
+        let name = req.displayName ?? L10n.t("发送方式")
+        await saveConfig(req, successMessage: item.isEnabled ? L10n.f("已停用「%@」", name) : L10n.f("已启用「%@」", name))
     }
 
     func deleteConfig(_ item: AlertConfigItem) async {
@@ -759,12 +759,12 @@ final class AlertViewModel: ObservableObject {
                 body: AlertConfigDeleteRequest(id: item.id),
                 as: EmptyResponse.self
             )
-            showToast("发送方式已删除")
+            showToast(L10n.t("发送方式已删除"))
             await loadConfigs()
         } catch let err as APIError {
-            showAlert(message: "删除失败：\(err.errorDescription ?? "未知错误")")
+            showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: "删除失败：\(error.localizedDescription)")
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
         }
     }
 

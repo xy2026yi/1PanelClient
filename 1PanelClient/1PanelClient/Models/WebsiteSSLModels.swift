@@ -61,7 +61,7 @@ nonisolated struct WebsiteSSLCert: Codable, Identifiable, Hashable {
     var dnsAccount: DNSAccount?
 
     /// 显示名（主域名）
-    var displayName: String { primaryDomain ?? "未知证书" }
+    var displayName: String { primaryDomain ?? L10n.t("未知证书") }
 
     /// 子域名集合
     var displayDomains: String { domains ?? "—" }
@@ -84,11 +84,11 @@ nonisolated struct WebsiteSSLCert: Codable, Identifiable, Hashable {
     /// 申请方式显示名
     var providerDisplay: String {
         switch (provider ?? "").lowercased() {
-        case "manual":     return "手动创建"
-        case "dnsaccount": return "DNS 账号"
-        case "dnsmanual":  return "手动解析"
+        case "manual":     return L10n.t("手动创建")
+        case "dnsaccount": return L10n.t("DNS 账号")
+        case "dnsmanual":  return L10n.t("手动解析")
         case "http":       return "HTTP"
-        case "selfsigned": return "自签证书"
+        case "selfsigned": return L10n.t("自签证书")
         default:           return provider ?? "—"
         }
     }
@@ -137,11 +137,11 @@ nonisolated struct WebsiteSSLCert: Codable, Identifiable, Hashable {
 
     /// 状态描述
     var statusDisplay: String {
-        if (status ?? "").lowercased() == "applyerror" { return "申请失败" }
-        if isExpired { return "已过期" }
-        if daysRemaining <= 0 { return "今天过期" }
-        if daysRemaining <= 14 { return "即将过期" }
-        return "有效"
+        if (status ?? "").lowercased() == "applyerror" { return L10n.t("申请失败") }
+        if isExpired { return L10n.t("已过期") }
+        if daysRemaining <= 0 { return L10n.t("今天过期") }
+        if daysRemaining <= 14 { return L10n.t("即将过期") }
+        return L10n.t("有效")
     }
 
     private func parseISODate(_ str: String) -> Date? {
@@ -240,7 +240,7 @@ enum AcmeType: String, CaseIterable, Identifiable {
         case .zerossl:     return "ZeroSSL"
         case .buypass:     return "Buypass"
         case .googlecloud: return "Google Cloud"
-        case .custom:      return "自定义 ACME 服务"
+        case .custom:      return L10n.t("自定义 ACME 服务")
         }
     }
 }
@@ -324,10 +324,10 @@ enum DnsType: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var displayName: String {
         switch self {
-        case .AliYun:       return "阿里云"
+        case .AliYun:       return L10n.t("阿里云")
         case .CloudFlare:   return "Cloudflare"
-        case .TencentCloud: return "腾讯云"
-        case .HuaweiCloud:  return "华为云"
+        case .TencentCloud: return L10n.t("腾讯云")
+        case .HuaweiCloud:  return L10n.t("华为云")
         case .CloudDns:     return "CloudDNS"
         case .NameSilo:     return "NameSilo"
         case .NameCheap:    return "NameCheap"
@@ -346,8 +346,8 @@ enum SSLProvider: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var displayName: String {
         switch self {
-        case .dnsAccount: return "DNS 账户"
-        case .dnsManual:  return "手动解析"
+        case .dnsAccount: return L10n.t("DNS 账户")
+        case .dnsManual:  return L10n.t("手动解析")
         case .http:       return "HTTP"
         }
     }

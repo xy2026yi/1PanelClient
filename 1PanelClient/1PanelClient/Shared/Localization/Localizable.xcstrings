@@ -45,6 +45,17 @@
         }
       }
     },
+    "%@列表" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ list"
+          }
+        }
+      }
+    },
     "%@失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -89,6 +100,17 @@
         }
       }
     },
+    "%@未安装" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ not installed"
+          }
+        }
+      }
+    },
     "%ld 个更新" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -96,6 +118,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld updates"
+          }
+        }
+      }
+    },
+    "%ld 个进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld processes"
+          }
+        }
+      }
+    },
+    "%ld 个连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld connections"
+          }
+        }
+      }
+    },
+    "%ld 份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld copies"
+          }
+        }
+      }
+    },
+    "%ld 分 %ld 秒" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld m %ld s"
+          }
+        }
+      }
+    },
+    "%ld 分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld min"
+          }
+        }
+      }
+    },
+    "%ld 分钟内失败 %ld 次" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld failures within %ld min"
+          }
+        }
+      }
+    },
+    "%ld 天" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld days"
           }
         }
       }
@@ -122,6 +221,17 @@
         }
       }
     },
+    "%ld 秒" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld s"
+          }
+        }
+      }
+    },
     "%ld 项" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -129,6 +239,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld items"
+          }
+        }
+      }
+    },
+    "%ld分钟 %ld秒" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld min %ld s"
+          }
+        }
+      }
+    },
+    "%ld天 %ld小时 %ld分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld d %ld h %ld min"
+          }
+        }
+      }
+    },
+    "%ld小时 %ld分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld h %ld min"
+          }
+        }
+      }
+    },
+    "%ld秒" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld s"
+          }
+        }
+      }
+    },
+    "(未命名)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(Untitled)"
           }
         }
       }
@@ -144,6 +309,17 @@
         }
       }
     },
+    "15分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "15 min"
+          }
+        }
+      }
+    },
     "1Panel 官网" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -151,6 +327,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1Panel Website"
+          }
+        }
+      }
+    },
+    "1Panel 运行日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1Panel Logs"
+          }
+        }
+      }
+    },
+    "1分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 min"
+          }
+        }
+      }
+    },
+    "1小时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 h"
+          }
+        }
+      }
+    },
+    "24小时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 h"
+          }
+        }
+      }
+    },
+    "404 频率限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "404 Rate Limit"
+          }
+        }
+      }
+    },
+    "5 分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5 min"
+          }
+        }
+      }
+    },
+    "5 分钟均值超 %ld%%" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5-min average above %ld%%"
+          }
+        }
+      }
+    },
+    "5分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5 min"
+          }
+        }
+      }
+    },
+    "6小时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6 h"
+          }
+        }
+      }
+    },
+    "7天" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 d"
           }
         }
       }
@@ -217,6 +503,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ACME Account"
+          }
+        }
+      }
+    },
+    "Bark 的推送 Webhook 地址，形如 https://api.day.app/xxxxxx" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bark webhook URL, e.g. https://api.day.app/xxxxxx"
+          }
+        }
+      }
+    },
+    "CPU / 内存 / 磁盘 / 负载、登录异常等资源类告警的可发送时间范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send window for resource alerts: CPU / memory / disk / load, login anomalies, etc."
+          }
+        }
+      }
+    },
+    "CPU 占用过高" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU usage too high"
+          }
+        }
+      }
+    },
+    "CPU 占用过高告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High CPU Usage"
           }
         }
       }
@@ -316,6 +646,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DNS Account"
+          }
+        }
+      }
+    },
+    "Docker 容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docker container"
           }
         }
       }
@@ -463,6 +804,171 @@
         }
       }
     },
+    "IP / CIDR，留空=任意" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP / CIDR; empty = any"
+          }
+        }
+      }
+    },
+    "IP 列表" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP List"
+          }
+        }
+      }
+    },
+    "IP 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Address"
+          }
+        }
+      }
+    },
+    "IP 地址库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Database"
+          }
+        }
+      }
+    },
+    "IP 地址（逗号分隔）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP addresses (comma-separated)"
+          }
+        }
+      }
+    },
+    "IP 白名单" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Allowlist"
+          }
+        }
+      }
+    },
+    "IP 类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Type"
+          }
+        }
+      }
+    },
+    "IP 组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Groups"
+          }
+        }
+      }
+    },
+    "IP 规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Rules"
+          }
+        }
+      }
+    },
+    "IPv4 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv4 Address"
+          }
+        }
+      }
+    },
+    "IPv4 范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv4 Range"
+          }
+        }
+      }
+    },
+    "IPv4范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv4 Range"
+          }
+        }
+      }
+    },
+    "IPv6 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv6 Address"
+          }
+        }
+      }
+    },
+    "IP组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Groups"
+          }
+        }
+      }
+    },
+    "MINIO / WebDAV / SFTP 备份存储" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MINIO / WebDAV / SFTP backup storage"
+          }
+        }
+      }
+    },
     "NameCheap 凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -496,6 +1002,17 @@
         }
       }
     },
+    "Redis 终端" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redis Terminal"
+          }
+        }
+      }
+    },
     "Region（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -503,6 +1020,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Region (optional)"
+          }
+        }
+      }
+    },
+    "SMTP 服务器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SMTP Server"
+          }
+        }
+      }
+    },
+    "SSH 服务管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH Service"
+          }
+        }
+      }
+    },
+    "SSH 登录异常" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH login anomaly"
+          }
+        }
+      }
+    },
+    "SSH 登录异常告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH Login Anomaly"
+          }
+        }
+      }
+    },
+    "SSH 登陆成功/失败记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH login success/failure records"
+          }
+        }
+      }
+    },
+    "SSH 登陆日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH Login Logs"
+          }
+        }
+      }
+    },
+    "SSH 终端" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH Terminal"
+          }
+        }
+      }
+    },
+    "SSH 防暴力破解" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH brute-force protection"
           }
         }
       }
@@ -529,6 +1134,50 @@
         }
       }
     },
+    "Shell 脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shell script"
+          }
+        }
+      }
+    },
+    "URL 模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL Pattern"
+          }
+        }
+      }
+    },
+    "Web 应用防火墙" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web Application Firewall"
+          }
+        }
+      }
+    },
+    "Webhook 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webhook URL"
+          }
+        }
+      }
+    },
     "http 仓库添加授信需要重启 Docker 服务" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -540,6 +1189,28 @@
         }
       }
     },
+    "ping 失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ping failed: %@"
+          }
+        }
+      }
+    },
+    "root 用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "root user"
+          }
+        }
+      }
+    },
     "一行一个域名，支持 * 和 IP 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -547,6 +1218,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "One domain per line; * and IP addresses supported"
+          }
+        }
+      }
+    },
+    "一键部署" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Deploy"
           }
         }
       }
@@ -569,6 +1251,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upload"
+          }
+        }
+      }
+    },
+    "上传失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload failed"
+          }
+        }
+      }
+    },
+    "上传文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload File"
           }
         }
       }
@@ -617,6 +1321,17 @@
         }
       }
     },
+    "下一步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        }
+      }
+    },
     "下行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -657,6 +1372,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Download URL"
+          }
+        }
+      }
+    },
+    "下载失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download failed"
           }
         }
       }
@@ -716,6 +1442,17 @@
         }
       }
     },
+    "不授权" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Access"
+          }
+        }
+      }
+    },
     "不锁定所有表进行备份，适用于高并发的数据库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -749,6 +1486,28 @@
         }
       }
     },
+    "业务错误（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Business error (%ld)"
+          }
+        }
+      }
+    },
+    "为用户「%@」设置数据库权限。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set database permissions for user \"%@\"."
+          }
+        }
+      }
+    },
     "主域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -771,6 +1530,28 @@
         }
       }
     },
+    "主机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hosts"
+          }
+        }
+      }
+    },
+    "主机「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host \"%@\" deleted"
+          }
+        }
+      }
+    },
     "主机名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -789,6 +1570,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Host Address"
+          }
+        }
+      }
+    },
+    "主机已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host updated"
+          }
+        }
+      }
+    },
+    "主机已添加" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host added"
           }
         }
       }
@@ -881,6 +1684,28 @@
         }
       }
     },
+    "仅允许密钥登陆" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key-only login"
+          }
+        }
+      }
+    },
+    "仅允许预定义命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predefined commands only"
+          }
+        }
+      }
+    },
     "仅显示类型为「网站」且未被使用的已安装应用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -892,6 +1717,28 @@
         }
       }
     },
+    "今天过期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires today"
+          }
+        }
+      }
+    },
+    "介绍" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overview"
+          }
+        }
+      }
+    },
     "仍然保存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -899,6 +1746,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Save Anyway"
+          }
+        }
+      }
+    },
+    "从服务器选择文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose from Server"
           }
         }
       }
@@ -1178,6 +2036,17 @@
         }
       }
     },
+    "使用超过" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "usage above"
+          }
+        }
+      }
+    },
     "使用默认配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1196,6 +2065,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upgrade with Default Config"
+          }
+        }
+      }
+    },
+    "例: 192.168.1.1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. 192.168.1.1"
+          }
+        }
+      }
+    },
+    "例: 2001:db8::1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. 2001:db8::1"
+          }
+        }
+      }
+    },
+    "例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. 192.168.1.10, 10.0.0.0/24. Empty allows all sources."
           }
         }
       }
@@ -1222,6 +2124,28 @@
         }
       }
     },
+    "保存前请先发送测试邮件确认配置可用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send a test email to verify the config before saving"
+          }
+        }
+      }
+    },
+    "保存前需连接测试通过" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pass the connection test before saving"
+          }
+        }
+      }
+    },
     "保存失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1233,6 +2157,17 @@
         }
       }
     },
+    "保存成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved"
+          }
+        }
+      }
+    },
     "保存更新" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1240,6 +2175,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Save Changes"
+          }
+        }
+      }
+    },
+    "保存默认" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save as Default"
           }
         }
       }
@@ -1277,6 +2223,17 @@
         }
       }
     },
+    "信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Info"
+          }
+        }
+      }
+    },
     "修复 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1284,6 +2241,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fixed %ld"
+          }
+        }
+      }
+    },
+    "修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        }
+      }
+    },
+    "修改 %@ 密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change %@ Password"
+          }
+        }
+      }
+    },
+    "修改 Redis 密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Redis Password"
           }
         }
       }
@@ -1306,6 +2296,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Existing backup files will be moved to the new directory"
+          }
+        }
+      }
+    },
+    "修改密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Password"
+          }
+        }
+      }
+    },
+    "修改密码后需要重启 Redis 才能生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redis must be restarted for the new password to take effect"
+          }
+        }
+      }
+    },
+    "修改权限" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Permissions"
+          }
+        }
+      }
+    },
+    "修改用户密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change User Password"
+          }
+        }
+      }
+    },
+    "修改端口规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Port Rule"
+          }
+        }
+      }
+    },
+    "修改访问权限" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Access"
           }
         }
       }
@@ -1354,6 +2410,17 @@
         }
       }
     },
+    "停用防火墙" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop Firewall"
+          }
+        }
+      }
+    },
     "健康状态未知" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1361,6 +2428,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Health status unknown"
+          }
+        }
+      }
+    },
+    "允许" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow"
+          }
+        }
+      }
+    },
+    "允许 SSH 登陆" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow SSH login"
+          }
+        }
+      }
+    },
+    "全局模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global Mode"
+          }
+        }
+      }
+    },
+    "全局配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global Config"
           }
         }
       }
@@ -1409,6 +2520,17 @@
         }
       }
     },
+    "全部配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Config"
+          }
+        }
+      }
+    },
     "公司/组织" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1453,6 +2575,39 @@
         }
       }
     },
+    "关联数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linked Databases"
+          }
+        }
+      }
+    },
+    "关联数据库（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linked databases (%ld)"
+          }
+        }
+      }
+    },
+    "关联规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linked Rules"
+          }
+        }
+      }
+    },
     "关闭" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1460,6 +2615,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Close"
+          }
+        }
+      }
+    },
+    "关闭自启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable Autostart"
+          }
+        }
+      }
+    },
+    "其他" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
           }
         }
       }
@@ -1519,6 +2696,17 @@
         }
       }
     },
+    "内存 (RSS)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory (RSS)"
+          }
+        }
+      }
+    },
     "内存上限" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1526,6 +2714,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Memory Limit"
+          }
+        }
+      }
+    },
+    "内存占用过高" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory usage too high"
+          }
+        }
+      }
+    },
+    "内存占用过高告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High Memory Usage"
           }
         }
       }
@@ -1581,6 +2791,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Write"
+          }
+        }
+      }
+    },
+    "分享 / 另存为" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share / Save To"
+          }
+        }
+      }
+    },
+    "分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group"
           }
         }
       }
@@ -1651,6 +2883,17 @@
         }
       }
     },
+    "创建 IP 组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create IP Group"
+          }
+        }
+      }
+    },
     "创建中…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1680,6 +2923,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create Proxy"
+          }
+        }
+      }
+    },
+    "创建告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Alert"
           }
         }
       }
@@ -1728,6 +2982,17 @@
         }
       }
     },
+    "创建数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Database"
+          }
+        }
+      }
+    },
     "创建时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1746,6 +3011,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create Authority"
+          }
+        }
+      }
+    },
+    "创建用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create User"
           }
         }
       }
@@ -1838,6 +3114,17 @@
         }
       }
     },
+    "删除主机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Host"
+          }
+        }
+      }
+    },
     "删除仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1882,6 +3169,17 @@
         }
       }
     },
+    "删除发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Send Method"
+          }
+        }
+      }
+    },
     "删除后不可恢复，可选择是否同时删除已生成的备份文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1889,6 +3187,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deletion cannot be undone; optionally delete generated backup files as well"
+          }
+        }
+      }
+    },
+    "删除告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Alert"
           }
         }
       }
@@ -1966,6 +3275,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Schedule"
+          }
+        }
+      }
+    },
+    "删除用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete User"
+          }
+        }
+      }
+    },
+    "删除端口规则 %@ ？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete port rule %@?"
+          }
+        }
+      }
+    },
+    "删除端口规则？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete port rule?"
           }
         }
       }
@@ -2076,6 +3418,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Refresh"
+          }
+        }
+      }
+    },
+    "前往" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go To"
+          }
+        }
+      }
+    },
+    "前往路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Path"
+          }
+        }
+      }
+    },
+    "剩余 %ld 天" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld days left"
+          }
+        }
+      }
+    },
+    "剩余天数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Days Left"
+          }
+        }
+      }
+    },
+    "加密方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encryption"
           }
         }
       }
@@ -2223,6 +3620,17 @@
         }
       }
     },
+    "加载安装参数…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading install parameters…"
+          }
+        }
+      }
+    },
     "加载容器配置…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2285,6 +3693,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load logs: %@"
+          }
+        }
+      }
+    },
+    "加载监控数据…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading monitor data…"
+          }
+        }
+      }
+    },
+    "加载详情…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading details…"
           }
         }
       }
@@ -2465,6 +3895,17 @@
         }
       }
     },
+    "华为云" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Huawei Cloud"
+          }
+        }
+      }
+    },
     "华为云凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2509,6 +3950,17 @@
         }
       }
     },
+    "单个端口如 8080，或范围如 3000-3100。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A single port like 8080, or a range like 3000-3100."
+          }
+        }
+      }
+    },
     "单位" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2542,6 +3994,50 @@
         }
       }
     },
+    "占用百分比" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage %"
+          }
+        }
+      }
+    },
+    "占用百分比超 " : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "usage % above "
+          }
+        }
+      }
+    },
+    "占用磁盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "disk usage"
+          }
+        }
+      }
+    },
+    "占用磁盘超 " : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "disk usage above "
+          }
+        }
+      }
+    },
     "危险操作" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2549,6 +4045,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Danger"
+          }
+        }
+      }
+    },
+    "即将过期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expiring soon"
           }
         }
       }
@@ -2652,6 +4159,39 @@
         }
       }
     },
+    "反向解析" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reverse Proxy"
+          }
+        }
+      }
+    },
+    "发信地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From Address"
+          }
+        }
+      }
+    },
+    "发现周期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check Interval"
+          }
+        }
+      }
+    },
     "发现新版本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2674,6 +4214,83 @@
         }
       }
     },
+    "发送信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send To"
+          }
+        }
+      }
+    },
+    "发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send Methods"
+          }
+        }
+      }
+    },
+    "发送方式已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send method deleted"
+          }
+        }
+      }
+    },
+    "发送方式已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send method updated"
+          }
+        }
+      }
+    },
+    "发送方式已添加" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send method added"
+          }
+        }
+      }
+    },
+    "发送测试邮件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send Test Email"
+          }
+        }
+      }
+    },
+    "发送至" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send To"
+          }
+        }
+      }
+    },
     "取消" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2681,6 +4298,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "取消传输" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel Transfer"
           }
         }
       }
@@ -2762,6 +4390,28 @@
         }
       }
     },
+    "可用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available"
+          }
+        }
+      }
+    },
+    "可选描述" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description (optional)"
+          }
+        }
+      }
+    },
     "可选的 mysqldump 参数，支持多选，用于优化大数据量或特殊场景的备份。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2806,6 +4456,17 @@
         }
       }
     },
+    "同步 WAF IP 组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync WAF IP Groups"
+          }
+        }
+      }
+    },
     "同步仓库失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2817,6 +4478,50 @@
         }
       }
     },
+    "同步失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync failed: %@"
+          }
+        }
+      }
+    },
+    "同步服务器时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Server Time"
+          }
+        }
+      }
+    },
+    "同步本地" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Local"
+          }
+        }
+      }
+    },
+    "同步本地应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Local Apps"
+          }
+        }
+      }
+    },
     "名称" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2824,6 +4529,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name"
+          }
+        }
+      }
+    },
+    "名称只能包含小写字母、数字和连字符" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name may only contain lowercase letters, digits and hyphens"
           }
         }
       }
@@ -2861,6 +4577,17 @@
         }
       }
     },
+    "启动防火墙" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Firewall"
+          }
+        }
+      }
+    },
     "启用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2883,6 +4610,17 @@
         }
       }
     },
+    "启用/停用防火墙可能影响 Docker 网络连通性。是否立即重启 Docker？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggling the firewall may affect Docker networking. Restart Docker now?"
+          }
+        }
+      }
+    },
     "启用任务" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2890,6 +4628,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enable Task"
+          }
+        }
+      }
+    },
+    "启用告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Alert"
           }
         }
       }
@@ -2912,6 +4661,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply & Update"
+          }
+        }
+      }
+    },
+    "告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alerts"
+          }
+        }
+      }
+    },
+    "告警「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "告警参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert Parameters"
+          }
+        }
+      }
+    },
+    "告警对象" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert Target"
+          }
+        }
+      }
+    },
+    "告警已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert created"
+          }
+        }
+      }
+    },
+    "告警已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert updated"
+          }
+        }
+      }
+    },
+    "告警方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send Method"
+          }
+        }
+      }
+    },
+    "告警日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert Logs"
+          }
+        }
+      }
+    },
+    "告警次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert Count"
+          }
+        }
+      }
+    },
+    "告警类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert Type"
+          }
+        }
+      }
+    },
+    "告警规则 / 日志 / 发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert rules / logs / send methods"
+          }
+        }
+      }
+    },
+    "告警触发发送后会在这里产生记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Records appear here after alerts fire"
+          }
+        }
+      }
+    },
+    "告警通知" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications"
+          }
+        }
+      }
+    },
+    "告警需要至少一个可用的发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At least one working send method is required"
           }
         }
       }
@@ -2993,6 +4896,17 @@
         }
       }
     },
+    "周期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule"
+          }
+        }
+      }
+    },
     "周期 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3015,6 +4929,28 @@
         }
       }
     },
+    "命令行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command Line"
+          }
+        }
+      }
+    },
+    "命令路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command Path"
+          }
+        }
+      }
+    },
     "商城" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3033,6 +4969,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Country Code"
+          }
+        }
+      }
+    },
+    "图标接口返回 JSON" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icon endpoint returns JSON"
+          }
+        }
+      }
+    },
+    "图标请求失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icon request failed"
           }
         }
       }
@@ -3198,6 +5156,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Basic Info"
+          }
+        }
+      }
+    },
+    "基础配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basics"
           }
         }
       }
@@ -3433,6 +5402,17 @@
         }
       }
     },
+    "复制密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Password"
+          }
+        }
+      }
+    },
     "外观" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3444,6 +5424,28 @@
         }
       }
     },
+    "外部地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "External Address"
+          }
+        }
+      }
+    },
+    "多个 IP 用逗号分隔，如 192.168.1.100, 10.0.0.5" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Separate IPs with commas, e.g. 192.168.1.100, 10.0.0.5"
+          }
+        }
+      }
+    },
     "天" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3451,6 +5453,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Day(s)"
+          }
+        }
+      }
+    },
+    "失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed"
+          }
+        }
+      }
+    },
+    "失败次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failures"
           }
         }
       }
@@ -3532,6 +5556,39 @@
         }
       }
     },
+    "子网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sub-sites"
+          }
+        }
+      }
+    },
+    "字符集" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Character Set"
+          }
+        }
+      }
+    },
+    "字符集与排序规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charset & Collation"
+          }
+        }
+      }
+    },
     "存储" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3587,6 +5644,28 @@
         }
       }
     },
+    "安装 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install %@"
+          }
+        }
+      }
+    },
+    "安装失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install failed: %@"
+          }
+        }
+      }
+    },
     "安装应用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3605,6 +5684,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Installed"
+          }
+        }
+      }
+    },
+    "安装请求已提交，应用正在后台部署中…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install submitted, app is deploying in the background…"
           }
         }
       }
@@ -3631,6 +5721,28 @@
         }
       }
     },
+    "官方网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website"
+          }
+        }
+      }
+    },
+    "定时备份与脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled backups & scripts"
+          }
+        }
+      }
+    },
     "容器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3653,6 +5765,17 @@
         }
       }
     },
+    "容器名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Name"
+          }
+        }
+      }
+    },
     "容器名称和镜像不能为空" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3660,6 +5783,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Container name and image are required"
+          }
+        }
+      }
+    },
+    "容器地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Address"
           }
         }
       }
@@ -3693,6 +5827,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Container port → host port, e.g. 80 → 8080"
+          }
+        }
+      }
+    },
+    "容器终端" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Terminal"
           }
         }
       }
@@ -3763,6 +5908,28 @@
         }
       }
     },
+    "密码（不修改请留空）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password (leave blank to keep)"
+          }
+        }
+      }
+    },
+    "密码（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password (optional)"
+          }
+        }
+      }
+    },
     "密钥" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3785,6 +5952,17 @@
         }
       }
     },
+    "密钥认证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key Auth"
+          }
+        }
+      }
+    },
     "对比/编辑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3792,6 +5970,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Diff / Edit"
+          }
+        }
+      }
+    },
+    "对象" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target"
+          }
+        }
+      }
+    },
+    "导入方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Method"
+          }
+        }
+      }
+    },
+    "封禁时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ban Duration"
           }
         }
       }
@@ -3807,6 +6018,39 @@
         }
       }
     },
+    "将域名反向代理到指定地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reverse-proxy domains to a target address"
+          }
+        }
+      }
+    },
+    "将对 \"%@\" 进行删除操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete \"%@\"?"
+          }
+        }
+      }
+    },
+    "将对 %@ 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to %@?"
+          }
+        }
+      }
+    },
     "将对 Docker 进行 %@ 操作，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3818,6 +6062,17 @@
         }
       }
     },
+    "将对 Fail2ban 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to Fail2ban?"
+          }
+        }
+      }
+    },
     "将对 OpenResty 进行 %@ 操作，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3825,6 +6080,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply %@ to OpenResty?"
+          }
+        }
+      }
+    },
+    "将对 SSH 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to SSH?"
+          }
+        }
+      }
+    },
+    "将对 WAF 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to WAF?"
           }
         }
       }
@@ -3917,6 +6194,17 @@
         }
       }
     },
+    "将移除当前服务器的连接配置与已保存的 API 密钥，此操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This removes the current server's settings and saved API key. This cannot be undone."
+          }
+        }
+      }
+    },
     "将移除该服务器的连接配置与已保存的 API 密钥，此操作不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3972,6 +6260,28 @@
         }
       }
     },
+    "展开图表" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand Chart"
+          }
+        }
+      }
+    },
+    "工具" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tools"
+          }
+        }
+      }
+    },
     "左滑可取消忽略，恢复升级检查" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3979,6 +6289,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Swipe left to unignore and resume upgrade checks"
+          }
+        }
+      }
+    },
+    "已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved"
+          }
+        }
+      }
+    },
+    "已保存到「文件」App · 我的 iPhone/1PanelClient" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved to Files · On My iPhone/1PanelClient"
           }
         }
       }
@@ -4016,6 +6348,39 @@
         }
       }
     },
+    "已停用「%@」" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled \"%@\""
+          }
+        }
+      }
+    },
+    "已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted"
+          }
+        }
+      }
+    },
+    "已取消" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelled"
+          }
+        }
+      }
+    },
     "已取消忽略升级，后续将正常检查更新" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4049,6 +6414,17 @@
         }
       }
     },
+    "已启用「%@」" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enabled \"%@\""
+          }
+        }
+      }
+    },
     "已启用自定义 docker-compose.yml，请仔细检查内容" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4067,6 +6443,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pinned"
+          }
+        }
+      }
+    },
+    "已安装" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed"
+          }
+        }
+      }
+    },
+    "已安装应用 / 应用商店" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed apps / app store"
+          }
+        }
+      }
+    },
+    "已应用到网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applied to websites"
+          }
+        }
+      }
+    },
+    "已开启「仅允许 HTTPS 连接」：该服务器为 http:// 明文地址，请在 设置 → 安全 关闭该限制，或改用 https:// 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"HTTPS-only\" is on and this server uses plain http://. Turn it off in Settings → Security, or use an https:// address."
           }
         }
       }
@@ -4115,6 +6535,17 @@
         }
       }
     },
+    "已忽略该版本升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version ignored"
+          }
+        }
+      }
+    },
     "已断开" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4148,6 +6579,28 @@
         }
       }
     },
+    "已用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used"
+          }
+        }
+      }
+    },
+    "已禁用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled"
+          }
+        }
+      }
+    },
     "已认证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4155,6 +6608,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Authenticated"
+          }
+        }
+      }
+    },
+    "已过期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expired"
+          }
+        }
+      }
+    },
+    "已连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected"
           }
         }
       }
@@ -4188,6 +6663,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Platform"
+          }
+        }
+      }
+    },
+    "平均使用率超过" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "average usage above"
+          }
+        }
+      }
+    },
+    "平均负载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average Load"
           }
         }
       }
@@ -4236,6 +6733,28 @@
         }
       }
     },
+    "应用到网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply to Websites"
+          }
+        }
+      }
+    },
+    "应用参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Parameters"
+          }
+        }
+      }
+    },
     "应用名称" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4243,6 +6762,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App Name"
+          }
+        }
+      }
+    },
+    "应用商店" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
           }
         }
       }
@@ -4287,6 +6817,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App Settings"
+          }
+        }
+      }
+    },
+    "应用详情" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Details"
+          }
+        }
+      }
+    },
+    "应用页面" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps Page"
           }
         }
       }
@@ -4357,6 +6909,39 @@
         }
       }
     },
+    "开启自启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Autostart"
+          }
+        }
+      }
+    },
+    "开始时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Time"
+          }
+        }
+      }
+    },
+    "开机自启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launch at Boot"
+          }
+        }
+      }
+    },
     "强制删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4423,6 +7008,39 @@
         }
       }
     },
+    "当前名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Name"
+          }
+        }
+      }
+    },
+    "当前密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Password"
+          }
+        }
+      }
+    },
+    "当前权限" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Access"
+          }
+        }
+      }
+    },
     "当前版本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4430,6 +7048,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current Version"
+          }
+        }
+      }
+    },
+    "当前角色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Role"
           }
         }
       }
@@ -4522,6 +7151,17 @@
         }
       }
     },
+    "总计" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total"
+          }
+        }
+      }
+    },
     "恢复" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4610,6 +7250,28 @@
         }
       }
     },
+    "恶意 IP 组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Malicious IP Group"
+          }
+        }
+      }
+    },
+    "成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Succeeded"
+          }
+        }
+      }
+    },
     "所有" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4621,6 +7283,61 @@
         }
       }
     },
+    "所有人(%)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anyone (%)"
+          }
+        }
+      }
+    },
+    "所有网站到期告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All websites expiring"
+          }
+        }
+      }
+    },
+    "所有网站证书到期告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All website certificates expiring"
+          }
+        }
+      }
+    },
+    "手动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual"
+          }
+        }
+      }
+    },
+    "手动创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Manually"
+          }
+        }
+      }
+    },
     "手动导入的证书不支持自动续签和重新申请" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4628,6 +7345,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Manually imported certificates do not support auto-renewal or re-apply"
+          }
+        }
+      }
+    },
+    "手动解析" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual Resolve"
           }
         }
       }
@@ -4650,6 +7378,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Run"
+          }
+        }
+      }
+    },
+    "执行中" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running"
           }
         }
       }
@@ -4720,6 +7459,17 @@
         }
       }
     },
+    "执行脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Script"
+          }
+        }
+      }
+    },
     "执行记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4775,6 +7525,17 @@
         }
       }
     },
+    "拒绝" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deny"
+          }
+        }
+      }
+    },
     "挂载卷" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4782,6 +7543,127 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Volumes"
+          }
+        }
+      }
+    },
+    "挂载目录「%@」的磁盘占用过高告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High disk usage on \"%@\""
+          }
+        }
+      }
+    },
+    "指定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Specified"
+          }
+        }
+      }
+    },
+    "指定IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Specified IP"
+          }
+        }
+      }
+    },
+    "指定时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Specified Time"
+          }
+        }
+      }
+    },
+    "按监测类型统计磁盘使用，超过阈值即触发" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk usage per monitored mount; triggers above the threshold"
+          }
+        }
+      }
+    },
+    "授权方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auth Method"
+          }
+        }
+      }
+    },
+    "授权用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authorized Users"
+          }
+        }
+      }
+    },
+    "排序" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order"
+          }
+        }
+      }
+    },
+    "排序规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collation"
+          }
+        }
+      }
+    },
+    "接口未返回数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endpoint returned no data"
+          }
+        }
+      }
+    },
+    "推荐" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended"
           }
         }
       }
@@ -4830,6 +7712,17 @@
         }
       }
     },
+    "描述(可选)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description (optional)"
+          }
+        }
+      }
+    },
     "描述（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4859,6 +7752,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Submit failed"
+          }
+        }
+      }
+    },
+    "提供静态文件托管（HTML/CSS/JS）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Static file hosting (HTML/CSS/JS)"
           }
         }
       }
@@ -4907,6 +7811,17 @@
         }
       }
     },
+    "搜索应用商店" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search app store"
+          }
+        }
+      }
+    },
     "搜索脚本名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4914,6 +7829,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search scripts"
+          }
+        }
+      }
+    },
+    "搜索进程 / PID / 端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search process / PID / port"
+          }
+        }
+      }
+    },
+    "搜索进程名称 / PID / 用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search process / PID / user"
+          }
+        }
+      }
+    },
+    "操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions"
           }
         }
       }
@@ -4940,6 +7888,50 @@
         }
       }
     },
+    "操作成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
+    "操作日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operation Logs"
+          }
+        }
+      }
+    },
+    "操作菜单" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions"
+          }
+        }
+      }
+    },
+    "操作防火墙" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Firewall Actions"
+          }
+        }
+      }
+    },
     "支持添加多个周期，任务将在每个设定的时间点执行。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4962,6 +7954,17 @@
         }
       }
     },
+    "收件人" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recipient"
+          }
+        }
+      }
+    },
     "收起" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4969,6 +7972,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Collapse"
+          }
+        }
+      }
+    },
+    "收起图表" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapse Chart"
+          }
+        }
+      }
+    },
+    "攻击频率限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attack Rate Limit"
+          }
+        }
+      }
+    },
+    "放大字号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Larger Text"
+          }
+        }
+      }
+    },
+    "敬请期待" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coming soon"
+          }
+        }
+      }
+    },
+    "数值" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Value"
           }
         }
       }
@@ -4984,6 +8042,61 @@
         }
       }
     },
+    "数据库:" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Database:"
+          }
+        }
+      }
+    },
+    "数据库信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Database Info"
+          }
+        }
+      }
+    },
+    "数据库列表加载失败，请检查服务器连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load databases — check the server connection"
+          }
+        }
+      }
+    },
+    "数据库名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Database Name"
+          }
+        }
+      }
+    },
+    "数据库所有者" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Database Owner"
+          }
+        }
+      }
+    },
     "数据库类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4991,6 +8104,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Database Type"
+          }
+        }
+      }
+    },
+    "数据库终端" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Database Terminal"
+          }
+        }
+      }
+    },
+    "数据库（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Databases (%ld)"
+          }
+        }
+      }
+    },
+    "数据解析失败: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decoding failed: %@"
+          }
+        }
+      }
+    },
+    "文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files"
+          }
+        }
+      }
+    },
+    "文件名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Name"
+          }
+        }
+      }
+    },
+    "文件夹" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder"
+          }
+        }
+      }
+    },
+    "文件夹名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder Name"
+          }
+        }
+      }
+    },
+    "文档" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docs"
+          }
+        }
+      }
+    },
+    "断开连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnect"
+          }
+        }
+      }
+    },
+    "新名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Name"
           }
         }
       }
@@ -5017,6 +8240,39 @@
         }
       }
     },
+    "新密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Password"
+          }
+        }
+      }
+    },
+    "新建文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New File"
+          }
+        }
+      }
+    },
+    "新建文件夹" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Folder"
+          }
+        }
+      }
+    },
     "新版本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5024,6 +8280,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "New Version"
+          }
+        }
+      }
+    },
+    "新用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New User"
           }
         }
       }
@@ -5039,6 +8306,28 @@
         }
       }
     },
+    "无" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        }
+      }
+    },
+    "无关联数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No linked databases"
+          }
+        }
+      }
+    },
     "无可用版本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5046,6 +8335,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No versions available"
+          }
+        }
+      }
+    },
+    "无法创建告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not create the alert"
           }
         }
       }
@@ -5061,6 +8361,39 @@
         }
       }
     },
+    "无法加载安装参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not load install parameters"
+          }
+        }
+      }
+    },
+    "无法构造终端连接地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not build the terminal URL"
+          }
+        }
+      }
+    },
+    "无法构造进程监控连接地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not build the process monitor URL"
+          }
+        }
+      }
+    },
     "无法获取服务器信息，请检查 API Key 和网络" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5068,6 +8401,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Could not load server info. Check the API key and network."
+          }
+        }
+      }
+    },
+    "无法连接到主机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not connect to the host"
+          }
+        }
+      }
+    },
+    "无法连接到服务器。请检查：地址与端口是否正确、服务器防火墙是否放行；在模拟器中运行时，还需在 macOS「系统设置 → 隐私与安全性 → 本地网络」中允许 Simulator。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot connect to the server. Check the address/port and firewall; when running in the simulator, also allow Simulator under macOS System Settings → Privacy & Security → Local Network."
           }
         }
       }
@@ -5083,6 +8438,17 @@
         }
       }
     },
+    "无法连通「%@」，请检查主机状态与认证信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not reach \"%@\" — check the host status and credentials"
+          }
+        }
+      }
+    },
     "日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5090,6 +8456,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Logs"
+          }
+        }
+      }
+    },
+    "日志流请求失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log stream request failed"
+          }
+        }
+      }
+    },
+    "日志路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Path"
+          }
+        }
+      }
+    },
+    "日期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
           }
         }
       }
@@ -5116,6 +8515,50 @@
         }
       }
     },
+    "时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time"
+          }
+        }
+      }
+    },
+    "时间窗口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time Window"
+          }
+        }
+      }
+    },
+    "时间窗口固定为监控采集间隔 5 分钟，平均使用率超过阈值即触发" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The window is fixed to the 5-minute collection interval; triggers when average usage exceeds the threshold"
+          }
+        }
+      }
+    },
+    "时间范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time Range"
+          }
+        }
+      }
+    },
     "星期" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5134,6 +8577,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Display Name"
+          }
+        }
+      }
+    },
+    "显示密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Password"
+          }
+        }
+      }
+    },
+    "普通用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard user"
           }
         }
       }
@@ -5182,6 +8647,50 @@
         }
       }
     },
+    "暂无 IP 组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No IP groups"
+          }
+        }
+      }
+    },
+    "暂无 IP 规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No IP rules"
+          }
+        }
+      }
+    },
+    "暂无 SSH 登陆日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No SSH login logs"
+          }
+        }
+      }
+    },
+    "暂无主机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hosts"
+          }
+        }
+      }
+    },
     "暂无仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5204,6 +8713,28 @@
         }
       }
     },
+    "暂无发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No send methods"
+          }
+        }
+      }
+    },
+    "暂无可关联的数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No databases to link"
+          }
+        }
+      }
+    },
     "暂无可用应用，请先在应用页面安装一个网站类应用（如 WordPress）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5211,6 +8742,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No apps available — install a website app (e.g. WordPress) first"
+          }
+        }
+      }
+    },
+    "暂无可用数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No databases available"
+          }
+        }
+      }
+    },
+    "暂无可用用户，请先创建用户或切换为「创建」模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No users available — create one or switch to Create mode"
+          }
+        }
+      }
+    },
+    "暂无告警日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No alert logs"
+          }
+        }
+      }
+    },
+    "暂无告警规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No alert rules"
           }
         }
       }
@@ -5292,6 +8867,17 @@
         }
       }
     },
+    "暂无操作日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No operation logs"
+          }
+        }
+      }
+    },
     "暂无数据" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5299,6 +8885,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No data"
+          }
+        }
+      }
+    },
+    "暂无数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No databases"
           }
         }
       }
@@ -5347,6 +8944,50 @@
         }
       }
     },
+    "暂无用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No users"
+          }
+        }
+      }
+    },
+    "暂无监控数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No monitor data"
+          }
+        }
+      }
+    },
+    "暂无端口规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No port rules"
+          }
+        }
+      }
+    },
+    "暂无系统日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No system logs"
+          }
+        }
+      }
+    },
     "暂无网站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5391,6 +9032,17 @@
         }
       }
     },
+    "暂无访问日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No access logs"
+          }
+        }
+      }
+    },
     "暂无证书" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5409,6 +9061,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No accounts"
+          }
+        }
+      }
+    },
+    "暂无通用规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No common rules"
           }
         }
       }
@@ -5501,6 +9164,28 @@
         }
       }
     },
+    "更新 GeoIP 数据库以支持基于地理位置的访问控制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update the GeoIP database for geo-based access control"
+          }
+        }
+      }
+    },
+    "更新 IP 地址库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update IP Database"
+          }
+        }
+      }
+    },
     "更新中…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5589,6 +9274,17 @@
         }
       }
     },
+    "更新成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated"
+          }
+        }
+      }
+    },
     "更新证书" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5596,6 +9292,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Update Certificate"
+          }
+        }
+      }
+    },
+    "更新远程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Remote"
+          }
+        }
+      }
+    },
+    "最大重试次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Retries"
+          }
+        }
+      }
+    },
+    "最新版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest Version"
+          }
+        }
+      }
+    },
+    "有效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valid"
           }
         }
       }
@@ -5655,6 +9395,17 @@
         }
       }
     },
+    "服务器地址格式错误" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid server URL"
+          }
+        }
+      }
+    },
     "服务器文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5662,6 +9413,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Server File"
+          }
+        }
+      }
+    },
+    "服务器文件管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Manager"
+          }
+        }
+      }
+    },
+    "服务器日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server Logs"
+          }
+        }
+      }
+    },
+    "服务器返回了无法解析的响应" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server returned an unparseable response"
+          }
+        }
+      }
+    },
+    "服务器返回错误，该应用可能尚未同步安装文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server error — the app's install files may not be synced yet"
           }
         }
       }
@@ -5699,6 +9494,28 @@
         }
       }
     },
+    "未命名应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untitled app"
+          }
+        }
+      }
+    },
+    "未命名网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untitled website"
+          }
+        }
+      }
+    },
     "未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5710,6 +9527,17 @@
         }
       }
     },
+    "未安装 Fail2ban" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fail2ban not installed"
+          }
+        }
+      }
+    },
     "未找到关联应用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5717,6 +9545,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No linked app found"
+          }
+        }
+      }
+    },
+    "未找到可用版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No versions available"
           }
         }
       }
@@ -5787,6 +9626,17 @@
         }
       }
     },
+    "未检测到防火墙" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No firewall detected"
+          }
+        }
+      }
+    },
     "未知" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5798,6 +9648,28 @@
         }
       }
     },
+    "未知主机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown host"
+          }
+        }
+      }
+    },
+    "未知域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown domain"
+          }
+        }
+      }
+    },
     "未知应用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5805,6 +9677,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unknown app"
+          }
+        }
+      }
+    },
+    "未知用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown user"
+          }
+        }
+      }
+    },
+    "未知证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown certificate"
           }
         }
       }
@@ -5864,6 +9758,28 @@
         }
       }
     },
+    "本机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local"
+          }
+        }
+      }
+    },
+    "本机终端 / SSH 连接主机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local terminal / SSH hosts"
+          }
+        }
+      }
+    },
     "本机账号（LOCAL）为面板内置账号，不可删除；点击账号可编辑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5871,6 +9787,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The LOCAL account is built into the panel and cannot be deleted; tap an account to edit it"
+          }
+        }
+      }
+    },
+    "机器人名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bot Name"
           }
         }
       }
@@ -5893,6 +9820,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Authority Details"
+          }
+        }
+      }
+    },
+    "权限" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permissions"
+          }
+        }
+      }
+    },
+    "来源地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source"
+          }
+        }
+      }
+    },
+    "来源：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source: %@"
           }
         }
       }
@@ -5963,6 +9923,39 @@
         }
       }
     },
+    "标签" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag"
+          }
+        }
+      }
+    },
+    "标题" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        }
+      }
+    },
+    "标题（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title (optional)"
+          }
+        }
+      }
+    },
     "核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5970,6 +9963,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "core(s)"
+          }
+        }
+      }
+    },
+    "核心" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Core"
           }
         }
       }
@@ -6029,6 +10033,17 @@
         }
       }
     },
+    "模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modules"
+          }
+        }
+      }
+    },
     "模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6040,6 +10055,17 @@
         }
       }
     },
+    "次" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "time(s)"
+          }
+        }
+      }
+    },
     "正在升级…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6047,6 +10073,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upgrading…"
+          }
+        }
+      }
+    },
+    "正在安装…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installing…"
           }
         }
       }
@@ -6084,6 +10121,17 @@
         }
       }
     },
+    "正在连接…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting…"
+          }
+        }
+      }
+    },
     "正常" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6091,6 +10139,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Running"
+          }
+        }
+      }
+    },
+    "此操作不可恢复。如果确认操作，请手动输入「立即重启」。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cannot be undone. Type \"Restart Now\" to confirm."
           }
         }
       }
@@ -6113,6 +10172,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This cannot be undone. Type the app name \"%@\" to confirm uninstalling."
+          }
+        }
+      }
+    },
+    "此操作不可恢复。请输入数据库名称「%@」以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cannot be undone. Type the database name \"%@\" to confirm deletion."
+          }
+        }
+      }
+    },
+    "此操作不可恢复。请输入用户名「%@」以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cannot be undone. Type the username \"%@\" to confirm deletion."
           }
         }
       }
@@ -6205,6 +10286,39 @@
         }
       }
     },
+    "测试发送失败，请检查配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test send failed — check the config"
+          }
+        }
+      }
+    },
+    "测试失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test failed: %@"
+          }
+        }
+      }
+    },
+    "测试已通过" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test passed"
+          }
+        }
+      }
+    },
     "测试连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6223,6 +10337,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pass the connection test before saving"
+          }
+        }
+      }
+    },
+    "测试邮件将发送至收件人地址，请确认收到后再保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A test email will be sent to the recipient — confirm it arrives before saving"
+          }
+        }
+      }
+    },
+    "测试邮件已发送，请查收" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test email sent — check the inbox"
           }
         }
       }
@@ -6249,6 +10385,28 @@
         }
       }
     },
+    "添加 IP 规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add IP Rule"
+          }
+        }
+      }
+    },
+    "添加主机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Host"
+          }
+        }
+      }
+    },
     "添加仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6267,6 +10425,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add registry failed: %@"
+          }
+        }
+      }
+    },
+    "添加关联数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link Databases"
+          }
+        }
+      }
+    },
+    "添加发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Send Method"
           }
         }
       }
@@ -6333,6 +10513,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Port Mapping"
+          }
+        }
+      }
+    },
+    "添加端口规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Port Rule"
+          }
+        }
+      }
+    },
+    "添加规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Rule"
+          }
+        }
+      }
+    },
+    "清屏" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Screen"
           }
         }
       }
@@ -6458,6 +10671,17 @@
         }
       }
     },
+    "滚动到底部" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll to Bottom"
+          }
+        }
+      }
+    },
     "点击任务详情中的「立即执行」生成第一条记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6524,6 +10748,17 @@
         }
       }
     },
+    "点击右下角 + 添加" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + at the bottom right to add"
+          }
+        }
+      }
+    },
     "点击右下角 + 添加 MINIO / 阿里云OSS / WebDAV / SFTP 备份账号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6531,6 +10766,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap + at the bottom right to add a MINIO / Alibaba OSS / WebDAV / SFTP account"
+          }
+        }
+      }
+    },
+    "点击右下角 + 添加规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + at the bottom right to add a rule"
           }
         }
       }
@@ -6568,6 +10814,17 @@
         }
       }
     },
+    "点击右下角创建第一个告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the bottom-right button to create your first alert"
+          }
+        }
+      }
+    },
     "点击右下角按钮创建第一个 CA 机构" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6586,6 +10843,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap for details"
+          }
+        }
+      }
+    },
+    "父进程 PID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parent PID"
           }
         }
       }
@@ -6678,6 +10946,17 @@
         }
       }
     },
+    "生成随机密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate Random Password"
+          }
+        }
+      }
+    },
     "生效时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6685,6 +10964,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Effective"
+          }
+        }
+      }
+    },
+    "用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Users"
+          }
+        }
+      }
+    },
+    "用户: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User: %@"
+          }
+        }
+      }
+    },
+    "用户信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User Info"
           }
         }
       }
@@ -6700,6 +11012,61 @@
         }
       }
     },
+    "用户名（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username (optional)"
+          }
+        }
+      }
+    },
+    "用户名（默认同名称）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username (defaults to name)"
+          }
+        }
+      }
+    },
+    "用户授权" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User Grants"
+          }
+        }
+      }
+    },
+    "用户管理员" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Users"
+          }
+        }
+      }
+    },
+    "用户（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Users (%ld)"
+          }
+        }
+      }
+    },
     "申请" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6707,6 +11074,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply"
+          }
+        }
+      }
+    },
+    "申请失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply failed"
           }
         }
       }
@@ -6788,6 +11166,72 @@
         }
       }
     },
+    "留空则全部 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty = all IPs"
+          }
+        }
+      }
+    },
+    "留空则自动生成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-generated if empty"
+          }
+        }
+      }
+    },
+    "白名单" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowlist"
+          }
+        }
+      }
+    },
+    "白名单内的 IP 登录失败不会触发告警，每行一个，支持 IP 或 CIDR 网段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed logins from allowlisted IPs never trigger alerts; one per line, IP or CIDR"
+          }
+        }
+      }
+    },
+    "监听 SSH 端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listen on SSH port"
+          }
+        }
+      }
+    },
+    "监听地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listen Address"
+          }
+        }
+      }
+    },
     "监控" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6828,6 +11272,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load monitor data — showing the most recent"
+          }
+        }
+      }
+    },
+    "监测类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monitor Type"
           }
         }
       }
@@ -6909,6 +11364,17 @@
         }
       }
     },
+    "相关链接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Links"
+          }
+        }
+      }
+    },
     "省份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6931,6 +11397,28 @@
         }
       }
     },
+    "确定删除「%@」吗？使用该方式的告警将无法发送通知" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete \"%@\"? Alerts using this method cannot be sent"
+          }
+        }
+      }
+    },
+    "确定删除主机「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete host \"%@\"?"
+          }
+        }
+      }
+    },
     "确定删除仓库「%@」吗？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6949,6 +11437,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete task \"%@\"?"
+          }
+        }
+      }
+    },
+    "确定删除告警「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete alert \"%@\"?"
           }
         }
       }
@@ -7030,6 +11529,17 @@
         }
       }
     },
+    "确定要删除%@ \"%@\" 吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the %@ \"%@\"?"
+          }
+        }
+      }
+    },
     "确定要删除证书「%@」吗？此操作不可撤销。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7052,6 +11562,17 @@
         }
       }
     },
+    "确定要结束进程「%@」(PID: %ld) 吗？此操作不可撤销。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kill process \"%@\" (PID: %ld)? This cannot be undone."
+          }
+        }
+      }
+    },
     "确认" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7059,6 +11580,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm"
+          }
+        }
+      }
+    },
+    "确认删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
           }
         }
       }
@@ -7081,6 +11613,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pull"
+          }
+        }
+      }
+    },
+    "确认用户名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Username"
           }
         }
       }
@@ -7118,6 +11661,28 @@
         }
       }
     },
+    "确认重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Restart"
+          }
+        }
+      }
+    },
+    "磁盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk"
+          }
+        }
+      }
+    },
     "磁盘 I/O" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7129,6 +11694,50 @@
         }
       }
     },
+    "磁盘信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Info"
+          }
+        }
+      }
+    },
+    "磁盘写" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Write"
+          }
+        }
+      }
+    },
+    "磁盘占用过高" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk usage too high"
+          }
+        }
+      }
+    },
+    "磁盘占用过高告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High Disk Usage"
+          }
+        }
+      }
+    },
     "磁盘总量" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7136,6 +11745,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Total Disk"
+          }
+        }
+      }
+    },
+    "磁盘读" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Read"
+          }
+        }
+      }
+    },
+    "禁 ping" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block ping"
+          }
+        }
+      }
+    },
+    "禁止 SSH 登陆" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deny SSH login"
           }
         }
       }
@@ -7158,6 +11800,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disable CNAME: enable if applying fails for domains with CNAME records. Skip DNS check: enable only for apply timeouts."
+          }
+        }
+      }
+    },
+    "禁用方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ban Method"
+          }
+        }
+      }
+    },
+    "禁用时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ban Time"
           }
         }
       }
@@ -7217,6 +11881,17 @@
         }
       }
     },
+    "私钥支持粘贴 OPENSSH 格式内容；测试通过后才能保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste an OPENSSH private key; pass the test before saving"
+          }
+        }
+      }
+    },
     "私钥文件路径" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7246,6 +11921,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Private Key (PRIVATE KEY)"
+          }
+        }
+      }
+    },
+    "私钥（不修改请留空）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private key (leave blank to keep)"
+          }
+        }
+      }
+    },
+    "私钥（粘贴 OPENSSH PRIVATE KEY）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private key (paste OPENSSH PRIVATE KEY)"
           }
         }
       }
@@ -7294,6 +11991,28 @@
         }
       }
     },
+    "稍后手动重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Later"
+          }
+        }
+      }
+    },
+    "窗口时间内登录失败达到次数即触发告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Triggers when failed logins reach the count within the window"
+          }
+        }
+      }
+    },
     "立即执行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7316,7 +12035,29 @@
         }
       }
     },
+    "立即重启 Docker" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Docker Now"
+          }
+        }
+      }
+    },
     "端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port"
+          }
+        }
+      }
+    },
+    "端口号" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7345,6 +12086,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ports"
+          }
+        }
+      }
+    },
+    "端口规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port Rules"
+          }
+        }
+      }
+    },
+    "端口规则（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port rules (%ld)"
+          }
+        }
+      }
+    },
+    "等待中" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting"
           }
         }
       }
@@ -7426,6 +12200,17 @@
         }
       }
     },
+    "管理数据库实例" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage database instances"
+          }
+        }
+      }
+    },
     "类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7503,6 +12288,17 @@
         }
       }
     },
+    "系统日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Logs"
+          }
+        }
+      }
+    },
     "系统类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7521,6 +12317,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "System Details"
+          }
+        }
+      }
+    },
+    "系统进程监控" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Monitor"
+          }
+        }
+      }
+    },
+    "线程数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Threads"
+          }
+        }
+      }
+    },
+    "组名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group Name"
           }
         }
       }
@@ -7547,6 +12376,83 @@
         }
       }
     },
+    "终端命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminal Command"
+          }
+        }
+      }
+    },
+    "绑定主机 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bind to host IP"
+          }
+        }
+      }
+    },
+    "绑定用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bound User"
+          }
+        }
+      }
+    },
+    "结束" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End"
+          }
+        }
+      }
+    },
+    "结束 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End IP"
+          }
+        }
+      }
+    },
+    "结束时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End Time"
+          }
+        }
+      }
+    },
+    "结束进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kill Process"
+          }
+        }
+      }
+    },
     "缓存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7554,6 +12460,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cache"
+          }
+        }
+      }
+    },
+    "缓存清理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Cleanup"
           }
         }
       }
@@ -7580,6 +12497,28 @@
         }
       }
     },
+    "编辑 IP 组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit IP Group"
+          }
+        }
+      }
+    },
+    "编辑 IP 规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit IP Rule"
+          }
+        }
+      }
+    },
     "编辑 docker-compose.yml" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7587,6 +12526,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit docker-compose.yml"
+          }
+        }
+      }
+    },
+    "编辑主机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Host"
           }
         }
       }
@@ -7624,6 +12574,17 @@
         }
       }
     },
+    "编辑发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Send Method"
+          }
+        }
+      }
+    },
     "编辑后将使用自定义内容覆盖默认编排文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7631,6 +12592,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your custom content overrides the default compose file"
+          }
+        }
+      }
+    },
+    "编辑告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Alert"
           }
         }
       }
@@ -7675,6 +12647,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Website"
+          }
+        }
+      }
+    },
+    "编辑规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Rule"
           }
         }
       }
@@ -7734,6 +12717,17 @@
         }
       }
     },
+    "缩小字号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smaller Text"
+          }
+        }
+      }
+    },
     "网格" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7752,6 +12746,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Websites"
+          }
+        }
+      }
+    },
+    "网站 / SSL 证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Websites / SSL certificates"
+          }
+        }
+      }
+    },
+    "网站「 %@ 」到期告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website \"%@\" expiring"
+          }
+        }
+      }
+    },
+    "网站「 %@ 」证书到期告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website \"%@\" certificate expiring"
           }
         }
       }
@@ -7778,6 +12805,28 @@
         }
       }
     },
+    "网站到期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website expiring"
+          }
+        }
+      }
+    },
+    "网站日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website Logs"
+          }
+        }
+      }
+    },
     "网站的主访问域名，修改后请确保域名解析已指向本服务器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7800,6 +12849,28 @@
         }
       }
     },
+    "网站访问日志文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website access log files"
+          }
+        }
+      }
+    },
+    "网站证书到期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website certificate expiring"
+          }
+        }
+      }
+    },
     "网络" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7807,6 +12878,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Network"
+          }
+        }
+      }
+    },
+    "网络连接已断开" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection lost"
+          }
+        }
+      }
+    },
+    "网络错误: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network error: %@"
           }
         }
       }
@@ -7855,6 +12948,17 @@
         }
       }
     },
+    "腾讯云" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tencent Cloud"
+          }
+        }
+      }
+    },
     "腾讯云凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7877,6 +12981,17 @@
         }
       }
     },
+    "自动刷新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Refresh"
+          }
+        }
+      }
+    },
     "自动续签" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7884,6 +12999,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto Renew"
+          }
+        }
+      }
+    },
+    "自定义" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom"
+          }
+        }
+      }
+    },
+    "自定义 ACME 服务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom ACME Service"
+          }
+        }
+      }
+    },
+    "自定义功能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Modules"
           }
         }
       }
@@ -7917,6 +13065,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Self-signed"
+          }
+        }
+      }
+    },
+    "若刚开启监控，磁盘 I/O 与网络数据约 5 分钟后开始记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk I/O and network data start recording about 5 minutes after monitoring is enabled"
+          }
+        }
+      }
+    },
+    "若本机终端无法连接，可将面板服务器地址添加为主机后经 SSH 连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If the local terminal cannot connect, add the panel server as a host and connect over SSH"
           }
         }
       }
@@ -7987,6 +13157,17 @@
         }
       }
     },
+    "蜘蛛 IP 池" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spider IP Pool"
+          }
+        }
+      }
+    },
     "行数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8020,6 +13201,17 @@
         }
       }
     },
+    "规则内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule Content"
+          }
+        }
+      }
+    },
     "视频" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8027,6 +13219,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Video"
+          }
+        }
+      }
+    },
+    "角色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Role"
+          }
+        }
+      }
+    },
+    "触发告警时通过发送方式通知，左滑可停用或删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alerts notify via send methods; swipe left to disable or delete"
+          }
+        }
+      }
+    },
+    "触发告警时通过所选方式通知" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alerts notify via the selected method"
+          }
+        }
+      }
+    },
+    "触发时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trigger Time"
+          }
+        }
+      }
+    },
+    "触发条件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trigger Condition"
           }
         }
       }
@@ -8141,6 +13388,17 @@
         }
       }
     },
+    "访问权限" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access"
+          }
+        }
+      }
+    },
     "访问账号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8152,6 +13410,17 @@
         }
       }
     },
+    "访问频率限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate Limit"
+          }
+        }
+      }
+    },
     "证书" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8159,6 +13428,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Certificate"
+          }
+        }
+      }
+    },
+    "证书 / 网站 / 密码到期前，每天检查并按告警次数发送" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificates / websites / passwords are checked daily before expiry and sent per the alert count"
           }
         }
       }
@@ -8339,6 +13619,28 @@
         }
       }
     },
+    "该日期暂无日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No logs for this date"
+          }
+        }
+      }
+    },
+    "该网站暂无访问日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No access logs for this website"
+          }
+        }
+      }
+    },
     "该账号未记住认证信息，凭证需重新填写" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8383,6 +13685,72 @@
         }
       }
     },
+    "请先创建 IP 组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create an IP group first"
+          }
+        }
+      }
+    },
+    "请先创建网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a website first"
+          }
+        }
+      }
+    },
+    "请先在「设置」中配置发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure a send method in Settings first"
+          }
+        }
+      }
+    },
+    "请先在「设置」中配置至少一个告警发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure at least one send method in Settings first"
+          }
+        }
+      }
+    },
+    "请先安装 %@ 后再使用此功能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install %@ before using this feature"
+          }
+        }
+      }
+    },
+    "请先添加服务器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a server first"
+          }
+        }
+      }
+    },
     "请先通过连接测试" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8390,6 +13758,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pass the connection test first"
+          }
+        }
+      }
+    },
+    "请在服务器上安装 Fail2ban 后使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Fail2ban on the server first"
+          }
+        }
+      }
+    },
+    "请在服务器上安装 ufw / firewalld 后使用。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install ufw / firewalld on the server first."
           }
         }
       }
@@ -8559,6 +13949,17 @@
         }
       }
     },
+    "请求被安全入口拦截，请检查服务器配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked by the secure entrance — check the server config"
+          }
+        }
+      }
+    },
     "请稍后重试" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8566,6 +13967,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Try again later"
+          }
+        }
+      }
+    },
+    "请稍后重试，或尝试其他版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again later or pick another version"
+          }
+        }
+      }
+    },
+    "请输入 立即重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type Restart Now"
+          }
+        }
+      }
+    },
+    "请输入「立即重启」" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type \"Restart Now\""
+          }
+        }
+      }
+    },
+    "请输入「立即重启」以确认操作。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type \"Restart Now\" to confirm."
           }
         }
       }
@@ -8582,6 +14027,17 @@
       }
     },
     "请选择" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select…"
+          }
+        }
+      }
+    },
+    "请选择..." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8625,6 +14081,17 @@
         }
       }
     },
+    "读取和写入数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read & write data"
+          }
+        }
+      }
+    },
     "读取密码访问失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8632,6 +14099,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to read password access: %@"
+          }
+        }
+      }
+    },
+    "读取数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read data"
           }
         }
       }
@@ -8654,6 +14132,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Load"
+          }
+        }
+      }
+    },
+    "负载 / CPU / 内存 / I/O / 网络" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load / CPU / memory / I/O / network"
+          }
+        }
+      }
+    },
+    "负载占用过高" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load too high"
+          }
+        }
+      }
+    },
+    "负载占用过高告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High Load"
           }
         }
       }
@@ -8691,6 +14202,28 @@
         }
       }
     },
+    "资源使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resource Usage"
+          }
+        }
+      }
+    },
+    "资源告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resource Alerts"
+          }
+        }
+      }
+    },
     "资源限制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8698,6 +14231,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Resources"
+          }
+        }
+      }
+    },
+    "起始 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start IP"
           }
         }
       }
@@ -8753,6 +14297,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Timeout: %ld %@"
+          }
+        }
+      }
+    },
+    "超级用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Superuser"
           }
         }
       }
@@ -8834,6 +14389,17 @@
         }
       }
     },
+    "跳转" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jump"
+          }
+        }
+      }
+    },
     "跳过 DNS 校验" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8841,6 +14407,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skip DNS Check"
+          }
+        }
+      }
+    },
+    "输入 IP 或 IP 段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter an IP or range"
+          }
+        }
+      }
+    },
+    "输入或生成新密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter or generate a new password"
+          }
+        }
+      }
+    },
+    "输入新名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a new name"
+          }
+        }
+      }
+    },
+    "输入规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a rule"
           }
         }
       }
@@ -8900,6 +14510,17 @@
         }
       }
     },
+    "运行环境" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runtime"
+          }
+        }
+      }
+    },
     "近24小时" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8940,6 +14561,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Last 7 days"
+          }
+        }
+      }
+    },
+    "返回" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
           }
         }
       }
@@ -9032,6 +14664,127 @@
         }
       }
     },
+    "进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processes"
+          }
+        }
+      }
+    },
+    "进程 %ld 已结束" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process %ld ended"
+          }
+        }
+      }
+    },
+    "远程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote"
+          }
+        }
+      }
+    },
+    "远程 URL" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote URL"
+          }
+        }
+      }
+    },
+    "远程下载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote URL"
+          }
+        }
+      }
+    },
+    "远程主机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote host"
+          }
+        }
+      }
+    },
+    "远程应用同步失败，请稍后在任务日志中查看详情" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote app sync failed — check the task log later"
+          }
+        }
+      }
+    },
+    "远程应用同步完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote app sync finished"
+          }
+        }
+      }
+    },
+    "远程访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote Access"
+          }
+        }
+      }
+    },
+    "连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect"
+          }
+        }
+      }
+    },
+    "连接中…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting…"
+          }
+        }
+      }
+    },
     "连接信息" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9054,6 +14807,72 @@
         }
       }
     },
+    "连接失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection failed: %@"
+          }
+        }
+      }
+    },
+    "连接已断开 [code: %ld]\n%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnected [code: %ld]\n%@"
+          }
+        }
+      }
+    },
+    "连接已断开：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnected: %@"
+          }
+        }
+      }
+    },
+    "连接成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected"
+          }
+        }
+      }
+    },
+    "连接成功%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected%@"
+          }
+        }
+      }
+    },
+    "连接数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connections"
+          }
+        }
+      }
+    },
     "连接测试" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9061,6 +14880,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Test Connection"
+          }
+        }
+      }
+    },
+    "连接测试未通过，请检查地址、端口与认证信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection test failed — check the address, port and credentials"
+          }
+        }
+      }
+    },
+    "连接测试通过" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection test passed"
+          }
+        }
+      }
+    },
+    "连接端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port"
+          }
+        }
+      }
+    },
+    "连接超时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection timed out"
           }
         }
       }
@@ -9131,6 +14994,39 @@
         }
       }
     },
+    "选择" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select"
+          }
+        }
+      }
+    },
+    "选择 IP 组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose IP Group"
+          }
+        }
+      }
+    },
+    "选择对象" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Target"
+          }
+        }
+      }
+    },
     "选择已有镜像" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9149,6 +15045,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose App"
+          }
+        }
+      }
+    },
+    "选择数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Database"
+          }
+        }
+      }
+    },
+    "选择用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose User"
+          }
+        }
+      }
+    },
+    "选择磁盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Disk"
           }
         }
       }
@@ -9186,6 +15115,17 @@
         }
       }
     },
+    "选择需要监控的挂载目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the mounts to monitor"
+          }
+        }
+      }
+    },
     "选项" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9219,6 +15159,28 @@
         }
       }
     },
+    "通知 %@ · 资源 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notices %@ · Resources %@"
+          }
+        }
+      }
+    },
+    "通知告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notice Alerts"
+          }
+        }
+      }
+    },
     "通过" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9230,6 +15192,61 @@
         }
       }
     },
+    "通过 firewallcmd ipset 来禁用指定的 IP 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ban IPs via firewallcmd ipset"
+          }
+        }
+      }
+    },
+    "通过 iptables 来禁用指定的 IP 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ban IPs via iptables"
+          }
+        }
+      }
+    },
+    "通过 iptables 来禁用指定的 IP 地址(所有端口)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ban IPs via iptables (all ports)"
+          }
+        }
+      }
+    },
+    "通过 ufw 来禁用指定的 IP 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ban IPs via ufw"
+          }
+        }
+      }
+    },
+    "速率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate"
+          }
+        }
+      }
+    },
     "邮箱" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9237,6 +15254,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Email"
+          }
+        }
+      }
+    },
+    "邮箱通知" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email Notification"
+          }
+        }
+      }
+    },
+    "部署已安装的网站类应用（WordPress 等）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deploy installed website apps (WordPress, etc.)"
           }
         }
       }
@@ -9285,6 +15324,17 @@
         }
       }
     },
+    "配置已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Config saved"
+          }
+        }
+      }
+    },
     "配置已保存，OpenResty 正在重载…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9292,6 +15342,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Config saved, reloading OpenResty…"
+          }
+        }
+      }
+    },
+    "配置已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Config updated"
           }
         }
       }
@@ -9318,6 +15379,17 @@
         }
       }
     },
+    "配置邮箱、Bark 等发送方式后才能创建告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure an email / Bark send method before creating alerts"
+          }
+        }
+      }
+    },
     "采样位" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9340,6 +15412,72 @@
         }
       }
     },
+    "重启 1Panel 面板服务，几秒后自动恢复" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart the 1Panel service; it recovers in a few seconds"
+          }
+        }
+      }
+    },
+    "重启指令已发送，服务器将失联 1-2 分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart sent — the server will be unreachable for 1-2 minutes"
+          }
+        }
+      }
+    },
+    "重启指令已发送，面板服务正在重启，几秒后恢复" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart sent — the panel service is restarting and recovers in seconds"
+          }
+        }
+      }
+    },
+    "重启操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart"
+          }
+        }
+      }
+    },
+    "重启整个服务器，期间将失联 1-2 分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart the whole server; it will be unreachable for 1-2 minutes"
+          }
+        }
+      }
+    },
+    "重启服务器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Server"
+          }
+        }
+      }
+    },
     "重启策略" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9358,6 +15496,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restart Policy"
+          }
+        }
+      }
+    },
+    "重启防火墙" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Firewall"
+          }
+        }
+      }
+    },
+    "重启面板" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Panel"
+          }
+        }
+      }
+    },
+    "重启面板与服务器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Panel & Server"
+          }
+        }
+      }
+    },
+    "重命名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename"
           }
         }
       }
@@ -9406,6 +15588,17 @@
         }
       }
     },
+    "重新连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconnect"
+          }
+        }
+      }
+    },
     "重置为新版本默认值" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9450,6 +15643,17 @@
         }
       }
     },
+    "错误" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
+          }
+        }
+      }
+    },
     "错误日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9479,6 +15683,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Image is required"
+          }
+        }
+      }
+    },
+    "镜像与编排" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Images & Compose"
           }
         }
       }
@@ -9538,6 +15753,39 @@
         }
       }
     },
+    "防火墙" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Firewall"
+          }
+        }
+      }
+    },
+    "防火墙规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Firewall Rules"
+          }
+        }
+      }
+    },
+    "阿里云" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alibaba Cloud"
+          }
+        }
+      }
+    },
     "阿里云OSS" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9571,6 +15819,28 @@
         }
       }
     },
+    "隐藏密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide Password"
+          }
+        }
+      }
+    },
+    "隐藏的功能将从管理列表中移除，但不会影响服务器上的实际运行。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hidden modules disappear from the list but keep running on the server."
+          }
+        }
+      }
+    },
     "需交互" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9593,6 +15863,50 @@
         }
       }
     },
+    "静态网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Static site"
+          }
+        }
+      }
+    },
+    "面板" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel"
+          }
+        }
+      }
+    },
+    "面板 / SSH / 网站日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel / SSH / website logs"
+          }
+        }
+      }
+    },
+    "面板 API 操作记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel API operation records"
+          }
+        }
+      }
+    },
     "面板 IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9600,6 +15914,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Panel IP"
+          }
+        }
+      }
+    },
+    "面板/服务器管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel / server management"
+          }
+        }
+      }
+    },
+    "面板主机 SSH 服务与配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel host SSH service & config"
           }
         }
       }
@@ -9626,6 +15962,138 @@
         }
       }
     },
+    "面板密码 / 证书 / 网站到期、面板更新等通知类告警的可发送时间范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send window for notice alerts: panel password / certificates / website expiry, updates, etc."
+          }
+        }
+      }
+    },
+    "面板密码到期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel password expiring"
+          }
+        }
+      }
+    },
+    "面板密码到期告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Password Expiry"
+          }
+        }
+      }
+    },
+    "面板将以剩余天数为准，在到期前触发告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alerts fire before expiry based on the remaining days"
+          }
+        }
+      }
+    },
+    "面板所在服务器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel host"
+          }
+        }
+      }
+    },
+    "面板新版本提醒" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Update Notice"
+          }
+        }
+      }
+    },
+    "面板日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Logs"
+          }
+        }
+      }
+    },
+    "面板有新版本发布时通知" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifies when a new panel version is released"
+          }
+        }
+      }
+    },
+    "面板有新版本时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When a panel update is available"
+          }
+        }
+      }
+    },
+    "面板登录异常" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel login anomaly"
+          }
+        }
+      }
+    },
+    "面板登录异常告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Login Anomaly"
+          }
+        }
+      }
+    },
+    "面板登录记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Login Records"
+          }
+        }
+      }
+    },
     "颁发组织" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9644,6 +16112,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preview: %@:%ld"
+          }
+        }
+      }
+    },
+    "预设命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predefined Commands"
+          }
+        }
+      }
+    },
+    "频率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequency"
+          }
+        }
+      }
+    },
+    "频率限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate Limit"
           }
         }
       }
@@ -9670,6 +16171,17 @@
         }
       }
     },
+    "高危操作，需输入「立即重启」确认" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Danger zone — type \"Restart Now\" to confirm"
+          }
+        }
+      }
+    },
     "高级" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9688,6 +16200,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Advanced"
+          }
+        }
+      }
+    },
+    "黑名单" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocklist"
           }
         }
       }
@@ -9798,6 +16321,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ", %@ memory"
+          }
+        }
+      }
+    },
+    "：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ": %@"
           }
         }
       }

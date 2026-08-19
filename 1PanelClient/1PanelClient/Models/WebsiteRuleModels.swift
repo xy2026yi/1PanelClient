@@ -68,12 +68,12 @@ nonisolated struct WebsiteRedirect: Decodable, Identifiable, Hashable {
     let redirectRoot: Bool?
 
     var id: String { name ?? UUID().uuidString }
-    var displayName: String { name ?? "(未命名)" }
+    var displayName: String { name ?? L10n.t("(未命名)") }
 
     var typeDisplayName: String {
         switch type ?? "" {
-        case "domain": return "域名"
-        case "path":   return "路径"
+        case "domain": return L10n.t("域名")
+        case "path":   return L10n.t("路径")
         case "404":    return "404"
         default:       return type ?? "—"
         }

@@ -73,11 +73,11 @@ struct AlertSendMethodEditView: View {
             }
             if isEditing { statusSection }
         }
-        .navigationTitle(isEditing ? "编辑发送方式" : "添加发送方式")
+        .navigationTitle(isEditing ? L10n.t("编辑发送方式") : L10n.t("添加发送方式"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("保存") {
+                Button(L10n.t("保存")) {
                     if let req = buildRequest() {
                         Task {
                             isSaving = true
@@ -96,11 +96,11 @@ struct AlertSendMethodEditView: View {
     // MARK: - 类型选择（仅创建时可改）
 
     private var typeSection: some View {
-        Section("类型") {
+        Section(L10n.t("类型")) {
             if isEditing {
-                LabeledContent("类型", value: AlertSendType(rawValue: editing?.type ?? "")?.displayName ?? (editing?.type ?? "未知"))
+                LabeledContent(L10n.t("类型"), value: AlertSendType(rawValue: editing?.type ?? "")?.displayName ?? (editing?.type ?? L10n.t("未知")))
             } else {
-                Picker("类型", selection: $sendType) {
+                Picker(L10n.t("类型"), selection: $sendType) {
                     ForEach(AlertSendType.allCases) { t in
                         Label(t.displayName, systemImage: t.icon).tag(t)
                     }
@@ -115,34 +115,34 @@ struct AlertSendMethodEditView: View {
 
     private var emailSection: some View {
         Section {
-            TextField("显示名称", text: $displayName)
-            TextField("发信地址", text: $sender)
+            TextField(L10n.t("显示名称"), text: $displayName)
+            TextField(L10n.t("发信地址"), text: $sender)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            TextField("用户名（可选）", text: $userName)
+            TextField(L10n.t("用户名（可选）"), text: $userName)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            SecureField("密码（可选）", text: $password)
-            TextField("SMTP 服务器", text: $host)
+            SecureField(L10n.t("密码（可选）"), text: $password)
+            TextField(L10n.t("SMTP 服务器"), text: $host)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            TextField("端口号", text: $portText)
+            TextField(L10n.t("端口号"), text: $portText)
                 .keyboardType(.numberPad)
-            Picker("加密方式", selection: $encryption) {
-                Text("无").tag("")
+            Picker(L10n.t("加密方式"), selection: $encryption) {
+                Text(L10n.t("无")).tag("")
                 Text("SSL").tag("SSL")
                 Text("TLS").tag("TLS")
             }
-            TextField("收件人", text: $recipient)
+            TextField(L10n.t("收件人"), text: $recipient)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
         } header: {
-            SectionLabel(title: "邮箱通知", systemImage: "envelope")
+            SectionLabel(title: L10n.t("邮箱通知"), systemImage: "envelope")
         } footer: {
-            Text("保存前请先发送测试邮件确认配置可用")
+            Text(L10n.t("保存前请先发送测试邮件确认配置可用"))
         }
     }
 
@@ -152,7 +152,7 @@ struct AlertSendMethodEditView: View {
                 Task { await sendTest() }
             } label: {
                 HStack {
-                    Label("发送测试邮件", systemImage: "paperplane")
+                    Label(L10n.t("发送测试邮件"), systemImage: "paperplane")
                     if isTesting {
                         Spacer()
                         ProgressView()
@@ -162,11 +162,11 @@ struct AlertSendMethodEditView: View {
             .disabled(isTesting || !emailFormValid)
 
             if tested {
-                Label("测试已通过", systemImage: "checkmark.circle.fill")
+                Label(L10n.t("测试已通过"), systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             }
         } footer: {
-            Text("测试邮件将发送至收件人地址，请确认收到后再保存")
+            Text(L10n.t("测试邮件将发送至收件人地址，请确认收到后再保存"))
         }
     }
 
@@ -174,17 +174,17 @@ struct AlertSendMethodEditView: View {
 
     private var barkSection: some View {
         Section {
-            TextField("机器人名称", text: $displayName)
+            TextField(L10n.t("机器人名称"), text: $displayName)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            TextField("Webhook 地址", text: $barkURL)
+            TextField(L10n.t("Webhook 地址"), text: $barkURL)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
         } header: {
             SectionLabel(title: "Bark", systemImage: "bell")
         } footer: {
-            Text("Bark 的推送 Webhook 地址，形如 https://api.day.app/xxxxxx")
+            Text(L10n.t("Bark 的推送 Webhook 地址，形如 https://api.day.app/xxxxxx"))
         }
     }
 
@@ -192,7 +192,7 @@ struct AlertSendMethodEditView: View {
 
     private var statusSection: some View {
         Section {
-            Toggle("启用", isOn: $enabled)
+            Toggle(L10n.t("启用"), isOn: $enabled)
         }
     }
 

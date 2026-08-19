@@ -96,15 +96,15 @@ nonisolated struct RunningTime: Decodable, Sendable {
         let secondCount = seconds ?? 0
 
         if dayCount > 0 {
-            return "\(dayCount)天 \(hourCount)小时 \(minuteCount)分钟"
+            return L10n.f("%ld天 %ld小时 %ld分钟", dayCount, hourCount, minuteCount)
         }
         if hourCount > 0 {
-            return "\(hourCount)小时 \(minuteCount)分钟"
+            return L10n.f("%ld小时 %ld分钟", hourCount, minuteCount)
         }
         if minuteCount > 0 {
-            return "\(minuteCount)分钟 \(secondCount)秒"
+            return L10n.f("%ld分钟 %ld秒", minuteCount, secondCount)
         }
-        return "\(secondCount)秒"
+        return L10n.f("%ld秒", secondCount)
     }
 }
 
@@ -131,7 +131,7 @@ nonisolated struct ProcessInfo: Decodable, Identifiable, Sendable {
 
     var id: Int { pid ?? 0 }
 
-    var displayName: String { name ?? "未知" }
+    var displayName: String { name ?? L10n.t("未知") }
     var displayCmd: String { cmd ?? "" }
 }
 
