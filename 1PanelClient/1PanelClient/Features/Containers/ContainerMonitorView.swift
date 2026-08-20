@@ -9,7 +9,7 @@ import Charts
 
 // MARK: - 容器监控页
 
-/// 单容器实时监控：每 5 秒轮询 /containers/stats/:id，
+/// 单容器实时监控：每 1 秒轮询 /containers/stats/:id，
 /// CPU / 内存(含缓存) / 磁盘I/O / 网络 四张曲线图（仅标题+图表）
 @MainActor
 final class ContainerMonitorViewModel: ObservableObject {
@@ -110,7 +110,7 @@ struct ContainerMonitorView: View {
                     )
                 }
             } else {
-                monitorSection("CPU", single: vm.cpuPoints, color: .blue, unit: "%")
+                monitorSection("CPU", single: vm.cpuPoints, color: .blue, unit: "%", yCap: 100)
                 monitorSection(L10n.t("内存"), dual: memorySeries, styles: [L10n.t("内存"): .purple, L10n.t("缓存"): .orange], unit: "MB")
                 monitorSection(L10n.t("磁盘 I/O"), dual: ioSeries, styles: [L10n.t("读取"): .blue, L10n.t("写入"): .orange], unit: "MB")
                 monitorSection(L10n.t("网络"), dual: networkSeries, styles: [L10n.t("上行"): .green, L10n.t("下行"): .purple], unit: "KB")
@@ -125,13 +125,13 @@ struct ContainerMonitorView: View {
         .onChange(of: scenePhase) { _, phase in
             isSceneActive = phase == .active
         }
-        // 每 5 秒轮询一次（仅页面存活且 App 前台活跃时采样）
+        // 每 1 秒轮询一次（仅页面存活且 App 前台活跃时采样）
         .task {
             while !Task.isCancelled {
                 if isSceneActive {
                     await vm.sample(containerID: container.containerID)
                 }
-                try? await Task.sleep(for: .seconds(5))
+                try? await Task.sleep(for: .seconds(1))
             }
         }
     }
@@ -156,6 +156,7 @@ struct ContainerMonitorView: View {
     // MARK: 图表区（标题 + 图表）
 
     /// - Parameter styles: 双曲线各自的系列名与颜色（数值气泡按此过滤显示，传入本图表实际包含的系列）
+    /// - Parameter yCap: y 轴上限封顶（CPU 百分比传 100；其余量纲传 nil 走纯动态）
     @ViewBuilder
     private func monitorSection(
         _ title: String,
@@ -163,7 +164,8 @@ struct ContainerMonitorView: View {
         color: Color = .blue,
         dual: [LoadSeriesPoint] = [],
         styles: KeyValuePairs<String, Color> = [:],
-        unit: String
+        unit: String,
+        yCap: Double? = nil
     ) -> some View {
         Section {
             HStack {
@@ -176,13 +178,14 @@ struct ContainerMonitorView: View {
 
             Group {
                 if !dual.isEmpty {
-                    ContainerMonitorChart(points: dual, styles: styles, unit: unit)
+                    ContainerMonitorChart(points: dual, styles: styles, unit: unit, yCap: yCap)
                 } else if !single.isEmpty {
                     // 单曲线（CPU）：系列名固定 "CPU"，图例隐藏
                     ContainerMonitorChart(
                         points: single.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "CPU") },
                         styles: ["CPU": color],
-                        unit: unit
+                        unit: unit,
+                        yCap: yCap
                     )
                 } else {
                     chartPlaceholder
@@ -207,27 +210,31 @@ struct ContainerMonitorView: View {
 // MARK: - 固定采样网格的监控图表
 
 /// 折线图 + 固定采样网格 + 点选查看数值：
-/// X 轴为固定 12 个采样位的窗口，绘图区两端各留半个采样位边距
-/// （首尾数据点不贴边、时间标签正对采样位居中后完整落在行内）；
+/// X 轴为固定 12 个采样位的窗口（0...11，首尾数据点贴绘图区两缘），
 /// 中间 10 个采样位（1...10）各画一条等距竖向虚线，两端边缘采样位不画；
-/// 时间标签固定 4 个，正对采样位居中显示（采样位 0、4、8、11——
-/// 中间两个正好在虚线正下方，首尾在窗口两端），相邻标签之间隔 3/3/2 条虚线；
+/// 时间标签固定 5 个，严格正对采样位居中显示（采样位 0、3、6、9、11），
+/// 首尾在窗口两端、允许悬出行边界（不做贴边收回），相邻标签之间隔 2 条虚线；
 /// 初始样本由左至右逐位填充（时间标签随之从左至右出现），
 /// 窗口满后保留最近 12 个样本、曲线向左推进；
+/// Y 值域自适应（见 yDomain）：上限 = 峰值+气泡预留 → 整洁上限，设 yCap（CPU 100%）时封顶，
+/// 数据带高位时抬起下限（封顶轴按固定步长、动态轴收紧贴数据带），刻度自算且首尾必在列；
 /// 点击/拖动选中采样位：每条曲线在该位显示同色圆点，
-/// 数值气泡水平居中于选中位置、悬浮于最高一条曲线的上方（再次点击同一位取消选中）。
+/// 数值气泡默认悬浮于最高一条曲线上方，值贴近封顶（>90%）或上方放不下时改放圆点左/右侧
+///（再次点击同一位取消选中）。
 struct ContainerMonitorChart: View {
     /// 图表高度（Y 轴顶部预留比例按此换算）
-    private static let plotHeight: CGFloat = 120
+    private static let plotHeight: CGFloat = 150
     /// 画竖向虚线的采样位（内部 10 个、等距；两端边缘采样位不画）
     private static let dashSlots = Array(1...10)
-    /// 时间标签的采样位（正对采样位居中；首尾为窗口两端）。
-    /// 相邻间隔 4/4/3 个采样位——间隔 2（如 9→11）加上贴边收回后间隙为负，标签会互相重叠
-    private static let labelSlots = [0, 4, 8, 11]
+    /// 时间标签的采样位（严格正对采样位居中；首尾为窗口两端、允许悬出）。
+    /// 相邻间隔 3 个采样位（中间隔 2 条虚线），末段 9→11 隔 1 条
+    private static let labelSlots = [0, 3, 6, 9, 11]
 
     let points: [LoadSeriesPoint]
     let styles: KeyValuePairs<String, Color>
     let unit: String
+    /// y 轴上限封顶（如 CPU 百分比传 100）：动态上限不超过它，数据高位时下限相应抬起
+    var yCap: Double? = nil
 
     @State private var selectedSlot: Int?
     /// 本次手势开始前已选中的采样位（松手时判断「点击已选位 → 取消」）
@@ -236,9 +243,6 @@ struct ContainerMonitorChart: View {
     @State private var plotRect: CGRect = .zero
     /// 数值气泡实际尺寸（position 按中心定位，计算与最高线的间距用）
     @State private var bubbleSize: CGSize = .zero
-    /// 时间标签宽度（标签均为 8 字符等宽数字、宽度一致，测一次即可），
-    /// 供首尾标签贴边收回计算
-    @State private var labelWidth: CGFloat = 0
 
     var body: some View {
         let window = MonitorSlotWindow(points: points)
@@ -285,19 +289,25 @@ struct ContainerMonitorChart: View {
             .chartForegroundStyleScale(styles)
             // 图表下方不显示系列名图例行（气泡/圆点已按颜色标注各系列）
             .chartLegend(.hidden)
-            // 固定 0 起点 + 最小值域 1，避免数据恒为 0（如空闲 CPU）时值域退化为 [0,0]、
-            // 自动刻度不渲染导致左侧无百分比标签
-            .chartYScale(domain: 0...yHeadroom)
-            // 固定采样窗口（两端各留半个采样位边距），虚线/标签位置恒定不动
+            // Y 值域自适应（见 yDomain）：上限整洁可封顶、数据高位时抬下限
+            .chartYScale(domain: yDomain)
+            // 固定采样窗口（首尾采样位贴绘图区两缘），虚线/标签位置恒定不动
             .chartXScale(domain: MonitorSlotWindow.xDomain)
             // 时间标签自绘（见 timeAxis）：系统轴的自动碰撞会丢弃/裁切标签，位置无法稳定控制
             .chartXAxis(.hidden)
             .chartYAxis {
-                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                // 自算刻度值（首尾必含）：系统自动刻度在值域切换后会丢端点
+                //（如 0...100 只画 25/50/75/100，缺 0%）
+                AxisMarks(position: .leading, values: yTickValues) { value in
                     AxisGridLine()
                     AxisValueLabel {
                         if let v = value.as(Double.self) {
-                            Text(Self.axisText(v, unit: unit))
+                            Text(Self.axisText(v, unit: unit, decimals: valueDecimals))
+                                .font(.caption2)
+                                .monospacedDigit()
+                                .fixedSize()
+                                // 与绘图区左缘拉开距离（同 debug 示例：刻度不贴住曲线区）
+                                .padding(.trailing, 12)
                         }
                     }
                 }
@@ -337,23 +347,25 @@ struct ContainerMonitorChart: View {
                         .onAppear { plotRect = plotFrame }
                         .onChange(of: plotFrame) { _, new in plotRect = new }
 
-                    // 数值气泡：水平居中于选中位置（贴边时收回边界内），
-                    // 悬浮于选中采样位最高一条曲线的上方——y 按值域直接换算，
-                    // 不走 proxy.position(forY:)（其返回值不稳，会导致气泡贴顶）
+                    // 数值气泡：默认水平居中于选中位置（贴边收回）、悬于最高一条曲线上方——
+                    // y 按值域直接换算，不走 proxy.position(forY:)（其返回值不稳，会导致气泡贴顶）；
+                    // 值贴近封顶（>90%）或上方放不下时改放圆点左/右侧（见 bubblePosition）
                     if let sel = selectedSlot, plotFrame.width > 0 {
                         let entries = entries(atSlot: sel)
                         if let topValue = entries.map(\.value).max() {
                             let xCenter = plotFrame.minX
                                 + plotFrame.width * MonitorSlotWindow.xFraction(Double(sel))
+                            let span = max(yDomain.upperBound - yDomain.lowerBound, .ulpOfOne)
                             let yTop = plotFrame.minY
-                                + plotFrame.height * (1 - topValue / yHeadroom)
-                            let halfW = bubbleSize.width / 2, halfH = bubbleSize.height / 2
-                            let bx = min(max(xCenter, halfW + 4), geo.size.width - halfW - 4)
-                            // 最高点贴近顶部放不下时，气泡收进图表内
-                            let by = max(yTop - 12 - halfH, halfH + 2)
+                                + plotFrame.height * ((yDomain.upperBound - topValue) / span)
+                            let pos = bubblePosition(topValue: topValue, xCenter: xCenter, yTop: yTop,
+                                                     halfW: bubbleSize.width / 2,
+                                                     halfH: bubbleSize.height / 2,
+                                                     geoWidth: geo.size.width,
+                                                     geoHeight: geo.size.height)
                             tooltip(entries)
                                 .background(bubbleTracker)
-                                .position(x: bx, y: by)
+                                .position(x: pos.x, y: pos.y)
                         }
                     }
                 }
@@ -361,6 +373,8 @@ struct ContainerMonitorChart: View {
 
             timeAxis
         }
+        // 右侧留出边距，绘图区不顶到行右缘（同 debug 示例）
+        .padding(.trailing, 10)
         // VoiceOver：图表整体作为一个元素朗读摘要（折线内容无法逐点访问）
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
@@ -368,50 +382,33 @@ struct ContainerMonitorChart: View {
 
     // MARK: 自绘时间轴
 
-    /// 图表下方的时间标签行：正对各自采样位居中（0、4、8、11），
+    /// 图表下方的时间标签行：严格正对各自采样位居中（0、3、6、9、11），
     /// 显示该采样位的实际时间；初始阶段数据填到哪个标签位，该标签才出现
     /// （由左至右逐个出现，末位标签在窗口填满时出现）。
-    /// 两端留白后首尾标签已能完整居中；字体放大超出版心时仍收回边界内不被裁切（兜底）。
+    /// 不做贴边收回——首尾标签（位 0 与 11）允许悬出行边界，保证与采样位精确对齐
     private var timeAxis: some View {
         let window = MonitorSlotWindow(points: points)
         return GeometryReader { geo in
             ForEach(Self.labelSlots, id: \.self) { slot in
                 if slot < window.dates.count {
                     Text(Self.timeFormatter.string(from: window.dates[slot]))
-                        .font(.caption2)
+                        .font(.system(size: 9))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                     .fixedSize()
                     .position(
-                        x: clampedLabelX(slot, rowWidth: geo.size.width),
+                        x: slotX(slot),
                         y: geo.size.height / 2
                     )
                 }
             }
         }
-        .frame(height: 26)   // 与 Y 轴底部刻度文字拉开距离，避免最左时间标签贴住 Y 轴文本
-        .background(timeLabelSizer)
+        .frame(height: 22)   // 与 Y 轴底部刻度文字拉开距离，避免最左时间标签贴住 Y 轴文本
     }
 
-    /// 隐藏的「00:00:00」模板：随字体大小测出标签宽度（所有标签同宽）
-    private var timeLabelSizer: some View {
-        Text("00:00:00")
-            .font(.caption2)
-            .monospacedDigit()
-            .fixedSize()
-            .hidden()
-            .background(GeometryReader { g in
-                Color.clear
-                    .onAppear { labelWidth = g.size.width }
-                    .onChange(of: g.size.width) { _, new in labelWidth = new }
-            })
-    }
-
-    /// 标签水平位置：正对采样位居中，首尾收回本行边界内
-    private func clampedLabelX(_ slot: Int, rowWidth: CGFloat) -> CGFloat {
-        let x = plotRect.minX + plotRect.width * MonitorSlotWindow.xFraction(Double(slot))
-        let half = labelWidth / 2
-        return min(max(x, half), rowWidth - half)
+    /// 标签水平位置：正对采样位精确居中（半宽悬出也不拉回）
+    private func slotX(_ slot: Int) -> CGFloat {
+        plotRect.minX + plotRect.width * MonitorSlotWindow.xFraction(Double(slot))
     }
 
     /// 测量气泡实际尺寸（position 按中心定位，计算与最高线的间距用）
@@ -440,7 +437,7 @@ struct ContainerMonitorChart: View {
             }
         }
         return raw.sorted { $0.1 > $1.1 }
-            .map { ($0.0, String(format: "%.2f%@", $0.1, unit), $0.2, $0.1) }
+            .map { ($0.0, String(format: "%.\(valueDecimals)f%@", $0.1, unit), $0.2, $0.1) }
     }
 
     /// 数值气泡（竖排，系列名与数值间一个空格，颜色与曲线一致；
@@ -463,14 +460,111 @@ struct ContainerMonitorChart: View {
         .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
     }
 
-    /// Y 轴上限：顶部为数值气泡固定预留空间（按系列数估算气泡高度 + 与线的间距），
-    /// 保证选中最高点时气泡仍能完整悬于线上方；下限至少 1 个单位（全 0 时刻度仍可读）。
-    /// 预留不依赖气泡实测尺寸——气泡只在选中后才被测量，那样 Y 轴会在首次选中时跳变
-    private var yHeadroom: Double {
-        let peak = MonitorSlotWindow(points: points).inWindow(points).map(\.value).max() ?? 0
-        let bubbleHeight: Double = styles.count <= 1 ? 21 : 37   // 1 行 ≈ 21pt、2 行 ≈ 37pt
-        let reserve = min((bubbleHeight + 12) / Double(Self.plotHeight), 0.45)
-        return max(peak / (1 - reserve), peak * 1.15, 1)
+    /// 基准 Y 值域（未做等距对齐；取整与「6 值 6 线」由 yDomain 的等距对齐层统一完成）：
+    /// - 上限：峰值 × 1.15 的紧凑头寸（顶部不预留气泡位——放不下自动转圆点侧面），
+    ///   设有封顶（CPU 100%）时不超过它；
+    /// - 下限：封顶轴上限被钉住时抬到窗口最小值下方一个步长（步长 = cap/20，如 100 → 5%）；
+    ///   动态轴数据带高位（最小值过半峰值）时收紧贴数据带；其余为 0（全 0 时刻度仍可读）
+    private var yBaseDomain: ClosedRange<Double> {
+        let values = MonitorSlotWindow(points: points).inWindow(points).map(\.value)
+        let peak = values.max() ?? 0
+        let low = values.min() ?? 0
+        if let cap = yCap, cap > 0 {
+            if max(peak, 0.1) * 1.15 >= cap {
+                // 上限钉在封顶值：下限抬到窗口最小值下方一个步长（如 80~98% → 75...100%）
+                let step = cap / 20
+                let lower = max(0, ((low - step) / step).rounded(.down) * step)
+                return lower...max(cap, lower + step)
+            }
+            return 0...max(peak, 0.1) * 1.15
+        }
+        if peak > 0, low > peak * 0.5 {
+            // 动态轴高位窄带：上下限同时收紧贴数据（如内存 1140~1260MB → 1000...1500）
+            let upper = peak * 1.15
+            let lower = min(MonitorAxisMath.niceFloor(low * 0.9), upper * 0.9)
+            return lower...upper
+        }
+        return 0...max(peak * 1.15, 1)
+    }
+
+    /// Y 轴值域：在基准值域上做等距对齐——跨度固定为 5 × 刻度步长
+    ///（封顶轴锚定上限、下限向下回退；其余锚定下限、上限向上补齐），
+    /// 保证恰好 6 值 6 线、等距且首尾都落在网格上；
+    /// 数值恒为 0 时跨度取 2 × 步长（仅 3 个刻度）
+    private var yDomain: ClosedRange<Double> {
+        let base = yBaseDomain
+        let lower = base.lowerBound
+        let upper = base.upperBound
+        let step = yTickStep
+        guard upper > lower, step > 0 else { return base }
+        let span = Double(isAllZero ? 2 : 5) * step
+        if let cap = yCap, cap > 0, upper >= cap {
+            return max(0, cap - span)...cap
+        }
+        return lower...(lower + span)
+    }
+
+    /// 窗口数值是否恒为 0（如 0MB 的内存/缓存）——此时刻度不加密
+    private var isAllZero: Bool {
+        let values = MonitorSlotWindow(points: points).inWindow(points).map(\.value)
+        return !values.isEmpty && values.allSatisfy { $0 == 0 }
+    }
+
+    /// Y 轴刻度步长：按基准跨度/5 向上归整到 1/2/2.5/4/5/10 × 10^k——
+    /// 配合 yDomain 的「跨度 = 5 × 步长」恒得 6 值 6 线（如 0...2% → 步长 0.4）；
+    /// 数值恒为 0 时不加密（跨度/2、无 4 档，仅保留 3 个刻度）
+    private var yTickStep: Double {
+        let span = yBaseDomain.upperBound - yBaseDomain.lowerBound
+        guard span > 0 else { return 1 }
+        let dense = !isAllZero
+        let raw = span / (dense ? 5 : 2)
+        let magnitude = pow(10, floor(log10(raw)))
+        let normalized = raw / magnitude
+        let ladder = dense ? [1.0, 2, 2.5, 4, 5, 10] : [1.0, 2, 2.5, 5, 10]
+        let nice = ladder.first { $0 >= normalized - 0.0001 } ?? 10
+        return nice * magnitude
+    }
+
+    /// Y 轴刻度值：下限起步按步进到上限——值域已等距对齐（跨度 = 步长整数倍），
+    /// 横线等距且首尾必在列
+    private var yTickValues: [Double] {
+        let lower = yDomain.lowerBound
+        let upper = yDomain.upperBound
+        let step = yTickStep
+        guard upper > lower, step > 0 else { return [lower] }
+        let n = max(1, Int(((upper - lower) / step).rounded()))
+        return (0...n).map { lower + Double($0) * step }
+    }
+
+    /// 数值小数位：由刻度步长决定（步长 0.0x → 两位、0.x/2.5 → 一位、整数 → 取整），
+    /// 刻度与气泡数值保持一致
+    private var valueDecimals: Int {
+        let step = yTickStep
+        if step.truncatingRemainder(dividingBy: 1) == 0 { return 0 }
+        if (step * 10).truncatingRemainder(dividingBy: 1) == 0 { return 1 }
+        return 2
+    }
+
+    /// 气泡位置：默认水平居中于选中位（贴边收回）、悬于最高圆点正上方；
+    /// 值超过封顶的 90%（如 CPU 封顶 100% 时的 90+%）或上方放不下时，
+    /// 改放圆点侧面——圆点在图表左半边时气泡放右侧、右半边放左侧，垂直与圆点对齐
+    private func bubblePosition(topValue: Double, xCenter: CGFloat, yTop: CGFloat,
+                                halfW: CGFloat, halfH: CGFloat,
+                                geoWidth: CGFloat, geoHeight: CGFloat) -> (x: CGFloat, y: CGFloat) {
+        let nearCap = yCap.map { topValue > $0 * 0.9 } ?? false
+        let noRoomAbove = yTop < 12 + 2 * halfH
+        if nearCap || noRoomAbove {
+            // 侧面：圆点在左半边 → 气泡放右侧，右半边 → 放左侧；垂直与圆点对齐并收回边界内
+            let toRight = xCenter < geoWidth / 2
+            let x = toRight
+                ? min(xCenter + 12 + halfW, geoWidth - halfW - 4)
+                : max(xCenter - 12 - halfW, halfW + 4)
+            let y = min(max(yTop, halfH + 2), geoHeight - halfH - 2)
+            return (x, y)
+        }
+        let x = min(max(xCenter, halfW + 4), geoWidth - halfW - 4)
+        let y = max(yTop - 12 - halfH, halfH + 2)
+        return (x, y)
     }
 
     /// 无障碍摘要：折线内容 VoiceOver 无法读取，以各系列最新采样值代替
@@ -490,11 +584,8 @@ struct ContainerMonitorChart: View {
         return f
     }()
 
-    /// Y 轴刻度文本：整数直接拼单位（30KB），小数保留一位（0.5KB）
-    private static func axisText(_ value: Double, unit: String) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return "\(Int(value))\(unit)"
-        }
-        return String(format: "%.1f%@", value, unit)
+    /// Y 轴刻度文本：按小数位格式化后拼单位（如 30KB、0.5%、0.05%）
+    private static func axisText(_ value: Double, unit: String, decimals: Int) -> String {
+        String(format: "%.\(decimals)f%@", value, unit)
     }
 }

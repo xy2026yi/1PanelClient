@@ -43,7 +43,8 @@ struct L10nTests {
             #expect(L10n.f("加载失败：%@", "timeout") == "Failed to load: timeout")
         }
         withLanguage(.zhHans) {
-            #expect(L10n.f("%@ 个容器", 3) == "3 个容器")
+            // %@ 只能传对象（传 Int 会读野指针崩溃），整数一律 %ld（同 App 调用约定）
+            #expect(L10n.f("%ld 个容器", 3) == "3 个容器")
         }
     }
 

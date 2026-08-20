@@ -79,12 +79,25 @@ struct MonitorSlotWindowTests {
         #expect(w.slot(atX: 900, plotWidth: 953) == 2)
     }
 
-    @Test("值域两端留白：首尾采样位不贴绘图区边缘")
+    @Test("值域两端无留白：首尾采样位贴绘图区边缘（时间标签允许悬出）")
     func domainPadding() {
-        #expect(MonitorSlotWindow.xFraction(0) > 0)
-        #expect(MonitorSlotWindow.xFraction(Double(MonitorSlotWindow.slotCount - 1)) < 1)
-        #expect(MonitorSlotWindow.xDomain.lowerBound < 0)
-        #expect(MonitorSlotWindow.xDomain.upperBound > Double(MonitorSlotWindow.slotCount - 1))
+        #expect(MonitorSlotWindow.xFraction(0) == 0)
+        #expect(MonitorSlotWindow.xFraction(Double(MonitorSlotWindow.slotCount - 1)) == 1)
+        #expect(MonitorSlotWindow.xDomain == 0...Double(MonitorSlotWindow.slotCount - 1))
+    }
+
+    @Test("MonitorAxisMath：整洁上/下限按 ladder 取整")
+    func axisMath() {
+        #expect(MonitorAxisMath.niceCeiling(0) == 1)
+        #expect(abs(MonitorAxisMath.niceCeiling(0.138) - 0.15) < 0.0001)   // 1.5×0.1 有浮点尾差
+        #expect(MonitorAxisMath.niceCeiling(7.24) == 8)
+        #expect(MonitorAxisMath.niceCeiling(80) == 80)
+        #expect(MonitorAxisMath.niceCeiling(81) == 100)
+        #expect(MonitorAxisMath.niceCeiling(101.9) == 120)
+        #expect(MonitorAxisMath.niceFloor(0) == 0)
+        #expect(MonitorAxisMath.niceFloor(1026) == 1000)
+        #expect(MonitorAxisMath.niceFloor(72) == 60)
+        #expect(MonitorAxisMath.niceFloor(80) == 80)
     }
 
     @Test("inWindow 过滤出窗数据点")

@@ -4,7 +4,12 @@
 //
 //  历史监控：平均负载 / CPU / 内存 / 磁盘I/O / 网络 曲线图（Swift Charts）
 //  历史曲线来自 POST /api/v2/hosts/monitor/search（时间范围可切换：1/6/24 小时与 7 天），
-//  实时数值来自 GET /api/v2/dashboard/current/all/all（3 秒轮询）
+//  实时数值来自 GET /api/v2/dashboard/current/all/all（3 秒轮询）；
+//  图表为 MonitorHistoryChart：采样位索引域 x + 固定 12 段网格外观（与容器监控同构）——
+//  记录存在时间缺口时点距仍均等，虚线/时间标签映射到实际数据点上；
+//  负载 Y 自 0...1 起步、峰值超 1 自动上扩（2 位小数）、CPU/内存 Y 固定 0...100
+//  （各 11 条等距横线，CPU/内存带线下面积），
+//  磁盘 I/O/网络动态（6 值 6 线），点按/拖动吸附数据点显示同色圆点与数值气泡
 //
 
 import SwiftUI
@@ -61,47 +66,6 @@ final class MonitorViewModel: ObservableObject {
 
     init(server: ServerConfig) {
         self.client = APIClient(server: server)
-    }
-
-    /// 负载图表 Y 轴上限：取「1/5/15 分钟三条曲线历史峰值、最新负载值」中的
-    /// 最大值，留 20% 余量后向上取整到 1/2/5×10ⁿ 的整齐刻度（不固定 100）
-    var loadAxisMax: Double {
-        let seriesMax = [load1Points, load5Points, load15Points]
-            .compactMap { $0.map(\.value).max() }
-            .max() ?? 0
-        let rawMax = [seriesMax, latestLoad1 ?? 0, latestLoad5 ?? 0, latestLoad15 ?? 0].max() ?? 0
-        guard rawMax > 0 else { return 10 }
-        return Self.niceCeil(rawMax * 1.2)
-    }
-
-    /// CPU 图表 Y 轴上限：曲线峰值 × 1.2 取整齐刻度，上限 100（百分比）
-    var cpuAxisMax: Double {
-        let seriesMax = cpuPoints.map(\.value).max() ?? 0
-        guard seriesMax > 0 else { return 10 }
-        return min(Self.niceCeil(seriesMax * 1.2), 100)
-    }
-
-    /// 内存图表 Y 轴上限：同 CPU
-    var memoryAxisMax: Double {
-        let seriesMax = memPoints.map(\.value).max() ?? 0
-        guard seriesMax > 0 else { return 10 }
-        return min(Self.niceCeil(seriesMax * 1.2), 100)
-    }
-
-    /// 向上取整到 1 / 2 / 5 × 10ⁿ 的"好看"刻度值
-    private static func niceCeil(_ value: Double) -> Double {
-        guard value > 0 else { return 1 }
-        let exponent = floor(log10(value))
-        let base = pow(10, exponent)
-        let fraction = value / base
-        let nice: Double
-        switch fraction {
-        case ...1:  nice = 1
-        case ...2:  nice = 2
-        case ...5:  nice = 5
-        default:    nice = 10
-        }
-        return nice * base
     }
 
     /// 首次进入/下拉刷新：历史曲线 + 实时数值并发拉取
@@ -216,19 +180,12 @@ final class MonitorViewModel: ObservableObject {
 struct MonitorView: View {
     let server: ServerConfig
     @StateObject private var vm: MonitorViewModel
-    /// 平均负载图表展开状态（默认收起，点右侧下拉展开）
+    /// 平均负载图表展开状态（默认收起，点右侧下拉展开图表）
     @State private var showLoadChart = false
-    /// 负载图表手指选中的时间点（nil = 显示最新值）
-    @State private var selectedLoadDate: Date?
-    /// CPU 图表展开状态与选中时间
+    /// CPU 图表展开状态
     @State private var showCPUChart = false
-    @State private var selectedCPUDate: Date?
-    /// 内存图表展开状态与选中时间
+    /// 内存图表展开状态
     @State private var showMemChart = false
-    @State private var selectedMemDate: Date?
-    /// 磁盘 I/O / 网络图表选中时间
-    @State private var selectedIODate: Date?
-    @State private var selectedNetDate: Date?
     /// App 是否处于前台活跃（后台时暂停轮询）
     @Environment(\.scenePhase) private var scenePhase
     @State private var isSceneActive = true
@@ -372,73 +329,50 @@ struct MonitorView: View {
         }
     }
 
-    /// 负载三曲线图表（1/5/15 分钟），拖动时图表内竖排浮层显示数值（按值降序）
+    /// 负载三曲线图表（1/5/15 分钟）：Y 自 0...1 起步、峰值超 1 自动上扩（11 条等距横线），无填充
     private var loadChart: some View {
-        return Chart(loadAllPoints) { p in
-            LineMark(x: .value(L10n.t("时间"), p.date), y: .value(L10n.t("负载"), p.value))
-                .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
-            // 数据点过少时折线画不出来，补圆点让单点也可见
-            if loadSeriesSparse {
-                PointMark(x: .value(L10n.t("时间"), p.date), y: .value(L10n.t("负载"), p.value))
-                    .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
-                    .symbolSize(30)
-            }
-            if let sel = selectedLoadDate {
-                RuleMark(x: .value(L10n.t("选中"), sel))
-                    .foregroundStyle(.secondary.opacity(0.5))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            }
-        }
-        .chartForegroundStyleScale([
-            L10n.t("1分钟"): .blue, L10n.t("5分钟"): .orange, L10n.t("15分钟"): .purple,
-        ])
-        .chartLegend(.hidden)
-        .chartYScale(domain: 0...max(vm.loadAxisMax, 1))
-        .chartYAxis { AxisMarks(position: .leading) }
-        .frame(height: 160)
-        .chartOverlay { proxy in
-            GeometryReader { geo in
-                // 手势层：触摸 x → 日期
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { gesture in
-                                guard let plotAnchor = proxy.plotFrame else { return }
-                                let plotFrame = geo[plotAnchor]
-                                let x = gesture.location.x - plotFrame.minX
-                                guard x >= 0, x <= plotFrame.width,
-                                      let date: Date = proxy.value(atX: x) else { return }
-                                selectedLoadDate = clampToLoadDomain(date)
-                            }
-                            .onEnded { _ in selectedLoadDate = nil }
-                    )
-
-                // 选中浮层：竖排显示三条曲线数值（值大的在最上面），颜色与曲线一致
-                if let sel = selectedLoadDate {
-                    let x = proxy.position(forX: sel) ?? 0
-                    let panelWidth: CGFloat = 112
-                    // 靠右边缘时翻转到左侧
-                    let flip = x + panelWidth + 16 > geo.size.width
-
-                    loadTooltip(sortedLoadEntries(at: sel))
-                        .offset(x: flip ? x - panelWidth - 12 : x + 12, y: 10)
-                }
-            }
-        }
+        MonitorHistoryChart(
+            points: loadAllPoints,
+            styles: [L10n.t("1分钟"): .blue, L10n.t("5分钟"): .orange, L10n.t("15分钟"): .purple],
+            unit: "",
+            fixedYDomain: loadYDomain,
+            fixedDecimals: 2,
+            fill: false,
+            labelFormatter: timeLabelFormatter
+        )
     }
+
+    /// 负载 Y 值域：负载可超 1（核心数多或过载时），峰值超 1 时自 0...1 向上扩展
+    ///（留 10% 余量并向上取整到 0.5 的倍数，保持 11 条等距横线的刻度可读）
+    private var loadYDomain: ClosedRange<Double> {
+        let peak = loadAllPoints.map(\.value).max() ?? 0
+        guard peak > 1 else { return 0...1 }
+        let upper = ((peak * 1.1 * 2).rounded(.up)) / 2
+        return 0...upper
+    }
+
+    /// 时间标签格式：小时级范围用 HH:mm，7 天用 MM-dd
+    private var timeLabelFormatter: DateFormatter {
+        vm.hours >= 168 ? Self.dayFormatter : Self.hourFormatter
+    }
+
+    private static let hourFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MM-dd"
+        return f
+    }()
 
     /// 三条曲线的扁平数据（按「类型」分组形成独立系列）
     private var loadAllPoints: [LoadSeriesPoint] {
         vm.load1Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("1分钟")) }
             + vm.load5Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("5分钟")) }
             + vm.load15Points.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("15分钟")) }
-    }
-
-    /// 任一负载曲线点数 ≤ 2（刚开启监控/时间窗内只有一两个采样）
-    private var loadSeriesSparse: Bool {
-        [vm.load1Points, vm.load5Points, vm.load15Points].contains { $0.count <= 2 }
     }
 
     /// 图表空数据占位：与图表同高，避免空白坐标轴让用户误以为图表坏了
@@ -456,72 +390,6 @@ struct MonitorView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 160)
-    }
-
-    /// 拖动选中时的竖排数值浮层（text 为已格式化的显示文本）
-    private func loadTooltip(_ entries: [(title: String, text: String, color: Color)]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(entries, id: \.title) { entry in
-                HStack(spacing: 5) {
-                    StatusDot(color: entry.color)
-                    Text(entry.title)
-                        .foregroundStyle(entry.color)
-                    Spacer(minLength: 4)
-                    Text(entry.text)
-                        .monospacedDigit()
-                        .foregroundStyle(entry.color)
-                }
-            }
-        }
-        .font(.caption2)
-        .frame(width: 112, alignment: .leading)
-        .padding(.vertical, 6)
-        .padding(.horizontal, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-        .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
-    }
-
-    /// 选中时间（或最新）在曲线上的数值
-    private func selectedLoadValue(from points: [MonitorPoint]) -> Double? {
-        guard let sel = selectedLoadDate else { return points.last?.value }
-        return nearestValue(to: sel, in: points)
-    }
-
-    /// 选中时间的三条负载数值（按值降序，返回已格式化文本）
-    private func sortedLoadEntries(at date: Date) -> [(title: String, text: String, color: Color)] {
-        let raw: [(String, Double?, Color)] = [
-            (L10n.t("1分钟"), nearestValue(to: date, in: vm.load1Points), .blue),
-            (L10n.t("5分钟"), nearestValue(to: date, in: vm.load5Points), .orange),
-            (L10n.t("15分钟"), nearestValue(to: date, in: vm.load15Points), .purple),
-        ]
-        let sorted = raw.sorted { ($0.1 ?? 0) > ($1.1 ?? 0) }
-        var result: [(title: String, text: String, color: Color)] = []
-        for pair in sorted {
-            let text = pair.1.map { String(format: "%.2f", $0) } ?? "—"
-            result.append((pair.0, text, pair.2))
-        }
-        return result
-    }
-
-    /// 距目标时间最近的曲线数值
-    private func nearestValue(to date: Date, in points: [MonitorPoint]) -> Double? {
-        points.min {
-            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
-        }?.value
-    }
-
-    /// 把手势换算出的日期限制在数据时间范围内
-    private func clampDate(_ date: Date, in points: [MonitorPoint]) -> Date {
-        guard let first = points.map(\.date).min(), let last = points.map(\.date).max() else {
-            return date
-        }
-        return min(max(date, first), last)
-    }
-
-    /// 把负载图表的手势日期限制在三条曲线的并集范围内
-    private func clampToLoadDomain(_ date: Date) -> Date {
-        let all = vm.load1Points + vm.load5Points + vm.load15Points
-        return clampDate(date, in: all)
     }
 
     /// 负载列：上方标签、下方数值（不加粗）
@@ -605,7 +473,15 @@ struct MonitorView: View {
                     if vm.cpuPoints.isEmpty {
                         chartPlaceholder()
                     } else {
-                        singleSeriesChart(points: vm.cpuPoints, color: .blue, title: "CPU", selected: $selectedCPUDate, yMax: vm.cpuAxisMax)
+                        MonitorHistoryChart(
+                            points: vm.cpuPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: "CPU") },
+                            styles: ["CPU": .blue],
+                            unit: "%",
+                            fixedYDomain: 0...100,
+                            fixedDecimals: 0,
+                            fill: true,
+                            labelFormatter: timeLabelFormatter
+                        )
                     }
                 }
                     .padding(.top, 10)
@@ -613,68 +489,6 @@ struct MonitorView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .listRowSeparator(.hidden)
             .monitorRowInsets()
-            }
-        }
-    }
-
-    /// 通用单曲线百分比图表：面积+折线，拖动时图内浮层显示该时间点的值
-    /// （yMax 默认 100，CPU/内存传入自适应上限）
-    private func singleSeriesChart(points: [MonitorPoint], color: Color, title: String, selected: Binding<Date?>, yMax: Double = 100) -> some View {
-        Chart(points) { p in
-            AreaMark(
-                x: .value(L10n.t("时间"), p.date),
-                y: .value(title, p.value)
-            )
-            .foregroundStyle(color.opacity(0.12))
-            LineMark(
-                x: .value(L10n.t("时间"), p.date),
-                y: .value(title, p.value)
-            )
-            .foregroundStyle(color)
-            .lineStyle(StrokeStyle(lineWidth: 1.5))
-            // 数据点过少时折线画不出来，补圆点让单点也可见
-            if points.count <= 2 {
-                PointMark(
-                    x: .value(L10n.t("时间"), p.date),
-                    y: .value(title, p.value)
-                )
-                .foregroundStyle(color)
-                .symbolSize(30)
-            }
-            if let sel = selected.wrappedValue {
-                RuleMark(x: .value(L10n.t("选中"), sel))
-                    .foregroundStyle(.secondary.opacity(0.5))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            }
-        }
-        .chartYScale(domain: 0...max(yMax, 1))
-        .chartYAxis { AxisMarks(position: .leading) }
-        .frame(height: 160)
-        .chartOverlay { proxy in
-            GeometryReader { geo in
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { gesture in
-                                guard let plotAnchor = proxy.plotFrame else { return }
-                                let plotFrame = geo[plotAnchor]
-                                let x = gesture.location.x - plotFrame.minX
-                                guard x >= 0, x <= plotFrame.width,
-                                      let date: Date = proxy.value(atX: x) else { return }
-                                selected.wrappedValue = clampDate(date, in: points)
-                            }
-                            .onEnded { _ in selected.wrappedValue = nil }
-                    )
-
-                if let sel = selected.wrappedValue {
-                    let value = nearestValue(to: sel, in: points)
-                    let x = proxy.position(forX: sel) ?? 0
-                    let flip = x + 128 > geo.size.width
-                    loadTooltip([(title, value.map { String(format: "%.1f%%", $0) } ?? "—", color)])
-                        .offset(x: flip ? x - 128 : x + 12, y: 10)
-                }
             }
         }
     }
@@ -765,7 +579,15 @@ struct MonitorView: View {
                     if vm.memPoints.isEmpty {
                         chartPlaceholder()
                     } else {
-                        singleSeriesChart(points: vm.memPoints, color: .purple, title: L10n.t("内存"), selected: $selectedMemDate, yMax: vm.memoryAxisMax)
+                        MonitorHistoryChart(
+                            points: vm.memPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("内存")) },
+                            styles: [L10n.t("内存"): .purple],
+                            unit: "%",
+                            fixedYDomain: 0...100,
+                            fixedDecimals: 0,
+                            fill: true,
+                            labelFormatter: timeLabelFormatter
+                        )
                     }
                 }
                     .padding(.top, 10)
@@ -799,11 +621,11 @@ struct MonitorView: View {
                 if ioSeriesPoints.isEmpty {
                     chartPlaceholder(hint: L10n.t("若刚开启监控，磁盘 I/O 与网络数据约 5 分钟后开始记录"))
                 } else {
-                    dualSeriesChart(
+                    MonitorHistoryChart(
                         points: ioSeriesPoints,
-                        unit: "KB",
                         styles: [L10n.t("读取"): .blue, L10n.t("写入"): .orange],
-                        selected: $selectedIODate
+                        unit: "KB",
+                        labelFormatter: timeLabelFormatter
                     )
                 }
             }
@@ -831,11 +653,11 @@ struct MonitorView: View {
                 if networkSeriesPoints.isEmpty {
                     chartPlaceholder(hint: L10n.t("若刚开启监控，磁盘 I/O 与网络数据约 5 分钟后开始记录"))
                 } else {
-                    dualSeriesChart(
+                    MonitorHistoryChart(
                         points: networkSeriesPoints,
-                        unit: "KB",
                         styles: [L10n.t("上行"): .green, L10n.t("下行"): .purple],
-                        selected: $selectedNetDate
+                        unit: "KB",
+                        labelFormatter: timeLabelFormatter
                     )
                 }
             }
@@ -858,114 +680,6 @@ struct MonitorView: View {
             + vm.netDownPoints.map { LoadSeriesPoint(date: $0.date, value: $0.value, kind: L10n.t("下行")) }
     }
 
-    /// 双曲线图表：Y 轴刻度自带单位（如 30KB/20KB/10KB/0KB），
-    /// 拖动时图内竖排浮层（按值降序，颜色与曲线一致）
-    private func dualSeriesChart(
-        points: [LoadSeriesPoint],
-        unit: String,
-        styles: KeyValuePairs<String, Color>,
-        selected: Binding<Date?>
-    ) -> some View {
-        // 各系列点数（数据点过少时折线画不出来，补圆点让单点也可见）
-        let seriesCounts = Dictionary(grouping: points, by: \.kind).mapValues(\.count)
-        return Chart(points) { p in
-            LineMark(
-                x: .value(L10n.t("时间"), p.date),
-                y: .value(L10n.t("速率"), p.value)
-            )
-            .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
-            if (seriesCounts[p.kind] ?? 0) <= 2 {
-                PointMark(
-                    x: .value(L10n.t("时间"), p.date),
-                    y: .value(L10n.t("速率"), p.value)
-                )
-                .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
-                .symbolSize(30)
-            }
-            if let sel = selected.wrappedValue {
-                RuleMark(x: .value(L10n.t("选中"), sel))
-                    .foregroundStyle(.secondary.opacity(0.5))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            }
-        }
-        .chartForegroundStyleScale(styles)
-        .chartLegend(.hidden)
-        .chartYAxis {
-            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
-                AxisGridLine()
-                AxisValueLabel {
-                    if let v = value.as(Double.self) {
-                        Text(axisText(v, unit: unit))
-                    }
-                }
-            }
-        }
-        .frame(height: 160)
-        .chartOverlay { proxy in
-            GeometryReader { geo in
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { gesture in
-                                guard let plotAnchor = proxy.plotFrame else { return }
-                                let plotFrame = geo[plotAnchor]
-                                let x = gesture.location.x - plotFrame.minX
-                                guard x >= 0, x <= plotFrame.width,
-                                      let date: Date = proxy.value(atX: x) else { return }
-                                let monitorPoints = points.map { MonitorPoint(date: $0.date, value: $0.value) }
-                                selected.wrappedValue = clampDate(date, in: monitorPoints)
-                            }
-                            .onEnded { _ in selected.wrappedValue = nil }
-                    )
-
-                if let sel = selected.wrappedValue {
-                    let entries = sortedSeriesEntries(at: sel, in: points, styles: styles)
-                    let x = proxy.position(forX: sel) ?? 0
-                    let flip = x + 128 > geo.size.width
-                    loadTooltip(entries)
-                        .offset(x: flip ? x - 128 : x + 12, y: 10)
-                }
-            }
-        }
-    }
-
-    /// Y 轴刻度文本：整数直接拼单位（30KB），小数保留一位（0.5KB）
-    private func axisText(_ value: Double, unit: String) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return "\(Int(value))\(unit)"
-        }
-        return String(format: "%.1f%@", value, unit)
-    }
-
-    /// 选中时间的各系列数值（按值降序，返回已格式化文本）
-    private func sortedSeriesEntries(
-        at date: Date,
-        in points: [LoadSeriesPoint],
-        styles: KeyValuePairs<String, Color>
-    ) -> [(title: String, text: String, color: Color)] {
-        var raw: [(title: String, text: String, color: Color, value: Double)] = []
-        for (kind, color) in styles {
-            let seriesPoints = points.filter { $0.kind == kind }
-                .map { MonitorPoint(date: $0.date, value: $0.value) }
-            let value = nearestValue(to: date, in: seriesPoints) ?? 0
-            raw.append((kind, String(format: "%.2f", value), color, value))
-        }
-        return raw.sorted { $0.3 > $1.3 }.map { ($0.title, $0.text, $0.color) }
-    }
-
-    // MARK: 图表组件
-
-    private func loadLabel(_ title: String, _ value: Double?) -> some View {
-        HStack(spacing: 4) {
-            Text(title)
-            Text(value.map { String(format: "%.2f", $0) } ?? "—")
-                .monospacedDigit()
-                .foregroundStyle(.primary)
-        }
-    }
-
     private func formatBytes(_ bytes: Int64) -> String {
         let units = ["B", "KB", "MB", "GB"]
         var size = Double(bytes)
@@ -975,5 +689,480 @@ struct MonitorView: View {
             idx += 1
         }
         return String(format: "%.1f %@", size, units[idx])
+    }
+}
+
+// MARK: - 历史监控图表（采样位索引域 + 固定 12 段网格外观，与容器监控同构）
+
+/// 历史曲线图表：
+/// - X 为采样位索引域（0...N-1，全部系列并集去重升序）：点距均等，
+///   与容器监控同构——监控记录存在时间缺口时点距也不会被拉开；
+///   叠加固定 12 段网格外观——中间 10 条竖向虚线、时间标签 5 个（段位 0/3/6/9/11），
+///   均映射到实际采样位（虚线/标签/圆点严格落在数据点上，偏差不超过半个点距）；
+/// - Y 轴：fixedYDomain（负载 0...1 起步超 1 上扩、CPU/内存 0...100）→ 跨度 10 等分共 11 条等距横线；
+///   nil → 动态（峰值×1.15 紧凑头寸 → 等距对齐，恰好 6 值 6 线；恒 0 时 3 个刻度）；
+/// - 点按/拖动：跟手虚线逐采样位步进吸附、各系列同色圆点，
+///   气泡悬于最高圆点上方（值过固定值域 90% 或上方放不下时改放圆点侧面）；
+/// - fill：单系列（CPU/内存）线下面积填充；双系列不填充
+struct MonitorHistoryChart: View {
+    /// 画竖向虚线的段位（10 条；两端边缘段位不画）
+    private static let gridSegments = Array(1...10)
+    /// 时间标签的段位（5 个，相邻隔 2 条虚线；首尾为窗口两端）
+    private static let labelSegments = [0, 3, 6, 9, 11]
+
+    let points: [LoadSeriesPoint]
+    let styles: KeyValuePairs<String, Color>
+    let unit: String
+    /// 固定 Y 值域（负载 0...1 起步超 1 上扩、CPU/内存 0...100；nil = 动态）
+    var fixedYDomain: ClosedRange<Double>? = nil
+    /// 固定值域的刻度小数位（负载 2 → 0.15；百分比 0 → 30%）
+    var fixedDecimals: Int = 0
+    /// 线条至底部的颜色填充（单系列面积）
+    var fill: Bool = false
+    var height: CGFloat = 160
+    /// 时间标签格式（随时间范围：小时级 HH:mm、7 天 MM-dd）
+    var labelFormatter: DateFormatter
+
+    /// 选中采样位（nil = 未选中；再次点击同一位取消）
+    @State private var selectedSlot: Int?
+    /// 本次手势开始前已选中的采样位（松手时判断「点击已选位 → 取消」）
+    @State private var slotAtGestureStart: Int?
+    /// 绘图区（相对图表整体 frame），自绘时间轴/气泡据此对齐
+    @State private var plotRect: CGRect = .zero
+    /// 气泡实际尺寸（position 按中心定位，计算与最高圆点的间距用）
+    @State private var bubbleSize: CGSize = .zero
+
+    // MARK: 数据整形（采样位索引域）
+
+    /// 升序去重时间轴（全部系列并集），即 x 采样位序列：dates[i] 位于 x = i
+    private var dates: [Date] {
+        var seen = Set<Date>()
+        return points.compactMap { seen.insert($0.date).inserted ? $0.date : nil }.sorted()
+    }
+
+    private var count: Int { dates.count }
+
+    /// x 值域右端（末位采样位索引；count ≥ 2 由 body 占位保证）
+    private var xUpper: Double { Double(max(count - 1, 1)) }
+
+    /// 段位（0...11）→ 采样位索引：12 段均分到实际点数并四舍五入，
+    /// 使虚线/标签严格落在数据点上（偏差不超过半个点距）
+    private func slotIndex(_ seg: Int) -> Int {
+        let last = max(count - 1, 0)
+        return min(max(Int((Double(seg) * Double(last) / 11).rounded()), 0), last)
+    }
+
+    /// 虚线采样位（段位 1...10 映射去重——点数少时段位可能重合到同一位）
+    private var gridIndices: [Int] {
+        var seen = Set<Int>()
+        var result: [Int] = []
+        for seg in Self.gridSegments {
+            let idx = slotIndex(seg)
+            if seen.insert(idx).inserted { result.append(idx) }
+        }
+        return result
+    }
+
+    /// 时间标签采样位（段位 0/3/6/9/11 映射去重）
+    private var labelIndices: [Int] {
+        var seen = Set<Int>()
+        var result: [Int] = []
+        for seg in Self.labelSegments {
+            let idx = slotIndex(seg)
+            if seen.insert(idx).inserted { result.append(idx) }
+        }
+        return result
+    }
+
+    /// 日期 → 采样位索引
+    private var dateIndex: [Date: Int] {
+        Dictionary(dates.enumerated().map { ($1, $0) }, uniquingKeysWith: { a, _ in a })
+    }
+
+    /// 按系列名拆分的样本
+    private var seriesList: [(kind: String, points: [MonitorPoint])] {
+        styles.map { kind, _ in
+            (kind, points.filter { $0.kind == kind }.map { MonitorPoint(date: $0.date, value: $0.value) })
+        }
+    }
+
+    /// 摊平后的全部数据点（单 ForEach 绘制，系列靠 foregroundStyle(by:) 区分，
+    /// 避免分系列双 ForEach 同日期 id 冲突导致曲线粘连）
+    private struct FlatPoint: Identifiable {
+        let kind: String
+        let index: Int
+        let value: Double
+        var id: String { "\(kind)#\(index)" }
+    }
+
+    private var flatPoints: [FlatPoint] {
+        let indexByDate = dateIndex
+        return seriesList.flatMap { series in
+            series.points.compactMap { p in
+                guard let idx = indexByDate[p.date] else { return nil }
+                return FlatPoint(kind: series.kind, index: idx, value: p.value)
+            }
+        }
+    }
+
+    /// 各系列当前点数（≤2 时补圆点）
+    private var seriesCounts: [String: Int] {
+        Dictionary(grouping: flatPoints, by: \.kind).mapValues(\.count)
+    }
+
+    private var values: [Double] { flatPoints.map(\.value) }
+
+    private var isAllZero: Bool {
+        !values.isEmpty && values.allSatisfy { $0 == 0 }
+    }
+
+    /// 系列名对应的曲线颜色
+    private func color(for kind: String) -> Color {
+        for (k, c) in styles where k == kind { return c }
+        return .blue
+    }
+
+    // MARK: Y 值域与刻度
+
+    /// Y 值域：固定域直接用；动态域 = 基准（峰值×1.15 / 高位窄带收紧）+ 等距对齐
+    ///（跨度 = 5 × 步长，恰好 6 值 6 线；恒 0 时 2 × 步长）
+    private var yDomain: ClosedRange<Double> {
+        if let fixed = fixedYDomain { return fixed }
+        let base = yBaseDomain
+        let step = yTickStep
+        guard base.upperBound > base.lowerBound, step > 0 else { return base }
+        let span = Double(isAllZero ? 2 : 5) * step
+        return base.lowerBound...(base.lowerBound + span)
+    }
+
+    /// 基准 Y 值域（未做等距对齐）：峰值 × 1.15 紧凑头寸（顶部不预留气泡位，
+    /// 放不下自动转圆点侧面）；数据带高位时收紧下限贴数据带
+    private var yBaseDomain: ClosedRange<Double> {
+        let peak = values.max() ?? 0
+        let low = values.min() ?? 0
+        if peak > 0, low > peak * 0.5 {
+            let upper = peak * 1.15
+            let lower = min(MonitorAxisMath.niceFloor(low * 0.9), upper * 0.9)
+            return lower...upper
+        }
+        return 0...max(peak * 1.15, 1)
+    }
+
+    /// 刻度步长：固定域 = 跨度/10（11 条横线）；动态域 = 跨度/5 向上归整 ladder
+    private var yTickStep: Double {
+        if let fixed = fixedYDomain {
+            return (fixed.upperBound - fixed.lowerBound) / 10
+        }
+        let span = yBaseDomain.upperBound - yBaseDomain.lowerBound
+        guard span > 0 else { return 1 }
+        let raw = span / (isAllZero ? 2 : 5)
+        let magnitude = pow(10, floor(log10(raw)))
+        let normalized = raw / magnitude
+        let ladder = isAllZero ? [1.0, 2, 2.5, 5, 10] : [1.0, 2, 2.5, 4, 5, 10]
+        let nice = ladder.first { $0 >= normalized - 0.0001 } ?? 10
+        return nice * magnitude
+    }
+
+    /// 刻度值：固定域 11 个（0.0~1.0 / 0%~100%）；动态域下限起步按步进（值域已等距对齐）
+    private var yTickValues: [Double] {
+        if let fixed = fixedYDomain {
+            let step = (fixed.upperBound - fixed.lowerBound) / 10
+            return (0...10).map { fixed.lowerBound + Double($0) * step }
+        }
+        let lower = yDomain.lowerBound
+        let upper = yDomain.upperBound
+        let step = yTickStep
+        guard upper > lower, step > 0 else { return [lower] }
+        let n = max(1, Int(((upper - lower) / step).rounded()))
+        return (0...n).map { lower + Double($0) * step }
+    }
+
+    /// 数值小数位：固定域用 fixedDecimals；动态域由刻度步长决定
+    private var valueDecimals: Int {
+        if fixedYDomain != nil { return fixedDecimals }
+        let step = yTickStep
+        if step.truncatingRemainder(dividingBy: 1) == 0 { return 0 }
+        if (step * 10).truncatingRemainder(dividingBy: 1) == 0 { return 1 }
+        return 2
+    }
+
+    // MARK: 视图
+
+    var body: some View {
+        if dates.count < 2 {
+            Text(L10n.t("暂无监控数据"))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
+                .frame(height: height)
+        } else {
+            VStack(spacing: 2) {
+                chart
+                timeAxis
+            }
+            // 右侧留出边距，绘图区不顶到行右缘（同容器监控）
+            .padding(.trailing, 10)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilitySummary)
+        }
+    }
+
+    private var chart: some View {
+        Chart {
+            // 固定网格虚线（画在最底层）：段位映射到实际采样位，虚线压在数据点上
+            ForEach(gridIndices, id: \.self) { idx in
+                RuleMark(x: .value(L10n.t("网格"), Double(idx)))
+                    .foregroundStyle(Color.secondary.opacity(0.3))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            }
+
+            fillMarks
+            lineMarks
+            selectionMarks
+        }
+        .chartForegroundStyleScale(styles)
+        .chartLegend(.hidden)
+        .chartXScale(domain: 0...xUpper)
+        .chartYScale(domain: yDomain)
+        // 时间标签自绘（见 timeAxis）：系统轴无法保证「正对段位居中」
+        .chartXAxis(.hidden)
+        .chartYAxis {
+            AxisMarks(position: .leading, values: yTickValues) { value in
+                AxisGridLine()
+                AxisValueLabel {
+                    if let v = value.as(Double.self) {
+                        Text(String(format: "%.\(valueDecimals)f%@", v, unit))
+                            .font(.caption2)
+                            .monospacedDigit()
+                            .fixedSize()
+                            // 与绘图区左缘拉开距离（同容器监控）
+                            .padding(.trailing, 12)
+                    }
+                }
+            }
+        }
+        .frame(height: height)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                let plotFrame = proxy.plotFrame.map { geo[$0] } ?? .zero
+
+                // 手势层：触摸 x → 采样位（虚线跟手，逐位步进、不跳位）
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { g in
+                                guard plotFrame.width > 0 else { return }
+                                if slotAtGestureStart == nil {
+                                    slotAtGestureStart = selectedSlot
+                                }
+                                let x = g.location.x - plotFrame.minX
+                                guard x >= 0, x <= plotFrame.width else { return }
+                                let fraction = Double(x / plotFrame.width)
+                                selectedSlot = min(max(Int((fraction * xUpper).rounded()), 0), count - 1)
+                            }
+                            .onEnded { _ in
+                                // 再次点击已选中的位取消；拖到别的位松手则保持新选中
+                                if selectedSlot != nil, selectedSlot == slotAtGestureStart {
+                                    selectedSlot = nil
+                                }
+                                slotAtGestureStart = nil
+                            }
+                    )
+
+                // 布局期间同步绘图区位置，供自绘时间轴/气泡对齐数据区
+                Color.clear
+                    .onAppear { plotRect = plotFrame }
+                    .onChange(of: plotFrame) { _, new in plotRect = new }
+
+                // 数值气泡：默认悬于最高圆点正上方（水平居中于选中位、贴边收回），
+                // 值过固定值域 90% 或上方放不下时改放圆点左/右侧
+                if let sel = selectedSlot {
+                    bubbleView(sel, plotFrame: plotFrame, geoSize: geo.size)
+                }
+            }
+        }
+    }
+
+    // MARK: 图层
+
+    /// 线条至底部的颜色填充（仅单系列：CPU/内存线下面积；双系列不填充）。
+    /// 用 foregroundStyle(by: 类型)（与折线共用色彩 scale）保证面积与折线同色
+    @ChartContentBuilder
+    private var fillMarks: some ChartContent {
+        if fill, seriesList.count == 1, let only = seriesList.first {
+            let indexByDate = dateIndex
+            ForEach(only.points.compactMap { p -> (idx: Int, value: Double)? in
+                guard let idx = indexByDate[p.date] else { return nil }
+                return (idx, p.value)
+            }, id: \.idx) { item in
+                AreaMark(x: .value(L10n.t("采样位"), Double(item.idx)),
+                         yStart: .value(L10n.t("值"), 0),
+                         yEnd: .value(L10n.t("值"), item.value))
+                    .foregroundStyle(by: .value(L10n.t("类型"), only.kind))
+                    .opacity(0.12)
+            }
+        }
+    }
+
+    /// 全部系列摊平进一个 ForEach（与容器监控同构）
+    @ChartContentBuilder
+    private var lineMarks: some ChartContent {
+        ForEach(flatPoints) { p in
+            LineMark(x: .value(L10n.t("采样位"), Double(p.index)), y: .value(L10n.t("值"), p.value))
+                .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
+                // 直线插值：监控曲线平滑过冲会制造不存在的峰谷
+                .interpolationMethod(.linear)
+                .lineStyle(StrokeStyle(lineWidth: 1.5))
+            // 系列点数 ≤2 时折线画不出趋势，补圆点保证可见
+            if (seriesCounts[p.kind] ?? 0) <= 2 {
+                PointMark(x: .value(L10n.t("采样位"), Double(p.index)), y: .value(L10n.t("值"), p.value))
+                    .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
+                    .symbolSize(60)
+            }
+        }
+    }
+
+    /// 选中采样位：深色虚线跟手 + 各系列同色圆点
+    @ChartContentBuilder
+    private var selectionMarks: some ChartContent {
+        if let sel = selectedSlot {
+            RuleMark(x: .value(L10n.t("选中"), Double(sel)))
+                .foregroundStyle(Color.primary.opacity(0.45))
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            ForEach(seriesList, id: \.kind) { series in
+                if let v = value(at: sel, in: series) {
+                    PointMark(x: .value(L10n.t("选中"), Double(sel)), y: .value(L10n.t("值"), v))
+                        .foregroundStyle(color(for: series.kind))
+                        .symbolSize(60)
+                }
+            }
+        }
+    }
+
+    // MARK: 自绘时间轴
+
+    /// 图表下方的时间标签行：正对各自采样位居中，显示该采样位的实际时间；
+    /// 首尾允许悬出行边界
+    private var timeAxis: some View {
+        GeometryReader { geo in
+            ForEach(labelIndices, id: \.self) { idx in
+                Text(labelFormatter.string(from: dates[idx]))
+                    .font(.system(size: 9))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .position(x: slotX(idx), y: geo.size.height / 2)
+            }
+        }
+        .frame(height: 22)
+    }
+
+    /// 采样位 → 标签水平位置（正对采样位精确居中，半宽悬出也不拉回）
+    private func slotX(_ slot: Int) -> CGFloat {
+        plotRect.minX + plotRect.width * (Double(slot) / xUpper)
+    }
+
+    // MARK: 交互与气泡
+
+    /// 指定系列在采样位上的数值（该系列可能缺这个时刻的样本 → 就近取）
+    private func value(at slot: Int, in series: (kind: String, points: [MonitorPoint])) -> Double? {
+        guard dates.indices.contains(slot) else { return nil }
+        let date = dates[slot]
+        return series.points.min {
+            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+        }?.value
+    }
+
+    /// 气泡定位与内容：每系列一行「同色圆点 + 系列名 数值」按值降序，
+    /// 悬于最高圆点正上方（贴边收回）；值过固定值域 90% 或上方放不下时
+    /// 改放圆点侧面（左半边放右侧、右半边放左侧，垂直与圆点对齐）
+    @ViewBuilder
+    private func bubbleView(_ sel: Int, plotFrame: CGRect, geoSize: CGSize) -> some View {
+        let entries = entries(at: sel)
+        if plotFrame.width > 0, let topValue = entries.map(\.value).max() {
+            let xCenter = plotFrame.minX + plotFrame.width * (Double(sel) / xUpper)
+            let span = max(yDomain.upperBound - yDomain.lowerBound, .ulpOfOne)
+            let yTop = plotFrame.minY + plotFrame.height * CGFloat((yDomain.upperBound - topValue) / span)
+            let pos = bubblePosition(topValue: topValue, xCenter: xCenter, yTop: yTop,
+                                     halfW: bubbleSize.width / 2, halfH: bubbleSize.height / 2,
+                                     geoWidth: geoSize.width, geoHeight: geoSize.height)
+            bubble(entries)
+                .background(bubbleTracker)
+                .position(x: pos.x, y: pos.y)
+        }
+    }
+
+    private func bubblePosition(topValue: Double, xCenter: CGFloat, yTop: CGFloat,
+                                halfW: CGFloat, halfH: CGFloat,
+                                geoWidth: CGFloat, geoHeight: CGFloat) -> (x: CGFloat, y: CGFloat) {
+        let nearCap = fixedYDomain.map {
+            topValue > $0.lowerBound + ($0.upperBound - $0.lowerBound) * 0.9
+        } ?? false
+        let noRoomAbove = yTop < 12 + 2 * halfH
+        if nearCap || noRoomAbove {
+            // 侧面：圆点在左半边 → 气泡放右侧，右半边 → 放左侧；垂直与圆点对齐并收回边界内
+            let toRight = xCenter < geoWidth / 2
+            let x = toRight
+                ? min(xCenter + 12 + halfW, geoWidth - halfW - 4)
+                : max(xCenter - 12 - halfW, halfW + 4)
+            let y = min(max(yTop, halfH + 2), geoHeight - halfH - 2)
+            return (x, y)
+        }
+        let x = min(max(xCenter, halfW + 4), geoWidth - halfW - 4)
+        let y = max(yTop - 12 - halfH, halfH + 2)
+        return (x, y)
+    }
+
+    /// 选中采样位各系列数值（按值降序）
+    private func entries(at slot: Int) -> [(title: String, text: String, color: Color, value: Double)] {
+        var raw: [(String, Double, Color)] = []
+        for series in seriesList {
+            if let v = value(at: slot, in: series) {
+                raw.append((series.kind, v, color(for: series.kind)))
+            }
+        }
+        return raw.sorted { $0.1 > $1.1 }
+            .map { ($0.0, String(format: "%.\(valueDecimals)f%@", $0.1, unit), $0.2, $0.1) }
+    }
+
+    /// 数值气泡：每系列一行「同色圆点 + 系列名 数值」
+    private func bubble(_ entries: [(title: String, text: String, color: Color, value: Double)]) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ForEach(entries, id: \.title) { entry in
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(entry.color)
+                        .frame(width: 6, height: 6)
+                    Text("\(entry.title) \(entry.text)")
+                        .monospacedDigit()
+                        .lineLimit(1)
+                }
+            }
+        }
+        .font(.caption2)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 6)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
+    }
+
+    /// 测量气泡实际尺寸（position 按中心定位，计算与最高圆点的间距用）
+    private var bubbleTracker: some View {
+        GeometryReader { g in
+            Color.clear
+                .onAppear { bubbleSize = g.size }
+                .onChange(of: g.size) { _, new in bubbleSize = new }
+        }
+    }
+
+    /// 无障碍摘要：折线内容 VoiceOver 无法读取，以各系列最新采样值代替
+    private var accessibilitySummary: String {
+        let parts = seriesList.compactMap { series -> String? in
+            guard let latest = series.points.last else { return nil }
+            return L10n.f("%@最新%@", series.kind, String(format: "%.\(valueDecimals)f%@", latest.value, unit))
+        }
+        return parts.isEmpty ? L10n.t("监控折线图，暂无数据") : L10n.t("监控折线图：") + parts.joined(separator: "，")
     }
 }

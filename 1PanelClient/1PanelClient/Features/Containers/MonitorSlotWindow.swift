@@ -9,14 +9,12 @@ import Foundation
 import CoreGraphics
 
 /// 采样时刻去重升序后取最近 slotCount 个，依次占据 0...slotCount-1 号采样位；
-/// X 值域两端各留 edgePad 个采样位边距（首尾时间标签居中可完整显示、两端数据点不贴边）。
+/// X 值域即 0...slotCount-1（首尾数据点贴绘图区两缘，时间标签允许悬出行边界）。
 struct MonitorSlotWindow {
     /// 窗口采样位总数（首尾贴住绘图区边缘）
     static let slotCount = 12
-    /// 绘图区两端的留白（采样位单位）
-    static let edgePad = 0.5
-    /// X 值域总跨度（slotCount-1 个采样间隔 + 两端留白）
-    static let xSpan = Double(slotCount - 1) + 2 * edgePad
+    /// X 值域总跨度（slotCount-1 个采样间隔）
+    static let xSpan = Double(slotCount - 1)
 
     /// 窗口内的采样时刻（升序，最多 slotCount 个）
     let dates: [Date]
@@ -38,20 +36,43 @@ struct MonitorSlotWindow {
         points.filter { slotByDate[$0.date] != nil }
     }
 
-    /// X 值域（含两端留白）
+    /// X 值域（首尾采样位贴绘图区两缘）
     static var xDomain: ClosedRange<Double> {
-        -edgePad...Double(slotCount - 1) + edgePad
+        0...Double(slotCount - 1)
     }
 
-    /// 采样位（0...slotCount-1）→ 绘图区水平比例（两端各留 edgePad 个采样位）
+    /// 采样位（0...slotCount-1）→ 绘图区水平比例
     static func xFraction(_ slot: Double) -> CGFloat {
-        CGFloat((slot + edgePad) / xSpan)
+        CGFloat(slot / xSpan)
     }
 
     /// 触摸 x（0...plotWidth，相对绘图区）→ 就近吸附的采样位（限制在已有样本范围内）
     func slot(atX x: CGFloat, plotWidth: CGFloat) -> Int? {
-        let v = Double(x / plotWidth) * Self.xSpan - Self.edgePad
+        let v = Double(x / plotWidth) * Self.xSpan
         let clamped = min(max(Int(v.rounded()), 0), dates.count - 1)
         return clamped >= 0 ? clamped : nil
+    }
+}
+
+/// 监控图 y 轴值域/刻度的纯数学（整洁上/下限），自图表视图抽出便于复用与单测
+enum MonitorAxisMath {
+    private static let ladder = [1.0, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
+
+    /// 整洁上限：向上取 ladder × 10^k 中不小于 x 的最小值
+    static func niceCeiling(_ peak: Double) -> Double {
+        guard peak > 0 else { return 1 }
+        let magnitude = pow(10, floor(log10(peak)))
+        let normalized = peak / magnitude
+        let nice = ladder.first { $0 >= normalized - 0.0001 } ?? 10
+        return nice * magnitude
+    }
+
+    /// 整洁下限：向下取 ladder × 10^k 中不超过 x 的最大值
+    static func niceFloor(_ x: Double) -> Double {
+        guard x > 0 else { return 0 }
+        let magnitude = pow(10, floor(log10(x)))
+        let normalized = x / magnitude
+        let nice = ladder.last { $0 <= normalized + 0.0001 } ?? 1
+        return nice * magnitude
     }
 }

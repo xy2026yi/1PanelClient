@@ -12,8 +12,19 @@ struct _PanelClientApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // DEBUG 直达图表示例页：带启动参数 -chartDemo 拉起（Release 无此分支）
+            #if DEBUG
+            if CommandLine.arguments.contains("-chartDemo") {
+                DebugChartDemoView()
+                    .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
+            } else {
+                ContentView()
+                    .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
+            }
+            #else
             ContentView()
                 .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
+            #endif
         }
     }
 }
