@@ -49,11 +49,11 @@ struct L10nTests {
     }
 
     @Test("setLanguage 持久化并发通知")
-    func setLanguagePersistsAndNotifies() async throws {
+    func setLanguagePersistsAndNotifies() async {
         let original = L10n.shared.language
         defer { L10n.shared.setLanguage(original) }
 
-        try await confirmation("languageDidChangeNotification") { notified in
+        await confirmation("languageDidChangeNotification") { notified in
             let obs = NotificationCenter.default.addObserver(
                 forName: L10n.languageDidChangeNotification, object: nil, queue: nil
             ) { _ in notified() }

@@ -699,17 +699,15 @@ struct MonitorView: View {
 ///   与容器监控同构——监控记录存在时间缺口时点距也不会被拉开；
 ///   叠加固定 12 段网格外观——中间 10 条竖向虚线、时间标签 5 个（段位 0/3/6/9/11），
 ///   均映射到实际采样位（虚线/标签/圆点严格落在数据点上，偏差不超过半个点距）；
-/// - Y 轴：fixedYDomain（负载 0...1 起步超 1 上扩、CPU/内存 0...100）→ 跨度 10 等分共 11 条等距横线；
-///   nil → 动态（峰值×1.15 紧凑头寸 → 等距对齐，恰好 6 值 6 线；恒 0 时 3 个刻度）；
+/// - Y 轴形态由共享的 MonitorYAxis 计算：fixedYDomain（负载 0...1 起步超 1 上扩、
+///   CPU/内存 0...100）→ 跨度 10 等分共 11 条等距横线；nil → 动态（峰值×1.15 紧凑头寸
+///   → 等距对齐，恰好 6 值 6 线；恒 0 时 3 个刻度）；
 /// - 点按/拖动：跟手虚线逐采样位步进吸附、各系列同色圆点，
 ///   气泡悬于最高圆点上方（值过固定值域 90% 或上方放不下时改放圆点侧面）；
-/// - fill：单系列（CPU/内存）线下面积填充；双系列不填充
+/// - fill：单系列（CPU/内存）线下面积填充；双系列不填充；
+/// - 派生数据（时间轴/系列摊平/Y 轴形态）由 body 构建一次经 Model 逐层传递——
+///   拖动选中期间 body 每帧求值，避免计算属性在单帧内重复构建字典/数组
 struct MonitorHistoryChart: View {
-    /// 画竖向虚线的段位（10 条；两端边缘段位不画）
-    private static let gridSegments = Array(1...10)
-    /// 时间标签的段位（5 个，相邻隔 2 条虚线；首尾为窗口两端）
-    private static let labelSegments = [0, 3, 6, 9, 11]
-
     let points: [LoadSeriesPoint]
     let styles: KeyValuePairs<String, Color>
     let unit: String
@@ -732,61 +730,9 @@ struct MonitorHistoryChart: View {
     /// 气泡实际尺寸（position 按中心定位，计算与最高圆点的间距用）
     @State private var bubbleSize: CGSize = .zero
 
-    // MARK: 数据整形（采样位索引域）
+    // MARK: 渲染派生数据
 
-    /// 升序去重时间轴（全部系列并集），即 x 采样位序列：dates[i] 位于 x = i
-    private var dates: [Date] {
-        var seen = Set<Date>()
-        return points.compactMap { seen.insert($0.date).inserted ? $0.date : nil }.sorted()
-    }
-
-    private var count: Int { dates.count }
-
-    /// x 值域右端（末位采样位索引；count ≥ 2 由 body 占位保证）
-    private var xUpper: Double { Double(max(count - 1, 1)) }
-
-    /// 段位（0...11）→ 采样位索引：12 段均分到实际点数并四舍五入，
-    /// 使虚线/标签严格落在数据点上（偏差不超过半个点距）
-    private func slotIndex(_ seg: Int) -> Int {
-        let last = max(count - 1, 0)
-        return min(max(Int((Double(seg) * Double(last) / 11).rounded()), 0), last)
-    }
-
-    /// 虚线采样位（段位 1...10 映射去重——点数少时段位可能重合到同一位）
-    private var gridIndices: [Int] {
-        var seen = Set<Int>()
-        var result: [Int] = []
-        for seg in Self.gridSegments {
-            let idx = slotIndex(seg)
-            if seen.insert(idx).inserted { result.append(idx) }
-        }
-        return result
-    }
-
-    /// 时间标签采样位（段位 0/3/6/9/11 映射去重）
-    private var labelIndices: [Int] {
-        var seen = Set<Int>()
-        var result: [Int] = []
-        for seg in Self.labelSegments {
-            let idx = slotIndex(seg)
-            if seen.insert(idx).inserted { result.append(idx) }
-        }
-        return result
-    }
-
-    /// 日期 → 采样位索引
-    private var dateIndex: [Date: Int] {
-        Dictionary(dates.enumerated().map { ($1, $0) }, uniquingKeysWith: { a, _ in a })
-    }
-
-    /// 按系列名拆分的样本
-    private var seriesList: [(kind: String, points: [MonitorPoint])] {
-        styles.map { kind, _ in
-            (kind, points.filter { $0.kind == kind }.map { MonitorPoint(date: $0.date, value: $0.value) })
-        }
-    }
-
-    /// 摊平后的全部数据点（单 ForEach 绘制，系列靠 foregroundStyle(by:) 区分，
+    /// 摊平后的数据点（单 ForEach 绘制，系列靠 foregroundStyle(by:) 区分，
     /// 避免分系列双 ForEach 同日期 id 冲突导致曲线粘连）
     private struct FlatPoint: Identifiable {
         let kind: String
@@ -795,25 +741,96 @@ struct MonitorHistoryChart: View {
         var id: String { "\(kind)#\(index)" }
     }
 
-    private var flatPoints: [FlatPoint] {
-        let indexByDate = dateIndex
-        return seriesList.flatMap { series in
-            series.points.compactMap { p in
-                guard let idx = indexByDate[p.date] else { return nil }
-                return FlatPoint(kind: series.kind, index: idx, value: p.value)
+    /// 单次渲染的派生数据：body 求值时构建一次、逐层传递
+    ///（历史数据最多约 480 点/系列 × 3 系列，拖动期间每帧求值不重复构建）
+    private struct Model {
+        /// 画竖向虚线的段位（10 条；两端边缘段位不画）
+        private static let gridSegments = Array(1...10)
+        /// 时间标签的段位（5 个，相邻隔 2 条虚线；首尾为窗口两端）
+        private static let labelSegments = [0, 3, 6, 9, 11]
+
+        /// 升序去重时间轴（全部系列并集），即 x 采样位序列：dates[i] 位于 x = i
+        let dates: [Date]
+        /// 日期 → 采样位索引
+        let dateIndex: [Date: Int]
+        /// 按系列名拆分的样本
+        let series: [(kind: String, points: [MonitorPoint])]
+        /// 摊平后的全部数据点
+        let flat: [FlatPoint]
+        /// 各系列当前点数（≤2 时补圆点）
+        let counts: [String: Int]
+        /// 虚线采样位（段位 1...10 映射去重——点数少时段位可能重合到同一位）
+        let grid: [Int]
+        /// 时间标签采样位（段位 0/3/6/9/11 映射去重）
+        let labels: [Int]
+        /// Y 轴形态（固定/动态，见 MonitorYAxis）
+        let axis: MonitorYAxis
+
+        init(points: [LoadSeriesPoint], styles: KeyValuePairs<String, Color>,
+             fixedYDomain: ClosedRange<Double>?, fixedDecimals: Int) {
+            // 全程用局部量构建（闭包内不能引用 self 的未初始化属性），最后统一赋值
+            var seen = Set<Date>()
+            let dates = points.compactMap { seen.insert($0.date).inserted ? $0.date : nil }.sorted()
+            let indexByDate = Dictionary(dates.enumerated().map { ($1, $0) }, uniquingKeysWith: { a, _ in a })
+            let series: [(kind: String, points: [MonitorPoint])] = styles.map { kind, _ in
+                (kind, points.filter { $0.kind == kind }.map { MonitorPoint(date: $0.date, value: $0.value) })
             }
+            let flat = series.flatMap { s in
+                s.points.compactMap { p in
+                    indexByDate[p.date].map { FlatPoint(kind: s.kind, index: $0, value: p.value) }
+                }
+            }
+
+            // 段位（0...11）→ 采样位索引：12 段均分到实际点数并四舍五入，
+            // 使虚线/标签严格落在数据点上（偏差不超过半个点距）
+            let last = max(dates.count - 1, 0)
+            func slotIndex(_ seg: Int) -> Int {
+                min(max(Int((Double(seg) * Double(last) / 11).rounded()), 0), last)
+            }
+            var gridSeen = Set<Int>()
+            let grid = Self.gridSegments.compactMap { seg in
+                let idx = slotIndex(seg)
+                return gridSeen.insert(idx).inserted ? idx : nil
+            }
+            var labelSeen = Set<Int>()
+            let labels = Self.labelSegments.compactMap { seg in
+                let idx = slotIndex(seg)
+                return labelSeen.insert(idx).inserted ? idx : nil
+            }
+
+            let values = flat.map(\.value)
+            let axis: MonitorYAxis
+            if let fixed = fixedYDomain {
+                axis = .fixed(fixed, decimals: fixedDecimals)
+            } else {
+                axis = .dynamic(
+                    peak: values.max() ?? 0,
+                    low: values.min() ?? 0,
+                    allZero: !values.isEmpty && values.allSatisfy { $0 == 0 }
+                )
+            }
+
+            self.dates = dates
+            self.dateIndex = indexByDate
+            self.series = series
+            self.flat = flat
+            self.counts = Dictionary(grouping: flat, by: \.kind).mapValues(\.count)
+            self.grid = grid
+            self.labels = labels
+            self.axis = axis
         }
-    }
 
-    /// 各系列当前点数（≤2 时补圆点）
-    private var seriesCounts: [String: Int] {
-        Dictionary(grouping: flatPoints, by: \.kind).mapValues(\.count)
-    }
+        /// x 值域右端（末位采样位索引；dates.count ≥ 2 由 body 占位保证）
+        var xUpper: Double { Double(max(dates.count - 1, 1)) }
 
-    private var values: [Double] { flatPoints.map(\.value) }
-
-    private var isAllZero: Bool {
-        !values.isEmpty && values.allSatisfy { $0 == 0 }
+        /// 指定系列在采样位上的数值（该系列可能缺这个时刻的样本 → 就近取）
+        func value(at slot: Int, in series: (kind: String, points: [MonitorPoint])) -> Double? {
+            guard dates.indices.contains(slot) else { return nil }
+            let date = dates[slot]
+            return series.points.min {
+                abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+            }?.value
+        }
     }
 
     /// 系列名对应的曲线颜色
@@ -822,74 +839,12 @@ struct MonitorHistoryChart: View {
         return .blue
     }
 
-    // MARK: Y 值域与刻度
-
-    /// Y 值域：固定域直接用；动态域 = 基准（峰值×1.15 / 高位窄带收紧）+ 等距对齐
-    ///（跨度 = 5 × 步长，恰好 6 值 6 线；恒 0 时 2 × 步长）
-    private var yDomain: ClosedRange<Double> {
-        if let fixed = fixedYDomain { return fixed }
-        let base = yBaseDomain
-        let step = yTickStep
-        guard base.upperBound > base.lowerBound, step > 0 else { return base }
-        let span = Double(isAllZero ? 2 : 5) * step
-        return base.lowerBound...(base.lowerBound + span)
-    }
-
-    /// 基准 Y 值域（未做等距对齐）：峰值 × 1.15 紧凑头寸（顶部不预留气泡位，
-    /// 放不下自动转圆点侧面）；数据带高位时收紧下限贴数据带
-    private var yBaseDomain: ClosedRange<Double> {
-        let peak = values.max() ?? 0
-        let low = values.min() ?? 0
-        if peak > 0, low > peak * 0.5 {
-            let upper = peak * 1.15
-            let lower = min(MonitorAxisMath.niceFloor(low * 0.9), upper * 0.9)
-            return lower...upper
-        }
-        return 0...max(peak * 1.15, 1)
-    }
-
-    /// 刻度步长：固定域 = 跨度/10（11 条横线）；动态域 = 跨度/5 向上归整 ladder
-    private var yTickStep: Double {
-        if let fixed = fixedYDomain {
-            return (fixed.upperBound - fixed.lowerBound) / 10
-        }
-        let span = yBaseDomain.upperBound - yBaseDomain.lowerBound
-        guard span > 0 else { return 1 }
-        let raw = span / (isAllZero ? 2 : 5)
-        let magnitude = pow(10, floor(log10(raw)))
-        let normalized = raw / magnitude
-        let ladder = isAllZero ? [1.0, 2, 2.5, 5, 10] : [1.0, 2, 2.5, 4, 5, 10]
-        let nice = ladder.first { $0 >= normalized - 0.0001 } ?? 10
-        return nice * magnitude
-    }
-
-    /// 刻度值：固定域 11 个（0.0~1.0 / 0%~100%）；动态域下限起步按步进（值域已等距对齐）
-    private var yTickValues: [Double] {
-        if let fixed = fixedYDomain {
-            let step = (fixed.upperBound - fixed.lowerBound) / 10
-            return (0...10).map { fixed.lowerBound + Double($0) * step }
-        }
-        let lower = yDomain.lowerBound
-        let upper = yDomain.upperBound
-        let step = yTickStep
-        guard upper > lower, step > 0 else { return [lower] }
-        let n = max(1, Int(((upper - lower) / step).rounded()))
-        return (0...n).map { lower + Double($0) * step }
-    }
-
-    /// 数值小数位：固定域用 fixedDecimals；动态域由刻度步长决定
-    private var valueDecimals: Int {
-        if fixedYDomain != nil { return fixedDecimals }
-        let step = yTickStep
-        if step.truncatingRemainder(dividingBy: 1) == 0 { return 0 }
-        if (step * 10).truncatingRemainder(dividingBy: 1) == 0 { return 1 }
-        return 2
-    }
-
     // MARK: 视图
 
     var body: some View {
-        if dates.count < 2 {
+        let m = Model(points: points, styles: styles,
+                      fixedYDomain: fixedYDomain, fixedDecimals: fixedDecimals)
+        if m.dates.count < 2 {
             Text(L10n.t("暂无监控数据"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -897,41 +852,41 @@ struct MonitorHistoryChart: View {
                 .frame(height: height)
         } else {
             VStack(spacing: 2) {
-                chart
-                timeAxis
+                chart(m)
+                timeAxis(m)
             }
             // 右侧留出边距，绘图区不顶到行右缘（同容器监控）
             .padding(.trailing, 10)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(accessibilitySummary)
+            .accessibilityLabel(accessibilitySummary(m))
         }
     }
 
-    private var chart: some View {
+    private func chart(_ m: Model) -> some View {
         Chart {
             // 固定网格虚线（画在最底层）：段位映射到实际采样位，虚线压在数据点上
-            ForEach(gridIndices, id: \.self) { idx in
+            ForEach(m.grid, id: \.self) { idx in
                 RuleMark(x: .value(L10n.t("网格"), Double(idx)))
                     .foregroundStyle(Color.secondary.opacity(0.3))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
             }
 
-            fillMarks
-            lineMarks
-            selectionMarks
+            fillMarks(m)
+            lineMarks(m)
+            selectionMarks(m)
         }
         .chartForegroundStyleScale(styles)
         .chartLegend(.hidden)
-        .chartXScale(domain: 0...xUpper)
-        .chartYScale(domain: yDomain)
+        .chartXScale(domain: 0...m.xUpper)
+        .chartYScale(domain: m.axis.domain)
         // 时间标签自绘（见 timeAxis）：系统轴无法保证「正对段位居中」
         .chartXAxis(.hidden)
         .chartYAxis {
-            AxisMarks(position: .leading, values: yTickValues) { value in
+            AxisMarks(position: .leading, values: m.axis.ticks) { value in
                 AxisGridLine()
                 AxisValueLabel {
                     if let v = value.as(Double.self) {
-                        Text(String(format: "%.\(valueDecimals)f%@", v, unit))
+                        Text(String(format: "%.\(m.axis.decimals)f%@", v, unit))
                             .font(.caption2)
                             .monospacedDigit()
                             .fixedSize()
@@ -960,7 +915,8 @@ struct MonitorHistoryChart: View {
                                 let x = g.location.x - plotFrame.minX
                                 guard x >= 0, x <= plotFrame.width else { return }
                                 let fraction = Double(x / plotFrame.width)
-                                selectedSlot = min(max(Int((fraction * xUpper).rounded()), 0), count - 1)
+                                selectedSlot = min(max(Int((fraction * m.xUpper).rounded()), 0),
+                                                   m.dates.count - 1)
                             }
                             .onEnded { _ in
                                 // 再次点击已选中的位取消；拖到别的位松手则保持新选中
@@ -979,7 +935,7 @@ struct MonitorHistoryChart: View {
                 // 数值气泡：默认悬于最高圆点正上方（水平居中于选中位、贴边收回），
                 // 值过固定值域 90% 或上方放不下时改放圆点左/右侧
                 if let sel = selectedSlot {
-                    bubbleView(sel, plotFrame: plotFrame, geoSize: geo.size)
+                    bubbleView(m, sel, plotFrame: plotFrame, geoSize: geo.size)
                 }
             }
         }
@@ -990,11 +946,10 @@ struct MonitorHistoryChart: View {
     /// 线条至底部的颜色填充（仅单系列：CPU/内存线下面积；双系列不填充）。
     /// 用 foregroundStyle(by: 类型)（与折线共用色彩 scale）保证面积与折线同色
     @ChartContentBuilder
-    private var fillMarks: some ChartContent {
-        if fill, seriesList.count == 1, let only = seriesList.first {
-            let indexByDate = dateIndex
+    private func fillMarks(_ m: Model) -> some ChartContent {
+        if fill, m.series.count == 1, let only = m.series.first {
             ForEach(only.points.compactMap { p -> (idx: Int, value: Double)? in
-                guard let idx = indexByDate[p.date] else { return nil }
+                guard let idx = m.dateIndex[p.date] else { return nil }
                 return (idx, p.value)
             }, id: \.idx) { item in
                 AreaMark(x: .value(L10n.t("采样位"), Double(item.idx)),
@@ -1008,15 +963,15 @@ struct MonitorHistoryChart: View {
 
     /// 全部系列摊平进一个 ForEach（与容器监控同构）
     @ChartContentBuilder
-    private var lineMarks: some ChartContent {
-        ForEach(flatPoints) { p in
+    private func lineMarks(_ m: Model) -> some ChartContent {
+        ForEach(m.flat) { p in
             LineMark(x: .value(L10n.t("采样位"), Double(p.index)), y: .value(L10n.t("值"), p.value))
                 .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
                 // 直线插值：监控曲线平滑过冲会制造不存在的峰谷
                 .interpolationMethod(.linear)
                 .lineStyle(StrokeStyle(lineWidth: 1.5))
             // 系列点数 ≤2 时折线画不出趋势，补圆点保证可见
-            if (seriesCounts[p.kind] ?? 0) <= 2 {
+            if (m.counts[p.kind] ?? 0) <= 2 {
                 PointMark(x: .value(L10n.t("采样位"), Double(p.index)), y: .value(L10n.t("值"), p.value))
                     .foregroundStyle(by: .value(L10n.t("类型"), p.kind))
                     .symbolSize(60)
@@ -1026,13 +981,13 @@ struct MonitorHistoryChart: View {
 
     /// 选中采样位：深色虚线跟手 + 各系列同色圆点
     @ChartContentBuilder
-    private var selectionMarks: some ChartContent {
+    private func selectionMarks(_ m: Model) -> some ChartContent {
         if let sel = selectedSlot {
             RuleMark(x: .value(L10n.t("选中"), Double(sel)))
                 .foregroundStyle(Color.primary.opacity(0.45))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            ForEach(seriesList, id: \.kind) { series in
-                if let v = value(at: sel, in: series) {
+            ForEach(m.series, id: \.kind) { series in
+                if let v = m.value(at: sel, in: series) {
                     PointMark(x: .value(L10n.t("选中"), Double(sel)), y: .value(L10n.t("值"), v))
                         .foregroundStyle(color(for: series.kind))
                         .symbolSize(60)
@@ -1045,86 +1000,62 @@ struct MonitorHistoryChart: View {
 
     /// 图表下方的时间标签行：正对各自采样位居中，显示该采样位的实际时间；
     /// 首尾允许悬出行边界
-    private var timeAxis: some View {
+    private func timeAxis(_ m: Model) -> some View {
         GeometryReader { geo in
-            ForEach(labelIndices, id: \.self) { idx in
-                Text(labelFormatter.string(from: dates[idx]))
+            ForEach(m.labels, id: \.self) { idx in
+                Text(labelFormatter.string(from: m.dates[idx]))
                     .font(.system(size: 9))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .fixedSize()
-                    .position(x: slotX(idx), y: geo.size.height / 2)
+                    .position(x: slotX(idx, xUpper: m.xUpper), y: geo.size.height / 2)
             }
         }
         .frame(height: 22)
     }
 
     /// 采样位 → 标签水平位置（正对采样位精确居中，半宽悬出也不拉回）
-    private func slotX(_ slot: Int) -> CGFloat {
+    private func slotX(_ slot: Int, xUpper: Double) -> CGFloat {
         plotRect.minX + plotRect.width * (Double(slot) / xUpper)
     }
 
     // MARK: 交互与气泡
 
-    /// 指定系列在采样位上的数值（该系列可能缺这个时刻的样本 → 就近取）
-    private func value(at slot: Int, in series: (kind: String, points: [MonitorPoint])) -> Double? {
-        guard dates.indices.contains(slot) else { return nil }
-        let date = dates[slot]
-        return series.points.min {
-            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
-        }?.value
-    }
-
     /// 气泡定位与内容：每系列一行「同色圆点 + 系列名 数值」按值降序，
     /// 悬于最高圆点正上方（贴边收回）；值过固定值域 90% 或上方放不下时
     /// 改放圆点侧面（左半边放右侧、右半边放左侧，垂直与圆点对齐）
     @ViewBuilder
-    private func bubbleView(_ sel: Int, plotFrame: CGRect, geoSize: CGSize) -> some View {
-        let entries = entries(at: sel)
+    private func bubbleView(_ m: Model, _ sel: Int, plotFrame: CGRect, geoSize: CGSize) -> some View {
+        let entries = entries(m, at: sel)
         if plotFrame.width > 0, let topValue = entries.map(\.value).max() {
-            let xCenter = plotFrame.minX + plotFrame.width * (Double(sel) / xUpper)
-            let span = max(yDomain.upperBound - yDomain.lowerBound, .ulpOfOne)
-            let yTop = plotFrame.minY + plotFrame.height * CGFloat((yDomain.upperBound - topValue) / span)
-            let pos = bubblePosition(topValue: topValue, xCenter: xCenter, yTop: yTop,
-                                     halfW: bubbleSize.width / 2, halfH: bubbleSize.height / 2,
-                                     geoWidth: geoSize.width, geoHeight: geoSize.height)
+            let xCenter = plotFrame.minX + plotFrame.width * (Double(sel) / m.xUpper)
+            let span = max(m.axis.domain.upperBound - m.axis.domain.lowerBound, .ulpOfOne)
+            let yTop = plotFrame.minY
+                + plotFrame.height * CGFloat((m.axis.domain.upperBound - topValue) / span)
+            let pos = MonitorBubbleLayout.position(
+                nearCap: fixedYDomain.map {
+                    topValue > $0.lowerBound + ($0.upperBound - $0.lowerBound) * 0.9
+                } ?? false,
+                xCenter: xCenter, yTop: yTop,
+                halfW: bubbleSize.width / 2, halfH: bubbleSize.height / 2,
+                geoWidth: geoSize.width, geoHeight: geoSize.height
+            )
             bubble(entries)
                 .background(bubbleTracker)
                 .position(x: pos.x, y: pos.y)
         }
     }
 
-    private func bubblePosition(topValue: Double, xCenter: CGFloat, yTop: CGFloat,
-                                halfW: CGFloat, halfH: CGFloat,
-                                geoWidth: CGFloat, geoHeight: CGFloat) -> (x: CGFloat, y: CGFloat) {
-        let nearCap = fixedYDomain.map {
-            topValue > $0.lowerBound + ($0.upperBound - $0.lowerBound) * 0.9
-        } ?? false
-        let noRoomAbove = yTop < 12 + 2 * halfH
-        if nearCap || noRoomAbove {
-            // 侧面：圆点在左半边 → 气泡放右侧，右半边 → 放左侧；垂直与圆点对齐并收回边界内
-            let toRight = xCenter < geoWidth / 2
-            let x = toRight
-                ? min(xCenter + 12 + halfW, geoWidth - halfW - 4)
-                : max(xCenter - 12 - halfW, halfW + 4)
-            let y = min(max(yTop, halfH + 2), geoHeight - halfH - 2)
-            return (x, y)
-        }
-        let x = min(max(xCenter, halfW + 4), geoWidth - halfW - 4)
-        let y = max(yTop - 12 - halfH, halfH + 2)
-        return (x, y)
-    }
-
-    /// 选中采样位各系列数值（按值降序）
-    private func entries(at slot: Int) -> [(title: String, text: String, color: Color, value: Double)] {
+    /// 选中采样位各系列数值（按值降序；小数位随 Y 轴形态，刻度与气泡数值保持一致）
+    private func entries(_ m: Model, at slot: Int) -> [(title: String, text: String, color: Color, value: Double)] {
         var raw: [(String, Double, Color)] = []
-        for series in seriesList {
-            if let v = value(at: slot, in: series) {
+        for series in m.series {
+            if let v = m.value(at: slot, in: series) {
                 raw.append((series.kind, v, color(for: series.kind)))
             }
         }
         return raw.sorted { $0.1 > $1.1 }
-            .map { ($0.0, String(format: "%.\(valueDecimals)f%@", $0.1, unit), $0.2, $0.1) }
+            .map { ($0.0, String(format: "%.\(m.axis.decimals)f%@", $0.1, unit), $0.2, $0.1) }
     }
 
     /// 数值气泡：每系列一行「同色圆点 + 系列名 数值」
@@ -1158,10 +1089,11 @@ struct MonitorHistoryChart: View {
     }
 
     /// 无障碍摘要：折线内容 VoiceOver 无法读取，以各系列最新采样值代替
-    private var accessibilitySummary: String {
-        let parts = seriesList.compactMap { series -> String? in
+    private func accessibilitySummary(_ m: Model) -> String {
+        let parts = m.series.compactMap { series -> String? in
             guard let latest = series.points.last else { return nil }
-            return L10n.f("%@最新%@", series.kind, String(format: "%.\(valueDecimals)f%@", latest.value, unit))
+            return L10n.f("%@最新%@", series.kind,
+                          String(format: "%.\(m.axis.decimals)f%@", latest.value, unit))
         }
         return parts.isEmpty ? L10n.t("监控折线图，暂无数据") : L10n.t("监控折线图：") + parts.joined(separator: "，")
     }
