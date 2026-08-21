@@ -141,11 +141,17 @@ struct OpenRestyCard: View {
     @State private var isExpanded = false
     @Binding var showConfig: Bool
     @State private var pendingAction: String?
+    // 网站监控
+    @State private var showMonitor = false
 
     init(vm: WebsitesViewModel, manager: ServerManager, showConfig: Binding<Bool>) {
         self.vm = vm
         self.manager = manager
         self._showConfig = showConfig
+    }
+
+    private var server: ServerConfig {
+        manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
     }
 
     var body: some View {
@@ -176,6 +182,9 @@ struct OpenRestyCard: View {
                         },
                         ServiceAction(title: L10n.t("配置"), icon: "slider.horizontal.3", color: .purple) {
                             showConfig = true
+                        },
+                        ServiceAction(title: L10n.t("监控"), icon: "chart.pie.fill", color: .indigo) {
+                            showMonitor = true
                         }
                     ]
                 ) {
@@ -187,6 +196,9 @@ struct OpenRestyCard: View {
                     ServiceStatusFailedRow(text: L10n.t("OpenResty 未安装或加载失败"))
                 }
             }
+        }
+        .navigationDestination(isPresented: $showMonitor) {
+            WebsiteMonitorView(server: server)
         }
         .alert(
             pendingAction.map { openRestyActionDisplayName($0) } ?? "",

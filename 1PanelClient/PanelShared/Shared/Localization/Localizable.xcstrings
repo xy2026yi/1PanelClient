@@ -97,6 +97,16 @@
     "%@" : {
 
     },
+    "%@ · %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "%@ (%@)" : {
       "localizations" : {
         "zh-Hans" : {
@@ -138,6 +148,16 @@
         }
       }
     },
+    "%@ %lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$lld"
+          }
+        }
+      }
+    },
     "%@ Docker 失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -167,6 +187,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ rebuild submitted, container is rebuilding in the background…"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@: %lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$lld"
           }
         }
       }
@@ -522,6 +562,17 @@
         }
       }
     },
+    "4xx 数量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4xx Count"
+          }
+        }
+      }
+    },
     "5 分钟" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -540,6 +591,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "5-min average above %ld%%"
+          }
+        }
+      }
+    },
+    "5xx 数量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5xx Count"
           }
         }
       }
@@ -622,6 +684,17 @@
     },
     "302" : {
 
+    },
+    "360搜索" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "360 Search"
+          }
+        }
+      }
     },
     "404" : {
 
@@ -1548,6 +1621,9 @@
         }
       }
     },
+    "User-Agent" : {
+
+    },
     "v%@" : {
 
     },
@@ -2092,6 +2168,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Expires today"
+          }
+        }
+      }
+    },
+    "今日" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        }
+      }
+    },
+    "今日头条" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutiao"
+          }
+        }
+      }
+    },
+    "今日状态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's Status"
           }
         }
       }
@@ -4516,6 +4625,17 @@
         }
       }
     },
+    "原始返回" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raw Response"
+          }
+        }
+      }
+    },
     "参数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5343,6 +5463,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Command Path"
+          }
+        }
+      }
+    },
+    "响应时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Response Time"
+          }
+        }
+      }
+    },
+    "响应流量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Response Traffic"
           }
         }
       }
@@ -6415,6 +6557,61 @@
         }
       }
     },
+    "封锁次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block Count"
+          }
+        }
+      }
+    },
+    "封锁至" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked Until"
+          }
+        }
+      }
+    },
+    "攻击IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attack IP"
+          }
+        }
+      }
+    },
+    "命中规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matched Rule"
+          }
+        }
+      }
+    },
+    "封锁记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block Records"
+          }
+        }
+      }
+    },
     "将使用备份「%@」覆盖恢复，恢复期间服务可能短暂中断。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7427,6 +7624,17 @@
         }
       }
     },
+    "当前(1分钟)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current (1 min)"
+          }
+        }
+      }
+    },
     "当前名称" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7478,6 +7686,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current Role"
+          }
+        }
+      }
+    },
+    "必应" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bing"
           }
         }
       }
@@ -7964,6 +8183,39 @@
         }
       }
     },
+    "拦截" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked"
+          }
+        }
+      }
+    },
+    "拦截记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interception Logs"
+          }
+        }
+      }
+    },
+    "拦截趋势（7日）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked Trend (7 Days)"
+          }
+        }
+      }
+    },
     "挂载卷" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8206,6 +8458,17 @@
         }
       }
     },
+    "搜狗" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sogou"
+          }
+        }
+      }
+    },
     "搜索域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8338,6 +8601,17 @@
         }
       }
     },
+    "操作系统" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operating Systems"
+          }
+        }
+      }
+    },
     "操作菜单" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8433,6 +8707,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Larger Text"
+          }
+        }
+      }
+    },
+    "放行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed"
           }
         }
       }
@@ -8568,6 +8853,9 @@
           }
         }
       }
+    },
+    "数量" : {
+
     },
     "文件" : {
       "extractionState" : "manual",
@@ -10244,6 +10532,17 @@
         }
       }
     },
+    "来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Referrers"
+          }
+        }
+      }
+    },
     "来源：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10266,6 +10565,17 @@
         }
       }
     },
+    "板块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sections"
+          }
+        }
+      }
+    },
     "查看日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10273,6 +10583,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "View Logs"
+          }
+        }
+      }
+    },
+    "查看更多" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View More"
           }
         }
       }
@@ -10444,6 +10765,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Checking"
+          }
+        }
+      }
+    },
+    "概览" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overview"
           }
         }
       }
@@ -10690,6 +11022,17 @@
         }
       }
     },
+    "流量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traffic"
+          }
+        }
+      }
+    },
     "流量限制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10774,6 +11117,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Test email sent — check the inbox"
+          }
+        }
+      }
+    },
+    "浏览器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browsers"
+          }
+        }
+      }
+    },
+    "浏览数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page Views"
           }
         }
       }
@@ -11328,6 +11693,17 @@
         }
       }
     },
+    "状态码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status Codes"
+          }
+        }
+      }
+    },
     "状态详情" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11335,6 +11711,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Status Details"
+          }
+        }
+      }
+    },
+    "独立IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unique IPs"
           }
         }
       }
@@ -11624,6 +12011,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed logins from allowlisted IPs never trigger alerts; one per line, IP or CIDR"
+          }
+        }
+      }
+    },
+    "百度" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baidu"
           }
         }
       }
@@ -12189,6 +12587,17 @@
         }
       }
     },
+    "神马搜索" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shenma Search"
+          }
+        }
+      }
+    },
     "禁 ping" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12683,6 +13092,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paste Content"
+          }
+        }
+      }
+    },
+    "系列" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series"
           }
         }
       }
@@ -13276,6 +13696,17 @@
         }
       }
     },
+    "网站监控" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website Monitoring"
+          }
+        }
+      }
+    },
     "网站类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13595,6 +14026,17 @@
         }
       }
     },
+    "蜘蛛" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spiders"
+          }
+        }
+      }
+    },
     "蜘蛛 IP 池" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13602,6 +14044,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spider IP Pool"
+          }
+        }
+      }
+    },
+    "蜘蛛放行范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spider Allowlist"
           }
         }
       }
@@ -13793,6 +14246,17 @@
         }
       }
     },
+    "设备" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devices"
+          }
+        }
+      }
+    },
     "设置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13800,6 +14264,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Settings"
+          }
+        }
+      }
+    },
+    "访客" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visitors"
+          }
+        }
+      }
+    },
+    "访客地图（30日）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visitor Map (30 Days)"
+          }
+        }
+      }
+    },
+    "访客趋势" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visitor Trend"
           }
         }
       }
@@ -13822,6 +14319,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Access"
+          }
+        }
+      }
+    },
+    "访问统计" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access Statistics"
           }
         }
       }
@@ -14376,6 +14884,50 @@
         }
       }
     },
+    "请求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requests"
+          }
+        }
+      }
+    },
+    "请求数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requests"
+          }
+        }
+      }
+    },
+    "请求日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Logs"
+          }
+        }
+      }
+    },
+    "请求类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Method"
+          }
+        }
+      }
+    },
     "请求被安全入口拦截，请检查服务器配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14383,6 +14935,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Blocked by the secure entrance — check the server config"
+          }
+        }
+      }
+    },
+    "请求趋势（7日）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Trend (7 Days)"
           }
         }
       }
@@ -14554,6 +15117,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to read config: %@"
+          }
+        }
+      }
+    },
+    "谷歌" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google"
           }
         }
       }
@@ -14994,6 +15568,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Last 30 min"
+          }
+        }
+      }
+    },
+    "近30日" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last 30 Days"
           }
         }
       }
@@ -16658,6 +17243,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Blocklist"
+          }
+        }
+      }
+    },
+    "黑白名单" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocklist & Allowlist"
           }
         }
       }

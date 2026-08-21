@@ -50,6 +50,7 @@ nonisolated struct WAFRuleItem: Decodable {
     let code: Int?
     let action: String?
     let type: String?
+    let rules: [String]?
 
     var isOn: Bool { state == "on" }
 }
@@ -57,6 +58,12 @@ nonisolated struct WAFRuleItem: Decodable {
 nonisolated struct WAFGlobalStateRequest: Encodable {
     let scope: String
     let state: String
+}
+
+// MARK: 蜘蛛放行范围
+
+nonisolated struct WAFSpiderSaveRequest: Encodable {
+    let rules: [String]
 }
 
 // MARK: IP 规则

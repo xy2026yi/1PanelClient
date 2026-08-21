@@ -232,6 +232,24 @@ enum APIEndpoint {
     // MARK: - WAF 频率限制 / 位置更新
     case wafRuleCc               // POST CC/攻击/404 频率限制保存
     case wafLocationUpdate       // POST IP地址库/恶意IP组/蜘蛛IP池更新
+    case wafSpider               // POST 蜘蛛放行范围保存 {rules}
+
+    // MARK: - WAF 监控
+    case wafStat                 // GET  今日统计(请求/拦截/4xx/5xx)
+    case wafStatDays             // GET  近7日统计(请求/拦截趋势)
+    case wafLogSearch            // POST 拦截记录搜索
+    case wafLogDetail            // GET  拦截记录详情(:id)
+    case wafBlockSearch          // POST 封锁记录搜索
+
+    // MARK: - 网站监控
+    case monitorQps              // POST 实时 QPS/流量(1分钟)
+    case monitorStat             // POST 今日/区间统计
+    case monitorVisitors         // POST 访客趋势(折线)
+    case monitorVisitorsLoc      // POST 访客地图(30日)
+    case monitorRank             // POST 访问统计排行(uri/referer/ip/browser/os/device/status_code)
+    case monitorLogsSearch       // POST 请求日志搜索
+    case monitorLogsDetail       // POST 请求日志详情
+    case wafLocationsWorld       // GET  地区名映射(英文→本地化,访客地图翻译用)
 
     // MARK: - 文件管理
     case settingsBaseDir         // GET  基础目录
@@ -489,6 +507,20 @@ enum APIEndpoint {
         case .wafRuleCommonDelete:   return "/api/v2/xpack/waf/rule/common/delete"
         case .wafRuleCc:             return "/api/v2/xpack/waf/rule/cc"
         case .wafLocationUpdate:     return "/api/v2/xpack/waf/location/update"
+        case .wafSpider:             return "/api/v2/xpack/waf/config/global/spider"
+        case .wafStat:               return "/api/v2/xpack/waf/stat"
+        case .wafStatDays:           return "/api/v2/xpack/waf/stat/days"
+        case .wafLogSearch:          return "/api/v2/xpack/waf/log/search"
+        case .wafLogDetail:          return "/api/v2/xpack/waf/log/detail/:id"
+        case .wafBlockSearch:        return "/api/v2/xpack/waf/block/search"
+        case .monitorQps:            return "/api/v2/xpack/monitor/qps"
+        case .monitorStat:           return "/api/v2/xpack/monitor/stat"
+        case .monitorVisitors:       return "/api/v2/xpack/monitor/visitors"
+        case .monitorVisitorsLoc:    return "/api/v2/xpack/monitor/visitors/loc"
+        case .monitorRank:           return "/api/v2/xpack/monitor/rank"
+        case .monitorLogsSearch:     return "/api/v2/xpack/monitor/logs/search"
+        case .monitorLogsDetail:     return "/api/v2/xpack/monitor/logs/detail"
+        case .wafLocationsWorld:     return "/api/v2/xpack/waf/locations/world"
         case .settingsBaseDir:       return "/api/v2/settings/basedir"
         case .filesUserGroup:        return "/api/v2/files/user/group"
         case .filesCreate:           return "/api/v2/files"
@@ -565,6 +597,8 @@ enum APIEndpoint {
              .fail2banBase, .fail2banLoadConf,
              .alertDisksList,
              .wafStatus, .wafConfigGlobal,
+             .wafLocationsWorld, .wafLogDetail,
+             .wafStat, .wafStatDays,
              .settingsBaseDir,
              .settingsUpgradeCheck, .settingsUpgradeReleases,
              .openrestyConfig,

@@ -151,7 +151,8 @@ final class APIClient {
     func sendRaw(
         path: String,
         method: String = "POST",
-        body: (any Encodable)? = nil
+        body: (any Encodable)? = nil,
+        extraHeaders: [String: String]? = nil
     ) async throws -> Data {
         try SecurityGate.check(server)
         guard let url = URL(string: server.normalizedBaseURL + path) else {
@@ -161,6 +162,9 @@ final class APIClient {
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.httpMethod = method
         for (k, v) in generateHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+        for (k, v) in extraHeaders ?? [:] {
             request.setValue(v, forHTTPHeaderField: k)
         }
         if let body {

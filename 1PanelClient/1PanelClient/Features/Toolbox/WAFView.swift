@@ -2,7 +2,7 @@
 //  WAFView.swift
 //  1PanelClient
 //
-//  WAF 管理：状态 / 全局规则开关 / IP黑白名单 / IP组
+//  WAF 管理：状态 / 黑白名单 / 全局配置
 //
 
 import SwiftUI
@@ -24,8 +24,8 @@ struct WAFView: View {
         Group {
             if vm.isLoading && vm.config == nil {
                 ProgressView(L10n.t("加载中…"))
-            } else if let config = vm.config {
-                content(config: config)
+            } else if vm.config != nil {
+                content
             } else if let err = vm.errorMessage {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -68,8 +68,7 @@ struct WAFView: View {
         }
     }
 
-    @ViewBuilder
-    private func content(config: WAFConfig) -> some View {
+    private var content: some View {
         List {
             // 状态
             Section {
@@ -92,229 +91,46 @@ struct WAFView: View {
                 }
             }
 
-            // 黑名单
+            // 监控
             Section {
                 NavigationLink {
-                    WAFIPRulesView(server: server, scope: "ipBlack", title: "IP")
+                    WAFOverviewView(server: server)
                 } label: {
-                    ruleRow(icon: "hand.raised", color: .red, title: "IP", item: config.ipBlack, scope: "IPBlack")
+                    entryRow(icon: "chart.bar.xaxis", color: .blue, title: L10n.t("概览"))
                 }
                 NavigationLink {
-                    WAFCommonRulesView(server: server, scope: "urlBlack", title: "URL")
+                    WAFInterceptLogsView(server: server)
                 } label: {
-                    ruleRow(icon: "link.badge.plus", color: .orange, title: "URL", item: config.urlBlack, scope: "UrlBlack")
+                    entryRow(icon: "exclamationmark.triangle", color: .orange, title: L10n.t("拦截记录"))
                 }
                 NavigationLink {
-                    WAFCommonRulesView(server: server, scope: "uaBlack", title: "User-Agent")
+                    WAFBlockRecordsView(server: server)
                 } label: {
-                    ruleRow(icon: "person.crop.square", color: .pink, title: "User-Agent", item: config.uaBlack, scope: "UaBlack")
+                    entryRow(icon: "lock.shield", color: .red, title: L10n.t("封锁记录"))
                 }
             } header: {
-                SectionLabel(title: L10n.t("黑名单"), systemImage: "hand.raised")
+                SectionLabel(title: L10n.t("监控"), systemImage: "chart.pie")
             }
 
-            // 白名单
             Section {
                 NavigationLink {
-                    WAFIPRulesView(server: server, scope: "ipWhite", title: "IP")
+                    WAFBlackWhiteView(vm: vm, server: server)
                 } label: {
-                    ruleRow(icon: "checkmark.shield", color: .green, title: "IP", item: config.ipWhite, scope: "IPWhite")
+                    entryRow(icon: "shield.lefthalf.filled", color: .red, title: L10n.t("黑白名单"))
                 }
                 NavigationLink {
-                    WAFCommonRulesView(server: server, scope: "urlWhite", title: "URL")
+                    WAFGlobalConfigView(vm: vm, server: server)
                 } label: {
-                    ruleRow(icon: "link.badge.plus", color: .teal, title: "URL", item: config.urlWhite, scope: "UrlWhite")
+                    entryRow(icon: "globe", color: .blue, title: L10n.t("全局配置"))
                 }
-                NavigationLink {
-                    WAFCommonRulesView(server: server, scope: "uaWhite", title: "User-Agent")
-                } label: {
-                    ruleRow(icon: "person.crop.square", color: .mint, title: "User-Agent", item: config.uaWhite, scope: "UaWhite")
-                }
-            } header: {
-                SectionLabel(title: L10n.t("白名单"), systemImage: "checkmark.shield")
-            }
-
-            // IP 组
-            Section {
-                NavigationLink {
-                    WAFIPGroupsView(server: server)
-                } label: {
-                    Text(L10n.t("IP 组"))
-                }
-            }
-
-            // 频率限制
-            Section {
-                NavigationLink {
-                    WAFCcSettingsView(server: server, config: config.cc, scope: "Cc", title: L10n.t("访问频率限制"))
-                } label: {
-                    ccToggleRow(title: L10n.t("访问频率限制"), item: config.cc, scope: "Cc")
-                }
-                NavigationLink {
-                    WAFAttackCountSettingsView(server: server, config: config.attackCount, scope: "AttackCount", title: L10n.t("攻击频率限制"))
-                } label: {
-                    ccToggleRow(title: L10n.t("攻击频率限制"), item: config.attackCount, scope: "AttackCount")
-                }
-                NavigationLink {
-                    WAFAttackCountSettingsView(server: server, config: config.notFoundCount, scope: "NotFoundCount", title: L10n.t("404 频率限制"))
-                } label: {
-                    ccToggleRow(title: L10n.t("404 频率限制"), item: config.notFoundCount, scope: "NotFoundCount")
-                }
-            } header: {
-                SectionLabel(title: L10n.t("频率限制"), systemImage: "gauge.with.dots.needle.67percent")
-            }
-
-            // 配置
-            Section {
-                NavigationLink {
-                    WAFConfigItemView(server: server, title: L10n.t("恶意 IP 组"), scope: "DefaultIpBlack", updateType: "blackIP", item: config.defaultIpBlack)
-                } label: {
-                    toggleRow(title: L10n.t("恶意 IP 组"), item: config.defaultIpBlack, scope: "DefaultIpBlack")
-                }
-                NavigationLink {
-                    WAFConfigItemView(server: server, title: L10n.t("蜘蛛 IP 池"), scope: "AllowSpider", updateType: "spiderIP", item: config.allowSpider)
-                } label: {
-                    toggleRow(title: L10n.t("蜘蛛 IP 池"), item: config.allowSpider, scope: "AllowSpider")
-                }
-                NavigationLink {
-                    WAFLocationUpdateView(server: server)
-                } label: {
-                    Text(L10n.t("IP 地址库"))
-                }
-            } header: {
-                SectionLabel(title: L10n.t("配置"), systemImage: "gearshape")
             }
         }
     }
 
-    private func ruleRow(icon: String, color: Color, title: String, item: WAFRuleItem?, scope: String) -> some View {
+    private func entryRow(icon: String, color: Color, title: String) -> some View {
         HStack(spacing: 12) {
             IconBadge(systemName: icon, color: color, size: 34, cornerRadius: 8)
             Text(title)
-            Spacer()
-            Toggle("", isOn: Binding(
-                get: { item?.isOn ?? false },
-                set: { newVal in
-                    Task { await vm.toggleRule(scope: scope, state: newVal ? "on" : "off") }
-                }
-            ))
-            .labelsHidden()
-            .disabled(vm.isOperating)
         }
-    }
-
-    private func toggleRow(title: String, item: WAFRuleItem?, scope: String) -> some View {
-        Toggle(isOn: Binding(
-            get: { item?.isOn ?? false },
-            set: { newVal in
-                Task { await vm.toggleRule(scope: scope, state: newVal ? "on" : "off") }
-            }
-        )) {
-            Text(title)
-        }
-        .disabled(vm.isOperating)
-    }
-
-    private func ccToggleRow(title: String, item: WAFCcRuleConfig?, scope: String) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Toggle("", isOn: Binding(
-                get: { item?.isOn ?? false },
-                set: { newVal in
-                    Task { await vm.toggleRule(scope: scope, state: newVal ? "on" : "off") }
-                }
-            ))
-            .labelsHidden()
-            .disabled(vm.isOperating)
-        }
-    }
-}
-
-
-// MARK: - 配置项（开关 + 更新）
-
-struct WAFConfigItemView: View {
-    let server: ServerConfig
-    let title: String
-    let scope: String
-    let updateType: String
-    let item: WAFRuleItem?
-
-    @State private var isUpdating = false
-    @State private var successMessage: String?
-    @State private var errorMessage: String?
-
-    private let client: APIClient
-
-    init(server: ServerConfig, title: String, scope: String, updateType: String, item: WAFRuleItem?) {
-        self.server = server
-        self.title = title
-        self.scope = scope
-        self.updateType = updateType
-        self.item = item
-        self.client = APIClient(server: server)
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                Toggle(isOn: Binding(
-                    get: { item?.isOn ?? false },
-                    set: { newVal in
-                        Task { await toggle(newVal) }
-                    }
-                )) {
-                    Text(L10n.t("启用"))
-                }
-            } header: {
-                Text(title)
-            }
-
-            Section {
-                Button {
-                    Task { await update() }
-                } label: {
-                    HStack {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                        Text(L10n.t("更新"))
-                        Spacer()
-                        if isUpdating { ProgressView() }
-                    }
-                }
-            }
-        }
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
-        .alert(L10n.t("提示"), isPresented: Binding(
-            get: { successMessage != nil || errorMessage != nil },
-            set: { _ in successMessage = nil; errorMessage = nil }
-        )) {
-            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? successMessage ?? "")
-        }
-    }
-
-    private func toggle(_ on: Bool) async {
-        let req = WAFGlobalStateRequest(scope: scope, state: on ? "on" : "off")
-        do {
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafConfigGlobalState.path, body: req, as: EmptyResponse.self)
-            successMessage = on ? L10n.t("已启用") : L10n.t("已禁用")
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func update() async {
-        isUpdating = true
-        let req = WAFLocationUpdateRequest(type: updateType)
-        do {
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafLocationUpdate.path, body: req, as: EmptyResponse.self)
-            successMessage = L10n.t("更新成功")
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isUpdating = false
     }
 }
