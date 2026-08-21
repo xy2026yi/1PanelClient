@@ -318,7 +318,7 @@ struct OverviewTab: View {
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.containers) } label: {
-                StatCard(title: L10n.t("容器"), count: vm.containerCount, icon: "shippingbox", color: .blue, customIcon: "icon-docker")
+                StatCard(title: L10n.t("容器"), count: vm.containerCount, icon: "shippingbox", color: .blue, customIcon: "icon-docker", isLoading: vm.isLoading)
             }
             .buttonStyle(PressableCardStyle())
         }
@@ -506,6 +506,8 @@ struct StatCard: View {
     var updateCount: Int? = nil
     /// 覆盖 icon 的自定义图标（asset 名），非空时优先于 SF Symbol
     var customIcon: String? = nil
+    /// count 尚未取到且正在请求中才显示转圈；请求失败后显示标题 +「—」，避免永久转圈
+    var isLoading: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -514,7 +516,7 @@ struct StatCard: View {
                     .foregroundStyle(color)
                     .font(.title3)
                 Spacer()
-                if count == nil {
+                if count == nil && isLoading {
                     ProgressView()
                         .scaleEffect(0.7)
                 } else {
@@ -651,9 +653,11 @@ final class OverviewViewModel: ObservableObject {
         if let d { self.deviceInfo = d }
         if let s { self.settingInfo = s }
         if let c { self.currentInfo = c }
-        self.appUpdateCount = au?.total ?? 0
-        self.containerCount = ct?.total
-        self.upgradeInfo = up
+        // 同样「失败保留旧值」：try? 吞掉错误后为 nil，无脑覆盖会把已显示的数字抹成 -
+        // （containers/search 是唯一依赖 Docker daemon 的请求，最易超时失败）
+        if let au { self.appUpdateCount = au.total }
+        if let ct { self.containerCount = ct.total }
+        if let up { self.upgradeInfo = up }
 
         // 仅在完全无数据时才显示错误（刷新失败时保留旧数据）
         if base == nil && osInfo == nil && deviceInfo == nil {
