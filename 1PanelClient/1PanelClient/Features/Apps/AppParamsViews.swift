@@ -296,6 +296,8 @@ struct ComposeEditorView: View {
     @State private var useCustom = false
     @State private var editedCompose = ""
     @State private var deleteOldImage: Bool
+    /// 对比模式下已采纳「采用旧配置」的差异块（hunk 下标集合）
+    @State private var adoptedHunks: Set<Int> = []
 
     init(
         app: AppInstall,
@@ -317,6 +319,15 @@ struct ComposeEditorView: View {
 
     private var oldCompose: String {
         app.currentDockerCompose ?? app.dockerCompose ?? ""
+    }
+
+    private var diff: ComposeDiff {
+        ComposeDiff(old: ComposeDiff.lines(of: oldCompose), new: ComposeDiff.lines(of: newCompose))
+    }
+
+    /// 按采纳块生成的合并结果（未采纳任何块时与新版默认值一致）
+    private var mergedCompose: String {
+        ComposeDiff.text(of: diff.applying(adoption: adoptedHunks))
     }
 
     var body: some View {
@@ -351,7 +362,15 @@ struct ComposeEditorView: View {
             Section {
                 Button {
                     Task {
-                        let compose = useCustom ? editedCompose : nil
+                        // 对比模式采纳了差异块时提交合并结果；否则提交默认（nil）
+                        let compose: String?
+                        if useCustom {
+                            compose = editedCompose
+                        } else if adoptedHunks.isEmpty {
+                            compose = nil
+                        } else {
+                            compose = mergedCompose
+                        }
                         let taskID = UUID().uuidString
                         await vm.confirmUpgrade(
                             app: app,
@@ -369,8 +388,7 @@ struct ComposeEditorView: View {
                 } label: {
                     HStack {
                         Spacer()
-                        Label(useCustom ? L10n.t("使用自定义配置升级") : L10n.t("使用默认配置升级"),
-                              systemImage: "arrow.up.circle.fill")
+                        Label(upgradeButtonTitle, systemImage: "arrow.up.circle.fill")
                         Spacer()
                     }
                 }
@@ -388,9 +406,9 @@ struct ComposeEditorView: View {
                 }
             }
 
-            // 当前版本（只读）
+            // 当前版本（只读，差异行红底）
             Section {
-                CodePreview(text: oldCompose, color: .secondary)
+                DiffOldComposeView(diff: diff)
                     .frame(minHeight: 160)
             } header: {
                 HStack {
@@ -402,7 +420,7 @@ struct ComposeEditorView: View {
                 }
             }
 
-            // 新版本（可编辑）
+            // 新版本（对比模式：可按块采用旧配置；自定义模式：文本编辑）
             Section {
                 if useCustom {
                     TextEditor(text: $editedCompose)
@@ -418,8 +436,13 @@ struct ComposeEditorView: View {
                     )
                     .frame(minHeight: 160)
                 } else {
-                    CodePreview(text: newCompose, color: .primary)
-                        .frame(minHeight: 200)
+                    if !adoptedHunks.isEmpty {
+                        Text(L10n.f("已选择 %ld 处差异采用旧配置，将按此内容升级", adoptedHunks.count))
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                    DiffNewComposeView(diff: diff, adopted: $adoptedHunks)
+                        .frame(minHeight: 240)
                 }
             } header: {
                 HStack {
@@ -449,6 +472,173 @@ struct ComposeEditorView: View {
                 editedCompose = newCompose
             }
         }
+        // 开启自定义编辑时以当前合并结果为起点（含已采纳的旧配置块）
+        .onChange(of: useCustom) { _, enabled in
+            if enabled {
+                editedCompose = mergedCompose
+            }
+        }
+    }
+
+    private var upgradeButtonTitle: String {
+        if useCustom { return L10n.t("使用自定义配置升级") }
+        return adoptedHunks.isEmpty ? L10n.t("使用默认配置升级") : L10n.t("使用合并配置升级")
+    }
+}
+
+// MARK: - 差异展示
+
+/// 旧配置只读展示：差异行红底，相同行灰
+struct DiffOldComposeView: View {
+    let diff: ComposeDiff
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(diff.oldLines.enumerated()), id: \.offset) { idx, line in
+                    Text(line.isEmpty ? " " : line)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(diff.oldKinds[idx] == .changed ? .primary : .secondary)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            diff.oldKinds[idx] == .changed ? Color.red.opacity(0.12) : Color.clear
+                        )
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+}
+
+/// 新配置交互展示：差异块可整体「采用旧配置」（再次点击切回），位置不变
+struct DiffNewComposeView: View {
+    let diff: ComposeDiff
+    @Binding var adopted: Set<Int>
+
+    /// 渲染行（拍平后的稳定 id，避免多个 ForEach 的 id 冲突）
+    private struct Row: Identifiable {
+        enum Kind {
+            case plain(String)
+            case hunkButton(index: Int, hunk: ComposeDiff.Hunk)
+            case hunkLine(String, bg: Bg)
+        }
+
+        enum Bg {
+            case fresh      // 新版本内容（绿）
+            case adoptedOld // 采纳后使用的旧内容（橙）
+            case excluded   // 不带入的内容（淡红）
+        }
+
+        let id: Int
+        let kind: Kind
+    }
+
+    private var rows: [Row] {
+        var result: [Row] = []
+        var nextID = 0
+        func add(_ kind: Row.Kind) {
+            result.append(Row(id: nextID, kind: kind))
+            nextID += 1
+        }
+        for seg in diff.segments {
+            switch seg {
+            case .equal(_, let newRange):
+                for i in newRange {
+                    add(.plain(diff.newLines[i]))
+                }
+            case .hunk(let index, let hunk):
+                let isAdopted = adopted.contains(index)
+                add(.hunkButton(index: index, hunk: hunk))
+                if hunk.newRange.isEmpty {
+                    // 仅删除块：显示旧内容（幽灵行），采纳后转橙
+                    for i in hunk.oldRange {
+                        add(.hunkLine(diff.oldLines[i], bg: isAdopted ? .adoptedOld : .excluded))
+                    }
+                } else if isAdopted {
+                    for i in hunk.oldRange {
+                        add(.hunkLine(diff.oldLines[i], bg: .adoptedOld))
+                    }
+                } else {
+                    for i in hunk.newRange {
+                        add(.hunkLine(diff.newLines[i], bg: .fresh))
+                    }
+                }
+            }
+        }
+        return result
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(rows) { row in
+                    switch row.kind {
+                    case .plain(let line):
+                        lineView(line, bg: .clear, dimmed: true)
+                    case .hunkButton(let index, let hunk):
+                        hunkButton(index: index, hunk: hunk)
+                    case .hunkLine(let line, let bg):
+                        lineView(line, bg: bgColor(bg), dimmed: bg == .excluded)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
+    private func bgColor(_ bg: Row.Bg) -> Color {
+        switch bg {
+        case .fresh: return .green.opacity(0.12)
+        case .adoptedOld: return .orange.opacity(0.18)
+        case .excluded: return .red.opacity(0.06)
+        }
+    }
+
+    private func lineView(_ line: String, bg: Color, dimmed: Bool) -> some View {
+        Text(line.isEmpty ? " " : line)
+            .font(.system(.caption2, design: .monospaced))
+            .foregroundStyle(dimmed ? Color.secondary : Color.primary)
+            .textSelection(.enabled)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(bg)
+    }
+
+    private func hunkButton(index: Int, hunk: ComposeDiff.Hunk) -> some View {
+        let isAdopted = adopted.contains(index)
+        return Button {
+            if isAdopted {
+                adopted.remove(index)
+            } else {
+                adopted.insert(index)
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: isAdopted ? "arrow.uturn.backward.circle.fill" : "arrow.uturn.backward.circle")
+                Text(buttonLabel(hunk, adopted: isAdopted))
+            }
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(isAdopted ? Color.orange : Color.blue)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func buttonLabel(_ hunk: ComposeDiff.Hunk, adopted isAdopted: Bool) -> String {
+        if hunk.isDeletionOnly {
+            return isAdopted ? L10n.t("移除此段") : L10n.t("恢复此段")
+        }
+        if hunk.isInsertionOnly {
+            return isAdopted ? L10n.t("保留新增段") : L10n.t("移除新增段")
+        }
+        return isAdopted ? L10n.t("改用新配置") : L10n.t("采用旧配置")
     }
 }
 

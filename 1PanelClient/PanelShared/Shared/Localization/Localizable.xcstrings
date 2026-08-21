@@ -17414,6 +17414,94 @@
           }
         }
       }
+    },
+    "采用旧配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Old Config"
+          }
+        }
+      }
+    },
+    "改用新配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use New Config"
+          }
+        }
+      }
+    },
+    "恢复此段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
+          }
+        }
+      }
+    },
+    "移除此段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
+          }
+        }
+      }
+    },
+    "保留新增段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Added Lines"
+          }
+        }
+      }
+    },
+    "移除新增段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Added Lines"
+          }
+        }
+      }
+    },
+    "已选择 %ld 处差异采用旧配置，将按此内容升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld diff hunks use the old config; upgrade will use this content"
+          }
+        }
+      }
+    },
+    "使用合并配置升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade with Merged Config"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
