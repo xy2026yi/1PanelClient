@@ -30,6 +30,8 @@ struct WAFSpiderPoolView: View {
     private static let allValues: [String] = options.map(\.value)
 
     @State private var selected: Set<String>
+    /// item 不可变，开关需本地镜像，成功保持、失败回滚，否则弹窗触发重绘时回跳
+    @State private var isEnabled: Bool
     @State private var isSaving = false
     @State private var isUpdating = false
     @State private var successMessage: String?
@@ -43,6 +45,7 @@ struct WAFSpiderPoolView: View {
         self.client = APIClient(server: server)
         // 全局配置带 rules 则按其回显，否则默认全选
         _selected = State(initialValue: Set(item?.rules ?? Self.allValues))
+        _isEnabled = State(initialValue: item?.isOn ?? false)
     }
 
     private var allSelected: Bool { Self.allValues.allSatisfy { selected.contains($0) } }
@@ -51,8 +54,9 @@ struct WAFSpiderPoolView: View {
         Form {
             Section {
                 Toggle(isOn: Binding(
-                    get: { item?.isOn ?? false },
+                    get: { isEnabled },
                     set: { newVal in
+                        isEnabled = newVal
                         Task { await toggle(newVal) }
                     }
                 )) {
@@ -161,6 +165,7 @@ struct WAFSpiderPoolView: View {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafConfigGlobalState.path, body: req, as: EmptyResponse.self)
             successMessage = on ? L10n.t("已启用") : L10n.t("已禁用")
         } catch {
+            isEnabled = !on
             errorMessage = error.localizedDescription
         }
     }

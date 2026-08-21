@@ -4,6 +4,9 @@
     "" : {
 
     },
+    "-" : {
+
+    },
     "-----BEGIN OPENSSH PRIVATE KEY-----" : {
 
     },
@@ -5445,6 +5448,17 @@
         }
       }
     },
+    "命中规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matched Rule"
+          }
+        }
+      }
+    },
     "命令行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6575,28 +6589,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Blocked Until"
-          }
-        }
-      }
-    },
-    "攻击IP" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Attack IP"
-          }
-        }
-      }
-    },
-    "命中规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Matched Rule"
           }
         }
       }
@@ -8685,6 +8677,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Collapse Chart"
+          }
+        }
+      }
+    },
+    "攻击IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attack IP"
           }
         }
       }

@@ -111,6 +111,8 @@ struct WAFConfigItemView: View {
     let item: WAFRuleItem?
 
     @State private var isUpdating = false
+    /// item 不可变，开关需本地镜像，成功保持、失败回滚，否则弹窗触发重绘时回跳
+    @State private var isEnabled: Bool
     @State private var successMessage: String?
     @State private var errorMessage: String?
 
@@ -123,14 +125,16 @@ struct WAFConfigItemView: View {
         self.updateType = updateType
         self.item = item
         self.client = APIClient(server: server)
+        _isEnabled = State(initialValue: item?.isOn ?? false)
     }
 
     var body: some View {
         Form {
             Section {
                 Toggle(isOn: Binding(
-                    get: { item?.isOn ?? false },
+                    get: { isEnabled },
                     set: { newVal in
+                        isEnabled = newVal
                         Task { await toggle(newVal) }
                     }
                 )) {
@@ -171,6 +175,7 @@ struct WAFConfigItemView: View {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafConfigGlobalState.path, body: req, as: EmptyResponse.self)
             successMessage = on ? L10n.t("已启用") : L10n.t("已禁用")
         } catch {
+            isEnabled = !on
             errorMessage = error.localizedDescription
         }
     }
