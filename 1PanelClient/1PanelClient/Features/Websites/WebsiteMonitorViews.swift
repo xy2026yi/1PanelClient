@@ -32,6 +32,8 @@ struct WebsiteMonitorView: View {
     @State private var selectedID: Int
     @State private var tab: Tab = .overview
     @State private var isLoadingWebsites = true
+    /// 网站列表加载失败原因；有入口网站兜底时不展示（websites 非空）
+    @State private var websitesError: String?
 
     init(server: ServerConfig, website: Website? = nil) {
         self.server = server
@@ -45,6 +47,16 @@ struct WebsiteMonitorView: View {
             Section {
                 if isLoadingWebsites && websites.isEmpty {
                     HStack { ProgressView(); Text(L10n.t("加载中…")) }
+                } else if let websitesError, websites.isEmpty {
+                    // 无入口网站兜底时失败要显式可重试，不能误报「暂无数据」
+                    ContentUnavailableView {
+                        Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(websitesError)
+                    } actions: {
+                        Button(L10n.t("重试")) { Task { await loadWebsites() } }
+                    }
+                    .frame(maxWidth: .infinity)
                 } else {
                     Picker(L10n.t("网站"), selection: $selectedID) {
                         ForEach(websites) { site in
@@ -77,7 +89,7 @@ struct WebsiteMonitorView: View {
                     WebsiteMonitorLogsSection(client: client, websiteID: selectedID)
                         .id("logs-\(selectedID)")
                 }
-            } else if !isLoadingWebsites {
+            } else if !isLoadingWebsites, websitesError == nil {
                 Section {
                     ContentUnavailableView {
                         Label(L10n.t("暂无数据"), systemImage: "tray")
@@ -92,30 +104,42 @@ struct WebsiteMonitorView: View {
     }
 
     private func loadWebsites() async {
+        isLoadingWebsites = true
+        defer { isLoadingWebsites = false }
+        var list: [Website] = []
         do {
-            let req = WebsiteSearchRequest(
-                name: "", page: 1, pageSize: 200,
-                orderBy: "favorite", order: "descending",
-                websiteGroupId: 0, type: ""
-            )
-            let resp: WebsiteListResponse = try await client.send(
-                path: APIEndpoint.websitesSearch.path, body: req,
-                as: WebsiteListResponse.self
-            )
-            var list = resp.items ?? []
+            // 分页拉全量：按 total 续页，最多 5 页兜底（正常一页即完）
+            var page = 1
+            while true {
+                let req = WebsiteSearchRequest(
+                    name: "", page: page, pageSize: 200,
+                    orderBy: "favorite", order: "descending",
+                    websiteGroupId: 0, type: ""
+                )
+                let resp: WebsiteListResponse = try await client.send(
+                    path: APIEndpoint.websitesSearch.path, body: req,
+                    as: WebsiteListResponse.self
+                )
+                let pageItems = resp.items ?? []
+                list += pageItems
+                if pageItems.isEmpty || list.count >= resp.total || page >= 5 { break }
+                page += 1
+            }
             // 兜底：入口网站不在列表里时置顶补入，避免选择器空选中
             if let website, !list.contains(where: { $0.id == website.id }) {
                 list.insert(website, at: 0)
             }
             websites = list
+            websitesError = nil
         } catch {
+            // 失败退入口网站单站兜底；无入口网站时由错误态展示并可重试
             websites = website.map { [$0] } ?? []
+            websitesError = error.localizedDescription
         }
         // 无入口网站（如 OpenResty 卡片进入）时默认选第一个
         if selectedID == 0, let first = websites.first {
             selectedID = first.id
         }
-        isLoadingWebsites = false
     }
 }
 
@@ -420,6 +444,8 @@ struct WebsiteVisitorsChart: View {
 
     @State private var selectedIndex: Int?
     @State private var bubbleSize: CGSize = .zero
+    /// 图表绘图区（相对图表整体 frame），自绘时间轴据此与数据区对齐
+    @State private var plotRect: CGRect = .zero
 
     private static let pvColor: Color = .blue
     private static let uvColor: Color = .green
@@ -446,6 +472,15 @@ struct WebsiteVisitorsChart: View {
     }
 
     var body: some View {
+        VStack(spacing: 2) {
+            chart
+            timeAxis
+        }
+        // 右侧留出边距，绘图区不顶到行右缘（同容器监控图表）
+        .padding(.trailing, 10)
+    }
+
+    private var chart: some View {
         Chart(Array(points.enumerated()), id: \.offset) { pair in
             LineMark(x: .value(L10n.t("时间"), Double(pair.offset)), y: .value(L10n.t("浏览数"), pair.element.pv ?? 0))
                 .foregroundStyle(by: .value(L10n.t("系列"), L10n.t("浏览数")))
@@ -472,28 +507,26 @@ struct WebsiteVisitorsChart: View {
             L10n.t("浏览数"): Self.pvColor,
             L10n.t("访客"): Self.uvColor,
         ])
+        // 图表下方不显示系列名图例行（按压气泡已按颜色标注各系列，同容器监控图表）
+        .chartLegend(.hidden)
         .chartXScale(domain: 0...Double(max(1, points.count - 1)))
         .chartYScale(domain: axis.domain)
-        .chartXAxis {
-            AxisMarks(values: tickIndices.map(Double.init)) { value in
-                AxisValueLabel {
-                    if let i = value.as(Int.self), i >= 0, i < points.count {
-                        Text(points[i].shortLabel)
-                            .font(.caption2)
-                    }
-                }
-            }
-        }
+        // 时间标签自绘（见 timeAxis）：系统轴的自动碰撞会丢弃/裁切标签，位置无法稳定控制
+        .chartXAxis(.hidden)
         .chartYAxis {
             AxisMarks(position: .leading, values: axis.ticks) { value in
                 AxisGridLine()
                 AxisValueLabel {
                     if let v = value.as(Double.self) {
                         Text(String(format: "%.\(axis.decimals)f", v))
+                            .font(.caption2)
+                            .monospacedDigit()
+                            .fixedSize()
+                            // 与绘图区左缘拉开距离（同容器监控：刻度文字不贴住曲线区）
+                            .padding(.trailing, 12)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
             }
         }
         .chartOverlay { proxy in
@@ -514,6 +547,12 @@ struct WebsiteVisitorsChart: View {
                             // 手指移开即取消选中
                             .onEnded { _ in selectedIndex = nil }
                     )
+
+                // 布局期间同步绘图区位置，供自绘时间轴与数据区对齐
+                // （不能只靠手势回调更新——用户不触摸时 plotRect 永远是 .zero）
+                Color.clear
+                    .onAppear { plotRect = plot }
+                    .onChange(of: plot) { _, new in plotRect = new }
 
                 // 数值气泡：悬于选中位最高点正上方
                 if let sel = selectedIndex, plot.width > 0 {
@@ -537,6 +576,30 @@ struct WebsiteVisitorsChart: View {
                 }
             }
         }
+    }
+
+    // MARK: 自绘时间轴（同容器监控图表）
+
+    /// 图表下方的时间标签行：严格正对各自数据位居中（固定采样位，见 tickIndices），
+    /// 首尾标签允许悬入两侧边距（不做贴边收回，保证与数据点精确对齐）
+    private var timeAxis: some View {
+        GeometryReader { geo in
+            ForEach(tickIndices, id: \.self) { i in
+                Text(points[i].shortLabel)
+                    .font(.system(size: 9))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .position(x: tickX(i), y: geo.size.height / 2)
+            }
+        }
+        .frame(height: 22)   // 与 Y 轴底部刻度文字拉开距离，避免最左时间标签贴住 Y 轴文本
+    }
+
+    /// 标签水平位置：正对数据位精确居中（半宽悬出也不拉回）
+    private func tickX(_ i: Int) -> CGFloat {
+        guard points.count > 1 else { return plotRect.midX }
+        return plotRect.minX + plotRect.width * (CGFloat(i) / CGFloat(points.count - 1))
     }
 
     /// 气泡：浏览数/访客各一行「同色圆点 + 名称 数值」
@@ -645,8 +708,9 @@ struct WebsiteMonitorStatsSection: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(shown) { item in
-                        MonitorRankRow(item: item, monospaced: type.0 == "uri" || type.0 == "ip")
+                    // name+count 组合在小数据集可能撞 id（如两个 0 计数空名项），改用下标
+                    ForEach(Array(shown.enumerated()), id: \.offset) { pair in
+                        MonitorRankRow(item: pair.element, monospaced: type.0 == "uri" || type.0 == "ip")
                     }
                     if expandable, items.count > Self.previewCount {
                         NavigationLink {
@@ -768,8 +832,10 @@ struct WebsiteMonitorRankListView: View {
                     Label(L10n.t("暂无数据"), systemImage: "tray")
                 }
             } else {
-                List(items) { item in
-                    MonitorRankRow(item: item, monospaced: type.0 == "uri" || type.0 == "ip")
+                List {
+                    ForEach(Array(items.enumerated()), id: \.offset) { pair in
+                        MonitorRankRow(item: pair.element, monospaced: type.0 == "uri" || type.0 == "ip")
+                    }
                 }
                 .listStyle(.insetGrouped)
             }

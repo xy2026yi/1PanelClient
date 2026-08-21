@@ -82,19 +82,31 @@ struct WAFOverviewView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
+    /// 单项请求独立容错：今日统计或 7 日趋势一项失败不拖垮另一项
+    private func fetch<T: Decodable>(_ path: String, as type: T.Type) async -> Result<T, Error> {
+        do {
+            return .success(try await client.send(path: path, method: "GET", as: type))
+        } catch {
+            return .failure(error)
+        }
+    }
+
     private func load() async {
         isLoading = true
-        defer { isLoading = false }
-        async let t = client.send(path: APIEndpoint.wafStat.path, method: "GET", as: WAFStatToday.self)
-        async let d = client.send(path: APIEndpoint.wafStatDays.path, method: "GET", as: [WAFStatDayItem].self)
-        do {
-            let (t, d) = try await (t, d)
-            today = t
-            days = d
-            errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
+        async let t = fetch(APIEndpoint.wafStat.path, as: WAFStatToday.self)
+        async let d = fetch(APIEndpoint.wafStatDays.path, as: [WAFStatDayItem].self)
+        let (tr, dr) = await (t, d)
+        isLoading = false
+        var firstError: String?
+        switch tr {
+        case .success(let x): today = x
+        case .failure(let e): firstError = e.localizedDescription
         }
+        switch dr {
+        case .success(let x): days = x
+        case .failure(let e): firstError = firstError ?? e.localizedDescription
+        }
+        errorMessage = firstError
     }
 }
 
