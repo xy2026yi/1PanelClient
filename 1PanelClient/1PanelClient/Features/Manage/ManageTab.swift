@@ -185,6 +185,8 @@ struct ManageTab: View {
             PanelServerManageView(server: server)
         case .backupAccount:
             BackupAccountsView(server: server)
+        case .taskCenter:
+            TaskCenterView(server: server)
         case .alert:
             AlertNotificationView(server: server)
         case .logs:
@@ -302,6 +304,7 @@ enum ManageItem: String, Identifiable {
     case panelManage
     case backupAccount
     case cronjob
+    case taskCenter
     case logs
 
     var id: String { rawValue }
@@ -311,7 +314,7 @@ enum ManageItem: String, Identifiable {
         (L10n.t("应用"), [.apps, .websites, .database, .containers]),
         (L10n.t("主机"), [.terminal, .files, .monitor, .process, .sshService]),
         (L10n.t("安全"), [.firewall, .fail2ban, .waf]),
-        (L10n.t("面板"), [.alert, .panelManage, .backupAccount, .cronjob, .logs]),
+        (L10n.t("面板"), [.alert, .panelManage, .backupAccount, .cronjob, .taskCenter, .logs]),
     ]
 
     var title: String {
@@ -332,6 +335,7 @@ enum ManageItem: String, Identifiable {
         case .panelManage: return L10n.t("面板/服务器管理")
         case .backupAccount: return L10n.t("备份账号")
         case .cronjob:     return L10n.t("计划任务")
+        case .taskCenter:  return L10n.t("任务中心")
         case .logs:        return L10n.t("日志")
         }
     }
@@ -354,6 +358,7 @@ enum ManageItem: String, Identifiable {
         case .panelManage: return L10n.t("重启面板与服务器")
         case .backupAccount: return L10n.t("MINIO / WebDAV / SFTP 备份存储")
         case .cronjob:     return L10n.t("定时备份与脚本")
+        case .taskCenter:  return L10n.t("应用同步 / 镜像拉取等异步任务")
         case .logs:        return L10n.t("面板 / SSH / 网站日志")
         }
     }
@@ -376,6 +381,7 @@ enum ManageItem: String, Identifiable {
         case .panelManage: return "power"
         case .backupAccount: return "externaldrive.badge.icloud"
         case .cronjob:     return "clock.badge.checkmark"
+        case .taskCenter:  return "checklist"
         case .logs:        return "doc.text.magnifyingglass"
         }
     }
@@ -398,6 +404,7 @@ enum ManageItem: String, Identifiable {
         case .panelManage: return .red
         case .backupAccount: return .blue
         case .cronjob:     return .teal
+        case .taskCenter:  return .brown
         case .logs:        return .cyan
         }
     }

@@ -316,6 +316,7 @@ enum APIEndpoint {
     // MARK: - 任务日志（安装/卸载进度）
     case logsTaskRead            // POST 读取任务日志（轮询 taskID）
     case logsTaskCount           // GET  正在执行的任务数量
+    case logsTaskSearch          // POST 任务中心分页查询（管理-面板-任务中心）
 
     // MARK: - 日志模块
     case logsOperation           // POST 操作日志分页查询
@@ -558,6 +559,7 @@ enum APIEndpoint {
         case .appsServices:          return "/api/v2/apps/services/:type"
         case .logsTaskRead:          return "/api/v2/logs/tasks/read"
         case .logsTaskCount:         return "/api/v2/logs/tasks/executing/count"
+        case .logsTaskSearch:        return "/api/v2/logs/tasks/search"
         case .backupsLocal:          return "/api/v2/backups/local?operateNode=local"
         case .backupsRecordSearch:   return "/api/v2/backups/record/search?operateNode=local"
         case .backupsRecordSize:     return "/api/v2/backups/record/size?operateNode=local"
