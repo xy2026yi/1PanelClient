@@ -90,6 +90,13 @@ struct OverviewTab: View {
             }
         }
         .task { await vm.refresh() }
+        // 切回首页 Tab 时刷新应用卡片的可更新数：
+        // 应用升级/忽略/卸载都在管理 Tab 完成，不刷新的话角标要等下拉才更新
+        .onChange(of: selectedTab) { _, tab in
+            if tab == .overview {
+                Task { await vm.refreshAppUpdateCount() }
+            }
+        }
         // 实时监控独立轮询：页面可见时每 5 秒刷新一次 current 数据（仅当前 Tab 活跃时）
         .task {
             while !Task.isCancelled {
@@ -584,6 +591,10 @@ final class OverviewViewModel: ObservableObject {
 
     private(set) var client: APIClient
 
+    /// 刷新代际：并发 refresh 时只让最后一次的结果生效，
+    /// 避免先发出的慢请求晚到，把新数据覆盖回旧值（表现为"怎么刷新都不变"）
+    private var refreshGeneration = 0
+
     var hasData: Bool { base != nil || osInfo != nil || deviceInfo != nil }
 
     init(server: ServerConfig) {
@@ -603,6 +614,8 @@ final class OverviewViewModel: ObservableObject {
     }
 
     func refresh() async {
+        refreshGeneration += 1
+        let generation = refreshGeneration
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -648,6 +661,8 @@ final class OverviewViewModel: ObservableObject {
         )
 
         let (b, o, d, s, c, au, ct, up) = await (baseResp, os, dev, settings, current, appUpdates, containers, upgrade)
+        // 期间又发起了新刷新：本次结果作废，避免旧响应覆盖新数据
+        guard generation == refreshGeneration else { return }
         if let b { self.base = b }
         if let o { self.osInfo = o }
         if let d { self.deviceInfo = d }
@@ -673,6 +688,21 @@ final class OverviewViewModel: ObservableObject {
             as: DashboardCurrent.self
         ) {
             self.currentInfo = c
+        }
+    }
+
+    /// 仅刷新可更新应用数（供切回首页 Tab 时调用）：
+    /// 升级/忽略/卸载发生在管理 Tab，返回首页时若不主动拉取，
+    /// 应用卡片角标会一直停留到下次下拉刷新
+    func refreshAppUpdateCount() async {
+        refreshGeneration += 1
+        let generation = refreshGeneration
+        if let au: AppInstalledListResponse = try? await client.send(
+            path: APIEndpoint.appsInstalledSearch.path,
+            body: AppInstalledSearchRequest(page: 1, pageSize: 1, name: "", type: "", tags: [], update: true, all: false, unused: false, sync: false),
+            as: AppInstalledListResponse.self
+        ), generation == refreshGeneration {
+            appUpdateCount = au.total
         }
     }
 }
