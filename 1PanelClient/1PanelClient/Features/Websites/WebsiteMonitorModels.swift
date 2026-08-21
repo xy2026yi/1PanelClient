@@ -36,19 +36,20 @@ enum WebsiteMonitorRange: String, CaseIterable, Identifiable {
     }
 
     /// 访问统计 rank 参数：yyyyMMdd 日期对（今日为同日起止）
-    var dayPair: [String] {
+    /// now 可注入以便测试；缺省取当前时刻
+    func dayPair(now: Date = Date()) -> [String] {
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyyMMdd"
         let cal = Calendar.current
-        let end = cal.startOfDay(for: Date())
+        let end = cal.startOfDay(for: now)
         let start = cal.date(byAdding: .day, value: -(days - 1), to: end) ?? end
         return [fmt.string(from: start), fmt.string(from: end)]
     }
 
     /// 请求日志时间窗：今日为当日 00:00:00–23:59:59，其余为滚动 N 天到现在
-    var logWindow: (start: Date, end: Date) {
+    /// now 可注入以便测试；缺省取当前时刻
+    func logWindow(now: Date = Date()) -> (start: Date, end: Date) {
         let cal = Calendar.current
-        let now = Date()
         if self == .today {
             let start = cal.startOfDay(for: now)
             let end = cal.date(byAdding: .second, value: 86399, to: start) ?? now

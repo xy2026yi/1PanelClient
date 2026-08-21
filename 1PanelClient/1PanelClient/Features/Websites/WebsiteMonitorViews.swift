@@ -164,6 +164,8 @@ struct WebsiteMonitorOverviewSection: View {
     @State private var worldMap: [String: String] = [:]
     @State private var errorMessage: String?
     @State private var isLoading = true
+    /// 加载令牌：range 快速切换时，旧请求慢返回不覆盖新一次的结果
+    @State private var loadToken = 0
 
     var body: some View {
         Group {
@@ -186,6 +188,7 @@ struct WebsiteMonitorOverviewSection: View {
         }
         .task { await load() }
         .onChange(of: range) { _, _ in Task { await load() } }
+        .refreshable { await load() }
     }
 
     @ViewBuilder
@@ -369,8 +372,9 @@ struct WebsiteMonitorOverviewSection: View {
     }
 
     private func load() async {
+        loadToken += 1
+        let token = loadToken
         isLoading = true
-        defer { isLoading = false }
         async let q = fetch(APIEndpoint.monitorQps.path,
                             body: MonitorQpsRequest(websiteID: websiteID), as: MonitorQpsInfo.self)
         async let s = fetch(APIEndpoint.monitorStat.path,
@@ -380,7 +384,10 @@ struct WebsiteMonitorOverviewSection: View {
         async let l = fetchLocs()
         async let w = fetchWorldMap()
         let (qr, sr, vr, lr) = await (q, s, v, l)
-        worldMap = await w
+        let world = await w
+        guard token == loadToken else { return }
+        isLoading = false
+        worldMap = world
         var firstError: String?
         switch qr {
         case .success(let x): qpsInfo = x
@@ -567,16 +574,19 @@ struct WebsiteMonitorStatsSection: View {
     let client: APIClient
     let websiteID: Int
 
-    /// (接口 type, 展示名)
-    static let types: [(String, String)] = [
-        ("uri", "URL"),
-        ("referer", L10n.t("来源")),
-        ("ip", "IP"),
-        ("browser", L10n.t("浏览器")),
-        ("os", L10n.t("操作系统")),
-        ("device", L10n.t("设备")),
-        ("status_code", L10n.t("状态码")),
-    ]
+    /// (接口 type, 展示名)——实例计算属性而非 static 缓存：
+    /// static 会把 L10n.t 结果常驻进程，语言热切换（根视图 .id 重建）后标题停留旧语言
+    private var types: [(String, String)] {
+        [
+            ("uri", "URL"),
+            ("referer", L10n.t("来源")),
+            ("ip", "IP"),
+            ("browser", L10n.t("浏览器")),
+            ("os", L10n.t("操作系统")),
+            ("device", L10n.t("设备")),
+            ("status_code", L10n.t("状态码")),
+        ]
+    }
 
     /// 预览仅显示 5 条、可跳转完整列表的类型
     private static let expandableTypes: Set<String> = ["uri", "referer", "ip", "browser"]
@@ -586,6 +596,8 @@ struct WebsiteMonitorStatsSection: View {
     @State private var ranks: [String: [MonitorRankItem]] = [:]
     @State private var errorMessage: String?
     @State private var isLoading = true
+    /// 加载令牌：range 快速切换时，旧请求慢返回不覆盖新一次的结果
+    @State private var loadToken = 0
 
     var body: some View {
         Group {
@@ -608,6 +620,7 @@ struct WebsiteMonitorStatsSection: View {
         }
         .task { await load() }
         .onChange(of: range) { _, _ in Task { await load() } }
+        .refreshable { await load() }
     }
 
     @ViewBuilder
@@ -622,7 +635,7 @@ struct WebsiteMonitorStatsSection: View {
             .segmentedPickerRow()
         }
 
-        ForEach(Self.types, id: \.0) { type in
+        ForEach(types, id: \.0) { type in
             Section {
                 let items = ranks[type.0] ?? []
                 let expandable = Self.expandableTypes.contains(type.0)
@@ -668,11 +681,14 @@ struct WebsiteMonitorStatsSection: View {
     }
 
     private func load() async {
+        loadToken += 1
+        let token = loadToken
         isLoading = true
-        defer { isLoading = false }
-        let pair = range.dayPair
+        let pair = range.dayPair()
+        var merged: [String: [MonitorRankItem]] = [:]
+        var firstError: String?
         await withTaskGroup(of: (String, [MonitorRankItem]?, String?).self) { group in
-            for type in Self.types {
+            for type in types {
                 group.addTask {
                     do {
                         let resp: [MonitorRankItem] = try await self.client.send(
@@ -686,15 +702,15 @@ struct WebsiteMonitorStatsSection: View {
                     }
                 }
             }
-            var merged: [String: [MonitorRankItem]] = [:]
-            var firstError: String?
             for await (type, items, err) in group {
                 if let items { merged[type] = items }
                 if firstError == nil, let err { firstError = err }
             }
-            ranks = merged
-            errorMessage = firstError
         }
+        guard token == loadToken else { return }
+        isLoading = false
+        ranks = merged
+        errorMessage = firstError
     }
 }
 
@@ -766,7 +782,7 @@ struct WebsiteMonitorRankListView: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        let req = MonitorRankRequest(websiteID: websiteID, type: type.0, dayRange: range.dayPair, limit: 10)
+        let req = MonitorRankRequest(websiteID: websiteID, type: type.0, dayRange: range.dayPair(), limit: 10)
         do {
             items = try await client.send(path: APIEndpoint.monitorRank.path, body: req, as: [MonitorRankItem].self)
             errorMessage = nil
@@ -786,6 +802,8 @@ struct WebsiteMonitorLogsSection: View {
     @State private var items: [MonitorLogItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    /// 加载令牌：range 快速切换时，旧请求慢返回不覆盖新一次的结果
+    @State private var loadToken = 0
 
     var body: some View {
         Group {
@@ -838,6 +856,7 @@ struct WebsiteMonitorLogsSection: View {
         }
         .task { await load() }
         .onChange(of: range) { _, _ in Task { await load() } }
+        .refreshable { await load() }
     }
 
     private func logRow(_ item: MonitorLogItem) -> some View {
@@ -872,9 +891,10 @@ struct WebsiteMonitorLogsSection: View {
     }
 
     private func load() async {
+        loadToken += 1
+        let token = loadToken
         isLoading = true
-        defer { isLoading = false }
-        let window = range.logWindow
+        let window = range.logWindow()
         let req = MonitorLogSearchRequest(
             page: 1, pageSize: 100, total: 0,
             ip: "", ipLocation: "", url: "",
@@ -888,9 +908,13 @@ struct WebsiteMonitorLogsSection: View {
                 path: APIEndpoint.monitorLogsSearch.path, body: req,
                 as: PageResponse<MonitorLogItem>.self
             )
+            guard token == loadToken else { return }
+            isLoading = false
             items = resp.items ?? []
             errorMessage = nil
         } catch {
+            guard token == loadToken else { return }
+            isLoading = false
             errorMessage = error.localizedDescription
         }
     }
