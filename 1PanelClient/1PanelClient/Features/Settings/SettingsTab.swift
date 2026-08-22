@@ -149,7 +149,7 @@ struct AboutSectionView: View {
     @Binding var isPresented: Bool
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.8"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.9"
     }
 
     var body: some View {
@@ -190,7 +190,7 @@ struct AboutSectionView: View {
 /// 关于详情：版本 / API 版本 / 1Panel 官网
 struct AboutDetailView: View {
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.8"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.9"
     }
 
     var body: some View {
