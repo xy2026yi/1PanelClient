@@ -172,13 +172,14 @@ private struct ServerRow: View {
             if let cur = metrics {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ring(L10n.t("负载"), percent: cur.loadUsagePercent, color: .teal)
-                        ring("CPU", percent: cur.cpuUsedPercent, color: .blue)
-                        ring(L10n.t("内存"), percent: cur.memoryUsedPercent, color: .purple)
+                        ring(L10n.t("负载"), percent: cur.loadUsagePercent, footer: format2(cur.load1), color: .teal)
+                        ring("CPU", percent: cur.cpuUsedPercent, footer: L10n.f("%@ / %ld 核", format2(cur.cpuUsed), cur.cpuTotal ?? 0), color: .blue)
+                        ring(L10n.t("内存"), percent: cur.memoryUsedPercent, footer: formatUsedOverTotal(cur.memoryUsed, cur.memoryTotal), color: .purple)
                         ForEach(Array((cur.diskData ?? []).enumerated()), id: \.offset) { _, disk in
                             ring(
                                 disk.path?.isEmpty == false ? disk.path! : L10n.t("存储"),
                                 percent: disk.usedPercent,
+                                footer: formatUsedOverTotal(disk.used, disk.total),
                                 color: .orange
                             )
                         }
@@ -186,7 +187,7 @@ private struct ServerRow: View {
                     // 垂直 6pt：环描边（线宽 6）向外溢出约 3pt，留足余量防 ScrollView 裁剪上下弧
                     .padding(.vertical, 6)
                 }
-                .frame(height: 70)  // 环 54 + 描边溢出 + 上下余量；显式高度防 List 行高压缩
+                .frame(height: 86)  // 环 54 + footer 14 + 间距与描边余量；显式高度防 List 行高压缩
                 .fixedSize(horizontal: false, vertical: true)
             } else if health.isOnline {
                 ProgressView()
@@ -200,16 +201,46 @@ private struct ServerRow: View {
         .onLongPressGesture(perform: onLongPress)
     }
 
-    /// 指标环：首页状态卡同款 RingStatView（compact 54pt），定宽以适配横滑行
-    private func ring(_ label: String, percent: Double?, color: Color) -> some View {
+    /// 指标环：首页状态卡同款 RingStatView（compact 54pt + 环下详情），定宽以适配横滑行
+    private func ring(_ label: String, percent: Double?, footer: String, color: Color) -> some View {
         RingStatView(
             percent: percent ?? 0,
             color: color,
             topText: percent.map { String(format: "%.0f%%", $0) } ?? "—",
             bottomText: label,
-            footer: "",
+            footer: footer,
             compact: true
         )
         .frame(width: 64)
+    }
+
+    // MARK: 环下详情格式化（与首页状态卡一致）
+
+    private func format2(_ v: Double?) -> String {
+        String(format: "%.2f", v ?? 0)
+    }
+
+    private func byteParts(_ bytes: Int64?) -> (value: String, unit: String) {
+        let b = bytes ?? 0
+        if b >= 1024 * 1024 * 1024 {
+            return (String(format: "%.2f", Double(b) / 1_073_741_824), "GB")
+        }
+        if b >= 1024 * 1024 {
+            return (String(format: "%.2f", Double(b) / 1_048_576), "MB")
+        }
+        if b >= 1024 {
+            return (String(format: "%.1f", Double(b) / 1024), "KB")
+        }
+        return ("\(b)", "B")
+    }
+
+    /// 已用/总量：同单位时单位只出现一次（6.83 / 58.90 GB）
+    private func formatUsedOverTotal(_ used: Int64?, _ total: Int64?) -> String {
+        let u = byteParts(used)
+        let t = byteParts(total)
+        if u.unit == t.unit {
+            return "\(u.value) / \(t.value) \(t.unit)"
+        }
+        return "\(u.value) \(u.unit) / \(t.value) \(t.unit)"
     }
 }

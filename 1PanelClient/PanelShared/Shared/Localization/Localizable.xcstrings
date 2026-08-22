@@ -1858,6 +1858,17 @@
         }
       }
     },
+    "两次输入不一致，请重新设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passcodes didn't match. Try again."
+          }
+        }
+      }
+    },
     "中风险" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2485,6 +2496,17 @@
         }
       }
     },
+    "使用密码解锁" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Passcode"
+          }
+        }
+      }
+    },
     "使用自定义配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2514,6 +2536,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "usage above"
+          }
+        }
+      }
+    },
+    "使用面容 ID 解锁" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Face ID"
           }
         }
       }
@@ -3295,6 +3328,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Built-in"
+          }
+        }
+      }
+    },
+    "再次输入新密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-enter New Passcode"
           }
         }
       }
@@ -6614,6 +6658,17 @@
         }
       }
     },
+    "密码错误，请重试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrong passcode, try again"
+          }
+        }
+      }
+    },
     "密码（不修改请留空）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7635,6 +7690,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App Details"
+          }
+        }
+      }
+    },
+    "应用锁" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Lock"
+          }
+        }
+      }
+    },
+    "应用锁使用 4 位数字密码，支持面容 ID / 触控 ID 优先快捷解锁；打开 App 或从后台恢复时需验证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Lock uses a 4-digit passcode, with Face ID / Touch ID quick unlock when available. Verification is required when opening the app or returning from background."
+          }
+        }
+      }
+    },
+    "应用锁已开启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Lock enabled"
           }
         }
       }
@@ -15031,6 +15119,17 @@
         }
       }
     },
+    "设置 4 位数字密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set a 4-digit passcode"
+          }
+        }
+      }
+    },
     "访客" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16232,6 +16331,17 @@
         }
       }
     },
+    "输入密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter Passcode"
+          }
+        }
+      }
+    },
     "输入或生成新密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16250,6 +16360,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter a new name"
+          }
+        }
+      }
+    },
+    "输入新密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter New Passcode"
           }
         }
       }

@@ -19,23 +19,16 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: L10n.languageDidChangeNotification)) { _ in
                 languageVersion += 1
             }
-            .environmentObject(appLock)
             .overlay {
                 if appLock.isLocked {
                     LockScreenView()
                         .transition(.opacity)
                 }
             }
+            // environmentObject 必须包在 overlay 之外：overlay 内容不在内侧修饰器的
+            // 环境作用域内，放 overlay 前会导致 LockScreenView 取不到 AppLockManager 而崩溃
+            .environmentObject(appLock)
             .animation(.easeInOut(duration: 0.25), value: appLock.isLocked)
-            // 锁定时自动弹系统验证（冷启动/回前台/重试由 task(id:) 重新触发）
-            .task(id: appLock.isLocked) {
-                if appLock.isLocked {
-                    // 稍等遮罩淡入完成再弹，避免验证框与转场重叠
-                    try? await Task.sleep(for: .seconds(0.3))
-                    guard appLock.isLocked else { return }
-                    await appLock.unlock()
-                }
-            }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .background {
                     appLock.lockIfEnabled()

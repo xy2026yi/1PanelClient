@@ -12,6 +12,8 @@ struct SettingsTab: View {
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
     @AppStorage(SecurityGate.httpsOnlyKey) private var httpsOnly = false
     @AppStorage(AppLockManager.enabledKey) private var appLockEnabled = false
+    @State private var showSetPin = false
+    @State private var setPinToast: String? = nil
     @State private var languageRaw = L10n.shared.language.rawValue
 
     init(atRoot: Binding<Bool> = .constant(true)) {
@@ -56,21 +58,27 @@ struct SettingsTab: View {
             // MARK: - 安全
             Section {
                 Toggle(L10n.t("仅允许 HTTPS 连接"), isOn: $httpsOnly)
-                Toggle(
-                    L10n.t("面容 ID / 触控 ID 锁定"),
-                    isOn: Binding(
-                        get: { appLockEnabled && AppLockManager.canAuthenticate },
-                        set: { appLockEnabled = $0 }
-                    )
-                )
-                .disabled(!AppLockManager.canAuthenticate)
+                Toggle(L10n.t("应用锁"), isOn: Binding(
+                    get: { appLockEnabled && AppLockManager.hasPasscode },
+                    set: { on in
+                        if on {
+                            // 未设过密码：先弹设置密码，成功后再真正开启
+                            showSetPin = true
+                        } else {
+                            appLockEnabled = false
+                        }
+                    }
+                ))
+                if AppLockManager.hasPasscode {
+                    Button(L10n.t("修改密码")) {
+                        showSetPin = true
+                    }
+                }
             } header: {
                 Text(L10n.t("安全"))
             } footer: {
                 Text(L10n.t("开启后拒绝所有 http:// 明文面板地址，防止 API Key 与数据在链路中被窃听；自托管面板若使用 HTTP 明文访问需保持关闭"))
-                + Text(AppLockManager.canAuthenticate
-                       ? "\n" + L10n.t("开启应用锁后，打开 App 或从后台恢复时需通过面容 ID / 触控 ID 或设备密码验证")
-                       : "\n" + L10n.t("此设备未设置密码或生物识别，无法启用应用锁"))
+                + Text("\n" + L10n.t("应用锁使用 4 位数字密码，支持面容 ID / 触控 ID 优先快捷解锁；打开 App 或从后台恢复时需验证"))
             }
 
             // MARK: - 关于
@@ -82,6 +90,13 @@ struct SettingsTab: View {
         .navigationDestination(isPresented: $showAbout) {
             AboutDetailView()
         }
+        .sheet(isPresented: $showSetPin) {
+            SetPasscodeSheet {
+                appLockEnabled = true
+                setPinToast = L10n.t("应用锁已开启")
+            }
+        }
+        .toastOverlay(message: $setPinToast)
         .onChange(of: showAbout) { _, show in
             atRoot = !show
         }
