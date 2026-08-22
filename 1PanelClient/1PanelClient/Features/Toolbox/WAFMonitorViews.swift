@@ -10,6 +10,42 @@ import Charts
 
 // MARK: - 概览
 
+/// WAF 监控入口页（管理-高级功能）：概览 / 拦截记录 / 封锁记录
+struct WAFMonitorView: View {
+    let server: ServerConfig
+
+    var body: some View {
+        List {
+            Section {
+                NavigationLink {
+                    WAFOverviewView(server: server)
+                } label: {
+                    entryRow(icon: "chart.bar.xaxis", color: .blue, title: L10n.t("概览"))
+                }
+                NavigationLink {
+                    WAFInterceptLogsView(server: server)
+                } label: {
+                    entryRow(icon: "exclamationmark.triangle.fill", color: .orange, title: L10n.t("拦截记录"))
+                }
+                NavigationLink {
+                    WAFBlockRecordsView(server: server)
+                } label: {
+                    entryRow(icon: "lock.shield", color: .red, title: L10n.t("封锁记录"))
+                }
+            }
+        }
+        .navigationTitle(L10n.t("WAF 监控"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func entryRow(icon: String, color: Color, title: String) -> some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: icon, color: color, size: 34, cornerRadius: 8)
+            Text(title)
+        }
+    }
+}
+
 struct WAFOverviewView: View {
     let server: ServerConfig
 

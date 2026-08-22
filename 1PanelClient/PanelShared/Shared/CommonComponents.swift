@@ -41,6 +41,13 @@ struct ToastOverlay: ViewModifier {
                 Haptic.error()
             }
         }
+        // 2 秒自动消失：组件内置，调用方只需赋值；
+        // message 变化即重置计时（新提示重计 2 秒），置 nil 则无事可做
+        .task(id: message) {
+            guard message != nil else { return }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            message = nil
+        }
     }
 }
 

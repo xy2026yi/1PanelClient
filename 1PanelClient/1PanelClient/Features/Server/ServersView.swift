@@ -2,7 +2,8 @@
 //  ServersView.swift
 //  1PanelClient
 //
-//  服务器页面：展示全部服务器，单击切换当前服务器，长按编辑，右下角 + 添加
+//  服务器页面：展示全部服务器，单击切换当前服务器，长按弹出操作面板
+//  （编辑 / 重启面板 / 重启服务器 / 删除），右下角 + 添加
 //
 
 import SwiftUI
@@ -14,11 +15,17 @@ struct ServersView: View {
     @State private var showAdd = false
     @State private var editingServer: ServerConfig?
     @State private var serverToRemove: ServerConfig?
+    /// 长按弹出的操作面板目标
+    @State private var actionServer: ServerConfig?
+    @State private var toastMessage: String?
+    @State private var alertMessage: String?
+    @State private var showAlert = false
 
     var body: some View {
         List {
-            Section {
-                ForEach(manager.servers) { server in
+            // 每台服务器独立 Section：insetGrouped 下一个 Section 即一张卡片
+            ForEach(manager.servers) { server in
+                Section {
                     ServerRow(
                         server: server,
                         isCurrent: server.id == manager.currentServerID,
@@ -31,7 +38,7 @@ struct ServersView: View {
                             manager.select(server)
                         },
                         onLongPress: {
-                            editingServer = server
+                            actionServer = server
                         }
                     )
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -42,8 +49,11 @@ struct ServersView: View {
                         }
                     }
                 }
+            }
+            // 无行的 Section 只渲染 footer 文本，不带卡片背景
+            Section {
             } footer: {
-                Text(L10n.t("单击切换服务器，长按编辑，左滑移除；下拉刷新健康状态"))
+                Text(L10n.t("单击切换服务器，长按更多操作，左滑移除；下拉刷新健康状态"))
             }
         }
         .refreshable {
@@ -84,6 +94,15 @@ struct ServersView: View {
         .navigationDestination(item: $editingServer) { server in
             ServerEditView(manager: manager, editing: server, presentedAsSheet: false)
         }
+        .sheet(item: $actionServer) { server in
+            ServerActionsSheet(server: server) { action in
+                actionServer = nil
+                handle(action, for: server)
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+        .toastOverlay(message: $toastMessage)
         // 移除服务器前确认（会连带清除 Keychain 中的 API 密钥）—— 居中 alert
         .alert(L10n.t("移除服务器"), isPresented: Binding(
             get: { serverToRemove != nil },
@@ -101,8 +120,169 @@ struct ServersView: View {
         } message: {
             Text(L10n.f("将移除「%@」的连接配置与已保存的 API 密钥，此操作不可恢复。", serverToRemove?.name ?? ""))
         }
+        .alert(L10n.t("提示"), isPresented: $showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(alertMessage ?? "")
+        }
     }
 
+    private func handle(_ action: ServerAction, for server: ServerConfig) {
+        switch action {
+        case .edit:
+            editingServer = server
+        case .remove:
+            serverToRemove = server
+        case .restart(let target):
+            Task { await restart(target, on: server) }
+        }
+    }
+
+    /// 重启指令用目标服务器自己的凭据直发其 API——多机场景下对非当前服务器同样可执行
+    private func restart(_ target: ServerRestartTarget, on server: ServerConfig) async {
+        let path = APIEndpoint.dashboardSystemRestart.path
+            .replacingOccurrences(of: ":target", with: target.rawValue)
+        do {
+            let _: EmptyResponse = try await APIClient(server: server).send(path: path, as: EmptyResponse.self)
+            toastMessage = target.successToast
+        } catch let err as APIError {
+            // 重启面板/服务器时，服务端收到请求后会主动断开连接（自身正在重启），
+            // 抓包表现为无响应。此时指令实际已送达，按成功处理而非报错。
+            if case .networkError = err {
+                toastMessage = target.successToast
+            } else {
+                alertMessage = L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误"))
+                showAlert = true
+            }
+        } catch {
+            toastMessage = target.successToast
+        }
+    }
+
+}
+
+// MARK: - 长按操作面板
+
+/// 长按服务器的操作：编辑 / 删除 / 重启（重启目标另带参数）
+enum ServerAction {
+    case edit
+    case remove
+    case restart(ServerRestartTarget)
+}
+
+/// 重启目标（rawValue 对应路径参数 :target）
+enum ServerRestartTarget: String, Identifiable {
+    case panel = "1panel"
+    case system = "system"
+
+    var id: String { rawValue }
+
+    var title: String {
+        self == .panel ? L10n.t("重启面板") : L10n.t("重启服务器")
+    }
+
+    /// 完成后的提示文案
+    var successToast: String {
+        self == .panel
+            ? L10n.t("重启指令已发送，面板服务正在重启，几秒后恢复")
+            : L10n.t("重启指令已发送，服务器将失联 1-2 分钟")
+    }
+}
+
+/// 服务器长按操作面板（半屏）：编辑 / 重启面板 / 重启服务器 / 删除。
+/// 重启沿用「输入 立即重启 确认」高危确认；指令执行与提示由外页负责
+private struct ServerActionsSheet: View {
+    let server: ServerConfig
+    var onAction: (ServerAction) -> Void
+
+    @State private var restartTarget: ServerRestartTarget?
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(server.name)
+                            .font(.headline)
+                        Text(server.normalizedBaseURL)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 2)
+                }
+
+                Section {
+                    actionRow(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        onAction(.edit)
+                    }
+                    actionRow(
+                        title: ServerRestartTarget.panel.title,
+                        icon: "arrow.triangle.2.circlepath",
+                        color: .red,
+                        subtitle: L10n.t("重启 1Panel 面板服务，几秒后自动恢复")
+                    ) {
+                        restartTarget = .panel
+                    }
+                    actionRow(
+                        title: ServerRestartTarget.system.title,
+                        icon: "power.dotted",
+                        color: .red,
+                        subtitle: L10n.t("重启整个服务器，期间将失联 1-2 分钟")
+                    ) {
+                        restartTarget = .system
+                    }
+                }
+
+                Section {
+                    actionRow(title: L10n.t("删除"), icon: "trash", color: .red) {
+                        onAction(.remove)
+                    }
+                }
+            }
+            .navigationTitle(L10n.t("服务器操作"))
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .sheet(item: $restartTarget) { target in
+            TextInputConfirmSheet(
+                title: target.title,
+                message: L10n.t("此操作不可恢复。如果确认操作，请手动输入「立即重启」。"),
+                expectedText: L10n.t("立即重启"),
+                fieldLabel: L10n.t("确认输入"),
+                fieldPlaceholder: L10n.t("请输入 立即重启"),
+                confirmTitle: L10n.t("确认重启")
+            ) {
+                onAction(.restart(target))
+            }
+        }
+    }
+
+    private func actionRow(
+        title: String,
+        icon: String,
+        color: Color,
+        subtitle: String? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(color)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .foregroundStyle(.primary)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+            }
+            .padding(.vertical, 2)
+        }
+    }
 }
 
 /// 服务器行：标题行 = 名称 + 健康点 + 运行时长 + 当前绿勾；副行 = 地址；

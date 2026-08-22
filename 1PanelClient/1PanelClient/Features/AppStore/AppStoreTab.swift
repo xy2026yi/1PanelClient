@@ -968,62 +968,23 @@ final class AppStoreViewModel: ObservableObject {
     // MARK: - 同步应用商店
 
     /// 更新远程应用（从远程商店拉取最新应用列表到本地）。
-    /// 无进度页：后台轮询任务日志，完成时轻提示并刷新列表
+    /// 服务端立即受理且不产生可轮询的任务进度：提交成功即 toast 轻提示，不等待完成
     func syncRemote() async {
         isSyncing = true
         defer { isSyncing = false }
 
-        let taskID = UUID().uuidString
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.appsSyncRemote.path,
-                body: ReqWithTaskID(taskID: taskID),
+                body: ReqWithTaskID(taskID: UUID().uuidString),
                 as: EmptyResponse.self
             )
+            showToast(L10n.t("远程应用同步已发起"))
         } catch let err as APIError {
             showAlert(message: L10n.f("同步失败：%@", err.errorDescription ?? L10n.t("未知错误")))
-            return
         } catch {
             showAlert(message: L10n.f("同步失败：%@", error.localizedDescription))
-            return
         }
-
-        if await waitTaskDone(taskID: taskID) {
-            showToast(L10n.t("远程应用同步完成"))
-            await refresh()
-        } else {
-            showAlert(message: L10n.t("远程应用同步失败，请稍后在任务日志中查看详情"))
-        }
-    }
-
-    /// 轮询任务日志直到任务结束（Success/Failed）；连续 20 次请求失败或超 10 分钟按失败处理
-    private func waitTaskDone(taskID: String) async -> Bool {
-        let req = TaskLogReadRequest(
-            id: 0, type: "task", name: "",
-            page: 1, pageSize: 500,
-            latest: true,
-            taskID: taskID,
-            taskType: "", taskOperate: "", resourceID: 0
-        )
-        var failures = 0
-        for _ in 0..<(10 * 60 / 3) {
-            do {
-                let resp: TaskLogResponse = try await client.send(
-                    path: APIEndpoint.logsTaskRead.path,
-                    body: req, as: TaskLogResponse.self
-                )
-                failures = 0
-                if let status = resp.taskStatus, status.lowercased() != "executing" {
-                    return status.lowercased() == "success"
-                }
-            } catch {
-                // 任务日志文件尚未创建等偶发错误不中断轮询
-                failures += 1
-                if failures > 20 { return false }
-            }
-            try? await Task.sleep(for: .seconds(3))
-        }
-        return false
     }
 
     /// 同步本地应用（将本地已安装应用状态同步到面板），返回任务 ID 供进度页轮询

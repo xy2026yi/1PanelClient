@@ -129,13 +129,16 @@ struct NodeDetailView: View {
                     } label: {
                         Label(RestartTarget.system.title, systemImage: "power.dotted")
                     }
-                    Divider()
-                    Button(role: .destructive) {
-                        deleteForce = false
-                        deleteWithData = false
-                        showDeleteSheet = true
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
+                    // local 为主控节点，删除后当前面板连接即失效，不提供删除入口
+                    if !isLocalNode {
+                        Divider()
+                        Button(role: .destructive) {
+                            deleteForce = false
+                            deleteWithData = false
+                            showDeleteSheet = true
+                        } label: {
+                            Label(L10n.t("删除"), systemImage: "trash")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")

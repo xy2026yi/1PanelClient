@@ -94,7 +94,7 @@ struct WebsitesTab: View {
     private var websiteList: some View {
         List {
             // 顶部 OpenResty 信息与管理卡片
-            OpenRestyCard(vm: vm, manager: manager, showConfig: $showOpenRestyConfig)
+            OpenRestyCard(vm: vm, showConfig: $showOpenRestyConfig)
 
             if vm.websites.isEmpty {
                 Section {
@@ -139,21 +139,13 @@ struct WebsitesTab: View {
 
 struct OpenRestyCard: View {
     @ObservedObject var vm: WebsitesViewModel
-    @ObservedObject var manager: ServerManager
     @State private var isExpanded = false
     @Binding var showConfig: Bool
     @State private var pendingAction: String?
-    // 网站监控
-    @State private var showMonitor = false
 
-    init(vm: WebsitesViewModel, manager: ServerManager, showConfig: Binding<Bool>) {
+    init(vm: WebsitesViewModel, showConfig: Binding<Bool>) {
         self.vm = vm
-        self.manager = manager
         self._showConfig = showConfig
-    }
-
-    private var server: ServerConfig {
-        manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
     }
 
     var body: some View {
@@ -185,9 +177,6 @@ struct OpenRestyCard: View {
                         ServiceAction(title: L10n.t("配置"), icon: "slider.horizontal.3", color: .purple) {
                             showConfig = true
                         },
-                        ServiceAction(title: L10n.t("监控"), icon: "chart.pie.fill", color: .indigo) {
-                            showMonitor = true
-                        }
                     ]
                 ) {
                     // OpenResty 使用内置品牌图标，避免依赖服务器应用图标接口
@@ -198,9 +187,6 @@ struct OpenRestyCard: View {
                     ServiceStatusFailedRow(text: L10n.t("OpenResty 未安装或加载失败"))
                 }
             }
-        }
-        .navigationDestination(isPresented: $showMonitor) {
-            WebsiteMonitorView(server: server)
         }
         .alert(
             pendingAction.map { openRestyActionDisplayName($0) } ?? "",

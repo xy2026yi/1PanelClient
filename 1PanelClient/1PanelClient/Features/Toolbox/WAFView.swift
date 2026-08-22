@@ -91,27 +91,7 @@ struct WAFView: View {
                 }
             }
 
-            // 监控
-            Section {
-                NavigationLink {
-                    WAFOverviewView(server: server)
-                } label: {
-                    entryRow(icon: "chart.bar.xaxis", color: .blue, title: L10n.t("概览"))
-                }
-                NavigationLink {
-                    WAFInterceptLogsView(server: server)
-                } label: {
-                    entryRow(icon: "exclamationmark.triangle.fill", color: .orange, title: L10n.t("拦截记录"))
-                }
-                NavigationLink {
-                    WAFBlockRecordsView(server: server)
-                } label: {
-                    entryRow(icon: "lock.shield", color: .red, title: L10n.t("封锁记录"))
-                }
-            } header: {
-                SectionLabel(title: L10n.t("监控"), systemImage: "chart.pie")
-            }
-
+            // 防护规则
             Section {
                 NavigationLink {
                     WAFBlackWhiteView(vm: vm, server: server)

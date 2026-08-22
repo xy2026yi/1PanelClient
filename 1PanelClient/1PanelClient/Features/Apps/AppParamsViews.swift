@@ -298,6 +298,8 @@ struct ComposeEditorView: View {
     @State private var deleteOldImage: Bool
     /// 对比模式下已采纳「采用旧配置」的差异块（hunk 下标集合）
     @State private var adoptedHunks: Set<Int> = []
+    /// 新配置全屏显示（与内嵌显示共享采纳块/编辑文本，返回即切回）
+    @State private var showFullNewCompose = false
 
     init(
         app: AppInstall,
@@ -445,12 +447,23 @@ struct ComposeEditorView: View {
                         .frame(minHeight: 240)
                 }
             } header: {
-                HStack {
+                HStack(spacing: 8) {
                     Text(useCustom ? L10n.t("自定义配置（可编辑）") : L10n.t("新版本"))
                     Spacer()
                     Text("v\(version.version ?? "?")")
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
+                    if useCustom || !newCompose.isEmpty {
+                        Button {
+                            showFullNewCompose = true
+                        } label: {
+                            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.blue)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.t("全屏显示"))
+                    }
                 }
             }
 
@@ -467,6 +480,10 @@ struct ComposeEditorView: View {
         }
         .navigationTitle("docker-compose.yml")
         .navigationBarTitleDisplayMode(.inline)
+        // 新配置全屏页：与内嵌区共享同一份绑定，来回切换状态不丢
+        .navigationDestination(isPresented: $showFullNewCompose) {
+            newComposeFullScreen
+        }
         .onAppear {
             if editedCompose.isEmpty {
                 editedCompose = newCompose
@@ -478,6 +495,34 @@ struct ComposeEditorView: View {
                 editedCompose = mergedCompose
             }
         }
+    }
+
+    /// 新配置全屏视图：对比模式 = 差异交互；自定义模式 = 全屏编辑。返回即回到内嵌显示
+    private var newComposeFullScreen: some View {
+        Group {
+            if useCustom {
+                TextEditor(text: $editedCompose)
+                    .font(.system(.caption, design: .monospaced))
+                    .scrollContentBackground(.hidden)
+                    .background(Color(.secondarySystemBackground))
+                    .padding(.horizontal, 8)
+            } else {
+                DiffNewComposeView(diff: diff, adopted: $adoptedHunks)
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        if !adoptedHunks.isEmpty {
+                            Text(L10n.f("已选择 %ld 处差异采用旧配置，将按此内容升级", adoptedHunks.count))
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal)
+                                .padding(.vertical, 6)
+                                .background(.bar)
+                        }
+                    }
+            }
+        }
+        .navigationTitle(useCustom ? L10n.t("自定义配置（可编辑）") : L10n.t("新版本"))
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var upgradeButtonTitle: String {
