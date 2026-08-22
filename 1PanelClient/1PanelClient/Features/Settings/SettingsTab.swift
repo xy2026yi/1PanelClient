@@ -97,6 +97,14 @@ struct SettingsTab: View {
             }
         }
         .toastOverlay(message: $setPinToast)
+        // toast 2 秒自动消失（同各 ViewModel.showToast 惯例；比较新值防连续提示被旧任务清掉）
+        .onChange(of: setPinToast) { _, newValue in
+            guard newValue != nil else { return }
+            Task {
+                try? await Task.sleep(for: .seconds(2))
+                if setPinToast == newValue { setPinToast = nil }
+            }
+        }
         .onChange(of: showAbout) { _, show in
             atRoot = !show
         }
