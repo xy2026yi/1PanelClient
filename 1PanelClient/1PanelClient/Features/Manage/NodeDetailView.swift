@@ -373,6 +373,7 @@ struct NodeDetailView: View {
                 body: NodeSearchRequest(page: 1, pageSize: 100),
                 as: PageResponse<NodeDetailItem>.self
             )
+            errorMessage = nil
             item = (resp.items ?? []).first(where: { $0.id == nodeID })
             if item == nil {
                 errorMessage = L10n.t("节点不存在或已被移除")
@@ -423,15 +424,25 @@ struct NodeDetailView: View {
             toastMessage = target.successToast
             onReload()
         } catch {
-            // 节点重启中服务端可能主动断连，与面板重启同样的网络错误不算失败
-            let msg = error.localizedDescription
-            if msg.contains("连接") || msg.range(of: "connection", options: .caseInsensitive) != nil {
+            // 仅重启本机（主控）时，服务端收到指令后会主动断开连接，这类网络错误按成功处理；
+            // 远程节点重启经主控转发、主控不重启，错误如实上报
+            if isLocalNode, Self.isConnectionDropped(error) {
                 toastMessage = target.successToast
+                onReload()
             } else {
-                alertMessage = msg
+                alertMessage = error.localizedDescription
                 showRestartAlert = true
             }
         }
+    }
+
+    private var isLocalNode: Bool { (item?.name ?? "local") == "local" }
+
+    /// 响应过程中连接被服务端断开（主控自身重启的预期表现），按 URLError 精确识别
+    private static func isConnectionDropped(_ error: Error) -> Bool {
+        guard case .networkError(let err) = error as? APIError,
+              let urlErr = err as? URLError else { return false }
+        return urlErr.code == .networkConnectionLost || urlErr.code == .timedOut
     }
 
     private func deleteNode() async {

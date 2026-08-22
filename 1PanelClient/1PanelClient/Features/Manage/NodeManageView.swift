@@ -370,11 +370,16 @@ struct NodeManageView: View {
             cards = newCards
             listFallback = false
             errorMessage = nil
-        } catch {
-            // 社区版：回退为本机节点（计数/日志/按节点路由仍可用）
+        } catch APIError.httpError(let code, _) where code == 404 {
+            // 社区版没有多机路由：回退为本机节点（计数/日志/按节点路由仍可用）
             cards = [NodeCard(item: Self.fallbackLocalItem)]
             listFallback = true
             errorMessage = nil
+        } catch {
+            // 专业版的网络/认证等错误：无数据时显示重试；已有数据保留下拉前的旧值
+            if cards.isEmpty {
+                errorMessage = error.localizedDescription
+            }
         }
         isLoading = false
         await loadCounts()
