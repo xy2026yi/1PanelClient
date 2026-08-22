@@ -264,6 +264,7 @@ struct CreateDatabaseView: View {
         }
         .navigationTitle(L10n.t("创建数据库"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(L10n.t("创建")) {
@@ -549,6 +550,7 @@ struct CreateDatabaseUserView: View {
         }
         .navigationTitle(L10n.t("创建用户"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(L10n.t("创建")) {

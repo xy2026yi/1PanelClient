@@ -600,6 +600,7 @@ struct LogLinesView: View {
                 }
             }
             .padding(.vertical, 4)
+            .contentWidthLimit(860)
         }
         .frame(maxHeight: .infinity)
     }

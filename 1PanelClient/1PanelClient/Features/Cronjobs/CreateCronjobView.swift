@@ -317,6 +317,7 @@ struct CreateCronjobView: View {
         }
         .navigationTitle(isEditing ? L10n.t("编辑计划任务") : L10n.t("创建计划任务"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

@@ -85,6 +85,7 @@ struct SettingsTab: View {
         }
         .navigationTitle(L10n.t("设置"))
         .navigationBarTitleDisplayMode(.large)
+        .formWidthLimit()
         // navigationDestination 必须挂在 List 外，否则 lazy 容器内会被忽略
         .navigationDestination(isPresented: $showAbout) {
             AboutDetailView()

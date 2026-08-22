@@ -57,6 +57,7 @@ struct WAFOverviewView: View {
     @State private var days: [WAFStatDayItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @Environment(\.horizontalSizeClass) private var hSize
 
     private let client: APIClient
 
@@ -94,7 +95,7 @@ struct WAFOverviewView: View {
             // 今日状态
             VStack(alignment: .leading, spacing: 8) {
                 SectionLabel(title: L10n.t("今日状态"), systemImage: "calendar")
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                LazyVGrid(columns: gridColumns(compact: 2, regular: 4, horizontal: hSize), spacing: 12) {
                     StatCard(title: L10n.t("请求"), count: today?.reqCount, icon: "arrow.down.circle", color: .blue)
                     StatCard(title: L10n.t("拦截"), count: today?.attackCount, icon: "shield.slash", color: .red)
                     StatCard(title: L10n.t("4xx 数量"), count: today?.count4xx, icon: "exclamationmark.circle", color: .orange)

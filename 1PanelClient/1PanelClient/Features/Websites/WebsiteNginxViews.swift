@@ -27,6 +27,7 @@ struct WebsiteNginxView: View {
         }
         .navigationTitle(L10n.t("配置文件"))
         .navigationBarTitleDisplayMode(.inline)
+        .contentWidthLimit(860)
         .toolbar {
             if isEditing {
                 ToolbarItem(placement: .topBarTrailing) {

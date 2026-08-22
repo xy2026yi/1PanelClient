@@ -13,7 +13,8 @@ struct TerminalScreen: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var bridge = TerminalBridge()
 
-    @State private var fontSize: CGFloat = 13
+    /// 终端字号持久化（放大/缩小菜单 9–24，跨会话保留）；AppStorage 不支持 CGFloat，存 Double
+    @AppStorage("terminal.fontSize") private var fontSize: Double = 13
 
     /// 连接目标标题
     private let title: String
@@ -41,7 +42,7 @@ struct TerminalScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TerminalSurface(session: session, fontSize: fontSize, bridge: bridge)
+            TerminalSurface(session: session, fontSize: CGFloat(fontSize), bridge: bridge)
             quickKeys
         }
         .background(Color.black)

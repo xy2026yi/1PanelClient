@@ -67,12 +67,15 @@ struct ServerStatusWidget: Widget {
         }
         .configurationDisplayName(L10n.t("服务器状态"))
         .description(L10n.t("在线检查与 CPU / 内存 / 负载概览"))
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
 
 struct ServerStatusEntryView: View {
     let entry: StatusEntry
+    @Environment(\.widgetFamily) private var family
+
+    private var isLarge: Bool { family == .systemLarge }
 
     var body: some View {
         if let message = entry.message, !entry.online {
@@ -83,13 +86,13 @@ struct ServerStatusEntryView: View {
     }
 
     private var metricsView: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: isLarge ? 10 : 6) {
             HStack {
                 Circle()
                     .fill(entry.online ? Color.green : Color.red)
                     .frame(width: 8, height: 8)
                 Text(entry.serverName)
-                    .font(.headline)
+                    .font(isLarge ? .title3.bold() : .headline)
                     .lineLimit(1)
                 Spacer()
             }
@@ -97,6 +100,12 @@ struct ServerStatusEntryView: View {
             metricRow(L10n.t("CPU"), entry.cpu)
             metricRow(L10n.t("内存"), entry.memory)
             metricRow(L10n.t("负载"), entry.load1, percentStyle: false)
+            if isLarge {
+                Divider()
+                Text(L10n.f("更新于 %@", entry.date.formatted(.relative(presentation: .named))))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(2)
     }
@@ -118,11 +127,15 @@ struct ServerStatusEntryView: View {
     }
 
     private func metricRow(_ title: String, _ value: Double?, percentStyle: Bool = true) -> some View {
-        HStack {
-            Text(title).font(.caption).foregroundStyle(.secondary)
+        let titleFont: Font = isLarge ? .subheadline : .caption
+        let valueFont: Font = isLarge ? Font.subheadline.monospacedDigit().weight(.medium) : Font.caption.monospacedDigit().weight(.medium)
+        return HStack {
+            Text(title)
+                .font(titleFont)
+                .foregroundStyle(.secondary)
             Spacer()
             Text(value.map { percentStyle ? String(format: "%.1f%%", $0) : String(format: "%.2f", $0) } ?? "—")
-                .font(.caption.monospacedDigit().weight(.medium))
+                .font(valueFont)
         }
     }
 }

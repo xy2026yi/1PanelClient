@@ -20,6 +20,9 @@ struct OverviewTab: View {
     /// 卡片点击回调：传递具体 ManageItem，由 MainTabView 跨 Tab 跳转到管理详情
     var onSelectManageItem: ((ManageItem) -> Void)? = nil
 
+    /// iPad 适配：网格列数随尺寸类切换
+    @Environment(\.horizontalSizeClass) private var hSize
+
     init(
         manager: ServerManager,
         selectedTab: Binding<AppTab> = .constant(.overview),
@@ -47,6 +50,7 @@ struct OverviewTab: View {
                     }
                 }
                 .padding()
+                .contentWidthLimit(960)
             }
             // TabBar 上方留白：与管理页 contentMargins 同一机制、同一数值
             .contentMargins(.bottom, 60, for: .scrollContent)
@@ -267,13 +271,8 @@ struct OverviewTab: View {
                 .accessibilityLabel(L10n.t("查看监控"))
             }
 
-            // 负载 / CPU / 内存 + 各存储挂载点：统一 4 列网格平铺
-            LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: 4),
-                GridItem(.flexible(), spacing: 4),
-                GridItem(.flexible(), spacing: 4),
-                GridItem(.flexible(), spacing: 4)
-            ], spacing: 12) {
+            // 负载 / CPU / 内存 + 各存储挂载点：统一网格平铺（iPad 上 8 列铺开更多挂载点）
+            LazyVGrid(columns: gridColumns(compact: 4, regular: 8, spacing: 4, horizontal: hSize), spacing: 12) {
                 RingStatView(
                     percent: min(cur.loadUsagePercent ?? 0, 100),
                     color: .teal,
@@ -324,10 +323,7 @@ struct OverviewTab: View {
     }
 
     private func resourceStatsGrid(_ b: DashboardBase) -> some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12)
-        ], spacing: 12) {
+        LazyVGrid(columns: gridColumns(compact: 2, regular: 4, horizontal: hSize), spacing: 12) {
             Button { tapManage(.websites) } label: {
                 StatCard(title: L10n.t("网站"), count: b.websiteNumber, icon: "globe", color: .green)
             }

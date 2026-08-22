@@ -202,6 +202,8 @@ struct PasscodeKeypad: View {
             }
             .padding(.top, 36)
         }
+        // iPad 全屏画布上限宽居中，避免 74pt 圆键在整幅宽度上比例失调
+        .frame(maxWidth: 360)
         .onChange(of: input) { _, newValue in
             guard newValue.count == AppLockManager.pinLength else { return }
             // 等圆点填充渲染完再校验，抖动/清空与视觉同步

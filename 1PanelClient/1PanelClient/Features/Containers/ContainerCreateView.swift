@@ -32,6 +32,7 @@ struct ContainerCreateView: View {
         }
         .navigationTitle(L10n.t("创建容器"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

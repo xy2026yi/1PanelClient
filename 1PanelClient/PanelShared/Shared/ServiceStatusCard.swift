@@ -36,6 +36,7 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
     let actions: [ServiceAction]
     @ViewBuilder let headerIcon: () -> HeaderIcon
     @ViewBuilder let extra: () -> Extra
+    @Environment(\.horizontalSizeClass) private var hSize
 
     init(
         title: String,
@@ -104,9 +105,9 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
         .padding(.vertical, 2)
     }
 
-    /// 4 列自适应网格：≤4 个按钮单行展示，更多时自动换行
+    /// 4 列自适应网格：≤4 个按钮单行展示，更多时自动换行（iPad 上 8 列铺开）
     private var actionsRow: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+        LazyVGrid(columns: gridColumns(compact: 4, regular: 8, spacing: 8, horizontal: hSize), spacing: 8) {
             ForEach(actions) { act in
                 actionButton(act)
             }

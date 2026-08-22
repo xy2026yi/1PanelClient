@@ -84,6 +84,7 @@ struct WebsiteLogPage: View {
                             }
                         }
                         .padding()
+                        .contentWidthLimit(860)
                     }
                     .onChange(of: lines.count) { _, _ in
                         withAnimation(.easeInOut(duration: 0.25)) {
@@ -178,6 +179,7 @@ struct WebsiteLogView: View {
                             }
                         }
                         .padding()
+                        .contentWidthLimit(860)
                     }
                     .background(Color(.systemGroupedBackground))
                 }

@@ -116,6 +116,7 @@ struct AddNodeView: View {
             }
             .navigationTitle(isEditing ? L10n.t("编辑节点") : L10n.t("添加节点"))
             .navigationBarTitleDisplayMode(.inline)
+            .formWidthLimit()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }

@@ -226,6 +226,7 @@ struct MonitorView: View {
         .environment(\.defaultMinListRowHeight, 32)
         .navigationTitle(L10n.t("监控"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit(860)
         .refreshable { await vm.loadAll() }
         // App 前后台切换时同步轮询开关
         .onChange(of: scenePhase) { _, phase in

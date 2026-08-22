@@ -114,6 +114,7 @@ struct CreateWebsiteView: View {
             }
             .navigationTitle(L10n.t("创建网站"))
             .navigationBarTitleDisplayMode(.inline)
+            .formWidthLimit()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(L10n.t("创建")) {

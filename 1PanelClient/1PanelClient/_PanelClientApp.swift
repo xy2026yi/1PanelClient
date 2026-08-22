@@ -26,5 +26,24 @@ struct _PanelClientApp: App {
                 .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
             #endif
         }
+        // iPad 外接键盘：Cmd+1/2/3 切换三 Tab（MainTabView 监听 .selectAppTab 通知）
+        .commands {
+            CommandGroup(after: .toolbar) {
+                Button(L10n.t("首页")) {
+                    NotificationCenter.default.post(name: .selectAppTab, object: AppTab.overview)
+                }
+                .keyboardShortcut("1", modifiers: .command)
+
+                Button(L10n.t("管理")) {
+                    NotificationCenter.default.post(name: .selectAppTab, object: AppTab.manage)
+                }
+                .keyboardShortcut("2", modifiers: .command)
+
+                Button(L10n.t("设置")) {
+                    NotificationCenter.default.post(name: .selectAppTab, object: AppTab.settings)
+                }
+                .keyboardShortcut("3", modifiers: .command)
+            }
+        }
     }
 }

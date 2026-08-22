@@ -190,6 +190,7 @@ struct WebsiteMonitorOverviewSection: View {
     @State private var isLoading = true
     /// 加载令牌：range 快速切换时，旧请求慢返回不覆盖新一次的结果
     @State private var loadToken = 0
+    @Environment(\.horizontalSizeClass) private var hSize
 
     var body: some View {
         Group {
@@ -219,7 +220,7 @@ struct WebsiteMonitorOverviewSection: View {
     private var content: some View {
         // 当前(1分钟)
         Section {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            LazyVGrid(columns: gridColumns(compact: 2, regular: 4, horizontal: hSize), spacing: 12) {
                 MonitorStatCard(title: L10n.t("请求数"), count: qpsInfo?.qps)
                 MonitorStatCard(title: L10n.t("流量"), text: qpsInfo?.flow.map(formatBytes))
             }
@@ -229,7 +230,7 @@ struct WebsiteMonitorOverviewSection: View {
 
         // 今日状态
         Section {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            LazyVGrid(columns: gridColumns(compact: 2, regular: 4, horizontal: hSize), spacing: 12) {
                 MonitorStatCard(title: L10n.t("浏览数"), count: stat?.pv)
                 MonitorStatCard(title: L10n.t("访客"), count: stat?.uv)
                 MonitorStatCard(title: L10n.t("独立IP"), count: stat?.ip)

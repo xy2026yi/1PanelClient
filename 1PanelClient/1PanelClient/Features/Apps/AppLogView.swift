@@ -168,6 +168,7 @@ struct AppLogView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
+                    .contentWidthLimit(860)
                 }
                 .onChange(of: logLines.count) { _, _ in
                     if isFollowing {

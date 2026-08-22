@@ -77,6 +77,7 @@ struct ManageTab: View {
             .contentMargins(.bottom, 60, for: .scrollContent)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .formWidthLimit(720)
             .navigationDestination(for: ManageItem.self) { item in
                 destination(for: item)
             }

@@ -87,6 +87,7 @@ struct ServerEditView: View {
         }
         .navigationTitle(editing == nil ? L10n.t("添加服务器") : L10n.t("编辑服务器"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             if presentedAsSheet {
                 ToolbarItem(placement: .cancellationAction) {
