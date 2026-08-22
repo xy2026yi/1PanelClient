@@ -62,18 +62,56 @@ struct TerminalScreen: View {
 
     // MARK: - 快捷控制键
 
+    /// 快捷键定义：readline/emacs 常用 Ctrl 组合 + 控制/导航键（Blink 辅助条的
+    /// 直接组合键形态——SwiftTerm 系统键盘输入无法拦截，粘滞修饰键不可靠，故不提供）
+    private struct KeyDef {
+        let label: String
+        let bytes: String
+        /// Ctrl+字母 组合（a=0x01 … z=0x1A）
+        init(_ label: String, ctrl letter: Character) {
+            self.label = label
+            self.bytes = String(UnicodeScalar(letter.asciiValue! & 0x1F))
+        }
+        init(_ label: String, _ bytes: String) {
+            self.label = label
+            self.bytes = bytes
+        }
+    }
+
+    private var keyGroups: [[KeyDef]] {[
+        [
+            KeyDef("^A", ctrl: "a"), KeyDef("^C", ctrl: "c"), KeyDef("^D", ctrl: "d"),
+            KeyDef("^E", ctrl: "e"), KeyDef("^K", ctrl: "k"), KeyDef("^L", ctrl: "l"),
+            KeyDef("^U", ctrl: "u"), KeyDef("^W", ctrl: "w"), KeyDef("^Z", ctrl: "z"),
+        ],
+        [
+            KeyDef("Tab", "\t"), KeyDef("Esc", "\u{1B}"),
+        ],
+        [
+            KeyDef("←", "\u{1B}[D"), KeyDef("↑", "\u{1B}[A"),
+            KeyDef("↓", "\u{1B}[B"), KeyDef("→", "\u{1B}[C"),
+        ],
+        [
+            KeyDef("Home", "\u{1B}[H"), KeyDef("End", "\u{1B}[F"),
+            KeyDef("PgUp", "\u{1B}[5~"), KeyDef("PgDn", "\u{1B}[6~"),
+        ],
+        [
+            KeyDef("~", "~"), KeyDef("-", "-"), KeyDef("/", "/"),
+        ],
+    ]}
+
     private var quickKeys: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 StatusDot(color: session.isConnected ? .green : (session.isConnecting ? .orange : .red), diameter: 8)
-                keyButton("Ctrl+C") { sendBytes("\u{03}") }
-                keyButton("Ctrl+D") { sendBytes("\u{04}") }
-                keyButton("Tab") { sendBytes("\t") }
-                keyButton("Esc") { sendBytes("\u{1B}") }
-                keyButton("↑") { sendBytes("\u{1B}[A") }
-                keyButton("↓") { sendBytes("\u{1B}[B") }
-                keyButton("←") { sendBytes("\u{1B}[D") }
-                keyButton("→") { sendBytes("\u{1B}[C") }
+                ForEach(Array(keyGroups.enumerated()), id: \.offset) { groupIndex, group in
+                    if groupIndex > 0 {
+                        Divider().frame(height: 18)
+                    }
+                    ForEach(Array(group.enumerated()), id: \.offset) { _, key in
+                        keyButton(key.label) { sendBytes(key.bytes) }
+                    }
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
@@ -82,7 +120,10 @@ struct TerminalScreen: View {
     }
 
     private func keyButton(_ label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        Button {
+            Haptic.selection()
+            action()
+        } label: {
             Text(label)
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(.primary)

@@ -19,6 +19,8 @@ struct CertificatesTab: View {
     @State private var showDns = false
     @State private var showCA = false
     @State private var showMenu = false
+    @State private var searchText = ""
+    @State private var isSearching = false
 
 
     init(manager: ServerManager) {
@@ -63,8 +65,7 @@ struct CertificatesTab: View {
                 certList
             }
         }
-        .navigationTitle(L10n.t("SSL 证书"))
-        .navigationBarTitleDisplayMode(.inline)
+        .searchIconMode(text: $searchText, isSearching: $isSearching, title: L10n.t("SSL 证书"), prompt: L10n.t("搜索证书"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {
@@ -112,9 +113,15 @@ struct CertificatesTab: View {
         }
     }
 
+    private var filteredCerts: [WebsiteSSLCert] {
+        let q = searchText.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return vm.certificates }
+        return vm.certificates.filter { $0.displayName.localizedCaseInsensitiveContains(q) }
+    }
+
     private var certList: some View {
         List {
-            ForEach(vm.certificates) { cert in
+            ForEach(filteredCerts) { cert in
                 NavigationLink {
                     CertificateDetailView(cert: cert, vm: vm)
                 } label: {

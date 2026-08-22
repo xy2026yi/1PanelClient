@@ -8753,6 +8753,28 @@
         }
       }
     },
+    "搜索当前目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search current directory"
+          }
+        }
+      }
+    },
+    "搜索数据库 / 用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search databases / users"
+          }
+        }
+      }
+    },
     "搜索脚本名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8760,6 +8782,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search scripts"
+          }
+        }
+      }
+    },
+    "搜索证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search certificates"
           }
         }
       }

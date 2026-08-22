@@ -584,6 +584,21 @@ struct DatabaseSystemView: View {
     @State private var isStatusExpanded = false
     @State private var showCreateUser = false
     @State private var pendingDeleteUser: DatabaseUser?
+    @State private var searchText = ""
+    @State private var isSearching = false
+
+    /// 库/用户列表按名称过滤（搜索态）
+    private var filteredDatabases: [DatabaseItem] {
+        let q = searchText.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return vm.databases }
+        return vm.databases.filter { ($0.name ?? "").localizedCaseInsensitiveContains(q) }
+    }
+
+    private var filteredUsers: [DatabaseUser] {
+        let q = searchText.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return vm.users }
+        return vm.users.filter { ($0.username ?? "").localizedCaseInsensitiveContains(q) }
+    }
 
     init(system: DatabaseSystem) {
         _vm = StateObject(wrappedValue: DatabaseSystemViewModel(system: system, server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")))
@@ -599,8 +614,7 @@ struct DatabaseSystemView: View {
                 userListSection
             }
         }
-        .navigationTitle(vm.system.displayName)
-        .navigationBarTitleDisplayMode(.inline)
+        .searchIconMode(text: $searchText, isSearching: $isSearching, title: vm.system.displayName, prompt: L10n.t("搜索数据库 / 用户"))
         .refreshable { await vm.refresh() }
         .task { await vm.refresh() }
         .navigationDestination(isPresented: $showCreate) {
@@ -766,7 +780,7 @@ struct DatabaseSystemView: View {
 
     private var databaseListSection: some View {
         Section {
-            ForEach(vm.databases, id: \.id) { db in
+            ForEach(filteredDatabases, id: \.id) { db in
                 NavigationLink {
                     DatabaseDetailView(database: db, system: vm.system) { await vm.loadDatabases() }
                 } label: {
@@ -778,13 +792,13 @@ struct DatabaseSystemView: View {
                     } label: { Label(L10n.t("删除"), systemImage: "trash") }
                 }
             }
-            if vm.databases.isEmpty {
+            if filteredDatabases.isEmpty {
                 Text(L10n.t("暂无数据库"))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
         } header: {
-            SectionLabel(title: L10n.f("数据库（%ld）", vm.databases.count), systemImage: "cylinder")
+            SectionLabel(title: L10n.f("数据库（%ld）", filteredDatabases.count), systemImage: "cylinder")
         }
     }
 
@@ -792,7 +806,7 @@ struct DatabaseSystemView: View {
 
     private var userListSection: some View {
         Section {
-            ForEach(vm.users, id: \.id) { user in
+            ForEach(filteredUsers, id: \.id) { user in
                 NavigationLink {
                     DatabaseUserDetailView(user: user, system: vm.system, availableDatabases: vm.databases.map { $0.name ?? "" }.filter { !$0.isEmpty }) {
                         await vm.loadUsers()
@@ -806,13 +820,13 @@ struct DatabaseSystemView: View {
                     } label: { Label(L10n.t("删除"), systemImage: "trash") }
                 }
             }
-            if vm.users.isEmpty {
+            if filteredUsers.isEmpty {
                 Text(L10n.t("暂无用户"))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
         } header: {
-            SectionLabel(title: L10n.f("用户（%ld）", vm.users.count), systemImage: "person.2")
+            SectionLabel(title: L10n.f("用户（%ld）", filteredUsers.count), systemImage: "person.2")
         }
     }
 }

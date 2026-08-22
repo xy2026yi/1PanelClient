@@ -39,6 +39,8 @@ struct FilesView: View {
 
     @State private var currentPath = "/"
     @State private var items: [FileItem] = []
+    @State private var searchText = ""
+    @State private var isSearching = false
     @State private var pathHistory: [String] = ["/"]
     @State private var isLoading = false
     @State private var showCreate = false
@@ -77,6 +79,13 @@ struct FilesView: View {
         hasCustomStart = start != "/"
     }
 
+    /// 当前目录按名称过滤（搜索态）
+    private var filteredItems: [FileItem] {
+        let q = searchText.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return items }
+        return items.filter { $0.name.localizedCaseInsensitiveContains(q) }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // 路径面包屑：固定在导航栏下方，不随列表滚动
@@ -84,8 +93,12 @@ struct FilesView: View {
             // 文件列表
             fileList
         }
-        .navigationTitle(currentPath == "/" ? L10n.t("根目录") : (currentPath as NSString).lastPathComponent)
-        .navigationBarTitleDisplayMode(.inline)
+        .searchIconMode(
+            text: $searchText,
+            isSearching: $isSearching,
+            title: currentPath == "/" ? L10n.t("根目录") : (currentPath as NSString).lastPathComponent,
+            prompt: L10n.t("搜索当前目录")
+        )
             .overlay(alignment: .bottomTrailing) { floatingAddButton }
             .refreshable { await loadDir(currentPath) }
             .task { await initialLoad() }
@@ -149,7 +162,7 @@ struct FilesView: View {
     /// 文件列表（仅文件项；路径面包屑通过 safeAreaInset 固定在顶部）
     private var fileList: some View {
         List {
-            ForEach(items) { item in
+            ForEach(filteredItems) { item in
                 fileRow(item)
                     .onLongPressGesture(minimumDuration: 0.5) {
                         // 触觉反馈 + 弹出半屏操作菜单
