@@ -33,7 +33,7 @@ struct WAFCommonRulesView: View {
     var body: some View {
         List {
             if isLoading && items.isEmpty {
-                ProgressView()
+                LoadingStateView()
             } else if items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无通用规则"), systemImage: "list.bullet.rectangle.shield")
             } else {
@@ -105,7 +105,7 @@ struct WAFCommonRulesView: View {
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
@@ -118,7 +118,7 @@ struct WAFCommonRulesView: View {
             presenting: pendingDeleteRule
         ) { _ in
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteRule = nil }
-            Button(L10n.t("确认"), role: .destructive) {
+            Button(L10n.t("删除"), role: .destructive) {
                 let item = pendingDeleteRule
                 pendingDeleteRule = nil
                 if let item = item {
@@ -235,7 +235,7 @@ struct WAFCommonRuleFormView: View {
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )) {
-            Button(L10n.t("好的")) { errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }

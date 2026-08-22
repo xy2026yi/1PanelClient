@@ -34,7 +34,7 @@ struct AppStoreTab: View {
     var storeRootContent: some View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if vm.apps.isEmpty {
                 ContentUnavailableView.search(text: searchText)
             } else {
@@ -150,11 +150,11 @@ struct AppStoreDetailView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载详情…"))
+                LoadingStateView()
             } else if let detail {
                 detailContent(detail)
             } else {
-                ContentUnavailableView(L10n.t("加载失败"), systemImage: "exclamationmark.triangle")
+                ContentUnavailableView(L10n.t("加载失败"), systemImage: "exclamationmark.triangle.fill")
             }
         }
         .navigationTitle(detail?.name ?? L10n.t("应用详情"))
@@ -197,13 +197,7 @@ struct AppStoreDetailView: View {
                         }
                         Spacer()
                         if detail.installed == true {
-                            Text(L10n.t("已安装"))
-                                .font(.caption2.bold())
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Color.green.opacity(0.15))
-                                .foregroundStyle(.green)
-                                .clipShape(Capsule())
+                            StatusBadge(text: L10n.t("已安装"), color: .statusRunning)
                         }
                     }
 
@@ -323,12 +317,12 @@ struct AppInstallView: View {
     var body: some View {
         Group {
             if isLoadingDetail {
-                ProgressView(L10n.t("加载安装参数…"))
+                LoadingStateView()
             } else if let appDetail {
                 installForm(appDetail)
             } else {
                 ContentUnavailableView {
-                    Label(L10n.t("无法加载安装参数"), systemImage: "exclamationmark.triangle")
+                    Label(L10n.t("无法加载安装参数"), systemImage: "exclamationmark.triangle.fill")
                 } description: {
                     Text(loadError ?? L10n.t("请稍后重试，或尝试其他版本"))
                 } actions: {
@@ -785,22 +779,10 @@ struct AppStoreRow: View {
                 }
 
                 HStack(spacing: 6) {
-                    Text(app.typeDisplayName)
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundStyle(.blue)
-                        .clipShape(Capsule())
+                    StatusBadge(text: app.typeDisplayName, color: .blue, backgroundOpacity: 0.1)
 
                     if app.installed == true {
-                        Text(L10n.t("已安装"))
-                            .font(.caption2)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.green.opacity(0.15))
-                            .foregroundStyle(.green)
-                            .clipShape(Capsule())
+                        StatusBadge(text: L10n.t("已安装"), color: .statusRunning)
                     }
                 }
             }

@@ -52,7 +52,7 @@ struct TaskCenterView: View {
                 if isLoading && items.isEmpty {
                     HStack {
                         Spacer()
-                        ProgressView(L10n.t("加载中…"))
+                        LoadingStateView()
                         Spacer()
                     }
                     .frame(minHeight: 200)
@@ -208,7 +208,7 @@ struct TaskLogDetailView: View {
     var body: some View {
         Group {
             if isLoading && lines.isEmpty {
-                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
+                LoadingStateView()
             } else if let errorMessage, lines.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -237,9 +237,9 @@ struct TaskLogDetailView: View {
 
                     Section {
                         if lines.isEmpty {
-                            Text(L10n.t("该任务暂无日志"))
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .center)
+                            ContentUnavailableView {
+                                Label(L10n.t("该任务暂无日志"), systemImage: "tray")
+                            }
                         } else {
                             LogLinesView(lines: lines)
                                 .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))

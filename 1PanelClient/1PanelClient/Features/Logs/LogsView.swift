@@ -83,7 +83,7 @@ struct OperationLogView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
+                LoadingStateView()
             } else if let errorMessage {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -182,7 +182,7 @@ struct LoginLogView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
+                LoadingStateView()
             } else if let errorMessage {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -285,7 +285,7 @@ struct SystemLogView: View {
     var body: some View {
         Group {
             if isLoading && dates.isEmpty {
-                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
+                LoadingStateView()
             } else if let errorMessage, dates.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -390,7 +390,7 @@ struct SSHLogView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
+                LoadingStateView()
             } else if let errorMessage {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -493,7 +493,7 @@ struct WebsiteLogsView: View {
     var body: some View {
         Group {
             if isLoading && sites.isEmpty {
-                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
+                LoadingStateView()
             } else if let errorMessage, sites.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")

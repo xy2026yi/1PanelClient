@@ -118,7 +118,7 @@ struct ProcessView: View {
             get: { monitor.successMessage != nil },
             set: { if !$0 { monitor.successMessage = nil } }
         )) {
-            Button(L10n.t("好的")) { monitor.successMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { monitor.successMessage = nil }
         } message: {
             Text(monitor.successMessage ?? "")
         }
@@ -205,7 +205,7 @@ struct ProcessView: View {
                 }
             } else if monitor.isConnecting && isEmpty {
                 Section {
-                    HStack { Spacer(); ProgressView(L10n.t("正在连接…")); Spacer() }
+                    LoadingStateView(text: L10n.t("正在连接…"), compact: true)
                         .padding(.vertical, 30)
                 }
             } else if isFilteredEmpty {

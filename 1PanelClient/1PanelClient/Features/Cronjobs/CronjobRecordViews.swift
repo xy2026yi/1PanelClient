@@ -15,7 +15,7 @@ struct CronjobRecordsView: View {
     var body: some View {
         List {
             if vm.isLoadingRecords && vm.records.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
             } else if vm.records.isEmpty {
@@ -97,7 +97,7 @@ struct CronjobLogView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 if vm.isLoadingLog && vm.logLines.isEmpty {
-                    ProgressView(L10n.t("加载中…"))
+                    LoadingStateView()
                         .padding()
                 } else if let err = vm.logError {
                     Text(err)

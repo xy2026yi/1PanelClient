@@ -37,7 +37,7 @@ struct WebsiteDetailView: View {
     var body: some View {
         List {
             if isLoadingDetail && detail == nil {
-                Section { HStack { ProgressView(); Text(L10n.t("加载中…")) } }
+                Section { LoadingStateView(compact: true) }
             } else if let d = detail {
                 // 状态与操作（下拉抽屉，与容器详情一致）
                 Section {
@@ -180,7 +180,7 @@ struct WebsiteDetailView: View {
             }
         }
         .sheet(isPresented: $showDeleteSheet) {
-            WebsiteDeleteSheet(website: website, vm: vm)
+            WebsiteDeleteConfirmSheet(website: website, vm: vm)
         }
         .alert(
             (pendingToggle == true) ? L10n.t("启用") : L10n.t("停止"),
@@ -231,7 +231,7 @@ struct WebsiteDetailView: View {
                     .foregroundStyle(.secondary)
             }
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(.easeInOut(duration: 0.25)) {
                     isStatusExpanded.toggle()
                 }
             } label: {
@@ -288,28 +288,7 @@ struct WebsiteDetailView: View {
         busy: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                if busy {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .frame(width: 22, height: 22)
-                } else {
-                    Image(systemName: icon)
-                        .font(.title3)
-                        .foregroundStyle(color)
-                        .frame(width: 22, height: 22)
-                }
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-        .disabled(isOperating)
+        CardActionButton(title: title, icon: icon, color: color, busy: busy, disabled: isOperating, action: action)
     }
 
     /// 网站备份目标（type=website；后端按 website.alias 查库，备份记录也以 alias 存
@@ -400,18 +379,18 @@ struct WebsiteEditView: View {
     }
 }
 
-// MARK: - 删除网站表单
+// MARK: - 删除网站确认（R1 输入域名确认 + 连带删除选项）
 
-struct WebsiteDeleteSheet: View {
+/// 包装 TextInputConfirmSheet：连带删除选项作为 options 传入，
+/// Toggle 状态由本视图持有，每次呈现自动重置。
+struct WebsiteDeleteConfirmSheet: View {
     let website: Website
     @ObservedObject var vm: WebsitesViewModel
-    @Environment(\.dismiss) private var dismiss
 
     @State private var forceDelete = false
     @State private var deleteBackup = false
     @State private var deleteApp = false
     @State private var deleteDB = false
-    @State private var isDeleting = false
 
     /// 是否为一键部署（关联应用）
     private var isDeployment: Bool {
@@ -419,55 +398,30 @@ struct WebsiteDeleteSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.red)
-                        Text(L10n.f("确定要删除 %@ 吗？", website.displayName))
-                            .bold()
-                    }
-                } footer: {
-                    Text(L10n.t("删除操作不可撤销，请谨慎操作"))
+        TextInputConfirmSheet(
+            title: L10n.t("删除网站"),
+            message: L10n.f("此操作不可恢复，勾选的关联资源将一并删除。请输入网站域名「%@」以确认删除。", website.displayName),
+            expectedText: website.displayName,
+            fieldLabel: L10n.t("确认域名"),
+            fieldPlaceholder: L10n.t("网站域名")
+        ) {
+            Task { await vm.deleteWebsite(
+                id: website.id,
+                deleteApp: deleteApp,
+                deleteBackup: deleteBackup,
+                forceDelete: forceDelete,
+                deleteDB: deleteDB
+            ) }
+        } options: {
+            Section(L10n.t("删除选项")) {
+                Toggle(L10n.t("强制删除"), isOn: $forceDelete)
+                Toggle(L10n.t("删除备份"), isOn: $deleteBackup)
+                if isDeployment {
+                    Toggle(L10n.t("删除关联应用"), isOn: $deleteApp)
                 }
-
-                Section(L10n.t("删除选项")) {
-                    Toggle(L10n.t("强制删除"), isOn: $forceDelete)
-                    Toggle(L10n.t("删除备份"), isOn: $deleteBackup)
-                    if isDeployment {
-                        Toggle(L10n.t("删除关联应用"), isOn: $deleteApp)
-                    }
-                    Toggle(L10n.t("删除数据库"), isOn: $deleteDB)
-                }
-            }
-            .navigationTitle(L10n.t("删除网站"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                }
-                ToolbarItem(placement: .destructiveAction) {
-                    Button(L10n.t("删除"), role: .destructive) {
-                        Task { await performDelete() }
-                    }
-                    .disabled(isDeleting)
-                }
+                Toggle(L10n.t("删除数据库"), isOn: $deleteDB)
             }
         }
-        .presentationDetents([.medium])
-    }
-
-    private func performDelete() async {
-        isDeleting = true
-        await vm.deleteWebsite(
-            id: website.id,
-            deleteApp: deleteApp,
-            deleteBackup: deleteBackup,
-            forceDelete: forceDelete,
-            deleteDB: deleteDB
-        )
-        dismiss()
     }
 }
 

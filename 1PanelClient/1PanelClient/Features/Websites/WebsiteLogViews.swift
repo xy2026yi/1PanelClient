@@ -27,7 +27,7 @@ enum WebsiteLogType {
     var icon: String {
         switch self {
         case .access: return "list.bullet.rectangle"
-        case .error:  return "exclamationmark.triangle"
+        case .error:  return "exclamationmark.triangle.fill"
         }
     }
 
@@ -63,7 +63,7 @@ struct WebsiteLogPage: View {
             Divider()
 
             if isLoading && lines.isEmpty {
-                ProgressView(L10n.t("加载日志…"))
+                LoadingStateView(text: L10n.t("加载日志…"))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if lines.isEmpty {
                 ContentUnavailableView(
@@ -86,7 +86,7 @@ struct WebsiteLogPage: View {
                         .padding()
                     }
                     .onChange(of: lines.count) { _, _ in
-                        withAnimation {
+                        withAnimation(.easeInOut(duration: 0.25)) {
                             proxy.scrollTo(lines.count - 1, anchor: .bottom)
                         }
                     }
@@ -160,7 +160,7 @@ struct WebsiteLogView: View {
         NavigationStack {
             Group {
                 if isLoading && lines.isEmpty {
-                    ProgressView(L10n.t("加载日志…"))
+                    LoadingStateView(text: L10n.t("加载日志…"))
                 } else if lines.isEmpty {
                     ContentUnavailableView(
                         L10n.t("暂无日志"),

@@ -82,8 +82,10 @@ struct AlertNotificationView: View {
         } message: {
             Text(L10n.f("确定删除告警「%@」吗？", vm.pendingDeleteRule?.title ?? ""))
         }
-        .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-            Button(L10n.t("好"), role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+        Text(vm.alertMessage)
         }
         .alert(L10n.t("删除发送方式"), isPresented: Binding(
             get: { vm.pendingDeleteConfig != nil },
@@ -146,7 +148,7 @@ struct AlertNotificationView: View {
     private var ruleContent: some View {
         if vm.isLoading && vm.rules.isEmpty {
             Section {
-                HStack { Spacer(); ProgressView(L10n.t("加载中…")); Spacer() }
+                HStack { Spacer(); LoadingStateView(); Spacer() }
                     .padding(.vertical, 30)
             }
         } else if let err = vm.errorMessage, !err.isEmpty, vm.rules.isEmpty {
@@ -199,7 +201,7 @@ struct AlertNotificationView: View {
     private var logContent: some View {
         if vm.isLoadingLogs && vm.logs.isEmpty {
             Section {
-                HStack { Spacer(); ProgressView(L10n.t("加载中…")); Spacer() }
+                HStack { Spacer(); LoadingStateView(); Spacer() }
                     .padding(.vertical, 30)
             }
         } else if vm.logs.isEmpty {
@@ -231,7 +233,7 @@ struct AlertNotificationView: View {
     private var configContent: some View {
         if vm.isLoadingConfigs && vm.configs.isEmpty && vm.commonConfig == nil {
             Section {
-                HStack { Spacer(); ProgressView(L10n.t("加载中…")); Spacer() }
+                HStack { Spacer(); LoadingStateView(); Spacer() }
                     .padding(.vertical, 30)
             }
         } else if vm.configs.isEmpty && vm.commonConfig == nil {

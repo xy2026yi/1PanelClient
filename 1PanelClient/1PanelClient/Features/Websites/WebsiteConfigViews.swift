@@ -22,7 +22,7 @@ struct WebsiteDefaultDocView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else {
                 VStack(spacing: 0) {
                     TextEditor(text: $docText)
@@ -272,7 +272,7 @@ struct WebsiteRedirectView: View {
     var body: some View {
         Group {
             if isLoading && redirects.isEmpty {
-                ProgressView(L10n.t("加载重定向…"))
+                LoadingStateView()
             } else if redirects.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无重定向"),
@@ -346,7 +346,7 @@ struct WebsiteRedirectView: View {
             )
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
-            Button(L10n.t("确认"), role: .destructive) {
+            Button(L10n.t("删除"), role: .destructive) {
                 if let r = pendingDelete {
                     Task { await deleteRedirect(r) }
                 }
@@ -368,21 +368,9 @@ struct WebsiteRedirectView: View {
                             .font(.body.bold())
                         Spacer()
                         if r.enable == true {
-                            Text(L10n.t("已启用"))
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.green.opacity(0.1))
-                                .foregroundStyle(.green)
-                                .clipShape(Capsule())
+                            StatusBadge(text: L10n.t("已启用"), color: .statusRunning)
                         } else {
-                            Text(L10n.t("已停用"))
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.gray.opacity(0.1))
-                                .foregroundStyle(.secondary)
-                                .clipShape(Capsule())
+                            StatusBadge(text: L10n.t("已停用"), color: .statusStopped)
                         }
                     }
                     HStack {
@@ -707,7 +695,7 @@ struct WebsiteAuthsView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else {
                 list
             }
@@ -739,7 +727,7 @@ struct WebsiteAuthsView: View {
             )
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
-            Button(L10n.t("确认"), role: .destructive) {
+            Button(L10n.t("删除"), role: .destructive) {
                 if let item = pendingDelete {
                     Task { await deleteItem(item) }
                 }

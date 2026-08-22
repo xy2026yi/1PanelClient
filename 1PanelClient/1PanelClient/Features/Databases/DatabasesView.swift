@@ -144,7 +144,7 @@ struct DatabasesView: View {
         }
         .overlay {
             if vm.isLoading && vm.systems.isEmpty {
-                ProgressView()
+                LoadingStateView()
             }
         }
     }
@@ -701,7 +701,7 @@ struct DatabaseSystemView: View {
                 title: check.app ?? vm.system.displayName,
                 subtitle: check.version.flatMap { $0.isEmpty ? nil : "v\($0)" },
                 statusText: check.isRunning ? L10n.t("运行中") : L10n.t("已停止"),
-                statusColor: check.isRunning ? .green : .red,
+                statusColor: check.isRunning ? .statusRunning : .statusStopped,
                 isOperating: vm.isOperating,
                 isExpanded: $isStatusExpanded,
                 actions: drawerActions(check)
@@ -828,9 +828,9 @@ struct DatabaseConnInfoView: View {
         List {
             Section {
                 if let ci = vm.connInfo {
-                    CopyableInfoRow(key: L10n.t("容器地址"), value: ci.containerName ?? vm.system.address ?? "-")
-                    if let port = ci.port { CopyableInfoRow(key: L10n.t("端口"), value: "\(port)") }
-                    CopyableInfoRow(key: L10n.t("外部地址"), value: "127.0.0.1")
+                    CopyableInfoRow(key: L10n.t("容器地址"), value: ci.containerName ?? vm.system.address ?? "-", monospaced: true)
+                    if let port = ci.port { CopyableInfoRow(key: L10n.t("端口"), value: "\(port)", monospaced: true) }
+                    CopyableInfoRow(key: L10n.t("外部地址"), value: "127.0.0.1", monospaced: true)
                     if let user = ci.username, !user.isEmpty {
                         InfoRow(key: L10n.t("用户名"), value: user)
                     }
@@ -1033,7 +1033,7 @@ struct ChangePasswordSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         onConfirm(newPassword)
                         dismiss()
                     }
@@ -1152,18 +1152,3 @@ struct RedisPasswordSheet: View {
 
 // MARK: - 半屏确认删除 Sheet（数据库 / 用户）
 
-// MARK: - Color 扩展
-
-extension Color {
-    static func fromDBString(_ name: String) -> Color {
-        switch name {
-        case "blue":   return .blue
-        case "indigo": return .indigo
-        case "red":    return .red
-        case "purple": return .purple
-        case "green":  return .green
-        case "orange": return .orange
-        default:       return .purple
-        }
-    }
-}

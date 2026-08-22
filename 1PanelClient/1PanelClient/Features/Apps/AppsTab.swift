@@ -43,7 +43,7 @@ struct AppsTab: View {
     var rootContent: some View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if vm.apps.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无已安装应用"),
@@ -162,7 +162,7 @@ struct AppRow: View {
                         .fill(.thinMaterial)
                         .frame(width: 44, height: 44)
                     ProgressView()
-                        .scaleEffect(0.6)
+                        .scaleEffect(0.7)
                 }
             }
 

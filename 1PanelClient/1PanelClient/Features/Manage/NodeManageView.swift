@@ -69,7 +69,7 @@ struct NodeManageView: View {
             if isLoading && cards.isEmpty {
                 HStack {
                     Spacer()
-                    ProgressView(L10n.t("加载中…"))
+                    LoadingStateView()
                     Spacer()
                 }
                 .frame(minHeight: 200)
@@ -86,10 +86,10 @@ struct NodeManageView: View {
                 .frame(maxWidth: .infinity, minHeight: 160)
                 .listRowBackground(Color.clear)
             } else if cards.isEmpty {
-                Text(L10n.t("暂无节点"))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-                    .listRowBackground(Color.clear)
+                ContentUnavailableView {
+                    Label(L10n.t("暂无节点"), systemImage: "server.rack")
+                }
+                .listRowBackground(Color.clear)
             } else {
                 ForEach(cards) { card in
                     nodeSection(card)

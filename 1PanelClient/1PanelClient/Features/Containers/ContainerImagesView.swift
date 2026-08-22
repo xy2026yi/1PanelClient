@@ -21,7 +21,7 @@ struct ContainerImageView: View {
     var body: some View {
         Group {
             if vm.isLoadingImages && vm.images.isEmpty {
-                ProgressView(L10n.t("加载镜像…"))
+                LoadingStateView()
             } else if vm.images.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无镜像"),
@@ -229,7 +229,7 @@ struct PullImageView: View {
                     Task { await startPull() }
                 } label: {
                     HStack {
-                        if isPulling { ProgressView().scaleEffect(0.8) }
+                        if isPulling { ProgressView().scaleEffect(0.7) }
                         Text(isPulling ? L10n.t("拉取中…") : L10n.t("确认拉取"))
                             .frame(maxWidth: .infinity)
                     }
@@ -336,7 +336,7 @@ struct ImagePruneSelectView: View {
                 if filteredImages.isEmpty {
                     ContentUnavailableView(
                         isUntaggedMode ? L10n.t("暂无未标签镜像") : L10n.t("暂无未使用镜像"),
-                        systemImage: "checkmark.seal",
+                        systemImage: "checkmark.seal.fill",
                         description: Text(L10n.t("没有可清理的镜像"))
                     )
                     .frame(maxHeight: .infinity)

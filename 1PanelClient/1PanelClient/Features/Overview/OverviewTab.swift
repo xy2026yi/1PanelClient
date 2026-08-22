@@ -39,8 +39,7 @@ struct OverviewTab: View {
             ScrollView {
                 VStack(spacing: 16) {
                     if vm.isLoading && !vm.hasData {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, minHeight: 200)
+                        LoadingStateView()
                     } else if let base = vm.base, base.hostname != nil {
                         fullDashboard(base)
                     } else {
@@ -184,7 +183,7 @@ struct OverviewTab: View {
                 showUpgradeLog = true
             }
             if let ip = vm.settingInfo?.systemIP, !ip.isEmpty {
-                InfoRow(key: L10n.t("面板 IP"), value: ip)
+                InfoRow(key: L10n.t("面板 IP"), value: ip, monospaced: true)
             }
             if let tz = vm.settingInfo?.timeZone, !tz.isEmpty {
                 InfoRow(key: L10n.t("时区"), value: tz)
@@ -250,7 +249,7 @@ struct OverviewTab: View {
 
         return VStack(spacing: 12) {
             HStack {
-                Image(systemName: "chart.xyaxis.line")
+                Image(systemName: "chart.line.uptrend.xyaxis")
                     .foregroundStyle(.tint)
                 Text(L10n.t("状态"))
                     .font(.headline)
@@ -340,12 +339,12 @@ struct OverviewTab: View {
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.database) } label: {
-                StatCard(title: L10n.t("数据库"), count: b.databaseNumber, icon: "cylinder.split.1x2", color: .purple)
+                StatCard(title: L10n.t("数据库"), count: b.databaseNumber, icon: "cylinder", color: .purple)
             }
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.containers) } label: {
-                StatCard(title: L10n.t("容器"), count: vm.containerCount, icon: "shippingbox", color: .blue, customIcon: "icon-docker", isLoading: vm.isLoading)
+                StatCard(title: L10n.t("容器"), count: vm.containerCount, icon: "shippingbox", color: .indigo, customIcon: "icon-docker", isLoading: vm.isLoading)
             }
             .buttonStyle(PressableCardStyle())
         }
@@ -763,7 +762,7 @@ struct PanelUpgradeView: View {
         ScrollView {
             VStack(spacing: 16) {
                 if isLoading && releases.isEmpty {
-                    ProgressView(L10n.t("加载中…"))
+                    LoadingStateView()
                         .frame(maxWidth: .infinity, minHeight: 200)
                 } else if releases.isEmpty {
                     ContentUnavailableView(L10n.t("暂无更新日志"), systemImage: "doc.text.magnifyingglass")
@@ -786,7 +785,7 @@ struct PanelUpgradeView: View {
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }

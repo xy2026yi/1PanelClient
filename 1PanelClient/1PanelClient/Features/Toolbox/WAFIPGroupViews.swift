@@ -29,7 +29,7 @@ struct WAFIPGroupsView: View {
     var body: some View {
         List {
             if isLoading && items.isEmpty {
-                ProgressView()
+                LoadingStateView()
             } else if items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无 IP 组"), systemImage: "rectangle.on.rectangle.angled")
             } else {
@@ -90,7 +90,7 @@ struct WAFIPGroupsView: View {
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
@@ -103,7 +103,7 @@ struct WAFIPGroupsView: View {
             presenting: pendingDeleteGroup
         ) { _ in
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteGroup = nil }
-            Button(L10n.t("确认"), role: .destructive) {
+            Button(L10n.t("删除"), role: .destructive) {
                 let item = pendingDeleteGroup
                 pendingDeleteGroup = nil
                 if let item = item {
@@ -204,7 +204,7 @@ struct WAFCreateIPGroupView: View {
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )) {
-            Button(L10n.t("好的")) { errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }
@@ -283,7 +283,7 @@ struct WAFIPGroupEditView: View {
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(successMessage ?? errorMessage ?? "")
         }

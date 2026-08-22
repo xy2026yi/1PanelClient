@@ -66,7 +66,7 @@ struct WAFGlobalConfigView: View {
             get: { vm.successMessage != nil || vm.errorMessage != nil },
             set: { _ in vm.successMessage = nil; vm.errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { vm.successMessage = nil; vm.errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { vm.successMessage = nil; vm.errorMessage = nil }
         } message: {
             Text(vm.errorMessage ?? vm.successMessage ?? "")
         }
@@ -163,7 +163,7 @@ struct WAFConfigItemView: View {
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }

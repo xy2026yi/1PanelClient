@@ -750,7 +750,7 @@ struct DatabaseUserDetailView: View {
             if let msg = vm.errorMessage {
                 Section {
                     Label(msg, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Color.semanticWarning)
                         .font(.caption)
                 }
             }
@@ -957,7 +957,7 @@ struct EditUserPermissionSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         onConfirm(finalHost, description)
                         dismiss()
                     }
@@ -1001,7 +1001,7 @@ struct AddGrantSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         onConfirm(selectedDatabase)
                         dismiss()
                     }

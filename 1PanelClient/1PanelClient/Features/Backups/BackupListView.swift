@@ -319,7 +319,7 @@ struct BackupListView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.records.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if vm.records.isEmpty && vm.loadFailed {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -354,8 +354,8 @@ struct BackupListView: View {
         .refreshable {
             await vm.refresh()
         }
-        .sheet(isPresented: $showCreate) {
-            BackupCreateSheet(target: vm.target) { secret, description, args in
+        .navigationDestination(isPresented: $showCreate) {
+            BackupCreateView(target: vm.target) { secret, description, args in
                 switch await vm.createBackup(secret: secret, description: description, args: args) {
                 case .success(let taskID):
                     pendingProgress = BackupProgressState(
@@ -613,7 +613,7 @@ private struct BackupRecordCard: View {
 // MARK: - 新增备份表单
 
 /// 新增备份：压缩密码 + 描述（MySQL 系多一个备份参数多选）
-private struct BackupCreateSheet: View {
+private struct BackupCreateView: View {
     let target: BackupTarget
     /// 返回 nil 表示提交成功（表单自行关闭）；返回非 nil 为失败原因（表单内弹提示）
     let onSubmit: (_ secret: String, _ description: String, _ args: [String]) async -> String?
@@ -628,8 +628,7 @@ private struct BackupCreateSheet: View {
     @State private var submitError: String?
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Form {
                 Section {
                     HStack {
                         if showSecret {
@@ -679,11 +678,8 @@ private struct BackupCreateSheet: View {
             .navigationTitle(L10n.t("新增备份"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(isSubmitting ? L10n.t("提交中…") : L10n.t("确认")) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(isSubmitting ? L10n.t("创建中…") : L10n.t("创建")) {
                         Task {
                             isSubmitting = true
                             let error = await onSubmit(secret, description, Array(selectedArgs).sorted())
@@ -707,7 +703,6 @@ private struct BackupCreateSheet: View {
             } message: {
                 Text(submitError ?? "")
             }
-        }
     }
 }
 
@@ -815,7 +810,7 @@ case hour = "小时"
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isSubmitting ? L10n.t("提交中…") : L10n.t("确认")) {
+                    Button(isSubmitting ? L10n.t("恢复中…") : L10n.t("恢复")) {
                         Task {
                             isSubmitting = true
                             let timeout = max(1, timeoutValue) * timeoutUnit.multiplier

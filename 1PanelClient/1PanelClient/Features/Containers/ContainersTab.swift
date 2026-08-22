@@ -32,7 +32,7 @@ struct ContainersTab: View {
     var rootContent: some View {
         Group {
             if vm.isLoading && vm.containers.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if vm.containers.isEmpty && vm.dockerStatus == nil {
                 ContentUnavailableView(
                     L10n.t("暂无容器"),
@@ -83,9 +83,9 @@ struct ContainersTab: View {
 
             if vm.containers.isEmpty {
                 Section {
-                    Text(vm.errorMessage ?? L10n.t("这台服务器上没有容器"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    ContentUnavailableView {
+                        Label(vm.errorMessage ?? L10n.t("这台服务器上没有容器"), systemImage: "shippingbox")
+                    }
                 }
             } else {
                 Section {
@@ -280,7 +280,7 @@ struct PortsInfoRow: View {
 
             if needsFold {
                 Button {
-                    withAnimation { isExpanded.toggle() }
+                    withAnimation(.easeInOut(duration: 0.25)) { isExpanded.toggle() }
                 } label: {
                     Label(
                         isExpanded ? L10n.t("收起") : L10n.f("展开全部 %ld 条", ports.count),

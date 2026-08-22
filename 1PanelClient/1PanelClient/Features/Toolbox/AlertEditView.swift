@@ -53,7 +53,7 @@ struct AlertEditView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(L10n.t("确认")) {
+                Button(isEditing ? L10n.t("保存") : L10n.t("创建")) {
                     if let req = buildRequest() {
                         Task {
                             // 成功后自动返回列表，Toast 在列表页展示
@@ -114,7 +114,7 @@ struct AlertEditView: View {
                 if vm.isLoadingOptions {
                     HStack {
                         Spacer()
-                        ProgressView(L10n.t("加载中…"))
+                        LoadingStateView()
                         Spacer()
                     }
                 } else {
@@ -157,7 +157,7 @@ struct AlertEditView: View {
                 if vm.isLoadingOptions {
                     HStack {
                         Spacer()
-                        ProgressView(L10n.t("加载中…"))
+                        LoadingStateView()
                         Spacer()
                     }
                 } else {
@@ -261,7 +261,7 @@ struct AlertEditView: View {
     private var methodSection: some View {
         Section {
             if availableConfigs.isEmpty {
-                Label(L10n.t("请先在「设置」中配置发送方式"), systemImage: "exclamationmark.triangle")
+                Label(L10n.t("请先在「设置」中配置发送方式"), systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             } else {
                 Picker(L10n.t("发送至"), selection: $sendMethodAll) {

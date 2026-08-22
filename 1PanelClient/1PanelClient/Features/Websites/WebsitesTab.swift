@@ -12,7 +12,7 @@ struct WebsitesTab: View {
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
     @State private var isSearching = false
-    @State private var showCreateSheet = false
+    @State private var showCreate = false
     @State private var showCerts = false
     @State private var showOpenRestyConfig = false
     @State private var showMenu = false
@@ -26,8 +26,10 @@ struct WebsitesTab: View {
 
     var body: some View {
         rootContent
-        .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-            Button(L10n.t("好"), role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+        Text(vm.alertMessage)
         }
         .task { await vm.refresh() }
     }
@@ -36,7 +38,7 @@ struct WebsitesTab: View {
     var rootContent: some View {
         Group {
             if vm.isLoading && vm.websites.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else {
                 websiteList
             }
@@ -68,7 +70,7 @@ struct WebsitesTab: View {
         }
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
-                showCreateSheet = true
+                showCreate = true
             })
             .accessibilityLabel(L10n.t("创建网站"))
         }
@@ -81,7 +83,7 @@ struct WebsitesTab: View {
         .navigationDestination(isPresented: $showCerts) {
             CertificatesTab(manager: manager)
         }
-        .navigationDestination(isPresented: $showCreateSheet) {
+        .navigationDestination(isPresented: $showCreate) {
             CreateWebsiteView(vm: vm)
         }
         .navigationDestination(isPresented: $showOpenRestyConfig) {

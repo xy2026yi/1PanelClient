@@ -117,7 +117,7 @@ struct AddNodeView: View {
             .navigationTitle(isEditing ? L10n.t("编辑节点") : L10n.t("添加节点"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -144,7 +144,7 @@ struct AddNodeView: View {
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button(L10n.t("好"), role: .cancel) {}
+                Button(L10n.t("好的"), role: .cancel) {}
             } message: {
                 Text(errorMessage ?? "")
             }
@@ -153,6 +153,7 @@ struct AddNodeView: View {
                     Task { await submit() }
                 }
                 .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
             }
             .task {
                 await loadGroupsAndLicenses()
@@ -466,7 +467,7 @@ private struct NodeCheckResultSheet: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(L10n.t("取消")) { dismiss() }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.t("确认")) { onConfirm() }
                         .disabled(!(result?.isConnOk ?? false))
                 }

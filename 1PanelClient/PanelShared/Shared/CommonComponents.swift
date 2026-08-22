@@ -50,16 +50,20 @@ extension View {
 struct InfoRow: View {
     let key: String
     let value: String
+    /// 数据值用等宽字体（IP、端口、ID 等机器数据）
+    var monospaced: Bool = false
 
-    init(key: String, value: String) {
+    init(key: String, value: String, monospaced: Bool = false) {
         self.key = key
         self.value = value
+        self.monospaced = monospaced
     }
 
     /// 便捷初始化：`InfoRow("名称", value: x)`
-    init(_ key: String, value: String) {
+    init(_ key: String, value: String, monospaced: Bool = false) {
         self.key = key
         self.value = value
+        self.monospaced = monospaced
     }
 
     var body: some View {
@@ -72,7 +76,7 @@ struct InfoRow: View {
                 .multilineTextAlignment(.trailing)
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .font(.subheadline)
+        .font(monospaced ? .dataMonospaced : .subheadline)
     }
 }
 
@@ -82,16 +86,20 @@ struct InfoRow: View {
 struct CopyableInfoRow: View {
     let key: String
     let value: String
+    /// 数据值用等宽字体（IP、端口、连接地址等机器数据）
+    var monospaced: Bool = false
 
-    init(key: String, value: String) {
+    init(key: String, value: String, monospaced: Bool = false) {
         self.key = key
         self.value = value
+        self.monospaced = monospaced
     }
 
     /// 便捷初始化：`CopyableInfoRow("端口", value: x)`
-    init(_ key: String, value: String) {
+    init(_ key: String, value: String, monospaced: Bool = false) {
         self.key = key
         self.value = value
+        self.monospaced = monospaced
     }
 
     var body: some View {
@@ -112,7 +120,7 @@ struct CopyableInfoRow: View {
             }
             .buttonStyle(.borderless)
         }
-        .font(.subheadline)
+        .font(monospaced ? .dataMonospaced : .subheadline)
     }
 }
 
@@ -488,7 +496,7 @@ struct TextInputConfirmSheet<Options: View>: View {
     /// 确认按钮文案
     var confirmTitle: String = L10n.t("删除")
 
-    let onConfirm: () -> Void
+    let onConfirm: () async -> Void
     @ViewBuilder var options: () -> Options
 
     init(
@@ -498,7 +506,7 @@ struct TextInputConfirmSheet<Options: View>: View {
         fieldLabel: String = L10n.t("确认输入"),
         fieldPlaceholder: String? = nil,
         confirmTitle: String = L10n.t("删除"),
-        onConfirm: @escaping () -> Void,
+        onConfirm: @escaping () async -> Void,
         @ViewBuilder options: @escaping () -> Options = { EmptyView() }
     ) {
         self.title = title
@@ -513,6 +521,7 @@ struct TextInputConfirmSheet<Options: View>: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var input = ""
+    @State private var isSubmitting = false
 
     private var canConfirm: Bool {
         input.trimmingCharacters(in: .whitespaces) == expectedText
@@ -538,17 +547,30 @@ struct TextInputConfirmSheet<Options: View>: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isSubmitting)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(confirmTitle, role: .destructive) {
-                        onConfirm()
-                        dismiss()
+                    Button(role: .destructive) {
+                        guard !isSubmitting else { return }
+                        isSubmitting = true
+                        Task {
+                            await onConfirm()
+                            dismiss()
+                        }
+                    } label: {
+                        if isSubmitting {
+                            ProgressView()
+                        } else {
+                            Text(confirmTitle)
+                        }
                     }
-                    .disabled(!canConfirm)
+                    .disabled(!canConfirm || isSubmitting)
                 }
             }
+            .interactiveDismissDisabled(isSubmitting)
         }
         .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -563,6 +585,45 @@ extension View {
     /// List 首个 Section 内 segmented Picker 行（监控/进程/告警/证书详情切换器）
     func segmentedPickerRow() -> some View {
         listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+    }
+}
+
+// MARK: - 详情卡操作按钮
+
+/// 详情页/服务卡内的操作按钮：图标 + 标题 + 淡色底块。
+/// ServiceStatusCard 与防火墙/容器/应用/网站详情页的操作行共用此样式。
+struct CardActionButton: View {
+    let title: String
+    let icon: String
+    var color: Color = .accentColor
+    /// 操作进行中：图标位置显示小进度圈
+    var busy: Bool = false
+    var disabled: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                if busy {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .frame(width: 22, height: 22)
+                } else {
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(color)
+                        .frame(width: 22, height: 22)
+                }
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled || busy)
     }
 }
 

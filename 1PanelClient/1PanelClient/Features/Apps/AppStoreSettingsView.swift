@@ -15,7 +15,7 @@ struct AppStoreSettingsView: View {
     var body: some View {
         Group {
             if vm.isLoadingAppStoreConfig && vm.appStoreConfig == nil {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else {
                 Form {
                     Section {

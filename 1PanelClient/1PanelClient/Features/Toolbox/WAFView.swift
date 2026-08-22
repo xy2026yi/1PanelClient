@@ -23,7 +23,7 @@ struct WAFView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.config == nil {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if vm.config != nil {
                 content
             } else if let err = vm.errorMessage {
@@ -44,7 +44,7 @@ struct WAFView: View {
             get: { vm.successMessage != nil || vm.errorMessage != nil },
             set: { _ in vm.successMessage = nil; vm.errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { vm.successMessage = nil; vm.errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { vm.successMessage = nil; vm.errorMessage = nil }
         } message: {
             Text(vm.errorMessage ?? vm.successMessage ?? "")
         }
@@ -101,7 +101,7 @@ struct WAFView: View {
                 NavigationLink {
                     WAFInterceptLogsView(server: server)
                 } label: {
-                    entryRow(icon: "exclamationmark.triangle", color: .orange, title: L10n.t("拦截记录"))
+                    entryRow(icon: "exclamationmark.triangle.fill", color: .orange, title: L10n.t("拦截记录"))
                 }
                 NavigationLink {
                     WAFBlockRecordsView(server: server)

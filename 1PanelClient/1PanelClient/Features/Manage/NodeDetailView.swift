@@ -72,7 +72,7 @@ struct NodeDetailView: View {
     var body: some View {
         Group {
             if isLoading && item == nil {
-                ProgressView(L10n.t("加载中…")).frame(maxWidth: .infinity, minHeight: 200)
+                LoadingStateView()
             } else if let errorMessage, item == nil {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -100,12 +100,12 @@ struct NodeDetailView: View {
                     Button {
                         showRenameSheet = true
                     } label: {
-                        Label(L10n.t("改名称"), systemImage: "pencil.line")
+                        Label(L10n.t("改名称"), systemImage: "pencil")
                     }
                     Button {
                         showEditSheet = true
                     } label: {
-                        Label(L10n.t("编辑"), systemImage: "square.and.pencil")
+                        Label(L10n.t("编辑"), systemImage: "pencil")
                     }
                     Button {
                         Task { await syncNode() }
@@ -184,11 +184,11 @@ struct NodeDetailView: View {
         .sheet(isPresented: $showDeleteSheet) {
             TextInputConfirmSheet(
                 title: L10n.t("删除节点"),
-                message: L10n.t("删除后将从多机管理中移除该节点，此操作不可恢复。"),
-                expectedText: L10n.t("确认"),
-                fieldLabel: L10n.t("确认输入"),
-                fieldPlaceholder: L10n.t("请输入 确认"),
-                confirmTitle: L10n.t("确认")
+                message: L10n.f("删除后将从多机管理中移除该节点，此操作不可恢复。请输入节点名称「%@」以确认删除。", item?.displayName ?? server.name),
+                expectedText: item?.displayName ?? server.name,
+                fieldLabel: L10n.t("确认名称"),
+                fieldPlaceholder: L10n.t("节点名称"),
+                confirmTitle: L10n.t("删除")
             ) {
                 Task { await deleteNode() }
             } options: {
@@ -199,7 +199,6 @@ struct NodeDetailView: View {
                     Text(L10n.t("强制删除：节点异常或离线时仍强制移除。删除节点数据：同时卸载该节点上安装的 1Panel 服务。"))
                 }
             }
-            .presentationDetents([.medium, .large])
         }
         .toastOverlay(message: $toastMessage)
         .alert(L10n.t("提示"), isPresented: $showRestartAlert) {
@@ -556,7 +555,7 @@ private struct NodeRenameSheet: View {
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button(L10n.t("好"), role: .cancel) {}
+                Button(L10n.t("好的"), role: .cancel) {}
             } message: {
                 Text(errorMessage ?? "")
             }
@@ -620,7 +619,7 @@ struct NodeUpgradeLogsView: View {
                 if isLoading && items.isEmpty {
                     HStack {
                         Spacer()
-                        ProgressView(L10n.t("加载中…"))
+                        LoadingStateView()
                         Spacer()
                     }
                     .frame(minHeight: 160)

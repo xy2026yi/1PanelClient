@@ -217,7 +217,7 @@ struct ContainerDetailView: View {
                     .foregroundStyle(.secondary)
             }
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(.easeInOut(duration: 0.25)) {
                     isStatusExpanded.toggle()
                 }
             } label: {
@@ -313,28 +313,7 @@ struct ContainerDetailView: View {
         color: Color,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                if vm.containerOperating {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .frame(width: 22, height: 22)
-                } else {
-                    Image(systemName: icon)
-                        .font(.title3)
-                        .foregroundStyle(color)
-                        .frame(width: 22, height: 22)
-                }
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-        .disabled(vm.containerOperating)
+        CardActionButton(title: title, icon: icon, color: color, busy: vm.containerOperating, action: action)
     }
 
     private func containerActionDisplayName(_ action: String) -> String {
@@ -400,7 +379,7 @@ struct AppDetailFromContainerView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let app = matchedApp {
                 AppDetailView(app: app, vm: vm)
             } else {
@@ -446,7 +425,7 @@ struct WebsiteDetailFromContainerView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.websites.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let website = matchedWebsite {
                 WebsiteDetailView(website: website, vm: vm)
             } else {

@@ -120,7 +120,7 @@ struct SSHView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.config == nil {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let config = vm.config {
                 content(config: config)
             } else if let err = vm.errorMessage {
@@ -141,7 +141,7 @@ struct SSHView: View {
             get: { vm.successMessage != nil || vm.errorMessage != nil },
             set: { _ in vm.successMessage = nil; vm.errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { vm.successMessage = nil; vm.errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { vm.successMessage = nil; vm.errorMessage = nil }
         } message: {
             Text(vm.errorMessage ?? vm.successMessage ?? "")
         }
@@ -195,7 +195,7 @@ struct SSHView: View {
             ServiceStatusCard(
                 title: "SSH",
                 statusText: config.isActive ? L10n.t("运行中") : L10n.t("已停止"),
-                statusColor: config.isActive ? .green : .red,
+                statusColor: config.isActive ? .statusRunning : .statusStopped,
                 isOperating: vm.isOperating,
                 isExpanded: $isServiceExpanded,
                 actions: [
@@ -366,7 +366,7 @@ struct SSHFullConfigView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else {
                 TextEditor(text: $configText)
                     .font(.system(.caption, design: .monospaced))
@@ -389,7 +389,7 @@ struct SSHFullConfigView: View {
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }

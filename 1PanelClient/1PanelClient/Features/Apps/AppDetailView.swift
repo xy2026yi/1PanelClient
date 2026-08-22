@@ -116,10 +116,10 @@ struct AppDetailView: View {
             // 应用信息（精简）
             Section(L10n.t("应用信息")) {
                 if let port = app.httpPort, port > 0 {
-                    InfoRow(L10n.t("HTTP 端口"), value: "\(port)")
+                    InfoRow(L10n.t("HTTP 端口"), value: "\(port)", monospaced: true)
                 }
                 if let ports = app.httpsPort, ports > 0 {
-                    InfoRow(L10n.t("HTTPS 端口"), value: "\(ports)")
+                    InfoRow(L10n.t("HTTPS 端口"), value: "\(ports)", monospaced: true)
                 }
                 if let path = app.path, !path.isEmpty {
                     NavigationLink {
@@ -233,7 +233,7 @@ struct AppDetailView: View {
             }
             Spacer()
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(.easeInOut(duration: 0.25)) {
                     isExpanded.toggle()
                 }
             } label: {
@@ -330,21 +330,7 @@ struct AppDetailView: View {
         color: Color,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(color)
-                    .frame(width: 22, height: 22)
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
+        CardActionButton(title: title, icon: icon, color: color, action: action)
     }
 
     private func executePendingAction() {
@@ -411,7 +397,7 @@ struct ContainerDetailFromAppView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.containers.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let container = vm.containers.first(where: { $0.name == app.container }) {
                 ContainerDetailView(container: container, server: server, vm: vm)
             } else {

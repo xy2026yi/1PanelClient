@@ -210,7 +210,7 @@ struct FirewallView: View {
         }
         .overlay {
             if vm.isLoading && vm.base == nil {
-                ProgressView()
+                LoadingStateView()
             } else if let msg = vm.errorMessage, vm.base == nil {
                 ErrorBanner(message: msg) { Task { await vm.refresh() } }
             }
@@ -251,20 +251,21 @@ struct FirewallView: View {
             .presentationDetents([.height(ActionBottomSheet.height(for: 2))])
             .presentationDragIndicator(.visible)
         }
-        .alert(
-            pendingDeleteRule.map { L10n.f("删除端口规则 %@ ？", $0.port ?? "") } ?? L10n.t("删除端口规则？"),
-            isPresented: Binding(
-                get: { pendingDeleteRule != nil },
-                set: { if !$0 { pendingDeleteRule = nil } }
-            )
-        ) {
+        .alert(L10n.t("删除端口规则"), isPresented: Binding(
+            get: { pendingDeleteRule != nil },
+            set: { if !$0 { pendingDeleteRule = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDeleteRule = nil }
             Button(L10n.t("删除"), role: .destructive) {
                 if let rule = pendingDeleteRule {
                     pendingDeleteRule = nil
                     Task { await vm.deleteRule(rule) }
                 }
             }
-            Button(L10n.t("取消"), role: .cancel) { pendingDeleteRule = nil }
+        } message: {
+            if let rule = pendingDeleteRule {
+                Text(L10n.f("确定删除端口规则「%@」吗？删除后不可恢复。", rule.port ?? ""))
+            }
         }
         .alert(
             pendingUFWOp.map { opTitle($0) } ?? "",
@@ -306,13 +307,13 @@ struct FirewallView: View {
                             HStack(spacing: 4) {
                                 StatusBadge(
                                     text: (base.isActive ?? false) ? L10n.t("运行中") : L10n.t("已停止"),
-                                    color: (base.isActive ?? false) ? .green : .red
+                                    color: (base.isActive ?? false) ? .statusRunning : .statusStopped
                                 )
                             }
                         }
                         Spacer()
                         Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
+                            withAnimation(.easeInOut(duration: 0.25)) {
                                 statusExpanded.toggle()
                             }
                         } label: {
@@ -387,29 +388,13 @@ struct FirewallView: View {
         }
     }
 
-    @ViewBuilder
     private func firewallActionButton(
         title: String,
         icon: String,
         color: Color,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(color)
-                    .frame(width: 22, height: 22)
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-        .disabled(vm.isOperating)
+        CardActionButton(title: title, icon: icon, color: color, disabled: vm.isOperating, action: action)
     }
 }
 
@@ -513,11 +498,11 @@ struct FirewallAddRuleView: View {
                 TextField(L10n.t("备注（可选）"), text: $description)
             } header: { SectionLabel(title: L10n.t("备注"), systemImage: "text.alignleft") }
         }
-        .navigationTitle(L10n.t("添加端口规则"))
+        .navigationTitle(L10n.t("创建端口规则"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(L10n.t("添加")) {
+                Button(L10n.t("创建")) {
                     Task {
                         saving = true
                         let ok = await vm.addRule(

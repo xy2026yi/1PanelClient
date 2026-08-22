@@ -24,7 +24,7 @@ struct WebsiteProxiesView: View {
     var body: some View {
         Group {
             if isLoading && proxies.isEmpty {
-                ProgressView(L10n.t("加载反向代理…"))
+                LoadingStateView()
             } else if proxies.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无反向代理"),
@@ -104,7 +104,7 @@ struct WebsiteProxiesView: View {
             )
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteProxy = nil }
-            Button(L10n.t("确认"), role: .destructive) {
+            Button(L10n.t("删除"), role: .destructive) {
                 if let proxy = pendingDeleteProxy {
                     Task { await deleteProxy(proxy) }
                 }
@@ -126,21 +126,9 @@ struct WebsiteProxiesView: View {
                             .font(.body.bold())
                         Spacer()
                         if p.enable == true {
-                            Text(L10n.t("已启用"))
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.green.opacity(0.1))
-                                .foregroundStyle(.green)
-                                .clipShape(Capsule())
+                            StatusBadge(text: L10n.t("已启用"), color: .statusRunning)
                         } else {
-                            Text(L10n.t("已停用"))
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.gray.opacity(0.1))
-                                .foregroundStyle(.secondary)
-                                .clipShape(Capsule())
+                            StatusBadge(text: L10n.t("已停用"), color: .statusStopped)
                         }
                     }
                     HStack {

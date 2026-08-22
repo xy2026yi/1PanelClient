@@ -74,6 +74,7 @@ struct AppLogView: View {
             }
         }
         .task { await startStreaming() }
+        .refreshable { await startStreaming() }
         .onDisappear { streamTask?.cancel() }
     }
 
@@ -146,7 +147,7 @@ struct AppLogView: View {
     @ViewBuilder
     private var logContent: some View {
         if logLines.isEmpty && isLoading {
-            ProgressView(L10n.t("加载日志…"))
+            LoadingStateView(text: L10n.t("加载日志…"))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if logLines.isEmpty {
             ContentUnavailableView(
@@ -170,21 +171,21 @@ struct AppLogView: View {
                 }
                 .onChange(of: logLines.count) { _, _ in
                     if isFollowing {
-                        withAnimation {
+                        withAnimation(.easeInOut(duration: 0.25)) {
                             proxy.scrollTo(logLines.count - 1, anchor: .bottom)
                         }
                     }
                 }
                 .onChange(of: scrollToBottomTrigger) { _, _ in
                     if !logLines.isEmpty {
-                        withAnimation {
+                        withAnimation(.easeInOut(duration: 0.25)) {
                             proxy.scrollTo(logLines.count - 1, anchor: .bottom)
                         }
                     }
                 }
                 .onChange(of: isFollowing) { _, following in
                     if following && !logLines.isEmpty {
-                        withAnimation {
+                        withAnimation(.easeInOut(duration: 0.25)) {
                             proxy.scrollTo(logLines.count - 1, anchor: .bottom)
                         }
                     }

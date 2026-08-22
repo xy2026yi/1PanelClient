@@ -34,7 +34,7 @@ struct WAFIPRulesView: View {
     var body: some View {
         List {
             if isLoading && items.isEmpty {
-                ProgressView()
+                LoadingStateView()
             } else if items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无 IP 规则"), systemImage: "ipaddress")
             } else {
@@ -109,7 +109,7 @@ struct WAFIPRulesView: View {
             get: { successMessage != nil || errorMessage != nil },
             set: { _ in successMessage = nil; errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
         } message: {
             Text(errorMessage ?? successMessage ?? "")
         }
@@ -122,7 +122,7 @@ struct WAFIPRulesView: View {
             presenting: pendingDeleteIP
         ) { _ in
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteIP = nil }
-            Button(L10n.t("确认"), role: .destructive) {
+            Button(L10n.t("删除"), role: .destructive) {
                 let item = pendingDeleteIP
                 pendingDeleteIP = nil
                 if let item = item {
@@ -291,7 +291,7 @@ struct WAFIPRuleFormView: View {
                 TextField(L10n.t("描述(可选)"), text: $description)
             }
         }
-        .navigationTitle(editingItem == nil ? L10n.t("添加 IP 规则") : L10n.t("编辑 IP 规则"))
+        .navigationTitle(editingItem == nil ? L10n.t("创建 IP 规则") : L10n.t("编辑 IP 规则"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -314,7 +314,7 @@ struct WAFIPRuleFormView: View {
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )) {
-            Button(L10n.t("好的")) { errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }

@@ -21,7 +21,7 @@ struct AcmeAccountListView: View {
     var body: some View {
         Group {
             if isLoading && accounts.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if accounts.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无 Acme 账户"),
@@ -50,7 +50,7 @@ struct AcmeAccountListView: View {
             Button(L10n.t("取消"), role: .cancel) {
                 pendingDelete = nil
             }
-            Button(L10n.t("确认"), role: .destructive) {
+            Button(L10n.t("删除"), role: .destructive) {
                 if let account = pendingDelete {
                     Task {
                         if await vm.deleteAcmeAccount(id: account.id) {
@@ -229,7 +229,7 @@ struct CreateAcmeAccountView: View {
             }
         }
         .alert(L10n.t("请填写邮箱"), isPresented: $showValidationAlert) {
-            Button(L10n.t("好"), role: .cancel) {}
+            Button(L10n.t("好的"), role: .cancel) {}
         }
     }
 
@@ -274,7 +274,7 @@ struct DNSAccountListView: View {
     var body: some View {
         Group {
             if isLoading && accounts.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if accounts.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无 DNS 账户"),
@@ -303,7 +303,7 @@ struct DNSAccountListView: View {
             Button(L10n.t("取消"), role: .cancel) {
                 pendingDelete = nil
             }
-            Button(L10n.t("确认"), role: .destructive) {
+            Button(L10n.t("删除"), role: .destructive) {
                 if let account = pendingDelete {
                     Task {
                         if await vm.deleteDnsAccount(id: account.id) {
@@ -447,8 +447,10 @@ struct CreateDNSAccountView: View {
                 .disabled(isSubmitting)
             }
         }
-        .alert(validationMessage, isPresented: $showValidationAlert) {
-            Button(L10n.t("好"), role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $showValidationAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+        Text(validationMessage)
         }
         .task {
             if let account = existingAccount { prefill(from: account) }

@@ -90,21 +90,34 @@ struct FilesView: View {
             .refreshable { await loadDir(currentPath) }
             .task { await initialLoad() }
             .sheet(isPresented: $showActionSheet) {
-                FilesActionSheet(
-                    onUpload: { showUploadPicker = true },
-                    onCreateDir: { createIsDir = true; showCreate = true },
-                    onCreateFile: { createIsDir = false; showCreate = true },
-                    onGoTo: { pathInput = currentPath; showPathInput = true },
-                    onRoot: { pathInput = "/"; showPathInput = true }
-                )
+                ActionBottomSheet(title: L10n.t("操作"), items: [
+                    ActionMenuItem(title: L10n.t("上传文件"), icon: "arrow.up.circle", color: .blue) {
+                        showUploadPicker = true
+                    },
+                    ActionMenuItem(title: L10n.t("新建文件夹"), icon: "folder.badge.plus", color: .orange) {
+                        createIsDir = true; showCreate = true
+                    },
+                    ActionMenuItem(title: L10n.t("新建文件"), icon: "doc.badge.plus", color: .teal) {
+                        createIsDir = false; showCreate = true
+                    },
+                    ActionMenuItem(title: L10n.t("前往路径"), icon: "location", color: .indigo) {
+                        pathInput = currentPath; showPathInput = true
+                    },
+                    ActionMenuItem(title: L10n.t("根目录"), icon: "house", color: .green) {
+                        pathInput = "/"; showPathInput = true
+                    }
+                ], onDismiss: {})
+                .presentationDetents([.height(ActionBottomSheet.height(for: 5))])
+                .presentationDragIndicator(.visible)
             }
             .sheet(item: $actionItem) { item in
-                FileItemActionSheet(
-                    item: item,
-                    onDownload: { delayedAction { downloadFile(item) } },
-                    onRename: { delayedAction { renamingItem = item } },
-                    onDelete: { delayedAction { deletingItem = item } }
+                ActionBottomSheet(
+                    title: item.name,
+                    items: itemActions(item),
+                    onDismiss: { actionItem = nil }
                 )
+                .presentationDetents([.height(ActionBottomSheet.height(for: item.isDir ? 2 : 3))])
+                .presentationDragIndicator(.visible)
             }
             .modifier(FilesTransferModifier(
                 showUploadPicker: $showUploadPicker,
@@ -394,6 +407,23 @@ struct FilesView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: action)
     }
 
+    /// 长按文件行的操作菜单项（下载/重命名/删除），与全站 ActionBottomSheet 风格一致
+    private func itemActions(_ item: FileItem) -> [ActionMenuItem] {
+        var items: [ActionMenuItem] = []
+        if !item.isDir {
+            items.append(ActionMenuItem(title: L10n.t("下载"), icon: "arrow.down.circle", color: .green) {
+                delayedAction { downloadFile(item) }
+            })
+        }
+        items.append(ActionMenuItem(title: L10n.t("重命名"), icon: "pencil", color: .blue) {
+            delayedAction { renamingItem = item }
+        })
+        items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+            delayedAction { deletingItem = item }
+        })
+        return items
+    }
+
     // MARK: - 下载
 
     /// 下载文件到本地 Documents 目录（通过 Info.plist 的 UIFileSharingEnabled
@@ -551,7 +581,7 @@ private struct FilesDialogsModifier: ViewModifier {
                 get: { successMessage != nil || errorMessage != nil },
                 set: { _ in successMessage = nil; errorMessage = nil }
             )) {
-                Button(L10n.t("好的")) { successMessage = nil; errorMessage = nil }
+                Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
             } message: {
                 Text(errorMessage ?? successMessage ?? "")
             }
@@ -658,6 +688,7 @@ struct TransferSheet: View {
         .padding(.vertical, 28)
         .frame(maxWidth: .infinity)
         .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 
     private var statusIcon: String {
@@ -685,122 +716,6 @@ struct TransferSheet: View {
             idx += 1
         }
         return String(format: "%.1f %@", size, units[idx])
-    }
-}
-
-/// 长按文件行弹出的半屏操作菜单（下载/重命名/删除，带文件信息头）
-struct FileItemActionSheet: View {
-    let item: FileItem
-    let onDownload: () -> Void
-    let onRename: () -> Void
-    let onDelete: () -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            List {
-                // 文件信息头
-                Section {
-                    HStack(spacing: 12) {
-                        Image(systemName: item.isDir ? "folder.fill" : "doc.fill")
-                            .font(.title3)
-                            .foregroundStyle(item.isDir ? .blue : .secondary)
-                            .frame(width: 28)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.name)
-                                .font(.headline)
-                                .lineLimit(1)
-                            Text(item.isDir ? L10n.t("文件夹") : L10n.t("文件"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                Section {
-                    if !item.isDir {
-                        actionRow(L10n.t("下载"), icon: "arrow.down.circle", color: .green, action: onDownload)
-                    }
-                    actionRow(L10n.t("重命名"), icon: "pencil", color: .blue, action: onRename)
-                }
-                Section {
-                    actionRow(L10n.t("删除"), icon: "trash", color: .red, action: onDelete)
-                }
-            }
-            .navigationTitle(L10n.t("操作"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
-
-    @ViewBuilder
-    private func actionRow(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button {
-            action()
-            dismiss()
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .foregroundStyle(color)
-                    .frame(width: 24)
-                Text(title)
-                    .foregroundStyle(.primary)
-            }
-        }
-    }
-}
-
-/// 悬浮 + 号的半屏操作菜单（上传/新建/跳转）
-struct FilesActionSheet: View {
-    let onUpload: () -> Void
-    let onCreateDir: () -> Void
-    let onCreateFile: () -> Void
-    let onGoTo: () -> Void
-    let onRoot: () -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section(L10n.t("文件")) {
-                    actionRow(L10n.t("上传文件"), icon: "arrow.up.circle", color: .blue, action: onUpload)
-                    actionRow(L10n.t("新建文件夹"), icon: "folder.badge.plus", color: .orange, action: onCreateDir)
-                    actionRow(L10n.t("新建文件"), icon: "doc.badge.plus", color: .teal, action: onCreateFile)
-                }
-                Section(L10n.t("跳转")) {
-                    actionRow(L10n.t("前往路径"), icon: "location", color: .indigo, action: onGoTo)
-                    actionRow(L10n.t("根目录"), icon: "house", color: .green, action: onRoot)
-                }
-            }
-            .navigationTitle(L10n.t("操作"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
-
-    @ViewBuilder
-    private func actionRow(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button {
-            action()
-            dismiss()
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .foregroundStyle(color)
-                    .frame(width: 24)
-                Text(title)
-                    .foregroundStyle(.primary)
-            }
-        }
     }
 }
 
@@ -873,7 +788,7 @@ struct FileCreateSheet: View {
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button(L10n.t("好的")) { errorMessage = nil }
+                Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }
@@ -947,7 +862,7 @@ struct FileRenameSheet: View {
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button(L10n.t("好的")) { errorMessage = nil }
+                Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }

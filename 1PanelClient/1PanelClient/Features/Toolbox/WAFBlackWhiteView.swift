@@ -75,7 +75,7 @@ struct WAFBlackWhiteView: View {
             get: { vm.successMessage != nil || vm.errorMessage != nil },
             set: { _ in vm.successMessage = nil; vm.errorMessage = nil }
         )) {
-            Button(L10n.t("好的")) { vm.successMessage = nil; vm.errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { vm.successMessage = nil; vm.errorMessage = nil }
         } message: {
             Text(vm.errorMessage ?? vm.successMessage ?? "")
         }

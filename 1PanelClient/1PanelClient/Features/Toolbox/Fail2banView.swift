@@ -187,13 +187,13 @@ struct Fail2banView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.base == nil {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let base = vm.base {
                 if base.isExist {
                     content(base: base)
                 } else {
                     ContentUnavailableView {
-                        Label(L10n.t("未安装 Fail2ban"), systemImage: "exclamationmark.triangle")
+                        Label(L10n.t("未安装 Fail2ban"), systemImage: "exclamationmark.triangle.fill")
                     } description: {
                         Text(L10n.t("请在服务器上安装 Fail2ban 后使用"))
                     }
@@ -216,7 +216,7 @@ struct Fail2banView: View {
             get: { vm.successMessage != nil },
             set: { if !$0 { vm.successMessage = nil } }
         )) {
-            Button(L10n.t("好的")) { vm.successMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { vm.successMessage = nil }
         } message: {
             Text(vm.successMessage ?? "")
         }
@@ -311,7 +311,7 @@ struct Fail2banView: View {
             title: "Fail2ban",
             subtitle: base.version.map { "v\($0)" },
             statusText: base.isActive ? L10n.t("运行中") : L10n.t("已停止"),
-            statusColor: base.isActive ? .green : .red,
+            statusColor: base.isActive ? .statusRunning : .statusStopped,
             isOperating: vm.isOperating,
             isExpanded: $isServiceExpanded,
             actions: [
@@ -410,7 +410,7 @@ struct Fail2banNumberSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         if let v = Double(input) { onConfirm(v) }
                         dismiss()
                     }
@@ -460,7 +460,7 @@ struct Fail2banTimeSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         onConfirm("\(amount)\(unit)")
                         dismiss()
                     }
@@ -537,6 +537,7 @@ struct Fail2banActionSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -577,7 +578,7 @@ struct Fail2banLogPathSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         onConfirm(inputPath)
                         dismiss()
                     }
@@ -635,7 +636,7 @@ struct FileBrowserView: View {
                                 Text(item.name)
                                 Spacer()
                                 if !item.isDir {
-                                    Image(systemName: "checkmark.circle")
+                                    Image(systemName: "checkmark.circle.fill")
                                         .foregroundStyle(.tertiary)
                                         .font(.caption)
                                 }
@@ -727,7 +728,9 @@ struct Fail2banIPListView: View {
                 Section(L10n.f("%@列表", isWhitelist ? L10n.t("白名单") : L10n.t("黑名单"))) {
                     let ips = isWhitelist ? vm.whitelist : vm.blacklist
                     if ips.isEmpty {
-                        Text(L10n.t("暂无数据")).foregroundStyle(.secondary)
+                        ContentUnavailableView {
+                            Label(L10n.t("暂无数据"), systemImage: "tray")
+                        }
                     } else {
                         ForEach(ips, id: \.self) { ip in
                             HStack {
@@ -789,7 +792,7 @@ struct Fail2banFullConfigView: View {
         NavigationStack {
             Group {
                 if isLoading {
-                    ProgressView(L10n.t("加载配置…"))
+                    LoadingStateView()
                 } else {
                     TextEditor(text: $configText)
                         .font(.system(.caption, design: .monospaced))
@@ -800,10 +803,10 @@ struct Fail2banFullConfigView: View {
             .navigationTitle(L10n.t("全部配置"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(L10n.t("关闭")) { dismiss() }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.t("保存")) {
                         Task { await save() }
                     }
@@ -814,7 +817,7 @@ struct Fail2banFullConfigView: View {
                 get: { successMessage != nil },
                 set: { if !$0 { successMessage = nil } }
             )) {
-                Button(L10n.t("好的")) { successMessage = nil }
+                Button(L10n.t("好的"), role: .cancel) { successMessage = nil }
             } message: {
                 Text(successMessage ?? "")
             }

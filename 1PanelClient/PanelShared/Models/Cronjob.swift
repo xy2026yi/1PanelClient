@@ -51,7 +51,7 @@ enum CronjobType: String, CaseIterable, Identifiable, Codable {
 
     var color: Color {
         switch self {
-        case .shell:       return .black
+        case .shell:       return .primary  // 深色模式下 .black 不可见，改用自适应色（同 ManageTab 终端入口）
         case .app:         return .blue
         case .website:     return .green
         case .database:    return .teal

@@ -83,6 +83,7 @@ struct ManageTab: View {
             .sheet(isPresented: $showEditSheet) {
                 ManageEditView(prefs: prefs)
                     .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
             }
             // 移除当前服务器前确认（会连带清除 Keychain 中的 API 密钥）
             .confirmationDialog(
@@ -378,7 +379,7 @@ enum ManageItem: String, Identifiable {
         case .files:       return "folder.fill"
         case .monitor:     return "chart.line.uptrend.xyaxis"
         case .process:     return "chart.bar"
-        case .sshService:  return "chevron.left.forwardslash.chevron.right"
+        case .sshService:  return "terminal"
         case .firewall:    return "flame"
         case .fail2ban:    return "shield.lefthalf.filled"
         case .waf:         return "flame.fill"
@@ -402,9 +403,9 @@ enum ManageItem: String, Identifiable {
         case .files:       return .yellow
         case .monitor:     return .mint
         case .process:     return .pink
-        case .sshService:  return .gray
+        case .sshService:  return .blue
         case .firewall:    return .orange
-        case .fail2ban:    return .blue
+        case .fail2ban:    return .indigo
         case .waf:         return .red
         case .alert:       return .orange
         case .panelManage: return .red

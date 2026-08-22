@@ -106,7 +106,7 @@ struct ContainerMonitorView: View {
             if let err = vm.errorMessage, vm.cpuPoints.isEmpty {
                 Section {
                     ContentUnavailableView(
-                        L10n.t("获取监控数据失败"), systemImage: "exclamationmark.triangle", description: Text(err)
+                        L10n.t("获取监控数据失败"), systemImage: "exclamationmark.triangle.fill", description: Text(err)
                     )
                 }
             } else {

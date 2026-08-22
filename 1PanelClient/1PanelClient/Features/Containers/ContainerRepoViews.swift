@@ -19,7 +19,7 @@ struct RepoListView: View {
     var body: some View {
         Group {
             if isLoading && repos.isEmpty {
-                ProgressView(L10n.t("加载仓库…"))
+                LoadingStateView()
             } else if repos.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无仓库"),
@@ -192,7 +192,7 @@ struct RepoFormView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isSaving ? L10n.t("提交中…") : (confirmStep ? L10n.t("确认") : L10n.t("确认"))) {
+                Button(isSaving ? L10n.t("保存中…") : (confirmStep ? L10n.t("确认") : L10n.t("保存"))) {
                     Task { await submit() }
                 }
                 .disabled(!canSubmit || isSaving || (confirmStep && restartConfirm != L10n.t("立即重启")))

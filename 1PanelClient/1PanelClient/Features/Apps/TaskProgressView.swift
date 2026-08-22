@@ -101,7 +101,7 @@ struct TaskProgressView: View {
                     .padding()
                 }
                 .onChange(of: lines.count) { _, _ in
-                    withAnimation {
+                    withAnimation(.easeInOut(duration: 0.25)) {
                         proxy.scrollTo(lines.count - 1, anchor: .bottom)
                     }
                 }

@@ -34,12 +34,12 @@ struct UpdateParamsView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载参数…"))
+                LoadingStateView()
             } else if let resp = paramsResp {
                 paramsForm(resp)
             } else {
                 ContentUnavailableView {
-                    Label(L10n.t("无法加载参数"), systemImage: "exclamationmark.triangle")
+                    Label(L10n.t("无法加载参数"), systemImage: "exclamationmark.triangle.fill")
                 } description: {
                     Text(loadError ?? L10n.t("请稍后重试"))
                 } actions: {

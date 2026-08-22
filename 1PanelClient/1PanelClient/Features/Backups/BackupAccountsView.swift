@@ -349,7 +349,7 @@ struct BackupAccountsView: View {
     var body: some View {
         Group {
             if isLoading && accounts.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if accounts.isEmpty && loadFailed {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -616,8 +616,10 @@ struct BackupAccountEditView: View {
                 .disabled(isSubmitting || (isLocal ? false : checkState != .ok))
             }
         }
-        .alert(validationMessage, isPresented: $showValidationAlert) {
+        .alert(L10n.t("提示"), isPresented: $showValidationAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+        Text(validationMessage)
         }
         // 保存/获取桶等失败提示：本页被 push 展示，需自带 alert（父页面的会被遮挡）
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {

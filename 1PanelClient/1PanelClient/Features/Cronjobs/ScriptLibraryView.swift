@@ -62,7 +62,7 @@ struct ScriptLibraryView: View {
     var body: some View {
         Group {
             if vm.isLoading && vm.scripts.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let err = vm.errorMessage, !err.isEmpty, vm.scripts.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")

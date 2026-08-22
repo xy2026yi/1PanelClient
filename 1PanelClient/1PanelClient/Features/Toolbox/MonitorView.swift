@@ -199,7 +199,7 @@ struct MonitorView: View {
         List {
             if vm.isLoading && !vm.hasLoadedOnce {
                 Section {
-                    HStack { Spacer(); ProgressView(L10n.t("加载监控数据…")); Spacer() }
+                    LoadingStateView(compact: true)
                         .padding(.vertical, 30)
                 }
             } else if let err = vm.errorMessage, vm.cpuPoints.isEmpty, !vm.isLoading {

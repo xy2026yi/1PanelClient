@@ -87,7 +87,7 @@ struct WebsiteHTTPSView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载 HTTPS 配置…"))
+                LoadingStateView()
             } else {
                 editor
             }
@@ -111,6 +111,7 @@ struct WebsiteHTTPSView: View {
             // 证书列表加载完成后选中当前证书
             selectedSSLId = originalSSLId
         }
+        .refreshable { await load() }
     }
 
     private var editor: some View {

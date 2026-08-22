@@ -12,7 +12,7 @@ import Combine
 struct CronjobsTab: View {
     @ObservedObject var manager: ServerManager
     @StateObject private var vm: CronjobsViewModel
-    @State private var showCreateSheet = false
+    @State private var showCreate = false
 
     init(manager: ServerManager) {
         self.manager = manager
@@ -23,9 +23,11 @@ struct CronjobsTab: View {
     var body: some View {
         rootContent
             .task { await vm.refresh() }
-            .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-                Button(L10n.t("好"), role: .cancel) {}
-            }
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+        Text(vm.alertMessage)
+        }
             .toastOverlay(message: $vm.toastMessage)
     }
 
@@ -33,7 +35,7 @@ struct CronjobsTab: View {
     var rootContent: some View {
         Group {
             if vm.isLoading && vm.cronjobs.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let err = vm.errorMessage, !err.isEmpty, vm.cronjobs.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -72,11 +74,11 @@ struct CronjobsTab: View {
         }
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(action: {
-                showCreateSheet = true
+                showCreate = true
             })
             .accessibilityLabel(L10n.t("创建计划任务"))
         }
-        .navigationDestination(isPresented: $showCreateSheet) {
+        .navigationDestination(isPresented: $showCreate) {
             CreateCronjobView(vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
     }
@@ -107,23 +109,19 @@ struct CronjobsTab: View {
         .refreshable {
             await vm.refresh()
         }
-        .alert(L10n.t("删除任务"), isPresented: Binding(
-            get: { vm.pendingDeleteJob != nil },
-            set: { if !$0 { vm.pendingDeleteJob = nil } }
-        )) {
-            Button(L10n.t("取消"), role: .cancel) {
-                vm.pendingDeleteJob = nil
-                vm.deleteCleanData = false
-            }
-            Button(L10n.t("删除"), role: .destructive) {
-                if let job = vm.pendingDeleteJob {
-                    Task { await vm.delete(job: job) }
+        .sheet(item: $vm.pendingDeleteJob) { job in
+            TextInputConfirmSheet(
+                title: L10n.t("删除任务"),
+                message: L10n.f("此操作不可恢复。请输入任务名称「%@」以确认删除。", job.name ?? ""),
+                expectedText: job.name ?? "",
+                fieldLabel: L10n.t("确认名称"),
+                fieldPlaceholder: L10n.t("任务名称")
+            ) {
+                Task { await vm.delete(job: job) }
+            } options: {
+                Section(L10n.t("选项")) {
+                    Toggle(L10n.t("同时删除备份文件"), isOn: $vm.deleteCleanData)
                 }
-            }
-        } message: {
-            VStack {
-                Text(L10n.f("确定删除任务「%@」吗？", vm.pendingDeleteJob?.name ?? ""))
-                Toggle(L10n.t("同时删除备份文件"), isOn: $vm.deleteCleanData)
             }
         }
     }

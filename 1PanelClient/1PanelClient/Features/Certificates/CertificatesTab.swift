@@ -30,8 +30,10 @@ struct CertificatesTab: View {
     var body: some View {
         rootContent
         .task { await vm.refresh() }
-        .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-            Button(L10n.t("好"), role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+        Text(vm.alertMessage)
         }
     }
 
@@ -39,7 +41,7 @@ struct CertificatesTab: View {
     var rootContent: some View {
         Group {
             if vm.isLoading && vm.certificates.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let err = vm.errorMessage, !err.isEmpty, vm.certificates.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -147,7 +149,7 @@ struct CertificatesTab: View {
             }
         } message: {
             if let cert = vm.pendingDeleteCert {
-                Text(L10n.f("确定要删除证书「%@」吗？此操作不可撤销。", cert.displayName))
+                Text(L10n.f("确定删除证书「%@」吗？删除后不可恢复。", cert.displayName))
             }
         }
     }
@@ -407,12 +409,7 @@ struct CertificateDetailView: View {
                     .font(.system(.caption, design: .monospaced))
                     .textSelection(.enabled)
             } else {
-                HStack {
-                    ProgressView()
-                    Text(L10n.t("加载中…"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                LoadingStateView(compact: true)
             }
         } header: {
             Text(title)

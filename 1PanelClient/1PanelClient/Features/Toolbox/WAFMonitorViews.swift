@@ -28,7 +28,7 @@ struct WAFOverviewView: View {
     var body: some View {
         Group {
             if isLoading && today == nil && days.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let errorMessage, today == nil && days.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -233,7 +233,7 @@ struct WAFInterceptLogsView: View {
     var body: some View {
         Group {
             if isLoading && items.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let errorMessage, items.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -329,7 +329,7 @@ struct WAFInterceptLogDetailView: View {
     var body: some View {
         Group {
             if isLoading && detail == nil {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let errorMessage, detail == nil {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -417,7 +417,7 @@ struct WAFBlockRecordsView: View {
     var body: some View {
         Group {
             if isLoading && items.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let errorMessage, items.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")

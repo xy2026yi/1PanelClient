@@ -20,7 +20,7 @@ struct WebsiteNginxView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载配置…"))
+                LoadingStateView()
             } else {
                 configEditor
             }
@@ -42,6 +42,7 @@ struct WebsiteNginxView: View {
         .task {
             await load()
         }
+        .refreshable { await load() }
     }
 
     private var configEditor: some View {
@@ -129,7 +130,7 @@ struct OpenRestyConfigView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else {
                 TextEditor(text: $configText)
                     .font(.system(.caption, design: .monospaced))
@@ -161,6 +162,7 @@ struct OpenRestyConfigView: View {
             }
         }
         .task { await loadConfig() }
+        .refreshable { await loadConfig() }
         .alert(L10n.t("还原默认配置"), isPresented: $showResetConfirm) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("确认还原"), role: .destructive) {

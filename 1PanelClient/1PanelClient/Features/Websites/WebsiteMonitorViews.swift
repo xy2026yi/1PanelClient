@@ -46,7 +46,7 @@ struct WebsiteMonitorView: View {
         List {
             Section {
                 if isLoadingWebsites && websites.isEmpty {
-                    HStack { ProgressView(); Text(L10n.t("加载中…")) }
+                    LoadingStateView(compact: true)
                 } else if let websitesError, websites.isEmpty {
                     // 无入口网站兜底时失败要显式可重试，不能误报「暂无数据」
                     ContentUnavailableView {
@@ -194,7 +194,7 @@ struct WebsiteMonitorOverviewSection: View {
     var body: some View {
         Group {
             if isLoading && qpsInfo == nil && stat == nil {
-                Section { HStack { ProgressView(); Text(L10n.t("加载中…")) } }
+                Section { LoadingStateView(compact: true) }
             } else if let errorMessage, stat == nil && qpsInfo == nil {
                 Section {
                     ContentUnavailableView {
@@ -665,7 +665,7 @@ struct WebsiteMonitorStatsSection: View {
     var body: some View {
         Group {
             if isLoading && ranks.isEmpty {
-                Section { HStack { ProgressView(); Text(L10n.t("加载中…")) } }
+                Section { LoadingStateView(compact: true) }
             } else if let errorMessage, ranks.isEmpty {
                 Section {
                     ContentUnavailableView {
@@ -818,7 +818,7 @@ struct WebsiteMonitorRankListView: View {
     var body: some View {
         Group {
             if isLoading && items.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let errorMessage, items.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -884,7 +884,7 @@ struct WebsiteMonitorLogsSection: View {
             }
 
             if isLoading && items.isEmpty {
-                Section { HStack { ProgressView(); Text(L10n.t("加载中…")) } }
+                Section { LoadingStateView(compact: true) }
             } else if let errorMessage, items.isEmpty {
                 Section {
                     ContentUnavailableView {
@@ -1000,7 +1000,7 @@ struct WebsiteMonitorLogDetailView: View {
     var body: some View {
         Group {
             if isLoading && detail == nil {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if let errorMessage, detail == nil {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")

@@ -128,12 +128,14 @@ struct CreateWebsiteView: View {
             .onChange(of: selectedType) { _, newType in
                 Task { await vm.loadCreateData(type: newType) }
             }
-            .alert(localAlertMessage ?? "", isPresented: $showLocalAlert) {
-                Button(L10n.t("好")) {
+            .alert(L10n.t("提示"), isPresented: $showLocalAlert) {
+                Button(L10n.t("好的"), role: .cancel) {
                     if didCreateSucceed {
                         dismiss()
                     }
                 }
+            } message: {
+                Text(localAlertMessage ?? "")
             }
     }
 

@@ -348,7 +348,7 @@ struct CreateCronjobView: View {
                     showScriptPicker = false
                 }
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: .cancellationAction) {
                         Button(L10n.t("取消")) { showScriptPicker = false }
                     }
                 }
@@ -675,7 +675,7 @@ struct BackupParamsPickerView: View {
             .navigationTitle(L10n.t("备份参数"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.t("完成")) { dismiss() }
                         .bold()
                 }
@@ -688,6 +688,7 @@ struct BackupParamsPickerView: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private func toggle(_ value: String) {

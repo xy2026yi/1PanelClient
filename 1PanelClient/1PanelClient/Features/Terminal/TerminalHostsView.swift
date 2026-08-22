@@ -41,8 +41,10 @@ struct TerminalHostsView: View {
             })
             .accessibilityLabel(L10n.t("添加主机"))
         }
-        .alert(vm.alertMessage, isPresented: $vm.showAlert) {
-            Button(L10n.t("好"), role: .cancel) {}
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+        Text(vm.alertMessage)
         }
         .toastOverlay(message: $vm.toastMessage)
         .alert(L10n.t("删除主机"), isPresented: Binding(
@@ -122,7 +124,7 @@ struct TerminalHostsView: View {
             if vm.isLoading && vm.hosts.isEmpty {
                 HStack {
                     Spacer()
-                    ProgressView(L10n.t("加载中…"))
+                    LoadingStateView()
                     Spacer()
                 }
             } else if vm.hosts.isEmpty {

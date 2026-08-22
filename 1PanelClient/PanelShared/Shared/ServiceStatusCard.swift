@@ -89,7 +89,7 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
                     .foregroundStyle(.secondary)
             }
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(.easeInOut(duration: 0.25)) {
                     isExpanded.toggle()
                 }
             } label: {

@@ -16,7 +16,7 @@ struct UpgradeSheetView: View {
     var body: some View {
         Group {
             if vm.isLoadingVersions {
-                ProgressView(L10n.t("查询可用版本…"))
+                LoadingStateView()
             } else if vm.availableVersions.isEmpty {
                 ContentUnavailableView(
                     L10n.t("无可用版本"),
@@ -204,7 +204,7 @@ struct IgnoredAppsView: View {
     var body: some View {
         Group {
             if isLoading && ignored.isEmpty {
-                ProgressView(L10n.t("加载中…"))
+                LoadingStateView()
             } else if ignored.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无忽略记录"),

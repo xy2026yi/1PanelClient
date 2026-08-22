@@ -230,7 +230,7 @@ struct DatabaseDetailView: View {
             if let msg = vm.errorMessage {
                 Section {
                     Label(msg, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Color.semanticWarning)
                         .font(.caption)
                 }
             }
@@ -252,6 +252,9 @@ struct DatabaseDetailView: View {
             BackupListView(target: backupTarget)
         }
         .task {
+            if vm.isMongoDB { await vm.loadMongoPrivileges() }
+        }
+        .refreshable {
             if vm.isMongoDB { await vm.loadMongoPrivileges() }
         }
         .sheet(item: $activeSheet) { sheet in
@@ -481,7 +484,7 @@ struct ChangeAccessSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         let value: String
                         if mode == .all {
                             value = "%"
@@ -538,7 +541,7 @@ struct MongoPrivilegesSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         onConfirm(permission)
                         dismiss()
                     }
@@ -547,6 +550,7 @@ struct MongoPrivilegesSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -584,7 +588,7 @@ struct PGPrivilegesSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         onConfirm(superUser)
                         dismiss()
                     }
