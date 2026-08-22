@@ -116,7 +116,7 @@ struct SettingsTab: View {
 // MARK: - 主题
 
 /// CFBundleShortVersionString 读取失败的兜底版本号（升级版本时与 MARKETING_VERSION 同步改这一处）
-private let aboutFallbackVersion = "0.1.9"
+private let aboutFallbackVersion = "0.1.10"
 
 /// 全局外观主题（rawValue 持久化于 UserDefaults）
 enum AppTheme: String, CaseIterable, Identifiable {
