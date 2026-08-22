@@ -93,39 +93,48 @@ struct ServerOverviewCard: View {
                     .fill(health.isOnline ? Color.statusRunning : (health == .checking ? Color.secondary : Color.statusStopped))
                     .frame(width: 8, height: 8)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(server.name)
-                        .font(isCurrent ? .subheadline.bold() : .subheadline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    // 副行：地址 · 面板运行时间（dashboard/current 返回）
+                VStack(alignment: .leading, spacing: 4) {
+                    // 名称行：当前服务器加粗 + 绿勾（与服务器列表行一致）
+                    HStack(spacing: 4) {
+                        Text(server.name)
+                            .font(isCurrent ? .subheadline.bold() : .subheadline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        if isCurrent {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        }
+                    }
+
+                    // 副行：地址 · 运行时长（dashboard/current 的 runningTime）
                     HStack(spacing: 4) {
                         Text(server.normalizedBaseURL)
-                        if let up = current?.timeSinceUptime, !up.isEmpty {
+                        if let rt = current?.runningTime {
                             Text("·")
-                            Text(L10n.f("运行 %@", up))
+                            Text(L10n.f("运行 %@", rt.displayText))
                         }
                     }
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                }
 
-                Spacer(minLength: 12)
-
-                if let cur = current {
-                    VStack(alignment: .trailing, spacing: 4) {
-                        miniBar(L10n.t("CPU"), percent: cur.cpuUsedPercent, color: .blue)
-                        miniBar(L10n.t("内存"), percent: cur.memoryUsedPercent, color: .purple)
+                    // 指标行：负载/CPU/内存/磁盘 小圆环（首页状态卡的缩小版），单行可横滑
+                    if let cur = current {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                miniRing(L10n.t("负载"), percent: cur.loadUsagePercent, color: .teal)
+                                miniRing(L10n.t("CPU"), percent: cur.cpuUsedPercent, color: .blue)
+                                miniRing(L10n.t("内存"), percent: cur.memoryUsedPercent, color: .purple)
+                                miniRing(L10n.t("磁盘"), percent: rootDiskPercent(cur), color: .orange)
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                    } else if health.isOnline {
+                        ProgressView()
+                            .scaleEffect(0.7)
                     }
-                } else if health.isOnline {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                }
-
-                if isCurrent {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
                 }
             }
             .padding(.vertical, 4)
@@ -135,26 +144,34 @@ struct ServerOverviewCard: View {
         .accessibilityLabel(L10n.f("%@，%@，点击切换", server.name, health.label))
     }
 
-    /// 微型指标条：标签 + 细进度条 + 百分比
-    private func miniBar(_ label: String, percent: Double?, color: Color) -> some View {
-        HStack(spacing: 4) {
+    /// 根分区（"/"）使用率；无根分区时取第一块盘
+    private func rootDiskPercent(_ cur: DashboardCurrent) -> Double? {
+        if let root = cur.diskData?.first(where: { $0.path == "/" }) {
+            return root.usedPercent
+        }
+        return cur.diskData?.first?.usedPercent
+    }
+
+    /// 小圆环指标（首页 RingStatView 的缩小版）：环内百分比 + 下方标签
+    private func miniRing(_ label: String, percent: Double?, color: Color) -> some View {
+        VStack(spacing: 2) {
+            ZStack {
+                Circle()
+                    .stroke(color.opacity(0.15), lineWidth: 3)
+                Circle()
+                    .trim(from: 0, to: min(max(percent ?? 0, 0), 100) / 100)
+                    .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text(percent.map { String(format: "%.0f", $0) } ?? "—")
+                    .font(.system(size: 9).monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: 28, height: 28)
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(color.opacity(0.15))
-                    Capsule()
-                        .fill(color)
-                        .frame(width: max(proxy.size.width * min(max(percent ?? 0, 0), 100) / 100, 2))
-                }
-            }
-            .frame(width: 44, height: 4)
-            Text(percent.map { String(format: "%.0f%%", $0) } ?? "—")
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 34, alignment: .trailing)
         }
+        .frame(width: 44)
     }
 }
 
