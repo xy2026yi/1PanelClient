@@ -2,47 +2,51 @@
 //  WAFMonitorViews.swift
 //  1PanelClient
 //
-//  WAF 监控：概览 / 拦截记录 / 封锁记录
+//  WAF 监控：主页顶部横条切换（概览 / 拦截记录 / 封锁记录），结构对齐告警通知页
 //
 
 import SwiftUI
 import Charts
 
-// MARK: - 概览
+// MARK: - WAF 监控主页（顶部横条切换：概览 / 拦截记录 / 封锁记录）
 
-/// WAF 监控入口页（管理-高级功能）：概览 / 拦截记录 / 封锁记录
+/// WAF 监控入口页（管理-高级功能）：segmented 切换三个板块，
+/// 结构对齐告警通知页（picker 为首行，内容随段切换、切回即重新加载）
 struct WAFMonitorView: View {
     let server: ServerConfig
+
+    @State private var segment = 0
+    /// 下拉刷新令牌：自增触发当前段视图重建，经 .task 重新加载
+    @State private var reloadToken = 0
 
     var body: some View {
         List {
             Section {
-                NavigationLink {
-                    WAFOverviewView(server: server)
-                } label: {
-                    entryRow(icon: "chart.bar.xaxis", color: .blue, title: L10n.t("概览"))
+                Picker(L10n.t("板块"), selection: $segment) {
+                    Text(L10n.t("概览")).tag(0)
+                    Text(L10n.t("拦截记录")).tag(1)
+                    Text(L10n.t("封锁记录")).tag(2)
                 }
-                NavigationLink {
-                    WAFInterceptLogsView(server: server)
-                } label: {
-                    entryRow(icon: "exclamationmark.triangle.fill", color: .orange, title: L10n.t("拦截记录"))
-                }
-                NavigationLink {
-                    WAFBlockRecordsView(server: server)
-                } label: {
-                    entryRow(icon: "lock.shield", color: .red, title: L10n.t("封锁记录"))
-                }
+                .pickerStyle(.segmented)
+                .segmentedPickerRow()
+            }
+
+            switch segment {
+            case 0:
+                WAFOverviewView(server: server)
+                    .id("overview-\(reloadToken)")
+            case 1:
+                WAFInterceptLogsView(server: server)
+                    .id("intercepts-\(reloadToken)")
+            default:
+                WAFBlockRecordsView(server: server)
+                    .id("blocks-\(reloadToken)")
             }
         }
+        .listStyle(.insetGrouped)
+        .refreshable { reloadToken += 1 }
         .navigationTitle(L10n.t("WAF 监控"))
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func entryRow(icon: String, color: Color, title: String) -> some View {
-        HStack(spacing: 12) {
-            IconBadge(systemName: icon, color: color, size: 34, cornerRadius: 8)
-            Text(title)
-        }
     }
 }
 
@@ -65,6 +69,8 @@ struct WAFOverviewView: View {
         Group {
             if isLoading && today == nil && days.isEmpty {
                 LoadingStateView()
+                    .frame(maxWidth: .infinity, minHeight: 240)
+                    .listRowBackground(Color.clear)
             } else if let errorMessage, today == nil && days.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -73,38 +79,36 @@ struct WAFOverviewView: View {
                 } actions: {
                     Button(L10n.t("重试")) { Task { await load() } }
                 }
+                .frame(maxWidth: .infinity, minHeight: 200)
+                .listRowBackground(Color.clear)
             } else {
                 content
             }
         }
-        .navigationTitle(L10n.t("概览"))
-        .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await load() }
         .task { await load() }
     }
 
+    /// 直铺为 List 行（父页滚动），不再自带 ScrollView
     private var content: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // 今日状态
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionLabel(title: L10n.t("今日状态"), systemImage: "calendar")
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                        StatCard(title: L10n.t("请求"), count: today?.reqCount, icon: "arrow.down.circle", color: .blue)
-                        StatCard(title: L10n.t("拦截"), count: today?.attackCount, icon: "shield.slash", color: .red)
-                        StatCard(title: L10n.t("4xx 数量"), count: today?.count4xx, icon: "exclamationmark.circle", color: .orange)
-                        StatCard(title: L10n.t("5xx 数量"), count: today?.count5xx, icon: "xmark.octagon", color: .purple)
-                    }
+        VStack(alignment: .leading, spacing: 16) {
+            // 今日状态
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel(title: L10n.t("今日状态"), systemImage: "calendar")
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                    StatCard(title: L10n.t("请求"), count: today?.reqCount, icon: "arrow.down.circle", color: .blue)
+                    StatCard(title: L10n.t("拦截"), count: today?.attackCount, icon: "shield.slash", color: .red)
+                    StatCard(title: L10n.t("4xx 数量"), count: today?.count4xx, icon: "exclamationmark.circle", color: .orange)
+                    StatCard(title: L10n.t("5xx 数量"), count: today?.count5xx, icon: "xmark.octagon", color: .purple)
                 }
-
-                // 请求趋势(7日)
-                trendSection(title: L10n.t("请求趋势（7日）"), values: days.map { ($0.shortDay, $0.reqCount ?? 0) }, color: .blue)
-
-                // 拦截趋势(7日)
-                trendSection(title: L10n.t("拦截趋势（7日）"), values: days.map { ($0.shortDay, $0.attackCount ?? 0) }, color: .red)
             }
-            .padding()
+
+            // 请求趋势(7日)
+            trendSection(title: L10n.t("请求趋势（7日）"), values: days.map { ($0.shortDay, $0.reqCount ?? 0) }, color: .blue)
+
+            // 拦截趋势(7日)
+            trendSection(title: L10n.t("拦截趋势（7日）"), values: days.map { ($0.shortDay, $0.attackCount ?? 0) }, color: .red)
         }
+        .padding(.vertical, 8)
     }
 
     private func trendSection(title: String, values: [(day: String, value: Int)], color: Color) -> some View {
@@ -270,6 +274,8 @@ struct WAFInterceptLogsView: View {
         Group {
             if isLoading && items.isEmpty {
                 LoadingStateView()
+                    .frame(maxWidth: .infinity, minHeight: 240)
+                    .listRowBackground(Color.clear)
             } else if let errorMessage, items.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -278,12 +284,16 @@ struct WAFInterceptLogsView: View {
                 } actions: {
                     Button(L10n.t("重试")) { Task { await load() } }
                 }
+                .frame(maxWidth: .infinity, minHeight: 200)
+                .listRowBackground(Color.clear)
             } else if items.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("暂无数据"), systemImage: "tray")
                 }
+                .frame(maxWidth: .infinity, minHeight: 160)
+                .listRowBackground(Color.clear)
             } else {
-                List(items) { item in
+                ForEach(items) { item in
                     NavigationLink {
                         WAFInterceptLogDetailView(client: client, logID: item.logID ?? 0)
                     } label: {
@@ -291,12 +301,8 @@ struct WAFInterceptLogsView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .listStyle(.insetGrouped)
             }
         }
-        .navigationTitle(L10n.t("拦截记录"))
-        .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await load() }
         .task { await load() }
     }
 
@@ -454,6 +460,8 @@ struct WAFBlockRecordsView: View {
         Group {
             if isLoading && items.isEmpty {
                 LoadingStateView()
+                    .frame(maxWidth: .infinity, minHeight: 240)
+                    .listRowBackground(Color.clear)
             } else if let errorMessage, items.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -462,20 +470,20 @@ struct WAFBlockRecordsView: View {
                 } actions: {
                     Button(L10n.t("重试")) { Task { await load() } }
                 }
+                .frame(maxWidth: .infinity, minHeight: 200)
+                .listRowBackground(Color.clear)
             } else if items.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("暂无数据"), systemImage: "tray")
                 }
+                .frame(maxWidth: .infinity, minHeight: 160)
+                .listRowBackground(Color.clear)
             } else {
-                List(items) { item in
+                ForEach(items) { item in
                     blockRow(item)
                 }
-                .listStyle(.insetGrouped)
             }
         }
-        .navigationTitle(L10n.t("封锁记录"))
-        .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await load() }
         .task { await load() }
     }
 
