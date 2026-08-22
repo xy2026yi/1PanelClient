@@ -121,8 +121,8 @@ private struct ServerRow: View {
                 StatusDot(color: healthColor, diameter: 8)
                     .accessibilityLabel(health.label)
                 if let rt = metrics?.runningTime {
-                    Text(L10n.f("运行 %@", rt.displayText))
-                        .font(.caption)
+                    Text(rt.compactText)
+                        .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -169,6 +169,7 @@ private struct ServerRow: View {
                     }
                     .padding(.vertical, 2)
                 }
+                .padding(.top, 4)  // 与地址副行拉开间隔，避免环顶与上方信息贴叠
                 .fixedSize(horizontal: false, vertical: true)
             } else if health.isOnline {
                 ProgressView()

@@ -409,6 +409,17 @@
         }
       }
     },
+    "%ldd %ldh %ldm %lds" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ldd %ldh %ldm %lds"
+          }
+        }
+      }
+    },
     "%ld分钟 %ld秒" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -106,6 +106,11 @@ nonisolated struct RunningTime: Decodable, Sendable {
         }
         return L10n.f("%ld秒", secondCount)
     }
+
+    /// 紧凑格式（服务器行标题等宽度受限处）：40d 23h 6m 42s，精确到秒
+    var compactText: String {
+        L10n.f("%ldd %ldh %ldm %lds", days ?? 0, hours ?? 0, minutes ?? 0, seconds ?? 0)
+    }
 }
 
 /// 单个挂载点的磁盘使用信息
