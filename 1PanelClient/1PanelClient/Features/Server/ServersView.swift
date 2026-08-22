@@ -53,6 +53,15 @@ struct ServersView: View {
         .task {
             await cardMonitor.refresh()
         }
+        // 指标轮询：与首页状态卡同频（5 秒），页面存在期间持续，
+        // pop 离开时 task 自动取消；运行时长包含在同一条 dashboard/current 响应内随刷新更新
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                guard !Task.isCancelled else { return }
+                await cardMonitor.refresh()
+            }
+        }
         .onAppear {
             health.start()
         }
@@ -170,6 +179,7 @@ private struct ServerRow: View {
                     .padding(.vertical, 2)
                 }
                 .padding(.top, 4)  // 与地址副行拉开间隔，避免环顶与上方信息贴叠
+                .frame(height: 62)  // 环 54pt + 上下留白；显式高度避免 List 行高压缩致环贴叠
                 .fixedSize(horizontal: false, vertical: true)
             } else if health.isOnline {
                 ProgressView()
