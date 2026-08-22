@@ -511,13 +511,15 @@ struct RingStatView: View {
             }
             .frame(width: ringSize, height: ringSize)
 
-            // 圆环正下方：具体使用情况/总数
-            Text(footer)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(height: compact ? 14 : 28)
+            // 圆环下方：具体使用情况/总数（空串不渲染——服务器行内复用时无 footer）
+            if !footer.isEmpty {
+                Text(footer)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(height: compact ? 14 : 28)
+            }
         }
         .frame(maxWidth: .infinity)
     }

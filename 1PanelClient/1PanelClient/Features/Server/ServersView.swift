@@ -113,10 +113,11 @@ private struct ServerRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // 标题行：名称 + 健康点 + 运行时长 + 当前绿勾
+            // 标题行：名称靠左，健康点 + 运行时长 + 当前绿勾 整体靠右贴边
             HStack(spacing: 6) {
                 Text(server.name)
                     .font(.headline)
+                Spacer(minLength: 8)
                 StatusDot(color: healthColor, diameter: 8)
                     .accessibilityLabel(health.label)
                 if let rt = metrics?.runningTime {
@@ -151,16 +152,16 @@ private struct ServerRow: View {
                     .lineLimit(1)
             }
 
-            // 指标行：负载/CPU/内存 + 逐磁盘挂载点（同首页状态卡），单行可横滑
+            // 指标行：负载/CPU/内存 + 逐磁盘挂载点，复用首页状态卡 RingStatView（compact 同等大小），单行可横滑
             if let cur = metrics {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        MetricRing(label: L10n.t("负载"), percent: cur.loadUsagePercent, color: .teal)
-                        MetricRing(label: "CPU", percent: cur.cpuUsedPercent, color: .blue)
-                        MetricRing(label: L10n.t("内存"), percent: cur.memoryUsedPercent, color: .purple)
+                        ring(L10n.t("负载"), percent: cur.loadUsagePercent, color: .teal)
+                        ring("CPU", percent: cur.cpuUsedPercent, color: .blue)
+                        ring(L10n.t("内存"), percent: cur.memoryUsedPercent, color: .purple)
                         ForEach(Array((cur.diskData ?? []).enumerated()), id: \.offset) { _, disk in
-                            MetricRing(
-                                label: disk.path?.isEmpty == false ? disk.path! : L10n.t("存储"),
+                            ring(
+                                disk.path?.isEmpty == false ? disk.path! : L10n.t("存储"),
                                 percent: disk.usedPercent,
                                 color: .orange
                             )
@@ -179,5 +180,18 @@ private struct ServerRow: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
         .onLongPressGesture(perform: onLongPress)
+    }
+
+    /// 指标环：首页状态卡同款 RingStatView（compact 54pt），定宽以适配横滑行
+    private func ring(_ label: String, percent: Double?, color: Color) -> some View {
+        RingStatView(
+            percent: percent ?? 0,
+            color: color,
+            topText: percent.map { String(format: "%.0f%%", $0) } ?? "—",
+            bottomText: label,
+            footer: "",
+            compact: true
+        )
+        .frame(width: 64)
     }
 }
