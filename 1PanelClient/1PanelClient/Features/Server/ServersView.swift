@@ -68,11 +68,18 @@ struct ServersView: View {
         .onDisappear {
             health.stop()
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showAdd = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("添加服务器"))
+            }
+        }
         .navigationTitle(L10n.t("服务器"))
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(accessibilityText: L10n.t("添加服务器")) { showAdd = true }
-        }
         .navigationDestination(isPresented: $showAdd) {
             ServerEditView(manager: manager, presentedAsSheet: false)
         }
