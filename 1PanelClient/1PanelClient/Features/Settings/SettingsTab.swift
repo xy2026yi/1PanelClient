@@ -76,9 +76,6 @@ struct SettingsTab: View {
                 }
             } header: {
                 Text(L10n.t("安全"))
-            } footer: {
-                Text(L10n.t("开启后拒绝所有 http:// 明文面板地址，防止 API Key 与数据在链路中被窃听；自托管面板若使用 HTTP 明文访问需保持关闭"))
-                + Text("\n" + L10n.t("应用锁使用 4 位数字密码，支持面容 ID / 触控 ID 优先快捷解锁；打开 App 或从后台恢复时需验证"))
             }
 
             // MARK: - 关于
