@@ -35,7 +35,9 @@ enum KeychainStore {
         return q
     }
 
-    static func save(_ value: String, for key: String) {
+    /// mirror=false：敏感值（应用锁密码摘要）不镜像到 UserDefaults（明文可读的
+    /// 存储，会让「只存摘要」形同虚设），并清除历史版本可能残留的镜像
+    static func save(_ value: String, for key: String, mirror: Bool = true) {
         guard let data = value.data(using: .utf8) else { return }
         // 无 access group 版（未签名环境的兼容路径）
         SecItemDelete(query(for: key, group: false) as CFDictionary)
@@ -48,7 +50,11 @@ enum KeychainStore {
         shared[kSecValueData as String] = data
         SecItemAdd(shared as CFDictionary, nil)
         // App Group UserDefaults 镜像（Widget 的第二读取路径）
-        AppGroup.defaults?.set(value, forKey: mirrorPrefix + key)
+        if mirror {
+            AppGroup.defaults?.set(value, forKey: mirrorPrefix + key)
+        } else {
+            AppGroup.defaults?.removeObject(forKey: mirrorPrefix + key)
+        }
     }
 
     /// 读取并返回底层状态码（诊断模拟器重装后 Keychain 不可读的问题）

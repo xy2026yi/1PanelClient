@@ -6658,6 +6658,17 @@
         }
       }
     },
+    "密码尝试次数过多，请在 %ld 秒后重试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many failed attempts. Try again in %ld seconds."
+          }
+        }
+      }
+    },
     "密码错误，请重试" : {
       "extractionState" : "manual",
       "localizations" : {

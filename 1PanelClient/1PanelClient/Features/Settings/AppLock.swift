@@ -2,8 +2,9 @@
 //  AppLock.swift
 //  1PanelClient
 //
-//  应用锁：自定义 4 位数字密码（Keychain 存储 SHA256 摘要）+ FaceID/TouchID 可选。
-//  锁屏为 iPhone 解锁样式（「输入密码」+ 圆点 + 0-9 键盘）；开启时进入后台即锁。
+//  应用锁：自定义 4 位数字密码（Keychain 存加盐迭代摘要，不镜像 UserDefaults）
+//  + FaceID/TouchID 可选。锁屏为 iPhone 解锁样式（「输入密码」+ 圆点 + 0-9 键盘）；
+//  开启时进入后台即锁。连续输错递增锁定。
 //
 
 import Combine
@@ -40,16 +41,61 @@ final class AppLockManager: ObservableObject {
     }
 
     static func setPasscode(_ pin: String) {
-        KeychainStore.save(digest(pin), for: pinKey)
+        KeychainStore.save(digestV2(pin), for: pinKey, mirror: false)
     }
 
     static func verifyPasscode(_ pin: String) -> Bool {
         guard let stored = KeychainStore.read(for: pinKey), !stored.isEmpty else { return false }
-        return stored == digest(pin)
+        if stored.hasPrefix(v2Prefix) {
+            let body = stored.dropFirst(v2Prefix.count)
+            guard let sep = body.firstIndex(of: ":"),
+                  let salt = data(fromHex: String(body[body.startIndex..<sep])) else { return false }
+            return digestV2(pin, salt: salt) == stored
+        }
+        // 旧格式（无盐 SHA256）：验证通过后原位升级为 v2
+        if legacyDigest(pin) == stored {
+            KeychainStore.save(digestV2(pin), for: pinKey, mirror: false)
+            return true
+        }
+        return false
     }
 
-    private static func digest(_ pin: String) -> String {
+    /// 清除已存密码（关闭应用锁时调用，避免 Keychain/镜像残留）
+    static func clearPasscode() {
+        KeychainStore.delete(for: pinKey)
+    }
+
+    // MARK: 摘要算法
+    // v2 = "v2:" + 盐(16字节hex) + ":" + 摘要hex；摘要 = 10 万轮迭代 SHA256(盐+密码)。
+    // 4 位数字密码空间仅 1 万，无盐单轮哈希可瞬间穷举；加盐 + 迭代显著抬高离线
+    // 穷举成本（真正的边界仍是 Keychain 本身，此处是纵深防御）。
+
+    private static let v2Prefix = "v2:"
+    private static let digestRounds = 100_000
+
+    private static func digestV2(_ pin: String, salt: Data? = nil) -> String {
+        let s = salt ?? SymmetricKey(size: .bits128).withUnsafeBytes { Data($0) }
+        var acc = s
+        acc.append(contentsOf: pin.utf8)
+        for _ in 0..<digestRounds {
+            acc = Data(SHA256.hash(data: acc))
+        }
+        let hex: (Data) -> String = { $0.map { String(format: "%02x", $0) }.joined() }
+        return v2Prefix + hex(s) + ":" + hex(acc)
+    }
+
+    private static func legacyDigest(_ pin: String) -> String {
         SHA256.hash(data: Data(pin.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func data(fromHex hex: String) -> Data? {
+        var bytes: [UInt8] = []
+        var iter = hex.makeIterator()
+        while let h = iter.next(), let l = iter.next() {
+            guard let hi = h.hexDigitValue, let lo = l.hexDigitValue else { return nil }
+            bytes.append(UInt8(hi << 4 | lo))
+        }
+        return bytes.isEmpty ? nil : Data(bytes)
     }
 
     // MARK: - 生命周期
@@ -195,6 +241,9 @@ struct LockScreenView: View {
     /// true=显示密码键盘（生物识别取消/失败/不可用时自动或手动切换）
     @State private var showKeypad = false
     @State private var unlockFailed = false
+    /// 本轮锁定期内累计输错次数；每满 5 次递增锁定（30s→60s→120s…封顶 5 分钟）
+    @State private var failedAttempts = 0
+    @State private var lockoutUntil: Date?
 
     private var biometryIcon: String {
         switch AppLockManager.biometryType {
@@ -205,22 +254,58 @@ struct LockScreenView: View {
         }
     }
 
+    /// 连续输错每满 5 次锁定一段时间，逐级翻倍封顶 5 分钟
+    private func registerWrongAttempt() {
+        failedAttempts += 1
+        if failedAttempts % 5 == 0 {
+            let block = failedAttempts / 5
+            let seconds = min(30.0 * pow(2, Double(block - 1)), 300)
+            lockoutUntil = Date().addingTimeInterval(seconds)
+        }
+    }
+
+    /// 密码锁定等待视图：秒级倒计时，到点自动恢复键盘
+    private func lockoutView(until: Date) -> some View {
+        VStack(spacing: 14) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let remain = Int(max(0, until.timeIntervalSince(context.date)).rounded(.up))
+                if remain > 0 {
+                    Text(L10n.f("密码尝试次数过多，请在 %ld 秒后重试", remain))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                } else {
+                    Color.clear.onAppear { lockoutUntil = nil }
+                }
+            }
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
 
             if showKeypad {
-                PasscodeKeypad(
-                    title: L10n.t("输入密码"),
-                    message: unlockFailed ? L10n.t("密码错误，请重试") : nil
-                ) { pin in
-                    if AppLockManager.verifyPasscode(pin) {
-                        Haptic.success()
-                        lock.unlockWithPasscode()
-                        return true
+                if let until = lockoutUntil, Date() < until {
+                    lockoutView(until: until)
+                } else {
+                    PasscodeKeypad(
+                        title: L10n.t("输入密码"),
+                        message: unlockFailed ? L10n.t("密码错误，请重试") : nil
+                    ) { pin in
+                        if AppLockManager.verifyPasscode(pin) {
+                            Haptic.success()
+                            lock.unlockWithPasscode()
+                            return true
+                        }
+                        unlockFailed = true
+                        registerWrongAttempt()
+                        return false
                     }
-                    unlockFailed = true
-                    return false
                 }
             } else {
                 Image(systemName: biometryIcon)
@@ -305,5 +390,11 @@ struct SetPasscodeSheet: View {
         }
         .presentationDetents([.large])
         .interactiveDismissDisabled()
+        // 显式取消：开启流程中放弃（开关由 get 取值自动弹回）、修改密码中保留旧密码
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(L10n.t("取消")) { dismiss() }
+            }
+        }
     }
 }
