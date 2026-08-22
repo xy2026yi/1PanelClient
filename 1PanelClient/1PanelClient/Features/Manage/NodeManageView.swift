@@ -44,7 +44,8 @@ struct NodeManageView: View {
     /// 节点列表接口失败（社区版无多机能力）→ 回退为仅本机节点，计数/日志仍可用
     @State private var listFallback = false
     @State private var showAddSheet = false
-    @State private var addTaskID: String?
+    /// 加载代际：并发 load 时只让最后一次的结果生效（下拉刷新连点防旧数据覆盖）
+    @State private var loadGeneration = 0
 
     private let client: APIClient
 
@@ -124,7 +125,6 @@ struct NodeManageView: View {
         }
         .sheet(isPresented: $showAddSheet) {
             AddNodeView(server: server) { taskID in
-                addTaskID = taskID
                 navPath.append(Dest.taskProgress(taskID: taskID, title: L10n.t("添加节点")))
             }
             .presentationDetents([.large])
@@ -157,7 +157,6 @@ struct NodeManageView: View {
             // 节点管理任务（添加/编辑/同步）都在主控执行，固定读 local 节点日志
             TaskProgressView(taskID: taskID, title: title, node: "local") { _ in
                 if !navPath.isEmpty { navPath.removeLast() }
-                addTaskID = nil
                 Task { await load() }
                 return true
             }
@@ -349,6 +348,8 @@ struct NodeManageView: View {
     // MARK: 数据加载
 
     private func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         if cards.isEmpty { isLoading = true }
         do {
             let items: [NodeListItem] = try await client.send(
@@ -367,22 +368,25 @@ struct NodeManageView: View {
                     newCards[idx].current = currents.first(where: { $0.nodeName == newCards[idx].item.name })
                 }
             }
+            guard generation == loadGeneration else { return }
             cards = newCards
             listFallback = false
             errorMessage = nil
         } catch APIError.httpError(let code, _) where code == 404 {
             // 社区版没有多机路由：回退为本机节点（计数/日志/按节点路由仍可用）
+            guard generation == loadGeneration else { return }
             cards = [NodeCard(item: Self.fallbackLocalItem)]
             listFallback = true
             errorMessage = nil
         } catch {
             // 专业版的网络/认证等错误：无数据时显示重试；已有数据保留下拉前的旧值
+            guard generation == loadGeneration else { return }
             if cards.isEmpty {
                 errorMessage = error.localizedDescription
             }
         }
         isLoading = false
-        await loadCounts()
+        await loadCounts(generation: generation)
     }
 
     /// 社区版回退用的本机节点条目（地址取当前连接的 Host）
@@ -394,14 +398,14 @@ struct NodeManageView: View {
     }
 
     /// 按节点并行加载四类数量（显式 ?operateNode= 查询参数，不受当前切换影响）
-    private func loadCounts() async {
+    private func loadCounts(generation: Int) async {
         let nodeNames = cards.map(\.item.name)
         guard !nodeNames.isEmpty else { return }
-        let server = self.server
+        let client = self.client
         let results = await withTaskGroup(of: (String, NodeCounts).self) { group in
             for name in nodeNames {
                 group.addTask {
-                    let counts = await NodeCountsLoader.load(for: name, server: server)
+                    let counts = await NodeCountsLoader.load(for: name, client: client)
                     return (name, counts)
                 }
             }
@@ -409,6 +413,7 @@ struct NodeManageView: View {
             for await pair in group { collected.append(pair) }
             return collected
         }
+        guard generation == loadGeneration else { return }
         for (name, counts) in results {
             if let idx = cards.firstIndex(where: { $0.item.name == name }) {
                 cards[idx].counts = counts
@@ -426,10 +431,9 @@ struct NodeCounts {
     var cronjobs: Int?
 }
 
-/// 节点四类资源数量加载（概览页与详情页共用）
+/// 节点四类资源数量加载（概览页与详情页共用，复用调用方的 APIClient）
 enum NodeCountsLoader {
-    static func load(for node: String, server: ServerConfig) async -> NodeCounts {
-        let client = APIClient(server: server)
+    static func load(for node: String, client: APIClient) async -> NodeCounts {
         let query = [URLQueryItem(name: "operateNode", value: node)]
         var counts = NodeCounts()
         if let r: AppInstalledListResponse = try? await client.send(

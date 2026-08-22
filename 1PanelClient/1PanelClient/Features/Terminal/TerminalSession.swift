@@ -205,6 +205,7 @@ final class TerminalSession: ObservableObject {
 
     func connect() {
         guard !isConnecting, !isConnected else { return }
+        observeNodeScope()
         guard let url = makeWebSocketURL() else {
             errorMessage = L10n.t("无法构造终端连接地址")
             emit("\u{1B}[31m" + L10n.t("无法构造终端连接地址") + "\u{1B}[0m\r\n")
@@ -241,6 +242,25 @@ final class TerminalSession: ObservableObject {
         task = nil
         isConnected = false
         isConnecting = false
+    }
+
+    // MARK: - 节点切换防护
+
+    /// 连接建立时所处的节点；多机管理切换到其他节点后本连接路由已失效，主动断开
+    private var nodeScopeCancellable: AnyCancellable?
+    private var connectedNode: String = "local"
+
+    private func observeNodeScope() {
+        connectedNode = NodeScope.current(for: server.id) ?? "local"
+        nodeScopeCancellable = NotificationCenter.default.publisher(for: NodeScope.changeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self, self.isConnected || self.isConnecting else { return }
+                let now = NodeScope.current(for: self.server.id) ?? "local"
+                guard now != self.connectedNode else { return }
+                self.disconnect()
+                self.emit("\u{1B}[33m" + L10n.f("当前节点已切换为 %@，连接已断开，请重新进入本页面", now) + "\u{1B}[0m\r\n")
+            }
     }
 
     // MARK: - 发送输入

@@ -47,6 +47,9 @@ struct NodeDetailView: View {
     @State private var showDeleteSheet = false
     @State private var deleteForce = false
     @State private var deleteWithData = false
+    @State private var isSyncing = false
+    /// 加载代际：并发 load 时只让最后一次的结果生效
+    @State private var loadGeneration = 0
     @State private var toastMessage: String?
     @State private var alertMessage: String?
     @State private var showRestartAlert = false
@@ -109,6 +112,7 @@ struct NodeDetailView: View {
                     } label: {
                         Label(L10n.t("同步"), systemImage: "arrow.triangle.2.circlepath")
                     }
+                    .disabled(isSyncing)
                     Button {
                         navPath.append(NodeManageView.Dest.upgradeLogs(nodeID))
                     } label: {
@@ -366,6 +370,8 @@ struct NodeDetailView: View {
     // MARK: - 数据加载
 
     private func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         if item == nil { isLoading = true }
         do {
             let resp: PageResponse<NodeDetailItem> = try await client.send(
@@ -373,12 +379,14 @@ struct NodeDetailView: View {
                 body: NodeSearchRequest(page: 1, pageSize: 100),
                 as: PageResponse<NodeDetailItem>.self
             )
+            guard generation == loadGeneration else { return }
             errorMessage = nil
             item = (resp.items ?? []).first(where: { $0.id == nodeID })
             if item == nil {
                 errorMessage = L10n.t("节点不存在或已被移除")
             }
         } catch {
+            guard generation == loadGeneration else { return }
             errorMessage = error.localizedDescription
         }
         isLoading = false
@@ -388,10 +396,13 @@ struct NodeDetailView: View {
             method: APIEndpoint.nodesCurrent.method,
             as: [NodeCurrentItem].self
         ) {
+            guard generation == loadGeneration else { return }
             current = currents.first(where: { $0.nodeName == nodeName })
         }
         if !nodeName.isEmpty {
-            counts = await NodeCountsLoader.load(for: nodeName, server: server)
+            let loaded = await NodeCountsLoader.load(for: nodeName, client: client)
+            guard generation == loadGeneration else { return }
+            counts = loaded
         }
         hasLoaded = true
     }
@@ -399,6 +410,9 @@ struct NodeDetailView: View {
     // MARK: - 操作
 
     private func syncNode() async {
+        guard !isSyncing else { return }
+        isSyncing = true
+        defer { isSyncing = false }
         let taskID = UUID().uuidString
         do {
             _ = try await client.send(
