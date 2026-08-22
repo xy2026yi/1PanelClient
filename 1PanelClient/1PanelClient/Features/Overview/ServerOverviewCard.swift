@@ -2,7 +2,7 @@
 //  ServerOverviewCard.swift
 //  1PanelClient
 //
-//  首页多机总览卡片（ServerCat 式）：配置了 2 台及以上面板服务器时显示在首页顶部，
+//  多机总览卡片（ServerCat 式）：显示在「服务器」页顶部，
 //  每台一行——健康状态点 + 名称 + CPU/内存微型进度条，点击即切换当前服务器。
 //  指标来自每台服务器一次轻量 dashboard/current 请求；健康状态复用 ServerHealthMonitor。
 //
@@ -98,10 +98,17 @@ struct ServerOverviewCard: View {
                         .font(isCurrent ? .subheadline.bold() : .subheadline)
                         .foregroundStyle(.primary)
                         .lineLimit(1)
-                    Text(server.normalizedBaseURL)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    // 副行：地址 · 面板运行时间（dashboard/current 返回）
+                    HStack(spacing: 4) {
+                        Text(server.normalizedBaseURL)
+                        if let up = current?.timeSinceUptime, !up.isEmpty {
+                            Text("·")
+                            Text(L10n.f("运行 %@", up))
+                        }
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 }
 
                 Spacer(minLength: 12)
@@ -118,7 +125,7 @@ struct ServerOverviewCard: View {
 
                 if isCurrent {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(.green)
                 }
             }
             .padding(.vertical, 4)

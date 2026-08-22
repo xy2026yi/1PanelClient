@@ -10,12 +10,22 @@ import SwiftUI
 struct ServersView: View {
     @ObservedObject var manager: ServerManager
     @ObservedObject private var health = ServerHealthMonitor.shared
+    @StateObject private var cardMonitor = ServerCardMonitor()
     @State private var showAdd = false
     @State private var editingServer: ServerConfig?
     @State private var serverToRemove: ServerConfig?
 
     var body: some View {
         List {
+            if manager.servers.count >= 2 {
+                Section {
+                    ServerOverviewCard(manager: manager, monitor: cardMonitor) { server in
+                        selectServer(server)
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                }
+            }
             Section {
                 ForEach(manager.servers) { server in
                     ServerRow(
@@ -43,6 +53,10 @@ struct ServersView: View {
         }
         .refreshable {
             await health.checkAll()
+            await cardMonitor.refresh()
+        }
+        .task {
+            await cardMonitor.refresh()
         }
         .onAppear {
             health.start()
@@ -61,25 +75,31 @@ struct ServersView: View {
         .navigationDestination(item: $editingServer) { server in
             ServerEditView(manager: manager, editing: server, presentedAsSheet: false)
         }
-        // 移除服务器前确认（会连带清除 Keychain 中的 API 密钥）
-        .confirmationDialog(
-            L10n.t("移除服务器"),
-            isPresented: Binding(
-                get: { serverToRemove != nil },
-                set: { if !$0 { serverToRemove = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button(L10n.f("移除「%@」", serverToRemove?.name ?? ""), role: .destructive) {
+        // 移除服务器前确认（会连带清除 Keychain 中的 API 密钥）—— 居中 alert
+        .alert(L10n.t("移除服务器"), isPresented: Binding(
+            get: { serverToRemove != nil },
+            set: { if !$0 { serverToRemove = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) {
+                serverToRemove = nil
+            }
+            Button(L10n.t("移除"), role: .destructive) {
                 if let server = serverToRemove {
                     manager.remove(server)
                 }
                 serverToRemove = nil
             }
-            Button(L10n.t("取消"), role: .cancel) {}
         } message: {
-            Text(L10n.t("将移除该服务器的连接配置与已保存的 API 密钥，此操作不可恢复。"))
+            Text(L10n.f("将移除「%@」的连接配置与已保存的 API 密钥，此操作不可恢复。", serverToRemove?.name ?? ""))
         }
+    }
+
+    /// 总览卡片点击切换当前服务器（与行点击一致，另带触觉与卡片指标重查）
+    private func selectServer(_ server: ServerConfig) {
+        guard server.id != manager.currentServerID else { return }
+        Haptic.selection()
+        manager.select(server)
+        Task { await cardMonitor.refresh() }
     }
 }
 

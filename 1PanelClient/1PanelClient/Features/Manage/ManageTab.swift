@@ -85,20 +85,16 @@ struct ManageTab: View {
                     .presentationDetents([.medium])
                     .presentationDragIndicator(.visible)
             }
-            // 移除当前服务器前确认（会连带清除 Keychain 中的 API 密钥）
-            .confirmationDialog(
-                L10n.t("移除服务器"),
-                isPresented: $showRemoveServer,
-                titleVisibility: .visible
-            ) {
-                Button(L10n.f("移除「%@」", manager.current?.name ?? ""), role: .destructive) {
+            // 移除当前服务器前确认（会连带清除 Keychain 中的 API 密钥）—— 居中 alert
+            .alert(L10n.t("移除服务器"), isPresented: $showRemoveServer) {
+                Button(L10n.t("取消"), role: .cancel) {}
+                Button(L10n.t("移除"), role: .destructive) {
                     if let server = manager.current {
                         manager.remove(server)
                     }
                 }
-                Button(L10n.t("取消"), role: .cancel) {}
             } message: {
-                Text(L10n.t("将移除当前服务器的连接配置与已保存的 API 密钥，此操作不可恢复。"))
+                Text(L10n.f("将移除「%@」的连接配置与已保存的 API 密钥，此操作不可恢复。", manager.current?.name ?? ""))
             }
         }
         .onChange(of: initialItem) { _, newItem in

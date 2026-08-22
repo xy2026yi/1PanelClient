@@ -99,13 +99,9 @@ struct ServerEditView: View {
             }
         }
         .onAppear { loadIfEditing() }
-        .confirmationDialog(
-            L10n.t("该面板使用 HTTP 明文连接"),
-            isPresented: $showPlainHTTPWarning,
-            titleVisibility: .visible
-        ) {
-            Button(L10n.t("仍然保存"), role: .destructive) { performSave() }
+        .alert(L10n.t("该面板使用 HTTP 明文连接"), isPresented: $showPlainHTTPWarning) {
             Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("仍然保存"), role: .destructive) { performSave() }
         } message: {
             Text(L10n.t("HTTP 明文连接下，API Key 与服务器数据可能被同一网络内的攻击者窃听或篡改。建议为面板配置 HTTPS 后再用 https:// 地址连接。"))
         }

@@ -6946,6 +6946,17 @@
         }
       }
     },
+    "将移除「%@」的连接配置与已保存的 API 密钥，此操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will remove the connection config and saved API key of \"%@\". This action cannot be undone."
+          }
+        }
+      }
+    },
     "将移除当前服务器的连接配置与已保存的 API 密钥，此操作不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16261,6 +16272,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Expires At"
+          }
+        }
+      }
+    },
+    "运行 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up %@"
           }
         }
       }
