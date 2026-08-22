@@ -176,10 +176,10 @@ private struct ServerRow: View {
                             )
                         }
                     }
-                    .padding(.vertical, 2)
+                    // 垂直 6pt：环描边（线宽 6）向外溢出约 3pt，留足余量防 ScrollView 裁剪上下弧
+                    .padding(.vertical, 6)
                 }
-                .padding(.top, 4)  // 与地址副行拉开间隔，避免环顶与上方信息贴叠
-                .frame(height: 62)  // 环 54pt + 上下留白；显式高度避免 List 行高压缩致环贴叠
+                .frame(height: 70)  // 环 54 + 描边溢出 + 上下余量；显式高度防 List 行高压缩
                 .fixedSize(horizontal: false, vertical: true)
             } else if health.isOnline {
                 ProgressView()
