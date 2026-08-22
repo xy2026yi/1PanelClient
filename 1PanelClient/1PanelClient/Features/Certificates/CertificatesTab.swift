@@ -189,9 +189,20 @@ struct CertificateRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(cert.displayExpireDate)
                     .font(.caption.bold())
-                Text(L10n.t("到期"))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                // 到期倒计时：今天/≤3 天=红，≤14 天=橙，15~30 天=次级提示，>30 天不提示
+                if cert.daysRemaining == 0 {
+                    Text(L10n.t("今天到期"))
+                        .font(.caption2)
+                        .foregroundStyle(Color.statusError)
+                } else if cert.daysRemaining != Int.max && cert.daysRemaining > 0 && cert.daysRemaining <= 30 {
+                    Text(L10n.f("%ld 天后到期", cert.daysRemaining))
+                        .font(.caption2)
+                        .foregroundStyle(cert.daysRemaining <= 3 ? Color.statusError : (cert.daysRemaining <= 14 ? Color.semanticWarning : Color.secondary))
+                } else {
+                    Text(L10n.t("到期"))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.vertical, 4)

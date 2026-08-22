@@ -233,6 +233,17 @@
         }
       }
     },
+    "%@，%@，点击切换" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@, tap to switch"
+          }
+        }
+      }
+    },
     "%ld 个更新" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -321,6 +332,17 @@
         }
       }
     },
+    "%ld 天后到期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires in %ld days"
+          }
+        }
+      }
+    },
     "%ld 条" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -372,6 +394,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld items"
+          }
+        }
+      }
+    },
+    "%ld/%ld 在线" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld/%ld online"
           }
         }
       }
@@ -1814,6 +1847,17 @@
         }
       }
     },
+    "中风险" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium risk"
+          }
+        }
+      }
+    },
     "为用户「%@」设置数据库权限。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2034,6 +2078,17 @@
         }
       }
     },
+    "今天到期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires today"
+          }
+        }
+      }
+    },
     "今天过期" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2096,6 +2151,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Save Anyway"
+          }
+        }
+      }
+    },
+    "仍然执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run anyway"
           }
         }
       }
@@ -2338,6 +2404,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Infrequent Access"
+          }
+        }
+      }
+    },
+    "低风险" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low risk"
           }
         }
       }
@@ -10404,6 +10481,17 @@
         }
       }
     },
+    "服务器总览" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servers"
+          }
+        }
+      }
+    },
     "服务器文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15207,6 +15295,17 @@
         }
       }
     },
+    "该脚本包含删除、磁盘写入或重启类命令，执行后可能不可恢复。确定要运行吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This script contains deletion, disk-write, or reboot commands and may be irreversible. Run it anyway?"
+          }
+        }
+      }
+    },
     "该账号未记住认证信息，凭证需重新填写" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17872,6 +17971,17 @@
         }
       }
     },
+    "风险等级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risk level"
+          }
+        }
+      }
+    },
     "首页" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17934,6 +18044,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Advanced"
+          }
+        }
+      }
+    },
+    "高风险" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High risk"
+          }
+        }
+      }
+    },
+    "高风险脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High-risk script"
           }
         }
       }

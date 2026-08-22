@@ -151,6 +151,7 @@ struct ScriptRow: View {
                     if script.isInteractive == true {
                         StatusBadge(text: L10n.t("需交互"), color: .orange)
                     }
+                    StatusBadge(text: script.riskLevel.label, color: script.riskLevel.color)
                 }
             }
             Spacer()
@@ -165,6 +166,7 @@ struct ScriptDetailView: View {
     let script: ScriptItem
     let server: ServerConfig
     @State private var showTerminal = false
+    @State private var confirmHighRisk = false
 
     var body: some View {
         List {
@@ -176,6 +178,7 @@ struct ScriptDetailView: View {
                 if script.isInteractive == true {
                     InfoRow(L10n.t("类型"), value: L10n.t("需要交互输入"))
                 }
+                InfoRow(L10n.t("风险等级"), value: script.riskLevel.label)
                 if let t = script.createdAt, !t.isEmpty {
                     InfoRow(L10n.t("创建时间"), value: t.prefix(19).description)
                 }
@@ -194,11 +197,22 @@ struct ScriptDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    showTerminal = true
+                    // 高风险脚本执行前二次确认（Termius 风险标注模式）
+                    if script.riskLevel == .high {
+                        confirmHighRisk = true
+                    } else {
+                        showTerminal = true
+                    }
                 } label: {
                     Text(L10n.t("安装")).fontWeight(.medium)
                 }
             }
+        }
+        .alert(L10n.t("高风险脚本"), isPresented: $confirmHighRisk) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("仍然执行"), role: .destructive) { showTerminal = true }
+        } message: {
+            Text(L10n.t("该脚本包含删除、磁盘写入或重启类命令，执行后可能不可恢复。确定要运行吗？"))
         }
         .navigationDestination(isPresented: $showTerminal) {
             TerminalScreen(

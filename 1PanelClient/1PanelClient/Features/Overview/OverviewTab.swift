@@ -12,6 +12,7 @@ struct OverviewTab: View {
     /// 向 MainTabView 同步导航深度：true=根页面（显示底部 Tab 栏），false=子页面
     @Binding var atRoot: Bool
     @StateObject private var vm: OverviewViewModel
+    @StateObject private var cardMonitor = ServerCardMonitor()
     @State private var showServers = false
     @State private var showUpgradeLog = false
     /// 多机管理切换的当前节点名（nil=local），工具栏提示当前展示的是哪个节点的数据
@@ -38,6 +39,11 @@ struct OverviewTab: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    if manager.servers.count >= 2 {
+                        ServerOverviewCard(manager: manager, monitor: cardMonitor) { server in
+                            selectServer(server)
+                        }
+                    }
                     if vm.isLoading && !vm.hasData {
                         LoadingStateView()
                     } else if let base = vm.base, base.hostname != nil {
@@ -54,6 +60,7 @@ struct OverviewTab: View {
             .navigationBarTitleDisplayMode(.inline)
             .refreshable {
                 await vm.refresh()
+                await refreshServerCards()
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -99,6 +106,7 @@ struct OverviewTab: View {
         .task {
             currentNodeName = manager.current.flatMap { NodeScope.current(for: $0.id) }
             await vm.refresh()
+            await refreshServerCards()
         }
         // 多机管理切换节点后：首页数据整体属于「当前节点」，重建 ViewModel 清缓存并重查
         // （首页只在首次出现/下拉时全量刷新，Tab 常驻期间切换节点不会自动触发）
@@ -138,6 +146,26 @@ struct OverviewTab: View {
                 vm.switchServer(new)
                 Task { await vm.refresh() }
             }
+        }
+    }
+
+    /// 多机总览卡片：一次性拉全部服务器健康 + 实时指标（不做轮询）
+    private func refreshServerCards() async {
+        guard manager.servers.count >= 2 else { return }
+        async let health: Void = ServerHealthMonitor.shared.checkAll()
+        async let metrics: Void = cardMonitor.refresh()
+        _ = await (health, metrics)
+    }
+
+    /// 总览卡片点击切换当前服务器：面板整体跟随 + 首页数据立即重查
+    private func selectServer(_ server: ServerConfig) {
+        guard server.id != manager.currentServerID else { return }
+        Haptic.selection()
+        manager.select(server)
+        currentNodeName = NodeScope.current(for: server.id)
+        vm.switchServer(server)
+        Task {
+            await vm.refresh()
         }
     }
 
