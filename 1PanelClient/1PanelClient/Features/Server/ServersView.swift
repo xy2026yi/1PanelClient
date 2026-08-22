@@ -17,22 +17,17 @@ struct ServersView: View {
 
     var body: some View {
         List {
-            if !manager.servers.isEmpty {
-                Section {
-                    ServerOverviewCard(manager: manager, monitor: cardMonitor) { server in
-                        selectServer(server)
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                }
-            }
             Section {
                 ForEach(manager.servers) { server in
                     ServerRow(
                         server: server,
                         isCurrent: server.id == manager.currentServerID,
                         health: health.state(for: server.id),
+                        metrics: cardMonitor.currents[server.id],
                         onTap: {
+                            if server.id != manager.currentServerID {
+                                Haptic.selection()
+                            }
                             manager.select(server)
                         },
                         onLongPress: {
@@ -94,79 +89,95 @@ struct ServersView: View {
         }
     }
 
-    /// 总览卡片点击切换当前服务器（与行点击一致，另带触觉与卡片指标重查）
-    private func selectServer(_ server: ServerConfig) {
-        guard server.id != manager.currentServerID else { return }
-        Haptic.selection()
-        manager.select(server)
-        Task { await cardMonitor.refresh() }
-    }
 }
 
-/// 服务器行：样式与设置页「当前服务器」一致（图标 + 名称 + 地址），当前服务器带选中标记，
-/// 尾部健康徽标：绿=在线 红=离线 灰=未检测
+/// 服务器行：标题行 = 名称 + 健康点 + 运行时长 + 当前绿勾；副行 = 地址；
+/// 指标行 = 负载/CPU/内存/各磁盘挂载点小圆环（与首页状态卡同源同色，可横滑）
 private struct ServerRow: View {
     let server: ServerConfig
     let isCurrent: Bool
     let health: ServerHealth
+    /// dashboard/current 实时指标（nil=未加载/离线）
+    let metrics: DashboardCurrent?
     let onTap: () -> Void
     let onLongPress: () -> Void
 
+    /// 标题行健康点：在线绿 / 离线红 / 其余灰
+    private var healthColor: Color {
+        switch health {
+        case .online:  return .statusRunning
+        case .offline: return .statusError
+        default:       return .secondary
+        }
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "server.rack")
-                .font(.title2)
-                .foregroundStyle(isCurrent ? Color.accentColor : Color.secondary)
-            VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 4) {
+            // 标题行：名称 + 健康点 + 运行时长 + 当前绿勾
+            HStack(spacing: 6) {
                 Text(server.name)
                     .font(.headline)
-                HStack(spacing: 4) {
-                    if server.apiKey.isEmpty {
-                        Label(L10n.t("API Key 已失效，长按重新录入"), systemImage: "exclamationmark.triangle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                            .lineLimit(1)
-                    }
-                    if server.isPlainHTTP {
-                        Label("HTTP", systemImage: "lock.open")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.orange)
-                    }
-                    Text(server.normalizedBaseURL)
+                StatusDot(color: healthColor, diameter: 8)
+                    .accessibilityLabel(health.label)
+                if let rt = metrics?.runningTime {
+                    Text(L10n.f("运行 %@", rt.displayText))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
+                if isCurrent {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                }
             }
-            Spacer()
-            healthBadge
-            if isCurrent {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+
+            // 副行：地址（含 API Key 失效 / HTTP 明文提示）
+            HStack(spacing: 4) {
+                if server.apiKey.isEmpty {
+                    Label(L10n.t("API Key 已失效，长按重新录入"), systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                }
+                if server.isPlainHTTP {
+                    Label("HTTP", systemImage: "lock.open")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.orange)
+                }
+                Text(server.normalizedBaseURL)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            // 指标行：负载/CPU/内存 + 逐磁盘挂载点（同首页状态卡），单行可横滑
+            if let cur = metrics {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        MetricRing(label: L10n.t("负载"), percent: cur.loadUsagePercent, color: .teal)
+                        MetricRing(label: "CPU", percent: cur.cpuUsedPercent, color: .blue)
+                        MetricRing(label: L10n.t("内存"), percent: cur.memoryUsedPercent, color: .purple)
+                        ForEach(Array((cur.diskData ?? []).enumerated()), id: \.offset) { _, disk in
+                            MetricRing(
+                                label: disk.path?.isEmpty == false ? disk.path! : L10n.t("存储"),
+                                percent: disk.usedPercent,
+                                color: .orange
+                            )
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            } else if health.isOnline {
+                ProgressView()
+                    .controlSize(.mini)
             }
         }
         .padding(.vertical, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
         .onLongPressGesture(perform: onLongPress)
-    }
-
-    @ViewBuilder
-    private var healthBadge: some View {
-        switch health {
-        case .unknown:
-            StatusDot(color: .gray, diameter: 8)
-                .accessibilityLabel(L10n.t("健康状态未知"))
-        case .checking:
-            ProgressView()
-                .controlSize(.mini)
-                .accessibilityLabel(L10n.t("正在检测连接"))
-        case .online(let host):
-            StatusDot(color: .green, diameter: 8)
-                .accessibilityLabel(host.isEmpty ? L10n.t("在线") : L10n.f("在线：%@", host))
-        case .offline(let msg):
-            StatusDot(color: .red, diameter: 8)
-                .accessibilityLabel(L10n.f("离线：%@", msg))
-        }
     }
 }
