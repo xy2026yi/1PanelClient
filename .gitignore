@@ -23,6 +23,8 @@ __pycache__/
 # Sensitive
 *.env
 *.key
-doc/
+
+# 归档目录（历史开发文档/抓包/旧产物，本地保留、不入库）
+/archive/
 
 .zcode/
