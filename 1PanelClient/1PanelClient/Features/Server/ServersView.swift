@@ -17,7 +17,7 @@ struct ServersView: View {
 
     var body: some View {
         List {
-            if manager.servers.count >= 2 {
+            if !manager.servers.isEmpty {
                 Section {
                     ServerOverviewCard(manager: manager, monitor: cardMonitor) { server in
                         selectServer(server)
