@@ -279,7 +279,7 @@ struct OverviewTab: View {
                     color: .teal,
                     topText: String(format: "%.2f%%", cur.loadUsagePercent ?? 0),
                     bottomText: L10n.t("负载"),
-                    footer: format2(cur.load1),
+                    footer: MetricFormat.f2(cur.load1),
                     compact: true
                 )
 
@@ -288,7 +288,7 @@ struct OverviewTab: View {
                     color: .blue,
                     topText: String(format: "%.2f%%", cur.cpuUsedPercent ?? 0),
                     bottomText: "CPU",
-                    footer: L10n.f("%@ / %ld 核", format2(cur.cpuUsed), cur.cpuTotal ?? 0),
+                    footer: L10n.f("%@ / %ld 核", MetricFormat.f2(cur.cpuUsed), cur.cpuTotal ?? 0),
                     compact: true
                 )
 
@@ -297,7 +297,7 @@ struct OverviewTab: View {
                     color: .purple,
                     topText: String(format: "%.2f%%", cur.memoryUsedPercent ?? 0),
                     bottomText: L10n.t("内存"),
-                    footer: formatUsedOverTotal(cur.memoryUsed, cur.memoryTotal),
+                    footer: MetricFormat.usedOverTotal(cur.memoryUsed, cur.memoryTotal),
                     compact: true
                 )
 
@@ -308,7 +308,7 @@ struct OverviewTab: View {
                         color: .orange,
                         topText: String(format: "%.2f%%", pct),
                         bottomText: disk.path?.isEmpty == false ? disk.path! : L10n.t("存储"),
-                        footer: formatUsedOverTotal(disk.used, disk.total),
+                        footer: MetricFormat.usedOverTotal(disk.used, disk.total),
                         compact: true
                     )
                 }
@@ -414,35 +414,6 @@ struct OverviewTab: View {
         if bytes < 1024 * 1024 { return String(format: "%.1f KB", Double(bytes) / 1024) }
         if bytes < 1024 * 1024 * 1024 { return String(format: "%.2f MB", Double(bytes) / (1024 * 1024)) }
         return String(format: "%.2f GB", Double(bytes) / (1024 * 1024 * 1024))
-    }
-
-    /// 字节数拆成 (数值, 单位)：≥1GB 用 GB、≥1MB 用 MB、≥1KB 用 KB；GB/MB 保留两位小数
-    private func byteParts(_ bytes: Int64?) -> (value: String, unit: String) {
-        let b = bytes ?? 0
-        if b >= 1024 * 1024 * 1024 {
-            return (String(format: "%.2f", Double(b) / 1_073_741_824), "GB")
-        }
-        if b >= 1024 * 1024 {
-            return (String(format: "%.2f", Double(b) / 1_048_576), "MB")
-        }
-        if b >= 1024 {
-            return (String(format: "%.1f", Double(b) / 1024), "KB")
-        }
-        return ("\(b)", "B")
-    }
-
-    /// 已用/总量：同单位时单位只出现一次（6.83 / 58.90 GB），不足 GB 的已用单独标注（1.02 MB / 3.86 GB）
-    private func formatUsedOverTotal(_ used: Int64?, _ total: Int64?) -> String {
-        let u = byteParts(used)
-        let t = byteParts(total)
-        if u.unit == t.unit {
-            return "\(u.value) / \(t.value) \(t.unit)"
-        }
-        return "\(u.value) \(u.unit) / \(t.value) \(t.unit)"
-    }
-
-    private func format2(_ v: Double?) -> String {
-        String(format: "%.2f", v ?? 0)
     }
 }
 

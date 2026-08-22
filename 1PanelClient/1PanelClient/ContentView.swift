@@ -28,9 +28,10 @@ struct ContentView: View {
             // environmentObject 必须包在 overlay 之外：overlay 内容不在内侧修饰器的
             // 环境作用域内，放 overlay 前会导致 LockScreenView 取不到 AppLockManager 而崩溃
             .environmentObject(appLock)
-            .animation(.easeInOut(duration: 0.25), value: appLock.isLocked)
             .onChange(of: scenePhase) { _, phase in
-                if phase == .background {
+                // 非 active 即锁（拉通知中心/进切换器会先 inactive，后台快照不露内容）；
+                // 来电横幅等短暂失焦同样视为离开，与应用锁的隐私预期一致
+                if phase != .active {
                     appLock.lockIfEnabled()
                 }
             }

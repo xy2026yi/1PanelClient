@@ -238,12 +238,15 @@ struct PasscodeKeypad: View {
 
 struct LockScreenView: View {
     @EnvironmentObject private var lock: AppLockManager
+    @Environment(\.scenePhase) private var scenePhase
     /// true=显示密码键盘（生物识别取消/失败/不可用时自动或手动切换）
     @State private var showKeypad = false
     @State private var unlockFailed = false
     /// 本轮锁定期内累计输错次数；每满 5 次递增锁定（30s→60s→120s…封顶 5 分钟）
     @State private var failedAttempts = 0
     @State private var lockoutUntil: Date?
+    /// 生物识别进行中标记：防验证回调与 scenePhase 回 active 竞争触发两次弹窗
+    @State private var biometricInFlight = false
 
     private var biometryIcon: String {
         switch AppLockManager.biometryType {
@@ -345,13 +348,23 @@ struct LockScreenView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.regularMaterial)
         .transition(.opacity)
-        .task(id: showKeypad) {
-            // 首次进入尝试生物识别；取消/失败（仍锁定且未展示键盘）自动切密码键盘
-            if !showKeypad {
-                await lock.tryBiometricUnlock()
-                if lock.isLocked { showKeypad = true }
+        .task(id: showKeypad) { await autoBiometricUnlock() }
+        // 上锁可能发生在 inactive（进切换器/通知中心）：系统验证在非 active 时无法
+        // 正常展示，回 active 时再补弹
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task { await autoBiometricUnlock() }
             }
         }
+    }
+
+    /// 前台活跃时自动弹生物识别；取消/失败（仍锁且未展示键盘）自动切密码键盘
+    private func autoBiometricUnlock() async {
+        guard !showKeypad, scenePhase == .active, !biometricInFlight else { return }
+        biometricInFlight = true
+        defer { biometricInFlight = false }
+        await lock.tryBiometricUnlock()
+        if lock.isLocked { showKeypad = true }
     }
 }
 

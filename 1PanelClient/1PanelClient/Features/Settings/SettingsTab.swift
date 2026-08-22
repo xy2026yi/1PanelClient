@@ -66,6 +66,8 @@ struct SettingsTab: View {
                             showSetPin = true
                         } else {
                             appLockEnabled = false
+                            // 一并清除已存密码：重新开启时重设新密码，避免凭据残留
+                            AppLockManager.clearPasscode()
                         }
                     }
                 ))
@@ -113,6 +115,9 @@ struct SettingsTab: View {
 
 // MARK: - 主题
 
+/// CFBundleShortVersionString 读取失败的兜底版本号（升级版本时与 MARKETING_VERSION 同步改这一处）
+private let aboutFallbackVersion = "0.1.9"
+
 /// 全局外观主题（rawValue 持久化于 UserDefaults）
 enum AppTheme: String, CaseIterable, Identifiable {
     case system
@@ -149,7 +154,7 @@ struct AboutSectionView: View {
     @Binding var isPresented: Bool
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.9"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? aboutFallbackVersion
     }
 
     var body: some View {
@@ -190,7 +195,7 @@ struct AboutSectionView: View {
 /// 关于详情：版本 / API 版本 / 1Panel 官网
 struct AboutDetailView: View {
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.9"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? aboutFallbackVersion
     }
 
     var body: some View {

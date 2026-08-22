@@ -50,12 +50,10 @@ struct ServersView: View {
             await health.checkAll()
             await cardMonitor.refresh()
         }
-        .task {
-            await cardMonitor.refresh()
-        }
         // 指标轮询：与首页状态卡同频（5 秒），页面存在期间持续，
         // pop 离开时 task 自动取消；运行时长包含在同一条 dashboard/current 响应内随刷新更新
         .task {
+            await cardMonitor.refresh()
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
                 guard !Task.isCancelled else { return }
@@ -172,14 +170,14 @@ private struct ServerRow: View {
             if let cur = metrics {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ring(L10n.t("负载"), percent: cur.loadUsagePercent, footer: format2(cur.load1), color: .teal)
-                        ring("CPU", percent: cur.cpuUsedPercent, footer: L10n.f("%@ / %ld 核", format2(cur.cpuUsed), cur.cpuTotal ?? 0), color: .blue)
-                        ring(L10n.t("内存"), percent: cur.memoryUsedPercent, footer: formatUsedOverTotal(cur.memoryUsed, cur.memoryTotal), color: .purple)
+                        ring(L10n.t("负载"), percent: cur.loadUsagePercent, footer: MetricFormat.f2(cur.load1), color: .teal)
+                        ring("CPU", percent: cur.cpuUsedPercent, footer: L10n.f("%@ / %ld 核", MetricFormat.f2(cur.cpuUsed), cur.cpuTotal ?? 0), color: .blue)
+                        ring(L10n.t("内存"), percent: cur.memoryUsedPercent, footer: MetricFormat.usedOverTotal(cur.memoryUsed, cur.memoryTotal), color: .purple)
                         ForEach(Array((cur.diskData ?? []).enumerated()), id: \.offset) { _, disk in
                             ring(
                                 disk.path?.isEmpty == false ? disk.path! : L10n.t("存储"),
                                 percent: disk.usedPercent,
-                                footer: formatUsedOverTotal(disk.used, disk.total),
+                                footer: MetricFormat.usedOverTotal(disk.used, disk.total),
                                 color: .orange
                             )
                         }
@@ -212,35 +210,5 @@ private struct ServerRow: View {
             compact: true
         )
         .frame(width: 64)
-    }
-
-    // MARK: 环下详情格式化（与首页状态卡一致）
-
-    private func format2(_ v: Double?) -> String {
-        String(format: "%.2f", v ?? 0)
-    }
-
-    private func byteParts(_ bytes: Int64?) -> (value: String, unit: String) {
-        let b = bytes ?? 0
-        if b >= 1024 * 1024 * 1024 {
-            return (String(format: "%.2f", Double(b) / 1_073_741_824), "GB")
-        }
-        if b >= 1024 * 1024 {
-            return (String(format: "%.2f", Double(b) / 1_048_576), "MB")
-        }
-        if b >= 1024 {
-            return (String(format: "%.1f", Double(b) / 1024), "KB")
-        }
-        return ("\(b)", "B")
-    }
-
-    /// 已用/总量：同单位时单位只出现一次（6.83 / 58.90 GB）
-    private func formatUsedOverTotal(_ used: Int64?, _ total: Int64?) -> String {
-        let u = byteParts(used)
-        let t = byteParts(total)
-        if u.unit == t.unit {
-            return "\(u.value) / \(t.value) \(t.unit)"
-        }
-        return "\(u.value) \(u.unit) / \(t.value) \(t.unit)"
     }
 }
