@@ -15,7 +15,10 @@ final class APIClient {
     /// 上传/下载专用 session（长超时，用于大文件传输）
     private let transferSession: URLSession
 
-    init(server: ServerConfig) {
+    /// 纯配置构造（三个 URLSession + let 赋值），无主线程状态：
+    /// 标 nonisolated 使 ServerCardMonitor 的并发任务组可在隔离域外直接构造，
+    /// 否则默认 MainActor 隔离下该处是 Swift 6 错误
+    nonisolated init(server: ServerConfig) {
         self.server = server
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
