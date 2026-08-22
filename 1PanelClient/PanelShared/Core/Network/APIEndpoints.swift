@@ -327,6 +327,21 @@ enum APIEndpoint {
     case logsReadSystem          // POST 读取系统日志行（files/read/system）
     case logsReadWebsite         // POST 读取网站日志行（files/read/website）
 
+    // MARK: - 多机管理（专业版；社区版 nodes/current 会失败，需兜底）
+    case nodesCurrent            // GET  全部节点实时状态（CPU/内存/健康）
+    case nodesList               // POST 节点列表（含地址/分组/版本）
+    case nodesTestByInfo         // POST 添加节点前可用性检查（byinfo）
+    case nodesCreate             // POST 添加节点（异步任务，返回 taskID 日志）
+    case licensesOptions         // POST 许可证选项列表（添加专业版节点用）
+    case nodesSearch             // POST 节点详情分页查询（字段全，详情页/编辑用）
+    case nodesUpdate             // POST 编辑节点（完整对象回传，异步任务）
+    case nodesUpdateBase         // POST 轻量改名称（名称/分组/备注）
+    case nodesSync               // POST 同步数据到节点（异步任务）
+    case nodesRestart            // POST 重启节点面板/服务器（restartService）
+    case nodesDelete             // POST 删除节点（force/withUninstall）
+    case nodesUpgradeLogs        // POST 节点更新记录分页查询
+    case nodeGroupsSearch        // POST 节点分组列表（type=node）
+
     var path: String {
         switch self {
         case .dashboardOS:           return "/api/v2/dashboard/base/os"
@@ -580,6 +595,19 @@ enum APIEndpoint {
         case .logsWebsitesList:      return "/api/v2/websites/list"
         case .logsReadSystem:        return "/api/v2/files/read/system"
         case .logsReadWebsite:       return "/api/v2/files/read/website"
+        case .nodesCurrent:          return "/api/v2/core/xpack/nodes/current"
+        case .nodesList:             return "/api/v2/core/nodes/list"
+        case .nodesTestByInfo:       return "/api/v2/core/xpack/nodes/test/byinfo"
+        case .nodesCreate:           return "/api/v2/core/xpack/nodes"
+        case .licensesOptions:       return "/api/v2/core/licenses/options"
+        case .nodesSearch:           return "/api/v2/core/xpack/nodes/search"
+        case .nodesUpdate:           return "/api/v2/core/xpack/nodes/update"
+        case .nodesUpdateBase:       return "/api/v2/core/xpack/nodes/update/base"
+        case .nodesSync:             return "/api/v2/core/xpack/nodes/sync"
+        case .nodesRestart:          return "/api/v2/core/xpack/nodes/restart"
+        case .nodesDelete:           return "/api/v2/core/xpack/nodes/del"
+        case .nodesUpgradeLogs:      return "/api/v2/core/xpack/nodes/search/upgrade/logs"
+        case .nodeGroupsSearch:      return "/api/v2/core/groups/search"
         }
     }
 
@@ -605,6 +633,7 @@ enum APIEndpoint {
              .settingsUpgradeCheck, .settingsUpgradeReleases,
              .openrestyConfig,
              .logsSystemFiles, .logsWebsitesList,
+             .nodesCurrent, .licensesOptions,
              .backupsLocal,
              .filesDownload:
             return "GET"

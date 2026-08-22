@@ -55,11 +55,23 @@ final class APIClient {
 
     private func generateHeaders() -> [String: String] {
         let timestamp = String(Int(Date().timeIntervalSince1970))
-        return [
+        var headers = [
             "1Panel-Token": Self.token(apiKey: server.apiKey, timestamp: timestamp),
             "1Panel-Timestamp": timestamp,
             "Content-Type": "application/json"
         ]
+        // 多机管理：注入当前操作节点（core/init/router/proxy.go 按此路由到对应 agent；
+        // 未设置 = local 本机；显式 ?operateNode= 查询参数优先级更高，不受此影响）
+        if let node = NodeScope.headerValue(for: server.id) {
+            headers["CurrentNode"] = node
+        }
+        return headers
+    }
+
+    /// 当前操作节点的 operateNode 查询参数（跟随多机管理切换；查询参数优先级高于 CurrentNode 请求头）。
+    /// WebSocket、任务中心等需要显式按节点路由的调用方使用
+    var operateNodeQuery: [URLQueryItem] {
+        [URLQueryItem(name: "operateNode", value: NodeScope.current(for: server.id) ?? "local")]
     }
 
     // MARK: - 核心请求

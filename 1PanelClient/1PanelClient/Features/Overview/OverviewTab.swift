@@ -14,6 +14,8 @@ struct OverviewTab: View {
     @StateObject private var vm: OverviewViewModel
     @State private var showServers = false
     @State private var showUpgradeLog = false
+    /// 多机管理切换的当前节点名（nil=local），工具栏提示当前展示的是哪个节点的数据
+    @State private var currentNodeName: String? = nil
 
     /// 卡片点击回调：传递具体 ManageItem，由 MainTabView 跨 Tab 跳转到管理详情
     var onSelectManageItem: ((ManageItem) -> Void)? = nil
@@ -63,6 +65,12 @@ struct OverviewTab: View {
                             Text(manager.current?.name ?? L10n.t("未连接"))
                                 .font(.headline)
                             HStack(spacing: 3) {
+                                if let node = currentNodeName, !node.isEmpty {
+                                    Text("· \(node)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.blue)
+                                        .lineLimit(1)
+                                }
                                 Text(manager.current?.normalizedBaseURL ?? "")
                                     .font(.caption2)
                                     .lineLimit(1)
@@ -89,7 +97,19 @@ struct OverviewTab: View {
                 atRoot = !show
             }
         }
-        .task { await vm.refresh() }
+        .task {
+            currentNodeName = manager.current.flatMap { NodeScope.current(for: $0.id) }
+            await vm.refresh()
+        }
+        // 多机管理切换节点后：首页数据整体属于「当前节点」，重建 ViewModel 清缓存并重查
+        // （首页只在首次出现/下拉时全量刷新，Tab 常驻期间切换节点不会自动触发）
+        .onReceive(NotificationCenter.default.publisher(for: NodeScope.changeNotification)) { _ in
+            currentNodeName = manager.current.flatMap { NodeScope.current(for: $0.id) }
+            if let server = manager.current {
+                vm.switchServer(server)
+                Task { await vm.refresh() }
+            }
+        }
         // 切回首页 Tab 时刷新应用卡片的可更新数：
         // 应用升级/忽略/卸载都在管理 Tab 完成，不刷新的话角标要等下拉才更新
         .onChange(of: selectedTab) { _, tab in

@@ -192,7 +192,12 @@ final class TerminalSession: ObservableObject {
         if comp.scheme == "https" { comp.scheme = "wss" }
         else { comp.scheme = "ws" }
         comp.path = target.path
-        comp.queryItems = target.queryItems
+        // 跟随多机管理切换的当前节点：operateNode 查询参数优先级高于请求头，
+        // 枚举里写死的 local 会被替换，否则远程节点终端永远连到本机
+        let node = NodeScope.current(for: server.id) ?? "local"
+        comp.queryItems = target.queryItems.map {
+            $0.name == "operateNode" ? URLQueryItem(name: "operateNode", value: node) : $0
+        }
         return comp.url
     }
 

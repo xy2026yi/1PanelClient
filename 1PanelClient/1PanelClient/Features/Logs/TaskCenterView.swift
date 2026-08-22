@@ -141,8 +141,9 @@ struct TaskCenterView: View {
         let currentFilter = filter
         do {
             let resp: TaskCenterResponse = try await client.send(
-                path: APIEndpoint.logsTaskSearch.path + "?operateNode=local",
+                path: APIEndpoint.logsTaskSearch.path,
                 body: TaskCenterSearchRequest(type: "", status: currentFilter.rawValue, page: 1, pageSize: pageSize),
+                queryItems: client.operateNodeQuery,
                 as: TaskCenterResponse.self
             )
             // 等待期间筛选已切换：丢弃过期响应，避免旧数据覆盖新筛选
@@ -167,8 +168,9 @@ struct TaskCenterView: View {
         let currentFilter = filter
         do {
             let resp: TaskCenterResponse = try await client.send(
-                path: APIEndpoint.logsTaskSearch.path + "?operateNode=local",
+                path: APIEndpoint.logsTaskSearch.path,
                 body: TaskCenterSearchRequest(type: "", status: currentFilter.rawValue, page: next, pageSize: pageSize),
+                queryItems: client.operateNodeQuery,
                 as: TaskCenterResponse.self
             )
             guard currentFilter == filter else { return }
@@ -288,8 +290,9 @@ struct TaskLogDetailView: View {
     private func load() async {
         do {
             let resp: LogFileReadResponse = try await client.send(
-                path: APIEndpoint.logsTaskRead.path + "?operateNode=local",
+                path: APIEndpoint.logsTaskRead.path,
                 body: TaskCenterLogReadRequest(page: 1, pageSize: 500, latest: true, taskID: task.id),
+                queryItems: client.operateNodeQuery,
                 as: LogFileReadResponse.self
             )
             lines = resp.lines ?? []

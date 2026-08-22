@@ -1,6 +1,259 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "删除节点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Node"
+          }
+        }
+      }
+    },
+    "请输入 确认" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter Confirm"
+          }
+        }
+      }
+    },
+    "删除节点数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Node Data"
+          }
+        }
+      }
+    },
+    "强制删除：节点异常或离线时仍强制移除。删除节点数据：同时卸载该节点上安装的 1Panel 服务。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Delete: remove the node even if it is abnormal or offline. Delete Node Data: also uninstall the 1Panel service installed on the node."
+          }
+        }
+      }
+    },
+    "删除后将从多机管理中移除该节点，此操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The node will be removed from multi-node management. This cannot be undone."
+          }
+        }
+      }
+    },
+    "无数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Data"
+          }
+        }
+      }
+    },
+    "改名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename"
+          }
+        }
+      }
+    },
+    "编辑节点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Node"
+          }
+        }
+      }
+    },
+    "节点详情" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Node Detail"
+          }
+        }
+      }
+    },
+    "运行状态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runtime Status"
+          }
+        }
+      }
+    },
+    "资源概览" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resources"
+          }
+        }
+      }
+    },
+    "节点日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Node Logs"
+          }
+        }
+      }
+    },
+    "专业版已启用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Enabled"
+          }
+        }
+      }
+    },
+    "专业版未启用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Disabled"
+          }
+        }
+      }
+    },
+    "绑定状态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bound"
+          }
+        }
+      }
+    },
+    "是" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes"
+          }
+        }
+      }
+    },
+    "否" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No"
+          }
+        }
+      }
+    },
+    "更新记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade Records"
+          }
+        }
+      }
+    },
+    "同步节点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Node"
+          }
+        }
+      }
+    },
+    "暂无更新记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No upgrade records"
+          }
+        }
+      }
+    },
+    "节点名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Node Name"
+          }
+        }
+      }
+    },
+    "查看系统日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View System Logs"
+          }
+        }
+      }
+    },
+    "节点不存在或已被移除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Node does not exist or has been removed"
+          }
+        }
+      }
+    },
     "" : {
 
     },
@@ -36,6 +289,9 @@
       }
     },
     "·" : {
+
+    },
+    "· %@" : {
 
     },
     "(未命名)" : {
@@ -415,6 +671,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld entries"
+          }
+        }
+      }
+    },
+    "%ld 核" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld Cores"
           }
         }
       }
@@ -879,6 +1146,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CPU %@%% · Memory %@%% · Load %@"
+          }
+        }
+      }
+    },
+    "CPU 使用率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU Usage"
           }
         }
       }
@@ -1933,6 +2211,17 @@
         }
       }
     },
+    "专业版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Professional"
+          }
+        }
+      }
+    },
     "业务错误（%ld）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2362,6 +2651,17 @@
         }
       }
     },
+    "任务中心" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task Center"
+          }
+        }
+      }
+    },
     "任务名称" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2369,6 +2669,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Task Name"
+          }
+        }
+      }
+    },
+    "任务日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task Log"
           }
         }
       }
@@ -2490,6 +2801,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back up InnoDB tables in a single transaction — suitable for large datasets"
+          }
+        }
+      }
+    },
+    "使用合并配置升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade with Merged Config"
           }
         }
       }
@@ -2703,6 +3025,17 @@
         }
       }
     },
+    "保留新增段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Added Lines"
+          }
+        }
+      }
+    },
     "信息" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2901,6 +3234,17 @@
         }
       }
     },
+    "健康" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Healthy"
+          }
+        }
+      }
+    },
     "健康状态未知" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3029,6 +3373,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Public"
+          }
+        }
+      }
+    },
+    "共 %ld 条" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld tasks in total"
           }
         }
       }
@@ -3198,6 +3553,17 @@
         }
       }
     },
+    "内存使用率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory Usage"
+          }
+        }
+      }
+    },
     "内存占用过高" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3337,6 +3703,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Minute: %ld"
+          }
+        }
+      }
+    },
+    "切换" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch"
           }
         }
       }
@@ -4914,6 +5291,17 @@
         }
       }
     },
+    "可用性检查" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Availability Check"
+          }
+        }
+      }
+    },
     "可选描述" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5312,6 +5700,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Records appear here after alerts fire"
+          }
+        }
+      }
+    },
+    "告警设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert Settings"
           }
         }
       }
@@ -6001,6 +6400,17 @@
         }
       }
     },
+    "多机管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multi-Node"
+          }
+        }
+      }
+    },
     "天" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6239,6 +6649,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Installed"
+          }
+        }
+      }
+    },
+    "安装目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Directory"
           }
         }
       }
@@ -6600,6 +7021,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Block Records"
+          }
+        }
+      }
+    },
+    "将主节点对应的配置同步到新节点。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync the corresponding settings from the primary node to the new node."
           }
         }
       }
@@ -7253,6 +7685,17 @@
         }
       }
     },
+    "已选择 %ld 处差异采用旧配置，将按此内容升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld diff hunks use the old config; upgrade will use this content"
+          }
+        }
+      }
+    },
     "已重新提交申请" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7359,6 +7802,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App Parameters"
+          }
+        }
+      }
+    },
+    "应用同步 / 镜像拉取等异步任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Async tasks: app sync, image pull, etc."
           }
         }
       }
@@ -7550,6 +8004,17 @@
         }
       }
     },
+    "异常" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unhealthy"
+          }
+        }
+      }
+    },
     "强制删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7667,6 +8132,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current Version"
+          }
+        }
+      }
+    },
+    "当前节点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Node"
           }
         }
       }
@@ -7868,6 +8344,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restores exceeding this duration are aborted; default 30 minutes"
+          }
+        }
+      }
+    },
+    "恢复此段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
           }
         }
       }
@@ -8560,6 +9047,17 @@
         }
       }
     },
+    "操作失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operation Failed"
+          }
+        }
+      }
+    },
     "操作失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8681,6 +9179,17 @@
         }
       }
     },
+    "改用新配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use New Config"
+          }
+        }
+      }
+    },
     "攻击IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8743,6 +9252,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Value"
+          }
+        }
+      }
+    },
+    "数据同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Sync"
           }
         }
       }
@@ -9421,6 +9941,17 @@
         }
       }
     },
+    "暂无任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Tasks"
+          }
+        }
+      }
+    },
     "暂无反向代理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9736,6 +10267,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No certificate authorities"
+          }
+        }
+      }
+    },
+    "暂无节点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Nodes"
           }
         }
       }
@@ -10425,6 +10967,17 @@
         }
       }
     },
+    "未获取到可用许可证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No available license found"
+          }
+        }
+      }
+    },
     "未获取到新版本配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10760,6 +11313,61 @@
     },
     "检查服务器状态" : {
 
+    },
+    "检查节点 SSH 连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check node SSH connection"
+          }
+        }
+      }
+    },
+    "检查节点已存在服务信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check existing services on node"
+          }
+        }
+      }
+    },
+    "检查节点用户权限" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check node user permission"
+          }
+        }
+      }
+    },
+    "检查节点端口可达" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check node port reachability"
+          }
+        }
+      }
+    },
+    "检查节点许可证状态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check node license status"
+          }
+        }
+      }
     },
     "检测中" : {
       "extractionState" : "manual",
@@ -11307,6 +11915,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Port Rule"
+          }
+        }
+      }
+    },
+    "添加节点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Node"
           }
         }
       }
@@ -12579,6 +13198,17 @@
         }
       }
     },
+    "社区版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Community"
+          }
+        }
+      }
+    },
     "视频" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12821,6 +13451,17 @@
         }
       }
     },
+    "移除新增段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Added Lines"
+          }
+        }
+      }
+    },
     "移除服务器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12828,6 +13469,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove Server"
+          }
+        }
+      }
+    },
+    "移除此段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
           }
         }
       }
@@ -13117,6 +13769,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "System"
+          }
+        }
+      }
+    },
+    "系统代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Proxy"
           }
         }
       }
@@ -13908,6 +14571,17 @@
         }
       }
     },
+    "自定义应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Apps"
+          }
+        }
+      }
+    },
     "自定义服务" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13937,6 +14611,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Self-signed"
+          }
+        }
+      }
+    },
+    "节点信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Node Info"
+          }
+        }
+      }
+    },
+    "节点列表接口不可用（多机管理为专业版功能），已回退为本机节点。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Node list API unavailable (multi-node is a Pro feature); fell back to the local node."
+          }
+        }
+      }
+    },
+    "节点端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Node Port"
           }
         }
       }
@@ -14238,6 +14945,17 @@
         }
       }
     },
+    "许可证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "License"
+          }
+        }
+      }
+    },
     "论坛/博客" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14487,6 +15205,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Certificate Config"
+          }
+        }
+      }
+    },
+    "该任务暂无日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No logs for this task"
           }
         }
       }
@@ -16436,6 +17165,17 @@
         }
       }
     },
+    "采用旧配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Old Config"
+          }
+        }
+      }
+    },
     "重启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16679,6 +17419,17 @@
       }
     },
     "错误" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
+          }
+        }
+      }
+    },
+    "错误信息" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -17334,171 +18085,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Documents"
-          }
-        }
-      }
-    },
-    "任务中心" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Task Center"
-          }
-        }
-      }
-    },
-    "暂无任务" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Tasks"
-          }
-        }
-      }
-    },
-    "任务日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Task Log"
-          }
-        }
-      }
-    },
-    "共 %ld 条" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld tasks in total"
-          }
-        }
-      }
-    },
-    "应用同步 / 镜像拉取等异步任务" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Async tasks: app sync, image pull, etc."
-          }
-        }
-      }
-    },
-    "错误信息" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Error"
-          }
-        }
-      }
-    },
-    "该任务暂无日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No logs for this task"
-          }
-        }
-      }
-    },
-    "采用旧配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use Old Config"
-          }
-        }
-      }
-    },
-    "改用新配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use New Config"
-          }
-        }
-      }
-    },
-    "恢复此段" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restore"
-          }
-        }
-      }
-    },
-    "移除此段" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove"
-          }
-        }
-      }
-    },
-    "保留新增段" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep Added Lines"
-          }
-        }
-      }
-    },
-    "移除新增段" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove Added Lines"
-          }
-        }
-      }
-    },
-    "已选择 %ld 处差异采用旧配置，将按此内容升级" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld diff hunks use the old config; upgrade will use this content"
-          }
-        }
-      }
-    },
-    "使用合并配置升级" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Upgrade with Merged Config"
           }
         }
       }

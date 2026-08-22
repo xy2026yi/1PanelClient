@@ -165,7 +165,9 @@ final class ProcessMonitor: ObservableObject {
         if comp.scheme == "https" { comp.scheme = "wss" }
         else { comp.scheme = "ws" }
         comp.path = "/api/v2/process/ws"
-        comp.queryItems = [URLQueryItem(name: "operateNode", value: "local")]
+        // 跟随多机管理切换的当前节点（查询参数优先级高于请求头，写死 local 会钉在本机）
+        let node = NodeScope.current(for: server.id) ?? "local"
+        comp.queryItems = [URLQueryItem(name: "operateNode", value: node)]
         return comp.url
     }
 

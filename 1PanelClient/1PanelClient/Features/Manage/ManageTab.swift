@@ -183,6 +183,8 @@ struct ManageTab: View {
             WAFView(server: server)
         case .panelManage:
             PanelServerManageView(server: server)
+        case .nodeManage:
+            NodeManageView(manager: manager, server: server, navPath: $navPath)
         case .backupAccount:
             BackupAccountsView(server: server)
         case .taskCenter:
@@ -302,6 +304,7 @@ enum ManageItem: String, Identifiable {
     case waf
     case alert
     case panelManage
+    case nodeManage
     case backupAccount
     case cronjob
     case taskCenter
@@ -314,7 +317,7 @@ enum ManageItem: String, Identifiable {
         (L10n.t("应用"), [.apps, .websites, .database, .containers]),
         (L10n.t("主机"), [.terminal, .files, .monitor, .process, .sshService]),
         (L10n.t("安全"), [.firewall, .fail2ban, .waf]),
-        (L10n.t("面板"), [.alert, .panelManage, .backupAccount, .cronjob, .taskCenter, .logs]),
+        (L10n.t("面板"), [.alert, .panelManage, .nodeManage, .backupAccount, .cronjob, .taskCenter, .logs]),
     ]
 
     var title: String {
@@ -333,6 +336,7 @@ enum ManageItem: String, Identifiable {
         case .waf:         return "WAF"
         case .alert:       return L10n.t("告警通知")
         case .panelManage: return L10n.t("面板/服务器管理")
+        case .nodeManage:  return L10n.t("多机管理")
         case .backupAccount: return L10n.t("备份账号")
         case .cronjob:     return L10n.t("计划任务")
         case .taskCenter:  return L10n.t("任务中心")
@@ -356,6 +360,7 @@ enum ManageItem: String, Identifiable {
         case .waf:         return L10n.t("Web 应用防火墙")
         case .alert:       return L10n.t("告警规则 / 日志 / 发送方式")
         case .panelManage: return L10n.t("重启面板与服务器")
+        case .nodeManage:  return L10n.t("节点概览 / 添加节点 / 切换（专业版）")
         case .backupAccount: return L10n.t("MINIO / WebDAV / SFTP 备份存储")
         case .cronjob:     return L10n.t("定时备份与脚本")
         case .taskCenter:  return L10n.t("应用同步 / 镜像拉取等异步任务")
@@ -379,6 +384,7 @@ enum ManageItem: String, Identifiable {
         case .waf:         return "flame.fill"
         case .alert:       return "bell.badge.fill"
         case .panelManage: return "power"
+        case .nodeManage:  return "server.rack"
         case .backupAccount: return "externaldrive.badge.icloud"
         case .cronjob:     return "clock.badge.checkmark"
         case .taskCenter:  return "checklist"
@@ -402,6 +408,7 @@ enum ManageItem: String, Identifiable {
         case .waf:         return .red
         case .alert:       return .orange
         case .panelManage: return .red
+        case .nodeManage:  return .teal
         case .backupAccount: return .blue
         case .cronjob:     return .teal
         case .taskCenter:  return .brown

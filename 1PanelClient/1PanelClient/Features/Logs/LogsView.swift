@@ -259,6 +259,9 @@ struct LoginLogView: View {
 
 struct SystemLogView: View {
     let server: ServerConfig
+    /// 指定节点名查看该节点系统日志（多机管理入口传入）；
+    /// nil = 跟随当前操作节点（CurrentNode 请求头路由）
+    var nodeName: String? = nil
     @State private var dates: [String] = []
     @State private var selectedDate = ""
     @State private var lines: [String] = []
@@ -268,9 +271,15 @@ struct SystemLogView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig) {
+    init(server: ServerConfig, nodeName: String? = nil) {
         self.server = server
+        self.nodeName = nodeName
         self.client = APIClient(server: server)
+    }
+
+    /// 显式指定节点时以查询参数路由（优先级高于请求头）
+    private var nodeQuery: [URLQueryItem]? {
+        nodeName.map { [URLQueryItem(name: "operateNode", value: $0)] }
     }
 
     var body: some View {
@@ -335,6 +344,7 @@ struct SystemLogView: View {
             let resp: [String] = try await client.send(
                 path: APIEndpoint.logsSystemFiles.path,
                 method: APIEndpoint.logsSystemFiles.method,
+                queryItems: nodeQuery,
                 as: [String].self
             )
             dates = resp
@@ -348,8 +358,9 @@ struct SystemLogView: View {
         guard !selectedDate.isEmpty else { return }
         do {
             let resp: LogFileReadResponse = try await client.send(
-                path: APIEndpoint.logsReadSystem.path + "?operateNode=local",
+                path: APIEndpoint.logsReadSystem.path,
                 body: SystemLogReadRequest(name: selectedDate, page: 1, pageSize: 500, latest: true),
+                queryItems: nodeQuery,
                 as: LogFileReadResponse.self
             )
             lines = resp.lines ?? []
@@ -557,8 +568,9 @@ struct WebsiteLogsView: View {
         guard selectedSiteID > 0 else { return }
         do {
             let resp: WebsiteLogResponse = try await client.send(
-                path: APIEndpoint.logsReadWebsite.path + "?operateNode=local",
+                path: APIEndpoint.logsReadWebsite.path,
                 body: WebsiteLogReadRequest(id: selectedSiteID, type: "website", name: "access.log", page: 1, pageSize: 500, latest: true),
+                queryItems: client.operateNodeQuery,
                 as: WebsiteLogResponse.self
             )
             lines = resp.lines ?? []
