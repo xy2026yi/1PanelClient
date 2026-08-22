@@ -32,6 +32,15 @@ struct ToastOverlay: ViewModifier {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: message)
+        // Toast 出现伴随触觉：绿色对勾=成功，其余（橙/红）=失败
+        .onChange(of: message) { _, newValue in
+            guard newValue != nil else { return }
+            if iconColor == .green {
+                Haptic.success()
+            } else {
+                Haptic.error()
+            }
+        }
     }
 }
 
@@ -552,6 +561,7 @@ struct TextInputConfirmSheet<Options: View>: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(role: .destructive) {
                         guard !isSubmitting else { return }
+                        Haptic.warning()
                         isSubmitting = true
                         Task {
                             await onConfirm()

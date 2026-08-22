@@ -7342,6 +7342,17 @@
         }
       }
     },
+    "已锁定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locked"
+          }
+        }
+      }
+    },
     "平台" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7602,6 +7613,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Visitors must enter a username and password; create an account before enabling"
+          }
+        }
+      }
+    },
+    "开启应用锁后，打开 App 或从后台恢复时需通过面容 ID / 触控 ID 或设备密码验证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, opening the app or returning from background requires Face ID / Touch ID or device passcode"
           }
         }
       }
@@ -11309,6 +11331,17 @@
         }
       }
     },
+    "此设备未设置密码或生物识别，无法启用应用锁" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device has no passcode or biometrics set; app lock is unavailable"
+          }
+        }
+      }
+    },
     "每周" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14668,6 +14701,28 @@
         }
       }
     },
+    "解锁" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock"
+          }
+        }
+      }
+    },
+    "解锁 1PanelClient" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock 1PanelClient"
+          }
+        }
+      }
+    },
     "触发告警时通过发送方式通知，左滑可停用或删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17531,6 +17586,17 @@
         }
       }
     },
+    "面容 ID / 触控 ID 锁定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID / Touch ID Lock"
+          }
+        }
+      }
+    },
     "面板" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17813,6 +17879,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Home"
+          }
+        }
+      }
+    },
+    "验证以继续使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authenticate to continue"
           }
         }
       }

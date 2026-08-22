@@ -95,6 +95,7 @@ private struct BottomTabBar: View {
     private func tabItem(_ tab: AppTab, title: String, icon: String) -> some View {
         let isSelected = selectedTab == tab
         Button {
+            Haptic.selection()
             withAnimation(.easeInOut(duration: 0.15)) {
                 selectedTab = tab
             }

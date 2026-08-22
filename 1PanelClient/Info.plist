@@ -12,5 +12,8 @@
     <true/>
     <key>LSSupportsOpeningDocumentsInPlace</key>
     <true/>
+    <!-- 应用锁（设置-安全可开启）：FaceID 解锁用途声明，缺省时 iOS 26 上 FaceID 验证会失败 -->
+    <key>NSFaceIDUsageDescription</key>
+    <string>用于解锁 App，保护服务器连接配置与 API 密钥</string>
 </dict>
 </plist>
