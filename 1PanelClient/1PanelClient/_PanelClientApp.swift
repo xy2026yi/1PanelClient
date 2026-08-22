@@ -12,11 +12,21 @@ struct _PanelClientApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // DEBUG 直达图表示例页：带启动参数 -chartDemo 拉起（Release 无此分支）
+            // DEBUG 直达调试页（Release 无此分支）：
+            //   -chartDemo  图表示例页
+            //   -wafDemo    WAF 监控页（指向本机 mock 面板，复现封锁记录空数据等问题）
             #if DEBUG
             if CommandLine.arguments.contains("-chartDemo") {
                 DebugChartDemoView()
                     .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
+            } else if CommandLine.arguments.contains("-wafDemo") {
+                WAFMonitorView(server: ServerConfig(
+                    id: UUID(),
+                    name: "MockPanel",
+                    baseURL: "http://127.0.0.1:18899",
+                    apiKey: "mock-key"
+                ))
+                .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
             } else {
                 ContentView()
                     .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)

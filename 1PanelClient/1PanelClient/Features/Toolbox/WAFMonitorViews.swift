@@ -58,6 +58,8 @@ struct WAFOverviewView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @Environment(\.horizontalSizeClass) private var hSize
+    /// 首次加载守卫：List 行内条件分支切换会重燃 .task，防止加载态与空/错态翻转成无限重载
+    @State private var hasLoaded = false
 
     private let client: APIClient
 
@@ -86,7 +88,11 @@ struct WAFOverviewView: View {
                 content
             }
         }
-        .task { await load() }
+        .task {
+            guard !hasLoaded else { return }
+            hasLoaded = true
+            await load()
+        }
     }
 
     /// 直铺为 List 行（父页滚动），不再自带 ScrollView
@@ -263,6 +269,8 @@ struct WAFInterceptLogsView: View {
     @State private var items: [WAFLogItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    /// 首次加载守卫：List 行内条件分支切换会重燃 .task，防止加载态与空/错态翻转成无限重载
+    @State private var hasLoaded = false
 
     private let client: APIClient
 
@@ -304,7 +312,11 @@ struct WAFInterceptLogsView: View {
                 }
             }
         }
-        .task { await load() }
+        .task {
+            guard !hasLoaded else { return }
+            hasLoaded = true
+            await load()
+        }
     }
 
     private func logRow(_ item: WAFLogItem) -> some View {
@@ -368,6 +380,8 @@ struct WAFInterceptLogDetailView: View {
     @State private var detail: WAFLogItem?
     @State private var isLoading = true
     @State private var errorMessage: String?
+    /// 首次加载守卫：条件分支切换会重燃 .task，防止加载态与空/错态翻转成无限重载
+    @State private var hasLoaded = false
 
     var body: some View {
         Group {
@@ -412,7 +426,11 @@ struct WAFInterceptLogDetailView: View {
         }
         .navigationTitle(L10n.t("拦截记录"))
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task {
+            guard !hasLoaded else { return }
+            hasLoaded = true
+            await load()
+        }
     }
 
     private func nonEmpty(_ s: String?) -> String {
@@ -449,6 +467,8 @@ struct WAFBlockRecordsView: View {
     @State private var items: [WAFBlockItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    /// 首次加载守卫：List 行内条件分支切换会重燃 .task，防止加载态与空/错态翻转成无限重载
+    @State private var hasLoaded = false
 
     private let client: APIClient
 
@@ -485,7 +505,11 @@ struct WAFBlockRecordsView: View {
                 }
             }
         }
-        .task { await load() }
+        .task {
+            guard !hasLoaded else { return }
+            hasLoaded = true
+            await load()
+        }
     }
 
     private func blockRow(_ item: WAFBlockItem) -> some View {
