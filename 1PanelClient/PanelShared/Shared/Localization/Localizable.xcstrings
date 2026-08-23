@@ -154,6 +154,16 @@
         }
       }
     },
+    "%@ %@%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@%3$@"
+          }
+        }
+      }
+    },
     "%@ %lld" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12504,39 +12514,6 @@
         }
       }
     },
-    "点击右上角创建第一个任务" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap the top-right button to create your first task"
-          }
-        }
-      }
-    },
-    "点击右上角创建第一个反向代理路由" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap the top-right button to create your first proxy route"
-          }
-        }
-      }
-    },
-    "点击右上角创建第一个重定向规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap the top-right button to create your first redirect rule"
-          }
-        }
-      }
-    },
     "点击右上角 + 创建第一个备份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12625,6 +12602,28 @@
         }
       }
     },
+    "点击右上角创建第一个任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the top-right button to create your first task"
+          }
+        }
+      }
+    },
+    "点击右上角创建第一个反向代理路由" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the top-right button to create your first proxy route"
+          }
+        }
+      }
+    },
     "点击右上角创建第一个告警" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12632,6 +12631,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap the top-right button to create your first alert"
+          }
+        }
+      }
+    },
+    "点击右上角创建第一个重定向规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the top-right button to create your first redirect rule"
           }
         }
       }
@@ -16911,6 +16921,17 @@
         }
       }
     },
+    "近 7 日峰值 %ld，合计 %ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7-day peak %ld, total %ld"
+          }
+        }
+      }
+    },
     "近2小时" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16929,17 +16950,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Last 7 days"
-          }
-        }
-      }
-    },
-    "近 7 日峰值 %ld，合计 %ld" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "7-day peak %ld, total %ld"
           }
         }
       }

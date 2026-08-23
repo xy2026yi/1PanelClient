@@ -100,9 +100,19 @@ final class AppLockManager: ObservableObject {
 
     // MARK: - 生命周期
 
+    /// 本次上锁是否由进后台/熄屏触发。LiveContainer 侧载实测：熄屏瞬间
+    /// applicationState 与 scenePhase 环境都可能读到滞后的 .active，导致锁屏
+    /// 出现即误弹 FaceID（平放自动熄屏扫不到脸 → 系统弹「未能成功识别人脸」）。
+    /// 改为因果标记：后台触发的锁不随锁屏出现自动弹验证，等真正回前台
+    /// （scenePhase → active）再弹。冷启动锁（init 置位）不受影响。
+    @Published var lockedByDeactivation = false
+
     /// 进入后台时调用：开关开启则上锁
     func lockIfEnabled() {
-        if isEnabled { isLocked = true }
+        if isEnabled {
+            lockedByDeactivation = true
+            isLocked = true
+        }
     }
 
     /// 设备是否有可用的生物识别（FaceID/TouchID；仅用于优先快捷解锁，非必需）
@@ -134,6 +144,7 @@ final class AppLockManager: ObservableObject {
 
     /// 密码验证通过
     func unlockWithPasscode() {
+        lockedByDeactivation = false
         isLocked = false
     }
 }
@@ -352,27 +363,31 @@ struct LockScreenView: View {
         .transition(.opacity)
         .task(id: showKeypad) { await autoBiometricUnlock() }
         // 上锁可能发生在 inactive（进切换器/通知中心）：系统验证在非 active 时无法
-        // 正常展示，回 active 时再补弹
+        // 正常展示，回 active 时再补弹；后台触发的锁在此清除标记并首次自动弹
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
+                lock.lockedByDeactivation = false
                 Task { await autoBiometricUnlock() }
             }
         }
     }
 
-    /// 是否真的前台活跃：熄屏/进后台瞬间 SwiftUI 的 scenePhase 环境尚未传播更新，
-    /// 刚出现的锁屏视图读到旧值 active 会在后台误弹系统验证（平放桌面自动锁屏
-    /// 即触发 FaceID 扫描失败）；applicationState 是 UIKit 即时权威值
-    private var isAppActuallyActive: Bool {
+    /// 是否适合弹系统验证：applicationState 为 UIKit 即时值（SwiftUI scenePhase
+    /// 环境传播滞后）；isProtectedDataAvailable 为设备级锁屏信号（熄屏即锁后变
+    /// false，解锁系统锁屏后才回 true）——LiveContainer 下 applicationState 可能
+    /// 滞后，双信号一起兜底，确保设备锁屏/熄屏状态绝不弹 FaceID
+    private var canPresentBiometrics: Bool {
         UIApplication.shared.applicationState == .active
+            && UIApplication.shared.isProtectedDataAvailable
     }
 
-    /// 前台活跃时自动弹生物识别。失败/取消不自动切密码键盘：非用户主动的失败
-    /// （熄屏瞬间的误触发等）不应占用掉生物识别路径，留在验证界面由用户选择
-    /// 重试或切密码（对齐 iOS 系统锁屏的交互习惯）；仅生物识别被系统临时锁定
-    /// （连续失败过多不可用）时才自动回落密码键盘，避免解锁按钮点击无效
+    /// 前台活跃时自动弹生物识别。后台/熄屏触发的锁（lockedByDeactivation）不随
+    /// 锁屏出现自动弹，等回前台再弹。失败/取消不自动切密码键盘：非用户主动的失败
+    /// 不应占用掉生物识别路径，留在验证界面由用户选择重试或切密码（对齐 iOS 系统
+    /// 锁屏的交互习惯）；仅生物识别被系统临时锁定（连续失败过多不可用）时才自动
+    /// 回落密码键盘，避免解锁按钮点击无效
     private func autoBiometricUnlock() async {
-        guard !showKeypad, !biometricInFlight, isAppActuallyActive else { return }
+        guard !showKeypad, !biometricInFlight, !lock.lockedByDeactivation, canPresentBiometrics else { return }
         biometricInFlight = true
         defer { biometricInFlight = false }
         await lock.tryBiometricUnlock()
