@@ -22,8 +22,6 @@ struct OverviewTab: View {
 
     /// iPad 适配：网格列数随尺寸类切换
     @Environment(\.horizontalSizeClass) private var hSize
-    /// 四卡片网格列数（regular 下按实际宽度取 4 或 2，见 resourceStatsGrid）
-    @State private var statGridColumns = 4
 
     init(
         manager: ServerManager,
@@ -326,9 +324,9 @@ struct OverviewTab: View {
     }
 
     private func resourceStatsGrid(_ b: DashboardBase) -> some View {
-        // 按实际宽度选列数：竖屏 + 侧栏展开时内容区仅 ~514pt，固定 4 列会把
-        // 「图标+标题+大数字」卡挤成 ~120pt 宽；宽度不足时回落 2×2（同手机布局）
-        LazyVGrid(columns: gridColumns(compact: 2, regular: statGridColumns, horizontal: hSize), spacing: 12) {
+        // 按实际宽度选列数（AdaptiveStatGrid）：竖屏 + 侧栏展开时内容区仅 ~514pt，
+        // 固定 4 列会把「图标+标题+大数字」卡挤成 ~120pt 宽；不足 600 回落 2×2
+        AdaptiveStatGrid(spacing: 12) {
             Button { tapManage(.websites) } label: {
                 StatCard(title: L10n.t("网站"), count: b.websiteNumber, icon: "globe", color: .green)
             }
@@ -348,11 +346,6 @@ struct OverviewTab: View {
                 StatCard(title: L10n.t("容器"), count: vm.containerCount, icon: "shippingbox", color: .indigo, customIcon: "icon-docker", isLoading: vm.isLoading)
             }
             .buttonStyle(PressableCardStyle())
-        }
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.size.width
-        } action: { width in
-            statGridColumns = width >= 600 ? 4 : 2
         }
     }
 

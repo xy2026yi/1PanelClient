@@ -7,10 +7,11 @@
 //    2. 管理   - ManageTab（应用/网站/容器/计划任务等列表式入口）
 //    3. 设置   - SettingsTab（外观与关于APP）
 //
-//  双形态导航（iPad 适配）：
-//    - compact（iPhone / iPad 分屏半屏）：自定义底部 Tab 栏，进入子页面时自动隐藏
-//    - regular（iPad 全屏 / Stage Manager）：NavigationSplitView 侧栏常驻，无需隐藏
-//      三个 Tab 仍走 ZStack 保活切换，状态机与 compact 完全共享
+//  双形态导航（iPad 适配，自绘侧栏方案）：
+//    - tabContent 恒为 ZStack 首子视图（三 Tab 保活切换），regular 时侧栏以兄弟
+//      图层叠加、内容 leading padding 收窄；尺寸类翻转不换分支、不重建导航树
+//    - 窗口三段式：≥800 完整侧栏 / 600-800 图标栏 / <600 底部 Tab 栏
+//      （iPhone Max 横屏 regular 同样走侧栏，内容收窄逻辑与 iPad 一致）
 //
 
 import SwiftUI
@@ -190,7 +191,9 @@ struct MainTabView: View {
         .background {
             Rectangle()
                 .fill(.bar)
-                .ignoresSafeArea(.container, edges: .vertical)
+                // leading 一并出血：iPhone Max 横屏 regular 下刘海侧有 ~62pt 安全区，
+                // 只纵向出血会在侧栏左缘露出一条窗口底色竖带
+                .ignoresSafeArea(.container, edges: [.top, .bottom, .leading])
         }
     }
 
@@ -256,7 +259,9 @@ struct MainTabView: View {
         .background {
             Rectangle()
                 .fill(.bar)
-                .ignoresSafeArea(.container, edges: .vertical)
+                // leading 一并出血：iPhone Max 横屏 regular 下刘海侧有 ~62pt 安全区，
+                // 只纵向出血会在侧栏左缘露出一条窗口底色竖带
+                .ignoresSafeArea(.container, edges: [.top, .bottom, .leading])
         }
     }
 

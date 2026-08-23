@@ -57,7 +57,6 @@ struct WAFOverviewView: View {
     @State private var days: [WAFStatDayItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
-    @Environment(\.horizontalSizeClass) private var hSize
     /// 首次加载守卫：List 行内条件分支切换会重燃 .task，防止加载态与空/错态翻转成无限重载
     @State private var hasLoaded = false
 
@@ -101,7 +100,7 @@ struct WAFOverviewView: View {
             // 今日状态
             VStack(alignment: .leading, spacing: 8) {
                 SectionLabel(title: L10n.t("今日状态"), systemImage: "calendar")
-                LazyVGrid(columns: gridColumns(compact: 2, regular: 4, horizontal: hSize), spacing: 12) {
+                AdaptiveStatGrid(spacing: 12) {
                     StatCard(title: L10n.t("请求"), count: today?.reqCount, icon: "arrow.down.circle", color: .blue)
                     StatCard(title: L10n.t("拦截"), count: today?.attackCount, icon: "shield.slash", color: .red)
                     StatCard(title: L10n.t("4xx 数量"), count: today?.count4xx, icon: "exclamationmark.circle", color: .orange)

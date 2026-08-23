@@ -220,7 +220,8 @@ struct WebsiteMonitorOverviewSection: View {
     private var content: some View {
         // 当前(1分钟)
         Section {
-            LazyVGrid(columns: gridColumns(compact: 2, regular: 4, horizontal: hSize), spacing: 12) {
+            // 固定 2 列：仅 2 张卡，regular 固定 4 列会缩在左半边不满行铺开
+            LazyVGrid(columns: gridColumns(compact: 2, regular: 2, horizontal: hSize), spacing: 12) {
                 MonitorStatCard(title: L10n.t("请求数"), count: qpsInfo?.qps)
                 MonitorStatCard(title: L10n.t("流量"), text: qpsInfo?.flow.map(formatBytes))
             }
@@ -230,7 +231,7 @@ struct WebsiteMonitorOverviewSection: View {
 
         // 今日状态
         Section {
-            LazyVGrid(columns: gridColumns(compact: 2, regular: 4, horizontal: hSize), spacing: 12) {
+            AdaptiveStatGrid(spacing: 12) {
                 MonitorStatCard(title: L10n.t("浏览数"), count: stat?.pv)
                 MonitorStatCard(title: L10n.t("访客"), count: stat?.uv)
                 MonitorStatCard(title: L10n.t("独立IP"), count: stat?.ip)

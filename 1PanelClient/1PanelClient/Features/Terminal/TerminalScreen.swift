@@ -69,8 +69,12 @@ struct TerminalScreen: View {
             guard let window = (UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first),
                   let end = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else { return }
             let height = window.bounds.height
-            // 键盘收起时结束帧 minY == 窗口高度 → 重叠为 0
-            keyboardOverlap = min(max(0, height - end.cgRectValue.minY), height)
+            let frame = end.cgRectValue
+            // 贴底键盘（含收起动画滑出屏幕的越界帧）按其占用的底部高度上移；
+            // iPad 浮动键盘不贴底（maxY < 窗口高），不遮挡快捷键条，按 0 处理
+            keyboardOverlap = frame.maxY >= height - 0.5
+                ? min(max(0, height - frame.minY), height)
+                : 0
         }
         .onDisappear {
             session.disconnect()

@@ -30,4 +30,21 @@ struct AdaptiveLayoutTests {
             #expect(c.spacing == 8)
         }
     }
+
+    @Test("adaptiveGridColumns：regular 单列自适应、compact/nil 固定列数")
+    func adaptiveColumnsBySizeClass() {
+        let regular = adaptiveGridColumns(compact: 4, minimum: 92, spacing: 4, horizontal: .regular)
+        #expect(regular.count == 1)
+        if case .adaptive(let min, _) = regular[0].size {
+            #expect(min == 92)
+        } else {
+            Issue.record("regular 应为 adaptive GridItem")
+        }
+        #expect(regular[0].spacing == 4)
+
+        let compact = adaptiveGridColumns(compact: 4, minimum: 92, horizontal: .compact)
+        #expect(compact.count == 4)
+        let unknown = adaptiveGridColumns(compact: 4, minimum: 92, horizontal: nil)
+        #expect(unknown.count == 4)
+    }
 }

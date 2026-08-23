@@ -7401,6 +7401,17 @@
         }
       }
     },
+    "展开侧栏" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand Sidebar"
+          }
+        }
+      }
+    },
     "展开全部 %ld 条" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9419,6 +9430,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Collapse"
+          }
+        }
+      }
+    },
+    "收起侧栏" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapse Sidebar"
           }
         }
       }

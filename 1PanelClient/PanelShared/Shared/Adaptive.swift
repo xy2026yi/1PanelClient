@@ -8,6 +8,8 @@
 //    - contentWidthLimit：滚动内容（卡片/图表/日志）在 regular 下限宽居中
 //    - formWidthLimit：Form/List 在 regular 下限宽居中并铺同色背景
 //    - gridColumns：固定语义列数按尺寸类切换（compact 保持手机布局）
+//    - AdaptiveStatGrid：统计卡网格按实际宽度 4 列/2×2 切换
+//    - bottomSheetDetents：半屏 sheet 仅 compact 生效（regular 退 detents 走居中模态）
 //
 
 import SwiftUI
@@ -87,16 +89,34 @@ extension View {
 
 // MARK: - 半屏弹窗按尺寸类适配
 
+/// sheet 内容里读到的系统 horizontalSizeClass 恒为 compact（iOS 26 iPad 实测，
+/// detents 有无皆然），无法据此区分 iPad；而自定义环境值不会被展示容器重写，
+/// 会从呈现视图一路传播进 sheet。故由主场景根部注入窗口尺寸类供弹层读取。
+private struct PresenterSizeClassKey: EnvironmentKey {
+    static let defaultValue: UserInterfaceSizeClass? = nil
+}
+
+extension EnvironmentValues {
+    /// 呈现方（主窗口）的横向尺寸类；nil = 未注入（Widget/预览），消费方自行回落
+    var presenterHorizontalSizeClass: UserInterfaceSizeClass? {
+        get { self[PresenterSizeClassKey.self] }
+        set { self[PresenterSizeClassKey.self] = newValue }
+    }
+}
+
 /// iPad（regular 宽度）上 .sheet + presentationDetents 会以 formSheet 形态
 /// 居中浮动呈现：距屏幕底部和左右两侧都有大块留白，观感破碎。
 /// 系统没有让 detent sheet 在 iPad 上贴底全宽的 API，因此只在 compact 下
 /// 保留半屏贴底 sheet，regular 下退掉 detents，以标准居中 pageSheet 呈现。
 private struct BottomSheetDetentsModifier: ViewModifier {
+    @Environment(\.presenterHorizontalSizeClass) private var presenter
+    /// 兜底：根部未注入时按本地环境（与旧语义一致）
     @Environment(\.horizontalSizeClass) private var hSize
+
     let detents: Set<PresentationDetent>
 
     func body(content: Content) -> some View {
-        if hSize == .regular {
+        if (presenter ?? hSize) == .regular {
             content
         } else {
             content.presentationDetents(detents)
@@ -108,5 +128,53 @@ extension View {
     /// presentationDetents 的尺寸类适配版：iPhone 半屏贴底，iPad 居中模态
     func bottomSheetDetents(_ detents: Set<PresentationDetent>) -> some View {
         modifier(BottomSheetDetentsModifier(detents: detents))
+    }
+}
+
+/// 主场景根部注入：把窗口尺寸类写进自定义环境（见 PresenterSizeClassKey 说明）
+private struct PresenterSizeClassHostModifier: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var hSize
+
+    func body(content: Content) -> some View {
+        content.environment(\.presenterHorizontalSizeClass, hSize)
+    }
+}
+
+extension View {
+    /// 挂在 App 根视图上，为全 App 的 sheet 内容提供呈现方尺寸类
+    func hostingPresenterSizeClass() -> some View {
+        modifier(PresenterSizeClassHostModifier())
+    }
+}
+
+// MARK: - 统计卡自适应网格
+
+/// 固定按 4 张「图标+标题+数值」统计卡一行的网格：内容实际宽度 ≥600 用 4 列，
+/// 不足回落 2×2（手机布局）。regular 下内容宽度随侧栏折叠/分屏浮动，
+/// 固定 regular 列数在竖屏+侧栏（内容 ~500pt）会把卡片挤成 ~119pt 宽。
+/// 首帧用尺寸类先猜列数（环境立即可得），布局后 onGeometryChange 校正。
+struct AdaptiveStatGrid<Content: View>: View {
+    @Environment(\.horizontalSizeClass) private var hSize
+    /// nil = 尚未测得实际宽度，先按尺寸类取值
+    @State private var measuredColumns: Int?
+    let spacing: CGFloat
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        LazyVGrid(
+            columns: gridColumns(compact: 2, regular: columns, spacing: spacing, horizontal: hSize),
+            spacing: spacing
+        ) {
+            content()
+        }
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.width
+        } action: { width in
+            measuredColumns = width >= 600 ? 4 : 2
+        }
+    }
+
+    private var columns: Int {
+        measuredColumns ?? (hSize == .regular ? 4 : 2)
     }
 }

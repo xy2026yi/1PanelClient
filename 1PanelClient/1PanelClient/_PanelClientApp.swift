@@ -15,26 +15,11 @@ struct _PanelClientApp: App {
             // DEBUG 直达调试页（Release 无此分支）：
             //   -chartDemo  图表示例页
             //   -wafDemo    WAF 监控页（指向本机 mock 面板，复现封锁记录空数据等问题）
-            #if DEBUG
-            if CommandLine.arguments.contains("-chartDemo") {
-                DebugChartDemoView()
-                    .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
-            } else if CommandLine.arguments.contains("-wafDemo") {
-                WAFMonitorView(server: ServerConfig(
-                    id: UUID(),
-                    name: "MockPanel",
-                    baseURL: "http://127.0.0.1:18899",
-                    apiKey: "mock-key"
-                ))
+            rootContent
                 .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
-            } else {
-                ContentView()
-                    .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
-            }
-            #else
-            ContentView()
-                .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
-            #endif
+                // 注入呈现方尺寸类：sheet 内环境恒为 compact，bottomSheetDetents
+                // 依赖它区分 iPad（见 Adaptive.swift PresenterSizeClassKey）
+                .hostingPresenterSizeClass()
         }
         // iPad 外接键盘：Cmd+1/2/3 切换三 Tab（MainTabView 监听 .selectAppTab 通知）
         .commands {
@@ -55,5 +40,25 @@ struct _PanelClientApp: App {
                 .keyboardShortcut("3", modifiers: .command)
             }
         }
+    }
+
+    @ViewBuilder
+    private var rootContent: some View {
+        #if DEBUG
+        if CommandLine.arguments.contains("-chartDemo") {
+            DebugChartDemoView()
+        } else if CommandLine.arguments.contains("-wafDemo") {
+            WAFMonitorView(server: ServerConfig(
+                id: UUID(),
+                name: "MockPanel",
+                baseURL: "http://127.0.0.1:18899",
+                apiKey: "mock-key"
+            ))
+        } else {
+            ContentView()
+        }
+        #else
+        ContentView()
+        #endif
     }
 }
