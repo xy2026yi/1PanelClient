@@ -226,7 +226,8 @@ struct MonitorView: View {
         .environment(\.defaultMinListRowHeight, 32)
         .navigationTitle(L10n.t("监控"))
         .navigationBarTitleDisplayMode(.inline)
-        .formWidthLimit(860)
+        // 图表/仪表盘类铺满（与容器监控一致，画布越宽采样点距越大越好读）；
+        // 日志/表单类仍限宽——行长与聚焦输入是另一类诉求
         .refreshable { await vm.loadAll() }
         // App 前后台切换时同步轮询开关
         .onChange(of: scenePhase) { _, phase in
