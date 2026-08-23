@@ -895,16 +895,19 @@
         }
       }
     },
-    "CDN 将客户端真实 IP 写入该 Header，WAF 从中读取。" : {
+    "Bark 的推送 Webhook 地址，形如 https://api.day.app/xxxxxx" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The CDN writes the client's real IP into this header, which WAF reads from."
+            "value" : "Bark webhook URL, e.g. https://api.day.app/xxxxxx"
           }
         }
       }
+    },
+    "CDN" : {
+
     },
     "CDN Headers" : {
       "extractionState" : "manual",
@@ -917,13 +920,13 @@
         }
       }
     },
-    "Bark 的推送 Webhook 地址，形如 https://api.day.app/xxxxxx" : {
+    "CDN 将客户端真实 IP 写入该 Header，WAF 从中读取。" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bark webhook URL, e.g. https://api.day.app/xxxxxx"
+            "value" : "The CDN writes the client's real IP into this header, which WAF reads from."
           }
         }
       }
@@ -961,6 +964,9 @@
         }
       }
     },
+    "Container" : {
+
+    },
     "Cookie规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -971,9 +977,6 @@
           }
         }
       }
-    },
-    "Container" : {
-
     },
     "CPU" : {
       "extractionState" : "manual",
@@ -1203,6 +1206,17 @@
     "GitHub" : {
 
     },
+    "Header规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Header Rules"
+          }
+        }
+      }
+    },
     "hostname" : {
 
     },
@@ -1223,6 +1237,9 @@
     "http" : {
 
     },
+    "HTTP" : {
+
+    },
     "HTTP Header" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1233,9 +1250,6 @@
           }
         }
       }
-    },
-    "HTTP" : {
-
     },
     "http 仓库添加授信需要重启 Docker 服务" : {
       "extractionState" : "manual",
@@ -1329,28 +1343,6 @@
         }
       }
     },
-    "Header规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Header Rules"
-          }
-        }
-      }
-    },
-    "HTTP规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HTTP Rules"
-          }
-        }
-      }
-    },
     "HTTPS 配置已保存，正在重载 OpenResty…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1367,6 +1359,17 @@
     },
     "https://..." : {
 
+    },
+    "HTTP规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP Rules"
+          }
+        }
+      }
     },
     "ID: %lld" : {
 
@@ -1459,17 +1462,6 @@
         }
       }
     },
-    "IP 规则（%ld）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IP Rules (%ld)"
-          }
-        }
-      }
-    },
     "IP 规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1477,6 +1469,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "IP Rules"
+          }
+        }
+      }
+    },
+    "IP 规则（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Rules (%ld)"
           }
         }
       }
@@ -1673,17 +1676,6 @@
         }
       }
     },
-    "SQL注入防御" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SQL Injection Protection"
-          }
-        }
-      }
-    },
     "SMTP 服务器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1691,6 +1683,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SMTP Server"
+          }
+        }
+      }
+    },
+    "SQL注入防御" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SQL Injection Protection"
           }
         }
       }
@@ -1815,17 +1818,6 @@
     "URL" : {
 
     },
-    "URL规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "URL Rules"
-          }
-        }
-      }
-    },
     "URL 模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1837,6 +1829,20 @@
         }
       }
     },
+    "URL规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL Rules"
+          }
+        }
+      }
+    },
+    "User-Agent" : {
+
+    },
     "User-Agent规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1847,9 +1853,6 @@
           }
         }
       }
-    },
-    "User-Agent" : {
-
     },
     "v%@" : {
 
@@ -1890,6 +1893,9 @@
         }
       }
     },
+    "Website" : {
+
+    },
     "XSS防御" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1900,9 +1906,6 @@
           }
         }
       }
-    },
-    "Website" : {
-
     },
     "一行一个域名，支持 * 和 IP 地址" : {
       "extractionState" : "manual",
@@ -2234,24 +2237,13 @@
         }
       }
     },
-    "严格模式需在全局配置中开启" : {
+    "两次输入不一致，请重新设置" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Strict mode must be enabled in the global config first"
-          }
-        }
-      }
-    },
-    "严格模式开启后，各网站才能在检测强度中选择严格模式。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Websites can only select strict detection level after strict mode is enabled here."
+            "value" : "Passcodes didn't match. Try again."
           }
         }
       }
@@ -2267,13 +2259,24 @@
         }
       }
     },
-    "两次输入不一致，请重新设置" : {
+    "严格模式开启后，各网站才能在检测强度中选择严格模式。" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passcodes didn't match. Try again."
+            "value" : "Websites can only select strict detection level after strict mode is enabled here."
+          }
+        }
+      }
+    },
+    "严格模式需在全局配置中开启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strict mode must be enabled in the global config first"
           }
         }
       }
@@ -2586,6 +2589,17 @@
         }
       }
     },
+    "仍然执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run anyway"
+          }
+        }
+      }
+    },
     "从Header列表中获取" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2604,17 +2618,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "From HTTP Header"
-          }
-        }
-      }
-    },
-    "仍然执行" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Run anyway"
           }
         }
       }
@@ -3587,13 +3590,13 @@
         }
       }
     },
-    "关闭 WAF 会使网站失去防护，是否继续" : {
+    "关闭" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turning off WAF will leave this website unprotected. Continue?"
+            "value" : "Close"
           }
         }
       }
@@ -3609,13 +3612,13 @@
         }
       }
     },
-    "关闭" : {
+    "关闭 WAF 会使网站失去防护，是否继续" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Close"
+            "value" : "Turning off WAF will leave this website unprotected. Continue?"
           }
         }
       }
@@ -4181,17 +4184,6 @@
         }
       }
     },
-    "删除 IP 规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete IP Rule"
-          }
-        }
-      }
-    },
     "删除 DNS 账户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4199,6 +4191,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete DNS Account"
+          }
+        }
+      }
+    },
+    "删除 IP 规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete IP Rule"
           }
         }
       }
@@ -4434,17 +4437,6 @@
         }
       }
     },
-    "删除端口转发" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Port Forwarding"
-          }
-        }
-      }
-    },
     "删除端口规则？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4452,6 +4444,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete port rule?"
+          }
+        }
+      }
+    },
+    "删除端口转发" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Port Forwarding"
           }
         }
       }
@@ -5314,17 +5317,6 @@
         }
       }
     },
-    "参数规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Args Rules"
-          }
-        }
-      }
-    },
     "参数更新请求已提交，应用正在后台重建中…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5332,6 +5324,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Parameter update submitted, app is rebuilding in the background…"
+          }
+        }
+      }
+    },
+    "参数规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Args Rules"
           }
         }
       }
@@ -6709,17 +6712,6 @@
         }
       }
     },
-    "多个 IP 用英文逗号分隔，如: 192.168.50.100,192.168.51.100" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Separate multiple IPs with commas, e.g. 192.168.50.100,192.168.51.100"
-          }
-        }
-      }
-    },
     "外部地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6727,6 +6719,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "External Address"
+          }
+        }
+      }
+    },
+    "多个 IP 用英文逗号分隔，如: 192.168.50.100,192.168.51.100" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Separate multiple IPs with commas, e.g. 192.168.50.100,192.168.51.100"
           }
         }
       }
@@ -7653,17 +7656,6 @@
         }
       }
     },
-    "屏蔽" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Block"
-          }
-        }
-      }
-    },
     "小时：%ld 时" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7671,6 +7663,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hour: %ld"
+          }
+        }
+      }
+    },
+    "屏蔽" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block"
           }
         }
       }
@@ -8423,17 +8426,6 @@
         }
       }
     },
-    "开启观察模式后，所有 WAF 命中都只记录日志，不会拦截请求，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In observation mode, all WAF matches are only logged and no requests are blocked. Continue?"
-          }
-        }
-      }
-    },
     "开启自启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8441,6 +8433,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enable Autostart"
+          }
+        }
+      }
+    },
+    "开启观察模式后，所有 WAF 命中都只记录日志，不会拦截请求，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In observation mode, all WAF matches are only logged and no requests are blocked. Continue?"
           }
         }
       }
@@ -9067,17 +9070,6 @@
         }
       }
     },
-    "执行策略" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Execution Policy"
-          }
-        }
-      }
-    },
     "执行用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9085,6 +9077,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Run As"
+          }
+        }
+      }
+    },
+    "执行策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Execution Policy"
           }
         }
       }
@@ -9235,17 +9238,6 @@
         }
       }
     },
-    "指定 IP" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Specified IP"
-          }
-        }
-      }
-    },
     "指定" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9253,6 +9245,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Specified"
+          }
+        }
+      }
+    },
+    "指定 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Specified IP"
           }
         }
       }
@@ -9986,17 +9989,6 @@
     "数量" : {
 
     },
-    "文件上传限制" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File Upload Restriction"
-          }
-        }
-      }
-    },
     "文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10004,6 +9996,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Files"
+          }
+        }
+      }
+    },
+    "文件上传限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Upload Restriction"
           }
         }
       }
@@ -10866,17 +10869,6 @@
         }
       }
     },
-    "暂无端口转发" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No port forwarding rules"
-          }
-        }
-      }
-    },
     "暂无端口规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10884,6 +10876,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No port rules"
+          }
+        }
+      }
+    },
+    "暂无端口转发" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No port forwarding rules"
           }
         }
       }
@@ -11892,17 +11895,6 @@
         }
       }
     },
-    "标准模式" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Standard Mode"
-          }
-        }
-      }
-    },
     "标准存储" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11910,6 +11902,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Standard"
+          }
+        }
+      }
+    },
+    "标准模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard Mode"
           }
         }
       }
@@ -12085,17 +12088,6 @@
         }
       }
     },
-    "检测强度" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detection Level"
-          }
-        }
-      }
-    },
     "检测中" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12103,6 +12095,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Checking"
+          }
+        }
+      }
+    },
+    "检测强度" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detection Level"
           }
         }
       }
@@ -12679,17 +12682,6 @@
         }
       }
     },
-    "添加端口转发" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add Port Forwarding"
-          }
-        }
-      }
-    },
     "添加端口规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12697,6 +12689,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Port Rule"
+          }
+        }
+      }
+    },
+    "添加端口转发" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Port Forwarding"
           }
         }
       }
@@ -12844,13 +12847,13 @@
         }
       }
     },
-    "源端口与目标端口支持端口范围，如: 8080-8089；目标 IP 可留空。" : {
+    "源文：%@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Source/target ports support ranges, e.g. 8080-8089. Target IP is optional."
+            "value" : "Source: %@"
           }
         }
       }
@@ -12866,13 +12869,13 @@
         }
       }
     },
-    "源文：%@" : {
+    "源端口与目标端口支持端口范围，如: 8080-8089；目标 IP 可留空。" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Source: %@"
+            "value" : "Source/target ports support ranges, e.g. 8080-8089. Target IP is optional."
           }
         }
       }
@@ -13551,17 +13554,6 @@
         }
       }
     },
-    "目标 IP" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Target IP"
-          }
-        }
-      }
-    },
     "目录路径" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13569,6 +13561,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Directory Path"
+          }
+        }
+      }
+    },
+    "目标 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target IP"
           }
         }
       }
@@ -13595,17 +13598,6 @@
         }
       }
     },
-    "目标端口" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Target Port"
-          }
-        }
-      }
-    },
     "目标地址 (host:port)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13613,6 +13605,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Target (host:port)"
+          }
+        }
+      }
+    },
+    "目标端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target Port"
           }
         }
       }
@@ -13661,17 +13664,6 @@
         }
       }
     },
-    "真实IP获取方式" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Real IP Source"
-          }
-        }
-      }
-    },
     "省份（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13679,6 +13671,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "State / Province (optional)"
+          }
+        }
+      }
+    },
+    "真实IP获取方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real IP Source"
           }
         }
       }
@@ -13760,17 +13763,6 @@
         }
       }
     },
-    "确定删除端口转发「%@」吗？若端口被占用可选择强制删除。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete port forwarding \"%@\"? Force delete if the port is in use."
-          }
-        }
-      }
-    },
     "确定删除端口规则「%@」吗？删除后不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13778,6 +13770,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Are you sure you want to delete port rule \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确定删除端口转发「%@」吗？若端口被占用可选择强制删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete port forwarding \"%@\"? Force delete if the port is in use."
           }
         }
       }
@@ -14434,6 +14437,17 @@
         }
       }
     },
+    "端口（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ports (%ld)"
+          }
+        }
+      }
+    },
     "端口不能为空" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14500,13 +14514,13 @@
         }
       }
     },
-    "端口转发（%ld）" : {
+    "端口规则（%ld）" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Port Forwarding (%ld)"
+            "value" : "Port rules (%ld)"
           }
         }
       }
@@ -14522,24 +14536,13 @@
         }
       }
     },
-    "端口规则（%ld）" : {
+    "端口转发（%ld）" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Port rules (%ld)"
-          }
-        }
-      }
-    },
-    "端口（%ld）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ports (%ld)"
+            "value" : "Port Forwarding (%ld)"
           }
         }
       }
@@ -15094,17 +15097,6 @@
         }
       }
     },
-    "编辑端口转发" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Port Forwarding"
-          }
-        }
-      }
-    },
     "编辑服务器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15112,6 +15104,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Server"
+          }
+        }
+      }
+    },
+    "编辑端口转发" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Port Forwarding"
           }
         }
       }
@@ -15204,17 +15207,6 @@
         }
       }
     },
-    "网卡：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interface: %@"
-          }
-        }
-      }
-    },
     "缩小字号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15222,6 +15214,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Smaller Text"
+          }
+        }
+      }
+    },
+    "网卡：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interface: %@"
           }
         }
       }
@@ -15364,17 +15367,6 @@
         }
       }
     },
-    "网站设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Website Settings"
-          }
-        }
-      }
-    },
     "网站类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15382,6 +15374,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Website Type"
+          }
+        }
+      }
+    },
+    "网站设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website Settings"
           }
         }
       }
@@ -15584,17 +15587,6 @@
         }
       }
     },
-    "自定义规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Custom Rules"
-          }
-        }
-      }
-    },
     "自定义服务" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15602,6 +15594,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Custom Service"
+          }
+        }
+      }
+    },
+    "自定义规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Rules"
           }
         }
       }
@@ -15738,24 +15741,13 @@
         }
       }
     },
-    "获取X-Forwarded-For的上上上一级代理地址" : {
+    "范围" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Third-level proxy of X-Forwarded-For"
-          }
-        }
-      }
-    },
-    "获取X-Forwarded-For的上上一级代理地址" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Second-level proxy of X-Forwarded-For"
+            "value" : "Scope"
           }
         }
       }
@@ -15771,13 +15763,24 @@
         }
       }
     },
-    "范围" : {
+    "获取X-Forwarded-For的上上一级代理地址" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scope"
+            "value" : "Second-level proxy of X-Forwarded-For"
+          }
+        }
+      }
+    },
+    "获取X-Forwarded-For的上上上一级代理地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Third-level proxy of X-Forwarded-For"
           }
         }
       }
@@ -15881,17 +15884,6 @@
         }
       }
     },
-    "观察模式" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Observation Mode"
-          }
-        }
-      }
-    },
     "表达式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15899,6 +15891,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Expression"
+          }
+        }
+      }
+    },
+    "观察模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Observation Mode"
           }
         }
       }
@@ -17339,17 +17342,6 @@
         }
       }
     },
-    "转发入站网口" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inbound Interface"
-          }
-        }
-      }
-    },
     "跳过 DNS 校验" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17357,6 +17349,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skip DNS Check"
+          }
+        }
+      }
+    },
+    "转发入站网口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inbound Interface"
           }
         }
       }
@@ -18112,17 +18115,6 @@
         }
       }
     },
-    "选择网站" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select Website"
-          }
-        }
-      }
-    },
     "选择磁盘" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18130,6 +18122,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose Disk"
+          }
+        }
+      }
+    },
+    "选择网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Website"
           }
         }
       }
@@ -18827,13 +18830,13 @@
         }
       }
     },
-    "防护模式" : {
+    "门户" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Protection Mode"
+            "value" : "Portal"
           }
         }
       }
@@ -18849,13 +18852,13 @@
         }
       }
     },
-    "门户" : {
+    "防护模式" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Portal"
+            "value" : "Protection Mode"
           }
         }
       }
@@ -19465,17 +19468,6 @@
         }
       }
     },
-    "默认规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Default Rules"
-          }
-        }
-      }
-    },
     "默认文档" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19483,6 +19475,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Documents"
+          }
+        }
+      }
+    },
+    "默认规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Rules"
           }
         }
       }

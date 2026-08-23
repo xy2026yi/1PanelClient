@@ -59,16 +59,15 @@ struct WAFCdnSettingsView: View {
                     Text(L10n.t("获取X-Forwarded-For的上上一级代理地址")).tag("xff2")
                     Text(L10n.t("获取X-Forwarded-For的上上上一级代理地址")).tag("xff3")
                 }
-                .disabled(!isOn)
 
                 // 从HTTP Header中获取：可填写的 Header 名（其余方式回传当前值）
                 if type == "header" {
                     TextField(L10n.t("HTTP Header"), text: $header)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                        .disabled(!isOn)
                 }
             } footer: {
+                // 对齐面板 Web 端：开关不限制编辑，保存时原样携带当前开关状态
                 if type == "header" {
                     Text(L10n.t("CDN 将客户端真实 IP 写入该 Header，WAF 从中读取。"))
                 }
@@ -94,7 +93,7 @@ struct WAFCdnSettingsView: View {
                 Button(L10n.t("保存")) {
                     Task { await save() }
                 }
-                .disabled(!isOn || isSaving)
+                .disabled(isSaving)
             }
         }
         .alert(L10n.t("提示"), isPresented: Binding(
@@ -120,7 +119,8 @@ struct WAFCdnSettingsView: View {
         let h = header.trimmingCharacters(in: .whitespaces)
         let req = WAFCdnUpdateRequest(
             rules: rules,
-            state: "on",
+            // 开关不限制编辑，保存时原样携带当前开关状态（对齐面板 Web 端）
+            state: isOn ? "on" : "off",
             type: type,
             header: h.isEmpty ? "x-real-ip" : h,
             websiteID: 0
