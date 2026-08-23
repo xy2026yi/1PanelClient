@@ -360,13 +360,25 @@ struct LockScreenView: View {
         }
     }
 
-    /// 前台活跃时自动弹生物识别；取消/失败（仍锁且未展示键盘）自动切密码键盘
+    /// 是否真的前台活跃：熄屏/进后台瞬间 SwiftUI 的 scenePhase 环境尚未传播更新，
+    /// 刚出现的锁屏视图读到旧值 active 会在后台误弹系统验证（平放桌面自动锁屏
+    /// 即触发 FaceID 扫描失败）；applicationState 是 UIKit 即时权威值
+    private var isAppActuallyActive: Bool {
+        UIApplication.shared.applicationState == .active
+    }
+
+    /// 前台活跃时自动弹生物识别。失败/取消不自动切密码键盘：非用户主动的失败
+    /// （熄屏瞬间的误触发等）不应占用掉生物识别路径，留在验证界面由用户选择
+    /// 重试或切密码（对齐 iOS 系统锁屏的交互习惯）；仅生物识别被系统临时锁定
+    /// （连续失败过多不可用）时才自动回落密码键盘，避免解锁按钮点击无效
     private func autoBiometricUnlock() async {
-        guard !showKeypad, scenePhase == .active, !biometricInFlight else { return }
+        guard !showKeypad, !biometricInFlight, isAppActuallyActive else { return }
         biometricInFlight = true
         defer { biometricInFlight = false }
         await lock.tryBiometricUnlock()
-        if lock.isLocked { showKeypad = true }
+        if lock.isLocked, !AppLockManager.biometryAvailable {
+            showKeypad = true
+        }
     }
 }
 
