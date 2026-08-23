@@ -712,9 +712,10 @@ struct FirewallPortWhitelistView: View {
                 path: APIEndpoint.settingsSearchPanel.path,
                 as: WhitelistSettings.self
             )
-            // 读取为逗号分隔（面板 Web 端行为），提交为换行拼接
+            // 拆成一行一个端口：分隔符兼容逗号（Web 端抓包）、换行（update 提交格式）
+            // 与全角逗号/顿号，空段与首尾空白过滤
             entries = (resp.firewallPortWhiteList ?? "")
-                .split(separator: ",")
+                .split(whereSeparator: { ",\r\n，、".contains($0) })
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
             originalEntries = entries
