@@ -78,6 +78,19 @@ struct WAFGlobalConfigView: View {
                 // 自定义规则
                 Section {
                     toggleRow(title: L10n.t("文件上传限制"), item: config.fileExt, scope: "FileExt")
+                    NavigationLink {
+                        WAFCdnSettingsView(vm: vm, server: server, config: config.cdn)
+                    } label: {
+                        HStack {
+                            Text("CDN")
+                            Spacer()
+                            if config.cdn?.state == "on" {
+                                Text(config.cdn?.type?.uppercased() ?? "")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
                 } header: {
                     SectionLabel(title: L10n.t("自定义规则"), systemImage: "slider.horizontal.3")
                 }

@@ -895,6 +895,28 @@
         }
       }
     },
+    "CDN 将客户端真实 IP 写入该 Header，WAF 从中读取。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The CDN writes the client's real IP into this header, which WAF reads from."
+          }
+        }
+      }
+    },
+    "CDN Headers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CDN Headers"
+          }
+        }
+      }
+    },
     "Bark 的推送 Webhook 地址，形如 https://api.day.app/xxxxxx" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1200,6 +1222,17 @@
     },
     "http" : {
 
+    },
+    "HTTP Header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP Header"
+          }
+        }
+      }
     },
     "HTTP" : {
 
@@ -2549,6 +2582,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Save Anyway"
+          }
+        }
+      }
+    },
+    "从Header列表中获取" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From Header List"
+          }
+        }
+      }
+    },
+    "从HTTP Header中获取" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From HTTP Header"
           }
         }
       }
@@ -13606,6 +13661,17 @@
         }
       }
     },
+    "真实IP获取方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real IP Source"
+          }
+        }
+      }
+    },
     "省份（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15668,6 +15734,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "If the local terminal cannot connect, add the panel server as a host and connect over SSH"
+          }
+        }
+      }
+    },
+    "获取X-Forwarded-For的上上上一级代理地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Third-level proxy of X-Forwarded-For"
+          }
+        }
+      }
+    },
+    "获取X-Forwarded-For的上上一级代理地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Second-level proxy of X-Forwarded-For"
+          }
+        }
+      }
+    },
+    "获取X-Forwarded-For的上一级代理地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First-level proxy of X-Forwarded-For"
           }
         }
       }

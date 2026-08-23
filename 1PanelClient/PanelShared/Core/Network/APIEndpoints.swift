@@ -221,6 +221,7 @@ enum APIEndpoint {
     case wafStatus               // GET  WAF状态
     case wafConfigGlobal         // GET  全局配置
     case wafConfigGlobalState    // POST 切换规则开关 {scope, state}
+    case wafCdnUpdate            // POST CDN 真实 IP 获取方式更新 {rules, state, type, header, websiteID}
     case wafWebsitesSearch       // POST WAF 网站列表（含各网站 waf/strict/cc 状态）
     case wafWebsiteState         // POST 网站级开关/模式 {websiteID, scope, state[, mode]}
     case wafWebsiteRuleCC        // POST 网站级 CC 频率限制规则
@@ -530,6 +531,7 @@ enum APIEndpoint {
         case .wafWebsiteRuleCC:      return "/api/v2/xpack/waf/website/rule/cc"
         case .wafConfigGlobal:       return "/api/v2/xpack/waf/config/global"
         case .wafConfigGlobalState:  return "/api/v2/xpack/waf/config/global/state"
+        case .wafCdnUpdate:          return "/api/v2/xpack/waf/cdn/update"
         case .wafIPGroupSearch:      return "/api/v2/xpack/waf/ip/group/search"
         case .wafIPGroupCreate:      return "/api/v2/xpack/waf/ip/group/create"
         case .wafIPGroupDelete:      return "/api/v2/xpack/waf/ip/group/delete"

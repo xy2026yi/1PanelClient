@@ -33,6 +33,7 @@ nonisolated struct WAFConfig: Decodable {
     /// HTTP 方法白名单（默认规则-HTTP规则，scope=MethodWhite）
     let methodWhite: WAFRuleItem?
     let fileExt: WAFRuleItem?
+    let cdn: WAFCdnConfig?
     let vuln: WAFRuleItem?
     let strict: WAFRuleItem?
     let allowSpider: WAFRuleItem?
@@ -319,4 +320,25 @@ nonisolated struct WAFWebsiteCCRuleRequest: Encodable {
     /// "uri"=URL模式 / "global"=全局模式
     let mode: String
     let websites: [Int]
+}
+
+// MARK: - CDN 真实 IP 获取
+
+/// 全局配置里的 CDN 规则块（config/global 响应 cdn 字段）
+nonisolated struct WAFCdnConfig: Decodable {
+    let state: String?
+    /// 真实 IP 获取方式：header / headers / xff1 / xff2 / xff3
+    let type: String?
+    /// type=header 时自定义的 Header 名（默认 x-real-ip）
+    let header: String?
+    let rules: [String]?
+}
+
+/// CDN 获取方式更新请求（/waf/cdn/update；rules 为固定 Header 列表回传）
+nonisolated struct WAFCdnUpdateRequest: Encodable {
+    let rules: [String]
+    let state: String
+    let type: String
+    let header: String
+    let websiteID: Int
 }
