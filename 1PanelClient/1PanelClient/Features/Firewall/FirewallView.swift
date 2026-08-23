@@ -515,6 +515,18 @@ struct FirewallRuleRow: View {
 
 // MARK: - 端口白名单
 
+/// 端口白名单原始值拆成一行一个端口：同一面板存在两种格式——
+/// 逗号分隔（"80/tcp,443/tcp,443/udp"，Web 端初始形态）与换行分隔
+/// （"8080\n22\n80\n443"，update 提交后的回显形态），统一兼容并过滤空段。
+nonisolated func parseFirewallPortWhitelist(_ raw: String?) -> [String] {
+    // 注意不能用 ",\r\n，、".contains($0)：Swift 字面量里 "\r\n" 是单个合成字符，
+    // 单独的 "\n" 会匹配失败（换行格式拆不开）
+    (raw ?? "")
+        .split(whereSeparator: { [",", "\n", "\r", "，", "、"].contains($0) })
+        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+}
+
 /// 端口白名单（面板设置项 FirewallPortWhiteList）：一行一个端口（如 17331 或 80/tcp）。
 /// 对齐面板 Web 端交互：行内的添加/编辑/删除只改本地列表不发请求，
 /// 右上角「确认」才一次性 settings/update 提交（value 为换行拼接），
@@ -712,12 +724,7 @@ struct FirewallPortWhitelistView: View {
                 path: APIEndpoint.settingsSearchPanel.path,
                 as: WhitelistSettings.self
             )
-            // 拆成一行一个端口：分隔符兼容逗号（Web 端抓包）、换行（update 提交格式）
-            // 与全角逗号/顿号，空段与首尾空白过滤
-            entries = (resp.firewallPortWhiteList ?? "")
-                .split(whereSeparator: { ",\r\n，、".contains($0) })
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
+            entries = parseFirewallPortWhitelist(resp.firewallPortWhiteList)
             originalEntries = entries
             errorMessage = nil
         } catch {
