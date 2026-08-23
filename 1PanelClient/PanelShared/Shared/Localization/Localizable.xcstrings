@@ -1794,6 +1794,17 @@
         }
       }
     },
+    "一行一个端口，支持 17331 或 80/tcp 格式；修改后点右上角「确认」提交。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One port per line, e.g. 17331 or 80/tcp. Tap \"Confirm\" in the top-right to submit."
+          }
+        }
+      }
+    },
     "一键部署" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12316,6 +12327,17 @@
         }
       }
     },
+    "添加端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Port"
+          }
+        }
+      }
+    },
     "添加端口映射" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14005,6 +14027,17 @@
         }
       }
     },
+    "端口不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port cannot be empty"
+          }
+        }
+      }
+    },
     "端口号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14038,6 +14071,17 @@
         }
       }
     },
+    "端口白名单" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port Whitelist"
+          }
+        }
+      }
+    },
     "端口规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14056,6 +14100,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Port rules (%ld)"
+          }
+        }
+      }
+    },
+    "端口（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ports (%ld)"
           }
         }
       }
@@ -15877,6 +15932,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No logs for this date"
+          }
+        }
+      }
+    },
+    "该端口已存在" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This port already exists"
           }
         }
       }

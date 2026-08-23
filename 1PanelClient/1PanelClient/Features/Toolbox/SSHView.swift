@@ -135,6 +135,15 @@ struct SSHView: View {
         }
         .navigationTitle("SSH")
         .navigationBarTitleDisplayMode(.inline)
+        // Fail2ban 与 SSH 同属主机安全场景，入口收进本页右上角（不在管理列表单列）
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: ManageItem.fail2ban) {
+                    Image(systemName: "shield.lefthalf.filled")
+                }
+                .accessibilityLabel("Fail2ban")
+            }
+        }
         .refreshable { await vm.loadConfig() }
         .task { await vm.loadConfig() }
         .alert(L10n.t("提示"), isPresented: Binding(

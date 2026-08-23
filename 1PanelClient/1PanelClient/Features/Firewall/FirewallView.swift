@@ -12,6 +12,9 @@ import Combine
 final class FirewallViewModel: ObservableObject {
     @Published var base: FirewallBase?
     @Published var rules: [FirewallRule] = []
+    /// 端口号 → 监听进程名（逗号拼接多个），来自 process/listening；
+    /// 面板 firewall/search 的 usedStatus 只覆盖部分端口，这里补全
+    @Published var portProcessNames: [String: String] = [:]
     @Published var isLoading = false
     @Published var isOperating = false
     @Published var errorMessage: String?
@@ -25,6 +28,7 @@ final class FirewallViewModel: ObservableObject {
     func refresh() async {
         await loadBase()
         await loadRules()
+        await loadListening()
     }
 
     func loadBase() async {
@@ -54,6 +58,40 @@ final class FirewallViewModel: ObservableObject {
             self.errorMessage = nil
         } catch {
             self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 端口监听进程：映射 端口号 → 进程名（多进程监听同端口去重拼接）。
+    /// Protocol 1=tcp / 2=udp，仅用于展示进程名，不区分协议
+    func loadListening() async {
+        struct EmptyPortInfo: Decodable {}
+        struct ListeningItem: Decodable {
+            let name: String?
+            let port: [String: EmptyPortInfo]?
+
+            enum CodingKeys: String, CodingKey {
+                case name = "Name"
+                case port = "Port"
+            }
+        }
+        do {
+            let items: [ListeningItem] = try await client.send(
+                path: APIEndpoint.processListening.path,
+                as: [ListeningItem].self
+            )
+            var map: [String: [String]] = [:]
+            for item in items {
+                guard let name = item.name?.trimmingCharacters(in: .whitespaces),
+                      !name.isEmpty, let ports = item.port else { continue }
+                for port in ports.keys where !port.isEmpty {
+                    if !map[port, default: []].contains(name) {
+                        map[port, default: []].append(name)
+                    }
+                }
+            }
+            self.portProcessNames = map.mapValues { $0.joined(separator: ", ") }
+        } catch {
+            // 进程名只是展示补充，失败静默（规则行仍显示面板返回的 usedStatus）
         }
     }
 
@@ -161,8 +199,12 @@ struct FirewallView: View {
     @State private var editingRule: FirewallRule?
     @State private var actionRule: FirewallRule?
     @State private var statusExpanded = false
+    @State private var showWhitelist = false
+    /// 白名单页需要独立建 APIClient（settings 接口与防火墙接口分离）
+    private let server: ServerConfig
 
     init(server: ServerConfig) {
+        self.server = server
         _vm = StateObject(wrappedValue: FirewallViewModel(server: server))
     }
 
@@ -188,8 +230,11 @@ struct FirewallView: View {
                         Button {
                             actionRule = rule
                         } label: {
-                            FirewallRuleRow(rule: rule)
-                                .contentShape(Rectangle())
+                            FirewallRuleRow(
+                                rule: rule,
+                                processName: vm.portProcessNames[rule.port ?? ""]
+                            )
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
@@ -228,6 +273,12 @@ struct FirewallView: View {
         }
         .navigationDestination(isPresented: $showAdd) {
             FirewallAddRuleView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showWhitelist) {
+            // 白名单保存成功后回调刷新本页（状态/规则/进程名都重拉）
+            FirewallPortWhitelistView(server: server) {
+                Task { await vm.refresh() }
+            }
         }
         .navigationDestination(isPresented: Binding(
             get: { editingRule != nil },
@@ -333,7 +384,7 @@ struct FirewallView: View {
                     }
                     .padding(.vertical, 2)
 
-                    // 展开后显示：关闭/开启 + 重启
+                    // 展开后显示：关闭/开启 + 重启 + 端口白名单
                     if statusExpanded {
                         HStack(spacing: 8) {
                             firewallActionButton(
@@ -349,6 +400,13 @@ struct FirewallView: View {
                                 color: .orange
                             ) {
                                 pendingUFWOp = "restart"
+                            }
+                            firewallActionButton(
+                                title: L10n.t("端口白名单"),
+                                icon: "checkmark.shield",
+                                color: .blue
+                            ) {
+                                showWhitelist = true
                             }
                         }
                         .padding(.top, 2)
@@ -408,6 +466,8 @@ struct FirewallView: View {
 
 struct FirewallRuleRow: View {
     let rule: FirewallRule
+    /// 监听进程名（process/listening 补全；nil=无数据回落 usedStatus）
+    var processName: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -428,7 +488,12 @@ struct FirewallRuleRow: View {
             if let desc = rule.description, !desc.isEmpty {
                 Text(desc).font(.caption).foregroundStyle(.secondary)
             }
-            if let used = rule.usedStatus, !used.isEmpty {
+            // 进程名：listening 全量数据优先；无数据时回落面板返回的 usedStatus
+            if let name = processName, !name.isEmpty {
+                Text(name)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            } else if let used = rule.usedStatus, !used.isEmpty {
                 StatusBadge(text: used, color: .green, icon: "checkmark.circle.fill")
             }
         }
@@ -444,6 +509,238 @@ struct FirewallRuleRow: View {
             StatusBadge(text: L10n.t("拒绝"), color: .red, icon: "xmark")
         default:
             if let s { StatusBadge(text: s, color: .secondary) }
+        }
+    }
+}
+
+// MARK: - 端口白名单
+
+/// 端口白名单（面板设置项 FirewallPortWhiteList）：一行一个端口（如 17331 或 80/tcp）。
+/// 对齐面板 Web 端交互：行内的添加/编辑/删除只改本地列表不发请求，
+/// 右上角「确认」才一次性 settings/update 提交（value 为换行拼接），
+/// 成功后返回防火墙页并回调刷新。
+struct FirewallPortWhitelistView: View {
+    let server: ServerConfig
+    /// 提交成功回调（调用方刷新防火墙页）
+    var onSaved: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var entries: [String] = []
+    @State private var originalEntries: [String] = []
+    @State private var isLoading = true
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+    /// 正在编辑的行：nil=无；-1=新增行；其余=对应 entries 下标
+    @State private var editingIndex: Int?
+    @State private var editingText = ""
+    @State private var rowError: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, onSaved: @escaping () -> Void) {
+        self.server = server
+        self.onSaved = onSaved
+        self.client = APIClient(server: server)
+    }
+
+    private var hasChanges: Bool { entries != originalEntries }
+
+    var body: some View {
+        List {
+            if isLoading {
+                Section { LoadingStateView(compact: true).padding(.vertical, 24) }
+            } else if let errorMessage, entries.isEmpty && originalEntries.isEmpty {
+                Section {
+                    ContentUnavailableView {
+                        Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(errorMessage)
+                    } actions: {
+                        Button(L10n.t("重试")) { Task { await load() } }
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+            } else {
+                Section {
+                    // 新增行：编辑态置顶
+                    if editingIndex == -1 {
+                        editRow(isNew: true)
+                    }
+                    ForEach(entries.indices, id: \.self) { i in
+                        if editingIndex == i {
+                            editRow(isNew: false)
+                        } else {
+                            displayRow(index: i)
+                        }
+                    }
+                    if entries.isEmpty && editingIndex != -1 {
+                        Text(L10n.t("无数据"))
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    SectionLabel(
+                        title: L10n.f("端口（%ld）", entries.count),
+                        systemImage: "checkmark.shield"
+                    )
+                } footer: {
+                    Text(L10n.t("一行一个端口，支持 17331 或 80/tcp 格式；修改后点右上角「确认」提交。"))
+                }
+            }
+        }
+        .navigationTitle(L10n.t("端口白名单"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSubmitting {
+                        ProgressView()
+                    } else {
+                        Text(L10n.t("确认"))
+                    }
+                }
+                .disabled(!hasChanges || isSubmitting || isLoading || editingIndex != nil)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    beginAdd()
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .disabled(isLoading || editingIndex != nil)
+                .accessibilityLabel(L10n.t("添加端口"))
+            }
+        }
+        .toastOverlay(message: $rowError, systemImage: "exclamationmark.triangle.fill", iconColor: .orange)
+        .task { await load() }
+    }
+
+    // MARK: 行
+
+    /// 展示态：端口 + 编辑/删除
+    private func displayRow(index: Int) -> some View {
+        HStack {
+            Text(entries[index])
+                .font(.system(.body, design: .monospaced))
+            Spacer()
+            HStack(spacing: 18) {
+                Button(L10n.t("编辑")) { beginEdit(index: index) }
+                Button(L10n.t("删除")) {
+                    withAnimation(Motion.fast) { entries.remove(atOffsets: IndexSet(integer: index)) }
+                }
+                .foregroundStyle(.red)
+            }
+            .font(.subheadline)
+        }
+        .padding(.vertical, 2)
+    }
+
+    /// 编辑态：输入框 + 保存/取消（不发请求，仅改本地 entries）
+    private func editRow(isNew: Bool) -> some View {
+        HStack(spacing: 10) {
+            TextField(L10n.t("端口"), text: $editingText)
+                .font(.system(.body, design: .monospaced))
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .keyboardType(.asciiCapable)
+                .submitLabel(.done)
+                .onSubmit { commitEditing() }
+            Button(L10n.t("保存")) { commitEditing() }
+                .buttonStyle(.borderless)
+                .disabled(editingText.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button(L10n.t("取消")) { cancelEditing() }
+                .buttonStyle(.borderless)
+        }
+        .padding(.vertical, 2)
+    }
+
+    // MARK: 编辑状态机
+
+    private func beginAdd() {
+        editingText = ""
+        editingIndex = -1
+    }
+
+    private func beginEdit(index: Int) {
+        editingText = entries[index]
+        editingIndex = index
+    }
+
+    private func cancelEditing() {
+        editingIndex = nil
+        editingText = ""
+    }
+
+    private func commitEditing() {
+        let value = editingText.trimmingCharacters(in: .whitespaces)
+        guard !value.isEmpty else {
+            rowError = L10n.t("端口不能为空")
+            return
+        }
+        // 重复校验：新增查全部；编辑排除自身行
+        let duplicates = editingIndex == -1
+            ? entries.contains(value)
+            : entries.enumerated().contains { $0.offset != editingIndex && $0.element == value }
+        guard !duplicates else {
+            rowError = L10n.t("该端口已存在")
+            return
+        }
+        withAnimation(Motion.fast) {
+            if editingIndex == -1 {
+                entries.append(value)
+            } else if let i = editingIndex, entries.indices.contains(i) {
+                entries[i] = value
+            }
+        }
+        editingIndex = nil
+        editingText = ""
+    }
+
+    // MARK: 数据
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        struct WhitelistSettings: Decodable {
+            let firewallPortWhiteList: String?
+        }
+        do {
+            let resp: WhitelistSettings = try await client.send(
+                path: APIEndpoint.settingsSearch.path,
+                as: WhitelistSettings.self
+            )
+            // 读取为逗号分隔（面板 Web 端行为），提交为换行拼接
+            entries = (resp.firewallPortWhiteList ?? "")
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            originalEntries = entries
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        struct WhitelistUpdate: Encodable {
+            let key: String
+            let value: String
+        }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.settingsUpdate.path,
+                body: WhitelistUpdate(key: "FirewallPortWhiteList", value: entries.joined(separator: "\n")),
+                as: EmptyResponse.self
+            )
+            onSaved()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+            rowError = error.localizedDescription
         }
     }
 }

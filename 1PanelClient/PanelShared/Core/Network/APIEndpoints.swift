@@ -17,6 +17,7 @@ enum APIEndpoint {
     case dashboardTopCPU          // GET CPU占用TOP进程
     case dashboardTopMem          // GET 内存占用TOP进程
     case settingsSearch           // POST 面板设置（含 systemVersion 面板版本）
+    case settingsUpdate           // POST 更新面板设置项 {key, value}（端口白名单等）
     case settingsUpgradeCheck     // GET  检查面板更新
     case settingsUpgrade          // POST 面板版本升级
     case settingsUpgradeReleases  // GET  版本更新日志列表
@@ -181,6 +182,7 @@ enum APIEndpoint {
 
     // MARK: - 进程
     case processStop             // POST 结束指定进程
+    case processListening        // POST 端口监听进程列表（防火墙规则行显示进程名）
 
     // MARK: - Fail2ban
     case fail2banBase            // GET  基础配置
@@ -352,6 +354,8 @@ enum APIEndpoint {
         case .dashboardTopCPU:       return "/api/v2/dashboard/current/top/cpu"
         case .dashboardTopMem:       return "/api/v2/dashboard/current/top/mem"
         case .settingsSearch:        return "/api/v2/core/settings/search"
+        // 面板 Web 端抓包路径（无 /core 前缀），v2 网关对两种前缀等价路由
+        case .settingsUpdate:        return "/api/v2/settings/update"
         case .settingsUpgradeCheck:  return "/api/v2/core/settings/upgrade"
         case .settingsUpgrade:       return "/api/v2/core/settings/upgrade"
         case .settingsUpgradeReleases: return "/api/v2/core/settings/upgrade/releases"
@@ -484,6 +488,7 @@ enum APIEndpoint {
         case .databasesGrantsAdd:    return "/api/v2/databases/grants"
         case .databasesGrantsDelete: return "/api/v2/databases/grants/del"
         case .processStop:           return "/api/v2/process/stop"
+        case .processListening:      return "/api/v2/process/listening"
         case .fail2banBase:          return "/api/v2/toolbox/fail2ban/base"
         case .fail2banUpdate:        return "/api/v2/toolbox/fail2ban/update"
         case .fail2banLoadConf:      return "/api/v2/toolbox/fail2ban/load/conf"

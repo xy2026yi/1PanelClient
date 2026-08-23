@@ -324,7 +324,7 @@ enum ManageItem: String, Identifiable {
     static let groups: [(title: String, items: [ManageItem])] = [
         (L10n.t("应用"), [.apps, .websites, .database, .containers]),
         (L10n.t("主机"), [.terminal, .files, .monitor, .process, .sshService]),
-        (L10n.t("安全"), [.firewall, .fail2ban, .waf]),
+        (L10n.t("安全"), [.firewall, .waf]),
         (L10n.t("高级功能"), [.websiteMonitor, .nodeManage, .wafMonitor]),
         (L10n.t("面板"), [.alert, .backupAccount, .cronjob, .taskCenter, .logs]),
     ]
