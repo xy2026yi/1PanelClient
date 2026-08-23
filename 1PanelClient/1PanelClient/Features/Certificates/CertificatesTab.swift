@@ -65,17 +65,21 @@ struct CertificatesTab: View {
                 certList
             }
         }
-        .searchIconMode(text: $searchText, isSearching: $isSearching, title: L10n.t("SSL 证书"), prompt: L10n.t("搜索证书"))
+        // 右上角收敛为两键：省略号（搜索/账户/自签）+ 创建菜单；搜索入口在省略号首项
+        .searchIconMode(text: $searchText, isSearching: $isSearching, title: L10n.t("SSL 证书"), prompt: L10n.t("搜索证书"), searchInMenu: true)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                EllipsisMenuButton {
-                    withAnimation(Motion.fast) { showMenu.toggle() }
+            if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    EllipsisMenuButton {
+                        withAnimation(Motion.fast) { showMenu.toggle() }
+                    }
                 }
             }
         }
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
+                    .action(title: L10n.t("搜索")) { isSearching = true },
                     .action(title: L10n.t("Acme 账户")) { showAcme = true },
                     .action(title: L10n.t("DNS 账户")) { showDns = true },
                     .divider,
@@ -86,18 +90,20 @@ struct CertificatesTab: View {
             }
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button { showApply = true } label: {
-                        Label(L10n.t("申请证书"), systemImage: "arrow.down.circle")
+            if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button { showApply = true } label: {
+                            Label(L10n.t("申请证书"), systemImage: "arrow.down.circle")
+                        }
+                        Button { showUpload = true } label: {
+                            Label(L10n.t("上传证书"), systemImage: "icloud.and.arrow.up")
+                        }
+                    } label: {
+                        Image(systemName: "plus")
                     }
-                    Button { showUpload = true } label: {
-                        Label(L10n.t("上传证书"), systemImage: "icloud.and.arrow.up")
-                    }
-                } label: {
-                    Image(systemName: "plus")
+                    .accessibilityLabel(L10n.t("申请或上传证书"))
                 }
-                .accessibilityLabel(L10n.t("申请或上传证书"))
             }
         }
         .navigationDestination(isPresented: $showUpload) {

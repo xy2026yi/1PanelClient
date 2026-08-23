@@ -67,18 +67,21 @@ struct CronjobsTab: View {
         )
         .navigationTitle(L10n.t("计划任务"))
         .navigationBarTitleDisplayMode(.inline)
+        // 创建菜单：创建任务 + 脚本库合并为一个 + 入口，右上角只留「+菜单 + 搜索」两键
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    ScriptLibraryView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
-                } label: {
-                    Image(systemName: "books.vertical")
-                }
-                .accessibilityLabel(L10n.t("脚本库"))
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showCreate = true
+                Menu {
+                    Button {
+                        showCreate = true
+                    } label: {
+                        Label(L10n.t("创建计划任务"), systemImage: "plus")
+                    }
+                    Divider()
+                    NavigationLink {
+                        ScriptLibraryView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+                    } label: {
+                        Label(L10n.t("脚本库"), systemImage: "books.vertical")
+                    }
                 } label: {
                     Image(systemName: "plus")
                 }

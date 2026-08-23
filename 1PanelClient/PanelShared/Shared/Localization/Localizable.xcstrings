@@ -9181,6 +9181,17 @@
         }
       }
     },
+    "搜索" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        }
+      }
+    },
     "搜索域名" : {
       "extractionState" : "manual",
       "localizations" : {

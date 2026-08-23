@@ -367,11 +367,16 @@ struct SectionLabel: View {
 /// - 非搜索态：正常标题 + 右上角放大镜
 /// - 搜索态：中=输入框 / 右=取消，占据整行
 /// （使用处均为 push 进入的子页面，导航栏自带返回按钮，不再叠加自定义返回箭头）
+///
+/// `searchInMenu: true` 时不占独立放大镜图标，搜索入口由页面的省略号菜单首项提供
+/// （`isSearching = true` 即可进入搜索态）——右上角已有「主操作 + 省略号」两键的
+/// 页面用它，避免 trailing 挤到三个图标把标题压窄。
 struct SearchIconModifier: ViewModifier {
     @Binding var text: String
     @Binding var isSearching: Bool
     let title: String
     let prompt: String
+    var searchInMenu: Bool = false
 
     func body(content: Content) -> some View {
         content
@@ -393,7 +398,7 @@ struct SearchIconModifier: ViewModifier {
                             Text(L10n.t("取消"))
                         }
                     }
-                } else {
+                } else if !searchInMenu {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             isSearching = true
@@ -417,13 +422,15 @@ extension View {
         text: Binding<String>,
         isSearching: Binding<Bool>,
         title: String,
-        prompt: String
+        prompt: String,
+        searchInMenu: Bool = false
     ) -> some View {
         modifier(SearchIconModifier(
             text: text,
             isSearching: isSearching,
             title: title,
-            prompt: prompt
+            prompt: prompt,
+            searchInMenu: searchInMenu
         ))
     }
 }

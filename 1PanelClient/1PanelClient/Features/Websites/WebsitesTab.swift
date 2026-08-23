@@ -43,14 +43,16 @@ struct WebsitesTab: View {
                 websiteList
             }
         }
+        // 右上角收敛为两键：省略号（搜索/SSL证书）+ 创建；搜索入口在省略号首项
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
             title: L10n.t("网站"),
-            prompt: L10n.t("搜索域名")
+            prompt: L10n.t("搜索域名"),
+            searchInMenu: true
         )
         .toolbar {
-            // SSL 证书入口：仅非搜索态显示
+            // 仅非搜索态显示（搜索态只剩输入框 + 取消）
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
                     EllipsisMenuButton {
@@ -62,6 +64,7 @@ struct WebsitesTab: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
+                    .action(title: L10n.t("搜索")) { isSearching = true },
                     .action(title: L10n.t("SSL证书")) { showCerts = true },
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
@@ -69,13 +72,15 @@ struct WebsitesTab: View {
             }
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showCreate = true
-                } label: {
-                    Image(systemName: "plus")
+            if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showCreate = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(L10n.t("创建网站"))
                 }
-                .accessibilityLabel(L10n.t("创建网站"))
             }
         }
         .onChange(of: searchText) { _, newValue in

@@ -54,14 +54,22 @@ struct AppsTab: View {
                 appList
             }
         }
+        // 右上角收敛为两键：省略号（搜索/忽略/设置）+ 应用商店；搜索入口在省略号首项
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
             title: L10n.t("应用"),
-            prompt: L10n.t("搜索已安装应用")
+            prompt: L10n.t("搜索已安装应用"),
+            searchInMenu: true
         )
         .toolbar {
             if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    EllipsisMenuButton {
+                        withAnimation(Motion.fast) { showMenu.toggle() }
+                    }
+                    .accessibilityLabel(L10n.t("更多"))
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showStore = true
@@ -70,17 +78,12 @@ struct AppsTab: View {
                     }
                     .accessibilityLabel(L10n.t("进入应用商店"))
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    EllipsisMenuButton {
-                        withAnimation(Motion.fast) { showMenu.toggle() }
-                    }
-                    .accessibilityLabel(L10n.t("更多"))
-                }
             }
         }
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
+                    .action(title: L10n.t("搜索")) { isSearching = true },
                     .action(title: L10n.t("忽略应用")) { showIgnored = true },
                     .action(title: L10n.t("设置")) { showSettings = true },
                 ]) {
