@@ -640,14 +640,26 @@ struct FirewallPortWhitelistView: View {
             Spacer()
             HStack(spacing: 18) {
                 Button(L10n.t("编辑")) { beginEdit(index: index) }
-                Button(L10n.t("删除")) {
-                    withAnimation(Motion.fast) { entries.remove(atOffsets: IndexSet(integer: index)) }
-                }
-                .foregroundStyle(.red)
+                    // List 行内多按钮必须 borderless：默认样式会整行联动触发，
+                    // 点删除同时触发编辑，编辑索引悬空后「确认」被永久禁用
+                    .buttonStyle(.borderless)
+                Button(L10n.t("删除")) { removeRow(at: index) }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.red)
             }
             .font(.subheadline)
         }
         .padding(.vertical, 2)
+    }
+
+    /// 删除本地行：同步维护编辑索引（删正在编辑的行→取消编辑，其后行索引前移）
+    private func removeRow(at index: Int) {
+        if editingIndex == index {
+            cancelEditing()
+        } else if let e = editingIndex, e > index {
+            editingIndex = e - 1
+        }
+        withAnimation(Motion.fast) { entries.remove(atOffsets: IndexSet(integer: index)) }
     }
 
     /// 编辑态：输入框 + 保存/取消（不发请求，仅改本地 entries）
