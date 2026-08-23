@@ -16,6 +16,10 @@ struct TerminalScreen: View {
     /// 终端字号持久化（放大/缩小菜单 9–24，跨会话保留）；AppStorage 不支持 CGFloat，存 Double
     @AppStorage("terminal.fontSize") private var fontSize: Double = 13
 
+    /// 键盘与窗口底部的重叠高度（横屏下 SwiftUI 键盘安全区会残留过期的内缩，
+    /// 导致快捷键条在键盘收起后仍悬浮；改为键盘通知驱动，见 body 中的处理）
+    @State private var keyboardOverlap: CGFloat = 0
+
     /// 连接目标标题
     private let title: String
 
@@ -45,7 +49,12 @@ struct TerminalScreen: View {
             TerminalSurface(session: session, fontSize: CGFloat(fontSize), bridge: bridge)
             quickKeys
         }
+        // 关闭 SwiftUI 内建键盘避让，用通知算出的实际重叠高度手动上移，
+        // 保证键盘收起时快捷键条始终贴底
+        .padding(.bottom, keyboardOverlap)
+        .ignoresSafeArea(.keyboard)
         .background(Color.black)
+        .animation(.easeOut(duration: 0.22), value: keyboardOverlap)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -55,6 +64,13 @@ struct TerminalScreen: View {
         }
         .task {
             session.connect()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+            guard let window = (UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first),
+                  let end = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else { return }
+            let height = window.bounds.height
+            // 键盘收起时结束帧 minY == 窗口高度 → 重叠为 0
+            keyboardOverlap = min(max(0, height - end.cgRectValue.minY), height)
         }
         .onDisappear {
             session.disconnect()
@@ -224,7 +240,7 @@ struct TerminalCommandPicker: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .bottomSheetDetents([.medium])
         .presentationDragIndicator(.visible)
     }
 }

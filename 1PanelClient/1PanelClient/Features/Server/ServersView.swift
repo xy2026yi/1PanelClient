@@ -99,7 +99,7 @@ struct ServersView: View {
                 actionServer = nil
                 handle(action, for: server)
             }
-            .presentationDetents([.medium])
+            .bottomSheetDetents([.medium])
             .presentationDragIndicator(.visible)
         }
         .toastOverlay(message: $toastMessage)

@@ -340,7 +340,7 @@ struct SSHFieldSheet: View {
                 }
             }
         }
-        .presentationDetents([.height(200)])
+        .bottomSheetDetents([.height(200)])
         .presentationDragIndicator(.visible)
     }
 }

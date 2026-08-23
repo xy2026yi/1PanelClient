@@ -586,7 +586,7 @@ struct TextInputConfirmSheet<Options: View>: View {
             }
             .interactiveDismissDisabled(isSubmitting)
         }
-        .presentationDetents([.medium])
+        .bottomSheetDetents([.medium])
         .presentationDragIndicator(.visible)
     }
 }
@@ -695,7 +695,7 @@ enum ActionRole {
 /// ```
 /// .sheet(isPresented: $showSheet) {
 ///     ActionBottomSheet(title: "标题", items: [...]) { selectedItem = nil }
-///     .presentationDetents([.height(ActionBottomSheet.height(for: 3))])
+///     .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
 ///     .presentationDragIndicator(.visible)
 /// }
 /// ```

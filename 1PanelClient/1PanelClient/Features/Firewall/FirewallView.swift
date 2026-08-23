@@ -248,7 +248,7 @@ struct FirewallView: View {
                 ],
                 onDismiss: { actionRule = nil }
             )
-            .presentationDetents([.height(ActionBottomSheet.height(for: 2))])
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
             .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("删除端口规则"), isPresented: Binding(

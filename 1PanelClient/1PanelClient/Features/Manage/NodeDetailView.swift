@@ -162,7 +162,7 @@ struct NodeDetailView: View {
             AddNodeView(server: server, editing: item, currentNode: current) { taskID in
                 navPath.append(NodeManageView.Dest.taskProgress(taskID: taskID, title: L10n.t("编辑节点")))
             }
-            .presentationDetents([.large])
+            .bottomSheetDetents([.large])
         }
         .sheet(isPresented: $showRenameSheet) {
             if let item {

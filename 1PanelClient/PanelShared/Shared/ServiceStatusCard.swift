@@ -105,9 +105,9 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
         .padding(.vertical, 2)
     }
 
-    /// 4 列自适应网格：≤4 个按钮单行展示，更多时自动换行（iPad 上 8 列铺开）
+    /// 自适应网格：按最小格宽换列、整行铺满（iPad 上固定 8 列时按钮只占左半边且过度紧凑）
     private var actionsRow: some View {
-        LazyVGrid(columns: gridColumns(compact: 4, regular: 8, spacing: 8, horizontal: hSize), spacing: 8) {
+        LazyVGrid(columns: adaptiveGridColumns(compact: 4, minimum: 84, spacing: 8, horizontal: hSize), spacing: 8) {
             ForEach(actions) { act in
                 actionButton(act)
             }

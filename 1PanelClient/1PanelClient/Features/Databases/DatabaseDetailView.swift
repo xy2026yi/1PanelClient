@@ -549,7 +549,7 @@ struct MongoPrivilegesSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .bottomSheetDetents([.medium])
         .presentationDragIndicator(.visible)
     }
 }
@@ -595,6 +595,6 @@ struct PGPrivilegesSheet: View {
                 }
             }
         }
-        .presentationDetents([.height(250)])
+        .bottomSheetDetents([.height(250)])
     }
 }

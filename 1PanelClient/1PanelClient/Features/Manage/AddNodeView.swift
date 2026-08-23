@@ -153,7 +153,7 @@ struct AddNodeView: View {
                 NodeCheckResultSheet(result: testResult) {
                     Task { await submit() }
                 }
-                .presentationDetents([.medium])
+                .bottomSheetDetents([.medium])
                 .presentationDragIndicator(.visible)
             }
             .task {

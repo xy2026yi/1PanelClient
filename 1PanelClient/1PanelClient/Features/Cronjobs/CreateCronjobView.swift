@@ -688,7 +688,7 @@ struct BackupParamsPickerView: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .bottomSheetDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
 

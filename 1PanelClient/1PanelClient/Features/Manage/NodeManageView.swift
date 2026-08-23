@@ -127,7 +127,7 @@ struct NodeManageView: View {
             AddNodeView(server: server) { taskID in
                 navPath.append(Dest.taskProgress(taskID: taskID, title: L10n.t("添加节点")))
             }
-            .presentationDetents([.large])
+            .bottomSheetDetents([.large])
         }
     }
 

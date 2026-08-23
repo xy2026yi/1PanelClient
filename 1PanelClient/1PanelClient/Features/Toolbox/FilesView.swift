@@ -120,7 +120,7 @@ struct FilesView: View {
                         pathInput = "/"; showPathInput = true
                     }
                 ], onDismiss: {})
-                .presentationDetents([.height(ActionBottomSheet.height(for: 5))])
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 5))])
                 .presentationDragIndicator(.visible)
             }
             .sheet(item: $actionItem) { item in
@@ -129,7 +129,7 @@ struct FilesView: View {
                     items: itemActions(item),
                     onDismiss: { actionItem = nil }
                 )
-                .presentationDetents([.height(ActionBottomSheet.height(for: item.isDir ? 2 : 3))])
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: item.isDir ? 2 : 3))])
                 .presentationDragIndicator(.visible)
             }
             .modifier(FilesTransferModifier(
@@ -700,7 +700,7 @@ struct TransferSheet: View {
         }
         .padding(.vertical, 28)
         .frame(maxWidth: .infinity)
-        .presentationDetents([.medium])
+        .bottomSheetDetents([.medium])
         .presentationDragIndicator(.visible)
     }
 

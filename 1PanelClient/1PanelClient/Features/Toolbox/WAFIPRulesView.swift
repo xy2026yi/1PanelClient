@@ -102,7 +102,7 @@ struct WAFIPRulesView: View {
                 ],
                 onDismiss: { actionItem = nil }
             )
-            .presentationDetents([.height(ActionBottomSheet.height(for: 2))])
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
             .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("提示"), isPresented: Binding(

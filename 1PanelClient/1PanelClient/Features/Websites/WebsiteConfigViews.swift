@@ -335,7 +335,7 @@ struct WebsiteRedirectView: View {
                 ],
                 onDismiss: { actionRedirect = nil }
             )
-            .presentationDetents([.height(ActionBottomSheet.height(for: 4))])
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 4))])
             .presentationDragIndicator(.visible)
         }
         .alert(

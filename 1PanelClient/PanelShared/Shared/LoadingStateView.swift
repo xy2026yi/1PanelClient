@@ -20,6 +20,8 @@ struct LoadingStateView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity, minHeight: compact ? 60 : 160)
+        // 全页加载态必须撑满高度：FAB overlay 锚在内容容器上，
+        // 高度只有 160 会让悬浮按钮贴在屏幕中部偏右，旋转才恢复
+        .frame(maxWidth: .infinity, minHeight: compact ? 60 : 160, maxHeight: compact ? nil : .infinity)
     }
 }

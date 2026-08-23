@@ -403,7 +403,7 @@ struct SetPasscodeSheet: View {
             }
             Spacer()
         }
-        .presentationDetents([.large])
+        .bottomSheetDetents([.large])
         .interactiveDismissDisabled()
         // 显式取消：开启流程中放弃（开关由 get 取值自动弹回）、修改密码中保留旧密码
         .toolbar {
