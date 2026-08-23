@@ -864,7 +864,7 @@ struct FirewallView: View {
 
 // MARK: - 行操作弹窗
 
-/// 防火墙行操作弹窗：对齐服务器页 ServerActionsSheet 的分组表单形态
+/// 防火墙行操作弹窗（半屏）：对齐服务器页 ServerActionsSheet 的分组表单形态
 /// （信息头 + 修改 + 删除独立分组、图标行），比 ActionBottomSheet 紧凑条
 /// 更大气，端口规则/端口转发/IP 规则三段共用
 struct FirewallActionSheet: View {
@@ -947,6 +947,7 @@ struct FirewallActionSheet: View {
             .navigationTitle(L10n.t("操作"))
             .navigationBarTitleDisplayMode(.inline)
         }
+        .bottomSheetDetents([.medium])
         .presentationDragIndicator(.visible)
     }
 

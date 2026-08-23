@@ -32,6 +32,10 @@ struct WebsitesTab: View {
         Text(vm.alertMessage)
         }
         .task { await vm.refresh() }
+        // 安装完成（含从本页未安装入口发起的安装）后重查安装状态并刷新列表
+        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
+            Task { await vm.refresh(force: true) }
+        }
     }
 
     /// 列表根内容（不含 NavigationStack）
@@ -79,6 +83,8 @@ struct WebsitesTab: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    // OpenResty 未安装时无法创建网站（环境检查必然失败）
+                    .disabled(vm.openRestyNotInstalled)
                     .accessibilityLabel(L10n.t("创建网站"))
                 }
             }
@@ -102,36 +108,51 @@ struct WebsitesTab: View {
 
     private var websiteList: some View {
         List {
-            // 顶部 OpenResty 信息与管理卡片
-            OpenRestyCard(vm: vm, showConfig: $showOpenRestyConfig)
-
-            if vm.websites.isEmpty {
-                Section {
-                    if let err = vm.errorMessage, !err.isEmpty {
-                        ContentUnavailableView {
-                            Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                        } description: {
-                            Text(err)
-                        } actions: {
-                            Button(L10n.t("重试")) {
-                                Task { await vm.refresh() }
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                    } else {
-                        ContentUnavailableView(
-                            L10n.t("暂无网站"),
-                            systemImage: "globe",
-                            description: Text(L10n.t("点击右上角 + 创建第一个网站"))
-                        )
+            if vm.openRestyNotInstalled {
+                // OpenResty 未安装：网站功能依赖它，整页只保留快速安装入口（同数据库未安装占位）
+                Section("OpenResty") {
+                    NavigationLink {
+                        OpenRestyInstallView()
+                    } label: {
+                        NotInstalledOpenRestyRow()
                     }
                 }
-                .listRowBackground(Color.clear)
             } else {
-                Section {
-                    ForEach(vm.websites) { w in
-                        NavigationLink(value: w) {
-                            WebsiteRow(website: w)
+                // 顶部 OpenResty 信息与管理卡片
+                OpenRestyCard(vm: vm, showConfig: $showOpenRestyConfig)
+
+                if vm.websites.isEmpty {
+                    Section {
+                        if let err = vm.errorMessage, !err.isEmpty, !vm.isLoadingOpenResty {
+                            ContentUnavailableView {
+                                Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                            } description: {
+                                Text(err)
+                            } actions: {
+                                Button(L10n.t("重试")) {
+                                    Task { await vm.refresh(force: true) }
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                        } else if vm.isLoadingOpenResty {
+                            // 安装状态判定中：等结论出来再展示空态/错误，
+                            // 避免未安装场景先闪现「加载失败/创建网站」误导文案
+                            EmptyView()
+                        } else {
+                            ContentUnavailableView(
+                                L10n.t("暂无网站"),
+                                systemImage: "globe",
+                                description: Text(L10n.t("点击右上角 + 创建第一个网站"))
+                            )
+                        }
+                    }
+                    .listRowBackground(Color.clear)
+                } else {
+                    Section {
+                        ForEach(vm.websites) { w in
+                            NavigationLink(value: w) {
+                                WebsiteRow(website: w)
+                            }
                         }
                     }
                 }
@@ -139,7 +160,7 @@ struct WebsitesTab: View {
         }
         .listStyle(.insetGrouped)
         .refreshable {
-            await vm.refresh()
+            await vm.refresh(force: true)
         }
     }
 }
@@ -236,6 +257,93 @@ struct OpenRestyCard: View {
         default:        return
         }
         Task { await vm.operateOpenResty(op: op) }
+    }
+}
+
+// MARK: - OpenResty 未安装（快速安装入口，同数据库未安装流程）
+
+/// 未安装占位行：淡化品牌图标 + 名称 + 未安装标签
+struct NotInstalledOpenRestyRow: View {
+    var body: some View {
+        HStack(spacing: 14) {
+            BrandIcon(brand: .openresty, size: 44)
+                .opacity(0.4)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("OpenResty").font(.headline).foregroundStyle(.secondary)
+                Text(L10n.t("未安装"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+/// OpenResty 未安装提示页：说明 + 跳转应用商店安装（列表页收到安装完成通知后自行刷新）
+struct OpenRestyInstallView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    /// 应用商店 ViewModel（详情页 + 安装表单共用）
+    @StateObject private var storeVM: AppStoreViewModel = {
+        let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        return AppStoreViewModel(server: server)
+    }()
+    /// 是否已进入安装表单（用于区分「自己的安装完成」与无关的全局 installCompleted 通知）
+    @State private var didEnterInstall = false
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            BrandIcon(brand: .openresty, size: 72)
+                .opacity(0.5)
+
+            VStack(spacing: 8) {
+                Text(L10n.t("OpenResty 未安装"))
+                    .font(.headline)
+                Text(L10n.t("网站功能依赖 OpenResty，请先安装后再使用"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            // 用 NavigationLink 直接 push 应用详情页（避免 isPresented 时序问题）
+            NavigationLink {
+                AppStoreDetailView(appKey: "openresty", vm: storeVM)
+            } label: {
+                Label(L10n.t("安装 OpenResty"), systemImage: "arrow.down.circle.fill")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.horizontal, 40)
+
+            Spacer()
+        }
+        .padding()
+        .navigationTitle("OpenResty")
+        .navigationBarTitleDisplayMode(.inline)
+        // 安装表单：详情页点「安装」后 push 安装表单
+        .navigationDestination(isPresented: $storeVM.showInstall) {
+            if let installDetail = storeVM.installDetail {
+                AppInstallView(detail: installDetail, vm: storeVM)
+            }
+        }
+        // 跟踪是否进入过安装表单（showInstall true→false 表示用户开始了安装流程）
+        .onChange(of: storeVM.showInstall) { _, isShown in
+            if isShown { didEnterInstall = true }
+        }
+        // 安装完成：仅当确实进入了本页发起的安装流程时才返回，
+        // 避免无关的全局 installCompleted 通知误触发 dismiss（表现为点击安装变返回）
+        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
+            guard didEnterInstall else { return }
+            storeVM.showInstall = false
+            // 等导航栈稳定后再 dismiss，避免动画冲突
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                dismiss()
+            }
+        }
     }
 }
 

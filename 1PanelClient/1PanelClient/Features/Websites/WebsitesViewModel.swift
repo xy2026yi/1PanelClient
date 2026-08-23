@@ -30,6 +30,9 @@ final class WebsitesViewModel: ObservableObject {
 
     // OpenResty 应用状态
     @Published var openresty: AppInstall?
+    /// installed/check 结果：未安装时 installed/search 只返回空列表，无法与加载失败区分，
+    /// 用 check 的 isExist=false 明确判定「未安装」以展示安装入口
+    @Published var openRestyCheck: AppInstallCheck?
     @Published var isLoadingOpenResty = false
     @Published var openRestyOperating = false
     /// 是否已尝试加载过（避免 List 重绘时 .task 反复触发）
@@ -41,9 +44,16 @@ final class WebsitesViewModel: ObservableObject {
         self.client = APIClient(server: server)
     }
 
-    func refresh() async {
-        await load(query: "")
-        await loadOpenResty(force: false)
+    /// OpenResty 明确未安装（check 判定未装且已装列表也无记录）
+    var openRestyNotInstalled: Bool {
+        openresty == nil && openRestyCheck?.isExist == false
+    }
+
+    /// - Parameter force: true 强制刷新（下拉/安装完成后的重查）；false 仅首次加载
+    func refresh(force: Bool = false) async {
+        async let sites: () = load(query: "")
+        async let openResty: () = loadOpenResty(force: force)
+        _ = await (sites, openResty)
     }
 
     func search(query: String) async {
@@ -208,6 +218,7 @@ final class WebsitesViewModel: ObservableObject {
         isLoadingOpenResty = true
         defer { isLoadingOpenResty = false }
 
+        async let check: () = loadOpenRestyCheck()
         let req = AppInstalledSearchRequest(
             page: 1, pageSize: 100, name: "", type: "", tags: [],
             update: false, all: true, unused: false, sync: false
@@ -221,6 +232,22 @@ final class WebsitesViewModel: ObservableObject {
             self.openresty = (resp.items ?? []).first { $0.appKey?.lowercased() == "openresty" }
         } catch {
             self.openresty = nil
+        }
+        _ = await check
+    }
+
+    /// POST /api/v2/apps/installed/check {key: "openresty", name: ""}：
+    /// 未安装时返回 isExist=false（app 字段仍有 "OpenResty"）
+    private func loadOpenRestyCheck() async {
+        let req = AppCheckRequest(key: "openresty", name: "")
+        do {
+            openRestyCheck = try await client.send(
+                path: APIEndpoint.appsInstalledCheck.path,
+                body: req,
+                as: AppInstallCheck.self
+            )
+        } catch {
+            openRestyCheck = nil
         }
     }
 

@@ -1581,8 +1581,22 @@
     "nginx.conf" : {
 
     },
+    "OpenResty" : {
+
+    },
     "OpenResty %@" : {
 
+    },
+    "OpenResty 未安装" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenResty Not Installed"
+          }
+        }
+      }
     },
     "OpenResty 未安装或加载失败" : {
       "extractionState" : "manual",
@@ -6291,17 +6305,6 @@
         }
       }
     },
-    "在面板创建网站后，可在此为其配置 WAF 防护。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create a website in the panel to configure WAF protection for it here."
-          }
-        }
-      }
-    },
     "在线" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6326,6 +6329,17 @@
     },
     "在线检查与 CPU / 内存 / 负载概览" : {
 
+    },
+    "在面板创建网站后，可在此为其配置 WAF 防护。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a website in the panel to configure WAF protection for it here."
+          }
+        }
+      }
     },
     "地区信息" : {
       "extractionState" : "manual",
@@ -6972,6 +6986,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Install %@"
+          }
+        }
+      }
+    },
+    "安装 OpenResty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install OpenResty"
           }
         }
       }
@@ -15324,6 +15349,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Website expiring"
+          }
+        }
+      }
+    },
+    "网站功能依赖 OpenResty，请先安装后再使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The website feature relies on OpenResty. Please install it first"
           }
         }
       }
