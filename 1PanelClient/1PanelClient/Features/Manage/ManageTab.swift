@@ -323,8 +323,7 @@ enum ManageItem: String, Identifiable {
     /// 管理页分组（带标题），ManageTab 与「自定义功能」编辑页共用
     static let groups: [(title: String, items: [ManageItem])] = [
         (L10n.t("应用"), [.apps, .websites, .database, .containers]),
-        (L10n.t("主机"), [.terminal, .files, .monitor, .process, .sshService]),
-        (L10n.t("安全"), [.firewall, .waf]),
+        (L10n.t("主机"), [.terminal, .files, .monitor, .process, .sshService, .firewall]),
         (L10n.t("高级功能"), [.websiteMonitor, .nodeManage, .wafMonitor]),
         (L10n.t("面板"), [.alert, .backupAccount, .cronjob, .taskCenter, .logs]),
     ]

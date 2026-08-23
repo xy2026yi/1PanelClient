@@ -387,6 +387,7 @@ struct FirewallView: View {
     @State private var actionRule: FirewallRule?
     @State private var statusExpanded = false
     @State private var showWhitelist = false
+    @State private var showWAF = false
     /// 内容段：0=端口规则 1=端口转发 2=IP 规则（顶部横条三段切换，同告警页）
     @State private var segment = 0
     // 端口转发
@@ -453,6 +454,14 @@ struct FirewallView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    showWAF = true
+                } label: {
+                    Image(systemName: "flame.fill")
+                }
+                .accessibilityLabel("WAF")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
                     switch segment {
                     case 0: showAdd = true
                     case 1: showAddForward = true
@@ -467,6 +476,10 @@ struct FirewallView: View {
         }
         .navigationDestination(isPresented: $showAdd) {
             FirewallAddRuleView(vm: vm)
+        }
+        // WAF 与防火墙同属主机安全防护，入口收进本页右上角（管理列表不单列）
+        .navigationDestination(isPresented: $showWAF) {
+            WAFView(server: server)
         }
         .navigationDestination(isPresented: $showWhitelist) {
             // 白名单保存成功后回调刷新本页（状态/规则/进程名都重拉）
