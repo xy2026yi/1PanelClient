@@ -32,12 +32,14 @@ final class FirewallViewModel: ObservableObject {
     }
 
     func refresh() async {
-        await loadBase()
-        await loadRules()
-        await loadListening()
-        await loadForwards()
-        await loadAddresses()
-        await loadNetOptions()
+        // 六个请求互不依赖，并行发出缩短进页耗时
+        async let base: () = loadBase()
+        async let rules: () = loadRules()
+        async let listening: () = loadListening()
+        async let forwards: () = loadForwards()
+        async let addresses: () = loadAddresses()
+        async let nets: () = loadNetOptions()
+        _ = await (base, rules, listening, forwards, addresses, nets)
     }
 
     func loadBase() async {
@@ -122,7 +124,9 @@ final class FirewallViewModel: ObservableObject {
     }
 
     func togglePing(_ block: Bool) async {
-        let op = block ? "enablePing" : "disablePing"
+        // v2 后端 oneof=start stop restart disableBanPing enableBanPing；
+        // 旧名 enablePing/disablePing 会触发 oneof 校验失败
+        let op = block ? "enableBanPing" : "disableBanPing"
         await operateUFW(op, withDockerRestart: false)
     }
 
@@ -649,7 +653,7 @@ struct FirewallView: View {
                 Section {
                     ContentUnavailableView(
                         L10n.t("暂无端口规则"),
-                        systemImage: "flame",
+                        systemImage: "list.bullet.rectangle",
                         description: Text(L10n.t("点击右上角 + 添加规则"))
                     )
                     .listRowBackground(Color.clear)

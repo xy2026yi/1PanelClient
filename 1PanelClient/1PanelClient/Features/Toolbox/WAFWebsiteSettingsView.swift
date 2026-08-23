@@ -5,6 +5,7 @@
 //  WAF 网站设置：按网站下发 WAF 开关 / 执行策略（防护·观察）/ 检测强度（标准·严格）/
 //  频率限制（CC 模式与参数）。全站列表来自 waf/websites/search（含各开关当前值），
 //  切换走 config/website/state，CC 规则走 website/rule/cc。
+//  CC 参数经 config/website 读取当前站真实值回填表单（避免默认值覆盖服务器配置）。
 //  严格模式依赖全局配置 strict.state=on，未开启时置灰。
 //
 
@@ -21,11 +22,13 @@ struct WAFWebsiteSettingsView: View {
     /// 全局配置的 strict.state（"off" 时网站不可切严格模式）
     @State private var globalStrictOn = false
 
-    // CC 参数（默认与面板 Web 端一致；服务端无单独读取接口，按默认值起填）
+    // CC 参数：默认与面板 Web 端一致起填，选中网站后经 config/website 回填真实值
     @State private var ccMode = "uri"
     @State private var ccDuration = "10"
     @State private var ccThreshold = "200"
     @State private var ccBlockTime = "600"
+    /// CC 回填竞态令牌：快速切换网站时丢弃过期响应，避免旧值覆盖新选中站
+    @State private var ccLoadToken = 0
 
     // 确认弹窗：关闭 WAF / 切观察模式
     @State private var pendingCloseWAF = false
@@ -51,13 +54,22 @@ struct WAFWebsiteSettingsView: View {
                 Section { LoadingStateView(compact: true).padding(.vertical, 20) }
             } else if websites.isEmpty {
                 Section {
-                    ContentUnavailableView {
-                        Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                    } description: {
-                        Text(errorMessage ?? L10n.t("无数据"))
-                    } actions: {
-                        Button(L10n.t("重试")) { Task { await load() } }
-                            .buttonStyle(.borderedProminent)
+                    // 空列表 ≠ 加载失败：有错误才给重试，否则是面板确实没有网站
+                    if let errorMessage {
+                        ContentUnavailableView {
+                            Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                        } description: {
+                            Text(errorMessage)
+                        } actions: {
+                            Button(L10n.t("重试")) { Task { await load() } }
+                                .buttonStyle(.borderedProminent)
+                        }
+                    } else {
+                        ContentUnavailableView(
+                            L10n.t("暂无网站"),
+                            systemImage: "sitemap",
+                            description: Text(L10n.t("在面板创建网站后，可在此为其配置 WAF 防护。"))
+                        )
                     }
                 }
             } else {
@@ -100,12 +112,15 @@ struct WAFWebsiteSettingsView: View {
 
     // MARK: - 分区
 
-    /// 网站下拉：选中后下方各开关带入该站当前值
+    /// 网站下拉：选中后下方各开关带入该站当前值，CC 参数回填真实值
     private var websiteSection: some View {
         Section {
             Picker(L10n.t("选择网站"), selection: Binding(
                 get: { selectedID },
-                set: { selectedID = $0 }
+                set: {
+                    selectedID = $0
+                    Task { await loadWebsiteConfig() }
+                }
             )) {
                 ForEach(websites) { site in
                     Text(site.primaryDomain ?? "#\(site.id)").tag(Optional(site.id))
@@ -157,9 +172,8 @@ struct WAFWebsiteSettingsView: View {
             }
             .pickerStyle(.segmented)
             .segmentedPickerRow()
-            .disabled(isOperating || !wafOn)
             // 全局 strict 未开启时严格模式不可选
-            .disabled(!globalStrictOn)
+            .disabled(isOperating || !wafOn || !globalStrictOn)
         } header: {
             Text(L10n.t("防护"))
         } footer: {
@@ -268,6 +282,31 @@ struct WAFWebsiteSettingsView: View {
         ) {
             globalStrictOn = (g.strict?.state == "on")
         }
+        await loadWebsiteConfig()
+    }
+
+    /// 读取当前站的网站配置，回填 CC 表单真实参数。
+    /// 失败静默保持现值（表单仍可手动编辑提交）；token 防快速切换网站的过期回填
+    private func loadWebsiteConfig() async {
+        guard let id = selectedID else { return }
+        ccLoadToken += 1
+        let token = ccLoadToken
+        do {
+            let cfg: WAFWebsiteConfig = try await client.send(
+                path: APIEndpoint.wafConfigWebsite.path,
+                body: WAFWebsiteConfigRequest(id: id),
+                as: WAFWebsiteConfig.self
+            )
+            guard token == ccLoadToken else { return }
+            if let cc = cfg.cc {
+                ccMode = cc.mode ?? "uri"
+                ccDuration = String(cc.duration ?? 10)
+                ccThreshold = String(cc.threshold ?? 200)
+                ccBlockTime = String(cc.ipBlockTime ?? 600)
+            }
+        } catch {
+            // 无单独错误提示：CC 表单维持默认值，避免干扰主流程
+        }
     }
 
     /// 网站级开关/模式切换；成功后重拉列表保持选中
@@ -305,6 +344,8 @@ struct WAFWebsiteSettingsView: View {
             await reloadKeepingSelection()
         } catch {
             errorMessage = error.localizedDescription
+            // 半途失败（state 已改而 rule 未提交）也要重载，保持 UI 与服务端一致
+            await reloadKeepingSelection()
         }
     }
 
@@ -339,12 +380,13 @@ struct WAFWebsiteSettingsView: View {
         )
     }
 
-    /// 状态切换后重拉网站列表（选中不变）
+    /// 状态切换后重拉网站列表（选中不变），并同步刷新 CC 表单回填值
     private func reloadKeepingSelection() async {
         let keep = selectedID
         if let all = try? await fetchAllWebsites() {
             websites = all
         }
         selectedID = websites.first { $0.id == keep }?.id ?? websites.first?.id
+        await loadWebsiteConfig()
     }
 }

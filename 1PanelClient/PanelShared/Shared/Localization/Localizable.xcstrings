@@ -6291,6 +6291,17 @@
         }
       }
     },
+    "在面板创建网站后，可在此为其配置 WAF 防护。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a website in the panel to configure WAF protection for it here."
+          }
+        }
+      }
+    },
     "在线" : {
       "extractionState" : "manual",
       "localizations" : {

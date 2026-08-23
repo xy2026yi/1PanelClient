@@ -322,6 +322,21 @@ nonisolated struct WAFWebsiteCCRuleRequest: Encodable {
     let websites: [Int]
 }
 
+// MARK: - 网站配置详情
+
+/// 网站配置详情请求（/waf/config/website，body {"id": 网站ID}）
+nonisolated struct WAFWebsiteConfigRequest: Encodable {
+    let id: Int
+}
+
+/// 网站配置详情（/waf/config/website 响应）：网站级各规则块当前值。
+/// cc 块用于频率限制表单回填真实参数，避免默认值覆盖服务器配置
+nonisolated struct WAFWebsiteConfig: Decodable {
+    let waf: WAFCore?
+    let cc: WAFCcRuleConfig?
+    let strict: WAFRuleItem?
+}
+
 // MARK: - CDN 真实 IP 获取
 
 /// 全局配置里的 CDN 规则块（config/global 响应 cdn 字段）

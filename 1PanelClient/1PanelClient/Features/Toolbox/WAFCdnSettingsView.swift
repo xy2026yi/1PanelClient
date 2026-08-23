@@ -1,5 +1,5 @@
 //
-//  WafcCdnSettingsView.swift
+//  WAFCdnSettingsView.swift
 //  1PanelClient
 //
 //  WAF 自定义规则 - CDN：开关走 config/global/state {scope:Cdn}；
@@ -130,6 +130,8 @@ struct WAFCdnSettingsView: View {
                 path: APIEndpoint.wafCdnUpdate.path, body: req, as: EmptyResponse.self
             )
             successMessage = L10n.t("已保存")
+            // 刷新全局配置：返回上级时 CDN 行的类型徽章显示新值
+            await vm.loadAll()
         } catch {
             errorMessage = error.localizedDescription
         }
