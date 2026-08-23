@@ -486,21 +486,15 @@ struct FirewallView: View {
             get: { actionRule != nil },
             set: { if !$0 { actionRule = nil } }
         )) {
-            ActionBottomSheet(
-                title: actionRule?.port ?? L10n.t("端口规则"),
-                items: [
-                    ActionMenuItem(title: L10n.t("修改"), icon: "pencil", color: .blue) {
-                        let r = actionRule
-                        editingRule = r
-                    },
-                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                        pendingDeleteRule = actionRule
-                    },
-                ],
-                onDismiss: { actionRule = nil }
-            )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
+            if let rule = actionRule {
+                FirewallActionSheet(kind: .port(rule)) { r in
+                    actionRule = nil
+                    editingRule = r
+                } onDelete: { r in
+                    actionRule = nil
+                    pendingDeleteRule = r
+                }
+            }
         }
         .alert(L10n.t("删除端口规则"), isPresented: Binding(
             get: { pendingDeleteRule != nil },
@@ -534,20 +528,15 @@ struct FirewallView: View {
             get: { actionForward != nil },
             set: { if !$0 { actionForward = nil } }
         )) {
-            ActionBottomSheet(
-                title: actionForward?.port ?? L10n.t("端口转发"),
-                items: [
-                    ActionMenuItem(title: L10n.t("修改"), icon: "pencil", color: .blue) {
-                        editingForward = actionForward
-                    },
-                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                        pendingDeleteForward = actionForward
-                    },
-                ],
-                onDismiss: { actionForward = nil }
-            )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
+            if let rule = actionForward {
+                FirewallActionSheet(kind: .forward(rule)) { r in
+                    actionForward = nil
+                    editingForward = r
+                } onDelete: { r in
+                    actionForward = nil
+                    pendingDeleteForward = r
+                }
+            }
         }
         // 删除转发：普通删除 + 强制删除两档（对齐面板 Web 端的可勾选项）
         .alert(L10n.t("删除端口转发"), isPresented: Binding(
@@ -588,20 +577,15 @@ struct FirewallView: View {
             get: { actionAddress != nil },
             set: { if !$0 { actionAddress = nil } }
         )) {
-            ActionBottomSheet(
-                title: actionAddress?.address ?? L10n.t("IP 规则"),
-                items: [
-                    ActionMenuItem(title: L10n.t("修改"), icon: "pencil", color: .blue) {
-                        editingAddress = actionAddress
-                    },
-                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                        pendingDeleteAddress = actionAddress
-                    },
-                ],
-                onDismiss: { actionAddress = nil }
-            )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
+            if let rule = actionAddress {
+                FirewallActionSheet(kind: .address(rule)) { r in
+                    actionAddress = nil
+                    editingAddress = r
+                } onDelete: { r in
+                    actionAddress = nil
+                    pendingDeleteAddress = r
+                }
+            }
         }
         .alert(L10n.t("删除 IP 规则"), isPresented: Binding(
             get: { pendingDeleteAddress != nil },
@@ -858,6 +842,115 @@ struct FirewallView: View {
         action: @escaping () -> Void
     ) -> some View {
         CardActionButton(title: title, icon: icon, color: color, disabled: vm.isOperating, action: action)
+    }
+}
+
+// MARK: - 行操作弹窗
+
+/// 防火墙行操作弹窗：对齐服务器页 ServerActionsSheet 的分组表单形态
+/// （信息头 + 修改 + 删除独立分组、图标行），比 ActionBottomSheet 紧凑条
+/// 更大气，端口规则/端口转发/IP 规则三段共用
+struct FirewallActionSheet: View {
+    enum Kind: Equatable {
+        case port(FirewallRule)
+        case forward(FirewallRule)
+        case address(FirewallRule)
+    }
+
+    let kind: Kind
+    var onEdit: (FirewallRule) -> Void
+    var onDelete: (FirewallRule) -> Void
+
+    private var rule: FirewallRule {
+        switch kind {
+        case .port(let r), .forward(let r), .address(let r): return r
+        }
+    }
+
+    /// 信息头副行：按段汇总规则要点
+    private var subtitle: String {
+        switch kind {
+        case .port(let r):
+            var parts: [String] = []
+            if let proto = r.protocolField, !proto.isEmpty { parts.append(proto.uppercased()) }
+            if let addr = r.address, !addr.isEmpty, addr != "Anywhere" {
+                parts.append(L10n.f("来源：%@", addr))
+            }
+            if let desc = r.description, !desc.isEmpty { parts.append(desc) }
+            return parts.joined(separator: " · ")
+        case .forward(let r):
+            var parts: [String] = []
+            let ip = r.targetIP ?? ""
+            let port = r.targetPort ?? ""
+            parts.append("→ " + (ip.isEmpty ? port : "\(ip):\(port)"))
+            if let proto = r.protocolField, !proto.isEmpty { parts.append(proto.uppercased()) }
+            if let i = r.interface, !i.isEmpty, i != "*" {
+                parts.append(L10n.f("网卡：%@", i))
+            }
+            return parts.joined(separator: " · ")
+        case .address(let r):
+            var parts: [String] = []
+            switch r.strategy?.lowercased() {
+            case "accept": parts.append(L10n.t("放行"))
+            case "drop": parts.append(L10n.t("屏蔽"))
+            default: break
+            }
+            if let desc = r.description, !desc.isEmpty { parts.append(desc) }
+            return parts.joined(separator: " · ")
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(kind == .address(rule) ? (rule.address ?? "-") : (rule.port ?? "-"))
+                            .font(.system(.headline, design: .monospaced))
+                        if !subtitle.isEmpty {
+                            Text(subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+
+                Section {
+                    actionRow(title: L10n.t("修改"), icon: "pencil", color: .blue) {
+                        onEdit(rule)
+                    }
+                }
+                Section {
+                    actionRow(title: L10n.t("删除"), icon: "trash", color: .red) {
+                        onDelete(rule)
+                    }
+                }
+            }
+            .navigationTitle(L10n.t("操作"))
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDragIndicator(.visible)
+    }
+
+    private func actionRow(
+        title: String,
+        icon: String,
+        color: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(color)
+                    .frame(width: 28)
+                Text(title)
+                    .foregroundStyle(.primary)
+                Spacer()
+            }
+            .padding(.vertical, 2)
+        }
     }
 }
 
