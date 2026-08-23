@@ -2124,6 +2124,28 @@
         }
       }
     },
+    "严格模式需在全局配置中开启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strict mode must be enabled in the global config first"
+          }
+        }
+      }
+    },
+    "严格模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strict Mode"
+          }
+        }
+      }
+    },
     "两次输入不一致，请重新设置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3418,6 +3440,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Linked Rules"
+          }
+        }
+      }
+    },
+    "关闭 WAF 会使网站失去防护，是否继续" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turning off WAF will leave this website unprotected. Continue?"
+          }
+        }
+      }
+    },
+    "关闭 WAF" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn Off WAF"
           }
         }
       }
@@ -8225,6 +8269,17 @@
         }
       }
     },
+    "开启观察模式后，所有 WAF 命中都只记录日志，不会拦截请求，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In observation mode, all WAF matches are only logged and no requests are blocked. Continue?"
+          }
+        }
+      }
+    },
     "开启自启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8854,6 +8909,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Run Logs"
+          }
+        }
+      }
+    },
+    "执行策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Execution Policy"
           }
         }
       }
@@ -11661,6 +11727,17 @@
         }
       }
     },
+    "标准模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard Mode"
+          }
+        }
+      }
+    },
     "标准存储" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11839,6 +11916,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Check node license status"
+          }
+        }
+      }
+    },
+    "检测强度" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detection Level"
           }
         }
       }
@@ -15100,6 +15188,17 @@
         }
       }
     },
+    "网站设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website Settings"
+          }
+        }
+      }
+    },
     "网站类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15558,6 +15657,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lines"
+          }
+        }
+      }
+    },
+    "观察模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Observation Mode"
           }
         }
       }
@@ -17782,6 +17892,17 @@
         }
       }
     },
+    "选择网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Website"
+          }
+        }
+      }
+    },
     "选择磁盘" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18482,6 +18603,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Image (Return to add)"
+          }
+        }
+      }
+    },
+    "防护模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protection Mode"
+          }
+        }
+      }
+    },
+    "防护" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protection"
           }
         }
       }

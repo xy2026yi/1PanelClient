@@ -268,3 +268,53 @@ nonisolated struct WAFLocationUpdateRequest: Encodable {
     let type: String
 }
 
+
+// MARK: - 网站设置
+
+/// WAF 网站设置项（/waf/websites/search 返回，含各开关当前状态）
+nonisolated struct WAFWebsiteItem: Decodable, Identifiable, Hashable {
+    let id: Int
+    let primaryDomain: String?
+    let alias: String?
+    let remark: String?
+    /// WAF 总开关 "on"/"off"
+    let wafState: String?
+    /// 执行策略 "protection"/"observation"
+    let wafMode: String?
+    /// 检测强度 "on"=严格 / "off"=标准
+    let strictState: String?
+    /// 频率限制 "on"/"off"
+    let ccState: String?
+    let configError: Bool?
+}
+
+nonisolated struct WAFWebsiteSearchRequest: Encodable {
+    let page: Int
+    let pageSize: Int
+    let name: String
+}
+
+/// 网站级开关/模式切换（scope: Waf / Cc / Strict；mode 仅 Waf scope 携带
+/// protection/observation，其余传 nil 省略）
+nonisolated struct WAFWebsiteStateRequest: Encodable {
+    let websiteID: Int
+    let scope: String
+    let state: String
+    let mode: String?
+}
+
+/// 网站级 CC 频率限制规则（开启频率限制的附带请求与参数保存共用）
+nonisolated struct WAFWebsiteCCRuleRequest: Encodable {
+    let state: String
+    let code: Int
+    let action: String
+    let type: String
+    let res: String
+    let ipBlock: String
+    let ipBlockTime: Int
+    let threshold: Int
+    let duration: Int
+    /// "uri"=URL模式 / "global"=全局模式
+    let mode: String
+    let websites: [Int]
+}

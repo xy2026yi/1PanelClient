@@ -94,6 +94,11 @@ struct WAFView: View {
             // 防护规则
             Section {
                 NavigationLink {
+                    WAFWebsiteSettingsView(server: server)
+                } label: {
+                    entryRow(icon: "at", color: .teal, title: L10n.t("网站设置"))
+                }
+                NavigationLink {
                     WAFBlackWhiteView(vm: vm, server: server)
                 } label: {
                     entryRow(icon: "shield.lefthalf.filled", color: .red, title: L10n.t("黑白名单"))
