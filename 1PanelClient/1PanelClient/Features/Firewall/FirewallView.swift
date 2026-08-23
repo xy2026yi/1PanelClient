@@ -12,6 +12,12 @@ import Combine
 final class FirewallViewModel: ObservableObject {
     @Published var base: FirewallBase?
     @Published var rules: [FirewallRule] = []
+    /// 端口转发规则（search type=forward）
+    @Published var forwards: [FirewallRule] = []
+    /// IP 规则（search type=address）
+    @Published var addresses: [FirewallRule] = []
+    /// 网卡列表（端口转发的入站网口选择；"all" 展示为「所有」）
+    @Published var netOptions: [String] = []
     /// 端口号 → 监听进程名（逗号拼接多个），来自 process/listening；
     /// 面板 firewall/search 的 usedStatus 只覆盖部分端口，这里补全
     @Published var portProcessNames: [String: String] = [:]
@@ -29,6 +35,9 @@ final class FirewallViewModel: ObservableObject {
         await loadBase()
         await loadRules()
         await loadListening()
+        await loadForwards()
+        await loadAddresses()
+        await loadNetOptions()
     }
 
     func loadBase() async {
@@ -172,7 +181,12 @@ final class FirewallViewModel: ObservableObject {
             usedStatus: old.usedStatus,
             description: description,
             family: old.family,
-            chain: old.chain
+            chain: old.chain,
+            num: old.num,
+            apiID: old.apiID,
+            targetIP: old.targetIP,
+            targetPort: old.targetPort,
+            interface: old.interface
         )
         let newFull = FirewallRuleFull(from: newRule, operation: "add")
         let req = FirewallUpdatePortRequest(oldRule: oldFull, newRule: newFull)
@@ -185,6 +199,179 @@ final class FirewallViewModel: ObservableObject {
         } catch {
             self.errorMessage = error.localizedDescription
             return false
+        }
+    }
+
+    // MARK: 端口转发
+
+    func loadForwards() async {
+        let req = FirewallSearchRequest(type: "forward", status: "", strategy: "", page: 1, pageSize: 200)
+        do {
+            let resp: PageResponse<FirewallRule> = try await client.send(
+                path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
+            )
+            self.forwards = resp.items ?? []
+            self.errorMessage = nil
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    func loadNetOptions() async {
+        do {
+            let resp: [String] = try await client.send(
+                path: APIEndpoint.monitorNetOptions.path,
+                method: APIEndpoint.monitorNetOptions.method,
+                as: [String].self
+            )
+            self.netOptions = resp
+        } catch {
+            // 网口列表失败静默：表单回退为只有「所有」
+        }
+    }
+
+    /// 创建端口转发；interface 传空串 = 所有网口（"all" 仅展示用）
+    func createForward(proto: String, port: String, targetIP: String, targetPort: String, interface: String) async -> Bool {
+        let rule = FirewallRule(
+            address: "", port: port, protocolField: proto, strategy: "",
+            usedStatus: "", description: "", family: "", chain: "",
+            num: nil, apiID: nil, targetIP: targetIP, targetPort: targetPort, interface: interface
+        )
+        let req = FirewallForwardRequest(rules: [FirewallRuleFull(fromForward: rule, operation: "add")], forceDelete: nil)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallForward.path, body: req, as: EmptyResponse.self
+            )
+            await loadForwards()
+            return true
+        } catch {
+            self.errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// 修改端口转发：old(remove，原值完整回传) + new(add)
+    func updateForward(
+        old: FirewallRule,
+        proto: String, port: String, targetIP: String, targetPort: String, interface: String
+    ) async -> Bool {
+        let oldFull = FirewallRuleFull(fromForward: old, operation: "remove")
+        let newRule = FirewallRule(
+            address: old.address ?? "", port: port, protocolField: proto,
+            strategy: old.strategy ?? "", usedStatus: old.usedStatus ?? "",
+            description: old.description ?? "", family: old.family ?? "", chain: old.chain ?? "",
+            num: old.num, apiID: old.apiID, targetIP: targetIP, targetPort: targetPort, interface: interface
+        )
+        let req = FirewallForwardRequest(rules: [oldFull, FirewallRuleFull(fromForward: newRule, operation: "add")], forceDelete: nil)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallForward.path, body: req, as: EmptyResponse.self
+            )
+            await loadForwards()
+            return true
+        } catch {
+            self.errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// 删除端口转发（force：面板校验端口被占用时需强制删除）
+    func deleteForward(_ rule: FirewallRule, force: Bool) async {
+        let req = FirewallForwardRequest(rules: [FirewallRuleFull(fromForward: rule, operation: "remove")], forceDelete: force)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallForward.path, body: req, as: EmptyResponse.self
+            )
+            await loadForwards()
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: IP 规则
+
+    func loadAddresses() async {
+        let req = FirewallSearchRequest(type: "address", status: "", strategy: "", page: 1, pageSize: 200)
+        do {
+            let resp: PageResponse<FirewallRule> = try await client.send(
+                path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
+            )
+            self.addresses = resp.items ?? []
+            self.errorMessage = nil
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 创建 IP 规则（address 支持逗号分隔多个）
+    func createAddressRule(address: String, strategy: String, description: String) async -> Bool {
+        let desc = description.trimmingCharacters(in: .whitespaces)
+        let req = FirewallIPRuleRequest(strategy: strategy, address: address, operation: "add", description: desc.isEmpty ? nil : desc)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallIP.path, body: req, as: EmptyResponse.self
+            )
+            await loadAddresses()
+            return true
+        } catch {
+            self.errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// 修改 IP 规则（指定 IP 不可改，仅策略/描述）；oldRule/newRule 保留 API 真实 id
+    func updateAddressRule(old: FirewallRule, strategy: String, description: String) async -> Bool {
+        let oldFull = FirewallRuleFull(fromAddressRule: old, operation: "remove")
+        let newFull = FirewallRuleFull(
+            id: oldFull.id,
+            chain: oldFull.chain,
+            family: oldFull.family,
+            address: oldFull.address,
+            port: oldFull.port,
+            protocolField: oldFull.protocolField,
+            strategy: strategy,
+            num: oldFull.num,
+            targetIP: oldFull.targetIP,
+            targetPort: oldFull.targetPort,
+            interface: oldFull.interface,
+            usedStatus: oldFull.usedStatus,
+            description: description,
+            usedPorts: [],
+            source: "",
+            operation: "add"
+        )
+        let req = FirewallUpdateAddrRequest(oldRule: oldFull, newRule: newFull)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallUpdateAddr.path, body: req, as: EmptyResponse.self
+            )
+            await loadAddresses()
+            return true
+        } catch {
+            self.errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// 删除 IP 规则（batch type=address，strategy 回传规则当前值）
+    func deleteAddressRule(_ rule: FirewallRule) async {
+        let br = FirewallBatchRule(
+            operation: "remove",
+            chain: rule.chain ?? "",
+            address: rule.address ?? "",
+            port: rule.port ?? "",
+            source: "",
+            protocolField: rule.protocolField ?? "",
+            strategy: rule.strategy ?? ""
+        )
+        let req = FirewallBatchRequest(type: "address", rules: [br])
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallBatch.path, body: req, as: EmptyResponse.self
+            )
+            await loadAddresses()
+        } catch {
+            self.errorMessage = error.localizedDescription
         }
     }
 }
@@ -200,6 +387,18 @@ struct FirewallView: View {
     @State private var actionRule: FirewallRule?
     @State private var statusExpanded = false
     @State private var showWhitelist = false
+    /// 内容段：0=端口规则 1=端口转发 2=IP 规则（顶部横条三段切换，同告警页）
+    @State private var segment = 0
+    // 端口转发
+    @State private var showAddForward = false
+    @State private var editingForward: FirewallRule?
+    @State private var actionForward: FirewallRule?
+    @State private var pendingDeleteForward: FirewallRule?
+    // IP 规则
+    @State private var showAddAddress = false
+    @State private var editingAddress: FirewallRule?
+    @State private var actionAddress: FirewallRule?
+    @State private var pendingDeleteAddress: FirewallRule?
     /// 白名单页需要独立建 APIClient（settings 接口与防火墙接口分离）
     private let server: ServerConfig
 
@@ -211,41 +410,32 @@ struct FirewallView: View {
     var body: some View {
         List {
             statusSection
-            if vm.rules.isEmpty {
-                if vm.isLoading {
-                    EmptyView()
-                } else {
-                    Section {
-                        ContentUnavailableView(
-                            L10n.t("暂无端口规则"),
-                            systemImage: "flame",
-                            description: Text(L10n.t("点击右上角 + 添加规则"))
-                        )
-                        .listRowBackground(Color.clear)
-                    }
+            Section {
+                Picker(L10n.t("模块"), selection: $segment) {
+                    Text(L10n.t("端口规则")).tag(0)
+                    Text(L10n.t("端口转发")).tag(1)
+                    Text(L10n.t("IP 规则")).tag(2)
                 }
-            } else {
-                Section {
-                    ForEach(vm.rules) { rule in
-                        Button {
-                            actionRule = rule
-                        } label: {
-                            FirewallRuleRow(
-                                rule: rule,
-                                processName: vm.portProcessNames[rule.port ?? ""]
-                            )
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                } header: {
-                    SectionLabel(title: L10n.f("端口规则（%ld）", vm.rules.count), systemImage: "list.bullet.rectangle")
-                }
+                .pickerStyle(.segmented)
+                .segmentedPickerRow()
+                .listRowSeparator(.hidden)
+            }
+
+            switch segment {
+            case 0: portRulesSection
+            case 1: forwardSection
+            default: addressSection
             }
         }
         .navigationTitle(L10n.t("防火墙"))
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await vm.refresh() }
+        .refreshable {
+            switch segment {
+            case 0: await vm.loadRules()
+            case 1: await vm.loadForwards()
+            default: await vm.loadAddresses()
+            }
+        }
         .task {
             if vm.base == nil {
                 vm.isLoading = true
@@ -263,12 +453,16 @@ struct FirewallView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    showAdd = true
+                    switch segment {
+                    case 0: showAdd = true
+                    case 1: showAddForward = true
+                    default: showAddAddress = true
+                    }
                 } label: {
                     Image(systemName: "plus")
                 }
                 .disabled(vm.base?.isExist != true)
-                .accessibilityLabel(L10n.t("添加规则"))
+                .accessibilityLabel(segment == 1 ? L10n.t("添加端口转发") : segment == 2 ? L10n.t("添加 IP 规则") : L10n.t("添加规则"))
             }
         }
         .navigationDestination(isPresented: $showAdd) {
@@ -324,6 +518,107 @@ struct FirewallView: View {
                 Text(L10n.f("确定删除端口规则「%@」吗？删除后不可恢复。", rule.port ?? ""))
             }
         }
+        // 端口转发：创建 / 编辑
+        .navigationDestination(isPresented: $showAddForward) {
+            FirewallForwardFormView(vm: vm, editing: nil)
+        }
+        .navigationDestination(isPresented: Binding(
+            get: { editingForward != nil },
+            set: { if !$0 { editingForward = nil } }
+        )) {
+            if let rule = editingForward {
+                FirewallForwardFormView(vm: vm, editing: rule)
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { actionForward != nil },
+            set: { if !$0 { actionForward = nil } }
+        )) {
+            ActionBottomSheet(
+                title: actionForward?.port ?? L10n.t("端口转发"),
+                items: [
+                    ActionMenuItem(title: L10n.t("修改"), icon: "pencil", color: .blue) {
+                        editingForward = actionForward
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        pendingDeleteForward = actionForward
+                    },
+                ],
+                onDismiss: { actionForward = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
+        // 删除转发：普通删除 + 强制删除两档（对齐面板 Web 端的可勾选项）
+        .alert(L10n.t("删除端口转发"), isPresented: Binding(
+            get: { pendingDeleteForward != nil },
+            set: { if !$0 { pendingDeleteForward = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDeleteForward = nil }
+            Button(L10n.t("删除"), role: .destructive) {
+                if let rule = pendingDeleteForward {
+                    pendingDeleteForward = nil
+                    Task { await vm.deleteForward(rule, force: false) }
+                }
+            }
+            Button(L10n.t("强制删除"), role: .destructive) {
+                if let rule = pendingDeleteForward {
+                    pendingDeleteForward = nil
+                    Task { await vm.deleteForward(rule, force: true) }
+                }
+            }
+        } message: {
+            if let rule = pendingDeleteForward {
+                Text(L10n.f("确定删除端口转发「%@」吗？若端口被占用可选择强制删除。", rule.port ?? ""))
+            }
+        }
+        // IP 规则：创建 / 编辑
+        .navigationDestination(isPresented: $showAddAddress) {
+            FirewallAddressFormView(vm: vm, editing: nil)
+        }
+        .navigationDestination(isPresented: Binding(
+            get: { editingAddress != nil },
+            set: { if !$0 { editingAddress = nil } }
+        )) {
+            if let rule = editingAddress {
+                FirewallAddressFormView(vm: vm, editing: rule)
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { actionAddress != nil },
+            set: { if !$0 { actionAddress = nil } }
+        )) {
+            ActionBottomSheet(
+                title: actionAddress?.address ?? L10n.t("IP 规则"),
+                items: [
+                    ActionMenuItem(title: L10n.t("修改"), icon: "pencil", color: .blue) {
+                        editingAddress = actionAddress
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        pendingDeleteAddress = actionAddress
+                    },
+                ],
+                onDismiss: { actionAddress = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
+        .alert(L10n.t("删除 IP 规则"), isPresented: Binding(
+            get: { pendingDeleteAddress != nil },
+            set: { if !$0 { pendingDeleteAddress = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDeleteAddress = nil }
+            Button(L10n.t("删除"), role: .destructive) {
+                if let rule = pendingDeleteAddress {
+                    pendingDeleteAddress = nil
+                    Task { await vm.deleteAddressRule(rule) }
+                }
+            }
+        } message: {
+            if let rule = pendingDeleteAddress {
+                Text(L10n.f("将对 \"%@\" 进行删除操作，是否继续？", rule.address ?? ""))
+            }
+        }
         .alert(
             pendingUFWOp.map { opTitle($0) } ?? "",
             isPresented: Binding(
@@ -342,6 +637,110 @@ struct FirewallView: View {
             Button(L10n.t("取消"), role: .cancel) { pendingUFWOp = nil }
         } message: {
             Text(L10n.t("启用/停用防火墙可能影响 Docker 网络连通性。是否立即重启 Docker？"))
+        }
+    }
+
+    // MARK: - 段内容
+
+    /// 段 0：端口规则（原有逻辑）
+    @ViewBuilder
+    private var portRulesSection: some View {
+        if vm.rules.isEmpty {
+            if vm.isLoading {
+                EmptyView()
+            } else {
+                Section {
+                    ContentUnavailableView(
+                        L10n.t("暂无端口规则"),
+                        systemImage: "flame",
+                        description: Text(L10n.t("点击右上角 + 添加规则"))
+                    )
+                    .listRowBackground(Color.clear)
+                }
+            }
+        } else {
+            Section {
+                ForEach(vm.rules) { rule in
+                    Button {
+                        actionRule = rule
+                    } label: {
+                        FirewallRuleRow(
+                            rule: rule,
+                            processName: vm.portProcessNames[rule.port ?? ""]
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                SectionLabel(title: L10n.f("端口规则（%ld）", vm.rules.count), systemImage: "list.bullet.rectangle")
+            }
+        }
+    }
+
+    /// 段 1：端口转发
+    @ViewBuilder
+    private var forwardSection: some View {
+        if vm.forwards.isEmpty {
+            if vm.isLoading {
+                EmptyView()
+            } else {
+                Section {
+                    ContentUnavailableView(
+                        L10n.t("暂无端口转发"),
+                        systemImage: "arrow.uturn.right",
+                        description: Text(L10n.t("点击右上角 + 添加规则"))
+                    )
+                    .listRowBackground(Color.clear)
+                }
+            }
+        } else {
+            Section {
+                ForEach(vm.forwards) { rule in
+                    Button {
+                        actionForward = rule
+                    } label: {
+                        FirewallForwardRow(rule: rule)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                SectionLabel(title: L10n.f("端口转发（%ld）", vm.forwards.count), systemImage: "arrow.uturn.right")
+            }
+        }
+    }
+
+    /// 段 2：IP 规则
+    @ViewBuilder
+    private var addressSection: some View {
+        if vm.addresses.isEmpty {
+            if vm.isLoading {
+                EmptyView()
+            } else {
+                Section {
+                    ContentUnavailableView(
+                        L10n.t("暂无 IP 规则"),
+                        systemImage: "person.crop.circle.badge.xmark",
+                        description: Text(L10n.t("点击右上角 + 添加规则"))
+                    )
+                    .listRowBackground(Color.clear)
+                }
+            }
+        } else {
+            Section {
+                ForEach(vm.addresses) { rule in
+                    Button {
+                        actionAddress = rule
+                    } label: {
+                        FirewallAddressRow(rule: rule)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                SectionLabel(title: L10n.f("IP 规则（%ld）", vm.addresses.count), systemImage: "person.crop.circle.badge.xmark")
+            }
         }
     }
 
@@ -510,6 +909,82 @@ struct FirewallRuleRow: View {
         default:
             if let s { StatusBadge(text: s, color: .secondary) }
         }
+    }
+}
+
+// MARK: - 端口转发规则行
+
+/// 转发行：源端口 → 目标（IP:端口），协议徽章 + 入站网口说明
+struct FirewallForwardRow: View {
+    let rule: FirewallRule
+
+    /// 目标展示："IP:端口" 或仅端口（目标 IP 为空时）
+    private var targetText: String {
+        let ip = rule.targetIP ?? ""
+        let port = rule.targetPort ?? ""
+        return ip.isEmpty ? port : "\(ip):\(port)"
+    }
+
+    /// 入站网口展示："*"/"" → 所有
+    private var interfaceText: String? {
+        guard let i = rule.interface, !i.isEmpty, i != "*" else { return nil }
+        return i
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text(rule.port ?? "-")
+                    .font(.system(.body, design: .monospaced).bold())
+                Image(systemName: "arrow.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(targetText)
+                    .font(.system(.body, design: .monospaced))
+                if let proto = rule.protocolField, !proto.isEmpty {
+                    StatusBadge(text: proto.uppercased(), color: .blue)
+                }
+                Spacer()
+            }
+            if let iface = interfaceText {
+                Text(L10n.f("网卡：%@", iface))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if let desc = rule.description, !desc.isEmpty {
+                Text(desc).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - IP 规则行
+
+/// IP 规则行：地址 + 放行/屏蔽徽章 + 描述
+struct FirewallAddressRow: View {
+    let rule: FirewallRule
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text(rule.address ?? "-")
+                    .font(.system(.body, design: .monospaced).bold())
+                Spacer()
+                switch rule.strategy?.lowercased() {
+                case "accept":
+                    StatusBadge(text: L10n.t("放行"), color: .green, icon: "checkmark")
+                case "drop":
+                    StatusBadge(text: L10n.t("屏蔽"), color: .red, icon: "xmark")
+                default:
+                    EmptyView()
+                }
+            }
+            if let desc = rule.description, !desc.isEmpty {
+                Text(desc).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
@@ -930,6 +1405,198 @@ struct FirewallEditRuleView: View {
             let addr = rule.address ?? ""
             address = (addr == "Anywhere") ? "" : addr
             description = rule.description ?? ""
+        }
+    }
+}
+
+// MARK: - 端口转发表单（创建 / 编辑共用）
+
+/// 协议 tcp / udp / tcp/udp；源端口与目标端口支持范围（8080-8089）；
+/// 目标 IP 可选；入站网口从 monitor/netoptions 拉取（"all" 展示「所有」、提交空串）
+struct FirewallForwardFormView: View {
+    @ObservedObject var vm: FirewallViewModel
+    /// 编辑的原规则（nil=创建）
+    var editing: FirewallRule?
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var proto = "tcp"
+    @State private var port = ""
+    @State private var targetIP = ""
+    @State private var targetPort = ""
+    /// 提交值：空串 = 所有网口
+    @State private var networkInterface = ""
+    @State private var saving = false
+
+    private let protos = ["tcp", "udp", "tcp/udp"]
+
+    private var isValid: Bool {
+        !port.trimmingCharacters(in: .whitespaces).isEmpty
+            && !targetPort.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// 网口选项：所有（空串）+ netOptions 去掉 "all" 后的具体网卡
+    private var interfaceOptions: [(label: String, value: String)] {
+        [(L10n.t("所有"), "")] + vm.netOptions
+            .filter { $0 != "all" }
+            .map { (label: $0, value: $0) }
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Picker(L10n.t("协议"), selection: $proto) {
+                    ForEach(protos, id: \.self) { Text($0.uppercased()) }
+                }
+                .pickerStyle(.segmented)
+                .segmentedPickerRow()
+
+                TextField(L10n.t("源端口"), text: $port)
+                    .keyboardType(.numbersAndPunctuation)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+
+                TextField(L10n.t("目标 IP"), text: $targetIP)
+                    .keyboardType(.numbersAndPunctuation)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+
+                TextField(L10n.t("目标端口"), text: $targetPort)
+                    .keyboardType(.numbersAndPunctuation)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+
+                Picker(L10n.t("转发入站网口"), selection: $networkInterface) {
+                    ForEach(interfaceOptions, id: \.value) { opt in
+                        Text(opt.label).tag(opt.value)
+                    }
+                }
+            } header: {
+                Text(L10n.t("端口转发"))
+            } footer: {
+                Text(L10n.t("源端口与目标端口支持端口范围，如: 8080-8089；目标 IP 可留空。"))
+            }
+        }
+        .navigationTitle(editing == nil ? L10n.t("添加端口转发") : L10n.t("编辑端口转发"))
+        .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(L10n.t("保存")) {
+                    Task {
+                        saving = true
+                        let p = port.trimmingCharacters(in: .whitespaces)
+                        let ip = targetIP.trimmingCharacters(in: .whitespaces)
+                        let tp = targetPort.trimmingCharacters(in: .whitespaces)
+                        let ok: Bool
+                        if let editing {
+                            ok = await vm.updateForward(
+                                old: editing, proto: proto, port: p,
+                                targetIP: ip, targetPort: tp, interface: networkInterface
+                            )
+                        } else {
+                            ok = await vm.createForward(
+                                proto: proto, port: p,
+                                targetIP: ip, targetPort: tp, interface: networkInterface
+                            )
+                        }
+                        saving = false
+                        if ok { dismiss() }
+                    }
+                }
+                .disabled(!isValid || saving)
+            }
+        }
+        .onAppear {
+            if let editing {
+                port = editing.port ?? ""
+                proto = editing.protocolField ?? "tcp"
+                targetIP = editing.targetIP ?? ""
+                targetPort = editing.targetPort ?? ""
+                // "*" 与空都视为所有网口
+                if let i = editing.interface, !i.isEmpty, i != "*" {
+                    networkInterface = i
+                }
+            }
+        }
+    }
+}
+
+// MARK: - IP 规则表单（创建 / 编辑共用）
+
+/// 创建：指定 IP（逗号分隔多个）+ 策略（放行/屏蔽）+ 描述；
+/// 编辑：指定 IP 不可更改（update/addr 不支持改地址），仅策略/描述
+struct FirewallAddressFormView: View {
+    @ObservedObject var vm: FirewallViewModel
+    var editing: FirewallRule?
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var address = ""
+    @State private var strategy = "accept"
+    @State private var description = ""
+    @State private var saving = false
+
+    private var isValid: Bool {
+        !address.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                TextField(L10n.t("指定 IP"), text: $address)
+                    .keyboardType(.numbersAndPunctuation)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .disabled(editing != nil)
+                Picker(L10n.t("策略"), selection: $strategy) {
+                    Text(L10n.t("放行")).tag("accept")
+                    Text(L10n.t("屏蔽")).tag("drop")
+                }
+                .pickerStyle(.segmented)
+                .segmentedPickerRow()
+                TextField(L10n.t("描述"), text: $description)
+            } header: {
+                Text(L10n.t("IP 规则"))
+            } footer: {
+                if editing == nil {
+                    Text(L10n.t("多个 IP 用英文逗号分隔，如: 192.168.50.100,192.168.51.100"))
+                }
+            }
+        }
+        .navigationTitle(editing == nil ? L10n.t("添加 IP 规则") : L10n.t("编辑 IP 规则"))
+        .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(L10n.t("保存")) {
+                    Task {
+                        saving = true
+                        let ok: Bool
+                        if let editing {
+                            ok = await vm.updateAddressRule(
+                                old: editing,
+                                strategy: strategy,
+                                description: description.trimmingCharacters(in: .whitespaces)
+                            )
+                        } else {
+                            ok = await vm.createAddressRule(
+                                address: address.trimmingCharacters(in: .whitespaces),
+                                strategy: strategy,
+                                description: description.trimmingCharacters(in: .whitespaces)
+                            )
+                        }
+                        saving = false
+                        if ok { dismiss() }
+                    }
+                }
+                .disabled(!isValid || saving)
+            }
+        }
+        .onAppear {
+            if let editing {
+                address = editing.address ?? ""
+                strategy = editing.strategy ?? "accept"
+                description = editing.description ?? ""
+            }
         }
     }
 }

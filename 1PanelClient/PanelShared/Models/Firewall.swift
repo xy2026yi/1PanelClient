@@ -27,8 +27,9 @@ nonisolated struct FirewallBase: Decodable {
 }
 
 /// 防火墙端口规则（/firewall/search 返回 items）
-/// 注意：API 返回的 id 恒为 0，无法用于唯一标识，
-/// 改用 port/protocol/address/strategy/family 组合做 Identifiable.id
+/// 注意：端口规则的 API id 恒为 0，无法用于唯一标识，
+/// 改用 port/protocol/address/strategy/family 组合做 Identifiable.id；
+/// IP 规则携带真实 id（update/addr 需回传），端口转发额外带 num/target 字段
 nonisolated struct FirewallRule: Decodable, Identifiable, Hashable {
     let address: String?
     let port: String?
@@ -38,15 +39,24 @@ nonisolated struct FirewallRule: Decodable, Identifiable, Hashable {
     let description: String?
     let family: String?
     let chain: String?
+    /// 端口转发序号 / IP 规则的真实 id（端口规则恒 0 或缺失）
+    let num: String?
+    let apiID: Int?
+    /// 端口转发的目标地址 / 端口 / 入站网口（"*" 或具体网卡名）
+    let targetIP: String?
+    let targetPort: String?
+    let interface: String?
 
     enum CodingKeys: String, CodingKey {
         case address, port, strategy, usedStatus, description, family, chain
+        case num, targetIP, targetPort, interface
+        case apiID = "id"
         case protocolField = "protocol"
     }
 
-    /// 组合唯一键（API 的 id 全为 0 无意义）
+    /// 组合唯一键（端口规则 id 全 0 无意义；转发规则含目标字段防止同端口同协议不同目标撞键）
     var id: String {
-        "\(port ?? "")|\(protocolField ?? "")|\(address ?? "")|\(strategy ?? "")|\(family ?? "")"
+        "\(port ?? "")|\(protocolField ?? "")|\(address ?? "")|\(strategy ?? "")|\(family ?? "")|\(targetIP ?? "")|\(targetPort ?? "")|\(interface ?? "")"
     }
 }
 
@@ -150,10 +160,10 @@ extension FirewallRuleFull {
             port: rule.port ?? "",
             protocolField: rule.protocolField ?? "tcp",
             strategy: rule.strategy ?? "accept",
-            num: "",
-            targetIP: "",
-            targetPort: "",
-            interface: "",
+            num: rule.num ?? "",
+            targetIP: rule.targetIP ?? "",
+            targetPort: rule.targetPort ?? "",
+            interface: rule.interface ?? "",
             usedStatus: rule.usedStatus ?? "",
             description: rule.description ?? "",
             usedPorts: [],
@@ -161,4 +171,74 @@ extension FirewallRuleFull {
             operation: operation
         )
     }
+
+    /// 由搜索结果构造完整规则对象，保留 API 真实 id（IP 规则 update/addr 回传用）
+    init(fromAddressRule rule: FirewallRule, operation: String) {
+        self.init(
+            id: rule.apiID ?? 0,
+            chain: rule.chain ?? "",
+            family: rule.family ?? "",
+            address: rule.address ?? "",
+            port: rule.port ?? "",
+            protocolField: rule.protocolField ?? "",
+            strategy: rule.strategy ?? "",
+            num: rule.num ?? "",
+            targetIP: rule.targetIP ?? "",
+            targetPort: rule.targetPort ?? "",
+            interface: rule.interface ?? "",
+            usedStatus: rule.usedStatus ?? "",
+            description: rule.description ?? "",
+            usedPorts: [],
+            source: "",
+            operation: operation
+        )
+    }
+
+    /// 端口转发的完整规则对象（family/num/target/interface 原值回传，source 恒空）
+    init(fromForward rule: FirewallRule, operation: String) {
+        self.init(
+            id: 0,
+            chain: rule.chain ?? "",
+            family: rule.family ?? "",
+            address: rule.address ?? "",
+            port: rule.port ?? "",
+            protocolField: rule.protocolField ?? "tcp",
+            strategy: rule.strategy ?? "",
+            num: rule.num ?? "",
+            targetIP: rule.targetIP ?? "",
+            targetPort: rule.targetPort ?? "",
+            interface: rule.interface ?? "",
+            usedStatus: rule.usedStatus ?? "",
+            description: rule.description ?? "",
+            usedPorts: [],
+            source: "",
+            operation: operation
+        )
+    }
+}
+
+// MARK: - 端口转发（/firewall/forward）
+
+/// 端口转发批量操作请求（创建/编辑为 1-2 条 rules；删除带 forceDelete）
+nonisolated struct FirewallForwardRequest: Encodable {
+    let rules: [FirewallRuleFull]
+    /// 仅删除时携带（nil 时省略）
+    let forceDelete: Bool?
+}
+
+// MARK: - IP 规则（/firewall/ip · /firewall/update/addr）
+
+/// 创建 IP 规则请求（address 支持逗号分隔多个）
+nonisolated struct FirewallIPRuleRequest: Encodable {
+    let strategy: String
+    let address: String
+    let operation: String
+    /// 描述为空时省略（对齐面板 Web 端行为）
+    let description: String?
+}
+
+/// 修改 IP 规则请求（oldRule remove + newRule add）
+nonisolated struct FirewallUpdateAddrRequest: Encodable {
+    let oldRule: FirewallRuleFull
+    let newRule: FirewallRuleFull
 }

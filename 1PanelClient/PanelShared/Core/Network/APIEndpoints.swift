@@ -136,6 +136,10 @@ enum APIEndpoint {
     case firewallPort             // POST 创建端口规则
     case firewallBatch            // POST 批量删除端口规则
     case firewallUpdatePort       // POST 修改端口规则
+    case firewallForward          // POST 端口转发批量操作（add/remove，删除带 forceDelete）
+    case firewallIP               // POST 创建 IP 规则
+    case firewallUpdateAddr       // POST 修改 IP 规则
+    case monitorNetOptions        // GET  网卡列表（端口转发的入站网口选择）
 
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库(MySQL)
@@ -455,6 +459,10 @@ enum APIEndpoint {
         case .firewallPort:          return "/api/v2/hosts/firewall/port"
         case .firewallBatch:         return "/api/v2/hosts/firewall/batch"
         case .firewallUpdatePort:    return "/api/v2/hosts/firewall/update/port"
+        case .firewallForward:       return "/api/v2/hosts/firewall/forward"
+        case .firewallIP:            return "/api/v2/hosts/firewall/ip"
+        case .firewallUpdateAddr:    return "/api/v2/hosts/firewall/update/addr"
+        case .monitorNetOptions:     return "/api/v2/hosts/monitor/netoptions"
         case .databasesSearch:       return "/api/v2/databases/search"
         case .databasesPgSearch:     return "/api/v2/databases/pg/search"
         case .databasesFormatOptions: return "/api/v2/databases/format/options"
@@ -621,6 +629,7 @@ enum APIEndpoint {
     var method: String {
         switch self {
         case .dashboardOS, .dashboardBase, .dashboardCurrent, .dashboardTopCPU, .dashboardTopMem,
+             .monitorNetOptions,
              .appsIgnoredList, .appsStoreDetail,
              .appsInstalledDeleteCheck, .appsInstalledParams,
              .appStoreSettingConfig,
