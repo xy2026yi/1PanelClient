@@ -282,7 +282,7 @@ struct MonitorView: View {
                     .font(.headline)
                 Spacer()
                 Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
+                    withAnimation(Motion.standard) {
                         showLoadChart.toggle()
                     }
                 } label: {
@@ -434,7 +434,7 @@ struct MonitorView: View {
                     .font(.headline)
                 Spacer()
                 Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
+                    withAnimation(Motion.standard) {
                         showCPUChart.toggle()
                     }
                 } label: {
@@ -518,7 +518,7 @@ struct MonitorView: View {
                     .font(.headline)
                 Spacer()
                 Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
+                    withAnimation(Motion.standard) {
                         showMemChart.toggle()
                     }
                 } label: {

@@ -284,7 +284,7 @@ struct PortsInfoRow: View {
 
             if needsFold {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.25)) { isExpanded.toggle() }
+                    withAnimation(Motion.standard) { isExpanded.toggle() }
                 } label: {
                     Label(
                         isExpanded ? L10n.t("收起") : L10n.f("展开全部 %ld 条", ports.count),

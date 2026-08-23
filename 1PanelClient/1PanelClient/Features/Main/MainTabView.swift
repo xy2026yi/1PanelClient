@@ -43,6 +43,8 @@ struct MainTabView: View {
     @State private var settingsAtRoot = true
 
     @Environment(\.horizontalSizeClass) private var hSize
+    /// 「减弱动态效果」：Tab 栏滑入/侧栏收展动画退化为淡入淡出或直接布局
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var showTabBar: Bool {
         switch selectedTab {
@@ -72,10 +74,10 @@ struct MainTabView: View {
                     .safeAreaInset(edge: .bottom, spacing: 0) {
                         if !sidebarVisible && showTabBar {
                             BottomTabBar(selectedTab: $selectedTab)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
                         }
                     }
-                    .animation(.easeInOut(duration: 0.25), value: showTabBar)
+                    .animation(Motion.standard, value: showTabBar)
                     .padding(.leading, sidebarVisible ? currentSidebarWidth : 0)
 
                 if sidebarVisible {
@@ -88,9 +90,10 @@ struct MainTabView: View {
                     }
                 }
             }
-            .animation(.easeInOut(duration: 0.25), value: hSize)
-            .animation(.easeInOut(duration: 0.25), value: sidebarVisible)
-            .animation(.easeInOut(duration: 0.25), value: useRail)
+            // 「减弱动态效果」开启时侧栏收展/Tab 栏滑入退化为纯布局变化，不动画
+            .animation(reduceMotion ? nil : Motion.standard, value: hSize)
+            .animation(reduceMotion ? nil : Motion.standard, value: sidebarVisible)
+            .animation(reduceMotion ? nil : Motion.standard, value: useRail)
             .onGeometryChange(for: CGFloat.self) { proxy in
                 proxy.size.width
             } action: { width in
@@ -132,7 +135,7 @@ struct MainTabView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .selectAppTab)) { note in
             if let tab = note.object as? AppTab {
-                withAnimation(.easeInOut(duration: 0.15)) {
+                withAnimation(Motion.fast) {
                     selectedTab = tab
                 }
             }
@@ -326,7 +329,7 @@ private struct BottomTabBar: View {
         let isSelected = selectedTab == tab
         Button {
             Haptic.selection()
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(Motion.fast) {
                 selectedTab = tab
             }
         } label: {

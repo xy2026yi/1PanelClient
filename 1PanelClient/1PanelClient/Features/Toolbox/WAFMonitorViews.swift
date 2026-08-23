@@ -239,6 +239,13 @@ struct WAFDayBarChart: View {
                 }
             }
         }
+        // VoiceOver：柱图拖动交互不可达，改为整体摘要朗读
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.f(
+            "近 7 日峰值 %ld，合计 %ld",
+            values.map(\.value).max() ?? 0,
+            values.map(\.value).reduce(0, +)
+        ))
     }
 
     private func bubble(_ item: (day: String, value: Int)) -> some View {

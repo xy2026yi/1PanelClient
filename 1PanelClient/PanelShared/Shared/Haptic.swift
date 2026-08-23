@@ -6,6 +6,7 @@
 //  危险操作确认执行=warning、操作成功/失败=success/warning、Tab 切换与选择器=selection。
 //
 
+import SwiftUI
 import UIKit
 
 enum Haptic {
@@ -28,4 +29,15 @@ enum Haptic {
     static func error() {
         UINotificationFeedbackGenerator().notificationOccurred(.error)
     }
+}
+
+// MARK: - 动画时长 token
+
+/// 全 App 动画只分两档：微交互反馈用 fast，面板/内容展开用 standard。
+/// 散点时长（0.12/0.18/0.22/0.3/0.4 等）已全部收敛到这两档，新增动画勿再写裸时长。
+enum Motion {
+    /// 快：菜单开合、按压回弹、Toast（0.15s easeOut）
+    static let fast = Animation.easeOut(duration: 0.15)
+    /// 中：图表填充、面板展开、键盘跟随（0.25s easeInOut）
+    static let standard = Animation.easeInOut(duration: 0.25)
 }

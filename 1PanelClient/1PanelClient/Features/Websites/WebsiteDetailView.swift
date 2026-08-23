@@ -121,7 +121,7 @@ struct WebsiteDetailView: View {
                     .action(title: L10n.t("重定向")) { showRedirects = true },
                     .action(title: L10n.t("密码访问")) { showAuths = true },
                 ]) {
-                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
+                    withAnimation(Motion.fast) { showMenu = false }
                 }
             }
         }
@@ -139,7 +139,7 @@ struct WebsiteDetailView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {
-                    withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
+                    withAnimation(Motion.fast) { showMenu.toggle() }
                 }
             }
         }
@@ -237,7 +237,7 @@ struct WebsiteDetailView: View {
                     .foregroundStyle(.secondary)
             }
             Button {
-                withAnimation(.easeInOut(duration: 0.25)) {
+                withAnimation(Motion.standard) {
                     isStatusExpanded.toggle()
                 }
             } label: {

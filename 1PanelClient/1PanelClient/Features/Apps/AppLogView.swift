@@ -172,21 +172,21 @@ struct AppLogView: View {
                 }
                 .onChange(of: logLines.count) { _, _ in
                     if isFollowing {
-                        withAnimation(.easeInOut(duration: 0.25)) {
+                        withAnimation(Motion.standard) {
                             proxy.scrollTo(logLines.count - 1, anchor: .bottom)
                         }
                     }
                 }
                 .onChange(of: scrollToBottomTrigger) { _, _ in
                     if !logLines.isEmpty {
-                        withAnimation(.easeInOut(duration: 0.25)) {
+                        withAnimation(Motion.standard) {
                             proxy.scrollTo(logLines.count - 1, anchor: .bottom)
                         }
                     }
                 }
                 .onChange(of: isFollowing) { _, following in
                     if following && !logLines.isEmpty {
-                        withAnimation(.easeInOut(duration: 0.25)) {
+                        withAnimation(Motion.standard) {
                             proxy.scrollTo(logLines.count - 1, anchor: .bottom)
                         }
                     }

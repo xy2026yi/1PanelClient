@@ -465,7 +465,7 @@ struct RingStatView: View {
                     .stroke(color,
                             style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.4), value: percent)
+                    .animation(Motion.standard, value: percent)
                 // 圆心文字：上（%）+ 下（标签）
                 VStack(spacing: compact ? 0 : 2) {
                     Text(topText)
@@ -492,6 +492,9 @@ struct RingStatView: View {
             }
         }
         .frame(maxWidth: .infinity)
+        // VoiceOver：圆环图形无语义，合并为一个元素按「标签 + 百分比 + 明细」朗读
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(bottomText) \(topText)\(footer.isEmpty ? "" : "，\(footer)")")
     }
 }
 

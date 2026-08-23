@@ -51,7 +51,7 @@ struct ContainerImageView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {
-                    withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
+                    withAnimation(Motion.fast) { showMenu.toggle() }
                 }
                 .disabled(vm.imageOperating)
             }
@@ -64,7 +64,7 @@ struct ContainerImageView: View {
                     .divider,
                     .action(title: L10n.t("清理镜像")) { showPruneSelect = true },
                 ]) {
-                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
+                    withAnimation(Motion.fast) { showMenu = false }
                 }
             }
         }

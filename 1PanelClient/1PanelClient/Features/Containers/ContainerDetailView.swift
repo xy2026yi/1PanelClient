@@ -217,7 +217,7 @@ struct ContainerDetailView: View {
                     .foregroundStyle(.secondary)
             }
             Button {
-                withAnimation(.easeInOut(duration: 0.25)) {
+                withAnimation(Motion.standard) {
                     isStatusExpanded.toggle()
                 }
             } label: {

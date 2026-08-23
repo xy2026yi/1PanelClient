@@ -69,7 +69,7 @@ struct CertificatesTab: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {
-                    withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
+                    withAnimation(Motion.fast) { showMenu.toggle() }
                 }
             }
         }
@@ -81,7 +81,7 @@ struct CertificatesTab: View {
                     .divider,
                     .action(title: L10n.t("自签证书")) { showCA = true },
                 ]) {
-                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
+                    withAnimation(Motion.fast) { showMenu = false }
                 }
             }
         }
@@ -306,7 +306,7 @@ struct CertificateDetailView: View {
                 // 既非 Acme 也非手动证书时无菜单项，隐藏按钮避免弹出空气泡
                 if !menuEntries.isEmpty {
                     EllipsisMenuButton {
-                        withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
+                        withAnimation(Motion.fast) { showMenu.toggle() }
                     }
                 }
             }
@@ -314,7 +314,7 @@ struct CertificateDetailView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: menuEntries) {
-                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
+                    withAnimation(Motion.fast) { showMenu = false }
                 }
             }
         }

@@ -54,7 +54,7 @@ struct WebsitesTab: View {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
                     EllipsisMenuButton {
-                        withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
+                        withAnimation(Motion.fast) { showMenu.toggle() }
                     }
                 }
             }
@@ -64,7 +64,7 @@ struct WebsitesTab: View {
                 EllipsisMenuPopup(entries: [
                     .action(title: L10n.t("SSL证书")) { showCerts = true },
                 ]) {
-                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
+                    withAnimation(Motion.fast) { showMenu = false }
                 }
             }
         }

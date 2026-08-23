@@ -52,7 +52,7 @@ struct AppStoreTab: View {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
                     EllipsisMenuButton(isLoading: vm.isSyncing) {
-                        withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
+                        withAnimation(Motion.fast) { showMenu.toggle() }
                     }
                 }
             }
@@ -71,7 +71,7 @@ struct AppStoreTab: View {
                         }
                     },
                 ]) {
-                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
+                    withAnimation(Motion.fast) { showMenu = false }
                 }
             }
         }

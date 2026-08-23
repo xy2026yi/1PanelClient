@@ -72,7 +72,7 @@ struct AppsTab: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     EllipsisMenuButton {
-                        withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
+                        withAnimation(Motion.fast) { showMenu.toggle() }
                     }
                     .accessibilityLabel(L10n.t("更多"))
                 }
@@ -84,7 +84,7 @@ struct AppsTab: View {
                     .action(title: L10n.t("忽略应用")) { showIgnored = true },
                     .action(title: L10n.t("设置")) { showSettings = true },
                 ]) {
-                    withAnimation(.easeIn(duration: 0.12)) { showMenu = false }
+                    withAnimation(Motion.fast) { showMenu = false }
                 }
             }
         }

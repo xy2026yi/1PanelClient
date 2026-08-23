@@ -13,6 +13,8 @@ struct ToastOverlay: ViewModifier {
     @Binding var message: String?
     var systemImage: String = "checkmark.circle.fill"
     var iconColor: Color = .green
+    /// 「减弱动态效果」开启时只做淡入淡出，不做顶部滑入
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .top) {
@@ -28,10 +30,10 @@ struct ToastOverlay: ViewModifier {
                 .background(.regularMaterial, in: Capsule())
                 .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
                 .padding(.top, 8)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: message)
+        .animation(reduceMotion ? Motion.fast : Motion.standard, value: message)
         // Toast 出现伴随触觉：绿色对勾=成功，其余（橙/红）=失败
         .onChange(of: message) { _, newValue in
             guard newValue != nil else { return }
@@ -600,7 +602,7 @@ struct PressableCardStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.75 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .animation(Motion.fast, value: configuration.isPressed)
             .hoverEffect(.highlight)
     }
 }
@@ -700,10 +702,35 @@ struct ActionBottomSheet: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 8)
+        // iPad（呈现方 regular）上 detents 已被 bottomSheetDetents 退掉、只剩标准
+        // 大模态：菜单只有两三行却占整幅，收紧为内容大小的居中小卡（类 popover 观感，
+        // 且免掉逐调用点锚定 popover 的分支互换风险）；iPhone 半屏 sheet 不受影响
+        .adaptiveMenuSizing()
     }
 
     /// 根据 items 数量计算 sheet 高度
     static func height(for itemCount: Int) -> CGFloat {
         CGFloat(72 + itemCount * 52 + 52)
+    }
+}
+
+/// ActionBottomSheet 的呈现尺寸适配：regular 下 presentationSizing(.fitted)
+/// （内容多大画布多大），compact 保持原样（半屏贴底 + 按条目数算高）
+private struct AdaptiveMenuSizingModifier: ViewModifier {
+    @Environment(\.presenterHorizontalSizeClass) private var presenter
+
+    func body(content: Content) -> some View {
+        if presenter == .regular {
+            content.presentationSizing(.fitted)
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// 操作菜单弹层的尺寸类适配（见 AdaptiveMenuSizingModifier）
+    func adaptiveMenuSizing() -> some View {
+        modifier(AdaptiveMenuSizingModifier())
     }
 }

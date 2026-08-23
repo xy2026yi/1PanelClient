@@ -12130,6 +12130,17 @@
         }
       }
     },
+    "浏览峰值 %ld，访客峰值 %ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peak page views %ld, peak visitors %ld"
+          }
+        }
+      }
+    },
     "浏览数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16907,6 +16918,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Last 7 days"
+          }
+        }
+      }
+    },
+    "近 7 日峰值 %ld，合计 %ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7-day peak %ld, total %ld"
           }
         }
       }

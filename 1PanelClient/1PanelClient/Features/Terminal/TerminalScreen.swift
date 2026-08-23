@@ -54,7 +54,7 @@ struct TerminalScreen: View {
         .padding(.bottom, keyboardOverlap)
         .ignoresSafeArea(.keyboard)
         .background(Color.black)
-        .animation(.easeOut(duration: 0.22), value: keyboardOverlap)
+        .animation(Motion.standard, value: keyboardOverlap)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

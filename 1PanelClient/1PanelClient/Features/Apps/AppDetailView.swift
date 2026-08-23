@@ -233,7 +233,7 @@ struct AppDetailView: View {
             }
             Spacer()
             Button {
-                withAnimation(.easeInOut(duration: 0.25)) {
+                withAnimation(Motion.standard) {
                     isExpanded.toggle()
                 }
             } label: {

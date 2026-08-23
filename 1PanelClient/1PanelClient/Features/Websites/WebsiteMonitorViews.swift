@@ -578,6 +578,13 @@ struct WebsiteVisitorsChart: View {
                 }
             }
         }
+        // VoiceOver：拖动交互不可达，改为整体摘要朗读
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.f(
+            "浏览峰值 %ld，访客峰值 %ld",
+            points.map { $0.pv ?? 0 }.max() ?? 0,
+            points.map { $0.uv ?? 0 }.max() ?? 0
+        ))
     }
 
     // MARK: 自绘时间轴（同容器监控图表）
