@@ -12,7 +12,9 @@ import Combine
 struct ManageTab: View {
     @ObservedObject var manager: ServerManager
     @StateObject private var prefs = ManagePrefs()
-    @State private var navPath = NavigationPath()
+    /// 导航路径由 MainTabView 持有：iPad 窗口缩放跨尺寸类切换时双形态分支互换、
+    /// 整棵导航树重建，@State 会随重建清空而跳回管理根页
+    @Binding var navPath: NavigationPath
     @State private var showEditSheet = false
     @State private var showRemoveServer = false
 
@@ -21,8 +23,12 @@ struct ManageTab: View {
     /// 向 MainTabView 同步导航深度：true=根列表，false=子页面（隐藏 Tab 栏）
     @Binding var atRoot: Bool
 
-    init(manager: ServerManager, initialItem: Binding<ManageItem?> = .constant(nil), atRoot: Binding<Bool> = .constant(true)) {
+    init(manager: ServerManager,
+         navPath: Binding<NavigationPath> = .constant(NavigationPath()),
+         initialItem: Binding<ManageItem?> = .constant(nil),
+         atRoot: Binding<Bool> = .constant(true)) {
         self.manager = manager
+        self._navPath = navPath
         self._initialItem = initialItem
         self._atRoot = atRoot
     }
@@ -77,13 +83,14 @@ struct ManageTab: View {
             .contentMargins(.bottom, 60, for: .scrollContent)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .formWidthLimit(720)
+            // 不加 formWidthLimit：侧栏已占 320pt，内容区本身不宽，
+            // 再限宽居中会左右露出大空隙、且与首页宽度不一致
             .navigationDestination(for: ManageItem.self) { item in
                 destination(for: item)
             }
             .sheet(isPresented: $showEditSheet) {
                 ManageEditView(prefs: prefs)
-                    .presentationDetents([.medium])
+                    .bottomSheetDetents([.medium])
                     .presentationDragIndicator(.visible)
             }
             // 移除当前服务器前确认（会连带清除 Keychain 中的 API 密钥）—— 居中 alert

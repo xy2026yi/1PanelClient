@@ -8,6 +8,9 @@ import SwiftUI
 struct SettingsTab: View {
     /// 向 MainTabView 同步导航深度：true=根页面（显示底部 Tab 栏），false=子页面
     @Binding var atRoot: Bool
+    /// regular（iPad 全屏）下不显示导航大标题，与首页/管理空标题一致——
+    /// 独立 NavigationStack 的 large 标题会在页顶多出一行「设置」
+    @Environment(\.horizontalSizeClass) private var hSize
     @State private var showAbout = false
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
     @AppStorage(SecurityGate.httpsOnlyKey) private var httpsOnly = false
@@ -83,9 +86,8 @@ struct SettingsTab: View {
             // MARK: - 关于
             AboutSectionView(isPresented: $showAbout)
         }
-        .navigationTitle(L10n.t("设置"))
-        .navigationBarTitleDisplayMode(.large)
-        .formWidthLimit()
+        .navigationTitle(hSize == .regular ? "" : L10n.t("设置"))
+        .navigationBarTitleDisplayMode(hSize == .regular ? .inline : .large)
         // navigationDestination 必须挂在 List 外，否则 lazy 容器内会被忽略
         .navigationDestination(isPresented: $showAbout) {
             AboutDetailView()
