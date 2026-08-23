@@ -57,6 +57,30 @@ struct WAFGlobalConfigView: View {
                 } header: {
                     SectionLabel(title: L10n.t("配置"), systemImage: "gearshape")
                 }
+
+                // 默认规则：内置规则集开关（scope 与面板 Web 端一致）
+                Section {
+                    toggleRow(title: L10n.t("参数规则"), item: config.args, scope: "Args")
+                    toggleRow(title: L10n.t("URL规则"), item: config.defaultUrlBlack, scope: "DefaultUrlBlack")
+                    toggleRow(title: L10n.t("HTTP规则"), item: config.methodWhite, scope: "MethodWhite")
+                    toggleRow(title: L10n.t("Cookie规则"), item: config.cookie, scope: "Cookie")
+                    toggleRow(title: L10n.t("Header规则"), item: config.header, scope: "Header")
+                    toggleRow(title: L10n.t("User-Agent规则"), item: config.defaultUaBlack, scope: "DefaultUaBlack")
+                    toggleRow(title: L10n.t("SQL注入防御"), item: config.sql, scope: "Sql")
+                    toggleRow(title: L10n.t("XSS防御"), item: config.xss, scope: "Xss")
+                    toggleRow(title: L10n.t("严格模式"), item: config.strict, scope: "Strict")
+                } header: {
+                    SectionLabel(title: L10n.t("默认规则"), systemImage: "checkmark.shield")
+                } footer: {
+                    Text(L10n.t("严格模式开启后，各网站才能在检测强度中选择严格模式。"))
+                }
+
+                // 自定义规则
+                Section {
+                    toggleRow(title: L10n.t("文件上传限制"), item: config.fileExt, scope: "FileExt")
+                } header: {
+                    SectionLabel(title: L10n.t("自定义规则"), systemImage: "slider.horizontal.3")
+                }
             }
         }
         .navigationTitle(L10n.t("全局配置"))

@@ -30,6 +30,8 @@ nonisolated struct WAFConfig: Decodable {
     let args: WAFRuleItem?
     let cookie: WAFRuleItem?
     let header: WAFRuleItem?
+    /// HTTP 方法白名单（默认规则-HTTP规则，scope=MethodWhite）
+    let methodWhite: WAFRuleItem?
     let fileExt: WAFRuleItem?
     let vuln: WAFRuleItem?
     let strict: WAFRuleItem?

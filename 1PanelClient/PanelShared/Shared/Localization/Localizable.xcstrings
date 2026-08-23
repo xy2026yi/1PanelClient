@@ -939,6 +939,17 @@
         }
       }
     },
+    "Cookie规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cookie Rules"
+          }
+        }
+      }
+    },
     "Container" : {
 
     },
@@ -1285,6 +1296,28 @@
         }
       }
     },
+    "Header规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Header Rules"
+          }
+        }
+      }
+    },
+    "HTTP规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP Rules"
+          }
+        }
+      }
+    },
     "HTTPS 配置已保存，正在重载 OpenResty…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1607,6 +1640,17 @@
         }
       }
     },
+    "SQL注入防御" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SQL Injection Protection"
+          }
+        }
+      }
+    },
     "SMTP 服务器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1738,6 +1782,17 @@
     "URL" : {
 
     },
+    "URL规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL Rules"
+          }
+        }
+      }
+    },
     "URL 模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1745,6 +1800,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL Pattern"
+          }
+        }
+      }
+    },
+    "User-Agent规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User-Agent Rules"
           }
         }
       }
@@ -1787,6 +1853,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Webhook URL"
+          }
+        }
+      }
+    },
+    "XSS防御" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XSS Protection"
           }
         }
       }
@@ -2131,6 +2208,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Strict mode must be enabled in the global config first"
+          }
+        }
+      }
+    },
+    "严格模式开启后，各网站才能在检测强度中选择严格模式。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Websites can only select strict detection level after strict mode is enabled here."
           }
         }
       }
@@ -5167,6 +5255,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Parameters"
+          }
+        }
+      }
+    },
+    "参数规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Args Rules"
           }
         }
       }
@@ -9831,6 +9930,17 @@
     },
     "数量" : {
 
+    },
+    "文件上传限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Upload Restriction"
+          }
+        }
+      }
     },
     "文件" : {
       "extractionState" : "manual",
@@ -15408,6 +15518,17 @@
         }
       }
     },
+    "自定义规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Rules"
+          }
+        }
+      }
+    },
     "自定义服务" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19241,6 +19362,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Expose the port by default"
+          }
+        }
+      }
+    },
+    "默认规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Rules"
           }
         }
       }
