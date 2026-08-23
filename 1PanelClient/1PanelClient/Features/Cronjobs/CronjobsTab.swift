@@ -13,6 +13,8 @@ struct CronjobsTab: View {
     @ObservedObject var manager: ServerManager
     @StateObject private var vm: CronjobsViewModel
     @State private var showCreate = false
+    @State private var searchText = ""
+    @State private var isSearching = false
 
     init(manager: ServerManager) {
         self.manager = manager
@@ -57,6 +59,12 @@ struct CronjobsTab: View {
                 cronjobList
             }
         }
+        .searchIconMode(
+            text: $searchText,
+            isSearching: $isSearching,
+            title: L10n.t("计划任务"),
+            prompt: L10n.t("搜索脚本名")
+        )
         .navigationTitle(L10n.t("计划任务"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -68,24 +76,33 @@ struct CronjobsTab: View {
                 }
                 .accessibilityLabel(L10n.t("脚本库"))
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("创建计划任务"))
+            }
         }
         .navigationDestination(for: Cronjob.self) { job in
             CronjobDetailView(job: job, vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
-        }
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showCreate = true
-            })
-            .accessibilityLabel(L10n.t("创建计划任务"))
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateCronjobView(vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
     }
 
+    /// 搜索过滤：按任务名（名称可能为空，按空串处理）
+    private var filteredCronjobs: [Cronjob] {
+        let keyword = searchText.trimmingCharacters(in: .whitespaces)
+        guard !keyword.isEmpty else { return vm.cronjobs }
+        return vm.cronjobs.filter { ($0.name ?? "").localizedCaseInsensitiveContains(keyword) }
+    }
+
     private var cronjobList: some View {
         List {
-            ForEach(vm.cronjobs) { job in
+            ForEach(filteredCronjobs) { job in
                 NavigationLink(value: job) {
                     CronjobRow(job: job)
                 }

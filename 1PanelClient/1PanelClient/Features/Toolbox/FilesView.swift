@@ -99,7 +99,16 @@ struct FilesView: View {
             title: currentPath == "/" ? L10n.t("根目录") : (currentPath as NSString).lastPathComponent,
             prompt: L10n.t("搜索当前目录")
         )
-            .overlay(alignment: .bottomTrailing) { floatingAddButton }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showActionSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(L10n.t("操作菜单"))
+                }
+            }
             .refreshable { await loadDir(currentPath) }
             .task { await initialLoad() }
             .sheet(isPresented: $showActionSheet) {
@@ -231,15 +240,7 @@ struct FilesView: View {
         }
     }
 
-    // MARK: - 右下角悬浮 + 按钮（点击弹出半屏操作菜单）
-
-    /// 右下角悬浮 + 按钮
-    private var floatingAddButton: some View {
-        FloatingActionButton {
-            showActionSheet = true
-        }
-        .accessibilityLabel(L10n.t("操作菜单"))
-    }
+    // MARK: - 操作菜单（右上角 + 弹出半屏菜单）
 
     @ViewBuilder
     private func fileRow(_ item: FileItem) -> some View {

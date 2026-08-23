@@ -177,7 +177,7 @@ struct FirewallView: View {
                         ContentUnavailableView(
                             L10n.t("暂无端口规则"),
                             systemImage: "flame",
-                            description: Text(L10n.t("点击右下角 + 添加规则"))
+                            description: Text(L10n.t("点击右上角 + 添加规则"))
                         )
                         .listRowBackground(Color.clear)
                     }
@@ -215,10 +215,16 @@ struct FirewallView: View {
                 ErrorBanner(message: msg) { Task { await vm.refresh() } }
             }
         }
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: { showAdd = true })
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showAdd = true
+                } label: {
+                    Image(systemName: "plus")
+                }
                 .disabled(vm.base?.isExist != true)
-                .opacity(vm.base?.isExist == true ? 1 : 0.4)
+                .accessibilityLabel(L10n.t("添加规则"))
+            }
         }
         .navigationDestination(isPresented: $showAdd) {
             FirewallAddRuleView(vm: vm)

@@ -28,6 +28,8 @@ struct WebsiteDetailView: View {
     @State private var showRedirects = false
     @State private var showAuths = false
     @State private var showMenu = false
+    /// 浏览器打开网站链接（toolbar 打开按钮用）
+    @Environment(\.openURL) private var openURL
 
     /// 当前服务器配置（根目录跳转文件管理用）
     private var server: ServerConfig {
@@ -109,14 +111,6 @@ struct WebsiteDetailView: View {
         }
         .navigationTitle(website.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        // 右上角三点菜单：反代 / 默认文档 / 流量限制 / 重定向 / 密码访问 / 其他
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                EllipsisMenuButton {
-                    withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
-                }
-            }
-        }
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
@@ -131,10 +125,22 @@ struct WebsiteDetailView: View {
                 }
             }
         }
-        // 右下角悬浮：浏览器打开网站链接（protocol + primaryDomain）
-        .overlay(alignment: .bottomTrailing) {
+        // 右上角：浏览器打开网站链接 + 三点菜单（反代 / 默认文档 / 流量限制 / 重定向 / 密码访问 / 其他）
+        .toolbar {
             if let url = website.browserURL {
-                WebsiteLinkFab(url: url)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        openURL(url)
+                    } label: {
+                        Image(systemName: "arrow.up.forward.app")
+                    }
+                    .accessibilityLabel(L10n.t("在浏览器打开网站"))
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                EllipsisMenuButton {
+                    withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }
+                }
             }
         }
         .navigationDestination(isPresented: $showBackup) {

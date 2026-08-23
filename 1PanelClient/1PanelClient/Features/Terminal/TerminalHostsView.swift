@@ -35,11 +35,15 @@ struct TerminalHostsView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(L10n.t("终端"))
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showAddHost = true
-            })
-            .accessibilityLabel(L10n.t("添加主机"))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showAddHost = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("添加主机"))
+            }
         }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
@@ -131,7 +135,7 @@ struct TerminalHostsView: View {
                 ContentUnavailableView(
                     L10n.t("暂无主机"),
                     systemImage: "rectangle.on.rectangle",
-                    description: Text(L10n.t("点击右下角 + 添加"))
+                    description: Text(L10n.t("点击右上角 + 添加"))
                 )
             } else {
                 ForEach(vm.hosts) { host in

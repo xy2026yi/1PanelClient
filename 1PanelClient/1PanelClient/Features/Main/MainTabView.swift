@@ -225,6 +225,7 @@ struct MainTabView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .hoverEffect(.highlight)
         .padding(.horizontal, 8)
     }
 
@@ -285,6 +286,7 @@ struct MainTabView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .hoverEffect(.highlight)
         .accessibilityLabel(title)
         .padding(.vertical, 2)
     }
@@ -341,6 +343,7 @@ private struct BottomTabBar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .hoverEffect(.highlight)
     }
 }
 

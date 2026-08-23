@@ -59,7 +59,7 @@ struct CertificatesTab: View {
                 ContentUnavailableView(
                     L10n.t("暂无证书"),
                     systemImage: "lock.shield",
-                    description: Text(L10n.t("点击右下角「+」申请或上传第一张证书"))
+                    description: Text(L10n.t("点击右上角「+」申请或上传第一张证书"))
                 )
             } else {
                 certList
@@ -85,16 +85,20 @@ struct CertificatesTab: View {
                 }
             }
         }
-        .overlay(alignment: .bottomTrailing) {
-            MenuFloatingActionButton {
-                Button { showApply = true } label: {
-                    Label(L10n.t("申请证书"), systemImage: "arrow.down.circle")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button { showApply = true } label: {
+                        Label(L10n.t("申请证书"), systemImage: "arrow.down.circle")
+                    }
+                    Button { showUpload = true } label: {
+                        Label(L10n.t("上传证书"), systemImage: "icloud.and.arrow.up")
+                    }
+                } label: {
+                    Image(systemName: "plus")
                 }
-                Button { showUpload = true } label: {
-                    Label(L10n.t("上传证书"), systemImage: "icloud.and.arrow.up")
-                }
+                .accessibilityLabel(L10n.t("申请或上传证书"))
             }
-            .accessibilityLabel(L10n.t("申请或上传证书"))
         }
         .navigationDestination(isPresented: $showUpload) {
             UploadCertificateView(vm: vm)

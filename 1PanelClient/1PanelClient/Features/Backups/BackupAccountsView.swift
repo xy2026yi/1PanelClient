@@ -364,7 +364,7 @@ struct BackupAccountsView: View {
                 ContentUnavailableView(
                     L10n.t("暂无备份账号"),
                     systemImage: "externaldrive.badge.icloud",
-                    description: Text(L10n.t("点击右下角 + 添加 MINIO / 阿里云OSS / WebDAV / SFTP 备份账号"))
+                    description: Text(L10n.t("点击右上角 + 添加 MINIO / 阿里云OSS / WebDAV / SFTP 备份账号"))
                 )
             } else {
                 accountList
@@ -372,11 +372,15 @@ struct BackupAccountsView: View {
         }
         .navigationTitle(L10n.t("备份账号"))
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showCreate = true
-            })
-            .accessibilityLabel(L10n.t("添加备份账号"))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("添加备份账号"))
+            }
         }
         .navigationDestination(isPresented: $showCreate) {
             BackupAccountEditView(vm: vm, existing: nil) {

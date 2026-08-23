@@ -12515,112 +12515,112 @@
         }
       }
     },
-    "点击右下角 + 创建第一个备份" : {
+    "点击右上角 + 创建第一个备份" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap + at the bottom right to create the first backup"
+            "value" : "Tap + at the top right to create the first backup"
           }
         }
       }
     },
-    "点击右下角 + 创建第一个网站" : {
+    "点击右上角 + 创建第一个网站" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap + at the bottom right to create your first website"
+            "value" : "Tap + at the top right to create your first website"
           }
         }
       }
     },
-    "点击右下角 + 添加" : {
+    "点击右上角 + 添加" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap + at the bottom right to add"
+            "value" : "Tap + at the top right to add"
           }
         }
       }
     },
-    "点击右下角 + 添加 MINIO / 阿里云OSS / WebDAV / SFTP 备份账号" : {
+    "点击右上角 + 添加 MINIO / 阿里云OSS / WebDAV / SFTP 备份账号" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap + at the bottom right to add a MINIO / Alibaba OSS / WebDAV / SFTP account"
+            "value" : "Tap + at the top right to add a MINIO / Alibaba OSS / WebDAV / SFTP account"
           }
         }
       }
     },
-    "点击右下角 + 添加规则" : {
+    "点击右上角 + 添加规则" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap + at the bottom right to add a rule"
+            "value" : "Tap + at the top right to add a rule"
           }
         }
       }
     },
-    "点击右下角「+」申请或上传第一张证书" : {
+    "点击右上角「+」申请或上传第一张证书" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap \"+\" at the bottom right to apply for or upload your first certificate"
+            "value" : "Tap \"+\" at the top right to apply for or upload your first certificate"
           }
         }
       }
     },
-    "点击右下角「创建账户」添加第一个 Acme 账户" : {
+    "点击右上角「创建账户」添加第一个 Acme 账户" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap \"Create Account\" at the bottom right to add your first ACME account"
+            "value" : "Tap \"Create Account\" at the top right to add your first ACME account"
           }
         }
       }
     },
-    "点击右下角「创建账户」添加第一个 DNS 账户" : {
+    "点击右上角「创建账户」添加第一个 DNS 账户" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap \"Create Account\" at the bottom right to add your first DNS account"
+            "value" : "Tap \"Create Account\" at the top right to add your first DNS account"
           }
         }
       }
     },
-    "点击右下角创建第一个告警" : {
+    "点击右上角创建第一个告警" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap the bottom-right button to create your first alert"
+            "value" : "Tap the top-right button to create your first alert"
           }
         }
       }
     },
-    "点击右下角按钮创建第一个 CA 机构" : {
+    "点击右上角按钮创建第一个 CA 机构" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap the bottom-right button to create your first certificate authority"
+            "value" : "Tap the top-right button to create your first certificate authority"
           }
         }
       }

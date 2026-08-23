@@ -56,9 +56,15 @@ struct RepoListView: View {
         }
         .navigationTitle(L10n.t("仓库"))
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton { showCreate = true }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
                 .accessibilityLabel(L10n.t("创建仓库"))
+            }
         }
         .navigationDestination(isPresented: $showCreate) {
             RepoFormView(editing: nil, vm: vm) { await loadRepos() }

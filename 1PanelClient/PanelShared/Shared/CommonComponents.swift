@@ -245,59 +245,6 @@ struct CheckRow: View {
     }
 }
 
-// MARK: - 悬浮操作按钮（FAB）
-
-/// 右下角悬浮操作按钮：默认 accent 色 + 号（56pt，阴影 r6·y4），配合 `.overlay(alignment: .bottomTrailing)` 使用。
-/// 特殊入口（应用升级等）可换 systemImage / color。
-struct FloatingActionButton: View {
-    var systemImage: String = "plus"
-    var color: Color = .accentColor
-    /// VoiceOver 读出的操作描述（如「添加服务器」「创建数据库」）
-    var accessibilityText: String = L10n.t("添加")
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(color, in: Circle())
-                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-        }
-        .accessibilityLabel(accessibilityText)
-        .padding(.trailing, 20)
-        .padding(.bottom, 20)
-    }
-}
-
-/// FAB 的 Menu 变体：外观与 FloatingActionButton 完全一致，点击弹出菜单。
-/// 用于「一个入口二选一」的创建场景，如「创建数据库 / 创建用户」「申请证书 / 上传证书」，
-/// 避免把创建动作拆散到 toolbar Menu 里。
-struct MenuFloatingActionButton<MenuItems: View>: View {
-    var systemImage: String = "plus"
-    var color: Color = .accentColor
-    /// VoiceOver 读出的操作描述（如「创建」）
-    var accessibilityText: String = L10n.t("添加")
-    @ViewBuilder let menuItems: () -> MenuItems
-
-    var body: some View {
-        Menu {
-            menuItems()
-        } label: {
-            Image(systemName: systemImage)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(color, in: Circle())
-                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-        }
-        .accessibilityLabel(accessibilityText)
-        .padding(.trailing, 20)
-        .padding(.bottom, 20)
-    }
-}
-
 // MARK: - 状态圆点
 
 /// 状态小圆点：与状态文字并排使用，如 `HStack(spacing: 4) { StatusDot(color:); Text(...) }`。
@@ -646,13 +593,15 @@ struct CardActionButton: View {
 
 // MARK: - 可按压卡片样式
 
-/// 入口卡按钮的按压反馈：轻微缩放 + 变暗（首页资源统计卡等）
+/// 入口卡按钮的按压反馈：轻微缩放 + 变暗（首页资源统计卡等）。
+/// iPad 指针/触控板悬停高亮（触屏设备上 hoverEffect 自动无效）
 struct PressableCardStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.75 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .hoverEffect(.highlight)
     }
 }
 

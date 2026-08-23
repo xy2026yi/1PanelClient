@@ -66,9 +66,15 @@ struct WAFCommonRulesView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton { showCreate = true }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
                 .accessibilityLabel(L10n.t("添加规则"))
+            }
         }
         .refreshable { await loadItems() }
         .task { await loadItems() }

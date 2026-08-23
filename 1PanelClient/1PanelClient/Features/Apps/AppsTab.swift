@@ -60,14 +60,16 @@ struct AppsTab: View {
             title: L10n.t("应用"),
             prompt: L10n.t("搜索已安装应用")
         )
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showStore = true
-            })
-            .accessibilityLabel(L10n.t("进入应用商店"))
-        }
         .toolbar {
             if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showStore = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(L10n.t("进入应用商店"))
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     EllipsisMenuButton {
                         withAnimation(.easeOut(duration: 0.18)) { showMenu.toggle() }

@@ -26,7 +26,7 @@ struct CAListView: View {
                 ContentUnavailableView(
                     L10n.t("暂无自签证书机构"),
                     systemImage: "certificate",
-                    description: Text(L10n.t("点击右下角按钮创建第一个 CA 机构"))
+                    description: Text(L10n.t("点击右上角按钮创建第一个 CA 机构"))
                 )
             } else {
                 accountList
@@ -43,12 +43,14 @@ struct CAListView: View {
                 }
                     .accessibilityLabel(L10n.t("刷新"))
             }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showCreate = true
-            })
-            .accessibilityLabel(L10n.t("创建机构"))
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("创建机构"))
+            }
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateCAView(vm: vm) {

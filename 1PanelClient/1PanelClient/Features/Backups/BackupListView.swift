@@ -334,7 +334,7 @@ struct BackupListView: View {
                 ContentUnavailableView(
                     L10n.t("暂无备份"),
                     systemImage: "externaldrive.badge.timemachine",
-                    description: Text(L10n.t("点击右下角 + 创建第一个备份"))
+                    description: Text(L10n.t("点击右上角 + 创建第一个备份"))
                 )
             } else {
                 recordList
@@ -342,11 +342,15 @@ struct BackupListView: View {
         }
         .navigationTitle(L10n.t("备份"))
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showCreate = true
-            })
-            .accessibilityLabel(L10n.t("新增备份"))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("新增备份"))
+            }
         }
         .task {
             await vm.refresh()

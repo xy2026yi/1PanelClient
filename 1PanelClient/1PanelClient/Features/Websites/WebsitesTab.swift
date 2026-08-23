@@ -68,11 +68,15 @@ struct WebsitesTab: View {
                 }
             }
         }
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showCreate = true
-            })
-            .accessibilityLabel(L10n.t("创建网站"))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("创建网站"))
+            }
         }
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
@@ -113,7 +117,7 @@ struct WebsitesTab: View {
                         ContentUnavailableView(
                             L10n.t("暂无网站"),
                             systemImage: "globe",
-                            description: Text(L10n.t("点击右下角 + 创建第一个网站"))
+                            description: Text(L10n.t("点击右上角 + 创建第一个网站"))
                         )
                     }
                 }
@@ -236,7 +240,7 @@ struct WebsiteRow: View {
     let website: Website
 
     /// 上：主域名:端口；下：类型 [appName]；右：状态
-    /// （浏览器打开链接入口已移至网站详情页右下角悬浮按钮）
+    /// （浏览器打开链接入口在网站详情页右上角 toolbar）
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
@@ -276,31 +280,7 @@ struct WebsiteRow: View {
     }
 }
 
-// MARK: - 网站详情页图标（logs/链接.svg、logs/HTTPS.svg 样式）
-
-/// 网站详情页右下角悬浮「打开链接」按钮：链接.svg 样式的蓝色链式图标
-struct WebsiteLinkFab: View {
-    let url: URL
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        Button {
-            openURL(url)
-        } label: {
-            Image("icon-link")
-                .resizable()
-                .interpolation(.high)
-                .scaledToFit()
-                .frame(width: 30, height: 30)
-                .frame(width: 56, height: 56)
-                .background(.regularMaterial, in: Circle())
-                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
-        }
-        .padding(.trailing, 20)
-        .padding(.bottom, 20)
-        .accessibilityLabel(L10n.t("在浏览器打开网站"))
-    }
-}
+// MARK: - 网站详情页图标（logs/HTTPS.svg 样式）
 
 /// HTTPS 入口行首图标（HTTPS.svg 样式的盾牌，template 渲染随明暗主题自适应）
 struct HTTPSLinkIcon: View {

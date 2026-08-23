@@ -49,19 +49,23 @@ struct AlertNotificationView: View {
         }
         .navigationTitle(L10n.t("告警通知"))
         .navigationBarTitleDisplayMode(.inline)
-        // 右下角悬浮创建按钮（日志段不显示），样式与计划任务页一致
-        .overlay(alignment: .bottomTrailing) {
+        // 右上角创建入口（日志段不显示），样式与计划任务页一致
+        .toolbar {
             if segment != 1 {
-                FloatingActionButton {
-                    if segment == 2 {
-                        showCreateConfig = true
-                    } else if vm.configs.isEmpty {
-                        showNoConfigAlert = true
-                    } else {
-                        showCreateRule = true
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if segment == 2 {
+                            showCreateConfig = true
+                        } else if vm.configs.isEmpty {
+                            showNoConfigAlert = true
+                        } else {
+                            showCreateRule = true
+                        }
+                    } label: {
+                        Image(systemName: "plus")
                     }
+                    .accessibilityLabel(segment == 2 ? L10n.t("添加发送方式") : L10n.t("创建告警"))
                 }
-                .accessibilityLabel(segment == 2 ? L10n.t("添加发送方式") : L10n.t("创建告警"))
             }
         }
         .alert(L10n.t("无法创建告警"), isPresented: $showNoConfigAlert) {
@@ -170,7 +174,7 @@ struct AlertNotificationView: View {
                 ContentUnavailableView(
                     L10n.t("暂无告警规则"),
                     systemImage: "bell.slash",
-                    description: Text(L10n.t("点击右下角创建第一个告警"))
+                    description: Text(L10n.t("点击右上角创建第一个告警"))
                 )
                 .padding(.vertical, 30)
             }

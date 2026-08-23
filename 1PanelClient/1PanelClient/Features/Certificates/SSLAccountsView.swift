@@ -26,7 +26,7 @@ struct AcmeAccountListView: View {
                 ContentUnavailableView(
                     L10n.t("暂无 Acme 账户"),
                     systemImage: "person.badge.key",
-                    description: Text(L10n.t("点击右下角「创建账户」添加第一个 Acme 账户"))
+                    description: Text(L10n.t("点击右上角「创建账户」添加第一个 Acme 账户"))
                 )
             } else {
                 accountList
@@ -34,11 +34,15 @@ struct AcmeAccountListView: View {
         }
         .navigationTitle(L10n.t("Acme 账户"))
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showCreate = true
-            })
-            .accessibilityLabel(L10n.t("创建账户"))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("创建账户"))
+            }
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateAcmeAccountView(vm: vm)
@@ -279,7 +283,7 @@ struct DNSAccountListView: View {
                 ContentUnavailableView(
                     L10n.t("暂无 DNS 账户"),
                     systemImage: "globe.asia.australia",
-                    description: Text(L10n.t("点击右下角「创建账户」添加第一个 DNS 账户"))
+                    description: Text(L10n.t("点击右上角「创建账户」添加第一个 DNS 账户"))
                 )
             } else {
                 accountList
@@ -287,11 +291,15 @@ struct DNSAccountListView: View {
         }
         .navigationTitle(L10n.t("DNS 账户"))
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showCreate = true
-            })
-            .accessibilityLabel(L10n.t("创建账户"))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("创建账户"))
+            }
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateDNSAccountView(vm: vm)

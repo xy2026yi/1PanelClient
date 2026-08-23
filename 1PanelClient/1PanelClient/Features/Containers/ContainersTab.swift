@@ -54,11 +54,15 @@ struct ContainersTab: View {
         } message: {
             Text(vm.alertMessage)
         }
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton(action: {
-                showCreate = true
-            })
-            .accessibilityLabel(L10n.t("创建容器"))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("创建容器"))
+            }
         }
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }

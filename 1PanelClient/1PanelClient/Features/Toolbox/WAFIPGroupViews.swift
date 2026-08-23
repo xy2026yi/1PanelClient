@@ -70,9 +70,15 @@ struct WAFIPGroupsView: View {
         }
         .navigationTitle(L10n.t("IP 组"))
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottomTrailing) {
-            FloatingActionButton { showCreate = true }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
                 .accessibilityLabel(L10n.t("创建 IP 组"))
+            }
         }
         .refreshable { await loadItems() }
         .task { await loadItems() }
