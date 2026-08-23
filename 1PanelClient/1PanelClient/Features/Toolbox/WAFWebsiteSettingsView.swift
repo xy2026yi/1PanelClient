@@ -224,6 +224,28 @@ struct WAFWebsiteSettingsView: View {
 
     // MARK: - 数据与请求
 
+    /// 分页拉全量网站。面板对 WebsiteConfigSearch.PageSize 有 max 校验
+    ///（实测 200 报「Field validation for 'PageSize' on the 'max' tag」），
+    /// 沿用 Web 端每页 20 的实证安全值翻页取全
+    private func fetchAllWebsites() async throws -> [WAFWebsiteItem] {
+        var result: [WAFWebsiteItem] = []
+        var page = 1
+        let pageSize = 20
+        while page <= 50 {
+            let resp: PageResponse<WAFWebsiteItem> = try await client.send(
+                path: APIEndpoint.wafWebsitesSearch.path,
+                body: WAFWebsiteSearchRequest(page: page, pageSize: pageSize, name: ""),
+                as: PageResponse<WAFWebsiteItem>.self
+            )
+            let items = resp.items ?? []
+            result += items
+            let total = resp.total ?? 0
+            if items.isEmpty || items.count < pageSize || result.count >= total { break }
+            page += 1
+        }
+        return result
+    }
+
     private func load() async {
         isLoading = true
         defer { isLoading = false }
@@ -232,12 +254,7 @@ struct WAFWebsiteSettingsView: View {
             struct StrictState: Decodable { let state: String? }
         }
         do {
-            let resp: PageResponse<WAFWebsiteItem> = try await client.send(
-                path: APIEndpoint.wafWebsitesSearch.path,
-                body: WAFWebsiteSearchRequest(page: 1, pageSize: 200, name: ""),
-                as: PageResponse<WAFWebsiteItem>.self
-            )
-            websites = resp.items ?? []
+            websites = try await fetchAllWebsites()
             if selectedID == nil { selectedID = websites.first?.id }
             errorMessage = nil
         } catch {
@@ -325,12 +342,8 @@ struct WAFWebsiteSettingsView: View {
     /// 状态切换后重拉网站列表（选中不变）
     private func reloadKeepingSelection() async {
         let keep = selectedID
-        if let resp: PageResponse<WAFWebsiteItem> = try? await client.send(
-            path: APIEndpoint.wafWebsitesSearch.path,
-            body: WAFWebsiteSearchRequest(page: 1, pageSize: 200, name: ""),
-            as: PageResponse<WAFWebsiteItem>.self
-        ) {
-            websites = resp.items ?? []
+        if let all = try? await fetchAllWebsites() {
+            websites = all
         }
         selectedID = websites.first { $0.id == keep }?.id ?? websites.first?.id
     }
