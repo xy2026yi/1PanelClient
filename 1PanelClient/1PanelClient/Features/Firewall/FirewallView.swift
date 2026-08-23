@@ -609,7 +609,8 @@ struct FirewallPortWhitelistView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .disabled(isLoading || editingIndex != nil)
+                // 加载失败时禁用：错误分支不渲染列表，新增行会无处显示
+                .disabled(isLoading || editingIndex != nil || errorMessage != nil)
                 .accessibilityLabel(L10n.t("添加端口"))
             }
         }
@@ -708,7 +709,7 @@ struct FirewallPortWhitelistView: View {
         }
         do {
             let resp: WhitelistSettings = try await client.send(
-                path: APIEndpoint.settingsSearch.path,
+                path: APIEndpoint.settingsSearchPanel.path,
                 as: WhitelistSettings.self
             )
             // 读取为逗号分隔（面板 Web 端行为），提交为换行拼接
