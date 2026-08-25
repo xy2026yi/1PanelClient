@@ -36,6 +36,7 @@ struct CertificatesTab: View {
         } message: {
         Text(vm.alertMessage)
         }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     /// 列表根内容（不含 NavigationStack/task）
@@ -648,6 +649,8 @@ final class CertificatesViewModel: ObservableObject {
 
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// 成功/已提交类轻提示（toast）；错误与需确认的信息仍走 alert
+    @Published var toastMessage: String?
 
     /// 列表删除确认
     @Published var pendingDeleteCert: WebsiteSSLCert?
@@ -706,7 +709,7 @@ final class CertificatesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: isUpdate ? L10n.t("证书已更新") : L10n.t("证书上传成功"))
+            showToast(isUpdate ? L10n.t("证书已更新") : L10n.t("证书上传成功"))
             await refresh()
             needsRefresh = true
             return true
@@ -1025,5 +1028,14 @@ final class CertificatesViewModel: ObservableObject {
     private func showAlert(message: String) {
         alertMessage = message
         showAlert = true
+    }
+
+    /// 成功/已提交类轻提示：2 秒自动消失
+    func showToast(_ message: String) {
+        toastMessage = message
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run { self?.toastMessage = nil }
+        }
     }
 }

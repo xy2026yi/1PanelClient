@@ -101,6 +101,7 @@ struct RepoListView: View {
         } message: {
             Text(vm.alertMessage)
         }
+        .toastOverlay(message: $vm.toastMessage)
         .task { await loadRepos() }
     }
 

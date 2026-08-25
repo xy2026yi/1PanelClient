@@ -36,7 +36,11 @@ struct ContainerCreateView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    Task { await vm.createContainer(draft: draft) }
+                    Task {
+                        if await vm.createContainer(draft: draft) {
+                            dismiss()
+                        }
+                    }
                 } label: {
                     if vm.containerOperating {
                         ProgressView()
@@ -48,10 +52,9 @@ struct ContainerCreateView: View {
             }
         }
         .task { await vm.loadCreateOptions() }
+        .toastOverlay(message: $vm.toastMessage)
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
-            Button(L10n.t("好的"), role: .cancel) {
-                if vm.lastAlertIsSuccess { dismiss() }
-            }
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: { Text(vm.alertMessage) }
     }
 

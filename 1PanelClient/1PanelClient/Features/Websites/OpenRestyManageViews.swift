@@ -164,6 +164,7 @@ struct OpenRestyPerformanceView: View {
         }
         .task { await load() }
         .refreshable { await load() }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private func perfRow(_ field: PerfField) -> some View {
@@ -255,8 +256,7 @@ struct OpenRestyPerformanceView: View {
                 body: OpenRestyParamsUpdateRequest(scope: "http-per", operate: "update", params: params),
                 as: EmptyResponse.self
             )
-            vm.alertMessage = L10n.t("性能参数已保存")
-            vm.showAlert = true
+            vm.showToast(L10n.t("性能参数已保存"))
         } catch let err as APIError {
             vm.alertMessage = L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误"))
             vm.showAlert = true
@@ -307,6 +307,7 @@ struct OpenRestyOtherView: View {
         }
         .task { await load() }
         .refreshable { await load() }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private func load() async {
@@ -344,8 +345,7 @@ struct OpenRestyOtherView: View {
                 body: req,
                 as: EmptyResponse.self
             )
-            vm.alertMessage = L10n.t("已保存")
-            vm.showAlert = true
+            vm.showToast(L10n.t("已保存"))
         } catch let err as APIError {
             vm.alertMessage = L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误"))
             vm.showAlert = true

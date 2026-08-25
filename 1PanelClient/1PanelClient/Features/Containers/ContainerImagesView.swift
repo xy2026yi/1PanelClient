@@ -82,6 +82,7 @@ struct ContainerImageView: View {
         } message: {
             Text(vm.alertMessage)
         }
+        .toastOverlay(message: $vm.toastMessage)
         .alert(L10n.t("删除镜像"), isPresented: Binding(
             get: { pendingDeleteImage != nil },
             set: { if !$0 { pendingDeleteImage = nil } }

@@ -111,6 +111,7 @@ struct WebsiteDetailView: View {
         }
         .navigationTitle(website.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .toastOverlay(message: $vm.toastMessage)
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [

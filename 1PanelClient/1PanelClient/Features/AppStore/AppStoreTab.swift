@@ -961,7 +961,7 @@ final class AppStoreViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             installSuccess = true
-            showAlert(message: L10n.t("安装请求已提交，应用正在后台部署中…"))
+            showToast(L10n.t("安装请求已提交，应用正在后台部署中…"))
         } catch let err as APIError {
             showAlert(message: L10n.f("安装失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
@@ -1027,7 +1027,7 @@ final class AppStoreViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: L10n.t("已忽略该版本升级"))
+            showToast(L10n.t("已忽略该版本升级"))
         } catch let err as APIError {
             showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {

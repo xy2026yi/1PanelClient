@@ -93,6 +93,7 @@ struct AppDetailView: View {
         } message: {
             Text(vm.alertMessage)
         }
+        .toastOverlay(message: $vm.toastMessage)
         .task {
             // 预加载应用设置，卸载弹窗的「删除备份 / 删除镜像」默认勾选取自这里
             if vm.appStoreConfig == nil {

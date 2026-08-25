@@ -180,6 +180,7 @@ struct ContainerDetailView: View {
         } message: {
             Text(vm.alertMessage)
         }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     // MARK: - 可折叠状态面板

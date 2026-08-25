@@ -31,9 +31,8 @@ final class ContainersViewModel: ObservableObject {
 
     @Published var showAlert = false
     @Published var alertMessage = ""
-    /// 最近一次 alert 是否为操作成功（任务已提交）——提交页据此判断是否返回，
-    /// 避免依赖 alert 文案字符串匹配
-    @Published var lastAlertIsSuccess = false
+    /// 成功/已提交类轻提示（toast）；错误与需确认的信息仍走 alert
+    @Published var toastMessage: String?
 
     /// 标记 docker 状态是否已加载，避免 List 重绘反复请求
     private var dockerLoaded = false
@@ -159,7 +158,7 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: L10n.t("清理容器任务已提交"))
+            showToast(L10n.t("清理容器任务已提交"))
         } catch {
             showAlert(message: L10n.f("清理容器失败：%@", error.localizedDescription))
         }
@@ -190,7 +189,7 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: L10n.f("%@容器「%@」任务已提交", opName, name))
+            showToast(L10n.f("%@容器「%@」任务已提交", opName, name))
             return true
         } catch {
             showAlert(message: L10n.f("%@容器失败：%@", opName, error.localizedDescription))
@@ -221,7 +220,8 @@ final class ContainersViewModel: ObservableObject {
 
     // MARK: - 容器升级
 
-    func upgradeContainer(name: String, image: String, forcePull: Bool) async {
+    @discardableResult
+    func upgradeContainer(name: String, image: String, forcePull: Bool) async -> Bool {
         containerOperating = true
         defer { containerOperating = false }
         let req = ContainerUpgradeRequest(
@@ -234,9 +234,11 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: L10n.f("升级容器「%@」任务已提交", name), isSuccess: true)
+            showToast(L10n.f("升级容器「%@」任务已提交", name))
+            return true
         } catch {
             showAlert(message: L10n.f("升级容器失败：%@", error.localizedDescription))
+            return false
         }
     }
 
@@ -312,11 +314,12 @@ final class ContainersViewModel: ObservableObject {
     }
 
     /// 创建容器（POST /containers），字段对齐 doc/手动创建容器.log
-    func createContainer(draft: ContainerCreateDraft) async {
+    @discardableResult
+    func createContainer(draft: ContainerCreateDraft) async -> Bool {
         guard !draft.name.trimmingCharacters(in: .whitespaces).isEmpty,
               !draft.image.trimmingCharacters(in: .whitespaces).isEmpty else {
             showAlert(message: L10n.t("容器名称和镜像不能为空"))
-            return
+            return false
         }
         containerOperating = true
         defer { containerOperating = false }
@@ -374,21 +377,24 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: L10n.f("创建容器「%@」任务已提交", draft.name), isSuccess: true)
+            showToast(L10n.f("创建容器「%@」任务已提交", draft.name))
+            return true
         } catch {
             showAlert(message: L10n.f("创建容器失败：%@", error.localizedDescription))
+            return false
         }
     }
 
     /// 更新容器配置（POST /containers/update）
     /// info 来自 /containers/info；image / forcePull / publishAllPorts / env 为用户编辑后的值
+    @discardableResult
     func updateContainer(
         info: ContainerInfo,
         image: String,
         forcePull: Bool,
         publishAllPorts: Bool,
         env: [String]
-    ) async {
+    ) async -> Bool {
         containerOperating = true
         defer { containerOperating = false }
 
@@ -439,9 +445,11 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showAlert(message: L10n.f("更新容器「%@」任务已提交", info.name), isSuccess: true)
+            showToast(L10n.f("更新容器「%@」任务已提交", info.name))
+            return true
         } catch {
             showAlert(message: L10n.f("更新容器失败：%@", error.localizedDescription))
+            return false
         }
     }
 
@@ -571,7 +579,7 @@ final class ContainersViewModel: ObservableObject {
                 path: APIEndpoint.containersRepoSync.path,
                 body: RepoIDRequest(id: id), as: EmptyResponse.self
             )
-            showAlert(message: L10n.t("仓库同步任务已提交"))
+            showToast(L10n.t("仓库同步任务已提交"))
             return true
         } catch {
             showAlert(message: L10n.f("同步仓库失败：%@", error.localizedDescription))
@@ -600,10 +608,18 @@ final class ContainersViewModel: ObservableObject {
         }
     }
 
-    private func showAlert(message: String, isSuccess: Bool = false) {
+    private func showAlert(message: String) {
         alertMessage = message
-        lastAlertIsSuccess = isSuccess
         showAlert = true
+    }
+
+    /// 成功/已提交类轻提示：2 秒自动消失
+    func showToast(_ message: String) {
+        toastMessage = message
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run { self?.toastMessage = nil }
+        }
     }
 }
 

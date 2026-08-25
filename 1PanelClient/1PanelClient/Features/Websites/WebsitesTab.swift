@@ -34,6 +34,7 @@ struct WebsitesTab: View {
         } message: {
         Text(vm.alertMessage)
         }
+        .toastOverlay(message: $vm.toastMessage)
         .task { await vm.refresh() }
         // 安装完成（含从本页未安装入口发起的安装）后重查安装状态并刷新列表
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in

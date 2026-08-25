@@ -58,6 +58,7 @@ struct ContainersTab: View {
         } message: {
             Text(vm.alertMessage)
         }
+        .toastOverlay(message: $vm.toastMessage)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

@@ -61,6 +61,22 @@ extension View {
                       iconColor: Color = .green) -> some View {
         modifier(ToastOverlay(message: message, systemImage: systemImage, iconColor: iconColor))
     }
+
+    /// 本地 toast：显示 toastOverlay 并在 2 秒后自动清空 message。
+    /// 供没有 ViewModel showToast 的页面使用（Toolbox 等本地 successMessage 场景）；
+    /// 错误提示仍走 alert，不要混用本方法
+    func localToast(message: Binding<String?>) -> some View {
+        toastOverlay(message: message)
+            .onChange(of: message.wrappedValue) { _, newValue in
+                guard newValue != nil else { return }
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    if message.wrappedValue != nil {
+                        message.wrappedValue = nil
+                    }
+                }
+            }
+    }
 }
 
 // MARK: - 信息行（详情页 key-value 列表）

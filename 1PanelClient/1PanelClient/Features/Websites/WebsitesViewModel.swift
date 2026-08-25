@@ -23,6 +23,8 @@ final class WebsitesViewModel: ObservableObject {
     // 提示
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// 成功/已提交类轻提示（toast）；错误与需确认的信息仍走 alert
+    @Published var toastMessage: String?
 
     /// 标记列表需要刷新（详情页操作后）
     @Published var needsRefresh = false
@@ -198,7 +200,7 @@ final class WebsitesViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             deletedWebsiteId = id
-            showAlert(message: L10n.t("网站删除成功"))
+            showToast(L10n.t("网站删除成功"))
             try? await Task.sleep(for: .seconds(1))
             await load(query: "")
         } catch let err as APIError {
@@ -356,7 +358,7 @@ final class WebsitesViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            showAlert(message: L10n.t("配置已保存，OpenResty 正在重载…"))
+            showToast(L10n.t("配置已保存，OpenResty 正在重载…"))
             return true
         } catch let err as APIError {
             showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))
@@ -401,6 +403,15 @@ final class WebsitesViewModel: ObservableObject {
         showAlert = true
     }
 
+    /// 成功/已提交类轻提示：2 秒自动消失（供本类与 OpenResty 管理子页共用）
+    func showToast(_ message: String) {
+        toastMessage = message
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run { self?.toastMessage = nil }
+        }
+    }
+
     // MARK: - OpenResty 全局配置
 
     func loadOpenRestyConfig() async -> String? {
@@ -429,7 +440,7 @@ final class WebsitesViewModel: ObservableObject {
                 body: Req(content: content, backup: backup),
                 as: EmptyResponse.self
             )
-            showAlert(message: L10n.t("配置保存成功"))
+            showToast(L10n.t("配置保存成功"))
             return true
         } catch let err as APIError {
             showAlert(message: L10n.f("保存失败：%@", err.errorDescription ?? L10n.t("未知错误")))

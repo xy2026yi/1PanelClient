@@ -146,13 +146,14 @@ struct SSHView: View {
         }
         .refreshable { await vm.loadConfig() }
         .task { await vm.loadConfig() }
+        .localToast(message: $vm.successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(
-            get: { vm.successMessage != nil || vm.errorMessage != nil },
-            set: { _ in vm.successMessage = nil; vm.errorMessage = nil }
+            get: { vm.errorMessage != nil },
+            set: { if !$0 { vm.errorMessage = nil } }
         )) {
-            Button(L10n.t("好的"), role: .cancel) { vm.successMessage = nil; vm.errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { vm.errorMessage = nil }
         } message: {
-            Text(vm.errorMessage ?? vm.successMessage ?? "")
+            Text(vm.errorMessage ?? "")
         }
         .alert(
             pendingAction.map { sshActionDisplayName($0) } ?? "",
@@ -394,13 +395,14 @@ struct SSHFullConfigView: View {
             }
         }
         .task { await loadConfig() }
+        .localToast(message: $successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(
-            get: { successMessage != nil || errorMessage != nil },
-            set: { _ in successMessage = nil; errorMessage = nil }
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
         )) {
-            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
         } message: {
-            Text(errorMessage ?? successMessage ?? "")
+            Text(errorMessage ?? "")
         }
     }
 

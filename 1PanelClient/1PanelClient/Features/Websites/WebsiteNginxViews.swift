@@ -28,6 +28,7 @@ struct WebsiteNginxView: View {
         .navigationTitle(L10n.t("配置文件"))
         .navigationBarTitleDisplayMode(.inline)
         .contentWidthLimit(860)
+        .toastOverlay(message: $vm.toastMessage)
         .toolbar {
             if isEditing {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -141,6 +142,7 @@ struct OpenRestyConfigView: View {
         }
         .navigationTitle("nginx.conf")
         .navigationBarTitleDisplayMode(.inline)
+        .toastOverlay(message: $vm.toastMessage)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {

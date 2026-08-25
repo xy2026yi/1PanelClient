@@ -37,15 +37,11 @@ struct UpgradeSheetView: View {
             deleteOldImage = vm.appStoreConfig?.isUpgradeDeleteImage ?? false
         }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
-            Button(L10n.t("好的"), role: .cancel) {
-                if vm.pendingDismissUpgrade {
-                    vm.pendingDismissUpgrade = false
-                    vm.showUpgradeSheet = false
-                }
-            }
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
+        .toastOverlay(message: $vm.toastMessage)
         .navigationDestination(isPresented: $showComposeEditor) {
             if let version = vm.selectedVersion {
                 ComposeEditorView(
@@ -247,6 +243,7 @@ struct UpgradableAppsView: View {
                 UpgradeSheetView(app: app, vm: vm)
             }
         }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private var upgradableList: some View {
@@ -389,6 +386,7 @@ struct IgnoredAppsView: View {
         .navigationTitle(L10n.t("忽略升级"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private func load() async {

@@ -32,8 +32,8 @@ final class AppsViewModel: ObservableObject {
     // 操作提示
     @Published var showAlert = false
     @Published var alertMessage = ""
-    /// alert 确认后自动返回上一层（用于忽略升级成功后）
-    @Published var pendingDismissUpgrade = false
+    /// 成功/已提交类轻提示（toast）；错误与需确认的信息仍走 alert
+    @Published var toastMessage: String?
 
     // 卸载相关
     @Published var isUninstalling = false
@@ -181,7 +181,7 @@ final class AppsViewModel: ObservableObject {
             )
             // rebuild 是异步操作，状态不会立即变化，需要明确反馈
             if op == .rebuild {
-                showAlert(message: L10n.f("%@ 重建请求已提交，容器正在后台重建…", app.displayName))
+                showToast(L10n.f("%@ 重建请求已提交，容器正在后台重建…", app.displayName))
                 needsRefresh = true
             }
             // 所有操作都刷新列表，让详情页 currentApp 能反映最新状态
@@ -307,6 +307,15 @@ final class AppsViewModel: ObservableObject {
         showAlert = true
     }
 
+    /// 成功/已提交类轻提示：2 秒自动消失
+    func showToast(_ message: String) {
+        toastMessage = message
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run { self?.toastMessage = nil }
+        }
+    }
+
     // MARK: - 忽略升级
 
     /// 忽略指定版本的升级（在版本列表里左滑）
@@ -336,9 +345,9 @@ final class AppsViewModel: ObservableObject {
                 body: req,
                 as: EmptyResponse.self
             )
-            // 先弹窗提示，确认后再返回上一层
-            pendingDismissUpgrade = true
-            showAlert(message: successMsg)
+            // toast 轻提示并直接返回上一层（原为 alert 确认后返回）
+            showToast(successMsg)
+            showUpgradeSheet = false
             // 不立即修改 apps 数组（会破坏 NavigationStack），标记返回列表时再刷新
             needsRefresh = true
         } catch let err as APIError {
@@ -362,7 +371,7 @@ final class AppsViewModel: ObservableObject {
                 body: ReqWithID(id: recordID),
                 as: EmptyResponse.self
             )
-            showAlert(message: L10n.t("已取消忽略升级，后续将正常检查更新"))
+            showToast(L10n.t("已取消忽略升级，后续将正常检查更新"))
             needsRefresh = true
         } catch let err as APIError {
             showAlert(message: L10n.f("取消忽略失败：%@", err.errorDescription ?? L10n.t("未知错误")))
@@ -455,7 +464,7 @@ final class AppsViewModel: ObservableObject {
                 as: EmptyResponse.self
             )
             paramsUpdated = true
-            showAlert(message: L10n.t("参数更新请求已提交，应用正在后台重建中…"))
+            showToast(L10n.t("参数更新请求已提交，应用正在后台重建中…"))
             needsRefresh = true
         } catch let err as APIError {
             showAlert(message: L10n.f("更新失败：%@", err.errorDescription ?? L10n.t("未知错误")))

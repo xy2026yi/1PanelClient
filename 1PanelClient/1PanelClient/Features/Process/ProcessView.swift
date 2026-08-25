@@ -114,14 +114,7 @@ struct ProcessView: View {
                 Text(L10n.f("确定要结束进程「%@」(PID: %ld) 吗？此操作不可撤销。", target.name, target.pid))
             }
         }
-        .alert(L10n.t("操作成功"), isPresented: Binding(
-            get: { monitor.successMessage != nil },
-            set: { if !$0 { monitor.successMessage = nil } }
-        )) {
-            Button(L10n.t("好的"), role: .cancel) { monitor.successMessage = nil }
-        } message: {
-            Text(monitor.successMessage ?? "")
-        }
+        .localToast(message: $monitor.successMessage)
     }
 
     private var searchTextPrompt: String {

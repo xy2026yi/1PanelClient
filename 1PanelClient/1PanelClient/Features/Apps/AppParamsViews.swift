@@ -63,6 +63,7 @@ struct UpdateParamsView: View {
         } message: {
             Text(vm.alertMessage)
         }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     @ViewBuilder

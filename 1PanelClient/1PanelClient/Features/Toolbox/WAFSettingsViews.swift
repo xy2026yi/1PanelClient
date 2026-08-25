@@ -90,13 +90,14 @@ struct WAFCcSettingsView: View {
                 }
             }
         }
+        .localToast(message: $successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(
-            get: { successMessage != nil || errorMessage != nil },
-            set: { _ in successMessage = nil; errorMessage = nil }
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
         )) {
-            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
         } message: {
-            Text(errorMessage ?? successMessage ?? "")
+            Text(errorMessage ?? "")
         }
     }
 
@@ -202,13 +203,14 @@ struct WAFAttackCountSettingsView: View {
                     .disabled(isSaving)
             }
         }
+        .localToast(message: $successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(
-            get: { successMessage != nil || errorMessage != nil },
-            set: { _ in successMessage = nil; errorMessage = nil }
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
         )) {
-            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
         } message: {
-            Text(errorMessage ?? successMessage ?? "")
+            Text(errorMessage ?? "")
         }
     }
 
@@ -282,13 +284,14 @@ struct WAFLocationUpdateView: View {
         }
         .navigationTitle(L10n.t("IP 地址库"))
         .navigationBarTitleDisplayMode(.inline)
+        .localToast(message: $successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(
-            get: { successMessage != nil || errorMessage != nil },
-            set: { _ in successMessage = nil; errorMessage = nil }
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
         )) {
-            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
         } message: {
-            Text(errorMessage ?? successMessage ?? "")
+            Text(errorMessage ?? "")
         }
     }
 

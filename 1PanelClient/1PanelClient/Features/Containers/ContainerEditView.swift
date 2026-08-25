@@ -64,23 +64,21 @@ struct ContainerUpgradeView: View {
         }
         .navigationTitle(L10n.f("升级 %@", container.name))
         .navigationBarTitleDisplayMode(.inline)
+        .toastOverlay(message: $vm.toastMessage)
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
-            Button(L10n.t("好的"), role: .cancel) {
-                if vm.lastAlertIsSuccess {
-                    dismiss()
-                }
-            }
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
     }
 
     private func submit() async {
-        await vm.upgradeContainer(
+        let ok = await vm.upgradeContainer(
             name: container.name,
             image: image.trimmingCharacters(in: .whitespaces),
             forcePull: forcePull
         )
+        if ok { dismiss() }
     }
 }
 
@@ -204,14 +202,11 @@ struct ContainerEditView: View {
             }
         }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
-            Button(L10n.t("好的"), role: .cancel) {
-                if vm.lastAlertIsSuccess {
-                    dismiss()
-                }
-            }
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
+        .toastOverlay(message: $vm.toastMessage)
         .task {
             await load()
         }
@@ -233,13 +228,14 @@ struct ContainerEditView: View {
     }
 
     private func submit(info: ContainerInfo) async {
-        await vm.updateContainer(
+        let ok = await vm.updateContainer(
             info: info,
             image: image.trimmingCharacters(in: .whitespaces),
             forcePull: forcePull,
             publishAllPorts: publishAllPorts,
             env: envs.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         )
+        if ok { dismiss() }
     }
 }
 

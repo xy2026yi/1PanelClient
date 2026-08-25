@@ -212,14 +212,7 @@ struct Fail2banView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadBase() }
         .task { await vm.loadBase() }
-        .alert(L10n.t("操作成功"), isPresented: Binding(
-            get: { vm.successMessage != nil },
-            set: { if !$0 { vm.successMessage = nil } }
-        )) {
-            Button(L10n.t("好的"), role: .cancel) { vm.successMessage = nil }
-        } message: {
-            Text(vm.successMessage ?? "")
-        }
+        .localToast(message: $vm.successMessage)
         .alert(
             pendingAction.map { fail2banActionDisplayName($0) } ?? "",
             isPresented: Binding(
@@ -828,14 +821,7 @@ struct Fail2banFullConfigView: View {
                     .disabled(isLoading || isSaving)
                 }
             }
-            .alert(L10n.t("操作成功"), isPresented: Binding(
-                get: { successMessage != nil },
-                set: { if !$0 { successMessage = nil } }
-            )) {
-                Button(L10n.t("好的"), role: .cancel) { successMessage = nil }
-            } message: {
-                Text(successMessage ?? "")
-            }
+            .localToast(message: $successMessage)
             .task { await load() }
         }
     }
