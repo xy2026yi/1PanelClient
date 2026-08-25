@@ -208,7 +208,7 @@ struct ScriptLibraryView: View {
         }
         .alert(L10n.t("立即同步"), isPresented: $confirmSyncNow) {
             Button(L10n.t("取消"), role: .cancel) {}
-            Button(L10n.t("确认"), role: .destructive) {
+            Button(L10n.t("确认")) {
                 Task {
                     if let taskID = await vm.syncNow() {
                         syncTaskID = taskID
@@ -220,7 +220,7 @@ struct ScriptLibraryView: View {
         }
         .alert(L10n.t("关闭自动同步"), isPresented: $confirmDisableAutoSync) {
             Button(L10n.t("取消"), role: .cancel) {}
-            Button(L10n.t("确认"), role: .destructive) {
+            Button(L10n.t("确认")) {
                 Task { await vm.updateAutoSync(enabled: false) }
             }
         } message: {

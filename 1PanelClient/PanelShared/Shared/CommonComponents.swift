@@ -343,6 +343,26 @@ struct ErrorBanner: View {
     }
 }
 
+// MARK: - 全页加载失败态（错误信息 + 重试）
+
+/// 列表页「加载失败」统一分支。错误不应折叠进空态 description（失败后无恢复路径，
+/// 空态文案还会误导），统一用本视图提供重试入口
+struct LoadErrorStateView: View {
+    let message: String
+    let retry: () -> Void
+
+    var body: some View {
+        ContentUnavailableView {
+            Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+        } description: {
+            Text(message)
+        } actions: {
+            Button(L10n.t("重试"), action: retry)
+                .buttonStyle(.borderedProminent)
+        }
+    }
+}
+
 // MARK: - 区块标题（小节 header 内的图标 + 文字）
 
 /// 给 Section header 一致的图标+文字风格

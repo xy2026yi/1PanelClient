@@ -33,11 +33,15 @@ struct ContainersTab: View {
         Group {
             if vm.isLoading && vm.containers.isEmpty {
                 LoadingStateView()
+            } else if let err = vm.errorMessage, !err.isEmpty, vm.containers.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await vm.refresh() }
+                }
             } else if vm.containers.isEmpty && vm.dockerStatus == nil {
                 ContentUnavailableView(
                     L10n.t("暂无容器"),
                     systemImage: "shippingbox",
-                    description: Text(vm.errorMessage ?? L10n.t("这台服务器上没有容器"))
+                    description: Text(L10n.t("这台服务器上没有容器"))
                 )
             } else {
                 containerList

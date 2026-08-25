@@ -251,7 +251,8 @@ struct OpenRestyCard: View {
             )
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
-            Button(L10n.t("确认"), role: .destructive) { executeOpenRestyAction() }
+            // 启动/停止/重启/重载均为可逆服务操作，不用红色破坏性样式
+            Button(L10n.t("确认")) { executeOpenRestyAction() }
         } message: {
             if let action = pendingAction {
                 Text(L10n.f("将对 OpenResty 进行 %@ 操作，是否继续？", openRestyActionDisplayName(action)))

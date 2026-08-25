@@ -44,11 +44,15 @@ struct AppsTab: View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
                 LoadingStateView()
+            } else if let err = vm.errorMessage, !err.isEmpty, vm.apps.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await vm.refresh() }
+                }
             } else if vm.apps.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无已安装应用"),
                     systemImage: "shippingbox",
-                    description: Text(vm.errorMessage ?? L10n.t("这台服务器上没有已安装的应用"))
+                    description: Text(L10n.t("这台服务器上没有已安装的应用"))
                 )
             } else {
                 appList

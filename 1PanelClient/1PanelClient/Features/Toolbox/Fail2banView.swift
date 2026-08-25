@@ -695,6 +695,7 @@ struct Fail2banIPListView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var newIP = ""
+    @State private var pendingDeleteIP: String?
 
     private var isWhitelist: Bool { status == "ignore" }
 
@@ -739,16 +740,9 @@ struct Fail2banIPListView: View {
                                 Text(ip).font(.system(.body, design: .monospaced))
                                 Spacer()
                             }
-                            .swipeActions {
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
-                                    let remaining = ips.filter { $0 != ip }
-                                    Task {
-                                        await vm.saveIPs(
-                                            operate: isWhitelist ? "ignore" : "banned",
-                                            ips: remaining,
-                                            status: status
-                                        )
-                                    }
+                                    pendingDeleteIP = ip
                                 } label: {
                                     Label(L10n.t("删除"), systemImage: "trash")
                                 }
@@ -765,6 +759,27 @@ struct Fail2banIPListView: View {
                 }
             }
             .task { await vm.loadList(status: status) }
+            .alert(L10n.t("删除"), isPresented: Binding(
+                get: { pendingDeleteIP != nil },
+                set: { if !$0 { pendingDeleteIP = nil } }
+            )) {
+                Button(L10n.t("取消"), role: .cancel) { pendingDeleteIP = nil }
+                Button(L10n.t("删除"), role: .destructive) {
+                    if let ip = pendingDeleteIP {
+                        let ips = isWhitelist ? vm.whitelist : vm.blacklist
+                        let remaining = ips.filter { $0 != ip }
+                        Task {
+                            await vm.saveIPs(
+                                operate: isWhitelist ? "ignore" : "banned",
+                                ips: remaining,
+                                status: status
+                            )
+                        }
+                    }
+                }
+            } message: {
+                Text(L10n.f("确定删除 IP「%@」吗？", pendingDeleteIP ?? ""))
+            }
         }
     }
 }

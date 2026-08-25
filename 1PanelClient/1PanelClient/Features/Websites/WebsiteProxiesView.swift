@@ -145,7 +145,7 @@ struct WebsiteProxiesView: View {
                 .onTapGesture {
                     actionProxy = p
                 }
-                .swipeActions {
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         pendingDeleteProxy = p
                     } label: {

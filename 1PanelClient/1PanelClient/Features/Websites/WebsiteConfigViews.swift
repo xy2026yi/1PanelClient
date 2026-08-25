@@ -388,7 +388,7 @@ struct WebsiteRedirectView: View {
                 .onTapGesture {
                     actionRedirect = r
                 }
-                .swipeActions {
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         pendingDelete = r
                     } label: {
@@ -785,7 +785,7 @@ struct WebsiteAuthsView: View {
                                 .foregroundStyle(.tertiary)
                         }
                     }
-                    .swipeActions {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
                             pendingDelete = item
                         } label: {

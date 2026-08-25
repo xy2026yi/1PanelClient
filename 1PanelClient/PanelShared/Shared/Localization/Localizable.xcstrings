@@ -1,18 +1,10 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "" : {
-
-    },
-    "-" : {
-
-    },
-    "-----BEGIN OPENSSH PRIVATE KEY-----" : {
-
-    },
-    "—" : {
-
-    },
+    "" : {},
+    "-" : {},
+    "-----BEGIN OPENSSH PRIVATE KEY-----" : {},
+    "—" : {},
     "关闭自动同步" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -442,12 +434,8 @@
         }
       }
     },
-    "·" : {
-
-    },
-    "· %@" : {
-
-    },
+    "·" : {},
+    "· %@" : {},
     "(未命名)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -492,24 +480,12 @@
         }
       }
     },
-    "[%@]" : {
-
-    },
-    "*" : {
-
-    },
-    "/" : {
-
-    },
-    "/opt/1panel/backup" : {
-
-    },
-    "/var/log/auth.log" : {
-
-    },
-    "%@" : {
-
-    },
+    "[%@]" : {},
+    "*" : {},
+    "/" : {},
+    "/opt/1panel/backup" : {},
+    "/var/log/auth.log" : {},
+    "%@" : {},
     "%@ · %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -992,12 +968,8 @@
         }
       }
     },
-    "%lld" : {
-
-    },
-    "%lld%%" : {
-
-    },
+    "%lld" : {},
+    "%lld%%" : {},
     "%lld%%  %@ / %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1008,18 +980,10 @@
         }
       }
     },
-    "0" : {
-
-    },
-    "1Panel" : {
-
-    },
-    "1Panel Client" : {
-
-    },
-    "1Panel Server" : {
-
-    },
+    "0" : {},
+    "1Panel" : {},
+    "1Panel Client" : {},
+    "1Panel Server" : {},
     "1Panel 官网" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1152,9 +1116,7 @@
         }
       }
     },
-    "22" : {
-
-    },
+    "22" : {},
     "24小时" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1166,27 +1128,13 @@
         }
       }
     },
-    "25" : {
-
-    },
-    "30" : {
-
-    },
-    "100" : {
-
-    },
-    "200" : {
-
-    },
-    "300" : {
-
-    },
-    "301" : {
-
-    },
-    "302" : {
-
-    },
+    "25" : {},
+    "30" : {},
+    "100" : {},
+    "200" : {},
+    "300" : {},
+    "301" : {},
+    "302" : {},
     "360搜索" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1198,9 +1146,7 @@
         }
       }
     },
-    "404" : {
-
-    },
+    "404" : {},
     "404 频率限制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1212,21 +1158,11 @@
         }
       }
     },
-    "500" : {
-
-    },
-    "512" : {
-
-    },
-    "1000" : {
-
-    },
-    "Access Key" : {
-
-    },
-    "Access Key ID" : {
-
-    },
+    "500" : {},
+    "512" : {},
+    "1000" : {},
+    "Access Key" : {},
+    "Access Key ID" : {},
     "ACME 服务 URL" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1260,9 +1196,7 @@
         }
       }
     },
-    "API Key" : {
-
-    },
+    "API Key" : {},
     "API Key 已失效，长按重新录入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1285,12 +1219,8 @@
         }
       }
     },
-    "API Token" : {
-
-    },
-    "API User" : {
-
-    },
+    "API Token" : {},
+    "API User" : {},
     "API 接口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1324,9 +1254,7 @@
         }
       }
     },
-    "CDN" : {
-
-    },
+    "CDN" : {},
     "CDN Headers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1382,9 +1310,7 @@
         }
       }
     },
-    "Container" : {
-
-    },
+    "Container" : {},
     "Cookie规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1550,18 +1476,10 @@
         }
       }
     },
-    "docker-compose" : {
-
-    },
-    "docker-compose.yml" : {
-
-    },
-    "EAB HmacKey" : {
-
-    },
-    "EAB kid" : {
-
-    },
+    "docker-compose" : {},
+    "docker-compose.yml" : {},
+    "EAB HmacKey" : {},
+    "EAB kid" : {},
     "EAB 凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1595,9 +1513,7 @@
         }
       }
     },
-    "Endpoint" : {
-
-    },
+    "Endpoint" : {},
     "Endpoint 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1609,24 +1525,12 @@
         }
       }
     },
-    "example.com" : {
-
-    },
-    "Fail2ban" : {
-
-    },
-    "file.txt" : {
-
-    },
-    "folder_name" : {
-
-    },
-    "GitHub" : {
-
-    },
-    "gzip" : {
-
-    },
+    "example.com" : {},
+    "Fail2ban" : {},
+    "file.txt" : {},
+    "folder_name" : {},
+    "GitHub" : {},
+    "gzip" : {},
     "Header规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1638,12 +1542,8 @@
         }
       }
     },
-    "hostname" : {
-
-    },
-    "HSTS" : {
-
-    },
+    "hostname" : {},
+    "HSTS" : {},
     "HSTS 包含子域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1655,12 +1555,8 @@
         }
       }
     },
-    "http" : {
-
-    },
-    "HTTP" : {
-
-    },
+    "http" : {},
+    "HTTP" : {},
     "HTTP Header" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1738,21 +1634,11 @@
         }
       }
     },
-    "http://" : {
-
-    },
-    "http://10.0.0.1:36130" : {
-
-    },
-    "HTTP/3 (QUIC)" : {
-
-    },
-    "https" : {
-
-    },
-    "HTTPS" : {
-
-    },
+    "http://" : {},
+    "http://10.0.0.1:36130" : {},
+    "HTTP/3 (QUIC)" : {},
+    "https" : {},
+    "HTTPS" : {},
     "HTTPS 端口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1775,12 +1661,8 @@
         }
       }
     },
-    "https://" : {
-
-    },
-    "https://..." : {
-
-    },
+    "https://" : {},
+    "https://..." : {},
     "HTTPS防窜站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1803,9 +1685,7 @@
         }
       }
     },
-    "ID: %lld" : {
-
-    },
+    "ID: %lld" : {},
     "IP / CIDR，留空=任意" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1971,12 +1851,8 @@
         }
       }
     },
-    "KEY=VALUE" : {
-
-    },
-    "MB" : {
-
-    },
+    "KEY=VALUE" : {},
+    "MB" : {},
     "MINIO / WebDAV / SFTP 备份存储" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2010,21 +1886,11 @@
         }
       }
     },
-    "nginx.conf" : {
-
-    },
-    "off" : {
-
-    },
-    "on" : {
-
-    },
-    "OpenResty" : {
-
-    },
-    "OpenResty %@" : {
-
-    },
+    "nginx.conf" : {},
+    "off" : {},
+    "on" : {},
+    "OpenResty" : {},
+    "OpenResty %@" : {},
     "OpenResty 未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2047,12 +1913,8 @@
         }
       }
     },
-    "Password" : {
-
-    },
-    "PID %lld" : {
-
-    },
+    "Password" : {},
+    "PID %lld" : {},
     "ping 失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2108,15 +1970,9 @@
         }
       }
     },
-    "Scheduled Task" : {
-
-    },
-    "Secret ID" : {
-
-    },
-    "Secret Key" : {
-
-    },
+    "Scheduled Task" : {},
+    "Secret ID" : {},
+    "Secret Key" : {},
     "Shell 脚本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2150,9 +2006,7 @@
         }
       }
     },
-    "SSH" : {
-
-    },
+    "SSH" : {},
     "SSH 服务管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2230,12 +2084,8 @@
         }
       }
     },
-    "sshd_config" : {
-
-    },
-    "SSL" : {
-
-    },
+    "sshd_config" : {},
+    "SSL" : {},
     "SSL 证书" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2269,18 +2119,10 @@
         }
       }
     },
-    "SWAP" : {
-
-    },
-    "TLS" : {
-
-    },
-    "TTY" : {
-
-    },
-    "URL" : {
-
-    },
+    "SWAP" : {},
+    "TLS" : {},
+    "TTY" : {},
+    "URL" : {},
     "URL 模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2303,9 +2145,7 @@
         }
       }
     },
-    "User-Agent" : {
-
-    },
+    "User-Agent" : {},
     "User-Agent规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2317,12 +2157,8 @@
         }
       }
     },
-    "v%@" : {
-
-    },
-    "WAF" : {
-
-    },
+    "v%@" : {},
+    "WAF" : {},
     "WAF 监控" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2356,9 +2192,7 @@
         }
       }
     },
-    "Website" : {
-
-    },
+    "Website" : {},
     "XSS防御" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6341,12 +6175,8 @@
         }
       }
     },
-    "启动 / 停止 / 重启 / 关闭指定容器" : {
-
-    },
-    "启动或停止指定网站" : {
-
-    },
+    "启动 / 停止 / 重启 / 关闭指定容器" : {},
+    "启动或停止指定网站" : {},
     "启动时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6886,9 +6716,7 @@
         }
       }
     },
-    "在线检查与 CPU / 内存 / 负载概览" : {
-
-    },
+    "在线检查与 CPU / 内存 / 负载概览" : {},
     "在面板创建网站后，可在此为其配置 WAF 防护。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7725,9 +7553,7 @@
         }
       }
     },
-    "容器操作" : {
-
-    },
+    "容器操作" : {},
     "容器目录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7915,12 +7741,8 @@
         }
       }
     },
-    "对 ${container} 进行 ${operation} 操作" : {
-
-    },
-    "对 ${website} 进行 ${operation} 操作" : {
-
-    },
+    "对 ${container} 进行 ${operation} 操作" : {},
+    "对 ${website} 进行 ${operation} 操作" : {},
     "对比/编辑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9307,9 +9129,7 @@
         }
       }
     },
-    "快捷操作" : {
-
-    },
+    "快捷操作" : {},
     "忽略升级" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9695,9 +9515,7 @@
         }
       }
     },
-    "手动触发一次计划任务" : {
-
-    },
+    "手动触发一次计划任务" : {},
     "手动输入桶名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9819,9 +9637,7 @@
         }
       }
     },
-    "执行计划任务" : {
-
-    },
+    "执行计划任务" : {},
     "执行记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10713,9 +10529,7 @@
         }
       }
     },
-    "数量" : {
-
-    },
+    "数量" : {},
     "文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12146,9 +11960,7 @@
         }
       }
     },
-    "服务器概览" : {
-
-    },
+    "服务器概览" : {},
     "服务器返回了无法解析的响应" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12864,12 +12676,8 @@
         }
       }
     },
-    "检查 ${server} 的状态" : {
-
-    },
-    "检查服务器状态" : {
-
-    },
+    "检查 ${server} 的状态" : {},
+    "检查服务器状态" : {},
     "检查节点 SSH 连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14267,9 +14075,7 @@
         }
       }
     },
-    "留空使用当前服务器" : {
-
-    },
+    "留空使用当前服务器" : {},
     "留空则全部 IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15260,9 +15066,7 @@
         }
       }
     },
-    "立即执行 ${job}" : {
-
-    },
+    "立即执行 ${job}" : {},
     "立即重启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16209,9 +16013,7 @@
         }
       }
     },
-    "网站启停" : {
-
-    },
+    "网站启停" : {},
     "网站域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16223,9 +16025,7 @@
         }
       }
     },
-    "网站操作" : {
-
-    },
+    "网站操作" : {},
     "网站日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17909,12 +17709,8 @@
         }
       }
     },
-    "读取 ${server} 的概览" : {
-
-    },
-    "读取 CPU / 内存 / 负载的当前值" : {
-
-    },
+    "读取 ${server} 的概览" : {},
+    "读取 CPU / 内存 / 负载的当前值" : {},
     "读取和写入数据" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19048,9 +18844,7 @@
         }
       }
     },
-    "选择服务器并列出可操作的容器" : {
-
-    },
+    "选择服务器并列出可操作的容器" : {},
     "选择用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20455,6 +20249,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Rules"
+          }
+        }
+      }
+    },
+    "确定删除 IP「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete IP \"%@\"?"
           }
         }
       }

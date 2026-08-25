@@ -164,18 +164,20 @@ struct UpgradeSheetView: View {
                     }
                     .buttonStyle(.plain)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
+                        // 忽略升级可随时取消，非破坏操作不用红色
+                        Button {
                             Task { await vm.ignoreUpgrade(app: app, version: ver) }
                         } label: {
                             Label(L10n.t("忽略此版本"), systemImage: "eye.slash")
                         }
+                        .tint(.gray)
                     }
                 }
             }
 
             // 忽略所有升级
             Section {
-                Button(role: .destructive) {
+                Button {
                     Task { await vm.ignoreUpgrade(app: app) }
                 } label: {
                     Label(L10n.t("忽略所有升级"), systemImage: "eye.slash")
@@ -203,6 +205,7 @@ struct UpgradableAppsView: View {
 
     @State private var upgradable: [AppInstall] = []
     @State private var isLoading = false
+    @State private var loadError: String?
     /// 当前点击进入版本选择的应用（配合 vm.showUpgradeSheet 渲染 UpgradeSheetView）
     @State private var selectedApp: AppInstall?
     @State private var showIgnored = false
@@ -211,6 +214,10 @@ struct UpgradableAppsView: View {
         Group {
             if isLoading && upgradable.isEmpty {
                 LoadingStateView()
+            } else if let err = loadError, upgradable.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
             } else if upgradable.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无可升级应用"),
@@ -307,12 +314,11 @@ struct UpgradableAppsView: View {
                 as: AppInstalledListResponse.self
             )
             upgradable = resp.items ?? []
+            loadError = nil
         } catch let err as APIError {
-            vm.alertMessage = L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误"))
-            vm.showAlert = true
+            loadError = err.errorDescription ?? L10n.t("未知错误")
         } catch {
-            vm.alertMessage = L10n.f("加载失败：%@", error.localizedDescription)
-            vm.showAlert = true
+            loadError = error.localizedDescription
         }
     }
 }
@@ -324,11 +330,16 @@ struct IgnoredAppsView: View {
 
     @State private var ignored: [AppIgnoreUpgrade] = []
     @State private var isLoading = false
+    @State private var loadError: String?
 
     var body: some View {
         Group {
             if isLoading && ignored.isEmpty {
                 LoadingStateView()
+            } else if let err = loadError, ignored.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
             } else if ignored.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无忽略记录"),
@@ -384,18 +395,17 @@ struct IgnoredAppsView: View {
         isLoading = true
         defer { isLoading = false }
         do {
+            // 无忽略记录时服务端返回 data=null，APIClient 已回退为空数组
             ignored = try await vm.client.send(
                 path: APIEndpoint.appsIgnoredList.path,
                 method: APIEndpoint.appsIgnoredList.method,
                 as: [AppIgnoreUpgrade].self
             )
+            loadError = nil
         } catch let err as APIError {
-            // 无忽略记录时服务端返回 data=null，APIClient 已回退为空数组
-            vm.alertMessage = L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误"))
-            vm.showAlert = true
+            loadError = err.errorDescription ?? L10n.t("未知错误")
         } catch {
-            vm.alertMessage = L10n.f("加载失败：%@", error.localizedDescription)
-            vm.showAlert = true
+            loadError = error.localizedDescription
         }
     }
 

@@ -35,6 +35,10 @@ struct AppStoreTab: View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
                 LoadingStateView()
+            } else if let err = vm.errorMessage, !err.isEmpty, vm.apps.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await vm.refresh() }
+                }
             } else if vm.apps.isEmpty {
                 ContentUnavailableView.search(text: searchText)
             } else {
