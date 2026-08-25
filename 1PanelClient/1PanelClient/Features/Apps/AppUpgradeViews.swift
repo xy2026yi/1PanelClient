@@ -193,6 +193,130 @@ struct UpgradeSheetView: View {
     }
 }
 
+// MARK: - 可升级应用列表
+
+/// 应用列表菜单「可升级」进入：update=true & sync=true 查询待升级应用，
+/// 点击应用直接进入版本选择（UpgradeSheetView）；
+/// 「查看忽略应用」入口固定在页面底部（同管理页「编辑」样式）
+struct UpgradableAppsView: View {
+    @ObservedObject var vm: AppsViewModel
+
+    @State private var upgradable: [AppInstall] = []
+    @State private var isLoading = false
+    /// 当前点击进入版本选择的应用（配合 vm.showUpgradeSheet 渲染 UpgradeSheetView）
+    @State private var selectedApp: AppInstall?
+    @State private var showIgnored = false
+
+    var body: some View {
+        Group {
+            if isLoading && upgradable.isEmpty {
+                LoadingStateView()
+            } else if upgradable.isEmpty {
+                ContentUnavailableView(
+                    L10n.t("暂无可升级应用"),
+                    systemImage: "checkmark.seal",
+                    description: Text(L10n.t("已安装的应用均为最新版本"))
+                )
+                .safeAreaInset(edge: .bottom) { bottomIgnoredEntry }
+            } else {
+                upgradableList
+            }
+        }
+        .navigationTitle(L10n.t("可升级"))
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+        // 从「忽略升级」页返回时（取消忽略会置 needsRefresh）重载列表
+        .onAppear {
+            if vm.needsRefresh {
+                vm.needsRefresh = false
+                Task { await load() }
+            }
+        }
+        .navigationDestination(isPresented: $showIgnored) {
+            IgnoredAppsView(vm: vm)
+        }
+        .navigationDestination(isPresented: $vm.showUpgradeSheet) {
+            if let app = selectedApp {
+                UpgradeSheetView(app: app, vm: vm)
+            }
+        }
+    }
+
+    private var upgradableList: some View {
+        List {
+            Section {
+                ForEach(upgradable) { app in
+                    Button {
+                        selectedApp = app
+                        Task { await vm.loadVersions(for: app) }
+                    } label: {
+                        AppRow(app: app)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            ignoredEntry
+        }
+        .listStyle(.insetGrouped)
+        .refreshable { await load() }
+    }
+
+    /// 底部「查看忽略应用」入口：管理页「编辑」同款整行居中按钮
+    private var ignoredEntry: some View {
+        Section {
+            Button {
+                showIgnored = true
+            } label: {
+                HStack {
+                    Spacer()
+                    Text(L10n.t("查看忽略应用"))
+                    Spacer()
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// 空列表态的底部「查看忽略应用」入口（无 List 包裹，用材质底条承载）
+    private var bottomIgnoredEntry: some View {
+        Button {
+            showIgnored = true
+        } label: {
+            Text(L10n.t("查看忽略应用"))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(.regularMaterial)
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        // 对齐官方抓包：update=true 只返回可更新应用，sync=true 先同步应用商店再查询
+        let req = AppInstalledSearchRequest(
+            page: 1, pageSize: 100, name: "", type: "", tags: [],
+            update: true, all: false, unused: false, sync: true
+        )
+        do {
+            let resp: AppInstalledListResponse = try await vm.client.send(
+                path: APIEndpoint.appsInstalledSearch.path,
+                body: req,
+                as: AppInstalledListResponse.self
+            )
+            upgradable = resp.items ?? []
+        } catch let err as APIError {
+            vm.alertMessage = L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误"))
+            vm.showAlert = true
+        } catch {
+            vm.alertMessage = L10n.f("加载失败：%@", error.localizedDescription)
+            vm.showAlert = true
+        }
+    }
+}
+
 // MARK: - 忽略升级列表
 
 struct IgnoredAppsView: View {

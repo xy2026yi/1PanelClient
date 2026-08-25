@@ -167,7 +167,11 @@ struct ManageTab: View {
         case .apps:
             AppsTab(manager: manager)
         case .websites:
+            WebsitesHubView()
+        case .websiteList:
             WebsitesTab(manager: manager)
+        case .certificates:
+            CertificatesTab(manager: manager)
         case .containers:
             ContainersTab(manager: manager)
         case .cronjob:
@@ -299,6 +303,10 @@ final class ManagePrefs: ObservableObject {
 enum ManageItem: String, Identifiable {
     case apps
     case websites
+    /// 网站列表（Hub 子页；首页网站卡片也直达此处，跳过 Hub）
+    case websiteList
+    /// 证书（Hub 子页；原网站页菜单里的「SSL证书」移出改名）
+    case certificates
     case database
     case containers
     case terminal
@@ -332,6 +340,8 @@ enum ManageItem: String, Identifiable {
         switch self {
         case .apps:        return L10n.t("应用程序")
         case .websites:    return L10n.t("网站")
+        case .websiteList: return L10n.t("网站")
+        case .certificates: return L10n.t("证书")
         case .database:    return L10n.t("数据库")
         case .containers:  return L10n.t("容器")
         case .terminal:    return L10n.t("终端")
@@ -356,7 +366,9 @@ enum ManageItem: String, Identifiable {
     var subtitle: String {
         switch self {
         case .apps:        return L10n.t("已安装应用 / 应用商店")
-        case .websites:    return L10n.t("网站 / SSL 证书")
+        case .websites:    return L10n.t("网站 / 证书")
+        case .websiteList: return L10n.t("网站列表与创建")
+        case .certificates: return L10n.t("SSL 证书 / Acme / DNS")
         case .database:    return L10n.t("管理数据库实例")
         case .containers:  return L10n.t("Docker 容器")
         case .terminal:    return L10n.t("本机终端 / SSH 连接主机")
@@ -382,6 +394,8 @@ enum ManageItem: String, Identifiable {
         switch self {
         case .apps:        return "app.badge"
         case .websites:    return "globe"
+        case .websiteList: return "globe"
+        case .certificates: return "lock.shield"
         case .database:    return "cylinder"
         case .containers:  return "shippingbox"
         case .terminal:    return "terminal"
@@ -407,6 +421,8 @@ enum ManageItem: String, Identifiable {
         switch self {
         case .apps:        return .blue
         case .websites:    return .green
+        case .websiteList: return .green
+        case .certificates: return .blue
         case .database:    return .purple
         case .containers:  return .indigo
         case .terminal:    return .primary  // 深色模式下 .black 图标不可见，改用自适应色

@@ -2,7 +2,7 @@
 //  CertificatesTab.swift
 //  1PanelClient
 //
-//  SSL 证书管理：列表 / 详情 / 上传 / 删除
+//  证书管理：列表 / 详情 / 上传 / 删除（Acme/DNS/自签入口在列表顶部按钮区）
 //  基于 doc/网站-证书.md
 //
 
@@ -18,7 +18,6 @@ struct CertificatesTab: View {
     @State private var showAcme = false
     @State private var showDns = false
     @State private var showCA = false
-    @State private var showMenu = false
     @State private var searchText = ""
     @State private var isSearching = false
 
@@ -55,40 +54,13 @@ struct CertificatesTab: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-            } else if vm.certificates.isEmpty {
-                ContentUnavailableView(
-                    L10n.t("暂无证书"),
-                    systemImage: "lock.shield",
-                    description: Text(L10n.t("点击右上角「+」申请或上传第一张证书"))
-                )
             } else {
+                // 顶部账户入口（同 Fail2ban 白名单/黑名单/全部配置样式），具体证书在其下方
                 certList
             }
         }
-        // 右上角收敛为两键：省略号（搜索/账户/自签）+ 创建菜单；搜索入口在省略号首项
-        .searchIconMode(text: $searchText, isSearching: $isSearching, title: L10n.t("SSL 证书"), prompt: L10n.t("搜索证书"), searchInMenu: true)
-        .toolbar {
-            if !isSearching {
-                ToolbarItem(placement: .topBarTrailing) {
-                    EllipsisMenuButton {
-                        withAnimation(Motion.fast) { showMenu.toggle() }
-                    }
-                }
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if showMenu {
-                EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("搜索")) { isSearching = true },
-                    .action(title: L10n.t("Acme 账户")) { showAcme = true },
-                    .action(title: L10n.t("DNS 账户")) { showDns = true },
-                    .divider,
-                    .action(title: L10n.t("自签证书")) { showCA = true },
-                ]) {
-                    withAnimation(Motion.fast) { showMenu = false }
-                }
-            }
-        }
+        // 右上角两键：放大镜（搜索）+ 创建菜单；账户/自签入口在列表顶部按钮区
+        .searchIconMode(text: $searchText, isSearching: $isSearching, title: L10n.t("证书"), prompt: L10n.t("搜索证书"))
         .toolbar {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -131,17 +103,32 @@ struct CertificatesTab: View {
 
     private var certList: some View {
         List {
-            ForEach(filteredCerts) { cert in
-                NavigationLink {
-                    CertificateDetailView(cert: cert, vm: vm)
-                } label: {
-                    CertificateRow(cert: cert)
+            accountEntrySection
+
+            if filteredCerts.isEmpty {
+                Section {
+                    ContentUnavailableView(
+                        L10n.t("暂无证书"),
+                        systemImage: "lock.shield",
+                        description: Text(L10n.t("点击右上角「+」申请或上传第一张证书"))
+                    )
+                    .listRowBackground(Color.clear)
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        vm.pendingDeleteCert = cert
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
+            } else {
+                Section {
+                    ForEach(filteredCerts) { cert in
+                        NavigationLink {
+                            CertificateDetailView(cert: cert, vm: vm)
+                        } label: {
+                            CertificateRow(cert: cert)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                vm.pendingDeleteCert = cert
+                            } label: {
+                                Label(L10n.t("删除"), systemImage: "trash")
+                            }
+                        }
                     }
                 }
             }
@@ -167,6 +154,34 @@ struct CertificatesTab: View {
         } message: {
             if let cert = vm.pendingDeleteCert {
                 Text(L10n.f("确定删除证书「%@」吗？删除后不可恢复。", cert.displayName))
+            }
+        }
+    }
+
+    /// Acme 账户 / DNS 账户 / 自签证书 入口（原三点菜单项移出），
+    /// 布局同 Fail2ban 的白名单/黑名单/全部配置：两键并排 + 整行
+    private var accountEntrySection: some View {
+        Section {
+            HStack(spacing: 12) {
+                Button { showAcme = true } label: {
+                    Label(L10n.t("Acme 账户"), systemImage: "person.crop.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderless)
+
+                Divider()
+                    .frame(height: 24)
+
+                Button { showDns = true } label: {
+                    Label(L10n.t("DNS 账户"), systemImage: "network")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderless)
+            }
+
+            Button { showCA = true } label: {
+                Label(L10n.t("自签证书"), systemImage: "certificate")
+                    .frame(maxWidth: .infinity)
             }
         }
     }

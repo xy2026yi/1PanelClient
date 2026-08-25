@@ -113,6 +113,13 @@ enum APIEndpoint {
     case openrestyConfig          // GET  读取 OpenResty 主配置
     case openrestyFile            // POST 保存 OpenResty 主配置
     case openrestyReset           // POST 还原默认配置
+    case openrestyStatus          // GET  运行状态指标（活动连接/请求数等）
+    case openrestyScope           // POST 读取性能参数（scope=http-per）
+    case openrestyUpdate          // POST 保存性能参数
+    case openrestyHttps           // GET/POST HTTPS 防窜站 / 拒绝默认SSL握手
+    case openrestyModules         // GET  模块列表
+    case openrestyModulesUpdate   // POST 开启/关闭模块（完整对象+operate）
+    case openrestyBuild           // POST 构建模块（异步任务）
 
     // MARK: - 计划任务
     case cronjobsSearch           // POST 分页查询计划任务
@@ -445,6 +452,13 @@ enum APIEndpoint {
         case .openrestyConfig:       return "/api/v2/openresty"
         case .openrestyFile:         return "/api/v2/openresty/file"
         case .openrestyReset:        return "/api/v2/apps/installed/conf"
+        case .openrestyStatus:       return "/api/v2/openresty/status"
+        case .openrestyScope:        return "/api/v2/openresty/scope"
+        case .openrestyUpdate:       return "/api/v2/openresty/update"
+        case .openrestyHttps:        return "/api/v2/openresty/https"
+        case .openrestyModules:      return "/api/v2/openresty/modules"
+        case .openrestyModulesUpdate: return "/api/v2/openresty/modules/update"
+        case .openrestyBuild:        return "/api/v2/openresty/build"
         case .cronjobsSearch:        return "/api/v2/cronjobs/search"
         case .cronjobsCreate:        return "/api/v2/cronjobs"
         case .cronjobsUpdate:        return "/api/v2/cronjobs/update"
@@ -657,7 +671,7 @@ enum APIEndpoint {
              .wafStat, .wafStatDays,
              .settingsBaseDir,
              .settingsUpgradeCheck, .settingsUpgradeReleases,
-             .openrestyConfig,
+             .openrestyConfig, .openrestyStatus, .openrestyHttps, .openrestyModules,
              .logsSystemFiles, .logsWebsitesList,
              .nodesCurrent, .licensesOptions,
              .backupsLocal,

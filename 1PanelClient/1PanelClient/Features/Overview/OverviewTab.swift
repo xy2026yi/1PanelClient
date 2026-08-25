@@ -327,7 +327,8 @@ struct OverviewTab: View {
         // 按实际宽度选列数（AdaptiveStatGrid）：竖屏 + 侧栏展开时内容区仅 ~514pt，
         // 固定 4 列会把「图标+标题+大数字」卡挤成 ~120pt 宽；不足 600 回落 2×2
         AdaptiveStatGrid(spacing: 12) {
-            Button { tapManage(.websites) } label: {
+            // 直达网站列表（跳过 管理-网站 Hub 中间层）
+            Button { tapManage(.websiteList) } label: {
                 StatCard(title: L10n.t("网站"), count: b.websiteNumber, icon: "globe", color: .green)
             }
             .buttonStyle(PressableCardStyle())

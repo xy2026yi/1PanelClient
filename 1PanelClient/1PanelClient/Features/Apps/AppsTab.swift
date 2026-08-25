@@ -13,7 +13,7 @@ struct AppsTab: View {
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var showStore = false
-    @State private var showIgnored = false
+    @State private var showUpgradable = false
     @State private var showSettings = false
     @State private var showMenu = false
 
@@ -54,13 +54,12 @@ struct AppsTab: View {
                 appList
             }
         }
-        // 右上角收敛为两键：省略号（搜索/忽略/设置）+ 应用商店；搜索入口在省略号首项
+        // 右上角收敛为两键：放大镜（搜索）+ 省略号（商店/可升级/设置）
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
             title: L10n.t("应用"),
-            prompt: L10n.t("搜索已安装应用"),
-            searchInMenu: true
+            prompt: L10n.t("搜索已安装应用")
         )
         .toolbar {
             if !isSearching {
@@ -70,21 +69,13 @@ struct AppsTab: View {
                     }
                     .accessibilityLabel(L10n.t("更多"))
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showStore = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel(L10n.t("进入应用商店"))
-                }
             }
         }
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("搜索")) { isSearching = true },
-                    .action(title: L10n.t("忽略应用")) { showIgnored = true },
+                    .action(title: L10n.t("商店")) { showStore = true },
+                    .action(title: L10n.t("可升级")) { showUpgradable = true },
                     .action(title: L10n.t("设置")) { showSettings = true },
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
@@ -97,8 +88,8 @@ struct AppsTab: View {
         .navigationDestination(for: AppInstall.self) { app in
             AppDetailView(app: app, vm: vm)
         }
-        .navigationDestination(isPresented: $showIgnored) {
-            IgnoredAppsView(vm: vm)
+        .navigationDestination(isPresented: $showUpgradable) {
+            UpgradableAppsView(vm: vm)
         }
         .navigationDestination(isPresented: $showSettings) {
             AppStoreSettingsView(vm: vm)

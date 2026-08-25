@@ -268,6 +268,17 @@
         }
       }
     },
+    "%@（动态模块）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (dynamic module)"
+          }
+        }
+      }
+    },
     "%@@%@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1206,6 +1217,9 @@
     "GitHub" : {
 
     },
+    "gzip" : {
+
+    },
     "Header规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1359,6 +1373,17 @@
     },
     "https://..." : {
 
+    },
+    "HTTPS防窜站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS Anti-spoofing"
+          }
+        }
+      }
     },
     "HTTP规则" : {
       "extractionState" : "manual",
@@ -1579,6 +1604,12 @@
       }
     },
     "nginx.conf" : {
+
+    },
+    "off" : {
+
+    },
+    "on" : {
 
     },
     "OpenResty" : {
@@ -1805,6 +1836,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SSL Certificates"
+          }
+        }
+      }
+    },
+    "SSL 证书 / Acme / DNS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSL certs / Acme / DNS"
           }
         }
       }
@@ -3824,6 +3866,17 @@
         }
       }
     },
+    "最大上传文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max upload size"
+          }
+        }
+      }
+    },
     "最大重试次数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3831,6 +3884,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Max Retries"
+          }
+        }
+      }
+    },
+    "最小压缩文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimum file size to compress"
           }
         }
       }
@@ -4946,6 +5010,50 @@
         }
       }
     },
+    "加载顺序" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Order"
+          }
+        }
+      }
+    },
+    "动态模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dynamic Module"
+          }
+        }
+      }
+    },
+    "动态模块(构建后热加载，容器不重启)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dynamic modules (hot-reloaded after build, container not restarted)"
+          }
+        }
+      }
+    },
+    "动态模块构建后热加载生效（容器不重启）；包含静态模块时将全量重建镜像并重建容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dynamic modules take effect via hot reload after building (container not restarted); if static modules are included, the image and container will be fully rebuilt"
+          }
+        }
+      }
+    },
     "升级" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5298,6 +5406,17 @@
         }
       }
     },
+    "压缩率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compression level"
+          }
+        }
+      }
+    },
     "原始返回" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5558,6 +5677,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cancel Editing"
+          }
+        }
+      }
+    },
+    "可升级" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgradable"
           }
         }
       }
@@ -6217,6 +6347,17 @@
         }
       }
     },
+    "响应数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing"
+          }
+        }
+      }
+    },
     "响应时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6246,6 +6387,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Online Store"
+          }
+        }
+      }
+    },
+    "商店" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Store"
           }
         }
       }
@@ -7100,6 +7252,17 @@
         }
       }
     },
+    "客户端请求的头buffer大小" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client request header buffer size"
+          }
+        }
+      }
+    },
     "容器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7945,6 +8108,17 @@
         }
       }
     },
+    "已安装的应用均为最新版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All installed apps are up to date"
+          }
+        }
+      }
+    },
     "已应用到网站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8040,6 +8214,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paused"
+          }
+        }
+      }
+    },
+    "已构建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built"
           }
         }
       }
@@ -8649,6 +8834,17 @@
         }
       }
     },
+    "当前环境不支持动态模块，构建将全量重建镜像并重启容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dynamic modules are not supported in this environment; building will fully rebuild the image and restart the container"
+          }
+        }
+      }
+    },
     "当前节点" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8678,6 +8874,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current Role"
+          }
+        }
+      }
+    },
+    "待构建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pending"
           }
         }
       }
@@ -8762,6 +8969,50 @@
         }
       }
     },
+    "忽略缓存重新构建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuild Without Cache"
+          }
+        }
+      }
+    },
+    "性能参数已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Performance parameters saved"
+          }
+        }
+      }
+    },
+    "性能调整" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Performance"
+          }
+        }
+      }
+    },
+    "总握手次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Handshakes"
+          }
+        }
+      }
+    },
     "总是拉取最新镜像" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8791,6 +9042,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Total"
+          }
+        }
+      }
+    },
+    "总请求数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Requests"
+          }
+        }
+      }
+    },
+    "总连接次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Accepts"
           }
         }
       }
@@ -9204,6 +9477,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deny"
+          }
+        }
+      }
+    },
+    "拒绝默认SSL握手" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reject Default SSL Handshake"
           }
         }
       }
@@ -10487,6 +10771,17 @@
         }
       }
     },
+    "是否开启压缩传输" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable gzip compression"
+          }
+        }
+      }
+    },
     "显示名称" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10659,6 +10954,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No databases to link"
+          }
+        }
+      }
+    },
+    "暂无可升级应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Updates Available"
           }
         }
       }
@@ -10879,6 +11185,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No untagged images"
+          }
+        }
+      }
+    },
+    "暂无模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Modules"
           }
         }
       }
@@ -11345,6 +11662,17 @@
         }
       }
     },
+    "服务器名字的hash表大小" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hash bucket size for server names"
+          }
+        }
+      }
+    },
     "服务器地址格式错误" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11744,6 +12072,17 @@
         }
       }
     },
+    "本地构建模块需要占用一定的 CPU 和内存，静态模块还会重建并重启 OpenResty，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Building modules locally consumes CPU and memory; static modules will also rebuild and restart OpenResty. Continue?"
+          }
+        }
+      }
+    },
     "本机" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11861,6 +12200,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sections"
+          }
+        }
+      }
+    },
+    "构建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build"
+          }
+        }
+      }
+    },
+    "构建方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build Mode"
+          }
+        }
+      }
+    },
+    "构建模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build Modules"
+          }
+        }
+      }
+    },
+    "构建请求失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build request failed: %@"
+          }
+        }
+      }
+    },
+    "查看忽略应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Ignored Apps"
           }
         }
       }
@@ -12168,6 +12562,17 @@
         }
       }
     },
+    "模块详情" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Module Details"
+          }
+        }
+      }
+    },
     "模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12406,6 +12811,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No apps with ignored upgrades"
+          }
+        }
+      }
+    },
+    "活动连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active Connections"
           }
         }
       }
@@ -15298,6 +15714,17 @@
         }
       }
     },
+    "网站 / 证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Websites / Certificates"
+          }
+        }
+      }
+    },
     "网站「 %@ 」到期告警" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15316,6 +15743,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Website \"%@\" certificate expiring"
+          }
+        }
+      }
+    },
+    "网站列表与创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website list & creation"
           }
         }
       }
@@ -15498,6 +15936,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Took %@"
+          }
+        }
+      }
+    },
+    "脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script"
           }
         }
       }
@@ -16767,6 +17216,17 @@
         }
       }
     },
+    "请填写完整的性能参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please fill in all performance parameters"
+          }
+        }
+      }
+    },
     "请填写密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17411,6 +17871,28 @@
         }
       }
     },
+    "软件包" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Packages"
+          }
+        }
+      }
+    },
+    "软件源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mirror"
+          }
+        }
+      }
+    },
     "输入 IP 或 IP 段" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18012,6 +18494,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connection timed out"
+          }
+        }
+      }
+    },
+    "连接超时时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keepalive timeout"
           }
         }
       }
@@ -19020,6 +19513,17 @@
         }
       }
     },
+    "静态模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Static Module"
+          }
+        }
+      }
+    },
     "静态网站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19335,6 +19839,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Home"
+          }
+        }
+      }
+    },
+    "驻留进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting"
           }
         }
       }

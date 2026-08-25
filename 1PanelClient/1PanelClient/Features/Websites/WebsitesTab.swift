@@ -13,9 +13,12 @@ struct WebsitesTab: View {
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var showCreate = false
-    @State private var showCerts = false
     @State private var showOpenRestyConfig = false
-    @State private var showMenu = false
+    // OpenResty 管理增强页入口
+    @State private var showOpenRestyStatus = false
+    @State private var showOpenRestyPerformance = false
+    @State private var showOpenRestyModules = false
+    @State private var showOpenRestyOther = false
 
 
     init(manager: ServerManager) {
@@ -47,34 +50,13 @@ struct WebsitesTab: View {
                 websiteList
             }
         }
-        // 右上角收敛为两键：省略号（搜索/SSL证书）+ 创建；搜索入口在省略号首项
+        // 右上角两键：放大镜（搜索）+ 创建；证书入口已上移至 管理-网站 Hub 页
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
             title: L10n.t("网站"),
-            prompt: L10n.t("搜索域名"),
-            searchInMenu: true
+            prompt: L10n.t("搜索域名")
         )
-        .toolbar {
-            // 仅非搜索态显示（搜索态只剩输入框 + 取消）
-            if !isSearching {
-                ToolbarItem(placement: .topBarTrailing) {
-                    EllipsisMenuButton {
-                        withAnimation(Motion.fast) { showMenu.toggle() }
-                    }
-                }
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if showMenu {
-                EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("搜索")) { isSearching = true },
-                    .action(title: L10n.t("SSL证书")) { showCerts = true },
-                ]) {
-                    withAnimation(Motion.fast) { showMenu = false }
-                }
-            }
-        }
         .toolbar {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -95,14 +77,23 @@ struct WebsitesTab: View {
         .navigationDestination(for: Website.self) { website in
             WebsiteDetailView(website: website, vm: vm)
         }
-        .navigationDestination(isPresented: $showCerts) {
-            CertificatesTab(manager: manager)
-        }
         .navigationDestination(isPresented: $showCreate) {
             CreateWebsiteView(vm: vm)
         }
         .navigationDestination(isPresented: $showOpenRestyConfig) {
             OpenRestyConfigView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showOpenRestyStatus) {
+            OpenRestyStatusView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showOpenRestyPerformance) {
+            OpenRestyPerformanceView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showOpenRestyModules) {
+            OpenRestyModulesView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showOpenRestyOther) {
+            OpenRestyOtherView(vm: vm)
         }
     }
 
@@ -119,7 +110,14 @@ struct WebsitesTab: View {
                 }
             } else {
                 // 顶部 OpenResty 信息与管理卡片
-                OpenRestyCard(vm: vm, showConfig: $showOpenRestyConfig)
+                OpenRestyCard(
+                    vm: vm,
+                    showConfig: $showOpenRestyConfig,
+                    showStatus: $showOpenRestyStatus,
+                    showPerformance: $showOpenRestyPerformance,
+                    showModules: $showOpenRestyModules,
+                    showOther: $showOpenRestyOther
+                )
 
                 if vm.websites.isEmpty {
                     Section {
@@ -165,17 +163,71 @@ struct WebsitesTab: View {
     }
 }
 
+// MARK: - 网站 Hub（管理 - 网站 中间层）
+
+/// 管理 - 网站 新增中间层：网站列表与证书两个入口。
+/// 首页网站卡片经 ManageItem.websiteList 直达网站列表，不经此页。
+struct WebsitesHubView: View {
+    var body: some View {
+        List {
+            Section {
+                NavigationLink(value: ManageItem.websiteList) {
+                    hubRow(.websiteList)
+                }
+                .buttonStyle(.plain)
+                NavigationLink(value: ManageItem.certificates) {
+                    hubRow(.certificates)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(L10n.t("网站"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// 与管理页列表行同款：图标徽章 + 标题 + 副标题
+    private func hubRow(_ item: ManageItem) -> some View {
+        HStack(spacing: 14) {
+            IconBadge(systemName: item.icon, color: item.color)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                Text(item.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+    }
+}
+
 // MARK: - OpenResty 信息与管理卡片
 
 struct OpenRestyCard: View {
     @ObservedObject var vm: WebsitesViewModel
     @State private var isExpanded = false
     @Binding var showConfig: Bool
+    // 管理增强页入口（destination 由 WebsitesTab 挂在根内容上：
+    // 挂在 List 内的 Section 上时导航注册不可靠）
+    @Binding var showStatus: Bool
+    @Binding var showPerformance: Bool
+    @Binding var showModules: Bool
+    @Binding var showOther: Bool
     @State private var pendingAction: String?
 
-    init(vm: WebsitesViewModel, showConfig: Binding<Bool>) {
+    init(vm: WebsitesViewModel,
+         showConfig: Binding<Bool>,
+         showStatus: Binding<Bool>,
+         showPerformance: Binding<Bool>,
+         showModules: Binding<Bool>,
+         showOther: Binding<Bool>) {
         self.vm = vm
         self._showConfig = showConfig
+        self._showStatus = showStatus
+        self._showPerformance = showPerformance
+        self._showModules = showModules
+        self._showOther = showOther
     }
 
     var body: some View {
@@ -206,6 +258,18 @@ struct OpenRestyCard: View {
                         },
                         ServiceAction(title: L10n.t("配置"), icon: "slider.horizontal.3", color: .purple) {
                             showConfig = true
+                        },
+                        ServiceAction(title: L10n.t("状态"), icon: "gauge", color: .mint) {
+                            showStatus = true
+                        },
+                        ServiceAction(title: L10n.t("性能调整"), icon: "speedometer", color: .indigo) {
+                            showPerformance = true
+                        },
+                        ServiceAction(title: L10n.t("模块"), icon: "puzzlepiece", color: .cyan) {
+                            showModules = true
+                        },
+                        ServiceAction(title: L10n.t("其他"), icon: "ellipsis", color: .brown) {
+                            showOther = true
                         },
                     ]
                 ) {
