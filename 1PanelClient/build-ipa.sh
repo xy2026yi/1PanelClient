@@ -39,7 +39,7 @@ ok "已清理"
 # ---------- 2. Archive（禁用签名）----------
 info "开始 Archive（CODE_SIGNING_ALLOWED=NO）..."
 xcodebuild archive \
-  -project "$PROJECT_NAME.xcodeproj" \
+  -project "$PROJECT_DIR/$PROJECT_NAME.xcodeproj" \
   -scheme "$SCHEME" \
   -archivePath "$ARCHIVE_PATH" \
   -destination "generic/platform=iOS" \
