@@ -94,6 +94,7 @@ struct WAFWebsiteSettingsView: View {
         .alert(L10n.t("关闭 WAF"), isPresented: $pendingCloseWAF) {
             Button(L10n.t("取消"), role: .cancel) { pendingCloseWAF = false }
             Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
                 Task { await setWebsiteState(scope: "Waf", state: "off") }
             }
         } message: {
@@ -103,6 +104,7 @@ struct WAFWebsiteSettingsView: View {
         .alert(L10n.t("观察模式"), isPresented: $pendingObservation) {
             Button(L10n.t("取消"), role: .cancel) { pendingObservation = false }
             Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
                 Task { await setWebsiteState(scope: "Waf", state: "on", mode: "observation") }
             }
         } message: {

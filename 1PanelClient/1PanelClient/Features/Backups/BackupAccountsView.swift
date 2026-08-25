@@ -395,6 +395,7 @@ struct BackupAccountsView: View {
         )) {
             Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let account = pendingDelete {
                     Task {
                         if await vm.deleteAccount(id: account.id) {

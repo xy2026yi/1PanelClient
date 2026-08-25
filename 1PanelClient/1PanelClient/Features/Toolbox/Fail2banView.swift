@@ -222,6 +222,7 @@ struct Fail2banView: View {
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
             Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
                 let op = pendingAction
                 pendingAction = nil
                 if let op { Task { await vm.operate(op) } }
@@ -717,6 +718,7 @@ struct Fail2banIPListView: View {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title3)
                         }
+                        .accessibilityLabel(L10n.t("添加"))
                     }
                 }
                 Section(L10n.f("%@列表", isWhitelist ? L10n.t("白名单") : L10n.t("黑名单"))) {
@@ -758,6 +760,7 @@ struct Fail2banIPListView: View {
             )) {
                 Button(L10n.t("取消"), role: .cancel) { pendingDeleteIP = nil }
                 Button(L10n.t("删除"), role: .destructive) {
+                    Haptic.warning()
                     if let ip = pendingDeleteIP {
                         let ips = isWhitelist ? vm.whitelist : vm.blacklist
                         let remaining = ips.filter { $0 != ip }

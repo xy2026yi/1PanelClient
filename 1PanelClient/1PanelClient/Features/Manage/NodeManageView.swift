@@ -106,6 +106,7 @@ struct NodeManageView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel(L10n.t("添加节点"))
             }
         }
         .refreshable { await load() }

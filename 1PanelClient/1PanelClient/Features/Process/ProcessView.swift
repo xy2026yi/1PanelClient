@@ -105,6 +105,7 @@ struct ProcessView: View {
         .alert(L10n.t("结束进程"), isPresented: $showStopConfirm) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("结束"), role: .destructive) {
+                Haptic.warning()
                 if let target = stopTarget {
                     Task { await monitor.stopProcess(pid: target.pid) }
                 }

@@ -198,6 +198,7 @@ struct WebsiteDetailView: View {
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingToggle = nil }
             Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
                 let target = pendingToggle
                 pendingToggle = nil
                 guard let target else { return }

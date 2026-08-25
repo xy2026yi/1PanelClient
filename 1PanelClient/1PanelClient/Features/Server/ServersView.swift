@@ -112,6 +112,7 @@ struct ServersView: View {
                 serverToRemove = nil
             }
             Button(L10n.t("移除"), role: .destructive) {
+                Haptic.warning()
                 if let server = serverToRemove {
                     manager.remove(server)
                 }

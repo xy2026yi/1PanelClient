@@ -51,6 +51,7 @@ struct WebsiteProxiesView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel(L10n.t("添加反向代理"))
             }
         }
         .task {
@@ -111,6 +112,7 @@ struct WebsiteProxiesView: View {
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteProxy = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let proxy = pendingDeleteProxy {
                     Task { await deleteProxy(proxy) }
                 }

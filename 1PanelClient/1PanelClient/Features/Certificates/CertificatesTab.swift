@@ -146,6 +146,7 @@ struct CertificatesTab: View {
                 vm.pendingDeleteCert = nil
             }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let cert = vm.pendingDeleteCert {
                     Task {
                         await vm.delete(cert: cert)
@@ -349,6 +350,7 @@ struct CertificateDetailView: View {
         .alert(L10n.t("重新申请"), isPresented: $pendingRenew) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("确认申请"), role: .destructive) {
+                Haptic.warning()
                 Task { await renewCert() }
             }
         } message: {
@@ -357,6 +359,7 @@ struct CertificateDetailView: View {
         .alert(L10n.t("删除证书"), isPresented: $pendingDelete) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 let target = detail ?? cert
                 Task {
                     await vm.delete(cert: target)

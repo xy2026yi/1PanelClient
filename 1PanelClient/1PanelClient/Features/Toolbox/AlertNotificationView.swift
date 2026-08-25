@@ -79,6 +79,7 @@ struct AlertNotificationView: View {
         )) {
             Button(L10n.t("取消"), role: .cancel) { vm.pendingDeleteRule = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let rule = vm.pendingDeleteRule {
                     Task { await vm.delete(rule: rule) }
                 }
@@ -97,6 +98,7 @@ struct AlertNotificationView: View {
         )) {
             Button(L10n.t("取消"), role: .cancel) { vm.pendingDeleteConfig = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let config = vm.pendingDeleteConfig {
                     Task { await vm.deleteConfig(config) }
                 }

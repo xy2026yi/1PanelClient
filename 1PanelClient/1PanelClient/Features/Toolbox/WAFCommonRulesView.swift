@@ -133,6 +133,7 @@ struct WAFCommonRulesView: View {
         ) { _ in
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteRule = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 let item = pendingDeleteRule
                 pendingDeleteRule = nil
                 if let item = item {
@@ -246,7 +247,7 @@ struct WAFCommonRuleFormView: View {
                 .disabled(isSaving || rule.isEmpty)
             }
         }
-        .alert(L10n.t("错误"), isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )) {

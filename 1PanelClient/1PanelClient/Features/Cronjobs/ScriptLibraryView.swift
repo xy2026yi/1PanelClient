@@ -180,7 +180,7 @@ struct ScriptLibraryView: View {
                     EllipsisMenuButton {
                         withAnimation(Motion.fast) { showMenu.toggle() }
                     }
-                    .accessibilityLabel(L10n.t("同步"))
+                    .accessibilityLabel(L10n.t("更多"))
                 }
             }
         }
@@ -368,7 +368,7 @@ struct ScriptDetailView: View {
         }
         .alert(L10n.t("高风险脚本"), isPresented: $confirmHighRisk) {
             Button(L10n.t("取消"), role: .cancel) {}
-            Button(L10n.t("仍然执行"), role: .destructive) { showTerminal = true }
+            Button(L10n.t("仍然执行"), role: .destructive) { Haptic.warning(); showTerminal = true }
         } message: {
             Text(L10n.t("该脚本包含删除、磁盘写入或重启类命令，执行后可能不可恢复。确定要运行吗？"))
         }

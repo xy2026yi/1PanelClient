@@ -209,7 +209,7 @@ struct MainTabView: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
+                    .font(.system(.callout))
                     .symbolRenderingMode(.hierarchical)
                     .frame(width: 24)
                 Text(title)
@@ -248,7 +248,7 @@ struct MainTabView: View {
                 if autoRail { narrowExpandRequested = true }
             } label: {
                 Image(systemName: "sidebar.trailing")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(.callout).weight(.medium))
                     .foregroundStyle(.secondary)
                     .frame(width: 40, height: 40)
                     .contentShape(Rectangle())
@@ -276,7 +276,7 @@ struct MainTabView: View {
             selectedTab = tab
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 17))
+                .font(.system(.body))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(isSelected ? Color.accentColor : .secondary)
                 .frame(width: 40, height: 40)
@@ -335,10 +335,10 @@ private struct BottomTabBar: View {
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: icon)
-                    .font(.system(size: 21))
+                    .font(.system(.title3))
                     .symbolRenderingMode(.hierarchical)
                 Text(title)
-                    .font(.system(size: 10))
+                    .font(.system(.caption2))
             }
             .foregroundStyle(isSelected ? Color.accentColor : .secondary)
             .frame(maxWidth: .infinity)

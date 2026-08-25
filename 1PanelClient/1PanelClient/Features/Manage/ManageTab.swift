@@ -97,6 +97,7 @@ struct ManageTab: View {
             .alert(L10n.t("移除服务器"), isPresented: $showRemoveServer) {
                 Button(L10n.t("取消"), role: .cancel) {}
                 Button(L10n.t("移除"), role: .destructive) {
+                    Haptic.warning()
                     if let server = manager.current {
                         manager.remove(server)
                     }

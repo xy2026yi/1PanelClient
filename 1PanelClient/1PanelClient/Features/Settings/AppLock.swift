@@ -240,6 +240,8 @@ struct PasscodeKeypad: View {
         } label: {
             Text(digit)
                 .font(.system(size: 28, weight: .regular, design: .rounded))
+                // 固定 74pt 圆形键位，字号随动态类型放大到 xxxLarge 为止
+                .dynamicTypeSize(...(.xxxLarge))
                 .foregroundStyle(.primary)
                 .frame(width: 74, height: 74)
                 .background(Circle().fill(Color(uiColor: .secondarySystemFill)))

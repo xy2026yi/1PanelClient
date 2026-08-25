@@ -215,6 +215,7 @@ struct WebsiteLogView: View {
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
+                    .accessibilityLabel(L10n.t("刷新"))
                 }
             }
             .task {

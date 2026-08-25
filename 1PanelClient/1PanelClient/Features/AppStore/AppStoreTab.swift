@@ -805,12 +805,7 @@ struct FlowingTags: View {
     var body: some View {
         FlowLayout(spacing: 6) {
             ForEach(tags, id: \.self) { tag in
-                Text(tag)
-                    .font(.caption)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.secondary.opacity(0.1))
-                    .clipShape(Capsule())
+                StatusBadge(text: tag, color: .secondary)
             }
         }
         .padding(.vertical, 4)

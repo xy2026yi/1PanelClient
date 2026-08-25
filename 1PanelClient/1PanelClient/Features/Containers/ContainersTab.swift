@@ -171,7 +171,7 @@ struct DockerStatusCard: View {
             )
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
-            Button(L10n.t("确认"), role: .destructive) { executePendingAction() }
+            Button(L10n.t("确认"), role: .destructive) { Haptic.warning(); executePendingAction() }
         } message: {
             if let action = pendingAction {
                 Text(L10n.f("将对 Docker 进行 %@ 操作，是否继续？", actionDisplayName(action)))

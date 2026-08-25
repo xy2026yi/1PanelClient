@@ -137,6 +137,7 @@ struct WAFIPRulesView: View {
         ) { _ in
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteIP = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 let item = pendingDeleteIP
                 pendingDeleteIP = nil
                 if let item = item {
@@ -325,7 +326,7 @@ struct WAFIPRuleFormView: View {
         .onAppear {
             if ipType == "ipGroup" { Task { await loadGroups() } }
         }
-        .alert(L10n.t("错误"), isPresented: Binding(
+        .alert(L10n.t("提示"), isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )) {

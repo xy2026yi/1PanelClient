@@ -71,6 +71,7 @@ struct CAListView: View {
                 pendingDelete = nil
             }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let account = pendingDelete {
                     Task {
                         if await vm.deleteCA(id: account.id) {
@@ -216,6 +217,7 @@ struct CADetailView: View {
         .alert(L10n.t("删除"), isPresented: $pendingDelete) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 Task { await doDelete() }
             }
         } message: {

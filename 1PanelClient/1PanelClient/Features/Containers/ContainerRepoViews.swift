@@ -87,6 +87,7 @@ struct RepoListView: View {
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 let repo = pendingDelete
                 pendingDelete = nil
                 if let repo {

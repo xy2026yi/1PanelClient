@@ -164,6 +164,7 @@ struct SSHView: View {
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
             Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
                 let op = pendingAction
                 pendingAction = nil
                 if let op { Task { await vm.operate(op) } }

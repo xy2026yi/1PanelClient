@@ -700,6 +700,7 @@ struct OpenRestyBuildSheet: View {
             .alert(L10n.t("构建"), isPresented: $showConfirm) {
                 Button(L10n.t("取消"), role: .cancel) {}
                 Button(L10n.t("确认"), role: .destructive) {
+                    Haptic.warning()
                     dismiss()
                     onConfirm(mirror, force)
                 }

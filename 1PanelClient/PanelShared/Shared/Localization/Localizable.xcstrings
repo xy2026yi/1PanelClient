@@ -20263,6 +20263,39 @@
           }
         }
       }
+    },
+    "添加反向代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add reverse proxy"
+          }
+        }
+      }
+    },
+    "添加重定向" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add redirect"
+          }
+        }
+      }
+    },
+    "添加密码访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add password access"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

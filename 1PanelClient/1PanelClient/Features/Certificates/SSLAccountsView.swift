@@ -61,6 +61,7 @@ struct AcmeAccountListView: View {
                 pendingDelete = nil
             }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let account = pendingDelete {
                     Task {
                         if await vm.deleteAcmeAccount(id: account.id) {
@@ -329,6 +330,7 @@ struct DNSAccountListView: View {
                 pendingDelete = nil
             }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let account = pendingDelete {
                     Task {
                         if await vm.deleteDnsAccount(id: account.id) {

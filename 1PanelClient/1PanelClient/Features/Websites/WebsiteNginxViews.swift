@@ -169,6 +169,7 @@ struct OpenRestyConfigView: View {
         .alert(L10n.t("还原默认配置"), isPresented: $showResetConfirm) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("确认还原"), role: .destructive) {
+                Haptic.warning()
                 Task { await resetConfig() }
             }
         } message: {

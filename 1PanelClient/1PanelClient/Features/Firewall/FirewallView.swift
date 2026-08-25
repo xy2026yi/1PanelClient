@@ -519,6 +519,7 @@ struct FirewallView: View {
         )) {
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteRule = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let rule = pendingDeleteRule {
                     pendingDeleteRule = nil
                     Task { await vm.deleteRule(rule) }
@@ -562,12 +563,14 @@ struct FirewallView: View {
         )) {
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteForward = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let rule = pendingDeleteForward {
                     pendingDeleteForward = nil
                     Task { await vm.deleteForward(rule, force: false) }
                 }
             }
             Button(L10n.t("强制删除"), role: .destructive) {
+                Haptic.warning()
                 if let rule = pendingDeleteForward {
                     pendingDeleteForward = nil
                     Task { await vm.deleteForward(rule, force: true) }
@@ -610,6 +613,7 @@ struct FirewallView: View {
         )) {
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteAddress = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let rule = pendingDeleteAddress {
                     pendingDeleteAddress = nil
                     Task { await vm.deleteAddressRule(rule) }

@@ -94,6 +94,7 @@ struct ContainerImageView: View {
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteImage = nil }
             Button(L10n.t("删除"), role: .destructive) {
                 // 删除接口要求完整镜像 ID（sha256:...），tag 名会返回 404
+                Haptic.warning()
                 if let img = pendingDeleteImage {
                     Task { deleteTaskID = await vm.deleteImages(names: [img.id]) }
                 }

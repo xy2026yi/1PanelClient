@@ -174,8 +174,8 @@ struct FilesView: View {
             ForEach(filteredItems) { item in
                 fileRow(item)
                     .onLongPressGesture(minimumDuration: 0.5) {
-                        // 触觉反馈 + 弹出半屏操作菜单
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        // 触觉反馈 + 弹出半屏操作菜单（经 Haptic 封装，保持全局触觉埋点规则）
+                        Haptic.selection()
                         actionItem = item
                     }
             }
@@ -576,6 +576,7 @@ private struct FilesDialogsModifier: ViewModifier {
             )) {
                 Button(L10n.t("取消"), role: .cancel) { deletingItem = nil }
                 Button(L10n.t("删除"), role: .destructive) {
+                    Haptic.warning()
                     if let item = deletingItem { deleteItem(item) }
                 }
             } message: {

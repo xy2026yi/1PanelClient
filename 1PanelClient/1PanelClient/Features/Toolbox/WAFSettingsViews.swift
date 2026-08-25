@@ -199,8 +199,12 @@ struct WAFAttackCountSettingsView: View {
         .onAppear { loadConfig() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(L10n.t("保存")) { Task { await save() } }
-                    .disabled(isSaving)
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
+                }
+                .disabled(isSaving)
             }
         }
         .localToast(message: $successMessage)

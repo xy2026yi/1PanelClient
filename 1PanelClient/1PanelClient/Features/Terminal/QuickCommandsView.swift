@@ -63,6 +63,7 @@ struct QuickCommandsView: View {
         )) {
             Button(L10n.t("取消"), role: .cancel) { vm.pendingDelete = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let cmd = vm.pendingDelete {
                     Task { await vm.delete(cmd) }
                 }

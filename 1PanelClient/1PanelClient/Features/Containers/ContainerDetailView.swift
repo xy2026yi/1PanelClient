@@ -160,6 +160,7 @@ struct ContainerDetailView: View {
         .alert(L10n.t("删除容器"), isPresented: $pendingDelete) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 Task {
                     if await vm.operateContainer(name: current.name, operation: "remove") {
                         // 删除成功后刷新，容器已不存在时 refreshContainer 会退出本页
@@ -178,7 +179,7 @@ struct ContainerDetailView: View {
             )
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
-            Button(L10n.t("确认"), role: .destructive) { executeContainerAction() }
+            Button(L10n.t("确认"), role: .destructive) { Haptic.warning(); executeContainerAction() }
         } message: {
             if let action = pendingAction {
                 Text(L10n.f("将对容器进行 %@ 操作，是否继续？", containerActionDisplayName(action)))
@@ -520,6 +521,7 @@ struct ContainerLogView: View {
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
+                    .accessibilityLabel(L10n.t("刷新"))
                 }
             }
             .onChange(of: lines.count) { _, count in

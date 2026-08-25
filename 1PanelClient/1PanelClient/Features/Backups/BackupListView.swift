@@ -417,6 +417,7 @@ struct BackupListView: View {
         ) {
             Button(L10n.t("取消"), role: .cancel) { deletingRecord = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let record = deletingRecord {
                     Task { await vm.deleteRecord(record) }
                 }

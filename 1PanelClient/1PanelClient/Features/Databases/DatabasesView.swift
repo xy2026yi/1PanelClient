@@ -691,6 +691,7 @@ struct DatabaseSystemView: View {
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
             Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
                 let op = pendingAction
                 pendingAction = nil
                 if let op { Task { await vm.operate(op) } }
@@ -1128,6 +1129,7 @@ struct RedisPasswordSheet: View {
                         .disabled(newPassword.isEmpty)
                     } else {
                         Button(L10n.t("立即重启"), role: .destructive) {
+                            Haptic.warning()
                             onConfirm(newPassword)
                             dismiss()
                         }

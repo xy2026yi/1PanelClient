@@ -76,6 +76,7 @@ struct TerminalHostsView: View {
         )) {
             Button(L10n.t("取消"), role: .cancel) { vm.pendingDeleteHost = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let host = vm.pendingDeleteHost {
                     Task { await vm.delete(host) }
                 }
@@ -307,7 +308,7 @@ struct SSHHostEditView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(L10n.t("保存")) {
+                Button {
                     if let req = buildRequest() {
                         Task {
                             isSaving = true
@@ -315,6 +316,8 @@ struct SSHHostEditView: View {
                             isSaving = false
                         }
                     }
+                } label: {
+                    if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
                 .disabled(!canSave)
             }

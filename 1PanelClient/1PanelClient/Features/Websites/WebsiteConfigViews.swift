@@ -331,6 +331,7 @@ struct WebsiteRedirectView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel(L10n.t("添加重定向"))
             }
         }
         .task { await load() }
@@ -385,6 +386,7 @@ struct WebsiteRedirectView: View {
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let r = pendingDelete {
                     Task { await deleteRedirect(r) }
                 }
@@ -759,6 +761,7 @@ struct WebsiteAuthsView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel(L10n.t("添加密码访问"))
             }
         }
         .task { await load() }
@@ -777,6 +780,7 @@ struct WebsiteAuthsView: View {
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
             Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
                 if let item = pendingDelete {
                     Task { await deleteItem(item) }
                 }

@@ -71,6 +71,7 @@ struct AppLogView: View {
                     Image(systemName: "arrow.clockwise")
                 }
                 .disabled(isLoading)
+                .accessibilityLabel(L10n.t("刷新"))
             }
         }
         .task { await startStreaming() }

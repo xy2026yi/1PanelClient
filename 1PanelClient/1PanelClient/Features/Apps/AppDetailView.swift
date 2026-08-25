@@ -193,6 +193,7 @@ struct AppDetailView: View {
                 pendingAction = nil
             }
             Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
                 executePendingAction()
             }
         } message: {
