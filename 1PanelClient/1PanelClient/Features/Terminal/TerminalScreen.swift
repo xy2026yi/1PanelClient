@@ -20,12 +20,18 @@ struct TerminalScreen: View {
     /// 导致快捷键条在键盘收起后仍悬浮；改为键盘通知驱动，见 body 中的处理）
     @State private var keyboardOverlap: CGFloat = 0
 
+    /// 快速命令选择器
+    @State private var showQuickCommands = false
+
     /// 连接目标标题
     private let title: String
+    /// 终端所在服务器（快速命令按当前服务器拉取）
+    private let server: ServerConfig
 
     init(server: ServerConfig, target: TerminalTarget, title: String? = nil, initialCommand: String? = nil) {
         let s = TerminalSession(server: server, target: target, initialCommand: initialCommand)
         _session = StateObject(wrappedValue: s)
+        self.server = server
         switch target {
         case .host:
             self.title = title ?? L10n.t("终端")
@@ -64,6 +70,11 @@ struct TerminalScreen: View {
         }
         .task {
             session.connect()
+        }
+        .sheet(isPresented: $showQuickCommands) {
+            QuickCommandPickerSheet(server: server) { command in
+                sendCommand(command)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
             guard let window = (UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first),
@@ -159,6 +170,10 @@ struct TerminalScreen: View {
 
     private var toolbarMenu: some View {
         Menu {
+            Button(L10n.t("快速命令")) {
+                showQuickCommands = true
+            }
+            .disabled(!session.isConnected)
             Button(session.isConnected ? L10n.t("断开连接") : L10n.t("重新连接")) {
                 if session.isConnected {
                     session.disconnect()
@@ -182,6 +197,15 @@ struct TerminalScreen: View {
             Image(systemName: "ellipsis.circle")
         }
         .accessibilityLabel(L10n.t("更多操作"))
+    }
+
+    // MARK: - 快速命令
+
+    /// 点击命令：作为键盘输入发送（回车立即执行），与快捷键条同通道
+    private func sendCommand(_ command: String) {
+        let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        sendBytes(trimmed + "\n")
     }
 
     // MARK: - 输入

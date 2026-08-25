@@ -167,7 +167,7 @@ struct ManageTab: View {
         case .apps:
             AppsTab(manager: manager)
         case .websites:
-            WebsitesHubView()
+            ManageHubView(title: L10n.t("网站"), items: [.websiteList, .certificates])
         case .websiteList:
             WebsitesTab(manager: manager)
         case .certificates:
@@ -175,7 +175,11 @@ struct ManageTab: View {
         case .containers:
             ContainersTab(manager: manager)
         case .cronjob:
+            ManageHubView(title: L10n.t("计划任务"), items: [.cronjobList, .scriptLibrary])
+        case .cronjobList:
             CronjobsTab(manager: manager)
+        case .scriptLibrary:
+            ScriptLibraryView(server: server)
         case .firewall:
             FirewallView(server: server)
         case .database:
@@ -209,6 +213,46 @@ struct ManageTab: View {
         case .wafMonitor:
             WAFMonitorView(server: server)
         }
+    }
+}
+
+// MARK: - 二级功能 Hub
+
+/// 管理页二级功能中间层（如 网站→[网站/证书]、计划任务→[计划任务/脚本库]），
+/// 入口行与管理页列表同款样式；子项为不在管理根列表的隐藏 ManageItem
+struct ManageHubView: View {
+    let title: String
+    let items: [ManageItem]
+
+    init(title: String, items: [ManageItem]) {
+        self.title = title
+        self.items = items
+    }
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(items) { item in
+                    NavigationLink(value: item) {
+                        HStack(spacing: 14) {
+                            IconBadge(systemName: item.icon, color: item.color)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.title)
+                                Text(item.subtitle)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -321,6 +365,10 @@ enum ManageItem: String, Identifiable {
     case nodeManage
     case backupAccount
     case cronjob
+    /// 计划任务列表（Hub 子页）
+    case cronjobList
+    /// 脚本库（Hub 子页；原计划任务 + 菜单入口移出）
+    case scriptLibrary
     case taskCenter
     case logs
     case websiteMonitor
@@ -356,6 +404,8 @@ enum ManageItem: String, Identifiable {
         case .nodeManage:  return L10n.t("多机管理")
         case .backupAccount: return L10n.t("备份账号")
         case .cronjob:     return L10n.t("计划任务")
+        case .cronjobList: return L10n.t("计划任务")
+        case .scriptLibrary: return L10n.t("脚本库")
         case .taskCenter:  return L10n.t("任务中心")
         case .logs:        return L10n.t("日志")
         case .websiteMonitor: return L10n.t("网站监控")
@@ -382,7 +432,9 @@ enum ManageItem: String, Identifiable {
         case .alert:       return L10n.t("告警规则 / 日志 / 发送方式")
         case .nodeManage:  return L10n.t("节点概览 / 添加节点 / 切换（专业版）")
         case .backupAccount: return L10n.t("MINIO / WebDAV / SFTP 备份存储")
-        case .cronjob:     return L10n.t("定时备份与脚本")
+        case .cronjob:     return L10n.t("计划任务 / 脚本库")
+        case .cronjobList: return L10n.t("定时备份与脚本执行")
+        case .scriptLibrary: return L10n.t("系统脚本同步 / 自定义脚本")
         case .taskCenter:  return L10n.t("应用同步 / 镜像拉取等异步任务")
         case .logs:        return L10n.t("面板 / SSH / 网站日志")
         case .websiteMonitor: return L10n.t("QPS / 访客趋势 / 访客地图 / 请求日志")
@@ -410,6 +462,8 @@ enum ManageItem: String, Identifiable {
         case .nodeManage:  return "server.rack"
         case .backupAccount: return "externaldrive.badge.icloud"
         case .cronjob:     return "clock.badge.checkmark"
+        case .cronjobList: return "clock.badge.checkmark"
+        case .scriptLibrary: return "books.vertical"
         case .taskCenter:  return "checklist"
         case .logs:        return "doc.text.magnifyingglass"
         case .websiteMonitor: return "chart.pie.fill"
@@ -437,6 +491,8 @@ enum ManageItem: String, Identifiable {
         case .nodeManage:  return .teal
         case .backupAccount: return .blue
         case .cronjob:     return .teal
+        case .cronjobList: return .teal
+        case .scriptLibrary: return .purple
         case .taskCenter:  return .brown
         case .logs:        return .cyan
         case .websiteMonitor: return .indigo

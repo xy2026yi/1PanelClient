@@ -13,6 +13,413 @@
     "—" : {
 
     },
+    "关闭自动同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable Auto Sync"
+          }
+        }
+      }
+    },
+    "关闭自动同步可能导致脚本同步不及时，是否确认？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabling auto sync may delay script updates. Confirm?"
+          }
+        }
+      }
+    },
+    "创建命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Command"
+          }
+        }
+      }
+    },
+    "删除命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Command"
+          }
+        }
+      }
+    },
+    "即将同步系统脚本库，该操作仅针对系统脚本，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will sync the system script library; only system scripts are affected. Continue?"
+          }
+        }
+      }
+    },
+    "可在 终端页右上角菜单 快速命令 中创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create them via Quick Commands in the terminal page menu"
+          }
+        }
+      }
+    },
+    "同步脚本库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Script Library"
+          }
+        }
+      }
+    },
+    "同步请求失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync request failed: %@"
+          }
+        }
+      }
+    },
+    "命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        }
+      }
+    },
+    "命令「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "命令内容，如 df -hT" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command content, e.g. df -hT"
+          }
+        }
+      }
+    },
+    "命令已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command created"
+          }
+        }
+      }
+    },
+    "命令已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command updated"
+          }
+        }
+      }
+    },
+    "在终端界面的菜单中可快速执行这些命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These commands can be run quickly from the terminal menu"
+          }
+        }
+      }
+    },
+    "定时备份与脚本执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled backups and script execution"
+          }
+        }
+      }
+    },
+    "已关闭自动同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto sync disabled"
+          }
+        }
+      }
+    },
+    "已关闭默认连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default connection disabled"
+          }
+        }
+      }
+    },
+    "已开启自动同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto sync enabled"
+          }
+        }
+      }
+    },
+    "已开启默认连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default connection enabled"
+          }
+        }
+      }
+    },
+    "开启后进入终端页将自动连接所在节点终端" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, opening the terminal page auto-connects to the current node terminal"
+          }
+        }
+      }
+    },
+    "开启自动同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Auto Sync"
+          }
+        }
+      }
+    },
+    "开启自动同步将在每天凌晨时段进行自动同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto sync runs during early-morning hours daily"
+          }
+        }
+      }
+    },
+    "快速命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Commands"
+          }
+        }
+      }
+    },
+    "暂无快速命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Quick Commands"
+          }
+        }
+      }
+    },
+    "本机终端自动连接使用的 SSH 地址与认证方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH address and authentication used by the local terminal auto-connect"
+          }
+        }
+      }
+    },
+    "点击右上角 + 创建第一条命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create the first command"
+          }
+        }
+      }
+    },
+    "点击命令将输入终端并回车执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tapping a command types it into the terminal and runs it"
+          }
+        }
+      }
+    },
+    "确定删除命令「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete command \"%@\"?"
+          }
+        }
+      }
+    },
+    "立即同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Now"
+          }
+        }
+      }
+    },
+    "系统脚本同步 / 自定义脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System script sync / custom scripts"
+          }
+        }
+      }
+    },
+    "编辑命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Command"
+          }
+        }
+      }
+    },
+    "计划任务 / 脚本库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cronjobs / Script Library"
+          }
+        }
+      }
+    },
+    "该操作将【允许】打开终端后自动连接所在节点终端，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will [allow] auto-connecting to the node terminal when opening the terminal. Continue?"
+          }
+        }
+      }
+    },
+    "该操作将【禁止】打开终端后自动连接所在节点终端，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will [forbid] auto-connecting to the node terminal when opening the terminal. Continue?"
+          }
+        }
+      }
+    },
+    "连接信息已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection info saved"
+          }
+        }
+      }
+    },
+    "重置连接信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset connection info"
+          }
+        }
+      }
+    },
+    "默认连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Connection"
+          }
+        }
+      }
+    },
     "，内存 %@" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -15,6 +15,11 @@ final class ScriptLibraryViewModel: ObservableObject {
     @Published var scripts: [ScriptItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var showAlert = false
+    @Published var alertMessage = ""
+    @Published var toastMessage: String?
+    /// 脚本库自动同步开关（settings.search → scriptSync）
+    @Published var isAutoSyncEnabled = false
 
     private var client: APIClient
 
@@ -38,6 +43,75 @@ final class ScriptLibraryViewModel: ObservableObject {
             self.scripts = []
         }
     }
+
+    // MARK: - 同步
+
+    /// 读取自动同步开关（POST /core/settings/search → scriptSync）
+    func loadAutoSync() async {
+        do {
+            let info: SettingInfo = try await client.send(
+                path: APIEndpoint.settingsSearch.path,
+                as: SettingInfo.self
+            )
+            isAutoSyncEnabled = (info.scriptSync ?? "Enable") == "Enable"
+        } catch {
+            isAutoSyncEnabled = true
+        }
+    }
+
+    /// 立即同步系统脚本库：成功返回任务 ID（进度走任务日志）
+    @discardableResult
+    func syncNow() async -> String? {
+        let taskID = UUID().uuidString
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.scriptSync.path,
+                body: ScriptSyncRequest(taskID: taskID),
+                as: EmptyResponse.self
+            )
+            return taskID
+        } catch let err as APIError {
+            showAlert(message: L10n.f("同步请求失败：%@", err.errorDescription ?? L10n.t("未知错误")))
+            return nil
+        } catch {
+            showAlert(message: L10n.f("同步请求失败：%@", error.localizedDescription))
+            return nil
+        }
+    }
+
+    /// 自动同步开关：POST /core/settings/update {key: ScriptSync}
+    @discardableResult
+    func updateAutoSync(enabled: Bool) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.coreSettingsUpdate.path,
+                body: CoreSettingUpdateRequest(key: "ScriptSync", value: enabled ? "Enable" : "Disable"),
+                as: EmptyResponse.self
+            )
+            isAutoSyncEnabled = enabled
+            showToast(enabled ? L10n.t("已开启自动同步") : L10n.t("已关闭自动同步"))
+            return true
+        } catch let err as APIError {
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
+            return false
+        } catch {
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    private func showAlert(message: String) {
+        alertMessage = message
+        showAlert = true
+    }
+
+    private func showToast(_ message: String) {
+        toastMessage = message
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run { self?.toastMessage = nil }
+        }
+    }
 }
 
 // MARK: - 脚本库列表
@@ -47,6 +121,15 @@ struct ScriptLibraryView: View {
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
+    @State private var showMenu = false
+    /// 立即同步确认
+    @State private var confirmSyncNow = false
+    /// 关闭自动同步确认
+    @State private var confirmDisableAutoSync = false
+    /// 开启自动同步确认
+    @State private var confirmEnableAutoSync = false
+    /// 同步任务 ID（非 nil 时 push 任务进度页）
+    @State private var syncTaskID: String?
 
     private let server: ServerConfig
 
@@ -90,7 +173,82 @@ struct ScriptLibraryView: View {
             title: L10n.t("脚本库"),
             prompt: L10n.t("搜索脚本名")
         )
-        .task { if vm.scripts.isEmpty { await vm.load() } }
+        // 右上角：搜索 + 三点菜单（立即同步 / 自动同步）
+        .toolbar {
+            if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    EllipsisMenuButton {
+                        withAnimation(Motion.fast) { showMenu.toggle() }
+                    }
+                    .accessibilityLabel(L10n.t("同步"))
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: L10n.t("立即同步")) { confirmSyncNow = true },
+                    .action(title: vm.isAutoSyncEnabled ? L10n.t("关闭自动同步") : L10n.t("开启自动同步")) {
+                        if vm.isAutoSyncEnabled {
+                            confirmDisableAutoSync = true
+                        } else {
+                            confirmEnableAutoSync = true
+                        }
+                    },
+                ]) {
+                    withAnimation(Motion.fast) { showMenu = false }
+                }
+            }
+        }
+        .toastOverlay(message: $vm.toastMessage)
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
+        .alert(L10n.t("立即同步"), isPresented: $confirmSyncNow) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("确认"), role: .destructive) {
+                Task {
+                    if let taskID = await vm.syncNow() {
+                        syncTaskID = taskID
+                    }
+                }
+            }
+        } message: {
+            Text(L10n.t("即将同步系统脚本库，该操作仅针对系统脚本，是否继续？"))
+        }
+        .alert(L10n.t("关闭自动同步"), isPresented: $confirmDisableAutoSync) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("确认"), role: .destructive) {
+                Task { await vm.updateAutoSync(enabled: false) }
+            }
+        } message: {
+            Text(L10n.t("关闭自动同步可能导致脚本同步不及时，是否确认？"))
+        }
+        .alert(L10n.t("开启自动同步"), isPresented: $confirmEnableAutoSync) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("确认")) {
+                Task { await vm.updateAutoSync(enabled: true) }
+            }
+        } message: {
+            Text(L10n.t("开启自动同步将在每天凌晨时段进行自动同步"))
+        }
+        .navigationDestination(isPresented: Binding(
+            get: { syncTaskID != nil },
+            set: { if !$0 { syncTaskID = nil } }
+        )) {
+            if let taskID = syncTaskID {
+                TaskProgressView(taskID: taskID, title: L10n.t("同步脚本库")) { _ in
+                    Task { await vm.load(query: searchText) }
+                    return false
+                }
+            }
+        }
+        .task {
+            if vm.scripts.isEmpty { await vm.load() }
+            await vm.loadAutoSync()
+        }
         .onChange(of: searchText) { _, newValue in
             searchTask?.cancel()
             searchTask = Task {

@@ -158,6 +158,8 @@ nonisolated struct SettingInfo: Decodable, Sendable {
     let defaultNetwork: String?
     let fileRecycleBin: String?
     let ntpSite: String?
+    /// 脚本库自动同步开关：Enable / Disable
+    let scriptSync: String?
 }
 
 /// 面板版本更新检查结果

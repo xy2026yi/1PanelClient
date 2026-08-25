@@ -121,6 +121,19 @@ enum APIEndpoint {
     case openrestyModulesUpdate   // POST 开启/关闭模块（完整对象+operate）
     case openrestyBuild           // POST 构建模块（异步任务）
 
+    // MARK: - 终端快速命令
+    case commandsSearch           // POST 快速命令分页查询（type=command）
+    case commandsCreate           // POST 创建快速命令
+    case commandsUpdate           // POST 更新快速命令
+    case commandsDelete           // POST 删除快速命令
+    case commandGroupsSearch      // POST 命令分组查询（core/groups/search）
+
+    // MARK: - 终端设置（默认连接 / 连接信息）
+    case settingsSSHConn          // GET  默认连接状态 + 连接信息
+    case settingsSSHDefault       // POST 默认连接开关
+    case settingsSSHCheckInfo     // POST 连接信息测试
+    case settingsSSHSave          // POST 保存连接信息
+
     // MARK: - 计划任务
     case cronjobsSearch           // POST 分页查询计划任务
     case cronjobsCreate           // POST 创建计划任务
@@ -135,6 +148,8 @@ enum APIEndpoint {
     case cronjobsUsers            // GET  系统用户列表
     case cronjobsScripts          // GET  内置脚本列表
     case scriptSearch             // POST 脚本库搜索（core/script/search）
+    case scriptSync               // POST 立即同步系统脚本库（异步任务）
+    case coreSettingsUpdate       // POST 更新面板设置项（core/settings/update）
 
     // MARK: - 防火墙
     case firewallBase             // POST 防火墙基础状态
@@ -459,6 +474,15 @@ enum APIEndpoint {
         case .openrestyModules:      return "/api/v2/openresty/modules"
         case .openrestyModulesUpdate: return "/api/v2/openresty/modules/update"
         case .openrestyBuild:        return "/api/v2/openresty/build"
+        case .commandsSearch:        return "/api/v2/core/commands/search"
+        case .commandsCreate:        return "/api/v2/core/commands"
+        case .commandsUpdate:        return "/api/v2/core/commands/update"
+        case .commandsDelete:        return "/api/v2/core/commands/del"
+        case .commandGroupsSearch:   return "/api/v2/core/groups/search"
+        case .settingsSSHConn:       return "/api/v2/settings/ssh/conn"
+        case .settingsSSHDefault:    return "/api/v2/settings/ssh/default"
+        case .settingsSSHCheckInfo:  return "/api/v2/settings/ssh/check/info"
+        case .settingsSSHSave:       return "/api/v2/settings/ssh"
         case .cronjobsSearch:        return "/api/v2/cronjobs/search"
         case .cronjobsCreate:        return "/api/v2/cronjobs"
         case .cronjobsUpdate:        return "/api/v2/cronjobs/update"
@@ -472,6 +496,8 @@ enum APIEndpoint {
         case .cronjobsUsers:         return "/api/v2/toolbox/device/users"
         case .cronjobsScripts:       return "/api/v2/cronjobs/script/options"
         case .scriptSearch:          return "/api/v2/core/script/search"
+        case .scriptSync:            return "/api/v2/core/script/sync"
+        case .coreSettingsUpdate:    return "/api/v2/core/settings/update"
         case .firewallBase:          return "/api/v2/hosts/firewall/base"
         case .firewallOperate:       return "/api/v2/hosts/firewall/operate"
         case .firewallSearch:        return "/api/v2/hosts/firewall/search"
@@ -672,6 +698,7 @@ enum APIEndpoint {
              .settingsBaseDir,
              .settingsUpgradeCheck, .settingsUpgradeReleases,
              .openrestyConfig, .openrestyStatus, .openrestyHttps, .openrestyModules,
+             .settingsSSHConn,
              .logsSystemFiles, .logsWebsitesList,
              .nodesCurrent, .licensesOptions,
              .backupsLocal,

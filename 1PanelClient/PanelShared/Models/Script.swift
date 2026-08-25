@@ -72,3 +72,16 @@ extension ScriptItem {
         return .low
     }
 }
+
+// MARK: - 脚本库同步
+
+/// POST /api/v2/core/script/sync：立即同步系统脚本库（异步任务，进度走任务日志）
+nonisolated struct ScriptSyncRequest: Encodable {
+    let taskID: String
+}
+
+/// POST /api/v2/core/settings/update：更新面板设置项 {key, value}
+nonisolated struct CoreSettingUpdateRequest: Encodable {
+    let key: String
+    let value: String
+}

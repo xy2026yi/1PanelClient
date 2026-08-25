@@ -163,45 +163,6 @@ struct WebsitesTab: View {
     }
 }
 
-// MARK: - 网站 Hub（管理 - 网站 中间层）
-
-/// 管理 - 网站 新增中间层：网站列表与证书两个入口。
-/// 首页网站卡片经 ManageItem.websiteList 直达网站列表，不经此页。
-struct WebsitesHubView: View {
-    var body: some View {
-        List {
-            Section {
-                NavigationLink(value: ManageItem.websiteList) {
-                    hubRow(.websiteList)
-                }
-                .buttonStyle(.plain)
-                NavigationLink(value: ManageItem.certificates) {
-                    hubRow(.certificates)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle(L10n.t("网站"))
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    /// 与管理页列表行同款：图标徽章 + 标题 + 副标题
-    private func hubRow(_ item: ManageItem) -> some View {
-        HStack(spacing: 14) {
-            IconBadge(systemName: item.icon, color: item.color)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                Text(item.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-        }
-        .padding(.vertical, 2)
-    }
-}
-
 // MARK: - OpenResty 信息与管理卡片
 
 struct OpenRestyCard: View {
