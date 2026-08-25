@@ -161,7 +161,7 @@ struct MonitorStatCard: View {
                     .foregroundStyle(.secondary)
             }
             Text(text ?? count.map { "\($0)" } ?? "—")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.system(.title2, design: .rounded).weight(.bold))
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)

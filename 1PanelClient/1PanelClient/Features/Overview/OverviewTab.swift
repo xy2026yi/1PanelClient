@@ -538,7 +538,7 @@ struct StatCard: View {
 
             HStack(alignment: .firstTextBaseline) {
                 Text(count.map { "\($0)" } ?? "—")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(.title, design: .rounded).weight(.bold))
                     .monospacedDigit()
                 Spacer()
                 if let updates = updateCount, updates > 0 {
