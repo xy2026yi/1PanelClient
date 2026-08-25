@@ -61,7 +61,11 @@ final class APIClient {
         var headers = [
             "1Panel-Token": Self.token(apiKey: server.apiKey, timestamp: timestamp),
             "1Panel-Timestamp": timestamp,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            // 1Panel 后端按 Accept-Language 本地化 API message（go-i18n）：
+            // 跟随 App 生效语言，英文模式下后端错误/提示文案不再是中文。
+            // 更新日志 content 仍由面板端运行环境（edition）决定，不受此影响
+            "Accept-Language": L10n.shared.isEnglishEffective ? "en" : "zh-CN"
         ]
         // 多机管理：注入当前操作节点（core/init/router/proxy.go 按此路由到对应 agent；
         // 未设置 = local 本机；显式 ?operateNode= 查询参数优先级更高，不受此影响）
