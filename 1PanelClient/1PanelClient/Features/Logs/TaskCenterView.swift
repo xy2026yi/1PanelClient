@@ -69,10 +69,11 @@ struct TaskCenterView: View {
                     .frame(maxWidth: .infinity, minHeight: 160)
                     .listRowBackground(Color.clear)
                 } else if items.isEmpty {
-                    Text(L10n.t("暂无任务"))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-                        .listRowBackground(Color.clear)
+                    ContentUnavailableView {
+                        Label(L10n.t("暂无任务"), systemImage: "tray")
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 120)
+                    .listRowBackground(Color.clear)
                 } else {
                     ForEach(items) { item in
                         NavigationLink {

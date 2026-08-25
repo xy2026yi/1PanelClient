@@ -411,7 +411,7 @@ struct Fail2banNumberSheet: View {
                 }
             }
         }
-        .bottomSheetDetents([.height(200)])
+        .bottomSheetDetents([.medium])
     }
 }
 
@@ -461,7 +461,7 @@ struct Fail2banTimeSheet: View {
                 }
             }
         }
-        .bottomSheetDetents([.height(250)])
+        .bottomSheetDetents([.medium])
     }
 
     private func parseRaw() {

@@ -615,6 +615,33 @@ struct DatabaseSystemView: View {
             }
         }
         .searchIconMode(text: $searchText, isSearching: $isSearching, title: vm.system.displayName, prompt: L10n.t("搜索数据库 / 用户"))
+        // 右上角加号（菜单）：与其他列表页 toolbar 创建范式一致，
+        // 服务卡展开区保留同款入口；按系统能力显示可用项
+        .toolbar {
+            if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        if vm.supportsDatabaseList {
+                            Button {
+                                showCreate = true
+                            } label: {
+                                Label(L10n.t("创建数据库"), systemImage: "cylinder")
+                            }
+                        }
+                        if vm.supportsUserManagement {
+                            Button {
+                                showCreateUser = true
+                            } label: {
+                                Label(L10n.t("创建用户"), systemImage: "person.badge.plus")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(L10n.t("创建"))
+                }
+            }
+        }
         .refreshable { await vm.refresh() }
         .task { await vm.refresh() }
         .navigationDestination(isPresented: $showCreate) {
@@ -793,9 +820,10 @@ struct DatabaseSystemView: View {
                 }
             }
             if filteredDatabases.isEmpty {
-                Text(L10n.t("暂无数据库"))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                ContentUnavailableView {
+                    Label(L10n.t("暂无数据库"), systemImage: "tray")
+                }
+                .frame(maxWidth: .infinity)
             }
         } header: {
             SectionLabel(title: L10n.f("数据库（%ld）", filteredDatabases.count), systemImage: "cylinder")
@@ -821,9 +849,10 @@ struct DatabaseSystemView: View {
                 }
             }
             if filteredUsers.isEmpty {
-                Text(L10n.t("暂无用户"))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                ContentUnavailableView {
+                    Label(L10n.t("暂无用户"), systemImage: "tray")
+                }
+                .frame(maxWidth: .infinity)
             }
         } header: {
             SectionLabel(title: L10n.f("用户（%ld）", filteredUsers.count), systemImage: "person.2")

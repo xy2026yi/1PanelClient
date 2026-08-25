@@ -595,6 +595,6 @@ struct PGPrivilegesSheet: View {
                 }
             }
         }
-        .bottomSheetDetents([.height(250)])
+        .bottomSheetDetents([.medium])
     }
 }

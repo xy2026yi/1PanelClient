@@ -179,7 +179,7 @@ struct OverviewTab: View {
                     StatusBadge(text: L10n.t("有更新"), color: .orange)
                 }
                 Image(systemName: "chevron.right")
-                    .font(.caption2)
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
             .contentShape(Rectangle())
@@ -263,8 +263,8 @@ struct OverviewTab: View {
                     onSelectManageItem?(.monitor)
                 } label: {
                     Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
                         .frame(width: 24, height: 24)
                         .contentShape(Rectangle())
                 }

@@ -340,7 +340,7 @@ struct NodeDetailView: View {
                         .foregroundStyle(.primary)
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.caption2)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.tertiary)
                 }
             }
@@ -639,9 +639,10 @@ struct NodeUpgradeLogsView: View {
                     .frame(maxWidth: .infinity, minHeight: 140)
                     .listRowBackground(Color.clear)
                 } else if items.isEmpty {
-                    Text(L10n.t("暂无更新记录"))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+                    ContentUnavailableView {
+                        Label(L10n.t("暂无更新记录"), systemImage: "tray")
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 120)
                         .listRowBackground(Color.clear)
                 } else {
                     ForEach(items, id: \.uid) { log in
