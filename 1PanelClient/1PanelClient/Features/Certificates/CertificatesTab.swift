@@ -810,21 +810,14 @@ final class CertificatesViewModel: ObservableObject {
 
     // MARK: - Acme 账户
 
-    func loadAcmeAccounts() async -> [AcmeAccount] {
-        do {
-            let resp: PageResponse<AcmeAccount> = try await client.send(
-                path: APIEndpoint.websitesAcmeSearch.path,
-                body: AcmeSearchRequest(),
-                as: PageResponse<AcmeAccount>.self
-            )
-            return resp.items ?? []
-        } catch let err as APIError {
-            showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
-            return []
-        } catch {
-            showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
-            return []
-        }
+    /// 加载失败时抛错，由调用方决定呈现（列表页渲染页内错误态 + 重试）
+    func loadAcmeAccounts() async throws -> [AcmeAccount] {
+        let resp: PageResponse<AcmeAccount> = try await client.send(
+            path: APIEndpoint.websitesAcmeSearch.path,
+            body: AcmeSearchRequest(),
+            as: PageResponse<AcmeAccount>.self
+        )
+        return resp.items ?? []
     }
 
     func createAcmeAccount(req: AcmeCreateRequest) async -> Bool {
@@ -864,21 +857,14 @@ final class CertificatesViewModel: ObservableObject {
 
     // MARK: - DNS 账户
 
-    func loadDnsAccounts() async -> [DNSAccount] {
-        do {
-            let resp: PageResponse<DNSAccount> = try await client.send(
-                path: APIEndpoint.websitesDnsSearch.path,
-                body: DnsSearchRequest(),
-                as: PageResponse<DNSAccount>.self
-            )
-            return resp.items ?? []
-        } catch let err as APIError {
-            showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
-            return []
-        } catch {
-            showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
-            return []
-        }
+    /// 加载失败时抛错，由调用方决定呈现（列表页渲染页内错误态 + 重试）
+    func loadDnsAccounts() async throws -> [DNSAccount] {
+        let resp: PageResponse<DNSAccount> = try await client.send(
+            path: APIEndpoint.websitesDnsSearch.path,
+            body: DnsSearchRequest(),
+            as: PageResponse<DNSAccount>.self
+        )
+        return resp.items ?? []
     }
 
     func createDnsAccount(name: String, type: String, auth: [String: String]) async -> Bool {
@@ -941,21 +927,14 @@ final class CertificatesViewModel: ObservableObject {
 
     // MARK: - 自签证书（CA 机构）
 
-    func loadCAs() async -> [CertificateAuthority] {
-        do {
-            let resp: PageResponse<CertificateAuthority> = try await client.send(
-                path: APIEndpoint.websitesCaSearch.path,
-                body: CASearchRequest(),
-                as: PageResponse<CertificateAuthority>.self
-            )
-            return resp.items ?? []
-        } catch let err as APIError {
-            showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
-            return []
-        } catch {
-            showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
-            return []
-        }
+    /// 加载失败时抛错，由调用方决定呈现（列表页渲染页内错误态 + 重试）
+    func loadCAs() async throws -> [CertificateAuthority] {
+        let resp: PageResponse<CertificateAuthority> = try await client.send(
+            path: APIEndpoint.websitesCaSearch.path,
+            body: CASearchRequest(),
+            as: PageResponse<CertificateAuthority>.self
+        )
+        return resp.items ?? []
     }
 
     func loadCADetail(id: Int) async -> CertificateAuthority? {
@@ -1025,7 +1004,8 @@ final class CertificatesViewModel: ObservableObject {
         }
     }
 
-    private func showAlert(message: String) {
+    /// 弹提示（VM 内部与子页共用，如申请证书页账户加载失败）
+    func showAlert(message: String) {
         alertMessage = message
         showAlert = true
     }

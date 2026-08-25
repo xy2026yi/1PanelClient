@@ -22,11 +22,15 @@ struct ContainerImageView: View {
         Group {
             if vm.isLoadingImages && vm.images.isEmpty {
                 LoadingStateView()
+            } else if let err = vm.imagesLoadError, vm.images.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await vm.loadImages() }
+                }
             } else if vm.images.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无镜像"),
                     systemImage: "square.stack.3d.up",
-                    description: Text(vm.errorMessage ?? L10n.t("这台服务器上没有镜像"))
+                    description: Text(L10n.t("这台服务器上没有镜像"))
                 )
             } else {
                 List {
@@ -241,7 +245,8 @@ struct PullImageView: View {
         .navigationTitle(L10n.t("拉取镜像"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            repos = await vm.loadRepos()
+            // 拉取表单仅需仓库名列表，加载失败静默为空（表单会提示暂无仓库）
+            repos = (try? await vm.loadRepos()) ?? []
             if let first = repos.first { selectedRepoID = first.id }
         }
         .navigationDestination(isPresented: $showTaskProgress) {

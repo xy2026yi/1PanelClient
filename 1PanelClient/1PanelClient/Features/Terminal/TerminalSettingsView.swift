@@ -20,9 +20,16 @@ struct TerminalSettingsView: View {
     @State private var pendingDefaultChange: Bool?
 
     var body: some View {
-        List {
-            defaultConnSection
-            connInfoSection
+        Group {
+            if vm.isLoading && vm.conn == nil {
+                LoadingStateView()
+            } else if let err = vm.errorMessage, vm.conn == nil {
+                LoadErrorStateView(message: err) {
+                    Task { await vm.load() }
+                }
+            } else {
+                settingsList
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(L10n.t("设置"))
@@ -49,6 +56,13 @@ struct TerminalSettingsView: View {
         }
         .task { await vm.load() }
         .refreshable { await vm.load() }
+    }
+
+    private var settingsList: some View {
+        List {
+            defaultConnSection
+            connInfoSection
+        }
     }
 
     // MARK: - 默认连接
@@ -149,7 +163,7 @@ struct DefaultConnConfirmSheet: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
         }
-        .presentationDetents([.medium])
+        .bottomSheetDetents([.medium])
         .presentationDragIndicator(.hidden)
     }
 }
@@ -347,6 +361,7 @@ struct TerminalSSHConnEditView: View {
 final class TerminalSettingsViewModel: ObservableObject {
     @Published var conn: TerminalSSHConn?
     @Published var isLoading = false
+    @Published var errorMessage: String?
     @Published var showAlert = false
     @Published var alertMessage = ""
     @Published var toastMessage: String?
@@ -368,10 +383,11 @@ final class TerminalSettingsViewModel: ObservableObject {
                 method: APIEndpoint.settingsSSHConn.method,
                 as: TerminalSSHConn.self
             )
+            errorMessage = nil
         } catch let err as APIError {
-            showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
+            errorMessage = err.errorDescription ?? L10n.t("未知错误")
         } catch {
-            showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
+            errorMessage = error.localizedDescription
         }
     }
 

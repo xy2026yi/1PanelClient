@@ -49,6 +49,8 @@ struct WebsiteLogPage: View {
     @State private var selectedTab: WebsiteLogType = .access
     @State private var lines: [String] = []
     @State private var isLoading = false
+    /// 日志加载失败（渲染页内错误态 + 重试）
+    @State private var loadError: String?
     @State private var isTracking = false
 
     var body: some View {
@@ -65,6 +67,11 @@ struct WebsiteLogPage: View {
             if isLoading && lines.isEmpty {
                 LoadingStateView(text: L10n.t("加载日志…"))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let err = loadError, lines.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if lines.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无日志"),
@@ -123,14 +130,20 @@ struct WebsiteLogPage: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        lines = await vm.loadLog(websiteId: websiteId, name: selectedTab.fileName)
+        do {
+            lines = try await vm.loadLog(websiteId: websiteId, name: selectedTab.fileName)
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
     }
 
     private func startTracking() async {
         while isTracking {
             try? await Task.sleep(for: .seconds(2))
             guard isTracking else { break }
-            let fresh = await vm.loadLog(websiteId: websiteId, name: selectedTab.fileName)
+            // 追踪轮询失败静默跳过，下轮继续
+            guard let fresh = try? await vm.loadLog(websiteId: websiteId, name: selectedTab.fileName) else { continue }
             guard isTracking else { break }
             if fresh.isEmpty { continue }
             let overlap = min(lines.count, fresh.count)
@@ -156,12 +169,18 @@ struct WebsiteLogView: View {
 
     @State private var lines: [String] = []
     @State private var isLoading = false
+    /// 日志加载失败（渲染页内错误态 + 重试）
+    @State private var loadError: String?
 
     var body: some View {
         NavigationStack {
             Group {
                 if isLoading && lines.isEmpty {
                     LoadingStateView(text: L10n.t("加载日志…"))
+                } else if let err = loadError, lines.isEmpty {
+                    LoadErrorStateView(message: err) {
+                        Task { await load() }
+                    }
                 } else if lines.isEmpty {
                     ContentUnavailableView(
                         L10n.t("暂无日志"),
@@ -207,7 +226,12 @@ struct WebsiteLogView: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        lines = await vm.loadLog(websiteId: websiteId, name: logType.fileName)
+        do {
+            lines = try await vm.loadLog(websiteId: websiteId, name: logType.fileName)
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
     }
 }
 

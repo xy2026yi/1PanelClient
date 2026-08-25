@@ -371,7 +371,9 @@ final class WebsitesViewModel: ObservableObject {
 
     // MARK: - 网站日志
 
-    func loadLog(websiteId: Int, name: String) async -> [String] {
+    /// 加载失败时抛错，由调用方决定呈现（日志页渲染页内错误态 + 重试）。
+    /// 404 表示日志文件尚未产生，返回空数组与空日志同等对待
+    func loadLog(websiteId: Int, name: String) async throws -> [String] {
         let req = WebsiteLogReadRequest(
             id: websiteId,
             type: "website",
@@ -388,13 +390,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return resp.lines ?? []
         } catch let err as APIError {
-            // 404 表示日志文件尚未产生，静默返回空数组
             if case .httpError(let code, _) = err, code == 404 {
                 return []
             }
-            return []
-        } catch {
-            return []
+            throw err
         }
     }
 
@@ -512,7 +511,10 @@ final class WebsitesViewModel: ObservableObject {
 
     // MARK: - 反向代理路由
 
-    func loadProxies(websiteId: Int) async -> [WebsiteProxy] {
+    /// 加载失败时抛错，由调用方决定呈现（反向代理页渲染页内错误态 + 重试）。
+    /// 一键部署类网站的反向代理查询可能返回 data=null（code 200），
+    /// 此时按"空列表"处理，不弹错误窗，允许用户继续创建代理
+    func loadProxies(websiteId: Int) async throws -> [WebsiteProxy] {
         let req = WebsiteProxiesListRequest(id: websiteId)
         do {
             let resp: WebsiteProxiesResponse = try await client.send(
@@ -522,15 +524,10 @@ final class WebsitesViewModel: ObservableObject {
             )
             return resp.proxies ?? []
         } catch let err as APIError {
-            // 一键部署类网站的反向代理查询可能返回 data=null（code 200），
-            // 此时按"空列表"处理，不弹错误窗，允许用户继续创建代理
             if case .businessError(200, _) = err {
                 return []
             }
-            // 其他错误静默处理（避免阻塞 UI），返回空列表
-            return []
-        } catch {
-            return []
+            throw err
         }
     }
 
@@ -595,22 +592,14 @@ final class WebsitesViewModel: ObservableObject {
 
     // MARK: - 网站配置（默认文档 / 流量限制）
 
-    /// 读取网站配置；失败返回 nil
-    func loadWebsiteConfig(websiteId: Int, scope: String, operate: String? = nil, params: WebsiteConfigParams? = nil) async -> WebsiteConfigResponse? {
+    /// 加载失败时抛错，由调用方决定呈现（配置子页渲染页内错误态 + 重试）
+    func loadWebsiteConfig(websiteId: Int, scope: String, operate: String? = nil, params: WebsiteConfigParams? = nil) async throws -> WebsiteConfigResponse {
         let req = WebsiteConfigRequest(operate: operate, scope: scope, websiteId: websiteId, params: params)
-        do {
-            return try await client.send(
-                path: APIEndpoint.websitesConfig.path,
-                body: req,
-                as: WebsiteConfigResponse.self
-            )
-        } catch let err as APIError {
-            showAlert(message: L10n.f("读取配置失败：%@", err.errorDescription ?? L10n.t("未知错误")))
-            return nil
-        } catch {
-            showAlert(message: L10n.f("读取配置失败：%@", error.localizedDescription))
-            return nil
-        }
+        return try await client.send(
+            path: APIEndpoint.websitesConfig.path,
+            body: req,
+            as: WebsiteConfigResponse.self
+        )
     }
 
     /// 更新网站配置（默认文档 operate=update / 流量限制 启停 add|delete）
@@ -634,7 +623,9 @@ final class WebsitesViewModel: ObservableObject {
 
     // MARK: - 重定向
 
-    func loadRedirects(websiteId: Int) async -> [WebsiteRedirect] {
+    /// 加载失败时抛错，由调用方决定呈现（重定向页渲染页内错误态 + 重试）。
+    /// 一键部署等类型可能返回 data=null（code 200），按空列表处理
+    func loadRedirects(websiteId: Int) async throws -> [WebsiteRedirect] {
         let req = WebsiteRedirectListRequest(websiteID: websiteId)
         do {
             let resp: WebsiteRedirectsResponse = try await client.send(
@@ -643,9 +634,11 @@ final class WebsitesViewModel: ObservableObject {
                 as: WebsiteRedirectsResponse.self
             )
             return resp.items ?? []
-        } catch {
-            // 一键部署等类型可能返回 data=null，按空列表处理
-            return []
+        } catch let err as APIError {
+            if case .businessError(200, _) = err {
+                return []
+            }
+            throw err
         }
     }
 
@@ -686,21 +679,14 @@ final class WebsitesViewModel: ObservableObject {
 
     // MARK: - 密码访问
 
-    func loadAuths(websiteId: Int) async -> WebsiteAuthsResponse? {
+    /// 加载失败时抛错，由调用方决定呈现（密码访问页渲染页内错误态 + 重试）
+    func loadAuths(websiteId: Int) async throws -> WebsiteAuthsResponse {
         let req = WebsiteAuthsListRequest(websiteID: websiteId)
-        do {
-            return try await client.send(
-                path: APIEndpoint.websitesAuths.path,
-                body: req,
-                as: WebsiteAuthsResponse.self
-            )
-        } catch let err as APIError {
-            showAlert(message: L10n.f("读取密码访问失败：%@", err.errorDescription ?? L10n.t("未知错误")))
-            return nil
-        } catch {
-            showAlert(message: L10n.f("读取密码访问失败：%@", error.localizedDescription))
-            return nil
-        }
+        return try await client.send(
+            path: APIEndpoint.websitesAuths.path,
+            body: req,
+            as: WebsiteAuthsResponse.self
+        )
     }
 
     func operateAuth(websiteId: Int, operate: String, username: String = "", password: String = "", remark: String = "") async -> Bool {

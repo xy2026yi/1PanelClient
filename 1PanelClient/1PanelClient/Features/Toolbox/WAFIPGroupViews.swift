@@ -17,6 +17,8 @@ struct WAFIPGroupsView: View {
     @State private var editingGroup: WAFIPGroupItem?
     @State private var successMessage: String?
     @State private var errorMessage: String?
+    /// 列表加载失败（区别于操作失败 errorMessage：本状态渲染页内错误态 + 重试）
+    @State private var loadError: String?
     @State private var pendingDeleteGroup: WAFIPGroupItem?
 
     private let client: APIClient
@@ -30,6 +32,11 @@ struct WAFIPGroupsView: View {
         List {
             if isLoading && items.isEmpty {
                 LoadingStateView()
+            } else if let err = loadError, items.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await loadItems() }
+                }
+                .listRowBackground(Color.clear)
             } else if items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无 IP 组"), systemImage: "rectangle.on.rectangle.angled")
             } else {
@@ -92,13 +99,14 @@ struct WAFIPGroupsView: View {
                 Task { await loadItems() }
             }
         }
+        .localToast(message: $successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(
-            get: { successMessage != nil || errorMessage != nil },
-            set: { _ in successMessage = nil; errorMessage = nil }
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
         )) {
-            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
         } message: {
-            Text(errorMessage ?? successMessage ?? "")
+            Text(errorMessage ?? "")
         }
         .alert(
             L10n.t("删除"),
@@ -130,8 +138,9 @@ struct WAFIPGroupsView: View {
                 as: PageResponse<WAFIPGroupItem>.self
             )
             items = resp.items ?? []
+            loadError = nil
         } catch {
-            errorMessage = error.localizedDescription
+            loadError = error.localizedDescription
         }
         isLoading = false
     }
@@ -285,13 +294,14 @@ struct WAFIPGroupEditView: View {
                 .disabled(isSaving)
             }
         }
+        .localToast(message: $successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(
-            get: { successMessage != nil || errorMessage != nil },
-            set: { _ in successMessage = nil; errorMessage = nil }
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
         )) {
-            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
         } message: {
-            Text(successMessage ?? errorMessage ?? "")
+            Text(errorMessage ?? "")
         }
     }
 

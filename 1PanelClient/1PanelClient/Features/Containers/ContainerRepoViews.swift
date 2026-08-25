@@ -11,6 +11,8 @@ struct RepoListView: View {
     @ObservedObject var vm: ContainersViewModel
     @State private var repos: [ContainerRepo] = []
     @State private var isLoading = false
+    /// 列表加载失败（渲染页内错误态 + 重试）
+    @State private var loadError: String?
     @State private var showCreate = false
     /// 当前编辑的仓库（sheet(item:)）
     @State private var editingRepo: ContainerRepo?
@@ -20,6 +22,10 @@ struct RepoListView: View {
         Group {
             if isLoading && repos.isEmpty {
                 LoadingStateView()
+            } else if let err = loadError, repos.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await loadRepos() }
+                }
             } else if repos.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无仓库"),
@@ -107,8 +113,13 @@ struct RepoListView: View {
 
     private func loadRepos() async {
         isLoading = true
-        repos = await vm.loadRepos()
-        isLoading = false
+        defer { isLoading = false }
+        do {
+            repos = try await vm.loadRepos()
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
     }
 
     /// 同步仓库状态：提交后稍等再刷新列表，让状态有机会更新

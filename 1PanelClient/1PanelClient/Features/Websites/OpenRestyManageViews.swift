@@ -113,11 +113,16 @@ struct OpenRestyPerformanceView: View {
     @State private var gzipOn = true
     @State private var isLoading = false
     @State private var isSaving = false
+    @State private var loadError: String?
 
     var body: some View {
         Group {
             if isLoading && values.isEmpty {
                 LoadingStateView()
+            } else if let err = loadError {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
             } else {
                 Form {
                     Section {
@@ -226,12 +231,11 @@ struct OpenRestyPerformanceView: View {
             }
             values = nums
             suffixes = sfxs
+            loadError = nil
         } catch let err as APIError {
-            vm.alertMessage = L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误"))
-            vm.showAlert = true
+            loadError = err.errorDescription ?? L10n.t("未知错误")
         } catch {
-            vm.alertMessage = L10n.f("加载失败：%@", error.localizedDescription)
-            vm.showAlert = true
+            loadError = error.localizedDescription
         }
     }
 
@@ -277,16 +281,18 @@ struct OpenRestyOtherView: View {
     @State private var isLoading = false
     @State private var isSaving = false
     @State private var loaded = false
+    @State private var loadError: String?
 
     var body: some View {
-        Form {
-            Section {
-                Toggle(L10n.t("HTTPS防窜站"), isOn: $httpsOn)
-                    .disabled(!loaded)
-                Toggle(L10n.t("拒绝默认SSL握手"), isOn: $rejectHandshake)
-                    .disabled(!loaded)
-            } header: {
-                Text(L10n.t("其他"))
+        Group {
+            if isLoading && !loaded {
+                LoadingStateView()
+            } else if let err = loadError {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
+            } else {
+                settingsForm
             }
         }
         .navigationTitle(L10n.t("其他"))
@@ -310,6 +316,19 @@ struct OpenRestyOtherView: View {
         .toastOverlay(message: $vm.toastMessage)
     }
 
+    private var settingsForm: some View {
+        Form {
+            Section {
+                Toggle(L10n.t("HTTPS防窜站"), isOn: $httpsOn)
+                    .disabled(!loaded)
+                Toggle(L10n.t("拒绝默认SSL握手"), isOn: $rejectHandshake)
+                    .disabled(!loaded)
+            } header: {
+                Text(L10n.t("其他"))
+            }
+        }
+    }
+
     private func load() async {
         isLoading = true
         defer { isLoading = false }
@@ -322,12 +341,11 @@ struct OpenRestyOtherView: View {
             httpsOn = config.https ?? true
             rejectHandshake = config.sslRejectHandshake ?? true
             loaded = true
+            loadError = nil
         } catch let err as APIError {
-            vm.alertMessage = L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误"))
-            vm.showAlert = true
+            loadError = err.errorDescription ?? L10n.t("未知错误")
         } catch {
-            vm.alertMessage = L10n.f("加载失败：%@", error.localizedDescription)
-            vm.showAlert = true
+            loadError = error.localizedDescription
         }
     }
 
@@ -508,7 +526,7 @@ struct OpenRestyModulesView: View {
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(.caption.weight(.bold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 2)

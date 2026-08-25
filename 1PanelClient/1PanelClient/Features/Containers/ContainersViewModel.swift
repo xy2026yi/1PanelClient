@@ -28,6 +28,8 @@ final class ContainersViewModel: ObservableObject {
     @Published var imageOperating = false
     @Published var errorMessage: String?
     @Published var dockerErrorMessage: String?
+    /// 镜像列表加载失败（区别于操作失败：镜像页渲染页内错误态 + 重试）
+    @Published var imagesLoadError: String?
 
     @Published var showAlert = false
     @Published var alertMessage = ""
@@ -463,8 +465,10 @@ final class ContainersViewModel: ObservableObject {
                 path: APIEndpoint.containersImageAll.path,
                 method: "GET", as: [ContainerImage].self
             )
+            imagesLoadError = nil
         } catch {
             self.images = []
+            imagesLoadError = error.localizedDescription
         }
     }
 
@@ -521,17 +525,14 @@ final class ContainersViewModel: ObservableObject {
         let pageSize: Int
     }
 
-    func loadRepos() async -> [ContainerRepo] {
+    /// 加载失败时抛错，由调用方决定呈现（仓库列表页渲染页内错误态 + 重试）
+    func loadRepos() async throws -> [ContainerRepo] {
         let req = RepoSearchRequest(page: 1, pageSize: 100)
-        do {
-            let resp: PageResponse<ContainerRepo> = try await client.send(
-                path: APIEndpoint.containersRepoSearch.path,
-                body: req, as: PageResponse<ContainerRepo>.self
-            )
-            return resp.items ?? []
-        } catch {
-            return []
-        }
+        let resp: PageResponse<ContainerRepo> = try await client.send(
+            path: APIEndpoint.containersRepoSearch.path,
+            body: req, as: PageResponse<ContainerRepo>.self
+        )
+        return resp.items ?? []
     }
 
     // MARK: - 仓库管理（添加/编辑/删除/同步）

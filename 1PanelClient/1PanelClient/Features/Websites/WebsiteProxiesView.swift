@@ -13,6 +13,8 @@ struct WebsiteProxiesView: View {
 
     @State private var proxies: [WebsiteProxy] = []
     @State private var isLoading = false
+    /// 列表加载失败（渲染页内错误态 + 重试）
+    @State private var loadError: String?
     @State private var showEditSheet = false
     @State private var editingProxy: WebsiteProxy?
     @State private var showSourceSheet = false
@@ -25,6 +27,10 @@ struct WebsiteProxiesView: View {
         Group {
             if isLoading && proxies.isEmpty {
                 LoadingStateView()
+            } else if let err = loadError, proxies.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
             } else if proxies.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无反向代理"),
@@ -162,7 +168,12 @@ struct WebsiteProxiesView: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        proxies = await vm.loadProxies(websiteId: websiteId)
+        do {
+            proxies = try await vm.loadProxies(websiteId: websiteId)
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
     }
 
     private func deleteProxy(_ p: WebsiteProxy) async {

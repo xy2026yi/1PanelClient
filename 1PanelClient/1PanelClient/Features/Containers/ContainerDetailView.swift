@@ -22,6 +22,8 @@ struct ContainerDetailView: View {
 
     @State private var showMenuAlert = false
     @State private var menuAlertMessage = ""
+    /// 详情刷新失败（渲染页内错误态 + 重试；数据为进入时的快照，仅刷新失败时置位）
+    @State private var loadError: String?
     @State private var showUpgrade = false
     @State private var showEdit = false
     @State private var showTerminal = false
@@ -49,52 +51,59 @@ struct ContainerDetailView: View {
 
     var body: some View {
         List {
-            statusSection
+            if let err = loadError {
+                LoadErrorStateView(message: err) {
+                    Task { await refreshContainer() }
+                }
+                .listRowBackground(Color.clear)
+            } else {
+                statusSection
 
-            Section(L10n.t("基本信息")) {
-                if let img = current.imageName, !img.isEmpty {
-                    InfoRow(L10n.t("镜像"), value: img)
-                }
-                if let app = current.appName, !app.isEmpty {
-                    NavigationLink {
-                        AppDetailFromContainerView(container: current, server: server)
-                    } label: {
-                        InfoRow(L10n.t("应用程序"), value: app)
+                Section(L10n.t("基本信息")) {
+                    if let img = current.imageName, !img.isEmpty {
+                        InfoRow(L10n.t("镜像"), value: img)
                     }
-                    .buttonStyle(.plain)
-                }
-                if let sites = current.websites, !sites.isEmpty {
-                    ForEach(sites, id: \.self) { site in
+                    if let app = current.appName, !app.isEmpty {
                         NavigationLink {
-                            WebsiteDetailFromContainerView(domain: site, server: server)
+                            AppDetailFromContainerView(container: current, server: server)
                         } label: {
-                            InfoRow(L10n.t("网站"), value: site)
+                            InfoRow(L10n.t("应用程序"), value: app)
                         }
                         .buttonStyle(.plain)
                     }
+                    if let sites = current.websites, !sites.isEmpty {
+                        ForEach(sites, id: \.self) { site in
+                            NavigationLink {
+                                WebsiteDetailFromContainerView(domain: site, server: server)
+                            } label: {
+                                InfoRow(L10n.t("网站"), value: site)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    if let ports = current.ports, !ports.isEmpty {
+                        PortsInfoRow(ports: ports)
+                    }
+                    InfoRow(L10n.t("运行时长"), value: current.runTime ?? "—")
+                    if let created = current.createTime, !created.isEmpty {
+                        InfoRow(L10n.t("创建时间"), value: String(created.prefix(19)))
+                    }
                 }
-                if let ports = current.ports, !ports.isEmpty {
-                    PortsInfoRow(ports: ports)
-                }
-                InfoRow(L10n.t("运行时长"), value: current.runTime ?? "—")
-                if let created = current.createTime, !created.isEmpty {
-                    InfoRow(L10n.t("创建时间"), value: String(created.prefix(19)))
-                }
-            }
 
-            Section {
-                NavigationLink {
-                    ContainerLogView(container: current, vm: vm)
-                } label: {
-                    Label(L10n.t("日志"), systemImage: "doc.text")
+                Section {
+                    NavigationLink {
+                        ContainerLogView(container: current, vm: vm)
+                    } label: {
+                        Label(L10n.t("日志"), systemImage: "doc.text")
+                    }
+                    .buttonStyle(.plain)
+                    NavigationLink {
+                        ContainerMonitorView(container: current)
+                    } label: {
+                        Label(L10n.t("监控"), systemImage: "chart.xyaxis.line")
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-                NavigationLink {
-                    ContainerMonitorView(container: current)
-                } label: {
-                    Label(L10n.t("监控"), systemImage: "chart.xyaxis.line")
-                }
-                .buttonStyle(.plain)
             }
         }
         .navigationTitle(current.displayName)
@@ -347,9 +356,15 @@ struct ContainerDetailView: View {
     }
 
     /// 下拉刷新 / 任务完成后刷新：重拉容器列表并按 containerID 更新本页快照；
+    /// 刷新失败（列表空且带错误）时留在本页显示错误态，避免被误判为已删除而退出；
     /// 列表中已不存在（如已删除）时退出详情页
     private func refreshContainer() async {
         await vm.refresh()
+        if let err = vm.errorMessage, vm.containers.isEmpty {
+            loadError = err
+            return
+        }
+        loadError = nil
         if let updated = vm.containers.first(where: { $0.containerID == current.containerID }) {
             current = updated
         } else {
@@ -381,13 +396,17 @@ struct AppDetailFromContainerView: View {
         Group {
             if vm.isLoading && vm.apps.isEmpty {
                 LoadingStateView()
+            } else if let err = vm.errorMessage, !err.isEmpty, vm.apps.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await vm.refresh() }
+                }
             } else if let app = matchedApp {
                 AppDetailView(app: app, vm: vm)
             } else {
                 ContentUnavailableView(
                     L10n.t("未找到关联应用"),
                     systemImage: "app.badge",
-                    description: Text(vm.errorMessage ?? L10n.t("该容器关联的应用不存在或已被卸载"))
+                    description: Text(L10n.t("该容器关联的应用不存在或已被卸载"))
                 )
             }
         }
@@ -427,6 +446,10 @@ struct WebsiteDetailFromContainerView: View {
         Group {
             if vm.isLoading && vm.websites.isEmpty {
                 LoadingStateView()
+            } else if let err = vm.errorMessage, !err.isEmpty, vm.websites.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await vm.search(query: "") }
+                }
             } else if let website = matchedWebsite {
                 WebsiteDetailView(website: website, vm: vm)
             } else {

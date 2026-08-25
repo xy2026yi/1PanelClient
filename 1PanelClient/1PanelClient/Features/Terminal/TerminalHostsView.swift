@@ -156,6 +156,11 @@ struct TerminalHostsView: View {
                     LoadingStateView()
                     Spacer()
                 }
+            } else if let err = vm.errorMessage, !err.isEmpty, vm.hosts.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await vm.loadHosts() }
+                }
+                .listRowBackground(Color.clear)
             } else if vm.hosts.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无主机"),

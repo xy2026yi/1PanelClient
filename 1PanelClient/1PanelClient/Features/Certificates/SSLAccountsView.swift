@@ -15,6 +15,8 @@ struct AcmeAccountListView: View {
 
     @State private var accounts: [AcmeAccount] = []
     @State private var isLoading = false
+    /// 列表加载失败（渲染页内错误态 + 重试）
+    @State private var loadError: String?
     @State private var showCreate = false
     @State private var pendingDelete: AcmeAccount?
 
@@ -22,6 +24,10 @@ struct AcmeAccountListView: View {
         Group {
             if isLoading && accounts.isEmpty {
                 LoadingStateView()
+            } else if let err = loadError, accounts.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
             } else if accounts.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无 Acme 账户"),
@@ -92,7 +98,12 @@ struct AcmeAccountListView: View {
 
     private func load() async {
         isLoading = true; defer { isLoading = false }
-        accounts = await vm.loadAcmeAccounts()
+        do {
+            accounts = try await vm.loadAcmeAccounts()
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
     }
 }
 
@@ -272,6 +283,8 @@ struct DNSAccountListView: View {
 
     @State private var accounts: [DNSAccount] = []
     @State private var isLoading = false
+    /// 列表加载失败（渲染页内错误态 + 重试）
+    @State private var loadError: String?
     @State private var showCreate = false
     @State private var pendingDelete: DNSAccount?
 
@@ -279,6 +292,10 @@ struct DNSAccountListView: View {
         Group {
             if isLoading && accounts.isEmpty {
                 LoadingStateView()
+            } else if let err = loadError, accounts.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
             } else if accounts.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无 DNS 账户"),
@@ -355,7 +372,12 @@ struct DNSAccountListView: View {
 
     private func load() async {
         isLoading = true; defer { isLoading = false }
-        accounts = await vm.loadDnsAccounts()
+        do {
+            accounts = try await vm.loadDnsAccounts()
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
     }
 }
 

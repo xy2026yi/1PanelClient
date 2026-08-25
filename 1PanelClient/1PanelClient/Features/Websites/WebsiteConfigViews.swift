@@ -17,12 +17,18 @@ struct WebsiteDefaultDocView: View {
 
     @State private var docText = ""
     @State private var isLoading = true
+    /// 配置加载失败（渲染页内错误态 + 重试）
+    @State private var loadError: String?
     @State private var isSaving = false
 
     var body: some View {
         Group {
             if isLoading {
                 LoadingStateView()
+            } else if let err = loadError {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
             } else {
                 VStack(spacing: 0) {
                     TextEditor(text: $docText)
@@ -55,14 +61,20 @@ struct WebsiteDefaultDocView: View {
     }
 
     private func load() async {
-        let resp = await vm.loadWebsiteConfig(
-            websiteId: websiteId, scope: "index",
-            operate: "update", params: .object([:])
-        )
-        if let item = resp?.params?.first(where: { $0.name == "index" }) {
-            docText = (item.params ?? []).joined(separator: "\n")
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let resp = try await vm.loadWebsiteConfig(
+                websiteId: websiteId, scope: "index",
+                operate: "update", params: .object([:])
+            )
+            if let item = resp.params?.first(where: { $0.name == "index" }) {
+                docText = (item.params ?? []).joined(separator: "\n")
+            }
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
         }
-        isLoading = false
     }
 
     private func save() async {
@@ -111,10 +123,27 @@ struct WebsiteLimitConnView: View {
     @State private var perip = "25"
     @State private var rate = "512"
     @State private var isLoading = true
+    /// 配置加载失败（渲染页内错误态 + 重试）
+    @State private var loadError: String?
     @State private var isSaving = false
     @State private var isToggling = false
 
     var body: some View {
+        Group {
+            if let err = loadError {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
+            } else {
+                form
+            }
+        }
+        .navigationTitle(L10n.t("流量限制"))
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+    }
+
+    private var form: some View {
         Form {
             Section {
                 Toggle(L10n.t("启用"), isOn: Binding(
@@ -184,9 +213,6 @@ struct WebsiteLimitConnView: View {
                 .disabled(isSaving || isLoading)
             }
         }
-        .navigationTitle(L10n.t("流量限制"))
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
     }
 
     private func buildParams() -> WebsiteConfigParams {
@@ -198,29 +224,35 @@ struct WebsiteLimitConnView: View {
     }
 
     private func load() async {
-        let resp = await vm.loadWebsiteConfig(websiteId: websiteId, scope: "limit-conn")
-        enable = resp?.enable ?? false
-        for item in resp?.params ?? [] {
-            switch item.name ?? "" {
-            case "limit_conn":
-                for p in item.params ?? [] {
-                    // "perserver 151" / "perip 4"
-                    let parts = p.split(separator: " ")
-                    if parts.count == 2 {
-                        if parts[0] == "perserver" { perserver = String(parts[1]) }
-                        if parts[0] == "perip" { perip = String(parts[1]) }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let resp = try await vm.loadWebsiteConfig(websiteId: websiteId, scope: "limit-conn")
+            enable = resp.enable ?? false
+            for item in resp.params ?? [] {
+                switch item.name ?? "" {
+                case "limit_conn":
+                    for p in item.params ?? [] {
+                        // "perserver 151" / "perip 4"
+                        let parts = p.split(separator: " ")
+                        if parts.count == 2 {
+                            if parts[0] == "perserver" { perserver = String(parts[1]) }
+                            if parts[0] == "perip" { perip = String(parts[1]) }
+                        }
                     }
+                case "limit_rate":
+                    // "1024k" → "1024"
+                    if let r = (item.params ?? []).first {
+                        rate = r.hasSuffix("k") ? String(r.dropLast()) : r
+                    }
+                default:
+                    break
                 }
-            case "limit_rate":
-                // "1024k" → "1024"
-                if let r = (item.params ?? []).first {
-                    rate = r.hasSuffix("k") ? String(r.dropLast()) : r
-                }
-            default:
-                break
             }
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
         }
-        isLoading = false
     }
 
     /// 启用/关闭：以当前三个输入值提交（add / delete）
@@ -262,6 +294,8 @@ struct WebsiteRedirectView: View {
 
     @State private var redirects: [WebsiteRedirect] = []
     @State private var isLoading = false
+    /// 列表加载失败（渲染页内错误态 + 重试）
+    @State private var loadError: String?
     @State private var editingRedirect: WebsiteRedirect?
     @State private var showEdit = false
     @State private var sourceRedirect: WebsiteRedirect?
@@ -273,6 +307,10 @@ struct WebsiteRedirectView: View {
         Group {
             if isLoading && redirects.isEmpty {
                 LoadingStateView()
+            } else if let err = loadError, redirects.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
             } else if redirects.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无重定向"),
@@ -417,7 +455,12 @@ struct WebsiteRedirectView: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        redirects = await vm.loadRedirects(websiteId: websiteId)
+        do {
+            redirects = try await vm.loadRedirects(websiteId: websiteId)
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
     }
 
     /// 由记录构造全量操作请求（删除/启停需带原记录字段）
@@ -687,6 +730,8 @@ struct WebsiteAuthsView: View {
     @State private var enable = false
     @State private var items: [WebsiteAuthItem] = []
     @State private var isLoading = true
+    /// 列表加载失败（渲染页内错误态 + 重试）
+    @State private var loadError: String?
     @State private var editingItem: WebsiteAuthItem?
     @State private var showEdit = false
     @State private var pendingDelete: WebsiteAuthItem?
@@ -696,6 +741,10 @@ struct WebsiteAuthsView: View {
         Group {
             if isLoading {
                 LoadingStateView()
+            } else if let err = loadError {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
             } else {
                 list
             }
@@ -798,11 +847,16 @@ struct WebsiteAuthsView: View {
     }
 
     private func load() async {
-        if let resp = await vm.loadAuths(websiteId: websiteId) {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let resp = try await vm.loadAuths(websiteId: websiteId)
             enable = resp.enable ?? false
             items = resp.items ?? []
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
         }
-        isLoading = false
     }
 
     private func toggle(_ on: Bool) async {

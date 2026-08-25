@@ -25,6 +25,10 @@ struct QuickCommandsView: View {
         Group {
             if vm.isLoading && vm.commands.isEmpty {
                 LoadingStateView()
+            } else if let err = vm.errorMessage, vm.commands.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await vm.loadAll(force: true) }
+                }
             } else if vm.commands.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无快速命令"),
@@ -135,7 +139,7 @@ struct QuickCommandRow: View {
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(.caption)
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 4)
@@ -282,6 +286,10 @@ struct QuickCommandPickerSheet: View {
             Group {
                 if vm.isLoading && vm.commands.isEmpty {
                     LoadingStateView()
+                } else if let err = vm.errorMessage, vm.commands.isEmpty {
+                    LoadErrorStateView(message: err) {
+                        Task { await vm.loadAll(force: true) }
+                    }
                 } else if vm.commands.isEmpty {
                     ContentUnavailableView(
                         L10n.t("暂无快速命令"),
@@ -328,6 +336,7 @@ final class QuickCommandsViewModel: ObservableObject {
     @Published var commands: [QuickCommand] = []
     @Published var groups: [SSHHostGroup] = []
     @Published var isLoading = false
+    @Published var errorMessage: String?
     @Published var showAlert = false
     @Published var alertMessage = ""
     @Published var toastMessage: String?
@@ -364,10 +373,11 @@ final class QuickCommandsViewModel: ObservableObject {
                 as: PageResponse<QuickCommand>.self
             )
             commands = resp.items ?? []
+            errorMessage = nil
         } catch let err as APIError {
-            showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
+            errorMessage = err.errorDescription ?? L10n.t("未知错误")
         } catch {
-            showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
+            errorMessage = error.localizedDescription
         }
     }
 

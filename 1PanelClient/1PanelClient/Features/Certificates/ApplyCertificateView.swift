@@ -192,13 +192,18 @@ struct ApplyCertificateView: View {
     // MARK: - 数据加载
 
     private func loadAccounts() async {
-        async let acme = vm.loadAcmeAccounts()
-        async let dns = vm.loadDnsAccounts()
-        let (acmeList, dnsList) = await (acme, dns)
-        acmeAccounts = acmeList
-        dnsAccounts = dnsList
-        if selectedAcmeId == 0, let first = acmeList.first { selectedAcmeId = first.id }
-        if selectedDnsId == 0, let first = dnsList.first { selectedDnsId = first.id }
+        do {
+            async let acme = vm.loadAcmeAccounts()
+            async let dns = vm.loadDnsAccounts()
+            let (acmeList, dnsList) = try await (acme, dns)
+            acmeAccounts = acmeList
+            dnsAccounts = dnsList
+            if selectedAcmeId == 0, let first = acmeList.first { selectedAcmeId = first.id }
+            if selectedDnsId == 0, let first = dnsList.first { selectedDnsId = first.id }
+        } catch {
+            // 表单仍可用，仅提示账户加载失败（沿用原行为）
+            vm.showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
+        }
     }
 
     /// 编辑模式下用原证书数据回填表单
