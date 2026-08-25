@@ -238,7 +238,7 @@ struct OpenRestyPerformanceView: View {
         var params: [String: String] = ["gzip": gzipOn ? "on" : "off"]
         for field in Self.fields {
             let num = (values[field.key] ?? "").trimmingCharacters(in: .whitespaces)
-            guard !num.isEmpty, Int(num) != nil || Double(num) != nil else { continue }
+            guard !num.isEmpty, Double(num) != nil else { continue }
             params[field.key] = num + (suffixes[field.key] ?? "")
         }
         guard params.count == Self.fields.count + 1 else {
@@ -306,6 +306,7 @@ struct OpenRestyOtherView: View {
             }
         }
         .task { await load() }
+        .refreshable { await load() }
     }
 
     private func load() async {
@@ -458,6 +459,8 @@ struct OpenRestyModulesView: View {
                                     }
                                 ))
                                 .labelsHidden()
+                                // 一次只发一个开关请求：其余行禁用，避免视觉已翻转但请求被丢弃
+                                .disabled(togglingModule != nil)
                             }
                         }
                     }

@@ -181,7 +181,9 @@ struct TerminalSSHConnEditView: View {
         if isKeyAuth {
             return !privateKey.isEmpty
         }
-        return !password.isEmpty
+        // 密码不回显：已有服务端凭据（base64 非空）即视为有效，
+        // buildRequest 会把原值回传，改地址/端口无需重输密码
+        return !password.isEmpty || (existing.password?.isEmpty == false)
     }
 
     private var canSave: Bool { formValid && tested && !isSaving }
@@ -257,9 +259,14 @@ struct TerminalSSHConnEditView: View {
                 }
             }
             .onAppear { fillIfEditing() }
-            .onChange(of: authMode) { _, _ in
-                tested = false
-            }
+            // 测试结果只对测试时的表单内容有效：任一字段改动后需重新测试才能保存
+            .onChange(of: authMode) { _, _ in tested = false }
+            .onChange(of: addr) { _, _ in tested = false }
+            .onChange(of: portText) { _, _ in tested = false }
+            .onChange(of: user) { _, _ in tested = false }
+            .onChange(of: password) { _, _ in tested = false }
+            .onChange(of: privateKey) { _, _ in tested = false }
+            .onChange(of: passPhrase) { _, _ in tested = false }
         }
         .bottomSheetDetents([.large])
         .presentationDragIndicator(.visible)
