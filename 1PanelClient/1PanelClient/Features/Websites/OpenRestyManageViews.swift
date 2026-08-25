@@ -10,7 +10,6 @@
 //
 
 import SwiftUI
-import OSLog
 
 // MARK: - 状态
 
@@ -589,10 +588,6 @@ struct OpenRestyModulesView: View {
             )
             resp = result
             errorMessage = nil
-            #if DEBUG
-            Logger(subsystem: "com.xy.1PanelClient.debug", category: "openresty")
-                .warning("[Modules] mirror=\(result.mirror ?? "nil", privacy: .public) dynamicSupported=\(result.dynamicSupported.map(String.init) ?? "nil", privacy: .public) modules=\(result.modules?.count.description ?? "null", privacy: .public)")
-            #endif
         } catch let err as APIError {
             errorMessage = err.errorDescription
         } catch {

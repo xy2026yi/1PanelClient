@@ -377,13 +377,17 @@ enum ManageItem: String, Identifiable {
 
     var id: String { rawValue }
 
-    /// 管理页分组（带标题），ManageTab 与「自定义功能」编辑页共用
-    static let groups: [(title: String, items: [ManageItem])] = [
-        (L10n.t("应用"), [.apps, .websites, .database, .containers]),
-        (L10n.t("主机"), [.terminal, .files, .monitor, .process, .sshService, .firewall]),
-        (L10n.t("高级功能"), [.websiteMonitor, .nodeManage, .wafMonitor]),
-        (L10n.t("面板"), [.alert, .backupAccount, .cronjob, .taskCenter, .logs]),
-    ]
+    /// 管理页分组（带标题），ManageTab 与「自定义功能」编辑页共用。
+    /// 计算属性而非 static let：L10n 语言偏好可能在首次访问后才就绪/切换，
+    /// 缓存会把启动初期的中文标题固化到英文界面
+    static var groups: [(title: String, items: [ManageItem])] {
+        [
+            (L10n.t("应用"), [.apps, .websites, .database, .containers]),
+            (L10n.t("主机"), [.terminal, .files, .monitor, .process, .sshService, .firewall]),
+            (L10n.t("高级功能"), [.websiteMonitor, .nodeManage, .wafMonitor]),
+            (L10n.t("面板"), [.alert, .backupAccount, .cronjob, .taskCenter, .logs]),
+        ]
+    }
 
     var title: String {
         switch self {
