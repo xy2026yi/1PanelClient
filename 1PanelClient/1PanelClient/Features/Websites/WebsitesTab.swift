@@ -19,12 +19,15 @@ struct WebsitesTab: View {
     @State private var showOpenRestyPerformance = false
     @State private var showOpenRestyModules = false
     @State private var showOpenRestyOther = false
+    /// OpenResty 未安装时的应用商店 VM（列表安装按钮直达应用详情，安装流程复用应用商店页面）
+    @StateObject private var openRestyInstallVM: AppStoreViewModel
 
 
     init(manager: ServerManager) {
         self.manager = manager
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: WebsitesViewModel(server: server))
+        _openRestyInstallVM = StateObject(wrappedValue: AppStoreViewModel(server: server))
     }
 
     var body: some View {
@@ -101,13 +104,17 @@ struct WebsitesTab: View {
     private var websiteList: some View {
         List {
             if vm.openRestyNotInstalled {
-                // OpenResty 未安装：网站功能依赖它，整页只保留快速安装入口（同数据库未安装占位）
+                // OpenResty 未安装：网站功能依赖它，整页只保留安装入口
+                // （安装按钮直达应用商店详情页，安装完成后本页收到通知自动刷新）
                 Section("OpenResty") {
+                    NotInstalledOpenRestyRow()
                     NavigationLink {
-                        OpenRestyInstallView()
+                        AppStoreDetailView(appKey: "openresty", vm: openRestyInstallVM)
                     } label: {
-                        NotInstalledOpenRestyRow()
+                        Label(L10n.t("安装 OpenResty"), systemImage: "arrow.down.circle.fill")
+                            .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.borderedProminent)
                 }
             } else {
                 // 顶部 OpenResty 信息与管理卡片
@@ -287,9 +294,9 @@ struct OpenRestyCard: View {
     }
 }
 
-// MARK: - OpenResty 未安装（快速安装入口，同数据库未安装流程）
+// MARK: - OpenResty 未安装占位
 
-/// 未安装占位行：淡化品牌图标 + 名称 + 未安装标签
+/// 未安装占位行：淡化品牌图标 + 名称 + 未安装标签（安装按钮在同一 Section 直达应用商店）
 struct NotInstalledOpenRestyRow: View {
     var body: some View {
         HStack(spacing: 14) {
@@ -304,73 +311,6 @@ struct NotInstalledOpenRestyRow: View {
             Spacer()
         }
         .padding(.vertical, 2)
-    }
-}
-
-/// OpenResty 未安装提示页：说明 + 跳转应用商店安装（列表页收到安装完成通知后自行刷新）
-struct OpenRestyInstallView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    /// 应用商店 ViewModel（详情页 + 安装表单共用）
-    @StateObject private var storeVM: AppStoreViewModel = {
-        let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
-        return AppStoreViewModel(server: server)
-    }()
-    /// 是否已进入安装表单（用于区分「自己的安装完成」与无关的全局 installCompleted 通知）
-    @State private var didEnterInstall = false
-
-    var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
-            BrandIcon(brand: .openresty, size: 72)
-                .opacity(0.5)
-
-            VStack(spacing: 8) {
-                Text(L10n.t("OpenResty 未安装"))
-                    .font(.headline)
-                Text(L10n.t("网站功能依赖 OpenResty，请先安装后再使用"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-
-            // 用 NavigationLink 直接 push 应用详情页（避免 isPresented 时序问题）
-            NavigationLink {
-                AppStoreDetailView(appKey: "openresty", vm: storeVM)
-            } label: {
-                Label(L10n.t("安装 OpenResty"), systemImage: "arrow.down.circle.fill")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.borderedProminent)
-            .padding(.horizontal, 40)
-
-            Spacer()
-        }
-        .padding()
-        .navigationTitle("OpenResty")
-        .navigationBarTitleDisplayMode(.inline)
-        // 安装表单：详情页点「安装」后 push 安装表单
-        .navigationDestination(isPresented: $storeVM.showInstall) {
-            if let installDetail = storeVM.installDetail {
-                AppInstallView(detail: installDetail, vm: storeVM)
-            }
-        }
-        // 跟踪是否进入过安装表单（showInstall true→false 表示用户开始了安装流程）
-        .onChange(of: storeVM.showInstall) { _, isShown in
-            if isShown { didEnterInstall = true }
-        }
-        // 安装完成：仅当确实进入了本页发起的安装流程时才返回，
-        // 避免无关的全局 installCompleted 通知误触发 dismiss（表现为点击安装变返回）
-        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
-            guard didEnterInstall else { return }
-            storeVM.showInstall = false
-            // 等导航栈稳定后再 dismiss，避免动画冲突
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                dismiss()
-            }
-        }
     }
 }
 

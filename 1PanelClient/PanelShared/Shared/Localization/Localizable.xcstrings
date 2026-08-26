@@ -7355,6 +7355,17 @@
         }
       }
     },
+    "安全凭证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Credentials"
+          }
+        }
+      }
+    },
     "安装" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -615,8 +615,7 @@ struct DatabaseSystemView: View {
             }
         }
         .searchIconMode(text: $searchText, isSearching: $isSearching, title: vm.system.displayName, prompt: L10n.t("搜索数据库 / 用户"))
-        // 右上角加号（菜单）：与其他列表页 toolbar 创建范式一致，
-        // 服务卡展开区保留同款入口；按系统能力显示可用项
+        // 右上角加号（菜单）：与其他列表页 toolbar 创建范式一致，按系统能力显示可用项
         .toolbar {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -757,9 +756,9 @@ struct DatabaseSystemView: View {
         }
     }
 
-    /// 抽屉操作：启停/重启/终端 + 连接信息 + 创建数据库/用户
+    /// 抽屉操作：启停/重启/终端 + 连接信息（创建数据库/用户入口在右上角加号菜单）
     private func drawerActions(_ check: AppInstallCheck) -> [ServiceAction] {
-        var actions: [ServiceAction] = [
+        [
             ServiceAction(
                 title: check.isRunning ? L10n.t("停止") : L10n.t("启动"),
                 icon: check.isRunning ? "stop.fill" : "play.fill",
@@ -786,22 +785,6 @@ struct DatabaseSystemView: View {
                 showConnInfo = true
             },
         ]
-        if vm.supportsDatabaseList {
-            actions.append(ServiceAction(
-                title: L10n.t("创建数据库"),
-                icon: "cylinder",
-                color: .indigo,
-                customIcon: "icon-create-database"
-            ) {
-                showCreate = true
-            })
-        }
-        if vm.supportsUserManagement {
-            actions.append(ServiceAction(title: L10n.t("创建用户"), icon: "person.badge.plus", color: .mint) {
-                showCreateUser = true
-            })
-        }
-        return actions
     }
 
     // MARK: 数据库列表

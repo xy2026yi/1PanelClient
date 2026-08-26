@@ -272,28 +272,6 @@ struct Fail2banView: View {
     private func content(base: Fail2banBase) -> some View {
         List {
             serviceSection(base: base)
-            Section {
-                HStack(spacing: 12) {
-                    Button { activeSheet = .whitelist } label: {
-                        Label(L10n.t("白名单"), systemImage: "checkmark.shield")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderless)
-
-                    Divider()
-                        .frame(height: 24)
-
-                    Button { activeSheet = .blacklist } label: {
-                        Label(L10n.t("黑名单"), systemImage: "hand.raised")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderless)
-                }
-                Button { activeSheet = .fullConfig } label: {
-                    Label(L10n.t("全部配置"), systemImage: "doc.text")
-                        .frame(maxWidth: .infinity)
-                }
-            }
             configSection(base: base)
         }
     }
@@ -316,6 +294,15 @@ struct Fail2banView: View {
                 ) { pendingAction = base.isActive ? "stop" : "start" },
                 ServiceAction(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
                     pendingAction = "restart"
+                },
+                ServiceAction(title: L10n.t("白名单"), icon: "checkmark.shield", color: .green) {
+                    activeSheet = .whitelist
+                },
+                ServiceAction(title: L10n.t("黑名单"), icon: "hand.raised", color: .red) {
+                    activeSheet = .blacklist
+                },
+                ServiceAction(title: L10n.t("配置"), icon: "doc.text", color: .indigo) {
+                    activeSheet = .fullConfig
                 }
             ]
         ) {
@@ -811,7 +798,7 @@ struct Fail2banFullConfigView: View {
                         .textInputAutocapitalization(.never)
                 }
             }
-            .navigationTitle(L10n.t("全部配置"))
+            .navigationTitle(L10n.t("配置"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

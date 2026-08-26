@@ -3,8 +3,9 @@
 //  1PanelClient
 //
 //  服务状态卡的统一形态：OpenResty / Docker / Fail2ban / SSH 等服务卡共用。
-//  头部 = 图标 + 名称 + 副标题（版本等）+ StatusDot 状态 + 展开 chevron；
+//  头部 = 图标 + 名称 + 副标题（版本等）+ 可选 StatusDot 状态 + 展开 chevron；
 //  展开区 = 彩色图标网格操作按钮 + 可选附加内容（如「开机自启」Toggle）。
+//  状态传 nil 时不显示状态点，可用于非服务分组（如证书页「安全凭证」抽屉）。
 //
 
 import SwiftUI
@@ -29,8 +30,8 @@ struct ServiceAction: Identifiable {
 struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
     let title: String
     var subtitle: String? = nil
-    let statusText: String
-    let statusColor: Color
+    var statusText: String? = nil
+    var statusColor: Color? = nil
     var isOperating: Bool = false
     @Binding var isExpanded: Bool
     let actions: [ServiceAction]
@@ -41,8 +42,8 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
     init(
         title: String,
         subtitle: String? = nil,
-        statusText: String,
-        statusColor: Color,
+        statusText: String? = nil,
+        statusColor: Color? = nil,
         isOperating: Bool = false,
         isExpanded: Binding<Bool>,
         actions: [ServiceAction],
@@ -83,11 +84,13 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
                 }
             }
             Spacer()
-            HStack(spacing: 4) {
-                StatusDot(color: statusColor)
-                Text(statusText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            if let statusText, let statusColor {
+                HStack(spacing: 4) {
+                    StatusDot(color: statusColor)
+                    Text(statusText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             Button {
                 withAnimation(Motion.standard) {
@@ -159,8 +162,8 @@ extension ServiceStatusCard where Extra == EmptyView {
     init(
         title: String,
         subtitle: String? = nil,
-        statusText: String,
-        statusColor: Color,
+        statusText: String? = nil,
+        statusColor: Color? = nil,
         isOperating: Bool = false,
         isExpanded: Binding<Bool>,
         actions: [ServiceAction],

@@ -2,7 +2,7 @@
 //  CertificatesTab.swift
 //  1PanelClient
 //
-//  证书管理：列表 / 详情 / 上传 / 删除（Acme/DNS/自签入口在列表顶部按钮区）
+//  证书管理：列表 / 详情 / 上传 / 删除（Acme/DNS/自签入口在「安全凭证」抽屉）
 //  基于 doc/网站-证书.md
 //
 
@@ -20,6 +20,7 @@ struct CertificatesTab: View {
     @State private var showCA = false
     @State private var searchText = ""
     @State private var isSearching = false
+    @State private var isCredentialsExpanded = false
 
 
     init(manager: ServerManager) {
@@ -56,7 +57,7 @@ struct CertificatesTab: View {
                     .buttonStyle(.borderedProminent)
                 }
             } else {
-                // 顶部账户入口（同 Fail2ban 白名单/黑名单/全部配置样式），具体证书在其下方
+                // 顶部「安全凭证」抽屉（Acme/DNS/自签入口），具体证书在其下方
                 certList
             }
         }
@@ -160,31 +161,24 @@ struct CertificatesTab: View {
         }
     }
 
-    /// Acme 账户 / DNS 账户 / 自签证书 入口（原三点菜单项移出），
-    /// 布局同 Fail2ban 的白名单/黑名单/全部配置：两键并排 + 整行
+    /// 「安全凭证」抽屉：Acme 账户 / DNS 账户 / 自签证书 入口（展开后为按钮网格）
     private var accountEntrySection: some View {
-        Section {
-            HStack(spacing: 12) {
-                Button { showAcme = true } label: {
-                    Label(L10n.t("Acme 账户"), systemImage: "person.crop.circle")
-                        .frame(maxWidth: .infinity)
+        ServiceStatusCard(
+            title: L10n.t("安全凭证"),
+            isExpanded: $isCredentialsExpanded,
+            actions: [
+                ServiceAction(title: L10n.t("Acme 账户"), icon: "person.crop.circle", color: .blue) {
+                    showAcme = true
+                },
+                ServiceAction(title: L10n.t("DNS 账户"), icon: "network", color: .teal) {
+                    showDns = true
+                },
+                ServiceAction(title: L10n.t("自签证书"), icon: "certificate", color: .orange, customIcon: "icon-cert") {
+                    showCA = true
                 }
-                .buttonStyle(.borderless)
-
-                Divider()
-                    .frame(height: 24)
-
-                Button { showDns = true } label: {
-                    Label(L10n.t("DNS 账户"), systemImage: "network")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderless)
-            }
-
-            Button { showCA = true } label: {
-                Label(L10n.t("自签证书"), systemImage: "certificate")
-                    .frame(maxWidth: .infinity)
-            }
+            ]
+        ) {
+            IconBadge(systemName: "key.horizontal", color: .indigo, size: 44)
         }
     }
 }

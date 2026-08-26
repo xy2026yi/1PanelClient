@@ -107,6 +107,7 @@ struct SSHView: View {
     @State private var isServiceExpanded = false
     @State private var editingField: SSHField?
     @State private var pendingAction: String?
+    @State private var showFullConfig = false
 
     enum SSHField: Identifiable {
         case port, listenAddress
@@ -217,6 +218,9 @@ struct SSHView: View {
                     ) { pendingAction = config.isActive ? "stop" : "start" },
                     ServiceAction(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
                         pendingAction = "restart"
+                    },
+                    ServiceAction(title: L10n.t("配置"), icon: "doc.text", color: .indigo) {
+                        showFullConfig = true
                     }
                 ]
             ) {
@@ -301,15 +305,9 @@ struct SSHView: View {
             } header: {
                 SectionLabel(title: L10n.t("基础配置"), systemImage: "slider.horizontal.3")
             }
-
-            // 全部配置
-            Section {
-                NavigationLink {
-                    SSHFullConfigView(server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
-                } label: {
-                    Label(L10n.t("全部配置"), systemImage: "doc.text")
-                }
-            }
+        }
+        .navigationDestination(isPresented: $showFullConfig) {
+            SSHFullConfigView(server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
     }
 }
