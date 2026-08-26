@@ -50,6 +50,12 @@ struct WebsitesTab: View {
         Group {
             if vm.isLoading && vm.websites.isEmpty {
                 LoadingStateView()
+            } else if vm.openRestyNotInstalled {
+                // OpenResty 未安装：整页安装引导（同 WAF 页），安装完成后收到通知自动刷新
+                OpenRestyInstallPrompt(
+                    storeVM: openRestyInstallVM,
+                    message: L10n.t("网站功能依赖 OpenResty，请先安装后再使用")
+                )
             } else {
                 websiteList
             }
@@ -103,62 +109,47 @@ struct WebsitesTab: View {
 
     private var websiteList: some View {
         List {
-            if vm.openRestyNotInstalled {
-                // OpenResty 未安装：网站功能依赖它，整页只保留安装入口
-                // （安装按钮直达应用商店详情页，安装完成后本页收到通知自动刷新）
-                Section("OpenResty") {
-                    NotInstalledOpenRestyRow()
-                    NavigationLink {
-                        AppStoreDetailView(appKey: "openresty", vm: openRestyInstallVM)
-                    } label: {
-                        Label(L10n.t("安装 OpenResty"), systemImage: "arrow.down.circle.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-            } else {
-                // 顶部 OpenResty 信息与管理卡片
-                OpenRestyCard(
-                    vm: vm,
-                    showConfig: $showOpenRestyConfig,
-                    showStatus: $showOpenRestyStatus,
-                    showPerformance: $showOpenRestyPerformance,
-                    showModules: $showOpenRestyModules,
-                    showOther: $showOpenRestyOther
-                )
+            // 顶部 OpenResty 信息与管理卡片
+            OpenRestyCard(
+                vm: vm,
+                showConfig: $showOpenRestyConfig,
+                showStatus: $showOpenRestyStatus,
+                showPerformance: $showOpenRestyPerformance,
+                showModules: $showOpenRestyModules,
+                showOther: $showOpenRestyOther
+            )
 
-                if vm.websites.isEmpty {
-                    Section {
-                        if let err = vm.errorMessage, !err.isEmpty, !vm.isLoadingOpenResty {
-                            ContentUnavailableView {
-                                Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                            } description: {
-                                Text(err)
-                            } actions: {
-                                Button(L10n.t("重试")) {
-                                    Task { await vm.refresh(force: true) }
-                                }
-                                .buttonStyle(.borderedProminent)
+            if vm.websites.isEmpty {
+                Section {
+                    if let err = vm.errorMessage, !err.isEmpty, !vm.isLoadingOpenResty {
+                        ContentUnavailableView {
+                            Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                        } description: {
+                            Text(err)
+                        } actions: {
+                            Button(L10n.t("重试")) {
+                                Task { await vm.refresh(force: true) }
                             }
-                        } else if vm.isLoadingOpenResty {
-                            // 安装状态判定中：等结论出来再展示空态/错误，
-                            // 避免未安装场景先闪现「加载失败/创建网站」误导文案
-                            EmptyView()
-                        } else {
-                            ContentUnavailableView(
-                                L10n.t("暂无网站"),
-                                systemImage: "globe",
-                                description: Text(L10n.t("点击右上角 + 创建第一个网站"))
-                            )
+                            .buttonStyle(.borderedProminent)
                         }
+                    } else if vm.isLoadingOpenResty {
+                        // 安装状态判定中：等结论出来再展示空态/错误，
+                        // 避免未安装场景先闪现「加载失败/创建网站」误导文案
+                        EmptyView()
+                    } else {
+                        ContentUnavailableView(
+                            L10n.t("暂无网站"),
+                            systemImage: "globe",
+                            description: Text(L10n.t("点击右上角 + 创建第一个网站"))
+                        )
                     }
-                    .listRowBackground(Color.clear)
-                } else {
-                    Section {
-                        ForEach(vm.websites) { w in
-                            NavigationLink(value: w) {
-                                WebsiteRow(website: w)
-                            }
+                }
+                .listRowBackground(Color.clear)
+            } else {
+                Section {
+                    ForEach(vm.websites) { w in
+                        NavigationLink(value: w) {
+                            WebsiteRow(website: w)
                         }
                     }
                 }
@@ -294,23 +285,45 @@ struct OpenRestyCard: View {
     }
 }
 
-// MARK: - OpenResty 未安装占位
+// MARK: - OpenResty 未安装整页引导（网站 / WAF 页共用）
 
-/// 未安装占位行：淡化品牌图标 + 名称 + 未安装标签（安装按钮在同一 Section 直达应用商店）
-struct NotInstalledOpenRestyRow: View {
+/// OpenResty 未安装：淡化品牌图标 + 说明 + 直达应用商店的安装按钮
+/// （安装流程复用应用商店页面，列表页收到 installCompleted 通知后自行刷新）
+struct OpenRestyInstallPrompt: View {
+    /// 应用商店 ViewModel（详情页 + 安装表单共用）
+    @ObservedObject var storeVM: AppStoreViewModel
+    /// 依赖说明文案（网站/WAF 各自传入）
+    let message: String
+
     var body: some View {
-        HStack(spacing: 14) {
-            BrandIcon(brand: .openresty, size: 44)
-                .opacity(0.4)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("OpenResty").font(.headline).foregroundStyle(.secondary)
-                Text(L10n.t("未安装"))
-                    .font(.caption)
+        VStack(spacing: 20) {
+            Spacer()
+
+            BrandIcon(brand: .openresty, size: 72)
+                .opacity(0.5)
+
+            VStack(spacing: 8) {
+                Text(L10n.t("OpenResty 未安装"))
+                    .font(.headline)
+                Text(message)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
+
+            NavigationLink {
+                AppStoreDetailView(appKey: "openresty", vm: storeVM)
+            } label: {
+                Label(L10n.t("安装 OpenResty"), systemImage: "arrow.down.circle.fill")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.horizontal, 40)
+
             Spacer()
         }
-        .padding(.vertical, 2)
+        .padding()
     }
 }
 

@@ -64,23 +64,29 @@ struct OverviewTab: View {
                     Button {
                         showServers = true
                     } label: {
-                        VStack(spacing: 1) {
-                            Text(manager.current?.name ?? L10n.t("未连接"))
-                                .font(.headline)
-                            HStack(spacing: 3) {
-                                if let node = currentNodeName, !node.isEmpty {
-                                    Text("· \(node)")
-                                        .font(.caption2)
-                                        .foregroundStyle(.blue)
-                                        .lineLimit(1)
-                                }
-                                Text(manager.current?.normalizedBaseURL ?? "")
-                                    .font(.caption2)
+                        // 服务器图标靠左 → 名称/链接左对齐 → 切换按钮靠右（整行可点）
+                        HStack(spacing: 10) {
+                            ServerInfoIcon()
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(manager.current?.name ?? L10n.t("未连接"))
+                                    .font(.headline)
                                     .lineLimit(1)
-                                ServerSwitchIcon()
+                                HStack(spacing: 3) {
+                                    if let node = currentNodeName, !node.isEmpty {
+                                        Text("· \(node)")
+                                            .foregroundStyle(.blue)
+                                    }
+                                    Text(manager.current?.normalizedBaseURL ?? "")
+                                }
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
                             }
-                            .foregroundStyle(.secondary)
+                            Spacer(minLength: 8)
+                            ServerSwitchIcon()
                         }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -428,13 +434,26 @@ struct ServerSwitchIcon: View {
             .interpolation(.high)
             .scaledToFit()
             .foregroundStyle(.secondary)
-            .frame(width: 11, height: 11)
-            .padding(2.5)
-            .frame(width: 16, height: 16)
+            .frame(width: 13, height: 13)
+            .padding(3.5)
+            .frame(width: 20, height: 20)
             .background(
                 Circle()
                     .fill(Color.primary.opacity(0.08))
             )
+    }
+}
+
+/// 首页顶栏「服务器」图标：logs/服务器.svg（卫星造型，template 随明暗自适应，蓝色着色）
+struct ServerInfoIcon: View {
+    var body: some View {
+        Image("icon-server")
+            .renderingMode(.template)
+            .resizable()
+            .interpolation(.high)
+            .scaledToFit()
+            .foregroundStyle(.blue)
+            .frame(width: 26, height: 26)
     }
 }
 

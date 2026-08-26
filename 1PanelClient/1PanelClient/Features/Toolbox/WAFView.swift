@@ -14,15 +14,20 @@ struct WAFView: View {
     @StateObject private var vm: WAFViewModel
     let server: ServerConfig
     @State private var pendingAction: String?
+    /// 应用商店 VM（OpenResty 未安装时的安装入口，安装流程复用应用商店页面）
+    @StateObject private var installStoreVM: AppStoreViewModel
 
     init(server: ServerConfig) {
         self.server = server
         _vm = StateObject(wrappedValue: WAFViewModel(server: server))
+        _installStoreVM = StateObject(wrappedValue: AppStoreViewModel(server: server))
     }
 
     var body: some View {
         Group {
-            if vm.isLoading && vm.config == nil {
+            if vm.openRestyNotInstalled {
+                openRestyInstallPrompt
+            } else if vm.isLoading && vm.config == nil {
                 LoadingStateView()
             } else if vm.config != nil {
                 content
@@ -40,8 +45,14 @@ struct WAFView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadAll() }
         .task { await vm.loadAll() }
+        // 从安装入口装完 OpenResty 后自动重查，返回本页即见 WAF 内容
+        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
+            Task { await vm.loadAll() }
+        }
         .alert(L10n.t("提示"), isPresented: Binding(
-            get: { vm.successMessage != nil || vm.errorMessage != nil },
+            // OpenResty 未安装时 WAF 接口必然报「global.json 不存在」类错误，
+            // 属预期内：此时只展示安装引导，不再弹错误提示
+            get: { !vm.openRestyNotInstalled && (vm.successMessage != nil || vm.errorMessage != nil) },
             set: { _ in vm.successMessage = nil; vm.errorMessage = nil }
         )) {
             Button(L10n.t("好的"), role: .cancel) { vm.successMessage = nil; vm.errorMessage = nil }
@@ -67,6 +78,16 @@ struct WAFView: View {
         } message: {
             Text(L10n.f("将对 WAF 进行 %@ 操作，是否继续？", pendingAction == "on" ? L10n.t("启动") : L10n.t("停止")))
         }
+    }
+
+    // MARK: OpenResty 未安装引导
+
+    /// WAF 依赖 OpenResty：未安装时整页安装引导（与网站页共用组件）
+    private var openRestyInstallPrompt: some View {
+        OpenRestyInstallPrompt(
+            storeVM: installStoreVM,
+            message: L10n.t("WAF 功能依赖 OpenResty，请先安装后再使用")
+        )
     }
 
     private var content: some View {

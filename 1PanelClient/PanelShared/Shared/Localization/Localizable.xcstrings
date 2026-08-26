@@ -2159,6 +2159,17 @@
     },
     "v%@" : {},
     "WAF" : {},
+    "WAF 功能依赖 OpenResty，请先安装后再使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The WAF feature relies on OpenResty. Please install it first"
+          }
+        }
+      }
+    },
     "WAF 监控" : {
       "extractionState" : "manual",
       "localizations" : {

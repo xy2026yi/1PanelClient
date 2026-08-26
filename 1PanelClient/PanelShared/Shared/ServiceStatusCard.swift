@@ -134,6 +134,9 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
                 Text(act.title)
                     .font(.caption)
                     .foregroundStyle(.primary)
+                    // 单行 + 自动缩放：英文长文案（如 ACME Account）不换行，保持按钮等高
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
