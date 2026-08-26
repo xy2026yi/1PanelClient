@@ -56,6 +56,12 @@ struct MainTabView: View {
 
     var body: some View {
         rootContent
+            // 切换/移除当前服务器时清空管理导航栈：栈内页面的 VM 与 path 里存的值
+            // （网站等模型，ID 按服务器自增）都绑旧服务器，带着新 VM 操作旧 id
+            // 会误伤新服务器上的数据；回根后重新 push 自然用新服务器构建
+            .onChange(of: manager.currentServerID) { _, _ in
+                manageNavPath = NavigationPath()
+            }
     }
 
     /// 双形态统一结构：tabContent 是 ZStack 的恒定首子视图，尺寸类翻转时不换分支、

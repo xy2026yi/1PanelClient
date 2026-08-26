@@ -164,6 +164,14 @@ struct ManageTab: View {
     @ViewBuilder
     private func destination(for item: ManageItem) -> some View {
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        destinationBody(item, server: server)
+            // 切换服务器时整页重建：页面内 @StateObject VM 在 init 时绑定了服务器快照，
+            // 不重建会继续请求旧服务器（导航栈与 Tab 容器在切换时均保活）
+            .id(server.id)
+    }
+
+    @ViewBuilder
+    private func destinationBody(_ item: ManageItem, server: ServerConfig) -> some View {
         switch item {
         case .apps:
             AppsTab(manager: manager)

@@ -475,7 +475,7 @@ struct FirewallView: View {
                 } label: {
                     Image(systemName: "flame.fill")
                 }
-                .accessibilityLabel("WAF")
+                .accessibilityLabel(L10n.t("WAF"))
             }
         }
         .navigationDestination(isPresented: $showAdd) {

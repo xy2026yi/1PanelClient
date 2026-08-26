@@ -51,8 +51,10 @@ struct WAFView: View {
         }
         .alert(L10n.t("提示"), isPresented: Binding(
             // OpenResty 未安装时 WAF 接口必然报「global.json 不存在」类错误，
-            // 属预期内：此时只展示安装引导，不再弹错误提示
-            get: { !vm.openRestyNotInstalled && (vm.successMessage != nil || vm.errorMessage != nil) },
+            // 属预期内：只抑制 errorMessage（页面显示安装引导），成功提示不受影响
+            get: {
+                vm.successMessage != nil || (vm.errorMessage != nil && !vm.openRestyNotInstalled)
+            },
             set: { _ in vm.successMessage = nil; vm.errorMessage = nil }
         )) {
             Button(L10n.t("好的"), role: .cancel) { vm.successMessage = nil; vm.errorMessage = nil }
