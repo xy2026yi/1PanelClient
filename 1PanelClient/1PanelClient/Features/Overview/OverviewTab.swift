@@ -54,43 +54,49 @@ struct OverviewTab: View {
             }
             // TabBar 上方留白：与管理页 contentMargins 同一机制、同一数值
             .contentMargins(.bottom, 60, for: .scrollContent)
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
             .refreshable {
                 await vm.refresh()
             }
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Button {
-                        showServers = true
-                    } label: {
-                        // 服务器图标靠左 → 名称/链接左对齐 → 切换按钮靠右（整行可点）
-                        HStack(spacing: 10) {
-                            ServerInfoIcon()
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(manager.current?.name ?? L10n.t("未连接"))
-                                    .font(.headline)
-                                    .lineLimit(1)
-                                HStack(spacing: 3) {
-                                    if let node = currentNodeName, !node.isEmpty {
-                                        Text("· \(node)")
-                                            .foregroundStyle(.blue)
-                                    }
-                                    Text(manager.current?.normalizedBaseURL ?? "")
-                                }
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+            // 服务器信息栏吸顶（safeAreaInset）：iOS 26 principal 工具栏项是居中
+            // 自适应宽度的胶囊，无法与滚动内容左右对齐；改为自绘吸顶栏，
+            // 与正文同款 .padding + contentWidthLimit 后图标/切换按钮与卡片严格对齐
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Button {
+                    showServers = true
+                } label: {
+                    // 服务器图标靠左 → 名称/链接左对齐 → 切换按钮靠右（整行可点）
+                    HStack(spacing: 10) {
+                        ServerInfoIcon()
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(manager.current?.name ?? L10n.t("未连接"))
+                                .font(.headline)
                                 .lineLimit(1)
+                            HStack(spacing: 3) {
+                                if let node = currentNodeName, !node.isEmpty {
+                                    Text("· \(node)")
+                                        .foregroundStyle(.blue)
+                                }
+                                Text(manager.current?.normalizedBaseURL ?? "")
                             }
-                            Spacer(minLength: 8)
-                            ServerSwitchIcon()
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                         }
-                        .frame(maxWidth: .infinity)
-                        .contentShape(Rectangle())
+                        Spacer(minLength: 8)
+                        ServerSwitchIcon()
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .contentWidthLimit(960)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .background(.bar)
             }
+            // 本页空标题导航栏让位给自绘吸顶栏；推入的服务器/升级页有各自导航栏，
+            // toolbar 修饰符只作用于当前视图，不影响推入页
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $showServers) {
                 ServersView(manager: manager)
             }
