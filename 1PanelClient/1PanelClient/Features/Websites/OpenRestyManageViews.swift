@@ -460,9 +460,29 @@ struct OpenRestyModulesView: View {
         List {
             Section {
                 ForEach(modules) { module in
-                    // 整行点击进详情；开关是独立控件，手势优先于行级 tap，互不干扰
+                    // 整行点击进详情；开关是独立控件，手势优先于行级 tap，互不干扰。
+                    // 顺序与其他页一致：开关紧跟内容、chevron 挂最右
                     HStack(spacing: 12) {
-                        moduleRowLabel(module)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(module.name)
+                                .font(.body.bold())
+                                .lineLimit(1)
+
+                            HStack(spacing: 6) {
+                                if module.isDynamic {
+                                    StatusBadge(text: L10n.t("动态模块"), color: .indigo)
+                                } else {
+                                    StatusBadge(text: L10n.t("静态模块"), color: .secondary)
+                                }
+                                if module.buildStatus?.lowercased() == "ready" {
+                                    StatusBadge(text: L10n.t("已构建"), color: .green)
+                                } else {
+                                    StatusBadge(text: L10n.t("待构建"), color: .secondary)
+                                }
+                            }
+                        }
+
+                        Spacer(minLength: 12)
 
                         if module.isDynamic {
                             if togglingModule == module.name {
@@ -480,7 +500,12 @@ struct OpenRestyModulesView: View {
                                 .disabled(togglingModule != nil)
                             }
                         }
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
                     }
+                    .padding(.vertical, 2)
                     .contentShape(Rectangle())
                     .onTapGesture { selectedModule = module }
                 }
@@ -499,36 +524,6 @@ struct OpenRestyModulesView: View {
                 OpenRestyModuleDetailView(module: module)
             }
         }
-    }
-
-    private func moduleRowLabel(_ module: OpenRestyModule) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(module.name)
-                    .font(.body.bold())
-                    .lineLimit(1)
-
-                HStack(spacing: 6) {
-                    if module.isDynamic {
-                        StatusBadge(text: L10n.t("动态模块"), color: .indigo)
-                    } else {
-                        StatusBadge(text: L10n.t("静态模块"), color: .secondary)
-                    }
-                    if module.buildStatus?.lowercased() == "ready" {
-                        StatusBadge(text: L10n.t("已构建"), color: .green)
-                    } else {
-                        StatusBadge(text: L10n.t("待构建"), color: .secondary)
-                    }
-                }
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.vertical, 2)
     }
 
     /// 开启/关闭动态模块：完整对象 + operate=update 回传，成功后重拉列表
