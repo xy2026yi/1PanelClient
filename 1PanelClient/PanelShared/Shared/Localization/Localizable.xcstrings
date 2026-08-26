@@ -1,416 +1,17 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "" : {},
-    "-" : {},
-    "-----BEGIN OPENSSH PRIVATE KEY-----" : {},
-    "—" : {},
-    "关闭自动同步" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disable Auto Sync"
-          }
-        }
-      }
+    "" : {
+
     },
-    "关闭自动同步可能导致脚本同步不及时，是否确认？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disabling auto sync may delay script updates. Confirm?"
-          }
-        }
-      }
+    "-" : {
+
     },
-    "创建命令" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create Command"
-          }
-        }
-      }
+    "-----BEGIN OPENSSH PRIVATE KEY-----" : {
+
     },
-    "删除命令" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Command"
-          }
-        }
-      }
-    },
-    "即将同步系统脚本库，该操作仅针对系统脚本，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will sync the system script library; only system scripts are affected. Continue?"
-          }
-        }
-      }
-    },
-    "可在 终端页右上角菜单 快速命令 中创建" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create them via Quick Commands in the terminal page menu"
-          }
-        }
-      }
-    },
-    "同步脚本库" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync Script Library"
-          }
-        }
-      }
-    },
-    "同步请求失败：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync request failed: %@"
-          }
-        }
-      }
-    },
-    "命令" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Command"
-          }
-        }
-      }
-    },
-    "命令「%@」已删除" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Command \"%@\" deleted"
-          }
-        }
-      }
-    },
-    "命令内容，如 df -hT" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Command content, e.g. df -hT"
-          }
-        }
-      }
-    },
-    "命令已创建" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Command created"
-          }
-        }
-      }
-    },
-    "命令已更新" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Command updated"
-          }
-        }
-      }
-    },
-    "在终端界面的菜单中可快速执行这些命令" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "These commands can be run quickly from the terminal menu"
-          }
-        }
-      }
-    },
-    "定时备份与脚本执行" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scheduled backups and script execution"
-          }
-        }
-      }
-    },
-    "已关闭自动同步" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto sync disabled"
-          }
-        }
-      }
-    },
-    "已关闭默认连接" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Default connection disabled"
-          }
-        }
-      }
-    },
-    "已开启自动同步" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto sync enabled"
-          }
-        }
-      }
-    },
-    "已开启默认连接" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Default connection enabled"
-          }
-        }
-      }
-    },
-    "开启后进入终端页将自动连接所在节点终端" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When enabled, opening the terminal page auto-connects to the current node terminal"
-          }
-        }
-      }
-    },
-    "开启自动同步" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enable Auto Sync"
-          }
-        }
-      }
-    },
-    "开启自动同步将在每天凌晨时段进行自动同步" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto sync runs during early-morning hours daily"
-          }
-        }
-      }
-    },
-    "快速命令" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quick Commands"
-          }
-        }
-      }
-    },
-    "暂无快速命令" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Quick Commands"
-          }
-        }
-      }
-    },
-    "本机终端自动连接使用的 SSH 地址与认证方式" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SSH address and authentication used by the local terminal auto-connect"
-          }
-        }
-      }
-    },
-    "点击右上角 + 创建第一条命令" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap + in the top-right corner to create the first command"
-          }
-        }
-      }
-    },
-    "点击命令将输入终端并回车执行" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tapping a command types it into the terminal and runs it"
-          }
-        }
-      }
-    },
-    "确定删除命令「%@」吗？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete command \"%@\"?"
-          }
-        }
-      }
-    },
-    "立即同步" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync Now"
-          }
-        }
-      }
-    },
-    "系统脚本同步 / 自定义脚本" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "System script sync / custom scripts"
-          }
-        }
-      }
-    },
-    "编辑命令" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Command"
-          }
-        }
-      }
-    },
-    "计划任务 / 脚本库" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cronjobs / Script Library"
-          }
-        }
-      }
-    },
-    "该操作将【允许】打开终端后自动连接所在节点终端，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will [allow] auto-connecting to the node terminal when opening the terminal. Continue?"
-          }
-        }
-      }
-    },
-    "该操作将【禁止】打开终端后自动连接所在节点终端，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will [forbid] auto-connecting to the node terminal when opening the terminal. Continue?"
-          }
-        }
-      }
-    },
-    "连接信息已保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connection info saved"
-          }
-        }
-      }
-    },
-    "重置连接信息" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset connection info"
-          }
-        }
-      }
-    },
-    "默认连接" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Default Connection"
-          }
-        }
-      }
+    "—" : {
+
     },
     "，内存 %@" : {
       "extractionState" : "manual",
@@ -434,8 +35,12 @@
         }
       }
     },
-    "·" : {},
-    "· %@" : {},
+    "·" : {
+
+    },
+    "· %@" : {
+
+    },
     "(未命名)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -480,12 +85,24 @@
         }
       }
     },
-    "[%@]" : {},
-    "*" : {},
-    "/" : {},
-    "/opt/1panel/backup" : {},
-    "/var/log/auth.log" : {},
-    "%@" : {},
+    "[%@]" : {
+
+    },
+    "*" : {
+
+    },
+    "/" : {
+
+    },
+    "/opt/1panel/backup" : {
+
+    },
+    "/var/log/auth.log" : {
+
+    },
+    "%@" : {
+
+    },
     "%@ · %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -968,8 +585,12 @@
         }
       }
     },
-    "%lld" : {},
-    "%lld%%" : {},
+    "%lld" : {
+
+    },
+    "%lld%%" : {
+
+    },
     "%lld%%  %@ / %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -980,10 +601,18 @@
         }
       }
     },
-    "0" : {},
-    "1Panel" : {},
-    "1Panel Client" : {},
-    "1Panel Server" : {},
+    "0" : {
+
+    },
+    "1Panel" : {
+
+    },
+    "1Panel Client" : {
+
+    },
+    "1Panel Server" : {
+
+    },
     "1Panel 官网" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1116,7 +745,9 @@
         }
       }
     },
-    "22" : {},
+    "22" : {
+
+    },
     "24小时" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1128,13 +759,27 @@
         }
       }
     },
-    "25" : {},
-    "30" : {},
-    "100" : {},
-    "200" : {},
-    "300" : {},
-    "301" : {},
-    "302" : {},
+    "25" : {
+
+    },
+    "30" : {
+
+    },
+    "100" : {
+
+    },
+    "200" : {
+
+    },
+    "300" : {
+
+    },
+    "301" : {
+
+    },
+    "302" : {
+
+    },
     "360搜索" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1146,7 +791,9 @@
         }
       }
     },
-    "404" : {},
+    "404" : {
+
+    },
     "404 频率限制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1158,11 +805,21 @@
         }
       }
     },
-    "500" : {},
-    "512" : {},
-    "1000" : {},
-    "Access Key" : {},
-    "Access Key ID" : {},
+    "500" : {
+
+    },
+    "512" : {
+
+    },
+    "1000" : {
+
+    },
+    "Access Key" : {
+
+    },
+    "Access Key ID" : {
+
+    },
     "ACME 服务 URL" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1196,7 +853,9 @@
         }
       }
     },
-    "API Key" : {},
+    "API Key" : {
+
+    },
     "API Key 已失效，长按重新录入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1219,8 +878,12 @@
         }
       }
     },
-    "API Token" : {},
-    "API User" : {},
+    "API Token" : {
+
+    },
+    "API User" : {
+
+    },
     "API 接口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1254,7 +917,9 @@
         }
       }
     },
-    "CDN" : {},
+    "CDN" : {
+
+    },
     "CDN Headers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1310,7 +975,9 @@
         }
       }
     },
-    "Container" : {},
+    "Container" : {
+
+    },
     "Cookie规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1476,10 +1143,18 @@
         }
       }
     },
-    "docker-compose" : {},
-    "docker-compose.yml" : {},
-    "EAB HmacKey" : {},
-    "EAB kid" : {},
+    "docker-compose" : {
+
+    },
+    "docker-compose.yml" : {
+
+    },
+    "EAB HmacKey" : {
+
+    },
+    "EAB kid" : {
+
+    },
     "EAB 凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1513,7 +1188,9 @@
         }
       }
     },
-    "Endpoint" : {},
+    "Endpoint" : {
+
+    },
     "Endpoint 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1525,12 +1202,24 @@
         }
       }
     },
-    "example.com" : {},
-    "Fail2ban" : {},
-    "file.txt" : {},
-    "folder_name" : {},
-    "GitHub" : {},
-    "gzip" : {},
+    "example.com" : {
+
+    },
+    "Fail2ban" : {
+
+    },
+    "file.txt" : {
+
+    },
+    "folder_name" : {
+
+    },
+    "GitHub" : {
+
+    },
+    "gzip" : {
+
+    },
     "Header规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1542,8 +1231,12 @@
         }
       }
     },
-    "hostname" : {},
-    "HSTS" : {},
+    "hostname" : {
+
+    },
+    "HSTS" : {
+
+    },
     "HSTS 包含子域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1555,8 +1248,12 @@
         }
       }
     },
-    "http" : {},
-    "HTTP" : {},
+    "http" : {
+
+    },
+    "HTTP" : {
+
+    },
     "HTTP Header" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1634,11 +1331,21 @@
         }
       }
     },
-    "http://" : {},
-    "http://10.0.0.1:36130" : {},
-    "HTTP/3 (QUIC)" : {},
-    "https" : {},
-    "HTTPS" : {},
+    "http://" : {
+
+    },
+    "http://10.0.0.1:36130" : {
+
+    },
+    "HTTP/3 (QUIC)" : {
+
+    },
+    "https" : {
+
+    },
+    "HTTPS" : {
+
+    },
     "HTTPS 端口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1661,8 +1368,12 @@
         }
       }
     },
-    "https://" : {},
-    "https://..." : {},
+    "https://" : {
+
+    },
+    "https://..." : {
+
+    },
     "HTTPS防窜站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1685,7 +1396,9 @@
         }
       }
     },
-    "ID: %lld" : {},
+    "ID: %lld" : {
+
+    },
     "IP / CIDR，留空=任意" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1851,8 +1564,12 @@
         }
       }
     },
-    "KEY=VALUE" : {},
-    "MB" : {},
+    "KEY=VALUE" : {
+
+    },
+    "MB" : {
+
+    },
     "MINIO / WebDAV / SFTP 备份存储" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1886,11 +1603,18 @@
         }
       }
     },
-    "nginx.conf" : {},
-    "off" : {},
-    "on" : {},
-    "OpenResty" : {},
-    "OpenResty %@" : {},
+    "nginx.conf" : {
+
+    },
+    "off" : {
+
+    },
+    "on" : {
+
+    },
+    "OpenResty %@" : {
+
+    },
     "OpenResty 未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1913,8 +1637,12 @@
         }
       }
     },
-    "Password" : {},
-    "PID %lld" : {},
+    "Password" : {
+
+    },
+    "PID %lld" : {
+
+    },
     "ping 失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1970,9 +1698,15 @@
         }
       }
     },
-    "Scheduled Task" : {},
-    "Secret ID" : {},
-    "Secret Key" : {},
+    "Scheduled Task" : {
+
+    },
+    "Secret ID" : {
+
+    },
+    "Secret Key" : {
+
+    },
     "Shell 脚本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2006,7 +1740,9 @@
         }
       }
     },
-    "SSH" : {},
+    "SSH" : {
+
+    },
     "SSH 服务管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2084,8 +1820,12 @@
         }
       }
     },
-    "sshd_config" : {},
-    "SSL" : {},
+    "sshd_config" : {
+
+    },
+    "SSL" : {
+
+    },
     "SSL 证书" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2119,10 +1859,18 @@
         }
       }
     },
-    "SWAP" : {},
-    "TLS" : {},
-    "TTY" : {},
-    "URL" : {},
+    "SWAP" : {
+
+    },
+    "TLS" : {
+
+    },
+    "TTY" : {
+
+    },
+    "URL" : {
+
+    },
     "URL 模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2145,7 +1893,9 @@
         }
       }
     },
-    "User-Agent" : {},
+    "User-Agent" : {
+
+    },
     "User-Agent规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2157,8 +1907,12 @@
         }
       }
     },
-    "v%@" : {},
-    "WAF" : {},
+    "v%@" : {
+
+    },
+    "WAF" : {
+
+    },
     "WAF 功能依赖 OpenResty，请先安装后再使用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2203,7 +1957,9 @@
         }
       }
     },
-    "Website" : {},
+    "Website" : {
+
+    },
     "XSS防御" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3931,6 +3687,28 @@
         }
       }
     },
+    "关闭自动同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable Auto Sync"
+          }
+        }
+      }
+    },
+    "关闭自动同步可能导致脚本同步不及时，是否确认？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabling auto sync may delay script updates. Confirm?"
+          }
+        }
+      }
+    },
     "关闭自启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4338,6 +4116,17 @@
         }
       }
     },
+    "创建命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Command"
+          }
+        }
+      }
+    },
     "创建失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4664,6 +4453,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Alert"
+          }
+        }
+      }
+    },
+    "删除命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Command"
           }
         }
       }
@@ -5581,6 +5381,17 @@
         }
       }
     },
+    "即将同步系统脚本库，该操作仅针对系统脚本，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will sync the system script library; only system scripts are affected. Continue?"
+          }
+        }
+      }
+    },
     "即将过期" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5955,6 +5766,17 @@
         }
       }
     },
+    "可在 终端页右上角菜单 快速命令 中创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create them via Quick Commands in the terminal page menu"
+          }
+        }
+      }
+    },
     "可多选；不选任何参数则使用默认方式备份。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6120,6 +5942,17 @@
         }
       }
     },
+    "同步脚本库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Script Library"
+          }
+        }
+      }
+    },
     "同步节点" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6127,6 +5960,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sync Node"
+          }
+        }
+      }
+    },
+    "同步请求失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync request failed: %@"
           }
         }
       }
@@ -6186,8 +6030,12 @@
         }
       }
     },
-    "启动 / 停止 / 重启 / 关闭指定容器" : {},
-    "启动或停止指定网站" : {},
+    "启动 / 停止 / 重启 / 关闭指定容器" : {
+
+    },
+    "启动或停止指定网站" : {
+
+    },
     "启动时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6573,6 +6421,61 @@
         }
       }
     },
+    "命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        }
+      }
+    },
+    "命令「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "命令内容，如 df -hT" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command content, e.g. df -hT"
+          }
+        }
+      }
+    },
+    "命令已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command created"
+          }
+        }
+      }
+    },
+    "命令已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command updated"
+          }
+        }
+      }
+    },
     "命令行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6727,7 +6630,20 @@
         }
       }
     },
-    "在线检查与 CPU / 内存 / 负载概览" : {},
+    "在线检查与 CPU / 内存 / 负载概览" : {
+
+    },
+    "在终端界面的菜单中可快速执行这些命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These commands can be run quickly from the terminal menu"
+          }
+        }
+      }
+    },
     "在面板创建网站后，可在此为其配置 WAF 防护。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7509,6 +7425,17 @@
         }
       }
     },
+    "定时备份与脚本执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled backups and script execution"
+          }
+        }
+      }
+    },
     "客户端请求的头buffer大小" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7575,7 +7502,9 @@
         }
       }
     },
-    "容器操作" : {},
+    "容器操作" : {
+
+    },
     "容器目录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7763,8 +7692,12 @@
         }
       }
     },
-    "对 ${container} 进行 ${operation} 操作" : {},
-    "对 ${website} 进行 ${operation} 操作" : {},
+    "对 ${container} 进行 ${operation} 操作" : {
+
+    },
+    "对 ${website} 进行 ${operation} 操作" : {
+
+    },
     "对比/编辑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8249,6 +8182,28 @@
         }
       }
     },
+    "已关闭自动同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto sync disabled"
+          }
+        }
+      }
+    },
+    "已关闭默认连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default connection disabled"
+          }
+        }
+      }
+    },
     "已删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8399,6 +8354,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "\"HTTPS-only Connections\" is on: turn it off in Settings → Security, or use an https:// address"
+          }
+        }
+      }
+    },
+    "已开启自动同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto sync enabled"
+          }
+        }
+      }
+    },
+    "已开启默认连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default connection enabled"
           }
         }
       }
@@ -8887,6 +8864,17 @@
         }
       }
     },
+    "开启后进入终端页将自动连接所在节点终端" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, opening the terminal page auto-connects to the current node terminal"
+          }
+        }
+      }
+    },
     "开启应用锁后，打开 App 或从后台恢复时需通过面容 ID / 触控 ID 或设备密码验证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8894,6 +8882,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "When enabled, opening the app or returning from background requires Face ID / Touch ID or device passcode"
+          }
+        }
+      }
+    },
+    "开启自动同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Auto Sync"
+          }
+        }
+      }
+    },
+    "开启自动同步将在每天凌晨时段进行自动同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto sync runs during early-morning hours daily"
           }
         }
       }
@@ -9151,7 +9161,20 @@
         }
       }
     },
-    "快捷操作" : {},
+    "快捷操作" : {
+
+    },
+    "快速命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Commands"
+          }
+        }
+      }
+    },
     "忽略升级" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9537,7 +9560,9 @@
         }
       }
     },
-    "手动触发一次计划任务" : {},
+    "手动触发一次计划任务" : {
+
+    },
     "手动输入桶名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9659,7 +9684,9 @@
         }
       }
     },
-    "执行计划任务" : {},
+    "执行计划任务" : {
+
+    },
     "执行记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10551,7 +10578,9 @@
         }
       }
     },
-    "数量" : {},
+    "数量" : {
+
+    },
     "文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11322,6 +11351,17 @@
         }
       }
     },
+    "暂无快速命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Quick Commands"
+          }
+        }
+      }
+    },
     "暂无忽略记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11982,7 +12022,9 @@
         }
       }
     },
-    "服务器概览" : {},
+    "服务器概览" : {
+
+    },
     "服务器返回了无法解析的响应" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12346,6 +12388,17 @@
         }
       }
     },
+    "本机终端自动连接使用的 SSH 地址与认证方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH address and authentication used by the local terminal auto-connect"
+          }
+        }
+      }
+    },
     "本机账号（LOCAL）为面板内置账号，不可删除；点击账号可编辑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12698,8 +12751,12 @@
         }
       }
     },
-    "检查 ${server} 的状态" : {},
-    "检查服务器状态" : {},
+    "检查 ${server} 的状态" : {
+
+    },
+    "检查服务器状态" : {
+
+    },
     "检查节点 SSH 连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13283,6 +13340,17 @@
         }
       }
     },
+    "添加反向代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add reverse proxy"
+          }
+        }
+      }
+    },
     "添加发送方式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13312,6 +13380,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Backup Account"
+          }
+        }
+      }
+    },
+    "添加密码访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add password access"
           }
         }
       }
@@ -13411,6 +13490,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Rule"
+          }
+        }
+      }
+    },
+    "添加重定向" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add redirect"
           }
         }
       }
@@ -13613,6 +13703,17 @@
         }
       }
     },
+    "点击右上角 + 创建第一条命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create the first command"
+          }
+        }
+      }
+    },
     "点击右上角 + 添加" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13730,6 +13831,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap the top-right button to create your first certificate authority"
+          }
+        }
+      }
+    },
+    "点击命令将输入终端并回车执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tapping a command types it into the terminal and runs it"
           }
         }
       }
@@ -14097,7 +14209,9 @@
         }
       }
     },
-    "留空使用当前服务器" : {},
+    "留空使用当前服务器" : {
+
+    },
     "留空则全部 IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14373,6 +14487,17 @@
         }
       }
     },
+    "确定删除 IP「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete IP \"%@\"?"
+          }
+        }
+      }
+    },
     "确定删除「%@」吗？使用该方式的告警将无法发送通知" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14424,6 +14549,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete alert \"%@\"?"
+          }
+        }
+      }
+    },
+    "确定删除命令「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete command \"%@\"?"
           }
         }
       }
@@ -15077,6 +15213,17 @@
         }
       }
     },
+    "立即同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Now"
+          }
+        }
+      }
+    },
     "立即执行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15088,7 +15235,9 @@
         }
       }
     },
-    "立即执行 ${job}" : {},
+    "立即执行 ${job}" : {
+
+    },
     "立即重启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15452,6 +15601,17 @@
         }
       }
     },
+    "系统脚本同步 / 自定义脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System script sync / custom scripts"
+          }
+        }
+      }
+    },
     "系统详情" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15760,6 +15920,17 @@
         }
       }
     },
+    "编辑命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Command"
+          }
+        }
+      }
+    },
     "编辑备份账号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16035,7 +16206,9 @@
         }
       }
     },
-    "网站启停" : {},
+    "网站启停" : {
+
+    },
     "网站域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16047,7 +16220,9 @@
         }
       }
     },
-    "网站操作" : {},
+    "网站操作" : {
+
+    },
     "网站日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16741,6 +16916,17 @@
         }
       }
     },
+    "计划任务 / 脚本库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cronjobs / Script Library"
+          }
+        }
+      }
+    },
     "认证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17166,6 +17352,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This app is used by: %@. Delete those websites first (check \"also delete the app\") before uninstalling."
+          }
+        }
+      }
+    },
+    "该操作将【允许】打开终端后自动连接所在节点终端，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will [allow] auto-connecting to the node terminal when opening the terminal. Continue?"
+          }
+        }
+      }
+    },
+    "该操作将【禁止】打开终端后自动连接所在节点终端，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will [forbid] auto-connecting to the node terminal when opening the terminal. Continue?"
           }
         }
       }
@@ -17731,8 +17939,12 @@
         }
       }
     },
-    "读取 ${server} 的概览" : {},
-    "读取 CPU / 内存 / 负载的当前值" : {},
+    "读取 ${server} 的概览" : {
+
+    },
+    "读取 CPU / 内存 / 负载的当前值" : {
+
+    },
     "读取和写入数据" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18580,6 +18792,17 @@
         }
       }
     },
+    "连接信息已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection info saved"
+          }
+        }
+      }
+    },
     "连接失败" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18866,7 +19089,9 @@
         }
       }
     },
-    "选择服务器并列出可操作的容器" : {},
+    "选择服务器并列出可操作的容器" : {
+
+    },
     "选择用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19446,6 +19671,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reset to New Version Defaults"
+          }
+        }
+      }
+    },
+    "重置连接信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset connection info"
           }
         }
       }
@@ -20275,46 +20511,13 @@
         }
       }
     },
-    "确定删除 IP「%@」吗？" : {
+    "默认连接" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Delete IP \"%@\"?"
-          }
-        }
-      }
-    },
-    "添加反向代理" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add reverse proxy"
-          }
-        }
-      }
-    },
-    "添加重定向" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add redirect"
-          }
-        }
-      }
-    },
-    "添加密码访问" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add password access"
+            "value" : "Default Connection"
           }
         }
       }
