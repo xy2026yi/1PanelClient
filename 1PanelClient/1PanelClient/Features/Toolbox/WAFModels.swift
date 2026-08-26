@@ -216,6 +216,31 @@ nonisolated struct WAFCommonRuleDeleteRequest: Encodable {
     let websiteID: Int
 }
 
+/// 规则应用到网站：全部网站时由客户端把所有网站 ID 全部传入（与面板 Web 端一致）
+nonisolated struct WAFCommonRuleApplyRequest: Encodable {
+    let scope: String
+    let websites: [Int]
+}
+
+extension WAFCommonRuleItem {
+    /// 规则类型展示名（来自面板内置规则集；未知类型原样显示）
+    var typeDisplayName: String? {
+        guard let type, !type.isEmpty else { return nil }
+        switch type {
+        case "sqlInject":      return L10n.t("SQL注入")
+        case "oneWordTrojan":  return L10n.t("一句话木马")
+        case "dirFilter":      return L10n.t("目录过滤")
+        case "xss":            return L10n.t("XSS")
+        case "args":           return L10n.t("参数规则")
+        case "appFilter":      return L10n.t("应用危险目录过滤")
+        case "scannerFilter":  return L10n.t("扫描器过滤")
+        case "httpMethod":     return L10n.t("HTTP 方法过滤")
+        case "fileExt":        return L10n.t("文件上传限制")
+        default:               return type
+        }
+    }
+}
+
 // MARK: - CC / 频率限制配置
 
 nonisolated struct WAFCcRuleConfig: Decodable {

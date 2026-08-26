@@ -262,6 +262,7 @@ enum APIEndpoint {
     case wafRuleCommonCreate     // POST 通用规则创建
     case wafRuleCommonUpdate     // POST 通用规则编辑/启禁
     case wafRuleCommonDelete     // POST 通用规则删除
+    case wafRuleCommonApply      // POST 通用规则应用到网站 {scope, websites}
 
     // MARK: - WAF 频率限制 / 位置更新
     case wafRuleCc               // POST CC/攻击/404 频率限制保存
@@ -586,6 +587,7 @@ enum APIEndpoint {
         case .wafRuleCommonCreate:   return "/api/v2/xpack/waf/rule/common/create"
         case .wafRuleCommonUpdate:   return "/api/v2/xpack/waf/rule/common/update"
         case .wafRuleCommonDelete:   return "/api/v2/xpack/waf/rule/common/delete"
+        case .wafRuleCommonApply:    return "/api/v2/xpack/waf/rule/common/apply"
         case .wafRuleCc:             return "/api/v2/xpack/waf/rule/cc"
         case .wafLocationUpdate:     return "/api/v2/xpack/waf/location/update"
         case .wafSpider:             return "/api/v2/xpack/waf/config/global/spider"

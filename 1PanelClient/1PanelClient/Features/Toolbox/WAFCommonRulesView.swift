@@ -5,16 +5,20 @@
 
 import SwiftUI
 
-// MARK: - URL / User-Agent 通用规则视图
+// MARK: - 通用规则视图（黑白名单 URL/UA · 全局配置-默认规则 · 文件上传限制）
 
 struct WAFCommonRulesView: View {
     let server: ServerConfig
     let scope: String
     let title: String
+    /// 内置规则集模式（全局配置-默认规则）：规则只读 + 开关 + 「应用到网站」，
+    /// 无创建/编辑/删除；黑白名单与文件上传限制走完整 CRUD（默认 false）
+    var builtin: Bool = false
 
     @State private var items: [WAFCommonRuleItem] = []
     @State private var isLoading = false
     @State private var showCreate = false
+    @State private var showApply = false
     @State private var editingItem: WAFCommonRuleItem?
     @State private var successMessage: String?
     @State private var errorMessage: String?
@@ -25,11 +29,18 @@ struct WAFCommonRulesView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, scope: String, title: String) {
+    init(server: ServerConfig, scope: String, title: String, builtin: Bool = false) {
         self.server = server
         self.scope = scope
         self.title = title
+        self.builtin = builtin
         self.client = APIClient(server: server)
+    }
+
+    /// 全列表唯一类型（如文件上传限制恒为 fileExt）：徽标此时冗余，不显示
+    private var singleType: String? {
+        let types = Set(items.compactMap { $0.type }.filter { !$0.isEmpty })
+        return types.count == 1 ? types.first : nil
     }
 
     var body: some View {
@@ -46,20 +57,16 @@ struct WAFCommonRulesView: View {
             } else {
                 ForEach(items) { item in
                     HStack {
-                        Button {
-                            actionItem = item
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(item.rule)
-                                    .font(.system(.body, design: .monospaced))
-                                if let desc = item.description, !desc.isEmpty {
-                                    Text(desc).font(.caption).foregroundStyle(.secondary)
-                                }
+                        if builtin {
+                            ruleLabel(item)
+                        } else {
+                            Button {
+                                actionItem = item
+                            } label: {
+                                ruleLabel(item)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
 
                         Toggle(isOn: Binding(
                             get: { item.state == "on" },
@@ -75,12 +82,21 @@ struct WAFCommonRulesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showCreate = true
-                } label: {
-                    Image(systemName: "plus")
+                if builtin {
+                    Button {
+                        showApply = true
+                    } label: {
+                        Text(L10n.t("应用规则"))
+                    }
+                    .accessibilityLabel(L10n.t("应用到网站"))
+                } else {
+                    Button {
+                        showCreate = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(L10n.t("添加规则"))
                 }
-                .accessibilityLabel(L10n.t("添加规则"))
             }
         }
         .refreshable { await loadItems() }
@@ -93,6 +109,11 @@ struct WAFCommonRulesView: View {
         .navigationDestination(item: $editingItem) { item in
             WAFCommonRuleFormView(server: server, scope: scope, editingItem: item) {
                 Task { await loadItems() }
+            }
+        }
+        .sheet(isPresented: $showApply) {
+            WAFRuleApplySheet(server: server, scope: scope) {
+                successMessage = L10n.t("应用成功")
             }
         }
         .sheet(isPresented: Binding(
@@ -143,6 +164,31 @@ struct WAFCommonRulesView: View {
         } message: { item in
             Text(L10n.f("将对 \"%@\" 进行删除操作，是否继续？", item.name))
         }
+    }
+
+    /// 规则行左侧内容：正则 + 类型徽标 + 备注
+    private func ruleLabel(_ item: WAFCommonRuleItem) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(item.rule)
+                .font(.system(.body, design: .monospaced))
+
+            let showType = item.type != singleType
+            if showType || !(item.description ?? "").isEmpty {
+                HStack(spacing: 6) {
+                    if showType, let typeName = item.typeDisplayName {
+                        StatusBadge(text: typeName, color: .secondary)
+                    }
+                    if let desc = item.description, !desc.isEmpty {
+                        Text(desc)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private func loadItems() async {
@@ -276,6 +322,179 @@ struct WAFCommonRuleFormView: View {
                 let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonCreate.path, body: req, as: EmptyResponse.self)
             }
             onSaved()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - 应用到网站（内置规则集）
+
+/// 内置规则「应用到网站」选择器：多选网站（含全选，全部网站 = 传入所有网站 ID，
+/// 与面板 Web 端一致），确认后提交 rule/common/apply
+private struct WAFRuleApplySheet: View {
+    let server: ServerConfig
+    let scope: String
+    let onApplied: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var websites: [WAFWebsiteItem] = []
+    @State private var selected: Set<Int> = []
+    @State private var isLoading = true
+    @State private var loadError: String?
+    @State private var isApplying = false
+    @State private var errorMessage: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, scope: String, onApplied: @escaping () -> Void) {
+        self.server = server
+        self.scope = scope
+        self.onApplied = onApplied
+        self.client = APIClient(server: server)
+    }
+
+    private var allSelected: Bool {
+        !websites.isEmpty && selected.count == websites.count
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if isLoading {
+                    LoadingStateView()
+                        .listRowBackground(Color.clear)
+                } else if let err = loadError {
+                    LoadErrorStateView(message: err) {
+                        Task { await loadWebsites() }
+                    }
+                    .listRowBackground(Color.clear)
+                } else if websites.isEmpty {
+                    ContentUnavailableView(
+                        L10n.t("暂无网站"),
+                        systemImage: "globe",
+                        description: Text(L10n.t("安装 OpenResty 并创建网站后才能应用规则"))
+                    )
+                    .listRowBackground(Color.clear)
+                } else {
+                    Section {
+                        Button {
+                            if allSelected {
+                                selected.removeAll()
+                            } else {
+                                selected = Set(websites.map(\.id))
+                            }
+                        } label: {
+                            HStack {
+                                Text(allSelected ? L10n.t("取消全选") : L10n.t("全选"))
+                                Spacer()
+                                if allSelected {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                            }
+                        }
+                    } footer: {
+                        Text(L10n.t("全部网站即传入所有网站，与面板 Web 端一致"))
+                    }
+
+                    Section {
+                        ForEach(websites) { site in
+                            Button {
+                                if selected.contains(site.id) {
+                                    selected.remove(site.id)
+                                } else {
+                                    selected.insert(site.id)
+                                }
+                            } label: {
+                                HStack {
+                                    Text(site.primaryDomain ?? site.alias ?? "#\(site.id)")
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    if selected.contains(site.id) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(Color.accentColor)
+                                    }
+                                }
+                            }
+                        }
+                    } header: {
+                        Text(L10n.t("选择网站"))
+                    }
+                }
+            }
+            .navigationTitle(L10n.t("应用到网站"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task { await apply() }
+                    } label: {
+                        if isApplying {
+                            ProgressView()
+                        } else {
+                            Text(L10n.t("应用规则"))
+                        }
+                    }
+                    .disabled(selected.isEmpty || isApplying)
+                }
+            }
+        }
+        .task { await loadWebsites() }
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private func loadWebsites() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            websites = try await fetchAllWebsites()
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
+    }
+
+    /// 分页拉全量网站列表（与 WAFWebsiteSettingsView 一致）
+    private func fetchAllWebsites() async throws -> [WAFWebsiteItem] {
+        var result: [WAFWebsiteItem] = []
+        var page = 1
+        let pageSize = 20
+        while page <= 50 {
+            let resp: PageResponse<WAFWebsiteItem> = try await client.send(
+                path: APIEndpoint.wafWebsitesSearch.path,
+                body: WAFWebsiteSearchRequest(page: page, pageSize: pageSize, name: ""),
+                as: PageResponse<WAFWebsiteItem>.self
+            )
+            let items = resp.items ?? []
+            result += items
+            let total = resp.total ?? 0
+            if items.isEmpty || items.count < pageSize || result.count >= total { break }
+            page += 1
+        }
+        return result
+    }
+
+    private func apply() async {
+        isApplying = true
+        defer { isApplying = false }
+        let req = WAFCommonRuleApplyRequest(scope: scope, websites: Array(selected))
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.wafRuleCommonApply.path, body: req, as: EmptyResponse.self
+            )
+            onApplied()
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

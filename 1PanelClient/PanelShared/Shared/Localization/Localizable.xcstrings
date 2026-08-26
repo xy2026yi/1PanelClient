@@ -20521,6 +20521,149 @@
           }
         }
       }
+    },
+    "应用规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply"
+          }
+        }
+      }
+    },
+    "应用成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applied"
+          }
+        }
+      }
+    },
+    "全选" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select All"
+          }
+        }
+      }
+    },
+    "取消全选" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deselect All"
+          }
+        }
+      }
+    },
+    "全部网站即传入所有网站，与面板 Web 端一致" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"All websites\" applies the rules to every website, same as the web console."
+          }
+        }
+      }
+    },
+    "安装 OpenResty 并创建网站后才能应用规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install OpenResty and create websites before applying rules"
+          }
+        }
+      }
+    },
+    "SQL注入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SQL Injection"
+          }
+        }
+      }
+    },
+    "一句话木马" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One-Line Trojan"
+          }
+        }
+      }
+    },
+    "目录过滤" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Directory Filter"
+          }
+        }
+      }
+    },
+    "应用危险目录过滤" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risky App Directory Filter"
+          }
+        }
+      }
+    },
+    "扫描器过滤" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanner Filter"
+          }
+        }
+      }
+    },
+    "HTTP 方法过滤" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP Method Filter"
+          }
+        }
+      }
+    },
+    "XSS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XSS"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
