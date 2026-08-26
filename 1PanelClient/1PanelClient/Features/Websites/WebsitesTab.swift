@@ -48,14 +48,17 @@ struct WebsitesTab: View {
     /// 列表根内容（不含 NavigationStack）
     var rootContent: some View {
         Group {
-            if vm.isLoading && vm.websites.isEmpty {
-                LoadingStateView()
-            } else if vm.openRestyNotInstalled {
+            // 未装判断放在加载态之前（与 WAF 页一致）：安装完成点「完成」后本页立刻
+            // 强制刷新，旧检查结果（未装）让引导分支存活到收栈完成；若加载态优先，
+            // 分支切换会把引导组件连同其导航注册一起拔掉，进度页的「完成」收不回导航
+            if vm.openRestyNotInstalled {
                 // OpenResty 未安装：整页安装引导（同 WAF 页），安装完成后收到通知自动刷新
                 OpenRestyInstallPrompt(
                     storeVM: openRestyInstallVM,
                     message: L10n.t("网站功能依赖 OpenResty，请先安装后再使用")
                 )
+            } else if vm.isLoading && vm.websites.isEmpty {
+                LoadingStateView()
             } else {
                 websiteList
             }
@@ -295,6 +298,10 @@ struct OpenRestyInstallPrompt: View {
     /// 依赖说明文案（网站/WAF 各自传入）
     let message: String
 
+    /// 详情页推入开关：用 isPresented 而非 NavigationLink，安装完成后才能程序化
+    /// 收回整条导航链（进度页「完成」声明由调用方处理导航，见 AppInstallView onComplete）
+    @State private var showDetail = false
+
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -311,8 +318,8 @@ struct OpenRestyInstallPrompt: View {
                     .multilineTextAlignment(.center)
             }
 
-            NavigationLink {
-                AppStoreDetailView(appKey: "openresty", vm: storeVM)
+            Button {
+                showDetail = true
             } label: {
                 Label(L10n.t("安装 OpenResty"), systemImage: "arrow.down.circle.fill")
                     .frame(maxWidth: .infinity)
@@ -324,6 +331,42 @@ struct OpenRestyInstallPrompt: View {
             Spacer()
         }
         .padding()
+        // 安装完成后的导航回收在被 push 的 OpenRestyInstallFlowDetailView 里处理：
+        // 宿主页（网站/WAF）收到同一通知会强制刷新，可能把本引导分支换掉，
+        // 回收逻辑若挂在这里会随 @State 一起被销毁，导致「完成」收不回导航
+        .navigationDestination(isPresented: $showDetail) {
+            OpenRestyInstallFlowDetailView(storeVM: storeVM)
+        }
+    }
+}
+
+/// 应用详情页包装：进度页「完成」把导航交还发起方处理（onComplete 返回 true 不自行
+/// dismiss），由本视图在收到 installCompleted 后收回整条链——挂在被 push 的视图上，
+/// 不随宿主页刷新换分支而销毁，dismiss 始终有效（同数据库页安装流程模式）
+private struct OpenRestyInstallFlowDetailView: View {
+    @ObservedObject var storeVM: AppStoreViewModel
+
+    /// 是否已进入安装表单（用于区分「自己的安装完成」与无关的全局 installCompleted 通知）
+    @State private var didEnterInstall = false
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        AppStoreDetailView(appKey: "openresty", vm: storeVM)
+            // 跟踪是否进入过安装表单（showInstall true→false 表示用户开始了安装流程）
+            .onChange(of: storeVM.showInstall) { _, isShown in
+                if isShown { didEnterInstall = true }
+            }
+            // 安装完成：两步收回导航链（先弹安装表单+进度页，再弹详情页），
+            // 仅当确实进入了本流程发起的安装时才回收，
+            // 避免无关的全局 installCompleted 通知误触发（表现为点击安装变返回）
+            .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
+                guard didEnterInstall else { return }
+                storeVM.showInstall = false
+                // 等导航栈稳定后再 dismiss，避免动画冲突
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    dismiss()
+                }
+            }
     }
 }
 
