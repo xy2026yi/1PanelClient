@@ -89,9 +89,6 @@ struct WebsitesTab: View {
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
         }
-        .navigationDestination(for: Website.self) { website in
-            WebsiteDetailView(website: website, vm: vm)
-        }
         .navigationDestination(isPresented: $showCreate) {
             CreateWebsiteView(vm: vm)
         }
@@ -153,7 +150,12 @@ struct WebsitesTab: View {
             } else {
                 Section {
                     ForEach(vm.websites) { w in
-                        NavigationLink(value: w) {
+                        // 直接目标 NavigationLink，不用 navigationDestination(for: Website.self)：
+                        // 本页可经「管理-网站列表」与「多机管理-节点-网站」两条路径先后入栈，
+                        // 值类型注册在同栈共存时会触发 duplicate navigationDestination 警告
+                        NavigationLink {
+                            WebsiteDetailView(website: w, vm: vm)
+                        } label: {
                             WebsiteRow(website: w)
                         }
                     }

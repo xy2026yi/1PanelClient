@@ -20,20 +20,22 @@
 import Foundation
 
 extension APIClient {
-    /// 取共享客户端；首个调用方承担构造，后续复用热连接
-    static func shared(for server: ServerConfig) -> APIClient {
+    /// 取共享客户端；首个调用方承担构造，后续复用热连接。
+    /// nonisolated：ServerCardMonitor/健康探测的并发任务组在隔离域外调用
+    nonisolated static func shared(for server: ServerConfig) -> APIClient {
         ClientCache.sharedCache.client(for: server)
     }
 
     /// 服务器被移除时清理其缓存连接
-    static func purge(serverID: UUID) {
+    nonisolated static func purge(serverID: UUID) {
         ClientCache.sharedCache.purge(serverID: serverID)
     }
 }
 
 /// 线程安全的极简 LRU 缓存。ServerCardMonitor 的并发任务组会跨隔离域
-/// 取客户端，APIClient 初始化后不可变（@unchecked Sendable 见主文件）
-final class ClientCache: @unchecked Sendable {
+/// 取客户端，APIClient 初始化后不可变（@unchecked Sendable 见主文件）。
+/// nonisolated：项目默认 MainActor 隔离，此处靠 NSLock 自保证线程安全
+nonisolated final class ClientCache: @unchecked Sendable {
     static let sharedCache = ClientCache()
 
     private let lock = NSLock()

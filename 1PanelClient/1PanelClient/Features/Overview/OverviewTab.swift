@@ -552,7 +552,7 @@ struct StatCard: View {
                         Text(title)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.up.forward")
+                        Image(systemName: "arrow.up.forward")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.tertiary)
                     }

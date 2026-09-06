@@ -188,6 +188,8 @@ struct WebsiteMonitorOverviewSection: View {
     @State private var worldMap: [String: String] = [:]
     @State private var errorMessage: String?
     @State private var isLoading = true
+    /// 辅助数据（访客趋势/地图/译名表）加载中：结束后空数据才显示「暂无数据」
+    @State private var isLoadingAux = true
     /// 加载令牌：range 快速切换时，旧请求慢返回不覆盖新一次的结果
     @State private var loadToken = 0
     @Environment(\.horizontalSizeClass) private var hSize
@@ -256,9 +258,15 @@ struct WebsiteMonitorOverviewSection: View {
             .segmentedPickerRow()
 
             if visitors.isEmpty {
-                Text(L10n.t("暂无数据"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                // 辅助请求在途先转圈，结束后仍为空才算「暂无数据」；
+                // 范围切换时旧图非空、保持展示不闪转圈
+                if isLoadingAux {
+                    LoadingStateView(compact: true)
+                } else {
+                    Text(L10n.t("暂无数据"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             } else {
                 WebsiteVisitorsChart(points: visitors)
                     .frame(height: 180)
@@ -285,9 +293,13 @@ struct WebsiteMonitorOverviewSection: View {
                         .font(.caption)
                 }
             } else if active.isEmpty {
-                Text(L10n.t("暂无数据"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if isLoadingAux {
+                    LoadingStateView(compact: true)
+                } else {
+                    Text(L10n.t("暂无数据"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             } else {
                 ForEach(active) { item in
                     HStack {
@@ -401,6 +413,7 @@ struct WebsiteMonitorOverviewSection: View {
         loadToken += 1
         let token = loadToken
         isLoading = true
+        isLoadingAux = true
         async let q = fetch(APIEndpoint.monitorQps.path,
                             body: MonitorQpsRequest(websiteID: websiteID), as: MonitorQpsInfo.self)
         async let s = fetch(APIEndpoint.monitorStat.path,
@@ -409,11 +422,11 @@ struct WebsiteMonitorOverviewSection: View {
                             body: MonitorVisitorsRequest(websiteID: websiteID, dayRange: range.rawValue), as: [VisitorTrendPoint].self)
         async let l = fetchLocs()
         async let w = fetchWorldMap()
-        let (qr, sr, vr, lr) = await (q, s, v, l)
-        let world = await w
+        // 首屏（当前/今日状态）只等 qps+stat 即结束整块转圈——世界地图译名表、
+        // GeoIP 地区解析常是最慢的 1-2 秒，无数据时不能让「当前」卡陪跑
+        let (qr, sr) = await (q, s)
         guard token == loadToken else { return }
         isLoading = false
-        worldMap = world
         var firstError: String?
         switch qr {
         case .success(let x): qpsInfo = x
@@ -423,9 +436,16 @@ struct WebsiteMonitorOverviewSection: View {
         case .success(let x): stat = x
         case .failure(let e): firstError = firstError ?? e.localizedDescription
         }
+        errorMessage = firstError
+
+        // 辅助数据静默补齐：各板块有自己的内联加载态/空态
+        let (vr, lr, world) = await (v, l, w)
+        guard token == loadToken else { return }
+        isLoadingAux = false
+        worldMap = world
         switch vr {
         case .success(let x): visitors = x
-        case .failure(let e): firstError = firstError ?? e.localizedDescription
+        case .failure(let e): errorMessage = errorMessage ?? e.localizedDescription
         }
         switch lr {
         case .success(let x):
@@ -435,7 +455,6 @@ struct WebsiteMonitorOverviewSection: View {
             locs = []
             locError = e.localizedDescription
         }
-        errorMessage = firstError
     }
 }
 

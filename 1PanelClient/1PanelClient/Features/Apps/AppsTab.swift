@@ -35,9 +35,14 @@ struct AppsTab: View {
         }
         .toastOverlay(message: $vm.toastMessage)
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
-            // 安装完成：关闭应用商店（连带所有子页面），刷新应用列表
-            showStore = false
-            Task { await vm.refresh() }
+            // 安装完成，分步收栈的最后一步：等进度页、安装表单依次退场（各 0.35s）
+            // 再关商店并刷新列表——同帧整链拆除会触发
+            // NavigationRequestObserver「每帧多次更新」警告
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.7))
+                showStore = false
+                await vm.refresh()
+            }
         }
         .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
     }

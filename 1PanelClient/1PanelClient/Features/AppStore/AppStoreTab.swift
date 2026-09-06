@@ -359,10 +359,17 @@ struct AppInstallView: View {
                 title: L10n.f("安装 %@", detail.name ?? ""),
                 onComplete: { isDone in
                     if isDone {
-                        // 通知 AppsTab 关闭 AppStoreTab（连带所有子页面）并刷新列表
+                        // 通知 AppsTab 延时关闭商店并刷新列表
                         NotificationCenter.default.post(name: .installCompleted, object: nil)
-                        return true
+                        // 分步收栈（同网站/WAF 安装流程）：进度页由 TaskProgressView
+                        // 自行 dismiss，这里稍后收安装表单，AppsTab 最后收商店页——
+                        // 多层 isPresented 目标同帧拆除会触发
+                        // NavigationRequestObserver「每帧多次更新」警告
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            vm.showInstall = false
+                        }
                     }
+                    // false：进度页统一由 TaskProgressView 自行 dismiss（含「后台运行」）
                     return false
                 }
             )
