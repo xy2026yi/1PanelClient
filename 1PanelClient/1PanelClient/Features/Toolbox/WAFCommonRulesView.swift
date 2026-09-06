@@ -53,7 +53,7 @@ struct WAFCommonRulesView: View {
                 }
                 .listRowBackground(Color.clear)
             } else if items.isEmpty {
-                ContentUnavailableView(L10n.t("暂无通用规则"), systemImage: "list.bullet.rectangle.shield")
+                ContentUnavailableView(L10n.t("暂无通用规则"), systemImage: "shield")
             } else {
                 ForEach(items) { item in
                     HStack {

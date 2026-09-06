@@ -239,7 +239,7 @@ struct PasscodeKeypad: View {
             input.append(digit)
         } label: {
             Text(digit)
-                .font(.system(size: 28, weight: .regular, design: .rounded))
+                .font(.panelScaled(28, weight: .regular, design: .rounded))
                 // 固定 74pt 圆形键位，字号随动态类型放大到 xxxLarge 为止
                 .dynamicTypeSize(...(.xxxLarge))
                 .foregroundStyle(.primary)
@@ -286,7 +286,7 @@ struct LockScreenView: View {
     private func lockoutView(until: Date) -> some View {
         VStack(spacing: 14) {
             Image(systemName: "lock.fill")
-                .font(.system(size: 40))
+                .font(.panelScaled(40))
                 .foregroundStyle(.secondary)
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let remain = Int(max(0, until.timeIntervalSince(context.date)).rounded(.up))
@@ -327,7 +327,7 @@ struct LockScreenView: View {
                 }
             } else {
                 Image(systemName: biometryIcon)
-                    .font(.system(size: 56))
+                    .font(.panelScaled(56))
                     .foregroundStyle(.secondary)
                 Text(L10n.t("已锁定"))
                     .font(.title3.bold())

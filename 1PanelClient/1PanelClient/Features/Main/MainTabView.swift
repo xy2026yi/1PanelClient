@@ -390,7 +390,7 @@ struct WelcomeView: View {
                 Spacer()
 
                 Image(systemName: "server.rack")
-                    .font(.system(size: 80))
+                    .font(.panelScaled(80))
                     .foregroundStyle(.tint)
 
                 VStack(spacing: 8) {

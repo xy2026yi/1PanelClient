@@ -417,7 +417,7 @@ struct WAFInterceptLogDetailView: View {
                                 .foregroundStyle(.secondary)
                             if let log = d.nginxLog, !log.isEmpty {
                                 Text(log)
-                                    .font(.system(size: 11, design: .monospaced))
+                                    .font(.panelScaled(11, design: .monospaced))
                                     .textSelection(.enabled)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             } else {

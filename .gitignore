@@ -31,3 +31,5 @@ __pycache__/
 
 # mimosa 安全扫描插件的运行时产物（hook-state 等）
 .mimosa/
+
+docs/

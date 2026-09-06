@@ -844,7 +844,7 @@ struct FirewallView: View {
                 } else {
                     VStack(spacing: 10) {
                         Image(systemName: "exclamationmark.shield")
-                            .font(.system(size: 36))
+                            .font(.panelScaled(36))
                             .foregroundStyle(.orange)
                         Text(L10n.t("未检测到防火墙"))
                             .font(.headline)

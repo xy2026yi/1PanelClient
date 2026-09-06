@@ -13,8 +13,9 @@ import AppIntents
 // MARK: - 配置 Intent
 
 struct QuickOpsConfig: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "快捷操作"
-    static var description = IntentDescription("选择服务器并列出可操作的容器")
+    // Swift 6：let + 满足 get-only 协议要求即可免隔离注解（与 PanelIntents 五个意图同款写法）
+    static let title: LocalizedStringResource = "快捷操作"
+    static let description = IntentDescription("选择服务器并列出可操作的容器")
 
     @Parameter(title: "服务器")
     var server: PanelServerEntity?

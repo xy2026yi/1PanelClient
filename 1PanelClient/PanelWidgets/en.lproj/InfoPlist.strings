@@ -1,0 +1,3 @@
+/* English overrides for system-level prompts (base values in Info.plist are zh-Hans). */
+
+"NSLocalNetworkUsageDescription" = "Used to connect to 1Panel server panels on your local network to fetch status and monitoring data.";

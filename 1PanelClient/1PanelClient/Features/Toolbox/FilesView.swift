@@ -225,7 +225,7 @@ struct FilesView: View {
         return HStack(spacing: 4) {
             if idx > 0 {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.panelScaled(10, weight: .semibold))
                     .foregroundStyle(.tertiary)
             }
             Button {
@@ -416,9 +416,13 @@ struct FilesView: View {
     }
 
     /// 延迟执行：等半屏操作菜单收起后再触发下一级弹窗（重命名 sheet/删除 alert），
-    /// 避免 sheet 关闭动画与新的呈现竞争
+    /// 避免 sheet 关闭动画与新的呈现竞争。
+    /// Task@MainActor + sleep 替代 DispatchQueue.asyncAfter（Swift 6 下后者要求 @Sendable 闭包）
     private func delayedAction(_ action: @escaping () -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: action)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.35))
+            action()
+        }
     }
 
     /// 长按文件行的操作菜单项（下载/重命名/删除），与全站 ActionBottomSheet 风格一致
@@ -629,7 +633,7 @@ struct TransferSheet: View {
     var body: some View {
         VStack(spacing: 22) {
             Image(systemName: statusIcon)
-                .font(.system(size: 44))
+                .font(.panelScaled(44))
                 .foregroundStyle(statusColor)
 
             VStack(spacing: 6) {

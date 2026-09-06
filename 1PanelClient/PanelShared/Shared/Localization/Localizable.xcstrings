@@ -1,18 +1,10 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "" : {
-
-    },
-    "-" : {
-
-    },
-    "-----BEGIN OPENSSH PRIVATE KEY-----" : {
-
-    },
-    "—" : {
-
-    },
+    "" : {},
+    "-" : {},
+    "-----BEGIN OPENSSH PRIVATE KEY-----" : {},
+    "—" : {},
     "，内存 %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35,12 +27,8 @@
         }
       }
     },
-    "·" : {
-
-    },
-    "· %@" : {
-
-    },
+    "·" : {},
+    "· %@" : {},
     "(未命名)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -85,24 +73,12 @@
         }
       }
     },
-    "[%@]" : {
-
-    },
-    "*" : {
-
-    },
-    "/" : {
-
-    },
-    "/opt/1panel/backup" : {
-
-    },
-    "/var/log/auth.log" : {
-
-    },
-    "%@" : {
-
-    },
+    "[%@]" : {},
+    "*" : {},
+    "/" : {},
+    "/opt/1panel/backup" : {},
+    "/var/log/auth.log" : {},
+    "%@" : {},
     "%@ · %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -585,12 +561,8 @@
         }
       }
     },
-    "%lld" : {
-
-    },
-    "%lld%%" : {
-
-    },
+    "%lld" : {},
+    "%lld%%" : {},
     "%lld%%  %@ / %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -601,18 +573,10 @@
         }
       }
     },
-    "0" : {
-
-    },
-    "1Panel" : {
-
-    },
-    "1Panel Client" : {
-
-    },
-    "1Panel Server" : {
-
-    },
+    "0" : {},
+    "1Panel" : {},
+    "1Panel Client" : {},
+    "1Panel Server" : {},
     "1Panel 官网" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -745,9 +709,7 @@
         }
       }
     },
-    "22" : {
-
-    },
+    "22" : {},
     "24小时" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -759,27 +721,13 @@
         }
       }
     },
-    "25" : {
-
-    },
-    "30" : {
-
-    },
-    "100" : {
-
-    },
-    "200" : {
-
-    },
-    "300" : {
-
-    },
-    "301" : {
-
-    },
-    "302" : {
-
-    },
+    "25" : {},
+    "30" : {},
+    "100" : {},
+    "200" : {},
+    "300" : {},
+    "301" : {},
+    "302" : {},
     "360搜索" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -791,9 +739,7 @@
         }
       }
     },
-    "404" : {
-
-    },
+    "404" : {},
     "404 频率限制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -805,21 +751,11 @@
         }
       }
     },
-    "500" : {
-
-    },
-    "512" : {
-
-    },
-    "1000" : {
-
-    },
-    "Access Key" : {
-
-    },
-    "Access Key ID" : {
-
-    },
+    "500" : {},
+    "512" : {},
+    "1000" : {},
+    "Access Key" : {},
+    "Access Key ID" : {},
     "ACME 服务 URL" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -853,9 +789,7 @@
         }
       }
     },
-    "API Key" : {
-
-    },
+    "API Key" : {},
     "API Key 已失效，长按重新录入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -878,12 +812,8 @@
         }
       }
     },
-    "API Token" : {
-
-    },
-    "API User" : {
-
-    },
+    "API Token" : {},
+    "API User" : {},
     "API 接口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -917,9 +847,7 @@
         }
       }
     },
-    "CDN" : {
-
-    },
+    "CDN" : {},
     "CDN Headers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -975,9 +903,7 @@
         }
       }
     },
-    "Container" : {
-
-    },
+    "Container" : {},
     "Cookie规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1143,18 +1069,10 @@
         }
       }
     },
-    "docker-compose" : {
-
-    },
-    "docker-compose.yml" : {
-
-    },
-    "EAB HmacKey" : {
-
-    },
-    "EAB kid" : {
-
-    },
+    "docker-compose" : {},
+    "docker-compose.yml" : {},
+    "EAB HmacKey" : {},
+    "EAB kid" : {},
     "EAB 凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1188,9 +1106,7 @@
         }
       }
     },
-    "Endpoint" : {
-
-    },
+    "Endpoint" : {},
     "Endpoint 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1202,24 +1118,12 @@
         }
       }
     },
-    "example.com" : {
-
-    },
-    "Fail2ban" : {
-
-    },
-    "file.txt" : {
-
-    },
-    "folder_name" : {
-
-    },
-    "GitHub" : {
-
-    },
-    "gzip" : {
-
-    },
+    "example.com" : {},
+    "Fail2ban" : {},
+    "file.txt" : {},
+    "folder_name" : {},
+    "GitHub" : {},
+    "gzip" : {},
     "Header规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1231,12 +1135,8 @@
         }
       }
     },
-    "hostname" : {
-
-    },
-    "HSTS" : {
-
-    },
+    "hostname" : {},
+    "HSTS" : {},
     "HSTS 包含子域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1248,12 +1148,8 @@
         }
       }
     },
-    "http" : {
-
-    },
-    "HTTP" : {
-
-    },
+    "http" : {},
+    "HTTP" : {},
     "HTTP Header" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1331,21 +1227,11 @@
         }
       }
     },
-    "http://" : {
-
-    },
-    "http://10.0.0.1:36130" : {
-
-    },
-    "HTTP/3 (QUIC)" : {
-
-    },
-    "https" : {
-
-    },
-    "HTTPS" : {
-
-    },
+    "http://" : {},
+    "http://10.0.0.1:36130" : {},
+    "HTTP/3 (QUIC)" : {},
+    "https" : {},
+    "HTTPS" : {},
     "HTTPS 端口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1368,12 +1254,8 @@
         }
       }
     },
-    "https://" : {
-
-    },
-    "https://..." : {
-
-    },
+    "https://" : {},
+    "https://..." : {},
     "HTTPS防窜站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1396,9 +1278,7 @@
         }
       }
     },
-    "ID: %lld" : {
-
-    },
+    "ID: %lld" : {},
     "IP / CIDR，留空=任意" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1564,12 +1444,8 @@
         }
       }
     },
-    "KEY=VALUE" : {
-
-    },
-    "MB" : {
-
-    },
+    "KEY=VALUE" : {},
+    "MB" : {},
     "MINIO / WebDAV / SFTP 备份存储" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1603,18 +1479,10 @@
         }
       }
     },
-    "nginx.conf" : {
-
-    },
-    "off" : {
-
-    },
-    "on" : {
-
-    },
-    "OpenResty %@" : {
-
-    },
+    "nginx.conf" : {},
+    "off" : {},
+    "on" : {},
+    "OpenResty %@" : {},
     "OpenResty 未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1637,12 +1505,8 @@
         }
       }
     },
-    "Password" : {
-
-    },
-    "PID %lld" : {
-
-    },
+    "Password" : {},
+    "PID %lld" : {},
     "ping 失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1698,15 +1562,9 @@
         }
       }
     },
-    "Scheduled Task" : {
-
-    },
-    "Secret ID" : {
-
-    },
-    "Secret Key" : {
-
-    },
+    "Scheduled Task" : {},
+    "Secret ID" : {},
+    "Secret Key" : {},
     "Shell 脚本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1740,9 +1598,7 @@
         }
       }
     },
-    "SSH" : {
-
-    },
+    "SSH" : {},
     "SSH 服务管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1820,12 +1676,8 @@
         }
       }
     },
-    "sshd_config" : {
-
-    },
-    "SSL" : {
-
-    },
+    "sshd_config" : {},
+    "SSL" : {},
     "SSL 证书" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1859,18 +1711,10 @@
         }
       }
     },
-    "SWAP" : {
-
-    },
-    "TLS" : {
-
-    },
-    "TTY" : {
-
-    },
-    "URL" : {
-
-    },
+    "SWAP" : {},
+    "TLS" : {},
+    "TTY" : {},
+    "URL" : {},
     "URL 模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1893,9 +1737,7 @@
         }
       }
     },
-    "User-Agent" : {
-
-    },
+    "User-Agent" : {},
     "User-Agent规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1907,12 +1749,8 @@
         }
       }
     },
-    "v%@" : {
-
-    },
-    "WAF" : {
-
-    },
+    "v%@" : {},
+    "WAF" : {},
     "WAF 功能依赖 OpenResty，请先安装后再使用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1957,9 +1795,7 @@
         }
       }
     },
-    "Website" : {
-
-    },
+    "Website" : {},
     "XSS防御" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6031,10 +5867,26 @@
       }
     },
     "启动 / 停止 / 重启 / 关闭指定容器" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start / stop / restart or force-stop the specified container"
+          }
+        }
+      }
     },
     "启动或停止指定网站" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start or stop a specified website"
+          }
+        }
+      }
     },
     "启动时间" : {
       "extractionState" : "manual",
@@ -6631,7 +6483,15 @@
       }
     },
     "在线检查与 CPU / 内存 / 负载概览" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Online check with CPU / memory / load overview"
+          }
+        }
+      }
     },
     "在终端界面的菜单中可快速执行这些命令" : {
       "extractionState" : "manual",
@@ -7503,7 +7363,15 @@
       }
     },
     "容器操作" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Operations"
+          }
+        }
+      }
     },
     "容器目录" : {
       "extractionState" : "manual",
@@ -7693,10 +7561,26 @@
       }
     },
     "对 ${container} 进行 ${operation} 操作" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perform ${operation} on ${container}"
+          }
+        }
+      }
     },
     "对 ${website} 进行 ${operation} 操作" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perform ${operation} on ${website}"
+          }
+        }
+      }
     },
     "对比/编辑" : {
       "extractionState" : "manual",
@@ -9162,7 +9046,15 @@
       }
     },
     "快捷操作" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Actions"
+          }
+        }
+      }
     },
     "快速命令" : {
       "extractionState" : "manual",
@@ -9561,7 +9453,15 @@
       }
     },
     "手动触发一次计划任务" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run a scheduled task once manually"
+          }
+        }
+      }
     },
     "手动输入桶名" : {
       "extractionState" : "manual",
@@ -9685,7 +9585,15 @@
       }
     },
     "执行计划任务" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Scheduled Task"
+          }
+        }
+      }
     },
     "执行记录" : {
       "extractionState" : "manual",
@@ -10579,7 +10487,15 @@
       }
     },
     "数量" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Count"
+          }
+        }
+      }
     },
     "文件" : {
       "extractionState" : "manual",
@@ -10878,13 +10794,13 @@
         }
       }
     },
-    "无法连接到服务器。请检查：地址与端口是否正确、服务器防火墙是否放行；在模拟器中运行时，还需在 macOS「系统设置 → 隐私与安全性 → 本地网络」中允许 Simulator。" : {
+    "无法连接到服务器。请检查：地址与端口是否正确、服务器防火墙是否放行。若连接的是局域网地址：模拟器需在 macOS「系统设置 → 隐私与安全性 → 本地网络」中允许 Simulator；iPhone/iPad 真机需在「设置 → 隐私与安全性 → 本地网络」中允许本 App（曾拒绝弹窗的只能在此手动开启）。" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cannot connect to the server. Check the address/port and firewall; when running in the simulator, also allow Simulator under macOS System Settings → Privacy & Security → Local Network."
+            "value" : "Cannot connect to the server. Check that the address and port are correct and the server firewall allows the connection. For LAN addresses: in the Simulator, allow it under macOS System Settings → Privacy & Security → Local Network; on an iPhone/iPad, allow this app under Settings → Privacy & Security → Local Network (if the prompt was denied before, it can only be re-enabled there)."
           }
         }
       }
@@ -12023,7 +11939,15 @@
       }
     },
     "服务器概览" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server Overview"
+          }
+        }
+      }
     },
     "服务器返回了无法解析的响应" : {
       "extractionState" : "manual",
@@ -12752,10 +12676,26 @@
       }
     },
     "检查 ${server} 的状态" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the status of ${server}"
+          }
+        }
+      }
     },
     "检查服务器状态" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check Server Status"
+          }
+        }
+      }
     },
     "检查节点 SSH 连接" : {
       "extractionState" : "manual",
@@ -14210,7 +14150,15 @@
       }
     },
     "留空使用当前服务器" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave empty to use the current server"
+          }
+        }
+      }
     },
     "留空则全部 IP" : {
       "extractionState" : "manual",
@@ -15236,7 +15184,15 @@
       }
     },
     "立即执行 ${job}" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run ${job} now"
+          }
+        }
+      }
     },
     "立即重启" : {
       "extractionState" : "manual",
@@ -16207,7 +16163,15 @@
       }
     },
     "网站启停" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website Start / Stop"
+          }
+        }
+      }
     },
     "网站域名" : {
       "extractionState" : "manual",
@@ -16221,7 +16185,15 @@
       }
     },
     "网站操作" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website Operations"
+          }
+        }
+      }
     },
     "网站日志" : {
       "extractionState" : "manual",
@@ -17940,10 +17912,26 @@
       }
     },
     "读取 ${server} 的概览" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read the overview of ${server}"
+          }
+        }
+      }
     },
     "读取 CPU / 内存 / 负载的当前值" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read current CPU / memory / load values"
+          }
+        }
+      }
     },
     "读取和写入数据" : {
       "extractionState" : "manual",
@@ -19090,7 +19078,15 @@
       }
     },
     "选择服务器并列出可操作的容器" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a server and list its containers"
+          }
+        }
+      }
     },
     "选择用户" : {
       "extractionState" : "manual",
@@ -20661,6 +20657,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "XSS"
+          }
+        }
+      }
+    },
+    "隐私政策" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        }
+      }
+    },
+    "诊断数据（本地）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostics (Local)"
+          }
+        }
+      }
+    },
+    "暂无诊断数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Diagnostics Yet"
+          }
+        }
+      }
+    },
+    "崩溃与性能诊断由系统每日聚合，产生后会自动出现在这里" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crash and performance diagnostics are aggregated daily by the system and will appear here automatically"
+          }
+        }
+      }
+    },
+    "数据仅保存在本机（最近 30 天），不会自动上传；卸载 App 后即消失" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data is stored only on this device (last 30 days) and never uploaded; it is removed when the app is uninstalled"
+          }
+        }
+      }
+    },
+    "连接超时。请检查：面板端口是否正确、服务器防火墙是否放行、面板是否在线；若连接的是局域网地址，还请在「设置 → 隐私与安全性 → 本地网络」中允许本 App（模拟器则在 macOS 同名设置中允许 Simulator）。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection timed out. Check that the panel port is correct, the server firewall allows it, and the panel is online. For a LAN address, also allow this app in Settings → Privacy & Security → Local Network (for the simulator, allow Simulator in the equivalent macOS setting)."
+          }
+        }
+      }
+    },
+    "暂无服务器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Servers Yet"
+          }
+        }
+      }
+    },
+    "添加你的 1Panel 面板地址与 API 密钥，开始管理服务器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add your 1Panel panel address and API key to start managing servers"
           }
         }
       }

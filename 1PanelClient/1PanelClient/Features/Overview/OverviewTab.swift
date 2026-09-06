@@ -132,14 +132,13 @@ struct OverviewTab: View {
                 Task { await vm.refreshAppUpdateCount() }
             }
         }
-        // 实时监控独立轮询：页面可见时每 5 秒刷新一次 current 数据（仅当前 Tab 活跃时）
-        .task {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-                if !Task.isCancelled && selectedTab == .overview {
-                    await vm.refreshCurrent()
-                }
-            }
+        // 实时监控独立轮询（审计 D1/D3）：仅首页 Tab 且处于根页面时运行——
+        // 推入服务器页后由 ServersView 的全量轮询接管，避免对同一服务器同接口双发；
+        // 前后台切换暂停，回前台/切回首页时立即补拉
+        .adaptivePolling(interval: 5, fireImmediately: false, isActive: {
+            selectedTab == .overview && atRoot
+        }) {
+            await vm.refreshCurrent()
         }
         // 服务器切换时（服务器页添加、切换）自动重建 ViewModel 并刷新
         .onChange(of: manager.currentServerID) {
@@ -501,7 +500,7 @@ struct RingStatView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                     Text(bottomText)
-                        .font(.system(size: compact ? 9.5 : 12))
+                        .font(.panelScaled(compact ? 9.5 : 12))
                         .foregroundStyle(.secondary)
                 }
             }

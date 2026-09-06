@@ -32,7 +32,7 @@ struct WebsiteDefaultDocView: View {
             } else {
                 VStack(spacing: 0) {
                     TextEditor(text: $docText)
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.panelScaled(13, design: .monospaced))
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .frame(maxHeight: .infinity, alignment: .topLeading)
@@ -314,7 +314,7 @@ struct WebsiteRedirectView: View {
             } else if redirects.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无重定向"),
-                    systemImage: "arrow.uturn.turn.right",
+                    systemImage: "arrow.uturn.right",
                     description: Text(L10n.t("点击右上角创建第一个重定向规则"))
                 )
             } else {
@@ -414,7 +414,7 @@ struct WebsiteRedirectView: View {
                         }
                     }
                     HStack {
-                        Label(subtitle(r), systemImage: "arrow.uturn.turn.right")
+                        Label(subtitle(r), systemImage: "arrow.uturn.right")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -678,7 +678,7 @@ struct WebsiteRedirectSourceView: View {
 
     var body: some View {
         TextEditor(text: $content)
-            .font(.system(size: 12, design: .monospaced))
+            .font(.panelScaled(12, design: .monospaced))
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
             .padding(.horizontal, 4)
@@ -812,9 +812,9 @@ struct WebsiteAuthsView: View {
 
             Section(L10n.t("访问账号")) {
                 if items.isEmpty {
-                    Text(L10n.t("暂无账号"))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    // B3：空态形态统一为 ContentUnavailableView
+                    ContentUnavailableView(L10n.t("暂无账号"), systemImage: "person.crop.circle.badge.questionmark")
+                        .listRowBackground(Color.clear)
                 }
                 ForEach(items) { item in
                     Button {

@@ -618,7 +618,7 @@ struct DemoLineChart: View {
             ForEach(Self.labelSlots, id: \.self) { slot in
                 if slot < count, let s = sample(at: slot) {
                     Text(Self.timeFormatter.string(from: s.date))
-                        .font(.system(size: 9))
+                        .font(.panelScaled(9))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                         .fixedSize()

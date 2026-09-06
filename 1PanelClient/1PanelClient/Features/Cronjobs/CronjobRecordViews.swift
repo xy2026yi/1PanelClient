@@ -105,8 +105,8 @@ struct CronjobLogView: View {
                         .font(.callout)
                         .padding()
                 } else if vm.logLines.isEmpty {
-                    Text(L10n.t("暂无日志"))
-                        .foregroundStyle(.secondary)
+                    // B3：空态形态统一为 ContentUnavailableView
+                    ContentUnavailableView(L10n.t("暂无日志"), systemImage: "doc.text")
                         .padding()
                 } else {
                     ForEach(Array(vm.logLines.enumerated()), id: \.offset) { _, line in

@@ -237,7 +237,7 @@ struct ContainerRow: View {
             if let img = container.imageName, !img.isEmpty {
                 HStack(spacing: 4) {
                     Image(systemName: "square.stack.3d.up")
-                        .font(.system(size: 10))
+                        .font(.panelScaled(10))
                     Text(img)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -248,7 +248,7 @@ struct ContainerRow: View {
             // 端口映射（单行，逗号分隔）
             if let ports = container.ports, !ports.isEmpty {
                 Text(ports.joined(separator: ", "))
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(.panelScaled(10, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }

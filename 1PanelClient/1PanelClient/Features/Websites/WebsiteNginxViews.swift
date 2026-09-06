@@ -64,7 +64,7 @@ struct WebsiteNginxView: View {
 
                 if isEditing {
                     TextEditor(text: $content)
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(.panelScaled(12, design: .monospaced))
                         .frame(minHeight: 480)
                         .padding(8)
                         .background(Color(.secondarySystemBackground))
@@ -73,7 +73,7 @@ struct WebsiteNginxView: View {
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
                         Text(content)
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(.panelScaled(12, design: .monospaced))
                             .padding()
                             .textSelection(.enabled)
                     }

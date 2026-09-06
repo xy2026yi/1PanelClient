@@ -2,6 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Widget 时间线在扩展进程内直连面板拉数据，局域网地址同样触发本地网络权限 -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于连接局域网内的 1Panel 服务器面板，获取服务器状态与监控数据。</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>

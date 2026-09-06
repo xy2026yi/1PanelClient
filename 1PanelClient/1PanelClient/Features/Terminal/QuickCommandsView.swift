@@ -32,7 +32,7 @@ struct QuickCommandsView: View {
             } else if vm.commands.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无快速命令"),
-                    systemImage: "square.and.at.arrowcommand",
+                    systemImage: "terminal",
                     description: Text(L10n.t("点击右上角 + 创建第一条命令"))
                 )
             } else {
@@ -294,7 +294,7 @@ struct QuickCommandPickerSheet: View {
                 } else if vm.commands.isEmpty {
                     ContentUnavailableView(
                         L10n.t("暂无快速命令"),
-                        systemImage: "square.and.at.arrowcommand",
+                        systemImage: "terminal",
                         description: Text(L10n.t("可在 终端页右上角菜单 快速命令 中创建"))
                     )
                 } else {

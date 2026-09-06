@@ -311,9 +311,9 @@ struct SystemLogView: View {
                     }
                     Section {
                         if lines.isEmpty {
-                            Text(L10n.t("该日期暂无日志"))
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .center)
+                            // B3：空态形态统一为 ContentUnavailableView
+                            ContentUnavailableView(L10n.t("该日期暂无日志"), systemImage: "doc.text.magnifyingglass")
+                                .listRowBackground(Color.clear)
                         } else {
                             LogLinesView(lines: lines)
                                 .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
@@ -520,9 +520,8 @@ struct WebsiteLogsView: View {
                     }
                     Section {
                         if lines.isEmpty {
-                            Text(L10n.t("该网站暂无访问日志"))
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .center)
+                            ContentUnavailableView(L10n.t("该网站暂无访问日志"), systemImage: "doc.text.magnifyingglass")
+                                .listRowBackground(Color.clear)
                         } else {
                             LogLinesView(lines: lines)
                                 .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))

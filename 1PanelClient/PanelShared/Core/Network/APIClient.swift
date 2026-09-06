@@ -149,7 +149,9 @@ final class APIClient {
         }
 
         // 优先走业务包装
-        if let wrapped = try? JSONDecoder().decode(APIResponse<T>.self, from: data) {
+        // 解码经 nonisolated async 辅助（审计 D4）：在全局并发执行器上执行，
+        // pageSize 200/500 的大列表 decode 不占用调用方（多为 @MainActor VM）的主线程
+        if let wrapped = try? await Self.decode(data, as: APIResponse<T>.self) {
             if wrapped.isSuccess, let value = wrapped.data {
                 return value
             }
@@ -174,10 +176,16 @@ final class APIClient {
 
         // 裸 JSON
         do {
-            return try JSONDecoder().decode(T.self, from: data)
+            return try await Self.decode(data, as: T.self)
         } catch {
             throw APIError.decodingError(error.localizedDescription)
         }
+    }
+
+    /// 统一解码入口：nonisolated async → 全局并发执行器（不占主 actor）；
+    /// 每次新建 decoder 与原实现一致，无共享可变状态
+    nonisolated private static func decode<U: Decodable>(_ data: Data, as type: U.Type) async throws -> U {
+        try JSONDecoder().decode(U.self, from: data)
     }
 
     // 便捷方法：只要知道成功即可

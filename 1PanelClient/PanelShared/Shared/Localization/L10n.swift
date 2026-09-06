@@ -10,7 +10,9 @@
 
 import Foundation
 
-nonisolated final class L10n {
+/// @unchecked Sendable 依据：全部可变状态（_language/_enBundle）均在 NSLock 内读写，
+/// 初始化后无锁外修改——静态 shared 单例可安全跨隔离域共享（Swift 6）
+nonisolated final class L10n: @unchecked Sendable {
     static let shared = L10n()
 
     enum Language: String, CaseIterable, Identifiable {

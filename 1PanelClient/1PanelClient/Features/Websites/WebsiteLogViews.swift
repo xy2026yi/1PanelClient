@@ -106,7 +106,7 @@ struct WebsiteLogPage: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Toggle(isOn: $isTracking) {
-                    Label(L10n.t("追踪"), systemImage: "waveform.badge.eye")
+                    Label(L10n.t("追踪"), systemImage: "waveform")
                 }
                 .toggleStyle(.button)
                 .tint(isTracking ? .green : .secondary)

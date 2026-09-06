@@ -50,25 +50,42 @@ struct ServersView: View {
                     }
                 }
             }
-            // 无行的 Section 只渲染 footer 文本，不带卡片背景
-            Section {
-            } footer: {
-                Text(L10n.t("单击切换服务器，长按更多操作，左滑移除；下拉刷新健康状态"))
+            // C3：无服务器空态给引导 CTA，不再只有 footer 说明文字
+            if manager.servers.isEmpty {
+                Section {
+                } footer: {
+                    Text(L10n.t("单击切换服务器，长按更多操作，左滑移除；下拉刷新健康状态"))
+                }
+                ContentUnavailableView {
+                    Label(L10n.t("暂无服务器"), systemImage: "server.rack")
+                } description: {
+                    Text(L10n.t("添加你的 1Panel 面板地址与 API 密钥，开始管理服务器"))
+                } actions: {
+                    Button(L10n.t("添加服务器")) {
+                        showAdd = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .listRowBackground(Color.clear)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            } else {
+                // 无行的 Section 只渲染 footer 文本，不带卡片背景
+                Section {
+                } footer: {
+                    Text(L10n.t("单击切换服务器，长按更多操作，左滑移除；下拉刷新健康状态"))
+                }
             }
         }
         .refreshable {
             await health.checkAll()
-            await cardMonitor.refresh()
+            await cardMonitor.refresh(force: true)
         }
-        // 指标轮询：与首页状态卡同频（5 秒），页面存在期间持续，
-        // pop 离开时 task 自动取消；运行时长包含在同一条 dashboard/current 响应内随刷新更新
-        .task {
+        // 指标轮询（审计 D1）：与首页状态卡同频（5 秒）；后台暂停、回前台补拉，
+        // 多机错峰与失败退避在 ServerCardMonitor 内处理；pop 离开时随 .task 取消。
+        // 运行时长包含在同一条 dashboard/current 响应内随刷新更新
+        .adaptivePolling(interval: 5, fireImmediately: true) {
             await cardMonitor.refresh()
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-                guard !Task.isCancelled else { return }
-                await cardMonitor.refresh()
-            }
         }
         .onAppear {
             health.start()

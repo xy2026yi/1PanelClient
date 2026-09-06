@@ -406,7 +406,7 @@ struct ContainerMonitorChart: View {
             ForEach(Self.labelSlots, id: \.self) { slot in
                 if slot < window.dates.count {
                     Text(Self.timeFormatter.string(from: window.dates[slot]))
-                        .font(.system(size: 9))
+                        .font(.panelScaled(9))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                     .fixedSize()

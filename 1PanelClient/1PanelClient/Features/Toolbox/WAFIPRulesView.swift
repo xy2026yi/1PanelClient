@@ -43,7 +43,7 @@ struct WAFIPRulesView: View {
                 }
                 .listRowBackground(Color.clear)
             } else if items.isEmpty {
-                ContentUnavailableView(L10n.t("暂无 IP 规则"), systemImage: "ipaddress")
+                ContentUnavailableView(L10n.t("暂无 IP 规则"), systemImage: "number")
             } else {
                 ForEach(items) { item in
                     HStack {

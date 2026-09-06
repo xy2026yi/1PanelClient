@@ -15,5 +15,12 @@
     <!-- 应用锁（设置-安全可开启）：FaceID 解锁用途声明，缺省时 iOS 26 上 FaceID 验证会失败 -->
     <key>NSFaceIDUsageDescription</key>
     <string>用于解锁 App，保护服务器连接配置与 API 密钥</string>
+    <!-- 本地网络（iOS 14+）：连接局域网面板（如 http://10.0.0.1:36130）需弹授权，缺失则首连静默失败（仅表现为超时）。
+         英文文案见 en.lproj/InfoPlist.strings -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>用于连接局域网内的 1Panel 服务器面板，获取服务器状态与监控数据。</string>
+    <!-- 出口合规：仅使用系统 HTTPS/TLS（豁免加密），声明 false 免去每次提审填写加密问答 -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
 </dict>
 </plist>

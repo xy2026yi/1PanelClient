@@ -295,7 +295,7 @@ struct IconBadge: View {
                 .fill(color.opacity(backgroundOpacity))
                 .frame(width: size, height: size)
             Image(systemName: systemName)
-                .font(.system(size: size * 0.48, weight: .semibold))
+                .font(.panelScaled(size * 0.48, weight: .semibold))
                 .foregroundStyle(color)
         }
     }
@@ -343,7 +343,7 @@ struct ErrorBanner: View {
                     .fill(Color.orange.opacity(0.15))
                     .frame(width: 72, height: 72)
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 30))
+                    .font(.panelScaled(30))
                     .foregroundStyle(.orange)
             }
             Text(message)

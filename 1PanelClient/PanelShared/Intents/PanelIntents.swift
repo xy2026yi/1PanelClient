@@ -15,14 +15,18 @@ import SwiftUI
 enum ContainerOperationAppEnum: String, AppEnum {
     case start, stop, restart, kill
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "容器操作"
+    // Swift 6：TypeDisplayRepresentable 要求非隔离见证，存储型静态属性不满足并发安全——
+    // 改为计算属性（按次构造值类型，无共享存储）
+    static var typeDisplayRepresentation: TypeDisplayRepresentation { "容器操作" }
 
-    static var caseDisplayRepresentations: [ContainerOperationAppEnum: DisplayRepresentation] = [
-        .start: "启动",
-        .stop: "停止",
-        .restart: "重启",
-        .kill: "关闭",
-    ]
+    static var caseDisplayRepresentations: [ContainerOperationAppEnum: DisplayRepresentation] {
+        [
+            .start: "启动",
+            .stop: "停止",
+            .restart: "重启",
+            .kill: "关闭",
+        ]
+    }
 
     /// 提交给 1Panel API 的操作名
     var apiValue: String { rawValue }
@@ -40,12 +44,14 @@ enum ContainerOperationAppEnum: String, AppEnum {
 enum WebsiteToggleAppEnum: String, AppEnum {
     case start, stop
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "网站操作"
+    static var typeDisplayRepresentation: TypeDisplayRepresentation { "网站操作" }
 
-    static var caseDisplayRepresentations: [WebsiteToggleAppEnum: DisplayRepresentation] = [
-        .start: "启动",
-        .stop: "停止",
-    ]
+    static var caseDisplayRepresentations: [WebsiteToggleAppEnum: DisplayRepresentation] {
+        [
+            .start: "启动",
+            .stop: "停止",
+        ]
+    }
 
     var displayName: String {
         switch self {

@@ -118,8 +118,8 @@ struct SettingsTab: View {
 
 // MARK: - 主题
 
-/// CFBundleShortVersionString 读取失败的兜底版本号（升级版本时与 MARKETING_VERSION 同步改这一处）
-private let aboutFallbackVersion = "0.1.14"
+/// 版本号唯一来源：工程 MARKETING_VERSION（构建时注入 CFBundleShortVersionString，审计 E7）。
+/// 升级版本只改 pbxproj（或 `agvtool new-marketing-version <x.y.z>`），源码不再双写兜底版本号。
 
 /// 全局外观主题（rawValue 持久化于 UserDefaults）
 enum AppTheme: String, CaseIterable, Identifiable {
@@ -157,7 +157,7 @@ struct AboutSectionView: View {
     @Binding var isPresented: Bool
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? aboutFallbackVersion
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
     }
 
     var body: some View {
@@ -171,7 +171,7 @@ struct AboutSectionView: View {
                             .strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 1.5)
                             .frame(width: 34, height: 34)
                         Image(systemName: "info")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.panelScaled(14, weight: .medium))
                             .foregroundStyle(Color.accentColor)
                     }
                     VStack(alignment: .leading, spacing: 2) {
@@ -195,16 +195,26 @@ struct AboutSectionView: View {
     }
 }
 
-/// 关于详情：版本 / API 版本 / 1Panel 官网
+/// 关于详情：版本 / API 版本 / 1Panel 官网 / 隐私政策 / 诊断数据（本地）
 struct AboutDetailView: View {
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? aboutFallbackVersion
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
     }
+
+    var body: some View {
+        AboutDetailContent()
+            .navigationTitle(L10n.t("关于APP"))
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct AboutDetailContent: View {
+    @State private var showDiagnostics = false
 
     var body: some View {
         List {
             Section(L10n.t("版本信息")) {
-                LabeledContent(L10n.t("版本"), value: appVersion)
+                LabeledContent(L10n.t("版本"), value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0")
                 LabeledContent(L10n.t("API 版本"), value: "v2")
             }
             Section {
@@ -213,10 +223,64 @@ struct AboutDetailView: View {
                         Label(L10n.t("1Panel 官网"), systemImage: "safari")
                     }
                 }
+                // E5：App 内隐私政策入口；暂指仓库内文档，上架前可替换为正式地址
+                if let url = URL(string: "https://github.com/a412316/1panel/blob/main/docs/privacy-policy.md") {
+                    Link(destination: url) {
+                        Label(L10n.t("隐私政策"), systemImage: "hand.raised")
+                    }
+                }
+                Button {
+                    showDiagnostics = true
+                } label: {
+                    Label(L10n.t("诊断数据（本地）"), systemImage: "stethoscope")
+                }
             }
         }
-        .navigationTitle(L10n.t("关于APP"))
+        .navigationDestination(isPresented: $showDiagnostics) {
+            MetricDiagnosticsView()
+        }
+    }
+}
+
+/// ADR-0002：本地 MetricKit 诊断数据列表（仅落盘，不联网），支持系统分享导出
+struct MetricDiagnosticsView: View {
+    @State private var files: [URL] = []
+
+    var body: some View {
+        Group {
+            if files.isEmpty {
+                ContentUnavailableView(
+                    L10n.t("暂无诊断数据"),
+                    systemImage: "stethoscope",
+                    description: Text(L10n.t("崩溃与性能诊断由系统每日聚合，产生后会自动出现在这里"))
+                )
+            } else {
+                List {
+                    Section {
+                        ForEach(files, id: \.self) { url in
+                            HStack {
+                                Label(url.lastPathComponent,
+                                      systemImage: url.lastPathComponent.hasPrefix("diagnostic")
+                                          ? "exclamationmark.triangle" : "chart.bar")
+                                    .font(.footnote)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Spacer()
+                                ShareLink(item: url) {
+                                    Image(systemName: "square.and.arrow.up")
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                        }
+                    } footer: {
+                        Text(L10n.t("数据仅保存在本机（最近 30 天），不会自动上传；卸载 App 后即消失"))
+                    }
+                }
+            }
+        }
+        .navigationTitle(L10n.t("诊断数据（本地）"))
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { files = MetricStore.listFiles() }
     }
 }
 

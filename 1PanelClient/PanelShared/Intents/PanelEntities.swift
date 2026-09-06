@@ -21,7 +21,9 @@ struct PanelServerEntity: AppEntity {
         DisplayRepresentation(title: "\(name)", subtitle: "\(baseURL)")
     }
 
-    static var defaultQuery = PanelServerQuery()
+    // Swift 6：defaultQuery 为非隔离协议见证，改为计算属性——无静态存储即无非 Sendable
+    // 静态属性问题，且查询结构体无状态、按次构造无副作用
+    static var defaultQuery: PanelServerQuery { PanelServerQuery() }
 }
 
 struct PanelServerQuery: EntityQuery {
@@ -65,7 +67,7 @@ struct ContainerEntity: AppEntity {
         DisplayRepresentation(title: "\(name)", subtitle: "\(imageName ?? state)")
     }
 
-    static var defaultQuery = ContainerEntityQuery()
+    static var defaultQuery: ContainerEntityQuery { ContainerEntityQuery() }
 
     /// 容器名在同一服务器内唯一，作为实体标识
     var id: String { name }
@@ -117,7 +119,7 @@ struct WebsiteEntity: AppEntity {
         DisplayRepresentation(title: "\(domain)", subtitle: "\(status)")
     }
 
-    static var defaultQuery = WebsiteEntityQuery()
+    static var defaultQuery: WebsiteEntityQuery { WebsiteEntityQuery() }
 
     init(id: Int, domain: String, status: String, serverID: UUID) {
         self.id = id
@@ -165,7 +167,7 @@ struct CronjobEntity: AppEntity {
         DisplayRepresentation(title: "\(name)", subtitle: "\(spec)")
     }
 
-    static var defaultQuery = CronjobEntityQuery()
+    static var defaultQuery: CronjobEntityQuery { CronjobEntityQuery() }
 
     init(id: Int, name: String, spec: String, serverID: UUID) {
         self.id = id

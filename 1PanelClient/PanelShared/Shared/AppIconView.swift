@@ -73,7 +73,7 @@ struct AppIconView: View {
                         .fill(fallbackColor.opacity(0.18))
                         .frame(width: size, height: size)
                     Text(letter)
-                        .font(.system(size: size * 0.45, weight: .bold))
+                        .font(.panelScaled(size * 0.45, weight: .bold))
                         .foregroundStyle(fallbackColor)
                 }
             } else {

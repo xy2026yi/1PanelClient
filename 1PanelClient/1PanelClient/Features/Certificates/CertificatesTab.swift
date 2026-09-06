@@ -175,7 +175,7 @@ struct CertificatesTab: View {
                 ServiceAction(title: L10n.t("DNS 账户"), icon: "network", color: .teal) {
                     showDns = true
                 },
-                ServiceAction(title: L10n.t("自签证书"), icon: "certificate", color: .orange, customIcon: "icon-cert") {
+                ServiceAction(title: L10n.t("自签证书"), icon: "checkmark.seal", color: .orange, customIcon: "icon-cert") {
                     showCA = true
                 }
             ]
@@ -469,9 +469,9 @@ struct CertificateDetailView: View {
                         .foregroundStyle(.secondary)
                 }
             } else if logLines.isEmpty {
-                Text(L10n.t("暂无日志"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                // B3：空态形态统一为 ContentUnavailableView
+                ContentUnavailableView(L10n.t("暂无日志"), systemImage: "doc.text")
+                    .listRowBackground(Color.clear)
             } else {
                 ForEach(Array(logLines.enumerated()), id: \.offset) { _, line in
                     Text(line)

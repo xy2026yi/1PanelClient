@@ -10,6 +10,11 @@ struct _PanelClientApp: App {
     /// 全局外观主题（设置页可改），nil = 跟随系统
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
 
+    init() {
+        // ADR-0002：MetricKit 本地诊断（仅落盘，零上报）
+        MetricKitSubscriber.shared.start()
+    }
+
     var body: some Scene {
         WindowGroup {
             // DEBUG 直达调试页（Release 无此分支）：

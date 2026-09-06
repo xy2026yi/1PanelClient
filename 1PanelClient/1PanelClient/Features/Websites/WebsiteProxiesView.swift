@@ -332,7 +332,7 @@ struct WebsiteProxySourceView: View {
 
     var body: some View {
         TextEditor(text: $content)
-            .font(.system(size: 12, design: .monospaced))
+            .font(.panelScaled(12, design: .monospaced))
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
             .padding(.horizontal, 4)

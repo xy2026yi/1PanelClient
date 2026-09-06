@@ -67,7 +67,7 @@ struct WAFWebsiteSettingsView: View {
                     } else {
                         ContentUnavailableView(
                             L10n.t("暂无网站"),
-                            systemImage: "sitemap",
+                            systemImage: "globe",
                             description: Text(L10n.t("在面板创建网站后，可在此为其配置 WAF 防护。"))
                         )
                     }

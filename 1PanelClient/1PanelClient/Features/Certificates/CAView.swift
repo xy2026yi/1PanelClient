@@ -31,7 +31,7 @@ struct CAListView: View {
             } else if accounts.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无自签证书机构"),
-                    systemImage: "certificate",
+                    systemImage: "checkmark.seal",
                     description: Text(L10n.t("点击右上角按钮创建第一个 CA 机构"))
                 )
             } else {
@@ -130,7 +130,7 @@ struct CARow: View {
     var body: some View {
         HStack(spacing: 12) {
             IconBadge(
-                systemName: "certificate",
+                systemName: "checkmark.seal",
                 color: .purple,
                 cornerRadius: 12
             )

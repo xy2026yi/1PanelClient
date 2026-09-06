@@ -421,7 +421,7 @@ struct MonitorView: View {
                 .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text(String(format: "%.0f%%", percent))
-                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .font(.panelScaled(11, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(.primary)
         }
@@ -1010,7 +1010,7 @@ struct MonitorHistoryChart: View {
         GeometryReader { geo in
             ForEach(m.labels, id: \.self) { idx in
                 Text(labelFormatter.string(from: m.dates[idx]))
-                    .font(.system(size: 9))
+                    .font(.panelScaled(9))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .fixedSize()

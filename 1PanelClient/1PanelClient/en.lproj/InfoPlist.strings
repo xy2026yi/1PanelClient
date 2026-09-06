@@ -1,0 +1,5 @@
+/* English overrides for system-level prompts and Settings entries (base values in Info.plist are zh-Hans). */
+
+"NSFaceIDUsageDescription" = "Used to unlock the app and protect your server connections and API keys.";
+
+"NSLocalNetworkUsageDescription" = "Used to connect to 1Panel server panels on your local network to fetch status and monitoring data.";

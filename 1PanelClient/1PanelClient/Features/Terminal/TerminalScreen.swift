@@ -157,7 +157,7 @@ struct TerminalScreen: View {
             action()
         } label: {
             Text(label)
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .font(.panelScaled(12, weight: .medium, design: .monospaced))
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)

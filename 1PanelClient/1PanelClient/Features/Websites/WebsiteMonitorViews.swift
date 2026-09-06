@@ -614,7 +614,7 @@ struct WebsiteVisitorsChart: View {
         GeometryReader { geo in
             ForEach(tickIndices, id: \.self) { i in
                 Text(points[i].shortLabel)
-                    .font(.system(size: 9))
+                    .font(.panelScaled(9))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .fixedSize()

@@ -20,7 +20,7 @@ struct UpgradeSheetView: View {
             } else if vm.availableVersions.isEmpty {
                 ContentUnavailableView(
                     L10n.t("无可用版本"),
-                    systemImage: "arrow.up.circle.slash",
+                    systemImage: "arrow.up.circle",
                     description: Text(L10n.t("该应用暂无更高版本可供升级"))
                 )
             } else {

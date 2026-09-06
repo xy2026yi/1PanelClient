@@ -28,10 +28,18 @@ enum APIError: LocalizedError {
         case .decodingError(let msg):
             return L10n.f("数据解析失败: %@", msg)
         case .networkError(let err):
-            // 连接完全建立不起来时给出可操作的排查方向，而不只是系统错误文案
-            if let urlErr = err as? URLError,
-               [.cannotConnectToHost, .cannotFindHost, .timedOut, .notConnectedToInternet, .networkConnectionLost].contains(urlErr.code) {
-                return L10n.t("无法连接到服务器。请检查：地址与端口是否正确、服务器防火墙是否放行；在模拟器中运行时，还需在 macOS「系统设置 → 隐私与安全性 → 本地网络」中允许 Simulator。")
+            if let urlErr = err as? URLError {
+                // C3：超时单独成文。注意本地网络权限被拒（C1）在真机上也常表现为超时，
+                // 因此排查方向同时列「端口/防火墙」与「本地网络权限」两条
+                if urlErr.code == .timedOut {
+                    return L10n.t("连接超时。请检查：面板端口是否正确、服务器防火墙是否放行、面板是否在线；若连接的是局域网地址，还请在「设置 → 隐私与安全性 → 本地网络」中允许本 App（模拟器则在 macOS 同名设置中允许 Simulator）。")
+                }
+                // 连接完全建立不起来时给出可操作的排查方向，而不只是系统错误文案。
+                // 本地网络权限（C1）：真机连局域网面板被拒后同样表现为连接失败，
+                // 文案同时覆盖模拟器（macOS 设置）与真机（iOS 设置）两条指引路径
+                if [.cannotConnectToHost, .cannotFindHost, .notConnectedToInternet, .networkConnectionLost].contains(urlErr.code) {
+                    return L10n.t("无法连接到服务器。请检查：地址与端口是否正确、服务器防火墙是否放行。若连接的是局域网地址：模拟器需在 macOS「系统设置 → 隐私与安全性 → 本地网络」中允许 Simulator；iPhone/iPad 真机需在「设置 → 隐私与安全性 → 本地网络」中允许本 App（曾拒绝弹窗的只能在此手动开启）。")
+                }
             }
             return L10n.f("网络错误: %@", err.localizedDescription)
         case .notConfigured:
