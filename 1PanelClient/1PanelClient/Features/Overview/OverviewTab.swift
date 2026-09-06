@@ -547,15 +547,9 @@ struct StatCard: View {
                     ProgressView()
                         .scaleEffect(0.7)
                 } else {
-                    HStack(spacing: 4) {
-                        // 可点入口的视觉暗示：标题旁的导航箭头
-                        Text(title)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Image(systemName: "arrow.up.forward")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
+                    Text(title)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
             }
 

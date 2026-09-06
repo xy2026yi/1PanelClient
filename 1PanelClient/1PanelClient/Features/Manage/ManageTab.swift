@@ -20,17 +20,13 @@ struct ManageTab: View {
 
     /// 跨 Tab 跳转入口：外部（如 OverviewTab）设置此值时，自动 push 到对应页面
     @Binding var initialItem: ManageItem?
-    /// 向 MainTabView 同步导航深度：true=根列表，false=子页面（隐藏 Tab 栏）
-    @Binding var atRoot: Bool
 
     init(manager: ServerManager,
          navPath: Binding<NavigationPath> = .constant(NavigationPath()),
-         initialItem: Binding<ManageItem?> = .constant(nil),
-         atRoot: Binding<Bool> = .constant(true)) {
+         initialItem: Binding<ManageItem?> = .constant(nil)) {
         self.manager = manager
         self._navPath = navPath
         self._initialItem = initialItem
-        self._atRoot = atRoot
     }
 
     var body: some View {
@@ -113,19 +109,22 @@ struct ManageTab: View {
             }
             initialItem = nil
         }
-        .onChange(of: navPath.count) { _, count in
-            atRoot = count == 0
-        }
         .onReceive(NotificationCenter.default.publisher(for: .popAppDetail)) { _ in
             popToAppList()
         }
         .environmentObject(prefs)
     }
 
-    /// 跨 Tab 跳转：重置为单元素栈再进入目标页——
-    /// 避免从首页反复点击叠出 [monitor, monitor]（NavigationPath 无法读取栈内元素，无法按值去重）
+    /// 跨 Tab 跳转：进入目标页——
+    /// 避免从首页反复点击叠出 [monitor, monitor]（NavigationPath 无法读取栈内元素，无法按值去重）。
+    /// 空栈时直接 append：整体替换在 SwiftUI 内部等效 reset+push，
+    /// 一帧内两次导航更新会触发 NavigationRequestObserver「每帧多次更新」警告
     private func pushIfNeeded(_ item: ManageItem) {
-        navPath = NavigationPath([item])
+        if navPath.isEmpty {
+            navPath.append(item)
+        } else {
+            navPath = NavigationPath([item])
+        }
     }
 
     /// pop 回应用列表：重置为 [.apps]。

@@ -15,6 +15,7 @@
 //
 
 import SwiftUI
+import Combine
 
 /// 键盘快捷键（Cmd+1/2/3）请求切换 Tab；由 _PanelClientApp 的 .commands 发出
 extension Notification.Name {
@@ -37,7 +38,9 @@ struct MainTabView: View {
     @State private var windowWidth: CGFloat = 1024
     /// 窄窗口下用户在图标栏显式点「展开」：临时覆盖自动收起，回到宽窗口即清除
     @State private var narrowExpandRequested = false
-    /// 三个 Tab 各自的导航深度（根页面 = true 时显示底部 Tab 栏；仅 compact 分支使用）
+    /// 三个 Tab 各自的导航深度（根页面 = true 时显示底部 Tab 栏；仅 compact 分支使用）。
+    /// manageAtRoot 由 manageNavPath.count 延后一拍写入（见 body 的 onChange），
+    /// 单一写入方保证永远与导航深度收敛、不与真实栈状态失步
     @State private var manageAtRoot = true
     @State private var overviewAtRoot = true
     @State private var settingsAtRoot = true
@@ -61,6 +64,17 @@ struct MainTabView: View {
             // 会误伤新服务器上的数据；回根后重新 push 自然用新服务器构建
             .onChange(of: manager.currentServerID) { _, _ in
                 manageNavPath = NavigationPath()
+            }
+            // Tab 栏可见性对账：iOS 26 上 onChange(of: NavigationPath.count) 与
+            // 根列表 onAppear/onDisappear 都会偶发丢通知（back-button pop 时，
+            // 实测约 1/3 概率栏卡在隐藏）。改为周期与真相对账——失配才写，
+            // 推入帧天然与栏位变化解耦（不会触发 NavigationRequestObserver），
+            // 栏位最多晚一个采样周期（0.2s）跟随，永不失步
+            .onReceive(Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()) { _ in
+                let atRoot = manageNavPath.count == 0
+                if manageAtRoot != atRoot {
+                    manageAtRoot = atRoot
+                }
             }
     }
 
@@ -119,8 +133,12 @@ struct MainTabView: View {
                 selectedTab: $selectedTab,
                 atRoot: $overviewAtRoot,
                 onSelectManageItem: { item in
-                    pendingManageItem = item
+                    // 先提交 Tab 切换这一帧，下一拍再投递跳转目标；
+                    // Tab 栏收起已由 manageNavPath.count 的延后传播与 push 解耦
                     selectedTab = .manage
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        pendingManageItem = item
+                    }
                 }
             )
             .opacity(selectedTab == .overview ? 1 : 0)
@@ -129,8 +147,7 @@ struct MainTabView: View {
             ManageTab(
                 manager: manager,
                 navPath: $manageNavPath,
-                initialItem: $pendingManageItem,
-                atRoot: $manageAtRoot
+                initialItem: $pendingManageItem
             )
             .opacity(selectedTab == .manage ? 1 : 0)
             .allowsHitTesting(selectedTab == .manage)

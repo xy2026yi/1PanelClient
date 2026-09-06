@@ -175,10 +175,15 @@ struct TerminalScreen: View {
             }
             .disabled(!session.isConnected)
             Button(session.isConnected ? L10n.t("断开连接") : L10n.t("重新连接")) {
-                if session.isConnected {
-                    session.disconnect()
-                } else {
-                    session.connect()
+                // 等菜单完成收起再翻转连接状态：菜单可见期间 isConnected 变化
+                // 会触发 UIContextMenuInteraction updateVisibleMenu 系统警告
+                let shouldDisconnect = session.isConnected
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    if shouldDisconnect {
+                        session.disconnect()
+                    } else {
+                        session.connect()
+                    }
                 }
             }
             Button(L10n.t("放大字号")) {
