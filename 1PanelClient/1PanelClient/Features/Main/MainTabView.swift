@@ -39,8 +39,8 @@ struct MainTabView: View {
     /// 窄窗口下用户在图标栏显式点「展开」：临时覆盖自动收起，回到宽窗口即清除
     @State private var narrowExpandRequested = false
     /// 三个 Tab 各自的导航深度（根页面 = true 时显示底部 Tab 栏；仅 compact 分支使用）。
-    /// manageAtRoot 由 manageNavPath.count 延后一拍写入（见 body 的 onChange），
-    /// 单一写入方保证永远与导航深度收敛、不与真实栈状态失步
+    /// manageAtRoot 由 body 中的 0.2s 对账 Timer 依据 manageNavPath.count 写入
+    /// （失配才写，缘由见该处注释），单一写入方保证与导航深度收敛、不与真实栈状态失步
     @State private var manageAtRoot = true
     @State private var overviewAtRoot = true
     @State private var settingsAtRoot = true
