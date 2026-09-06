@@ -10,7 +10,7 @@ enum ConnectionTester {
     /// 返回 (success, message)
     /// 只校验鉴权与接口可达性，不依赖具体业务模型解码，避免字段差异导致误报
     static func test(_ server: ServerConfig) async -> (Bool, String) {
-        let client = APIClient(server: server)
+        let client = APIClient.shared(for: server)
         do {
             let raw = try await client.sendRaw(
                 path: APIEndpoint.deviceBase.path,

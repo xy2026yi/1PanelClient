@@ -29,7 +29,7 @@ struct WAFCcSettingsView: View {
         self.config = config
         self.scope = scope
         self.title = title
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -159,7 +159,7 @@ struct WAFAttackCountSettingsView: View {
         self.config = config
         self.scope = scope
         self.title = title
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -264,7 +264,7 @@ struct WAFLocationUpdateView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {

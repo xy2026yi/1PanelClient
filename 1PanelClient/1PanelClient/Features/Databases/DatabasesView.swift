@@ -19,7 +19,7 @@ final class DatabasesViewModel: ObservableObject {
     private let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var mysqlSystems: [DatabaseSystem] { systems.filter { ["mysql","mariadb","mysql-cluster"].contains($0.type.lowercased()) } }
@@ -108,7 +108,9 @@ struct DatabasesView: View {
     @StateObject private var vm: DatabasesViewModel
 
     init(server: ServerConfig) {
-        _vm = StateObject(wrappedValue: DatabasesViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.database.storeKey(server: server)) {
+            DatabasesViewModel(server: server)
+        })
     }
 
     var body: some View {
@@ -136,7 +138,8 @@ struct DatabasesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadSystems() }
         .task {
-            if vm.systems.isEmpty { await vm.loadSystems() }
+            // 重访（已有快照）时门控不转圈，这里静默刷新拿最新列表
+            await vm.loadSystems()
         }
         // 应用安装完成时刷新（如从「安装 XX」流程返回后，新装的数据库需重新拉取）
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
@@ -374,7 +377,7 @@ final class DatabaseSystemViewModel: ObservableObject {
 
     init(system: DatabaseSystem, server: ServerConfig) {
         self.system = system
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func refresh() async {

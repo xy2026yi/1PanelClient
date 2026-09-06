@@ -63,7 +63,7 @@ struct NodeDetailView: View {
         self.nodeID = nodeID
         self._navPath = navPath
         self.onReload = onReload
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     private var nodeName: String { item?.name ?? "" }
@@ -505,7 +505,7 @@ private struct NodeRenameSheet: View {
         self.server = server
         self.item = item
         self.onDone = onDone
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
         _name = State(initialValue: item.name)
         _descriptionText = State(initialValue: item.description ?? "")
         _selectedGroupID = State(initialValue: item.groupID ?? 0)
@@ -613,7 +613,7 @@ struct NodeUpgradeLogsView: View {
     init(server: ServerConfig, nodeID: Int) {
         self.server = server
         self.nodeID = nodeID
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {

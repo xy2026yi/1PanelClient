@@ -7,6 +7,10 @@ import Foundation
 import CryptoKit
 import os
 
+/// 初始化后全为 let（URLSession 自身线程安全），可跨隔离域共享
+/// （ServerCardMonitor 任务组、共享缓存 ClientCache）
+extension APIClient: @unchecked Sendable {}
+
 final class APIClient {
     let server: ServerConfig
     private let session: URLSession
@@ -44,6 +48,14 @@ final class APIClient {
         transferConfig.urlCache = nil
         transferConfig.httpCookieAcceptPolicy = .always
         self.transferSession = URLSession(configuration: transferConfig)
+    }
+
+    /// 共享缓存淘汰/清理时调用：释放三个 session 的连接池。
+    /// finishTasksAndInvalidate 让在途请求完成，此后该实例不再接受新请求
+    func invalidate() {
+        session.finishTasksAndInvalidate()
+        streamSession.finishTasksAndInvalidate()
+        transferSession.finishTasksAndInvalidate()
     }
 
     // MARK: - Token 签名

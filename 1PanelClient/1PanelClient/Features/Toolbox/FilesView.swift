@@ -72,7 +72,7 @@ struct FilesView: View {
     /// initialPath：外部跳转（如应用详情「目录」）指定的起始目录，默认 "/"
     init(server: ServerConfig, initialPath: String = "/") {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
         let start = initialPath.isEmpty ? "/" : initialPath
         _currentPath = State(initialValue: start)
         _pathHistory = State(initialValue: [start])
@@ -774,7 +774,7 @@ struct FileCreateSheet: View {
         self.isDir = isDir
         self.currentPath = currentPath
         self.onCreated = onCreated
-        self.client = APIClient(server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+        self.client = APIClient.shared(for: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
     }
 
     var body: some View {
@@ -844,7 +844,7 @@ struct FileRenameSheet: View {
     init(item: FileItem, onRenamed: @escaping () -> Void) {
         self.item = item
         self.onRenamed = onRenamed
-        self.client = APIClient(server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+        self.client = APIClient.shared(for: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
     }
 
     var body: some View {

@@ -91,7 +91,7 @@ final class Fail2banViewModel: ObservableObject {
     private let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var isInstalled: Bool { base?.isExist ?? false }
@@ -181,7 +181,9 @@ struct Fail2banView: View {
     }
 
     init(server: ServerConfig) {
-        _vm = StateObject(wrappedValue: Fail2banViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.fail2ban.storeKey(server: server)) {
+            Fail2banViewModel(server: server)
+        })
     }
 
     var body: some View {
@@ -592,7 +594,7 @@ struct FileBrowserView: View {
     init(server: ServerConfig, onPick: @escaping (String) -> Void) {
         self.server = server
         self.onPick = onPick
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -783,7 +785,7 @@ struct Fail2banFullConfigView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {

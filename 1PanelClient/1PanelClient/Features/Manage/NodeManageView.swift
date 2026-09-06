@@ -53,7 +53,7 @@ struct NodeManageView: View {
         self.manager = manager
         self.server = server
         self._navPath = navPath
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {

@@ -36,7 +36,7 @@ final class CreateDatabaseViewModel: ObservableObject {
 
     init(system: DatabaseSystem, server: ServerConfig) {
         self.system = system
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func loadFormats() async {
@@ -631,7 +631,7 @@ final class DatabaseUserDetailViewModel: ObservableObject {
         self.user = user
         self.system = system
         self.availableDatabases = availableDatabases
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func loadGrants() async {

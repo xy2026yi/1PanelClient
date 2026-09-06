@@ -22,7 +22,7 @@ final class WAFViewModel: ObservableObject {
     private let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     /// OpenResty 明确未安装（check 判定 isExist=false）

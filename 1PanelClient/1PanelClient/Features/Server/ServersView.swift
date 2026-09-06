@@ -144,7 +144,7 @@ struct ServersView: View {
         let path = APIEndpoint.dashboardSystemRestart.path
             .replacingOccurrences(of: ":target", with: target.rawValue)
         do {
-            let _: EmptyResponse = try await APIClient(server: server).send(path: path, as: EmptyResponse.self)
+            let _: EmptyResponse = try await APIClient.shared(for: server).send(path: path, as: EmptyResponse.self)
             toastMessage = target.successToast
         } catch let err as APIError {
             // 重启面板/服务器时，服务端收到请求后会主动断开连接（自身正在重启），

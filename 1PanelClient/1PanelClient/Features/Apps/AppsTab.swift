@@ -21,7 +21,9 @@ struct AppsTab: View {
     init(manager: ServerManager) {
         self.manager = manager
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
-        _vm = StateObject(wrappedValue: AppsViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.apps.storeKey(server: server)) {
+            AppsViewModel(server: server)
+        })
     }
 
     var body: some View {

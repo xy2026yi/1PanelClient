@@ -130,7 +130,7 @@ final class ProcessMonitor: ObservableObject {
 
     init(server: ServerConfig) {
         self.server = server
-        self.apiClient = APIClient(server: server)
+        self.apiClient = APIClient.shared(for: server)
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         config.waitsForConnectivity = false

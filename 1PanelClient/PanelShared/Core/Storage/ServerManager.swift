@@ -12,6 +12,9 @@ import os
 final class ServerManager: ObservableObject {
     static let shared = ServerManager()
 
+    /// 服务器被移除（object 为其 UUID）：PageVMStore 等监听清理关联缓存
+    static let serverDidRemove = Notification.Name("serverDidRemove")
+
     @Published private(set) var servers: [ServerConfig] = []
     @Published private(set) var currentServerID: UUID?
 
@@ -54,6 +57,9 @@ final class ServerManager: ObservableObject {
     func remove(_ server: ServerConfig) {
         servers.removeAll { $0.id == server.id }
         KeychainStore.delete(for: server.id.uuidString)
+        // 同步释放该服务器的共享连接池（下轮 ServerCardMonitor 轮询不会再重建它）
+        APIClient.purge(serverID: server.id)
+        NotificationCenter.default.post(name: Self.serverDidRemove, object: server.id)
         persistServers()
         if currentServerID == server.id {
             setCurrent(servers.first?.id)

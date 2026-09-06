@@ -77,7 +77,7 @@ struct OperationLogView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -176,7 +176,7 @@ struct LoginLogView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -274,7 +274,7 @@ struct SystemLogView: View {
     init(server: ServerConfig, nodeName: String? = nil) {
         self.server = server
         self.nodeName = nodeName
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     /// 显式指定节点时以查询参数路由（优先级高于请求头）
@@ -384,7 +384,7 @@ struct SSHLogView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -482,7 +482,7 @@ struct WebsiteLogsView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     /// 当前选中网站

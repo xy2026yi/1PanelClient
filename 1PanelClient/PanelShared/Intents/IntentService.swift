@@ -31,7 +31,7 @@ enum IntentService {
     // MARK: - 查询
 
     static func dashboardCurrent(_ server: ServerConfig) async throws -> DashboardCurrent {
-        let client = APIClient(server: server)
+        let client = APIClient.shared(for: server)
         return try await client.send(
             path: APIEndpoint.dashboardCurrent.path,
             method: APIEndpoint.dashboardCurrent.method,
@@ -40,7 +40,7 @@ enum IntentService {
     }
 
     static func listContainers(_ server: ServerConfig) async throws -> [Container] {
-        let client = APIClient(server: server)
+        let client = APIClient.shared(for: server)
         let resp: ContainerListResponse = try await client.send(
             path: APIEndpoint.containersSearch.path,
             body: ContainerSearchRequest(page: 1, pageSize: 200, name: "", state: "all",
@@ -51,7 +51,7 @@ enum IntentService {
     }
 
     static func listWebsites(_ server: ServerConfig) async throws -> [Website] {
-        let client = APIClient(server: server)
+        let client = APIClient.shared(for: server)
         let resp: WebsiteListResponse = try await client.send(
             path: APIEndpoint.websitesSearch.path,
             body: WebsiteSearchRequest(name: "", page: 1, pageSize: 200, orderBy: "created_at",
@@ -62,7 +62,7 @@ enum IntentService {
     }
 
     static func listCronjobs(_ server: ServerConfig) async throws -> [Cronjob] {
-        let client = APIClient(server: server)
+        let client = APIClient.shared(for: server)
         let resp: CronjobListResponse = try await client.send(
             path: APIEndpoint.cronjobsSearch.path,
             body: CronjobSearchRequest(),
@@ -74,7 +74,7 @@ enum IntentService {
     // MARK: - 操作
 
     static func operateContainer(_ server: ServerConfig, name: String, operation: String) async throws {
-        let client = APIClient(server: server)
+        let client = APIClient.shared(for: server)
         let _: EmptyResponse = try await client.send(
             path: APIEndpoint.containersOperate.path,
             body: ContainerOperateRequest(names: [name], operation: operation, taskID: UUID().uuidString),
@@ -83,7 +83,7 @@ enum IntentService {
     }
 
     static func operateWebsite(_ server: ServerConfig, id: Int, operate: String) async throws {
-        let client = APIClient(server: server)
+        let client = APIClient.shared(for: server)
         struct Req: Encodable { let id: Int; let operate: String }
         let _: EmptyResponse = try await client.send(
             path: APIEndpoint.websitesOperate.path,
@@ -93,7 +93,7 @@ enum IntentService {
     }
 
     static func runCronjob(_ server: ServerConfig, id: Int) async throws {
-        let client = APIClient(server: server)
+        let client = APIClient.shared(for: server)
         let _: EmptyResponse = try await client.send(
             path: APIEndpoint.cronjobsHandle.path,
             body: CronjobHandleRequest(id: id),

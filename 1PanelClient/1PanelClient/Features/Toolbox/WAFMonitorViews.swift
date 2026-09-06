@@ -64,7 +64,7 @@ struct WAFOverviewView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -282,7 +282,7 @@ struct WAFInterceptLogsView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -480,7 +480,7 @@ struct WAFBlockRecordsView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {

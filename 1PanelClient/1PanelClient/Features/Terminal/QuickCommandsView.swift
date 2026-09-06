@@ -347,7 +347,7 @@ final class QuickCommandsViewModel: ObservableObject {
     private let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var defaultGroupID: Int {

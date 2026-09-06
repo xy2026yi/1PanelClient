@@ -223,13 +223,31 @@ nonisolated struct BackupAccountDeleteRequest: Encodable {
 
 @MainActor
 final class BackupAccountsViewModel: ObservableObject {
+    /// 列表数据放 VM（PageVMStore 常驻）：重访页面直接渲染上次数据
+    @Published var accounts: [BackupAccount] = []
+    @Published var isLoading = false
+    /// 首屏加载失败（空态展示重试按钮）；已有数据时刷新失败仅弹提示、保留旧列表
+    @Published var loadFailed = false
     @Published var showAlert = false
     @Published var alertMessage = ""
 
     private let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
+    }
+
+    /// 列表加载（进页 / 下拉 / 增删后）：失败保留旧数据
+    func refresh() async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+        if let list = await loadAccounts() {
+            accounts = list
+            loadFailed = false
+        } else if accounts.isEmpty {
+            loadFailed = true
+        }
     }
 
     /// 加载全部账号（按 total 分页拉全）；失败返回 nil（调用方保留旧数据）
@@ -335,32 +353,30 @@ enum ConnectionCheckState: Equatable {
 
 struct BackupAccountsView: View {
     @StateObject private var vm: BackupAccountsViewModel
-    @State private var accounts: [BackupAccount] = []
-    @State private var isLoading = false
-    /// 首屏加载失败（空态展示重试按钮）；已有数据时刷新失败仅弹提示、保留旧列表
-    @State private var loadFailed = false
     @State private var showCreate = false
     @State private var pendingDelete: BackupAccount?
 
     init(server: ServerConfig) {
-        _vm = StateObject(wrappedValue: BackupAccountsViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.backupAccount.storeKey(server: server)) {
+            BackupAccountsViewModel(server: server)
+        })
     }
 
     var body: some View {
         Group {
-            if isLoading && accounts.isEmpty {
+            if vm.isLoading && vm.accounts.isEmpty {
                 LoadingStateView()
-            } else if accounts.isEmpty && loadFailed {
+            } else if vm.accounts.isEmpty && vm.loadFailed {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(L10n.t("无法连接服务器，请检查网络后重试"))
                 } actions: {
                     Button(L10n.t("重试")) {
-                        Task { await load() }
+                        Task { await vm.refresh() }
                     }
                 }
-            } else if accounts.isEmpty {
+            } else if vm.accounts.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无备份账号"),
                     systemImage: "externaldrive.badge.icloud",
@@ -384,11 +400,11 @@ struct BackupAccountsView: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             BackupAccountEditView(vm: vm, existing: nil) {
-                Task { await load() }
+                Task { await vm.refresh() }
             }
         }
-        .task { await load() }
-        .refreshable { await load() }
+        .task { await vm.refresh() }
+        .refreshable { await vm.refresh() }
         .alert(L10n.t("删除备份账号"), isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
@@ -399,7 +415,7 @@ struct BackupAccountsView: View {
                 if let account = pendingDelete {
                     Task {
                         if await vm.deleteAccount(id: account.id) {
-                            await load()
+                            await vm.refresh()
                         }
                     }
                 }
@@ -420,11 +436,11 @@ struct BackupAccountsView: View {
     private var accountList: some View {
         List {
             Section {
-                ForEach(accounts) { account in
+                ForEach(vm.accounts) { account in
                     if account.isEditable {
                         NavigationLink {
                             BackupAccountEditView(vm: vm, existing: account) {
-                                Task { await load() }
+                                Task { await vm.refresh() }
                             }
                         } label: {
                             BackupAccountRow(account: account)
@@ -456,19 +472,6 @@ struct BackupAccountsView: View {
             }
         }
         .listStyle(.insetGrouped)
-    }
-
-    private func load() async {
-        guard !isLoading else { return }
-        isLoading = true
-        defer { isLoading = false }
-        // 加载失败保留旧列表（loadAccounts 失败返回 nil 并已弹提示）
-        if let list = await vm.loadAccounts() {
-            accounts = list
-            loadFailed = false
-        } else if accounts.isEmpty {
-            loadFailed = true
-        }
     }
 }
 

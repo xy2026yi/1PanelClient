@@ -34,7 +34,7 @@ struct WAFCdnSettingsView: View {
         self.vm = vm
         self.server = server
         self.config = config
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     private var isOn: Bool { vm.config?.cdn?.state == "on" }

@@ -42,7 +42,7 @@ struct WAFSpiderPoolView: View {
     init(server: ServerConfig, item: WAFRuleItem?) {
         self.server = server
         self.item = item
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
         // 全局配置带 rules 则按其回显，否则默认全选
         _selected = State(initialValue: Set(item?.rules ?? Self.allValues))
         _isEnabled = State(initialValue: item?.isOn ?? false)

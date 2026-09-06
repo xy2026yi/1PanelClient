@@ -30,7 +30,7 @@ struct WAFIPRulesView: View {
         self.server = server
         self.scope = scope
         self.title = title
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -225,7 +225,7 @@ struct WAFIPRuleFormView: View {
         self.scope = scope
         self.editingItem = editingItem
         self.onSaved = onSaved
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
         if let item = editingItem {
             _ipType = State(initialValue: item.type)
             _ipv4 = State(initialValue: item.ipv4 ?? "")

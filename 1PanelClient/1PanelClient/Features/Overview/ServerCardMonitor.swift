@@ -28,7 +28,7 @@ final class ServerCardMonitor: ObservableObject {
         await withTaskGroup(of: (UUID, DashboardCurrent?).self) { group in
             for s in targets {
                 group.addTask {
-                    let client = APIClient(server: s)
+                    let client = APIClient.shared(for: s)
                     let resp: DashboardCurrent? = try? await client.send(
                         path: APIEndpoint.dashboardCurrent.path,
                         method: APIEndpoint.dashboardCurrent.method,

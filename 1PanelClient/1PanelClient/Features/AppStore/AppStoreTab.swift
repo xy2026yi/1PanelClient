@@ -889,7 +889,7 @@ final class AppStoreViewModel: ObservableObject {
     let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func refresh() async {

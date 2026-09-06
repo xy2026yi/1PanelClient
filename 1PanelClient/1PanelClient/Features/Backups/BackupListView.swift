@@ -44,7 +44,7 @@ final class BackupViewModel: ObservableObject {
 
     init(target: BackupTarget, server: ServerConfig) {
         self.target = target
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     // MARK: - 查询

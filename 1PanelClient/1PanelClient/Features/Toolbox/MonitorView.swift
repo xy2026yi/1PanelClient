@@ -65,7 +65,7 @@ final class MonitorViewModel: ObservableObject {
     private let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     /// 首次进入/下拉刷新：历史曲线 + 实时数值并发拉取
@@ -192,7 +192,9 @@ struct MonitorView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        _vm = StateObject(wrappedValue: MonitorViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.monitor.storeKey(server: server)) {
+            MonitorViewModel(server: server)
+        })
     }
 
     var body: some View {

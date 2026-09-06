@@ -618,11 +618,11 @@ final class OverviewViewModel: ObservableObject {
     var hasData: Bool { base != nil || osInfo != nil || deviceInfo != nil }
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func switchServer(_ server: ServerConfig) {
-        client = APIClient(server: server)
+        client = APIClient.shared(for: server)
         base = nil
         osInfo = nil
         deviceInfo = nil
@@ -756,7 +756,7 @@ struct PanelUpgradeView: View {
         self.server = server
         self.initialCurrentVersion = currentVersion
         self.initialUpgradeInfo = upgradeInfo
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {

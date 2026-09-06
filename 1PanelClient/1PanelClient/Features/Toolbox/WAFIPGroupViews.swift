@@ -25,7 +25,7 @@ struct WAFIPGroupsView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -177,7 +177,7 @@ struct WAFCreateIPGroupView: View {
     init(server: ServerConfig, onCreated: @escaping () -> Void) {
         self.server = server
         self.onCreated = onCreated
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
@@ -259,7 +259,7 @@ struct WAFIPGroupEditView: View {
         self.server = server
         self.item = item
         self.onUpdated = onUpdated
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {

@@ -43,7 +43,7 @@ final class WebsitesViewModel: ObservableObject {
     private(set) var client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     /// OpenResty 明确未安装（check 判定未装且已装列表也无记录）

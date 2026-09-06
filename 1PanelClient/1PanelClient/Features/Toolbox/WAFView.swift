@@ -19,7 +19,9 @@ struct WAFView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        _vm = StateObject(wrappedValue: WAFViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.waf.storeKey(server: server)) {
+            WAFViewModel(server: server)
+        })
         _installStoreVM = StateObject(wrappedValue: AppStoreViewModel(server: server))
     }
 

@@ -59,7 +59,7 @@ final class AppsViewModel: ObservableObject {
     }
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func refresh() async {

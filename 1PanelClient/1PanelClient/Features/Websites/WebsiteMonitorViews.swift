@@ -38,7 +38,7 @@ struct WebsiteMonitorView: View {
     init(server: ServerConfig, website: Website? = nil) {
         self.server = server
         self.website = website
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
         _selectedID = State(initialValue: website?.id ?? 0)
     }
 

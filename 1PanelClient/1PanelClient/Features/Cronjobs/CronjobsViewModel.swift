@@ -49,7 +49,7 @@ final class CronjobsViewModel: ObservableObject {
     private(set) var client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func refresh() async {

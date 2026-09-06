@@ -20,7 +20,9 @@ struct ContainersTab: View {
     init(manager: ServerManager) {
         self.manager = manager
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
-        _vm = StateObject(wrappedValue: ContainersViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.containers.storeKey(server: server)) {
+            ContainersViewModel(server: server)
+        })
     }
 
     var body: some View {

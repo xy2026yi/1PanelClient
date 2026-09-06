@@ -66,7 +66,7 @@ struct AddNodeView: View {
         self.editing = editing
         self.currentNode = currentNode
         self.onCreate = onCreate
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
 
         if let e = editing {
             _addr = State(initialValue: e.addr ?? "")

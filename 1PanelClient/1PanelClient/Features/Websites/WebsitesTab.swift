@@ -26,7 +26,9 @@ struct WebsitesTab: View {
     init(manager: ServerManager) {
         self.manager = manager
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
-        _vm = StateObject(wrappedValue: WebsitesViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.websiteList.storeKey(server: server)) {
+            WebsitesViewModel(server: server)
+        })
         _openRestyInstallVM = StateObject(wrappedValue: AppStoreViewModel(server: server))
     }
 

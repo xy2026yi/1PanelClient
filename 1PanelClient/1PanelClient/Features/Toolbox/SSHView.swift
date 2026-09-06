@@ -54,7 +54,7 @@ final class SSHViewModel: ObservableObject {
     private let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func loadConfig() async {
@@ -115,7 +115,9 @@ struct SSHView: View {
     }
 
     init(server: ServerConfig) {
-        _vm = StateObject(wrappedValue: SSHViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.sshService.storeKey(server: server)) {
+            SSHViewModel(server: server)
+        })
     }
 
     var body: some View {
@@ -369,7 +371,7 @@ struct SSHFullConfigView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {

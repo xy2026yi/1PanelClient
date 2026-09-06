@@ -26,7 +26,9 @@ struct CertificatesTab: View {
     init(manager: ServerManager) {
         self.manager = manager
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
-        _vm = StateObject(wrappedValue: CertificatesViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.certificates.storeKey(server: server)) {
+            CertificatesViewModel(server: server)
+        })
     }
 
     var body: some View {
@@ -658,7 +660,7 @@ final class CertificatesViewModel: ObservableObject {
     private(set) var client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func refresh() async {

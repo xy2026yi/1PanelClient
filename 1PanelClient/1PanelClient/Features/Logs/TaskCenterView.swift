@@ -26,7 +26,7 @@ struct TaskCenterView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     private var hasMore: Bool { items.count < total }
@@ -203,7 +203,7 @@ struct TaskLogDetailView: View {
     init(server: ServerConfig, task: TaskCenterItem) {
         self.server = server
         self.task = task
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     var body: some View {

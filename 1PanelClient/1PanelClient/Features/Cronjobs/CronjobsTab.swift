@@ -19,7 +19,9 @@ struct CronjobsTab: View {
     init(manager: ServerManager) {
         self.manager = manager
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
-        _vm = StateObject(wrappedValue: CronjobsViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.cronjobList.storeKey(server: server)) {
+            CronjobsViewModel(server: server)
+        })
     }
 
     var body: some View {

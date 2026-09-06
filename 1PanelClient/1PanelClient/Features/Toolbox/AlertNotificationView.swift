@@ -23,7 +23,9 @@ struct AlertNotificationView: View {
     @State private var showNoConfigAlert = false
 
     init(server: ServerConfig) {
-        _vm = StateObject(wrappedValue: AlertViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.alert.storeKey(server: server)) {
+            AlertViewModel(server: server)
+        })
     }
 
     var body: some View {
@@ -534,7 +536,7 @@ final class AlertViewModel: ObservableObject {
     private let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func refreshAll() async {

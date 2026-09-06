@@ -22,7 +22,7 @@ final class DatabaseDetailViewModel: ObservableObject {
     init(database: DatabaseItem, system: DatabaseSystem, server: ServerConfig) {
         self.database = database
         self.system = system
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     private var searchPath: String {

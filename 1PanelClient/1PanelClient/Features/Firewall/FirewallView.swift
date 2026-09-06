@@ -28,18 +28,23 @@ final class FirewallViewModel: ObservableObject {
     private let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func refresh() async {
-        // 六个请求互不依赖，并行发出缩短进页耗时
+        isLoading = true
+        // 首屏四请求（状态卡 + 端口/转发/IP 规则）并行，完成即结束整页加载态；
+        // 空数据页面不再陪跑最慢的辅助请求
         async let base: () = loadBase()
         async let rules: () = loadRules()
-        async let listening: () = loadListening()
         async let forwards: () = loadForwards()
         async let addresses: () = loadAddresses()
+        _ = await (base, rules, forwards, addresses)
+        isLoading = false
+        // 辅助数据（监听进程名/网口选项）静默补齐，行内稍后出现，失败无感
+        async let listening: () = loadListening()
         async let nets: () = loadNetOptions()
-        _ = await (base, rules, listening, forwards, addresses, nets)
+        _ = await (listening, nets)
     }
 
     func loadBase() async {
@@ -409,7 +414,9 @@ struct FirewallView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        _vm = StateObject(wrappedValue: FirewallViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.firewall.storeKey(server: server)) {
+            FirewallViewModel(server: server)
+        })
     }
 
     var body: some View {
@@ -442,11 +449,8 @@ struct FirewallView: View {
             }
         }
         .task {
-            if vm.base == nil {
-                vm.isLoading = true
-                await vm.refresh()
-                vm.isLoading = false
-            }
+            // 已有快照（重访）时门控不显示转圈，这里静默刷新即可
+            await vm.refresh()
         }
         .overlay {
             if vm.isLoading && vm.base == nil {
@@ -1143,7 +1147,7 @@ struct FirewallPortWhitelistView: View {
     init(server: ServerConfig, onSaved: @escaping () -> Void) {
         self.server = server
         self.onSaved = onSaved
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     private var hasChanges: Bool { entries != originalEntries }

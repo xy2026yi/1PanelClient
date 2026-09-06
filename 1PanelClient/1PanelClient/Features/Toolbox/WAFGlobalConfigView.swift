@@ -197,7 +197,7 @@ struct WAFConfigItemView: View {
         self.scope = scope
         self.updateType = updateType
         self.item = item
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
         _isEnabled = State(initialValue: item?.isOn ?? false)
     }
 

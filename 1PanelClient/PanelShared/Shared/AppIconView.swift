@@ -114,7 +114,7 @@ struct AppIconView: View {
         }
         let path = APIEndpoint.appsIcon.path.replacingOccurrences(of: ":appID", with: pathParam)
         let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: baseURL, apiKey: "")
-        let client = APIClient(server: server)
+        let client = APIClient.shared(for: server)
         do {
             let data = try await client.fetchImage(
                 path: path,

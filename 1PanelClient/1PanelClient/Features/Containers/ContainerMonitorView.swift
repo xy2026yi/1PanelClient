@@ -35,7 +35,7 @@ final class ContainerMonitorViewModel: ObservableObject {
     private let client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     /// 拉取一次快照并追加到各曲线

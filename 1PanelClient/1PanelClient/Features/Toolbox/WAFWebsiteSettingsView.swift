@@ -39,7 +39,7 @@ struct WAFWebsiteSettingsView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     private var selected: WAFWebsiteItem? {

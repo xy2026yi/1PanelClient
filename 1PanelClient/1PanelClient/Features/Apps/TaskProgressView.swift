@@ -179,7 +179,7 @@ struct TaskProgressView: View {
     }
 
     private func startPolling() async {
-        let client = APIClient(server: server)
+        let client = APIClient.shared(for: server)
         let req = TaskLogReadRequest(
             id: 0, type: "task", name: "",
             page: 1, pageSize: 500,

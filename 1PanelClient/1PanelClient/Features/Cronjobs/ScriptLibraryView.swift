@@ -24,7 +24,7 @@ final class ScriptLibraryViewModel: ObservableObject {
     private var client: APIClient
 
     init(server: ServerConfig) {
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     func load(query: String = "") async {
@@ -137,7 +137,9 @@ struct ScriptLibraryView: View {
     var onPick: ((ScriptItem) -> Void)?
 
     init(server: ServerConfig, onPick: ((ScriptItem) -> Void)? = nil) {
-        _vm = StateObject(wrappedValue: ScriptLibraryViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.scriptLibrary.storeKey(server: server)) {
+            ScriptLibraryViewModel(server: server)
+        })
         self.server = server
         self.onPick = onPick
     }
@@ -246,7 +248,8 @@ struct ScriptLibraryView: View {
             }
         }
         .task {
-            if vm.scripts.isEmpty { await vm.load() }
+            // 重访（已有快照）时门控不转圈，这里静默刷新
+            await vm.load()
             await vm.loadAutoSync()
         }
         .onChange(of: searchText) { _, newValue in

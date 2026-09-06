@@ -34,7 +34,7 @@ struct WAFCommonRulesView: View {
         self.scope = scope
         self.title = title
         self.builtin = builtin
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     /// 全列表唯一类型（如文件上传限制恒为 fileExt）：徽标此时冗余，不显示
@@ -259,7 +259,7 @@ struct WAFCommonRuleFormView: View {
         self.scope = scope
         self.editingItem = editingItem
         self.onSaved = onSaved
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
         if let item = editingItem {
             _rule = State(initialValue: item.rule)
             _description = State(initialValue: item.description ?? "")
@@ -352,7 +352,7 @@ private struct WAFRuleApplySheet: View {
         self.server = server
         self.scope = scope
         self.onApplied = onApplied
-        self.client = APIClient(server: server)
+        self.client = APIClient.shared(for: server)
     }
 
     private var allSelected: Bool {
