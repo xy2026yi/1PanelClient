@@ -103,6 +103,8 @@ final class Fail2banViewModel: ObservableObject {
             base = try await client.send(path: APIEndpoint.fail2banBase.path, method: "GET", as: Fail2banBase.self)
             errorMessage = nil
         } catch {
+            // 页面退出取消不是失败：保留原状态
+            guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
         }
     }
@@ -144,6 +146,8 @@ final class Fail2banViewModel: ObservableObject {
             if status == "ignore" { whitelist = resp }
             else { blacklist = resp }
         } catch {
+            // 页面退出取消不是失败：保留原快照
+            guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
         }
     }
@@ -213,7 +217,7 @@ struct Fail2banView: View {
         .navigationTitle("Fail2ban")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadBase() }
-        .task { await vm.loadBase() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.loadBase() } }
         .localToast(message: $vm.successMessage)
         .alert(
             pendingAction.map { fail2banActionDisplayName($0) } ?? "",

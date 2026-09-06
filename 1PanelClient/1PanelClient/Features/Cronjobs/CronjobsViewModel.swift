@@ -65,9 +65,12 @@ final class CronjobsViewModel: ObservableObject {
             )
             cronjobs = resp.items ?? []
         } catch let err as APIError {
+            // 页面退出取消不是失败：保留原快照、不弹窗
+            guard !err.isCancellation else { return }
             errorMessage = err.errorDescription
             showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
+            guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
             showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
         }

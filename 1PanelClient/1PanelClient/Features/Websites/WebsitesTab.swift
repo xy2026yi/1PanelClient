@@ -40,7 +40,7 @@ struct WebsitesTab: View {
         Text(vm.alertMessage)
         }
         .toastOverlay(message: $vm.toastMessage)
-        .task { await vm.refresh() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
         // 安装完成（含从本页未安装入口发起的安装）后重查安装状态并刷新列表
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
             Task { await vm.refresh(force: true) }

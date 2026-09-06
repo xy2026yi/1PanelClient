@@ -39,6 +39,8 @@ final class ScriptLibraryViewModel: ObservableObject {
             )
             self.scripts = resp.items ?? []
         } catch {
+            // 页面退出取消不是失败：保留原快照
+            guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
             self.scripts = []
         }
@@ -55,6 +57,8 @@ final class ScriptLibraryViewModel: ObservableObject {
             )
             isAutoSyncEnabled = (info.scriptSync ?? "Enable") == "Enable"
         } catch {
+            // 页面退出取消不是失败：保留上次开关状态
+            guard !APIError.isCancellation(error) else { return }
             isAutoSyncEnabled = true
         }
     }
@@ -248,9 +252,11 @@ struct ScriptLibraryView: View {
             }
         }
         .task {
-            // 重访（已有快照）时门控不转圈，这里静默刷新
-            await vm.load()
-            await vm.loadAutoSync()
+            // 重访（已有快照）时门控不转圈，这里静默刷新（5 秒内重访节流）
+            await PageVMStore.shared.autoRefresh(vm: vm) {
+                await vm.load()
+                await vm.loadAutoSync()
+            }
         }
         .onChange(of: searchText) { _, newValue in
             searchTask?.cancel()

@@ -141,6 +141,8 @@ final class MonitorViewModel: ObservableObject {
                 as: [MonitorSeries].self
             )
         } catch {
+            // 页面退出取消不是失败：保留原快照
+            guard !APIError.isCancellation(error) else { return nil }
             errorMessage = error.localizedDescription
             return nil
         }

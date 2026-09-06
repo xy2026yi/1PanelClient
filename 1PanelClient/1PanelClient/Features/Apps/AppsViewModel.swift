@@ -92,6 +92,8 @@ final class AppsViewModel: ObservableObject {
             )
             linkedWebsites = (resp.items ?? []).filter { $0.appInstallId == appID }
         } catch {
+            // 页面退出取消不是失败：保留 nil（加载中）而非空（无关联）
+            guard !APIError.isCancellation(error) else { return }
             linkedWebsites = []
         }
     }
@@ -158,9 +160,12 @@ final class AppsViewModel: ObservableObject {
             }
             self.apps = apps
         } catch let err as APIError {
+            // 页面退出取消不是失败：保留原快照
+            guard !err.isCancellation else { return }
             self.errorMessage = err.errorDescription
             self.apps = []
         } catch {
+            guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
             self.apps = []
         }

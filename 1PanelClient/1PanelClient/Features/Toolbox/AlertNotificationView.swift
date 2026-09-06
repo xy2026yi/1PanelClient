@@ -134,7 +134,7 @@ struct AlertNotificationView: View {
                 AlertSendMethodEditView(vm: vm, editing: config)
             }
         }
-        .task { await vm.refreshAll() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refreshAll() } }
     }
 
     // MARK: - 段切换（List 首个 Section，与监控/证书详情一致）
@@ -561,6 +561,8 @@ final class AlertViewModel: ObservableObject {
             )
             rules = resp.items ?? []
         } catch {
+            // 页面退出取消不是失败：保留原快照
+            guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
         }
     }

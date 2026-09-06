@@ -33,7 +33,7 @@ struct CertificatesTab: View {
 
     var body: some View {
         rootContent
-        .task { await vm.refresh() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -676,9 +676,12 @@ final class CertificatesViewModel: ObservableObject {
             )
             certificates = resp.items ?? []
         } catch let err as APIError {
+            // 页面退出取消不是失败：保留原快照、不弹窗
+            guard !err.isCancellation else { return }
             errorMessage = err.errorDescription
             showAlert(message: L10n.f("加载失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
+            guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
             showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
         }

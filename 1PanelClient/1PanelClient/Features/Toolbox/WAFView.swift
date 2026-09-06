@@ -46,7 +46,7 @@ struct WAFView: View {
         .navigationTitle("WAF")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadAll() }
-        .task { await vm.loadAll() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.loadAll() } }
         // 从安装入口装完 OpenResty 后自动重查，返回本页即见 WAF 内容
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
             Task { await vm.loadAll() }

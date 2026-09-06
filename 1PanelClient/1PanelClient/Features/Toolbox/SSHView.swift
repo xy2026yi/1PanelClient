@@ -65,6 +65,8 @@ final class SSHViewModel: ObservableObject {
             config = resp
             errorMessage = nil
         } catch {
+            // 页面退出取消不是失败：保留原配置
+            guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
         }
     }
@@ -148,7 +150,7 @@ struct SSHView: View {
             }
         }
         .refreshable { await vm.loadConfig() }
-        .task { await vm.loadConfig() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.loadConfig() } }
         .localToast(message: $vm.successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(
             get: { vm.errorMessage != nil },

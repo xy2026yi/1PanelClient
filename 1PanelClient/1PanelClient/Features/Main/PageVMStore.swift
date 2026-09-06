@@ -48,6 +48,35 @@ final class PageVMStore {
         return created
     }
 
+    /// 重访自动刷新的节流表：VM 实例身份 → 上次自动刷新时间。
+    /// 持弱引用判活——VM 释放后地址可能被新实例复用，弱引用已置 nil 的
+    /// 条目必须先清掉，否则新实例会继承旧节流窗口、首次进页不刷新
+    private struct ThrottleEntry {
+        weak var vm: AnyObject?
+        var at: Date
+    }
+    private var autoRefreshedAt: [ObjectIdentifier: ThrottleEntry] = [:]
+
+    /// 进页 .task 静默刷新的节流：同一常驻 VM 在 ttl 秒内重访只自动刷一次，
+    /// 快照照常即时渲染。手动路径（下拉刷新、重试按钮、通知触达）不经此，
+    /// 不受影响。按 VM 实例而非 store key 记录——实例与页面+服务器+配置
+    /// 一一对应，且 LRU 淘汰换新实例后自动恢复全量刷新。
+    /// 节流窗口在刷新**完成**后记录：中途退出页面（.task 取消）不算完成，
+    /// 重访必重刷，快照不会卡在取消时的半途状态
+    func autoRefresh(vm: AnyObject, ttl: TimeInterval = 5, action: () async -> Void) async {
+        let now = Date.now
+        // 清掉宿主 VM 已释放或超过 1 分钟的旧记录，防长会话累积
+        autoRefreshedAt = autoRefreshedAt.filter {
+            $0.value.vm != nil && now.timeIntervalSince($0.value.at) < 60
+        }
+        let id = ObjectIdentifier(vm)
+        if let last = autoRefreshedAt[id], now.timeIntervalSince(last.at) < ttl { return }
+        await action()
+        if !Task.isCancelled {
+            autoRefreshedAt[id] = ThrottleEntry(vm: vm, at: Date.now)
+        }
+    }
+
     /// 清掉某台服务器相关的全部页面 VM（服务器被移除时）
     func purge(serverID: UUID) {
         let marker = "|\(serverID.uuidString)|"

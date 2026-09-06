@@ -245,6 +245,9 @@ final class BackupAccountsViewModel: ObservableObject {
         if let list = await loadAccounts() {
             accounts = list
             loadFailed = false
+        } else if Task.isCancelled {
+            // 页面退出取消不是失败：不标加载失败
+            return
         } else if accounts.isEmpty {
             loadFailed = true
         }
@@ -271,6 +274,8 @@ final class BackupAccountsViewModel: ObservableObject {
             }
             return all
         } catch {
+            // 页面退出取消不是失败：不弹窗
+            guard !APIError.isCancellation(error) else { return nil }
             showAlert(message: L10n.f("加载备份账号失败：%@", error.localizedDescription))
             return nil
         }
@@ -403,7 +408,7 @@ struct BackupAccountsView: View {
                 Task { await vm.refresh() }
             }
         }
-        .task { await vm.refresh() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
         .refreshable { await vm.refresh() }
         .alert(L10n.t("删除备份账号"), isPresented: Binding(
             get: { pendingDelete != nil },

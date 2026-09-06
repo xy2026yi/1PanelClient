@@ -40,4 +40,22 @@ enum APIError: LocalizedError {
             return L10n.t("请求被安全入口拦截，请检查服务器配置")
         }
     }
+
+    /// 任务取消（页面退出时 .task 被取消等）不是真实失败：
+    /// 常驻 VM 的加载方法据此跳过写错误态、保留原有快照数据
+    var isCancellation: Bool {
+        if case .networkError(let err) = self {
+            if err is CancellationError { return true }
+            if let urlErr = err as? URLError, urlErr.code == .cancelled { return true }
+        }
+        return false
+    }
+
+    /// 任意错误（含被包装的与未包装的）是否为任务取消
+    static func isCancellation(_ error: Error) -> Bool {
+        if let apiErr = error as? APIError { return apiErr.isCancellation }
+        if error is CancellationError { return true }
+        if let urlErr = error as? URLError, urlErr.code == .cancelled { return true }
+        return false
+    }
 }

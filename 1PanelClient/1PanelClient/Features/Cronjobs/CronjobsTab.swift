@@ -26,7 +26,7 @@ struct CronjobsTab: View {
 
     var body: some View {
         rootContent
-            .task { await vm.refresh() }
+            .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {

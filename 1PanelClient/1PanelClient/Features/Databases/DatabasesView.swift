@@ -41,6 +41,8 @@ final class DatabasesViewModel: ObservableObject {
 
         // nil = 请求失败（与「已安装但列表为空」区分开），全部失败才算加载失败
         let results = [await mysql, await pg, await redis, await mongo]
+        // 页面退出取消不是失败：不写空列表/错误态，保留原快照
+        if Task.isCancelled { return }
         var all: [DatabaseSystem] = []
         var loaded = 0
         for list in results {
@@ -61,6 +63,8 @@ final class DatabasesViewModel: ObservableObject {
         do {
             return try await client.send(path: path, method: "GET", as: [DatabaseSystem].self)
         } catch {
+            // 页面退出取消不记为失败原因（上层按取消整体跳过写状态）
+            guard !APIError.isCancellation(error) else { return nil }
             lastError = L10n.f("加载失败：%@", error.localizedDescription)
             return nil
         }
@@ -138,8 +142,10 @@ struct DatabasesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadSystems() }
         .task {
-            // 重访（已有快照）时门控不转圈，这里静默刷新拿最新列表
-            await vm.loadSystems()
+            // 重访（已有快照）时门控不转圈，这里静默刷新拿最新列表（5 秒内重访节流）
+            await PageVMStore.shared.autoRefresh(vm: vm) {
+                await vm.loadSystems()
+            }
         }
         // 应用安装完成时刷新（如从「安装 XX」流程返回后，新装的数据库需重新拉取）
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in

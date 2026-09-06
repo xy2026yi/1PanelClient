@@ -27,7 +27,7 @@ struct ContainersTab: View {
 
     var body: some View {
         rootContent
-        .task { await vm.refresh() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
     }
 
     /// 列表根内容（不含 NavigationStack），供 ManageTab 嵌入复用

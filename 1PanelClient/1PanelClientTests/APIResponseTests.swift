@@ -39,6 +39,14 @@ struct APIResponseTests {
         #expect(resp.message == "API 接口密钥错误")
     }
 
+    @Test("取消可识别（页面退出取消不算失败，保留快照）")
+    func cancellationDetection() {
+        #expect(APIError.networkError(URLError(.cancelled)).isCancellation)
+        #expect(APIError.networkError(CancellationError()).isCancellation)
+        #expect(!APIError.networkError(URLError(.cannotConnectToHost)).isCancellation)
+        #expect(!APIError.httpError(500, "").isCancellation)
+    }
+
     @Test("EmptyInitializable：集合类型回退空实例")
     func emptyInitializableFallback() {
         #expect(([String].emptyInstance()) == [])

@@ -43,6 +43,8 @@ final class WAFViewModel: ObservableObject {
             errorMessage = nil
             _ = await checkTask
         } catch {
+            // 页面退出取消不是失败：保留原状态
+            guard !APIError.isCancellation(error) else { return }
             // OpenResty 未安装时 WAF 接口必然报「global.json 不存在」类错误，属预期：
             // 等安装状态出结论再决定是否当错误展示，避免未装场景弹「服务错误」提示
             if await checkTask {
@@ -57,9 +59,14 @@ final class WAFViewModel: ObservableObject {
     @discardableResult
     private func checkOpenResty() async -> Bool {
         let req = AppCheckRequest(key: "openresty", name: "")
-        openRestyCheck = try? await client.send(
-            path: APIEndpoint.appsInstalledCheck.path, body: req, as: AppInstallCheck.self
-        )
+        do {
+            openRestyCheck = try await client.send(
+                path: APIEndpoint.appsInstalledCheck.path, body: req, as: AppInstallCheck.self
+            )
+        } catch {
+            // 页面退出取消不是失败：保留上次检查结果
+            if !APIError.isCancellation(error) { openRestyCheck = nil }
+        }
         return openRestyCheck?.isExist != false
     }
 

@@ -78,9 +78,12 @@ final class ContainersViewModel: ObservableObject {
             // 后台合并运行时指标（CPU/内存），完成后刷新界面
             await mergeStats()
         } catch let err as APIError {
+            // 页面退出取消不是失败：保留原快照
+            guard !err.isCancellation else { return }
             self.errorMessage = err.errorDescription
             self.containers = []
         } catch {
+            guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
             self.containers = []
         }
@@ -119,7 +122,14 @@ final class ContainersViewModel: ObservableObject {
                 method: "GET", as: DockerStatus.self
             )
         } catch {
-            // 解码/网络失败时记录原因，便于排查；不阻断容器列表展示
+            // 页面退出取消不是失败：保留原状态
+            guard !APIError.isCancellation(error) else {
+                dockerLoaded = false
+                return
+            }
+            // 解码/网络失败时记录原因，便于排查；不阻断容器列表展示；
+            // 失败不算已加载，重访页面时重试（同 WebsitesViewModel.openRestyLoaded）
+            dockerLoaded = false
             self.dockerStatus = nil
             self.dockerErrorMessage = error.localizedDescription
         }
@@ -288,6 +298,8 @@ final class ContainersViewModel: ObservableObject {
             )
             self.imageOptions = opts.map { $0.option }
         } catch {
+            // 页面退出取消不是失败：保留已加载的选项
+            guard !APIError.isCancellation(error) else { return }
             self.imageOptions = []
         }
     }

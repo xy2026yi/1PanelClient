@@ -69,4 +69,39 @@ struct PageVMStoreTests {
         // k0 最久未用，已被淘汰（再取会得到新实例）
         #expect(s.vm(key: "k0") { FakeVM() } !== first)
     }
+
+    @Test("重访自动刷新节流：ttl 内同一 VM 只自动刷一次")
+    func autoRefreshThrottlesWithinTTL() async throws {
+        let s = makeStore()
+        let vm = FakeVM()
+        var runs = 0
+        await s.autoRefresh(vm: vm, ttl: 0.2) { runs += 1 }
+        await s.autoRefresh(vm: vm, ttl: 0.2) { runs += 1 }
+        #expect(runs == 1)
+        try await Task.sleep(for: .milliseconds(250))
+        await s.autoRefresh(vm: vm, ttl: 0.2) { runs += 1 }
+        #expect(runs == 2)
+    }
+
+    @Test("节流按 VM 实例隔离：换新实例即恢复自动刷新")
+    func autoRefreshIsPerVMInstance() async {
+        let s = makeStore()
+        var runs = 0
+        await s.autoRefresh(vm: FakeVM(), ttl: 60) { runs += 1 }
+        await s.autoRefresh(vm: FakeVM(), ttl: 60) { runs += 1 }
+        #expect(runs == 2)
+    }
+
+    @Test("刷新被取消不记节流窗口：重访必重刷")
+    func cancelledAutoRefreshNotThrottled() async {
+        let s = makeStore()
+        let vm = FakeVM()
+        var runs = 0
+        // cancel() 在主执行器同步执行完毕后任务体才可能运行：任务体所见必为已取消
+        let t = Task { await s.autoRefresh(vm: vm, ttl: 60) { runs += 1 } }
+        t.cancel()
+        await t.value
+        await s.autoRefresh(vm: vm, ttl: 60) { runs += 1 }
+        #expect(runs == 2)
+    }
 }

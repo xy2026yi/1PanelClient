@@ -37,7 +37,8 @@ final class WebsitesViewModel: ObservableObject {
     @Published var openRestyCheck: AppInstallCheck?
     @Published var isLoadingOpenResty = false
     @Published var openRestyOperating = false
-    /// 是否已尝试加载过（避免 List 重绘时 .task 反复触发）
+    /// OpenResty 是否已成功加载（失败/取消置回 false，重访页面时重试；
+    /// 否则取消留下的空状态会被它挡住，快照卡在「未安装或加载失败」）
     private var openRestyLoaded = false
 
     private(set) var client: APIClient
@@ -84,9 +85,12 @@ final class WebsitesViewModel: ObservableObject {
             )
             self.websites = resp.items ?? []
         } catch let err as APIError {
+            // 页面退出时 .task 被取消不是失败：保留原快照数据
+            guard !err.isCancellation else { return }
             self.errorMessage = err.errorDescription
             self.websites = []
         } catch {
+            guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
             self.websites = []
         }
@@ -225,6 +229,7 @@ final class WebsitesViewModel: ObservableObject {
             page: 1, pageSize: 100, name: "", type: "", tags: [],
             update: false, all: true, unused: false, sync: false
         )
+        var searchSucceeded = false
         do {
             let resp: AppInstalledListResponse = try await client.send(
                 path: APIEndpoint.appsInstalledSearch.path,
@@ -232,10 +237,14 @@ final class WebsitesViewModel: ObservableObject {
                 as: AppInstalledListResponse.self
             )
             self.openresty = (resp.items ?? []).first { $0.appKey?.lowercased() == "openresty" }
+            searchSucceeded = true
         } catch {
-            self.openresty = nil
+            // 页面退出时 .task 被取消不是失败：保留原状态
+            if !APIError.isCancellation(error) { self.openresty = nil }
         }
         _ = await check
+        // 未成功（取消/失败）不算已加载，重访页面（非 force）时重试
+        if !searchSucceeded { openRestyLoaded = false }
     }
 
     /// POST /api/v2/apps/installed/check {key: "openresty", name: ""}：
@@ -249,7 +258,8 @@ final class WebsitesViewModel: ObservableObject {
                 as: AppInstallCheck.self
             )
         } catch {
-            openRestyCheck = nil
+            // 取消不是失败：保留上次检查结果，避免快照被清成未知态
+            if !APIError.isCancellation(error) { openRestyCheck = nil }
         }
     }
 

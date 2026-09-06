@@ -47,6 +47,17 @@ struct APIClientCacheTests {
         let after = APIClient.shared(for: server)
         #expect(before !== after)
     }
+
+    /// 默认容量需 ≥ PageVMStore 容量：常驻 VM 持有的 client 不因容量不足
+    /// 被逐轮淘汰（淘汰虽已不再 invalidate，重建本身也是无谓开销）
+    @Test("默认容量与 PageVMStore 同量级（32）")
+    func defaultCapacityMatchesPageVMStore() {
+        let cache = ClientCache()
+        for i in 0..<33 {
+            _ = cache.client(for: ServerConfig(id: UUID(), name: "s\(i)", baseURL: "https://cap.local", apiKey: "k"))
+        }
+        #expect(cache.count == 32)
+    }
 }
 
 @Suite("ClientCache LRU")

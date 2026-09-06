@@ -32,6 +32,8 @@ final class FirewallViewModel: ObservableObject {
     }
 
     func refresh() async {
+        // 与 BackupAccountsViewModel 一致：进页 .task 与下拉/回调并发时只跑一轮
+        guard !isLoading else { return }
         isLoading = true
         // 首屏四请求（状态卡 + 端口/转发/IP 规则）并行，完成即结束整页加载态；
         // 空数据页面不再陪跑最慢的辅助请求
@@ -58,6 +60,8 @@ final class FirewallViewModel: ObservableObject {
             self.base = resp
             self.errorMessage = nil
         } catch {
+            // 页面退出取消不是失败：保留原状态
+            guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
         }
     }
@@ -73,6 +77,8 @@ final class FirewallViewModel: ObservableObject {
             self.rules = resp.items ?? []
             self.errorMessage = nil
         } catch {
+            // 页面退出取消不是失败：保留原快照
+            guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
         }
     }
@@ -222,6 +228,8 @@ final class FirewallViewModel: ObservableObject {
             self.forwards = resp.items ?? []
             self.errorMessage = nil
         } catch {
+            // 页面退出取消不是失败：保留原快照
+            guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
         }
     }
@@ -308,6 +316,8 @@ final class FirewallViewModel: ObservableObject {
             self.addresses = resp.items ?? []
             self.errorMessage = nil
         } catch {
+            // 页面退出取消不是失败：保留原快照
+            guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
         }
     }
@@ -449,8 +459,10 @@ struct FirewallView: View {
             }
         }
         .task {
-            // 已有快照（重访）时门控不显示转圈，这里静默刷新即可
-            await vm.refresh()
+            // 已有快照（重访）时门控不显示转圈，这里静默刷新即可（5 秒内重访节流）
+            await PageVMStore.shared.autoRefresh(vm: vm) {
+                await vm.refresh()
+            }
         }
         .overlay {
             if vm.isLoading && vm.base == nil {

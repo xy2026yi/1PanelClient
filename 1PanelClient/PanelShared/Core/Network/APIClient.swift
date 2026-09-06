@@ -50,8 +50,9 @@ final class APIClient {
         self.transferSession = URLSession(configuration: transferConfig)
     }
 
-    /// 共享缓存淘汰/清理时调用：释放三个 session 的连接池。
-    /// finishTasksAndInvalidate 让在途请求完成，此后该实例不再接受新请求
+    /// 服务器移除（ClientCache.purge）时调用：释放三个 session 的连接池。
+    /// finishTasksAndInvalidate 让在途请求完成，此后该实例不再接受新请求。
+    /// 除此之外任何路径不得调用——持有者可能还会发请求（见 APIClientCache 失效纪律）
     func invalidate() {
         session.finishTasksAndInvalidate()
         streamSession.finishTasksAndInvalidate()
