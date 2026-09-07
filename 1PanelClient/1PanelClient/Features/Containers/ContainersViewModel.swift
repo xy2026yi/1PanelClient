@@ -123,7 +123,13 @@ final class ContainersViewModel: ObservableObject {
             // 期间首屏已重载（搜索/下拉触发新加载代数）：丢弃过期追加
             guard gen == loadGeneration else { return }
             let existing = Set(containers.map(\.containerID))
-            containers += (resp.items ?? []).filter { !existing.contains($0.containerID) }
+            let newItems = (resp.items ?? []).filter { !existing.contains($0.containerID) }
+            if newItems.isEmpty {
+                // 翻页间隙服务器侧数据变动，去重后零新增：total 收敛为已加载量
+                total = containers.count
+                return
+            }
+            containers += newItems
             total = resp.total
             page = next
             // 追加行补运行时指标（stats 为全量 GET，只映射到已加载的行）

@@ -241,6 +241,12 @@ final class AppsViewModel: ObservableObject {
             guard gen == loadGeneration else { return }
             let existing = Set(apps.map(\.id))
             var newApps = (all.items ?? []).filter { !existing.contains($0.id) }
+            if newApps.isEmpty {
+                // 翻页间隙服务器侧数据变动，去重后零新增：total 收敛为已加载量，
+                // 防止加载行常驻、每次滚到底都再发一次下一页请求
+                total = apps.count
+                return
+            }
             mergeUpdateState(into: &newApps, updatable: updatable.items ?? [], ignored: ignored)
             apps += newApps
             total = all.total

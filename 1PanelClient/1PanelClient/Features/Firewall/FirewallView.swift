@@ -29,8 +29,11 @@ final class FirewallViewModel: ObservableObject {
     @Published private(set) var rulesTotal = 0
     @Published private(set) var forwardsTotal = 0
     @Published private(set) var addressesTotal = 0
-    /// 追加下一页加载态（三段共用：同一时刻只可能有一段在滚动加载）
-    @Published private(set) var isLoadingMore = false
+    /// 追加下一页加载态（三段各自独立：共用一个标记会让非加载段也挂出转圈行，
+    /// 且两段同时触底时后到者被静默吞掉）
+    @Published private(set) var isRulesLoadingMore = false
+    @Published private(set) var isForwardsLoadingMore = false
+    @Published private(set) var isAddressesLoadingMore = false
     private var rulesPage = 1
     private var forwardsPage = 1
     private var addressesPage = 1
@@ -50,8 +53,12 @@ final class FirewallViewModel: ObservableObject {
     }
 
     func refresh() async {
-        // 与 BackupAccountsViewModel 一致：进页 .task 与下拉/回调并发时只跑一轮
-        guard !isLoading else { return }
+        // 进页 .task 与下拉/回调并发时只跑一轮。例外：首屏尚无任何内容时不
+        // 短路——秒退秒进场景下在途刷新被取消、页面为空，短路不仅让快照卡
+        // 空态，还会让 autoRefresh 误记 5 秒节流窗口（没刷也算刷过）
+        guard !isLoading,
+              base != nil || !rules.isEmpty || !forwards.isEmpty || !addresses.isEmpty
+        else { return }
         isLoading = true
         // 首屏四请求（状态卡 + 端口/转发/IP 规则）并行，完成即结束整页加载态；
         // 空数据页面不再陪跑最慢的辅助请求
@@ -106,9 +113,9 @@ final class FirewallViewModel: ObservableObject {
 
     /// 追加下一页端口规则（滚动到底触发；组合 id 去重，防翻页期间增删规则跨页重复）
     func loadMoreRules() async {
-        guard rules.count < rulesTotal, !isLoadingMore, !isLoading else { return }
-        isLoadingMore = true
-        defer { isLoadingMore = false }
+        guard rules.count < rulesTotal, !isRulesLoadingMore, !isLoading else { return }
+        isRulesLoadingMore = true
+        defer { isRulesLoadingMore = false }
         let next = rulesPage + 1
         let gen = rulesGeneration
         let req = FirewallSearchRequest(type: "port", status: "", strategy: "", page: next, pageSize: Self.pageSize)
@@ -121,7 +128,14 @@ final class FirewallViewModel: ObservableObject {
             // 期间本段已重载（下拉/增删规则触发新代数）：丢弃过期追加
             guard gen == rulesGeneration else { return }
             let existing = Set(rules.map(\.id))
-            rules += (resp.items ?? []).filter { !existing.contains($0.id) }
+            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
+            if newItems.isEmpty {
+                // 翻页间隙服务器侧数据变动，去重后零新增：total 收敛为已加载量，
+                // 防止加载行常驻、每次滚到底都再发一次下一页请求
+                rulesTotal = rules.count
+                return
+            }
+            rules += newItems
             rulesTotal = resp.total ?? rulesTotal
             rulesPage = next
         } catch {
@@ -285,9 +299,9 @@ final class FirewallViewModel: ObservableObject {
 
     /// 追加下一页端口转发（滚动到底触发；同 loadMoreRules 去重与过期丢弃）
     func loadMoreForwards() async {
-        guard forwards.count < forwardsTotal, !isLoadingMore, !isLoading else { return }
-        isLoadingMore = true
-        defer { isLoadingMore = false }
+        guard forwards.count < forwardsTotal, !isForwardsLoadingMore, !isLoading else { return }
+        isForwardsLoadingMore = true
+        defer { isForwardsLoadingMore = false }
         let next = forwardsPage + 1
         let gen = forwardsGeneration
         let req = FirewallSearchRequest(type: "forward", status: "", strategy: "", page: next, pageSize: Self.pageSize)
@@ -297,7 +311,12 @@ final class FirewallViewModel: ObservableObject {
             )
             guard gen == forwardsGeneration else { return }
             let existing = Set(forwards.map(\.id))
-            forwards += (resp.items ?? []).filter { !existing.contains($0.id) }
+            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
+            if newItems.isEmpty {
+                forwardsTotal = forwards.count
+                return
+            }
+            forwards += newItems
             forwardsTotal = resp.total ?? forwardsTotal
             forwardsPage = next
         } catch {
@@ -398,9 +417,9 @@ final class FirewallViewModel: ObservableObject {
 
     /// 追加下一页 IP 规则（滚动到底触发；同 loadMoreRules 去重与过期丢弃）
     func loadMoreAddresses() async {
-        guard addresses.count < addressesTotal, !isLoadingMore, !isLoading else { return }
-        isLoadingMore = true
-        defer { isLoadingMore = false }
+        guard addresses.count < addressesTotal, !isAddressesLoadingMore, !isLoading else { return }
+        isAddressesLoadingMore = true
+        defer { isAddressesLoadingMore = false }
         let next = addressesPage + 1
         let gen = addressesGeneration
         let req = FirewallSearchRequest(type: "address", status: "", strategy: "", page: next, pageSize: Self.pageSize)
@@ -410,7 +429,12 @@ final class FirewallViewModel: ObservableObject {
             )
             guard gen == addressesGeneration else { return }
             let existing = Set(addresses.map(\.id))
-            addresses += (resp.items ?? []).filter { !existing.contains($0.id) }
+            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
+            if newItems.isEmpty {
+                addressesTotal = addresses.count
+                return
+            }
+            addresses += newItems
             addressesTotal = resp.total ?? addressesTotal
             addressesPage = next
         } catch {
@@ -794,7 +818,7 @@ struct FirewallView: View {
                         }
                     }
                 }
-                if vm.rules.count < vm.rulesTotal || vm.isLoadingMore {
+                if vm.rules.count < vm.rulesTotal || vm.isRulesLoadingMore {
                     loadMoreRow { Task { await vm.loadMoreRules() } }
                 }
             } header: {
@@ -838,7 +862,7 @@ struct FirewallView: View {
                         }
                     }
                 }
-                if vm.forwards.count < vm.forwardsTotal || vm.isLoadingMore {
+                if vm.forwards.count < vm.forwardsTotal || vm.isForwardsLoadingMore {
                     loadMoreRow { Task { await vm.loadMoreForwards() } }
                 }
             } header: {
@@ -882,7 +906,7 @@ struct FirewallView: View {
                         }
                     }
                 }
-                if vm.addresses.count < vm.addressesTotal || vm.isLoadingMore {
+                if vm.addresses.count < vm.addressesTotal || vm.isAddressesLoadingMore {
                     loadMoreRow { Task { await vm.loadMoreAddresses() } }
                 }
             } header: {

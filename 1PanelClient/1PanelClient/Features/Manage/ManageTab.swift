@@ -117,8 +117,11 @@ struct ManageTab: View {
 
     /// 跨 Tab 跳转：进入目标页——
     /// 避免从首页反复点击叠出 [monitor, monitor]（NavigationPath 无法读取栈内元素，无法按值去重）。
-    /// 空栈时直接 append：整体替换在 SwiftUI 内部等效 reset+push，
-    /// 一帧内两次导航更新会触发 NavigationRequestObserver「每帧多次更新」警告
+    /// 空栈直接 append：整栈替换在 SwiftUI 内部等效 reset+push，一帧内两次导航
+    /// 更新会触发 NavigationRequestObserver「每帧多次更新」警告。非空时整栈替换
+    /// 为 [item]：丢掉旧栈是跨 Tab「直达」的预期语义（不保留旧浏览位置），
+    /// 与空栈 append 的差别在于空栈场景下替换与 push 同帧、非空场景没有
+    /// 「先有内容再 reset」的叠加帧，未观测到该路径触发警告
     private func pushIfNeeded(_ item: ManageItem) {
         if navPath.isEmpty {
             navPath.append(item)

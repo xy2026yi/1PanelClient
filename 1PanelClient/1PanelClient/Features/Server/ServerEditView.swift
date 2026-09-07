@@ -159,7 +159,8 @@ struct ServerEditView: View {
             apiKey: apiKey
         )
         Task {
-            let (ok, msg) = await ConnectionTester.test(server)
+            // 草稿配置一次性探测，不进共享缓存（见 useSharedCache 参数注释）
+            let (ok, msg) = await ConnectionTester.test(server, useSharedCache: false)
             await MainActor.run {
                 self.testResult = TestResult(success: ok, message: msg)
                 self.testing = false

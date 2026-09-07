@@ -30,10 +30,25 @@ final class ServerCardMonitor: ObservableObject {
     /// r+1…r+N 不参与，r+N+1 起恢复（若少加 1，实际只跳 N-1 轮，
     /// 首次失败会完全无退避）
     private var skipUntil: [UUID: Int] = [:]
+    /// 进行中的刷新任务：下拉刷新（force）与定时轮询并发时复用同一次请求，
+    /// 避免同接口双发与 round 双跳（退避计时被加快）
+    private var refreshTask: Task<Void, Never>?
 
     /// - Parameter force: 下拉刷新传 true——清空退避状态强制重试全部服务器
-    /// （手动手势本就意味着「数据不对，重拉」；定时轮询传 false 维持退避）
+    /// （手动手势本就意味着「数据不对，重拉」；定时轮询传 false 维持退避）。
+    /// 已有在途刷新时直接等它完成（force 的清退避在下一轮自然生效）
     func refresh(force: Bool = false) async {
+        if let task = refreshTask {
+            await task.value
+            return
+        }
+        let task = Task { await performRefresh(force: force) }
+        refreshTask = task
+        await task.value
+        refreshTask = nil
+    }
+
+    private func performRefresh(force: Bool) async {
         let targets = ServerManager.shared.servers
         for id in currents.keys where !targets.contains(where: { $0.id == id }) {
             currents.removeValue(forKey: id)

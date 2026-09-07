@@ -9,8 +9,12 @@ import Foundation
 enum ConnectionTester {
     /// 返回 (success, message)
     /// 只校验鉴权与接口可达性，不依赖具体业务模型解码，避免字段差异导致误报
-    static func test(_ server: ServerConfig) async -> (Bool, String) {
-        let client = APIClient.shared(for: server)
+    /// - Parameter useSharedCache: false 供表单草稿探测——编辑服务器点「测试连接」
+    ///   用的是草稿值，入共享缓存会让此后 5 秒的 ServerCardMonitor 轮询与草稿
+    ///   配置来回换实例（每轮重建 3 个 URLSession）；真实配置的周期探测走
+    ///   共享缓存复用热连接
+    static func test(_ server: ServerConfig, useSharedCache: Bool = true) async -> (Bool, String) {
+        let client = useSharedCache ? APIClient.shared(for: server) : APIClient(server: server)
         do {
             let raw = try await client.sendRaw(
                 path: APIEndpoint.deviceBase.path,

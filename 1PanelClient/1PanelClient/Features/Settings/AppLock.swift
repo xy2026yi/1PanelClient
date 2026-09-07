@@ -100,16 +100,11 @@ final class AppLockManager: ObservableObject {
 
     // MARK: - 生命周期
 
-    /// 本次上锁是否由进后台/熄屏触发。熄屏瞬间 scenePhase 可能瞬时回弹 active
-    /// （直装真机实测：会导致 FaceID 在系统锁屏上弹出并唤醒手机），故该标记
-    /// 不随 scenePhase 回 active 即清除，而由 LockScreenView 在延时 0.8s 复核
-    /// 确认真正回到活跃前台后才清除并自动弹验证（冷启动锁不受影响）。
-    @Published var lockedByDeactivation = false
-
-    /// 进入后台时调用：开关开启则上锁
+    /// 进入后台时调用：开关开启则上锁。
+    /// （历史遗留的 lockedByDeactivation 标记已删：熄屏回弹由 LockScreenView 的
+    /// 延时复核 + canPresentBiometrics 双信号拦截，该标记重构后无任何读取方）
     func lockIfEnabled() {
         if isEnabled {
-            lockedByDeactivation = true
             isLocked = true
         }
     }
@@ -143,7 +138,6 @@ final class AppLockManager: ObservableObject {
 
     /// 密码验证通过
     func unlockWithPasscode() {
-        lockedByDeactivation = false
         isLocked = false
     }
 }
@@ -346,7 +340,7 @@ struct LockScreenView: View {
                     .foregroundStyle(.secondary)
                     .padding(.top, 4)
                 Button {
-                    Task { await lock.tryBiometricUnlock() }
+                    Task { await manualBiometricUnlock() }
                 } label: {
                     Label(L10n.t("解锁"), systemImage: "lock.open")
                 }
@@ -382,13 +376,10 @@ struct LockScreenView: View {
             await autoBiometricUnlock()
         }
         // 上锁可能发生在 inactive（进切换器/通知中心）：系统验证在非 active 时无法
-        // 正常展示，回 active 时再补弹。**不在收到 active 时清 lockedByDeactivation**：
-        // 直装真机实测熄屏瞬间 scenePhase 会瞬时回弹一次 active，此时 applicationState
-        // 与受保护数据都还没落到已锁定态，守卫全部放行 → FaceID 在系统锁屏上弹出并
-        // 唤醒手机。清标记与实际弹窗都延后到 autoBiometricUnlock 的延时复核之后——
-        // 回弹会在 1s 内落回 inactive/background 被复核拦下，真正回前台则持续 active。
-        // FaceID 弹窗自身也造成 inactive→active 往返（取消即触发），由
-        // biometricAutoPresented 挡住：一轮前台只自动弹一次，不随弹窗关闭重弹
+        // 正常展示，回 active 时再补弹。熄屏瞬间的 active 回弹由 autoBiometricUnlock
+        // 的延时 0.8s 复核 + canPresentBiometrics 拦截（见下方函数注释）；FaceID 弹窗
+        // 自身造成的 inactive→active 往返（取消即触发）由 biometricAutoPresented 挡住：
+        // 一轮前台只自动弹一次，不随弹窗关闭重弹
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .background:
@@ -412,18 +403,14 @@ struct LockScreenView: View {
     }
 
     /// 前台活跃时自动弹生物识别（每轮前台至多一次，见 biometricAutoPresented）。
-    /// 后台/熄屏触发的锁（lockedByDeactivation）不随锁屏出现自动弹，等真正回前台
-    /// ——判定方式为**延时 0.8s 复核**（见 onChange 注释）：熄屏回弹会在复核前落回
-    /// 非活跃态被拦下（标记与自动弹次数都不消耗，设备解锁后照常自动弹）；通知中心
-    /// 收起/切换器返回/设备解锁则持续活跃，复核通过后清除标记并弹窗。
+    /// 熄屏瞬间的 active 回弹不弹——判定方式为**延时 0.8s 复核**：回弹会在复核前
+    /// 落回非活跃态被 canPresentBiometrics 拦下（自动弹次数不消耗，设备解锁后
+    /// 照常自动弹）；通知中心收起/切换器返回/设备解锁则持续活跃，复核通过后弹窗。
     /// 失败/取消不自动切密码键盘：非用户主动的失败不应占用掉生物识别路径，留在
     /// 验证界面由用户选择重试或切密码（对齐 iOS 系统锁屏的交互习惯）；仅生物识别
     /// 被系统临时锁定（连续失败过多不可用）时才自动回落密码键盘，避免解锁按钮
     /// 点击无效
     private func autoBiometricUnlock() async {
-        // lockedByDeactivation 不能进首道守卫：它只在延时复核通过后才被清除，
-        // 放守卫里会导致「熄屏→解锁回前台」永远不自动弹（F2 复验发现的回归）；
-        // 熄屏回弹场景由延时复核的 canPresentBiometrics 拦截
         guard !showKeypad, !biometricInFlight, !biometricAutoPresented,
               canPresentBiometrics else { return }
         biometricInFlight = true
@@ -433,7 +420,21 @@ struct LockScreenView: View {
         try? await Task.sleep(for: .seconds(0.8))
         guard !showKeypad, !biometricAutoPresented, lock.isLocked, canPresentBiometrics else { return }
         biometricAutoPresented = true
-        lock.lockedByDeactivation = false
+        await lock.tryBiometricUnlock()
+        if lock.isLocked, !AppLockManager.biometryAvailable {
+            showKeypad = true
+        }
+    }
+
+    /// 用户点「解锁」手动弹生物识别：与自动弹共用 biometricInFlight 互斥（手动与
+    /// 0.8s 复核中的自动弹不并发），并消耗 biometricAutoPresented——FaceID 弹窗
+    /// 关闭会造成 inactive→active 往返，不消耗的话取消后会再被自动补弹一次
+    /// （用户要取消两次才停，违背「取消后仅点解锁触发」的交互约定）
+    private func manualBiometricUnlock() async {
+        guard !showKeypad, !biometricInFlight, lock.isLocked, canPresentBiometrics else { return }
+        biometricInFlight = true
+        defer { biometricInFlight = false }
+        biometricAutoPresented = true
         await lock.tryBiometricUnlock()
         if lock.isLocked, !AppLockManager.biometryAvailable {
             showKeypad = true

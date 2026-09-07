@@ -184,7 +184,11 @@ struct OperationLogView: View {
             loadGeneration += 1
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            // 页面退出取消不是失败：保留原快照、不写错误态（pop 转场期间
+            // 取消错误写入会短暂渲染出「网络错误」）
+            if !APIError.isCancellation(error) {
+                errorMessage = error.localizedDescription
+            }
         }
         isLoading = false
     }
@@ -205,7 +209,13 @@ struct OperationLogView: View {
             // 期间列表已被重载（下拉刷新触发新代数）：丢弃过期追加
             guard gen == loadGeneration else { return }
             let existing = Set(items.map(\.id))
-            items += (resp.items ?? []).filter { !existing.contains($0.id) }
+            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
+            if newItems.isEmpty {
+                // 翻页间隙服务器侧数据变动，去重后零新增：total 收敛为已加载量
+                total = items.count
+                return
+            }
+            items += newItems
             total = resp.total
             page = next
         } catch {
@@ -321,7 +331,10 @@ struct LoginLogView: View {
             loadGeneration += 1
             errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            // 页面退出取消不是失败：保留原快照、不写错误态
+            if !APIError.isCancellation(error) {
+                errorMessage = error.localizedDescription
+            }
         }
         isLoading = false
     }
@@ -342,7 +355,13 @@ struct LoginLogView: View {
             // 期间列表已被重载（下拉刷新触发新代数）：丢弃过期追加
             guard gen == loadGeneration else { return }
             let existing = Set(items.map(\.id))
-            items += (resp.items ?? []).filter { !existing.contains($0.id) }
+            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
+            if newItems.isEmpty {
+                // 翻页间隙服务器侧数据变动，去重后零新增：total 收敛为已加载量
+                total = items.count
+                return
+            }
+            items += newItems
             total = resp.total
             page = next
         } catch {

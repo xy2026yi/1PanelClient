@@ -142,6 +142,9 @@ struct MainTabView: View {
                     // 同帧发生多次导航更新会触发 NavigationRequestObserver 警告
                     selectedTab = .manage
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        // 0.1s 窗口内用户已切走管理 Tab：放弃投递，
+                        // 避免静默改写其导航栈、丢弃当前浏览位置
+                        guard selectedTab == .manage else { return }
                         pendingManageItem = item
                     }
                 }

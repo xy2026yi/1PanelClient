@@ -113,8 +113,14 @@ struct AppIconView: View {
             return
         }
         let path = APIEndpoint.appsIcon.path.replacingOccurrences(of: ":appID", with: pathParam)
-        let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: baseURL, apiKey: "")
-        let client = APIClient.shared(for: server)
+        // 兜底配置每次生成新 UUID，走共享缓存会插一次性条目蚕食 LRU 容量——
+        // 无服务器上下文时一次性构造不入缓存
+        let client: APIClient
+        if let server = ServerManager.shared.current {
+            client = APIClient.shared(for: server)
+        } else {
+            client = APIClient(server: ServerConfig(name: "", baseURL: baseURL, apiKey: ""))
+        }
         do {
             let data = try await client.fetchImage(
                 path: path,

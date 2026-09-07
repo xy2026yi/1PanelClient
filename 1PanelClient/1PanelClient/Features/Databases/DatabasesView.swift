@@ -396,6 +396,8 @@ final class DatabaseSystemViewModel: ObservableObject {
     }
 
     func refresh() async {
+        // 与 FirewallViewModel 一致：进页 .task 与下拉并发时只跑一轮
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
         // 全并行、各一次：此前 async let 与直接 await 混用，每个请求都实际发出两遍
@@ -411,14 +413,21 @@ final class DatabaseSystemViewModel: ObservableObject {
         let req = AppCheckRequest(key: system.database, name: system.database)
         do {
             check = try await client.send(path: APIEndpoint.appsInstalledCheck.path, body: req, as: AppInstallCheck.self)
-        } catch { errorMessage = error.localizedDescription }
+        } catch {
+            // 页面退出取消不是失败：不写错误态（与常驻 VM 同一纪律）
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
     }
 
     func loadConnInfo() async {
         let req = ConnInfoRequest(type: system.type, name: system.database)
         do {
             connInfo = try await client.send(path: APIEndpoint.appsInstalledConnInfo.path, body: req, as: ConnInfo.self)
-        } catch { errorMessage = error.localizedDescription }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
     }
 
     func loadRemote() async {
@@ -426,7 +435,10 @@ final class DatabaseSystemViewModel: ObservableObject {
         do {
             let resp: Bool = try await client.send(path: APIEndpoint.databasesRemote.path, body: req, as: Bool.self)
             remoteAccess = resp
-        } catch { errorMessage = error.localizedDescription }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
     }
 
     func loadDatabases() async {
@@ -437,7 +449,10 @@ final class DatabaseSystemViewModel: ObservableObject {
             dbTotal = resp.total ?? resp.items?.count ?? 0
             dbPage = 1
             dbGeneration += 1
-        } catch { errorMessage = error.localizedDescription }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// 追加下一页数据库（滚动到底触发；按 id 去重防跨页重复）
@@ -453,7 +468,13 @@ final class DatabaseSystemViewModel: ObservableObject {
             // 期间列表已被重载（下拉/建库删库触发新代数）：丢弃过期追加
             guard gen == dbGeneration else { return }
             let existing = Set(databases.map(\.id))
-            databases += (resp.items ?? []).filter { !existing.contains($0.id) }
+            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
+            if newItems.isEmpty {
+                // 翻页间隙服务器侧数据变动，去重后零新增：total 收敛为已加载量
+                dbTotal = databases.count
+                return
+            }
+            databases += newItems
             dbTotal = resp.total ?? dbTotal
             dbPage = next
         } catch {
@@ -548,7 +569,11 @@ final class DatabaseSystemViewModel: ObservableObject {
             )
             users = resp.filter { !($0.isDelete ?? false) }
             await loadGrants()
-        } catch { errorMessage = error.localizedDescription }
+        } catch {
+            // 页面退出取消不是失败：不写错误态
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
     }
 
     private func loadGrants() async {
@@ -840,17 +865,25 @@ struct DatabaseSystemView: View {
                     } label: { Label(L10n.t("删除"), systemImage: "trash") }
                 }
                 .onAppear {
-                    if db.id == filteredDatabases.last?.id {
+                    // 触底判定用未过滤列表的末行：过滤后末行可能不可见，
+                    // 挂底部的加载行兜底触发；过滤空时若还有未加载页，
+                    // 加载行仍渲染、翻页不会被空态卡停
+                    if db.id == vm.databases.last?.id {
                         Task { await vm.loadMoreDatabases() }
                     }
                 }
             }
             if filteredDatabases.isEmpty {
                 ContentUnavailableView {
-                    Label(L10n.t("暂无数据库"), systemImage: "tray")
+                    Label(
+                        searchText.trimmingCharacters(in: .whitespaces).isEmpty
+                            ? L10n.t("暂无数据库") : L10n.t("无匹配的数据库"),
+                        systemImage: "tray"
+                    )
                 }
                 .frame(maxWidth: .infinity)
-            } else if vm.databases.count < vm.dbTotal || vm.isLoadingMore {
+            }
+            if vm.databases.count < vm.dbTotal || vm.isLoadingMore {
                 HStack {
                     Spacer()
                     ProgressView()
@@ -859,7 +892,11 @@ struct DatabaseSystemView: View {
                 .onAppear { Task { await vm.loadMoreDatabases() } }
             }
         } header: {
-            SectionLabel(title: L10n.f("数据库（%ld）", filteredDatabases.count), systemImage: "cylinder")
+            // 与防火墙段头同口径：显示总数（max 兜底翻页间隙的瞬时不一致）
+            SectionLabel(
+                title: L10n.f("数据库（%ld）", max(vm.dbTotal, vm.databases.count)),
+                systemImage: "cylinder"
+            )
         }
     }
 

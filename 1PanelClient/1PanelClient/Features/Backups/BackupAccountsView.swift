@@ -237,9 +237,11 @@ final class BackupAccountsViewModel: ObservableObject {
         self.client = APIClient.shared(for: server)
     }
 
-    /// 列表加载（进页 / 下拉 / 增删后）：失败保留旧数据
+    /// 列表加载（进页 / 下拉 / 增删后）：失败保留旧数据。
+    /// 首屏尚无内容时不短路：秒退秒进场景下在途刷新被取消、页面为空，
+    /// 短路不仅让快照卡空态，还会让 autoRefresh 误记 5 秒节流窗口
     func refresh() async {
-        guard !isLoading else { return }
+        guard !isLoading || accounts.isEmpty else { return }
         isLoading = true
         defer { isLoading = false }
         if let list = await loadAccounts() {
