@@ -27,9 +27,13 @@ struct MainTabView: View {
     @State private var selectedTab: AppTab = .overview
     /// OverviewTab 卡片点击待跳转的 ManageItem；ManageTab 监听此值并自动 push
     @State private var pendingManageItem: ManageItem?
-    /// 管理 Tab 的导航路径由这里持有：iPad 窗口缩放跨尺寸类时双形态分支互换会
-    /// 重建整棵导航树，路径留在子视图 @State 里会丢栈跳回管理根页
+    /// 三个 Tab 的导航路径都由这里持有（path 驱动，底部栏可见性由计数直接推导）：
+    /// ① iPad 窗口缩放跨尺寸类时双形态分支互换会重建整棵导航树，路径留在子视图
+    ///    @State 里会丢栈跳回根页；② 子视图用 isPresented 绑定导航时，iOS 26 上
+    ///    back 返回后绑定写回延迟甚至丢失，栏位状态会卡死（见 showTabBar 注释）
     @State private var manageNavPath = NavigationPath()
+    @State private var overviewNavPath = NavigationPath()
+    @State private var settingsNavPath = NavigationPath()
     /// regular 侧栏折叠开关（收起为图标栏），跨启动持久化；compact 下无侧栏不生效
     @AppStorage("main.sidebarCollapsed") private var sidebarCollapsed = false
     /// 窗口宽度（Stage Manager 缩放实时更新）：三段式形态——
@@ -38,43 +42,33 @@ struct MainTabView: View {
     @State private var windowWidth: CGFloat = 1024
     /// 窄窗口下用户在图标栏显式点「展开」：临时覆盖自动收起，回到宽窗口即清除
     @State private var narrowExpandRequested = false
-    /// 三个 Tab 各自的导航深度（根页面 = true 时显示底部 Tab 栏；仅 compact 分支使用）。
-    /// manageAtRoot 由 body 中的 0.2s 对账 Timer 依据 manageNavPath.count 写入
-    /// （失配才写，缘由见该处注释），单一写入方保证与导航深度收敛、不与真实栈状态失步
-    @State private var manageAtRoot = true
-    @State private var overviewAtRoot = true
-    @State private var settingsAtRoot = true
 
     @Environment(\.horizontalSizeClass) private var hSize
     /// 「减弱动态效果」：Tab 栏滑入/侧栏收展动画退化为淡入淡出或直接布局
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// 底部栏可见性 = 当前 Tab 的导航栈在根页面，直接由路径计数计算（不镜像成
+    /// @State、无需对账 Timer）。此前首页/设置沿用 navigationDestination
+    /// (isPresented:) + onChange 同步 atRoot：iOS 26 上 back 返回后绑定写回
+    /// 延迟甚至丢失，onChange 收不到 pop，atRoot 卡在 false → 首页/设置底部栏
+    /// 丢失（与 eefa651 管理 Tab 修复同源的 bug）。路径计数是唯一真源，写回
+    /// 延迟抵达时 @State 变更自然触发重算，栏位随之回归
     private var showTabBar: Bool {
         switch selectedTab {
-        case .overview: return overviewAtRoot
-        case .manage:   return manageAtRoot
-        case .settings: return settingsAtRoot
+        case .overview: return overviewNavPath.count == 0
+        case .manage:   return manageNavPath.count == 0
+        case .settings: return settingsNavPath.count == 0
         }
     }
 
     var body: some View {
         rootContent
-            // 切换/移除当前服务器时清空管理导航栈：栈内页面的 VM 与 path 里存的值
+            // 切换/移除当前服务器时清空管理/首页导航栈：栈内页面的 VM 与 path 里存的值
             // （网站等模型，ID 按服务器自增）都绑旧服务器，带着新 VM 操作旧 id
             // 会误伤新服务器上的数据；回根后重新 push 自然用新服务器构建
             .onChange(of: manager.currentServerID) { _, _ in
                 manageNavPath = NavigationPath()
-            }
-            // Tab 栏可见性对账：iOS 26 上 onChange(of: NavigationPath.count) 与
-            // 根列表 onAppear/onDisappear 都会偶发丢通知（back-button pop 时，
-            // 实测约 1/3 概率栏卡在隐藏）。改为周期与真相对账——失配才写，
-            // 推入帧天然与栏位变化解耦（不会触发 NavigationRequestObserver），
-            // 栏位最多晚一个采样周期（0.2s）跟随，永不失步
-            .onReceive(Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()) { _ in
-                let atRoot = manageNavPath.count == 0
-                if manageAtRoot != atRoot {
-                    manageAtRoot = atRoot
-                }
+                overviewNavPath = NavigationPath()
             }
     }
 
@@ -131,7 +125,7 @@ struct MainTabView: View {
             OverviewTab(
                 manager: manager,
                 selectedTab: $selectedTab,
-                atRoot: $overviewAtRoot,
+                navPath: $overviewNavPath,
                 onSelectManageItem: { item in
                     // 先提交 Tab 切换这一帧，下一拍再投递跳转目标；
                     // Tab 栏收起已由 manageNavPath.count 的延后传播与 push 解耦
@@ -152,7 +146,7 @@ struct MainTabView: View {
             .opacity(selectedTab == .manage ? 1 : 0)
             .allowsHitTesting(selectedTab == .manage)
 
-            SettingsTab(atRoot: $settingsAtRoot)
+            SettingsTab(navPath: $settingsNavPath)
                 .opacity(selectedTab == .settings ? 1 : 0)
                 .allowsHitTesting(selectedTab == .settings)
         }

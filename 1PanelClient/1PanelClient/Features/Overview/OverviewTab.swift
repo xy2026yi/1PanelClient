@@ -6,14 +6,19 @@
 import SwiftUI
 import Combine
 
+/// 首页导航路由（path 驱动；不用 isPresented 绑定——iOS 26 上 back 返回后
+/// 绑定写回延迟甚至丢失，MainTabView 依路径计数推导底部栏可见性会失步）
+private enum OverviewRoute: Hashable {
+    case servers
+    case upgradeLog
+}
+
 struct OverviewTab: View {
     @ObservedObject var manager: ServerManager
     @Binding var selectedTab: AppTab
-    /// 向 MainTabView 同步导航深度：true=根页面（显示底部 Tab 栏），false=子页面
-    @Binding var atRoot: Bool
+    /// 导航路径由 MainTabView 持有（跨尺寸类重建不丢栈）；底部栏可见性由计数推导
+    @Binding var navPath: NavigationPath
     @StateObject private var vm: OverviewViewModel
-    @State private var showServers = false
-    @State private var showUpgradeLog = false
     /// 多机管理切换的当前节点名（nil=local），工具栏提示当前展示的是哪个节点的数据
     @State private var currentNodeName: String? = nil
 
@@ -26,19 +31,19 @@ struct OverviewTab: View {
     init(
         manager: ServerManager,
         selectedTab: Binding<AppTab> = .constant(.overview),
-        atRoot: Binding<Bool> = .constant(true),
+        navPath: Binding<NavigationPath> = .constant(NavigationPath()),
         onSelectManageItem: ((ManageItem) -> Void)? = nil
     ) {
         self.manager = manager
         self._selectedTab = selectedTab
-        self._atRoot = atRoot
+        self._navPath = navPath
         self.onSelectManageItem = onSelectManageItem
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
         _vm = StateObject(wrappedValue: OverviewViewModel(server: server))
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             ScrollView {
                 VStack(spacing: 16) {
                     if vm.isLoading && !vm.hasData {
@@ -62,7 +67,7 @@ struct OverviewTab: View {
             // 与正文同款 .padding + contentWidthLimit 后图标/切换按钮与卡片严格对齐
             .safeAreaInset(edge: .top, spacing: 0) {
                 Button {
-                    showServers = true
+                    navPath.append(OverviewRoute.servers)
                 } label: {
                     // 服务器图标靠左 → 名称/链接左对齐 → 切换按钮靠右（整行可点）
                     HStack(spacing: 10) {
@@ -97,19 +102,15 @@ struct OverviewTab: View {
             // 本页空标题导航栏让位给自绘吸顶栏；推入的服务器/升级页有各自导航栏，
             // toolbar 修饰符只作用于当前视图，不影响推入页
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(isPresented: $showServers) {
-                ServersView(manager: manager)
-            }
-            .navigationDestination(isPresented: $showUpgradeLog) {
-                if let server = manager.current {
-                    PanelUpgradeView(server: server, currentVersion: vm.settingInfo?.systemVersion, upgradeInfo: vm.upgradeInfo)
+            .navigationDestination(for: OverviewRoute.self) { route in
+                switch route {
+                case .servers:
+                    ServersView(manager: manager)
+                case .upgradeLog:
+                    if let server = manager.current {
+                        PanelUpgradeView(server: server, currentVersion: vm.settingInfo?.systemVersion, upgradeInfo: vm.upgradeInfo)
+                    }
                 }
-            }
-            .onChange(of: showServers) { _, show in
-                atRoot = !show
-            }
-            .onChange(of: showUpgradeLog) { _, show in
-                atRoot = !show
             }
         }
         .task {
@@ -136,7 +137,7 @@ struct OverviewTab: View {
         // 推入服务器页后由 ServersView 的全量轮询接管，避免对同一服务器同接口双发；
         // 前后台切换暂停，回前台/切回首页时立即补拉
         .adaptivePolling(interval: 5, fireImmediately: false, isActive: {
-            selectedTab == .overview && atRoot
+            selectedTab == .overview && navPath.count == 0
         }) {
             await vm.refreshCurrent()
         }
@@ -195,7 +196,7 @@ struct OverviewTab: View {
             }
             .contentShape(Rectangle())
             .onTapGesture {
-                showUpgradeLog = true
+                navPath.append(OverviewRoute.upgradeLog)
             }
             if let ip = vm.settingInfo?.systemIP, !ip.isEmpty {
                 InfoRow(key: L10n.t("面板 IP"), value: ip, monospaced: true)
@@ -474,10 +475,11 @@ struct RingStatView: View {
     var body: some View {
         let ringSize: CGFloat = compact ? 54 : 88
         let ringWidth: CGFloat = compact ? 6 : 10
-        // 两位小数百分比（58.81%）较长，字号收紧 + 允许自动缩小避免圆环内溢出
+        // 两位小数百分比（58.81%）较长，字号收紧 + 允许自动缩小避免圆环内溢出；
+        // panelScaled 随 Dynamic Type 缩放（B2 口径，此处原为字面 10/13pt 漏网）
         let topFont: Font = compact
-            ? .system(size: 10, weight: .semibold, design: .rounded)
-            : .system(size: 13, weight: .semibold, design: .rounded)
+            ? .panelScaled(10, weight: .semibold, design: .rounded)
+            : .panelScaled(13, weight: .semibold, design: .rounded)
 
         return VStack(spacing: compact ? 4 : 8) {
             ZStack {

@@ -5,13 +5,20 @@
 
 import SwiftUI
 
+/// 设置页导航路由（path 驱动；不用 isPresented 绑定——iOS 26 上 back 返回后
+/// 绑定写回延迟甚至丢失，MainTabView 依路径计数推导底部栏可见性会失步）
+enum SettingsRoute: Hashable {
+    case about
+    case privacyPolicy
+    case diagnostics
+}
+
 struct SettingsTab: View {
-    /// 向 MainTabView 同步导航深度：true=根页面（显示底部 Tab 栏），false=子页面
-    @Binding var atRoot: Bool
+    /// 导航路径由 MainTabView 持有（跨尺寸类重建不丢栈）；底部栏可见性由计数推导
+    @Binding var navPath: NavigationPath
     /// regular（iPad 全屏）下不显示导航大标题，与首页/管理空标题一致——
     /// 独立 NavigationStack 的 large 标题会在页顶多出一行「设置」
     @Environment(\.horizontalSizeClass) private var hSize
-    @State private var showAbout = false
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
     @AppStorage(SecurityGate.httpsOnlyKey) private var httpsOnly = false
     @AppStorage(AppLockManager.enabledKey) private var appLockEnabled = false
@@ -19,12 +26,12 @@ struct SettingsTab: View {
     @State private var setPinToast: String? = nil
     @State private var languageRaw = L10n.shared.language.rawValue
 
-    init(atRoot: Binding<Bool> = .constant(true)) {
-        self._atRoot = atRoot
+    init(navPath: Binding<NavigationPath> = .constant(NavigationPath())) {
+        self._navPath = navPath
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             settingsRootContent
         }
     }
@@ -84,13 +91,20 @@ struct SettingsTab: View {
             }
 
             // MARK: - 关于
-            AboutSectionView(isPresented: $showAbout)
+            AboutSectionView(onOpen: { navPath.append(SettingsRoute.about) })
         }
         .navigationTitle(hSize == .regular ? "" : L10n.t("设置"))
         .navigationBarTitleDisplayMode(hSize == .regular ? .inline : .large)
         // navigationDestination 必须挂在 List 外，否则 lazy 容器内会被忽略
-        .navigationDestination(isPresented: $showAbout) {
-            AboutDetailView()
+        .navigationDestination(for: SettingsRoute.self) { route in
+            switch route {
+            case .about:
+                AboutDetailView { navPath.append($0) }
+            case .privacyPolicy:
+                PrivacyPolicyView()
+            case .diagnostics:
+                MetricDiagnosticsView()
+            }
         }
         .sheet(isPresented: $showSetPin) {
             SetPasscodeSheet {
@@ -106,9 +120,6 @@ struct SettingsTab: View {
                 try? await Task.sleep(for: .seconds(2))
                 if setPinToast == newValue { setPinToast = nil }
             }
-        }
-        .onChange(of: showAbout) { _, show in
-            atRoot = !show
         }
         .onChange(of: languageRaw) { _, new in
             L10n.shared.setLanguage(L10n.Language(rawValue: new) ?? .system)
@@ -152,9 +163,9 @@ enum AppTheme: String, CaseIterable, Identifiable {
 // MARK: - 关于（居中卡片入口）
 
 /// 设置页底部的「关于APP」入口行：小号圆圈 i 图标 + 左对齐标题与版本号
-/// 注意：只负责展示与置位，导航由宿主在 List 外挂载（避免 lazy 容器内 navigationDestination）
+/// 注意：只负责展示，导航由宿主以 path 驱动挂载（避免 lazy 容器内 navigationDestination）
 struct AboutSectionView: View {
-    @Binding var isPresented: Bool
+    var onOpen: () -> Void
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
@@ -163,7 +174,7 @@ struct AboutSectionView: View {
     var body: some View {
         Section {
             Button {
-                isPresented = true
+                onOpen()
             } label: {
                 HStack(spacing: 12) {
                     ZStack {
@@ -195,21 +206,20 @@ struct AboutSectionView: View {
     }
 }
 
-/// 关于详情：版本 / API 版本 / 1Panel 官网 / 隐私政策 / 诊断数据（本地）
+/// 关于详情：版本 / API 版本 / 1Panel 官网 / 隐私政策（本地页）/ 诊断数据（本地）
 struct AboutDetailView: View {
-    private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
-    }
+    /// 二级推入（隐私政策/诊断）回写宿主导航路径
+    var onOpen: (SettingsRoute) -> Void
 
     var body: some View {
-        AboutDetailContent()
+        AboutDetailContent(onOpen: onOpen)
             .navigationTitle(L10n.t("关于APP"))
             .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 private struct AboutDetailContent: View {
-    @State private var showDiagnostics = false
+    var onOpen: (SettingsRoute) -> Void
 
     var body: some View {
         List {
@@ -223,21 +233,18 @@ private struct AboutDetailContent: View {
                         Label(L10n.t("1Panel 官网"), systemImage: "safari")
                     }
                 }
-                // E5：App 内隐私政策入口；暂指仓库内文档，上架前可替换为正式地址
-                if let url = URL(string: "https://github.com/a412316/1panel/blob/main/docs/privacy-policy.md") {
-                    Link(destination: url) {
-                        Label(L10n.t("隐私政策"), systemImage: "hand.raised")
-                    }
+                // E5：隐私政策为 App 内本地页（离线可读），页内附在线版链接
+                Button {
+                    onOpen(.privacyPolicy)
+                } label: {
+                    Label(L10n.t("隐私政策"), systemImage: "hand.raised")
                 }
                 Button {
-                    showDiagnostics = true
+                    onOpen(.diagnostics)
                 } label: {
                     Label(L10n.t("诊断数据（本地）"), systemImage: "stethoscope")
                 }
             }
-        }
-        .navigationDestination(isPresented: $showDiagnostics) {
-            MetricDiagnosticsView()
         }
     }
 }
