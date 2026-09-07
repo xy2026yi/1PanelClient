@@ -31,6 +31,10 @@ struct TerminalSurface: UIViewRepresentable {
         tv.backgroundColor = .black
         tv.nativeForegroundColor = .white
         tv.font = .monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        // B5：SwiftTerm 画布无内建无障碍信息，至少给 VoiceOver 一个可读元素
+        //（终端内容本身对读屏不友好，属第三方库固有限制）
+        tv.isAccessibilityElement = true
+        tv.accessibilityLabel = L10n.t("终端")
         bridge.view = tv
         session.onOutput = { [weak tv] data in
             tv?.feed(byteArray: ArraySlice([UInt8](data)))

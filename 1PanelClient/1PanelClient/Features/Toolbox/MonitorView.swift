@@ -293,6 +293,8 @@ struct MonitorView: View {
                     Image(systemName: showLoadChart ? "chevron.up" : "chevron.down")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
+                        // 命中区扩到 44×44（B5 审计实测 15×9 过小；视觉图标不变）
+                        .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -445,6 +447,8 @@ struct MonitorView: View {
                     Image(systemName: showCPUChart ? "chevron.up" : "chevron.down")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
+                        // 命中区扩到 44×44（B5 审计实测 15×9 过小；视觉图标不变）
+                        .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -529,6 +533,8 @@ struct MonitorView: View {
                     Image(systemName: showMemChart ? "chevron.up" : "chevron.down")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
+                        // 命中区扩到 44×44（B5 审计实测 15×9 过小；视觉图标不变）
+                        .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
