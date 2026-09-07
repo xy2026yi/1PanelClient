@@ -100,11 +100,10 @@ final class AppLockManager: ObservableObject {
 
     // MARK: - 生命周期
 
-    /// 本次上锁是否由进后台/熄屏触发。LiveContainer 侧载实测：熄屏瞬间
-    /// applicationState 与 scenePhase 环境都可能读到滞后的 .active，导致锁屏
-    /// 出现即误弹 FaceID（平放自动熄屏扫不到脸 → 系统弹「未能成功识别人脸」）。
-    /// 改为因果标记：后台触发的锁不随锁屏出现自动弹验证，等真正回前台
-    /// （scenePhase → active）再弹。冷启动锁（init 置位）不受影响。
+    /// 本次上锁是否由进后台/熄屏触发。熄屏瞬间 scenePhase 可能瞬时回弹 active
+    /// （直装真机实测：会导致 FaceID 在系统锁屏上弹出并唤醒手机），故该标记
+    /// 不随 scenePhase 回 active 即清除，而由 LockScreenView 在延时 0.8s 复核
+    /// 确认真正回到活跃前台后才清除并自动弹验证（冷启动锁不受影响）。
     @Published var lockedByDeactivation = false
 
     /// 进入后台时调用：开关开启则上锁
@@ -207,6 +206,9 @@ struct PasscodeKeypad: View {
                             .font(.title3)
                             .foregroundStyle(.primary)
                             .frame(width: 74, height: 74)
+                            // B5：审计器会读到 Image 节点的符号名 delete.left（不可读），
+                            // 图标层补可读标签（按钮层已有）
+                            .accessibilityLabel(L10n.t("删除"))
                     }
                     .accessibilityLabel(L10n.t("删除"))
                 }
@@ -262,6 +264,11 @@ struct LockScreenView: View {
     @State private var lockoutUntil: Date?
     /// 生物识别进行中标记：防验证回调与 scenePhase 回 active 竞争触发两次弹窗
     @State private var biometricInFlight = false
+    /// 本轮前台是否已自动弹过一次生物识别。FaceID 系统弹窗本身会让 app 走一轮
+    /// inactive→active（取消/失败关闭弹窗即回 active），若每次回 active 都补弹会
+    /// 陷入「取消→再弹」死循环：一轮前台只自动弹一次，之后仅用户点「解锁」触发；
+    /// 真正进过后台再回前台视为新一轮（见 onChange 的 .background 分支）
+    @State private var biometricAutoPresented = false
 
     private var biometryIcon: String {
         switch AppLockManager.biometryType {
@@ -329,6 +336,8 @@ struct LockScreenView: View {
                 Image(systemName: biometryIcon)
                     .font(.panelScaled(56))
                     .foregroundStyle(.secondary)
+                    // B5：纯装饰图标，状态由下方「已锁定」文本朗读，无需独立成焦点
+                    .accessibilityHidden(true)
                 Text(L10n.t("已锁定"))
                     .font(.title3.bold())
                     .padding(.top, 16)
@@ -356,6 +365,9 @@ struct LockScreenView: View {
                 } label: {
                     Text(showKeypad ? L10n.t("使用面容 ID 解锁") : L10n.t("使用密码解锁"))
                         .font(.subheadline)
+                        // B5：纯文字按钮实测命中高仅 18pt，扩到 44（视觉不变）
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .padding(.bottom, 32)
             }
@@ -363,13 +375,29 @@ struct LockScreenView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.regularMaterial)
         .transition(.opacity)
-        .task(id: showKeypad) { await autoBiometricUnlock() }
+        .task(id: showKeypad) {
+            // 初次出现，或用户主动切回生物识别面板（「使用面容 ID 解锁」）：
+            // 视为新一轮，允许自动弹一次
+            if !showKeypad { biometricAutoPresented = false }
+            await autoBiometricUnlock()
+        }
         // 上锁可能发生在 inactive（进切换器/通知中心）：系统验证在非 active 时无法
-        // 正常展示，回 active 时再补弹；后台触发的锁在此清除标记并首次自动弹
+        // 正常展示，回 active 时再补弹。**不在收到 active 时清 lockedByDeactivation**：
+        // 直装真机实测熄屏瞬间 scenePhase 会瞬时回弹一次 active，此时 applicationState
+        // 与受保护数据都还没落到已锁定态，守卫全部放行 → FaceID 在系统锁屏上弹出并
+        // 唤醒手机。清标记与实际弹窗都延后到 autoBiometricUnlock 的延时复核之后——
+        // 回弹会在 1s 内落回 inactive/background 被复核拦下，真正回前台则持续 active。
+        // FaceID 弹窗自身也造成 inactive→active 往返（取消即触发），由
+        // biometricAutoPresented 挡住：一轮前台只自动弹一次，不随弹窗关闭重弹
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active {
-                lock.lockedByDeactivation = false
+            switch phase {
+            case .background:
+                // 真正进过后台：回前台算新一轮，重新允许自动弹一次
+                biometricAutoPresented = false
+            case .active:
                 Task { await autoBiometricUnlock() }
+            default:
+                break
             }
         }
     }
@@ -383,15 +411,29 @@ struct LockScreenView: View {
             && UIApplication.shared.isProtectedDataAvailable
     }
 
-    /// 前台活跃时自动弹生物识别。后台/熄屏触发的锁（lockedByDeactivation）不随
-    /// 锁屏出现自动弹，等回前台再弹。失败/取消不自动切密码键盘：非用户主动的失败
-    /// 不应占用掉生物识别路径，留在验证界面由用户选择重试或切密码（对齐 iOS 系统
-    /// 锁屏的交互习惯）；仅生物识别被系统临时锁定（连续失败过多不可用）时才自动
-    /// 回落密码键盘，避免解锁按钮点击无效
+    /// 前台活跃时自动弹生物识别（每轮前台至多一次，见 biometricAutoPresented）。
+    /// 后台/熄屏触发的锁（lockedByDeactivation）不随锁屏出现自动弹，等真正回前台
+    /// ——判定方式为**延时 0.8s 复核**（见 onChange 注释）：熄屏回弹会在复核前落回
+    /// 非活跃态被拦下（标记与自动弹次数都不消耗，设备解锁后照常自动弹）；通知中心
+    /// 收起/切换器返回/设备解锁则持续活跃，复核通过后清除标记并弹窗。
+    /// 失败/取消不自动切密码键盘：非用户主动的失败不应占用掉生物识别路径，留在
+    /// 验证界面由用户选择重试或切密码（对齐 iOS 系统锁屏的交互习惯）；仅生物识别
+    /// 被系统临时锁定（连续失败过多不可用）时才自动回落密码键盘，避免解锁按钮
+    /// 点击无效
     private func autoBiometricUnlock() async {
-        guard !showKeypad, !biometricInFlight, !lock.lockedByDeactivation, canPresentBiometrics else { return }
+        // lockedByDeactivation 不能进首道守卫：它只在延时复核通过后才被清除，
+        // 放守卫里会导致「熄屏→解锁回前台」永远不自动弹（F2 复验发现的回归）；
+        // 熄屏回弹场景由延时复核的 canPresentBiometrics 拦截
+        guard !showKeypad, !biometricInFlight, !biometricAutoPresented,
+              canPresentBiometrics else { return }
         biometricInFlight = true
         defer { biometricInFlight = false }
+        // 延时复核：拦下熄屏瞬间的 active 回弹（手机放着不碰才叫熄屏，多等 0.8s
+        // 不影响真实交互；回弹场景此时已落回 inactive/background）
+        try? await Task.sleep(for: .seconds(0.8))
+        guard !showKeypad, !biometricAutoPresented, lock.isLocked, canPresentBiometrics else { return }
+        biometricAutoPresented = true
+        lock.lockedByDeactivation = false
         await lock.tryBiometricUnlock()
         if lock.isLocked, !AppLockManager.biometryAvailable {
             showKeypad = true
