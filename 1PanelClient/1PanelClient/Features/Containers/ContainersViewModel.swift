@@ -30,6 +30,13 @@ final class ContainersViewModel: ObservableObject {
     @Published var dockerErrorMessage: String?
     /// 镜像列表加载失败（区别于操作失败：镜像页渲染页内错误态 + 重试）
     @Published var imagesLoadError: String?
+    /// 列表分页（C5）：首屏 100/页 + 滚动到底自动追加
+    @Published private(set) var total = 0
+    @Published private(set) var isLoadingMore = false
+    private var page = 1
+    /// 追加页需沿用当前搜索词（否则翻页结果与首屏不是同一筛选）
+    private var lastQuery = ""
+    private static let pageSize = 100
 
     @Published var showAlert = false
     @Published var alertMessage = ""
@@ -63,9 +70,11 @@ final class ContainersViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+        lastQuery = query
+        page = 1
 
         let req = ContainerSearchRequest(
-            page: 1, pageSize: 100, name: query, state: "all",
+            page: 1, pageSize: Self.pageSize, name: query, state: "all",
             orderBy: "createdAt", order: "null"
         )
         do {
@@ -75,6 +84,7 @@ final class ContainersViewModel: ObservableObject {
             )
             // 先显示列表，避免等待 stats 接口导致长时间 loading
             self.containers = resp.items ?? []
+            self.total = resp.total
             // 后台合并运行时指标（CPU/内存），完成后刷新界面
             await mergeStats()
         } catch let err as APIError {
@@ -86,6 +96,34 @@ final class ContainersViewModel: ObservableObject {
             guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
             self.containers = []
+        }
+    }
+
+    /// 追加下一页（滚动到底触发；沿用当前搜索词，按 containerID 去重防跨页重复）
+    func loadMoreContainers() async {
+        guard containers.count < total, !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = page + 1
+        let req = ContainerSearchRequest(
+            page: next, pageSize: Self.pageSize, name: lastQuery, state: "all",
+            orderBy: "createdAt", order: "null"
+        )
+        do {
+            let resp: ContainerListResponse = try await client.send(
+                path: APIEndpoint.containersSearch.path,
+                body: req, as: ContainerListResponse.self
+            )
+            // 期间首屏已重载（搜索/下拉把页码归 1）：丢弃过期追加
+            guard next == page + 1 else { return }
+            let existing = Set(containers.map(\.containerID))
+            containers += (resp.items ?? []).filter { !existing.contains($0.containerID) }
+            total = resp.total
+            page = next
+            // 追加行补运行时指标（stats 为全量 GET，只映射到已加载的行）
+            await mergeStats()
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
         }
     }
 

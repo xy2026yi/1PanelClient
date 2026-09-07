@@ -13,6 +13,13 @@ final class WebsitesViewModel: ObservableObject {
     @Published var websites: [Website] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    /// 分页（C5）：首屏 20/页（对齐面板 Web 端）+ 滚动到底自动追加
+    @Published private(set) var total = 0
+    @Published private(set) var isLoadingMore = false
+    private var page = 1
+    /// 追加页需沿用当前搜索词（否则翻页结果与首屏不是同一筛选）
+    private var lastQuery = ""
+    private static let pageSize = 20
 
     // 创建网站相关
     @Published var isCreating = false
@@ -67,11 +74,13 @@ final class WebsitesViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+        lastQuery = query
+        page = 1
 
         let req = WebsiteSearchRequest(
             name: query,
             page: 1,
-            pageSize: 20,
+            pageSize: Self.pageSize,
             orderBy: "favorite",
             order: "descending",
             websiteGroupId: 0,
@@ -84,6 +93,7 @@ final class WebsitesViewModel: ObservableObject {
                 as: WebsiteListResponse.self
             )
             self.websites = resp.items ?? []
+            self.total = resp.total
         } catch let err as APIError {
             // 页面退出时 .task 被取消不是失败：保留原快照数据
             guard !err.isCancellation else { return }
@@ -93,6 +103,38 @@ final class WebsitesViewModel: ObservableObject {
             guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
             self.websites = []
+        }
+    }
+
+    /// 追加下一页（滚动到底触发；沿用当前搜索词，按 id 去重防跨页重复）
+    func loadMoreWebsites() async {
+        guard websites.count < total, !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = page + 1
+        let req = WebsiteSearchRequest(
+            name: lastQuery,
+            page: next,
+            pageSize: Self.pageSize,
+            orderBy: "favorite",
+            order: "descending",
+            websiteGroupId: 0,
+            type: ""
+        )
+        do {
+            let resp: WebsiteListResponse = try await client.send(
+                path: APIEndpoint.websitesSearch.path,
+                body: req,
+                as: WebsiteListResponse.self
+            )
+            // 期间首屏已重载（搜索/下拉把页码归 1）：丢弃过期追加
+            guard next == page + 1 else { return }
+            let existing = Set(websites.map(\.id))
+            websites += (resp.items ?? []).filter { !existing.contains($0.id) }
+            total = resp.total
+            page = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
         }
     }
 

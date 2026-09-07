@@ -327,6 +327,11 @@ final class DatabaseSystemViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isOperating = false
     @Published var errorMessage: String?
+    /// 数据库列表分页（C5）：首屏 200/页 + 滚动到底自动追加
+    @Published private(set) var dbTotal = 0
+    @Published private(set) var isLoadingMore = false
+    private var dbPage = 1
+    private static let pageSize = 200
 
     let system: DatabaseSystem
     private let client: APIClient
@@ -389,18 +394,13 @@ final class DatabaseSystemViewModel: ObservableObject {
     func refresh() async {
         isLoading = true
         defer { isLoading = false }
-        async let _: () = loadCheck()
-        async let _: () = loadConnInfo()
-        async let _: () = loadRemote()
-        if supportsDatabaseList {
-            async let _: () = loadDatabases()
-            _ = await loadDatabases()
-        }
-        if supportsUserManagement {
-            async let _: () = loadUsers()
-            _ = await loadUsers()
-        }
-        _ = await (loadCheck(), loadConnInfo(), loadRemote())
+        // 全并行、各一次：此前 async let 与直接 await 混用，每个请求都实际发出两遍
+        async let check: () = loadCheck()
+        async let connInfo: () = loadConnInfo()
+        async let remote: () = loadRemote()
+        async let dbs: () = supportsDatabaseList ? loadDatabases() : ()
+        async let users: () = supportsUserManagement ? loadUsers() : ()
+        _ = await (check, connInfo, remote, dbs, users)
     }
 
     func loadCheck() async {
@@ -426,11 +426,33 @@ final class DatabaseSystemViewModel: ObservableObject {
     }
 
     func loadDatabases() async {
-        let req = DBSearchRequest(page: 1, pageSize: 200, database: system.database, orderBy: "createdAt", order: "null")
+        let req = DBSearchRequest(page: 1, pageSize: Self.pageSize, database: system.database, orderBy: "createdAt", order: "null")
         do {
             let resp: PageResponse<DatabaseItem> = try await client.send(path: searchPath, body: req, as: PageResponse<DatabaseItem>.self)
             databases = resp.items ?? []
+            dbTotal = resp.total ?? resp.items?.count ?? 0
+            dbPage = 1
         } catch { errorMessage = error.localizedDescription }
+    }
+
+    /// 追加下一页数据库（滚动到底触发；按 id 去重防跨页重复）
+    func loadMoreDatabases() async {
+        guard databases.count < dbTotal, !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = dbPage + 1
+        let req = DBSearchRequest(page: next, pageSize: Self.pageSize, database: system.database, orderBy: "createdAt", order: "null")
+        do {
+            let resp: PageResponse<DatabaseItem> = try await client.send(path: searchPath, body: req, as: PageResponse<DatabaseItem>.self)
+            // 期间首屏已重载（下拉把页码归 1）：丢弃过期追加
+            guard next == dbPage + 1 else { return }
+            let existing = Set(databases.map(\.id))
+            databases += (resp.items ?? []).filter { !existing.contains($0.id) }
+            dbTotal = resp.total ?? dbTotal
+            dbPage = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
+        }
     }
 
     func operate(_ op: String) async {
@@ -811,12 +833,24 @@ struct DatabaseSystemView: View {
                         pendingDeleteDb = db
                     } label: { Label(L10n.t("删除"), systemImage: "trash") }
                 }
+                .onAppear {
+                    if db.id == filteredDatabases.last?.id {
+                        Task { await vm.loadMoreDatabases() }
+                    }
+                }
             }
             if filteredDatabases.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("暂无数据库"), systemImage: "tray")
                 }
                 .frame(maxWidth: .infinity)
+            } else if vm.databases.count < vm.dbTotal || vm.isLoadingMore {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+                .onAppear { Task { await vm.loadMoreDatabases() } }
             }
         } header: {
             SectionLabel(title: L10n.f("数据库（%ld）", filteredDatabases.count), systemImage: "cylinder")

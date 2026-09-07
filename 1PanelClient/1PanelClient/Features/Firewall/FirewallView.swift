@@ -24,6 +24,17 @@ final class FirewallViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isOperating = false
     @Published var errorMessage: String?
+    /// 三段列表分页（C5）：首屏 200/页 + 滚动到底自动追加；真机 215 条规则场景
+    /// 超出首屏的部分不再被静默截断
+    @Published private(set) var rulesTotal = 0
+    @Published private(set) var forwardsTotal = 0
+    @Published private(set) var addressesTotal = 0
+    /// 追加下一页加载态（三段共用：同一时刻只可能有一段在滚动加载）
+    @Published private(set) var isLoadingMore = false
+    private var rulesPage = 1
+    private var forwardsPage = 1
+    private var addressesPage = 1
+    private static let pageSize = 200
 
     private let client: APIClient
 
@@ -67,7 +78,7 @@ final class FirewallViewModel: ObservableObject {
     }
 
     func loadRules() async {
-        let req = FirewallSearchRequest(type: "port", status: "", strategy: "", page: 1, pageSize: 200)
+        let req = FirewallSearchRequest(type: "port", status: "", strategy: "", page: 1, pageSize: Self.pageSize)
         do {
             let resp: PageResponse<FirewallRule> = try await client.send(
                 path: APIEndpoint.firewallSearch.path,
@@ -75,11 +86,37 @@ final class FirewallViewModel: ObservableObject {
                 as: PageResponse<FirewallRule>.self
             )
             self.rules = resp.items ?? []
+            self.rulesTotal = resp.total ?? resp.items?.count ?? 0
+            self.rulesPage = 1
             self.errorMessage = nil
         } catch {
             // 页面退出取消不是失败：保留原快照
             guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 追加下一页端口规则（滚动到底触发；组合 id 去重，防翻页期间增删规则跨页重复）
+    func loadMoreRules() async {
+        guard rules.count < rulesTotal, !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = rulesPage + 1
+        let req = FirewallSearchRequest(type: "port", status: "", strategy: "", page: next, pageSize: Self.pageSize)
+        do {
+            let resp: PageResponse<FirewallRule> = try await client.send(
+                path: APIEndpoint.firewallSearch.path,
+                body: req,
+                as: PageResponse<FirewallRule>.self
+            )
+            // 期间首屏已重载（下拉刷新/增删后 loadRules 把页码归 1）：丢弃过期追加
+            guard next == rulesPage + 1 else { return }
+            let existing = Set(rules.map(\.id))
+            rules += (resp.items ?? []).filter { !existing.contains($0.id) }
+            rulesTotal = resp.total ?? rulesTotal
+            rulesPage = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
         }
     }
 
@@ -220,17 +257,40 @@ final class FirewallViewModel: ObservableObject {
     // MARK: 端口转发
 
     func loadForwards() async {
-        let req = FirewallSearchRequest(type: "forward", status: "", strategy: "", page: 1, pageSize: 200)
+        let req = FirewallSearchRequest(type: "forward", status: "", strategy: "", page: 1, pageSize: Self.pageSize)
         do {
             let resp: PageResponse<FirewallRule> = try await client.send(
                 path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
             )
             self.forwards = resp.items ?? []
+            self.forwardsTotal = resp.total ?? resp.items?.count ?? 0
+            self.forwardsPage = 1
             self.errorMessage = nil
         } catch {
             // 页面退出取消不是失败：保留原快照
             guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 追加下一页端口转发（滚动到底触发；同 loadMoreRules 去重与过期丢弃）
+    func loadMoreForwards() async {
+        guard forwards.count < forwardsTotal, !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = forwardsPage + 1
+        let req = FirewallSearchRequest(type: "forward", status: "", strategy: "", page: next, pageSize: Self.pageSize)
+        do {
+            let resp: PageResponse<FirewallRule> = try await client.send(
+                path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
+            )
+            guard next == forwardsPage + 1 else { return }
+            let existing = Set(forwards.map(\.id))
+            forwards += (resp.items ?? []).filter { !existing.contains($0.id) }
+            forwardsTotal = resp.total ?? forwardsTotal
+            forwardsPage = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
         }
     }
 
@@ -308,17 +368,40 @@ final class FirewallViewModel: ObservableObject {
     // MARK: IP 规则
 
     func loadAddresses() async {
-        let req = FirewallSearchRequest(type: "address", status: "", strategy: "", page: 1, pageSize: 200)
+        let req = FirewallSearchRequest(type: "address", status: "", strategy: "", page: 1, pageSize: Self.pageSize)
         do {
             let resp: PageResponse<FirewallRule> = try await client.send(
                 path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
             )
             self.addresses = resp.items ?? []
+            self.addressesTotal = resp.total ?? resp.items?.count ?? 0
+            self.addressesPage = 1
             self.errorMessage = nil
         } catch {
             // 页面退出取消不是失败：保留原快照
             guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 追加下一页 IP 规则（滚动到底触发；同 loadMoreRules 去重与过期丢弃）
+    func loadMoreAddresses() async {
+        guard addresses.count < addressesTotal, !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = addressesPage + 1
+        let req = FirewallSearchRequest(type: "address", status: "", strategy: "", page: next, pageSize: Self.pageSize)
+        do {
+            let resp: PageResponse<FirewallRule> = try await client.send(
+                path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
+            )
+            guard next == addressesPage + 1 else { return }
+            let existing = Set(addresses.map(\.id))
+            addresses += (resp.items ?? []).filter { !existing.contains($0.id) }
+            addressesTotal = resp.total ?? addressesTotal
+            addressesPage = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
         }
     }
 
@@ -692,9 +775,20 @@ struct FirewallView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .onAppear {
+                        if rule.id == vm.rules.last?.id {
+                            Task { await vm.loadMoreRules() }
+                        }
+                    }
+                }
+                if vm.rules.count < vm.rulesTotal || vm.isLoadingMore {
+                    loadMoreRow { Task { await vm.loadMoreRules() } }
                 }
             } header: {
-                SectionLabel(title: L10n.f("端口规则（%ld）", vm.rules.count), systemImage: "list.bullet.rectangle")
+                SectionLabel(
+                    title: L10n.f("端口规则（%ld）", max(vm.rulesTotal, vm.rules.count)),
+                    systemImage: "list.bullet.rectangle"
+                )
             }
         }
     }
@@ -725,9 +819,20 @@ struct FirewallView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .onAppear {
+                        if rule.id == vm.forwards.last?.id {
+                            Task { await vm.loadMoreForwards() }
+                        }
+                    }
+                }
+                if vm.forwards.count < vm.forwardsTotal || vm.isLoadingMore {
+                    loadMoreRow { Task { await vm.loadMoreForwards() } }
                 }
             } header: {
-                SectionLabel(title: L10n.f("端口转发（%ld）", vm.forwards.count), systemImage: "arrow.uturn.right")
+                SectionLabel(
+                    title: L10n.f("端口转发（%ld）", max(vm.forwardsTotal, vm.forwards.count)),
+                    systemImage: "arrow.uturn.right"
+                )
             }
         }
     }
@@ -758,11 +863,32 @@ struct FirewallView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .onAppear {
+                        if rule.id == vm.addresses.last?.id {
+                            Task { await vm.loadMoreAddresses() }
+                        }
+                    }
+                }
+                if vm.addresses.count < vm.addressesTotal || vm.isLoadingMore {
+                    loadMoreRow { Task { await vm.loadMoreAddresses() } }
                 }
             } header: {
-                SectionLabel(title: L10n.f("IP 规则（%ld）", vm.addresses.count), systemImage: "person.crop.circle.badge.xmark")
+                SectionLabel(
+                    title: L10n.f("IP 规则（%ld）", max(vm.addressesTotal, vm.addresses.count)),
+                    systemImage: "person.crop.circle.badge.xmark"
+                )
             }
         }
+    }
+
+    /// 滚动到底的加载更多行（转圈即可，触发靠行 onAppear 与末行 onAppear 双保险）
+    private func loadMoreRow(_ action: @escaping () -> Void) -> some View {
+        HStack {
+            Spacer()
+            ProgressView()
+            Spacer()
+        }
+        .onAppear { action() }
     }
 
     private var statusSection: some View {
@@ -797,7 +923,9 @@ struct FirewallView: View {
                             Image(systemName: statusExpanded ? "chevron.up" : "chevron.down")
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(.secondary)
-                                .frame(width: 24, height: 24)
+                                // 命中区扩到 44×44（B5 审计实测 11×7 过小；视觉图标不变）
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .disabled(vm.isOperating)

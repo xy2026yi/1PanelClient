@@ -104,6 +104,19 @@ struct ContainersTab: View {
                         NavigationLink(value: c) {
                             ContainerRow(container: c)
                         }
+                        .onAppear {
+                            if c.containerID == vm.containers.last?.containerID {
+                                Task { await vm.loadMoreContainers() }
+                            }
+                        }
+                    }
+                    if vm.containers.count < vm.total || vm.isLoadingMore {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        }
+                        .onAppear { Task { await vm.loadMoreContainers() } }
                     }
                 }
             }

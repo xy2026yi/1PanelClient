@@ -14,6 +14,13 @@ final class AppsViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var operatingAppIds: Set<Int> = []
+    /// 列表分页（C5）：首屏 100/页 + 滚动到底自动追加
+    @Published private(set) var total = 0
+    @Published private(set) var isLoadingMore = false
+    private var page = 1
+    /// 追加页需沿用当前搜索词（否则翻页结果与首屏不是同一筛选）
+    private var lastQuery = ""
+    private static let pageSize = 100
 
     // 升级相关
     @Published var showUpgradeSheet = false
@@ -102,13 +109,15 @@ final class AppsViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+        lastQuery = query
+        page = 1
 
         // update=false 返回全部应用但 canUpdate 始终 false（后端不计算）
         // update=true  只返回可更新的应用，但正确计算 canUpdate
         // 通过 logs/输出20.log 验证：两者 total 不同
         // 解决方案：先拿全部应用，再并发拿可更新列表，用后者标记前者的 canUpdate
         let allReq = AppInstalledSearchRequest(
-            page: 1, pageSize: 100, name: query, type: "", tags: [],
+            page: 1, pageSize: Self.pageSize, name: query, type: "", tags: [],
             update: false, all: false, unused: false, sync: false
         )
         // 查询可更新列表时不用 name 过滤，因为可能被搜索词过滤掉
@@ -139,25 +148,12 @@ final class AppsViewModel: ObservableObject {
             // ignored 拉取失败则降级为空数组（不阻断应用列表展示）
             let ignored = (try? await ignoredResp) ?? []
             var apps = all.items ?? []
-            let updatableMap = Dictionary((updatable.items ?? []).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-            // 构建 appID → ignoredRecordID 映射
-            let ignoredMap = Dictionary(ignored.compactMap { item -> (Int, Int)? in
-                guard let appID = item.appID else { return nil }
-                return (appID, item.id)
-            }, uniquingKeysWith: { a, _ in a })
-
-            // 合并可更新状态、dockerCompose、忽略记录 ID
-            for i in apps.indices {
-                if let updatableApp = updatableMap[apps[i].id] {
-                    apps[i].canUpdate = true
-                    apps[i].currentDockerCompose = updatableApp.dockerCompose
-                } else {
-                    apps[i].canUpdate = false
-                }
-                if let appID = apps[i].appID {
-                    apps[i].ignoredRecordID = ignoredMap[appID]
-                }
-            }
+            self.total = all.total
+            mergeUpdateState(
+                into: &apps,
+                updatable: updatable.items ?? [],
+                ignored: ignored
+            )
             self.apps = apps
         } catch let err as APIError {
             // 页面退出取消不是失败：保留原快照
@@ -168,6 +164,82 @@ final class AppsViewModel: ObservableObject {
             guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
             self.apps = []
+        }
+    }
+
+    /// 把 update=true 列表与忽略记录合并进应用数组（canUpdate 徽章 / dockerCompose /
+    /// 忽略记录 ID），首屏与追加页共用同一合并逻辑
+    private func mergeUpdateState(
+        into apps: inout [AppInstall],
+        updatable: [AppInstall],
+        ignored: [AppIgnoreUpgrade]
+    ) {
+        let updatableMap = Dictionary(updatable.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        // 构建 appID → ignoredRecordID 映射
+        let ignoredMap = Dictionary(ignored.compactMap { item -> (Int, Int)? in
+            guard let appID = item.appID else { return nil }
+            return (appID, item.id)
+        }, uniquingKeysWith: { a, _ in a })
+
+        // 合并可更新状态、dockerCompose、忽略记录 ID
+        for i in apps.indices {
+            if let updatableApp = updatableMap[apps[i].id] {
+                apps[i].canUpdate = true
+                apps[i].currentDockerCompose = updatableApp.dockerCompose
+            } else {
+                apps[i].canUpdate = false
+            }
+            if let appID = apps[i].appID {
+                apps[i].ignoredRecordID = ignoredMap[appID]
+            }
+        }
+    }
+
+    /// 追加下一页（滚动到底触发）：主列表翻页 + 重拉可更新/忽略映射（两表均小），
+    /// 合并逻辑与首屏一致；按 id 去重防跨页重复
+    func loadMoreApps() async {
+        guard apps.count < total, !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = page + 1
+
+        let allReq = AppInstalledSearchRequest(
+            page: next, pageSize: Self.pageSize, name: lastQuery, type: "", tags: [],
+            update: false, all: false, unused: false, sync: false
+        )
+        let updatableReq = AppInstalledSearchRequest(
+            page: 1, pageSize: 100, name: "", type: "", tags: [],
+            update: true, all: false, unused: false, sync: false
+        )
+        do {
+            async let allResp: AppInstalledListResponse = client.send(
+                path: APIEndpoint.appsInstalledSearch.path,
+                body: allReq,
+                as: AppInstalledListResponse.self
+            )
+            async let updatableResp: AppInstalledListResponse = client.send(
+                path: APIEndpoint.appsInstalledSearch.path,
+                body: updatableReq,
+                as: AppInstalledListResponse.self
+            )
+            async let ignoredResp: [AppIgnoreUpgrade] = client.send(
+                path: APIEndpoint.appsIgnoredList.path,
+                method: APIEndpoint.appsIgnoredList.method,
+                as: [AppIgnoreUpgrade].self
+            )
+
+            let (all, updatable) = try await (allResp, updatableResp)
+            let ignored = (try? await ignoredResp) ?? []
+            // 期间首屏已重载（搜索/下拉把页码归 1）：丢弃过期追加
+            guard next == page + 1 else { return }
+            let existing = Set(apps.map(\.id))
+            var newApps = (all.items ?? []).filter { !existing.contains($0.id) }
+            mergeUpdateState(into: &newApps, updatable: updatable.items ?? [], ignored: ignored)
+            apps += newApps
+            total = all.total
+            page = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
         }
     }
 

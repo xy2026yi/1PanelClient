@@ -121,6 +121,11 @@ struct AppsTab: View {
                             isOperating: vm.operatingAppIds.contains(app.id)
                         )
                     }
+                    .onAppear {
+                        if app.id == vm.apps.last?.id {
+                            Task { await vm.loadMoreApps() }
+                        }
+                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         if app.isRunning {
                             Button {
@@ -138,6 +143,14 @@ struct AppsTab: View {
                         } label: { Label(L10n.t("重启"), systemImage: "arrow.triangle.2.circlepath") }
                         .tint(.blue)
                     }
+                }
+                if vm.apps.count < vm.total || vm.isLoadingMore {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                    .onAppear { Task { await vm.loadMoreApps() } }
                 }
             }
         }

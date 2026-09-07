@@ -158,6 +158,19 @@ struct WebsitesTab: View {
                         } label: {
                             WebsiteRow(website: w)
                         }
+                        .onAppear {
+                            if w.id == vm.websites.last?.id {
+                                Task { await vm.loadMoreWebsites() }
+                            }
+                        }
+                    }
+                    if vm.websites.count < vm.total || vm.isLoadingMore {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        }
+                        .onAppear { Task { await vm.loadMoreWebsites() } }
                     }
                 }
             }

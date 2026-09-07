@@ -72,6 +72,13 @@ struct OperationLogView: View {
     @State private var items: [OperationLogItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    /// 分页（C5）：首屏 100/页 + 滚动到底自动追加，超出首屏的记录不再被截断
+    @State private var page = 1
+    @State private var total = 0
+    @State private var isLoadingMore = false
+    private let pageSize = 100
+
+    private var hasMore: Bool { items.count < total }
 
     private let client: APIClient
 
@@ -96,8 +103,18 @@ struct OperationLogView: View {
             } else if items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无操作日志"), systemImage: "square.and.pencil")
             } else {
-                List(items) { item in
-                    row(item)
+                List {
+                    ForEach(items) { item in
+                        row(item)
+                            .onAppear {
+                                if item.id == items.last?.id {
+                                    Task { await loadMore() }
+                                }
+                            }
+                    }
+                    if hasMore || isLoadingMore {
+                        logLoadMoreRow { Task { await loadMore() } }
+                    }
                 }
                 .listStyle(.insetGrouped)
             }
@@ -152,15 +169,39 @@ struct OperationLogView: View {
         do {
             let resp: OperationLogResponse = try await client.send(
                 path: APIEndpoint.logsOperation.path,
-                body: OperationLogRequest(),
+                body: OperationLogRequest(page: 1, pageSize: pageSize),
                 as: OperationLogResponse.self
             )
             items = resp.items ?? []
+            total = resp.total
+            page = 1
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    /// 追加下一页（滚动到底触发；按 id 去重，防翻页期间新记录导致跨页重复）
+    private func loadMore() async {
+        guard hasMore, !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = page + 1
+        do {
+            let resp: OperationLogResponse = try await client.send(
+                path: APIEndpoint.logsOperation.path,
+                body: OperationLogRequest(page: next, pageSize: pageSize),
+                as: OperationLogResponse.self
+            )
+            guard next == page + 1 else { return }
+            let existing = Set(items.map(\.id))
+            items += (resp.items ?? []).filter { !existing.contains($0.id) }
+            total = resp.total
+            page = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
+        }
     }
 }
 
@@ -171,6 +212,13 @@ struct LoginLogView: View {
     @State private var items: [LoginLogItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    /// 分页（C5）：同操作日志，首屏 100/页 + 滚动到底自动追加
+    @State private var page = 1
+    @State private var total = 0
+    @State private var isLoadingMore = false
+    private let pageSize = 100
+
+    private var hasMore: Bool { items.count < total }
 
     private let client: APIClient
 
@@ -195,8 +243,18 @@ struct LoginLogView: View {
             } else if items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无访问日志"), systemImage: "person.badge.key")
             } else {
-                List(items) { item in
-                    row(item)
+                List {
+                    ForEach(items) { item in
+                        row(item)
+                            .onAppear {
+                                if item.id == items.last?.id {
+                                    Task { await loadMore() }
+                                }
+                            }
+                    }
+                    if hasMore || isLoadingMore {
+                        logLoadMoreRow { Task { await loadMore() } }
+                    }
                 }
                 .listStyle(.insetGrouped)
             }
@@ -243,16 +301,50 @@ struct LoginLogView: View {
         do {
             let resp: LoginLogResponse = try await client.send(
                 path: APIEndpoint.logsLogin.path,
-                body: LoginLogRequest(),
+                body: LoginLogRequest(page: 1, pageSize: pageSize),
                 as: LoginLogResponse.self
             )
             items = resp.items ?? []
+            total = resp.total
+            page = 1
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
         isLoading = false
     }
+
+    /// 追加下一页（滚动到底触发；按 id 去重，防翻页期间新记录导致跨页重复）
+    private func loadMore() async {
+        guard hasMore, !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = page + 1
+        do {
+            let resp: LoginLogResponse = try await client.send(
+                path: APIEndpoint.logsLogin.path,
+                body: LoginLogRequest(page: next, pageSize: pageSize),
+                as: LoginLogResponse.self
+            )
+            guard next == page + 1 else { return }
+            let existing = Set(items.map(\.id))
+            items += (resp.items ?? []).filter { !existing.contains($0.id) }
+            total = resp.total
+            page = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
+        }
+    }
+}
+
+/// 日志列表滚动到底的加载更多行（操作/访问日志共用）
+private func logLoadMoreRow(_ action: @escaping () -> Void) -> some View {
+    HStack {
+        Spacer()
+        ProgressView()
+        Spacer()
+    }
+    .onAppear { action() }
 }
 
 // MARK: - 系统日志（按日期查看日志文件行）
