@@ -30,6 +30,11 @@ extension APIClient {
     nonisolated static func purge(serverID: UUID) {
         ClientCache.sharedCache.purge(serverID: serverID)
     }
+
+    /// 服务器（重新）添加时解除墓碑，恢复连接复用（见 ClientCache 墓碑说明）
+    nonisolated static func revive(serverID: UUID) {
+        ClientCache.sharedCache.revive(serverID: serverID)
+    }
 }
 
 /// 线程安全的极简 LRU 缓存。ServerCardMonitor 的并发任务组会跨隔离域
@@ -42,6 +47,13 @@ nonisolated final class ClientCache: @unchecked Sendable {
     private var entries: [UUID: (config: ServerConfig, client: APIClient)] = [:]
     /// 访问顺序（尾端最新），仅用于 LRU 淘汰
     private var order: [UUID] = []
+    /// 已移除服务器的墓碑（值 = 打点时间）。purge 后在飞的轮询/探测子任务
+    /// （错峰 sleep 中捕获了删除前的配置值拷贝）仍会 miss 缓存并回插新 client
+    /// ——死条目此后无人使用也无人清理，蚕食 LRU 容量让热连接优化退化。
+    /// 命中墓碑时按需构造、不入缓存；重新添加同 id（revive）或超时后恢复
+    private var tombstones: [UUID: Date] = [:]
+    /// 墓碑保留窗口：只需覆盖在飞子任务的生存期（秒级），取宽裕的 10 分钟
+    private static let tombstoneTTL: TimeInterval = 600
     private let capacity: Int
 
     /// 容量与 PageVMStore 同量级：常驻 VM 最多持有 32 个 client，
@@ -66,6 +78,10 @@ nonisolated final class ClientCache: @unchecked Sendable {
         }
 
         let client = APIClient(server: server)
+        // 墓碑：该服务器已被移除，此刻的调用只能来自删除前在飞的子任务
+        // （捕获了旧配置值拷贝）——按需构造但不回插，避免死条目
+        if isTombstoned(server.id) { return client }
+        tombstones[server.id] = nil
         entries[server.id] = (server, client)
         order.append(server.id)
         trim()
@@ -79,6 +95,14 @@ nonisolated final class ClientCache: @unchecked Sendable {
         defer { lock.unlock() }
         entries[serverID]?.client.invalidate()
         remove(serverID)
+        tombstones[serverID] = Date()
+    }
+
+    /// 服务器重新添加时解除墓碑（配合 ServerManager.add）
+    func revive(serverID: UUID) {
+        lock.lock()
+        defer { lock.unlock() }
+        tombstones[serverID] = nil
     }
 
     var count: Int {
@@ -90,6 +114,16 @@ nonisolated final class ClientCache: @unchecked Sendable {
     private func remove(_ id: UUID) {
         entries.removeValue(forKey: id)
         order.removeAll { $0 == id }
+    }
+
+    /// 是否命中墓碑（顺带清理该 id 的过期条目）
+    private func isTombstoned(_ id: UUID) -> Bool {
+        guard let at = tombstones[id] else { return false }
+        if Date().timeIntervalSince(at) >= Self.tombstoneTTL {
+            tombstones[id] = nil
+            return false
+        }
+        return true
     }
 
     private func touch(_ id: UUID) {

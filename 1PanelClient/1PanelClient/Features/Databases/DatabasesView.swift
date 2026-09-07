@@ -331,6 +331,10 @@ final class DatabaseSystemViewModel: ObservableObject {
     @Published private(set) var dbTotal = 0
     @Published private(set) var isLoadingMore = false
     private var dbPage = 1
+    /// 列表代数：loadDatabases() 替换列表时递增，追加页响应到达时与捕获值
+    /// 比对，期间发生过任何重载即丢弃过期追加。用代数而非页码比对：页码
+    /// 归 1 后 next==2==page+1 恒成立，首次翻页恰是页码判定的盲区
+    private var dbGeneration = 0
     private static let pageSize = 200
 
     let system: DatabaseSystem
@@ -432,6 +436,7 @@ final class DatabaseSystemViewModel: ObservableObject {
             databases = resp.items ?? []
             dbTotal = resp.total ?? resp.items?.count ?? 0
             dbPage = 1
+            dbGeneration += 1
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -441,11 +446,12 @@ final class DatabaseSystemViewModel: ObservableObject {
         isLoadingMore = true
         defer { isLoadingMore = false }
         let next = dbPage + 1
+        let gen = dbGeneration
         let req = DBSearchRequest(page: next, pageSize: Self.pageSize, database: system.database, orderBy: "createdAt", order: "null")
         do {
             let resp: PageResponse<DatabaseItem> = try await client.send(path: searchPath, body: req, as: PageResponse<DatabaseItem>.self)
-            // 期间首屏已重载（下拉把页码归 1）：丢弃过期追加
-            guard next == dbPage + 1 else { return }
+            // 期间列表已被重载（下拉/建库删库触发新代数）：丢弃过期追加
+            guard gen == dbGeneration else { return }
             let existing = Set(databases.map(\.id))
             databases += (resp.items ?? []).filter { !existing.contains($0.id) }
             dbTotal = resp.total ?? dbTotal

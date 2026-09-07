@@ -48,6 +48,28 @@ struct APIClientCacheTests {
         #expect(before !== after)
     }
 
+    /// purge 后在飞的轮询/探测子任务（捕获了删除前的配置值拷贝）会 miss 缓存
+    /// 并回插新 client 形成死条目；墓碑须按需构造但不入缓存，revive 后恢复
+    @Test("purge 墓碑：在飞调用不回插缓存，revive 恢复")
+    func purgeTombstoneBlocksReinsert() {
+        let cache = ClientCache()
+        let server = ServerConfig(name: "tomb", baseURL: "https://tomb.local", apiKey: "k")
+        _ = cache.client(for: server)
+        #expect(cache.count == 1)
+
+        cache.purge(serverID: server.id)
+        #expect(cache.count == 0)
+
+        // 模拟删除前在飞的子任务：可拿到可用实例，但不得回插
+        _ = cache.client(for: server)
+        #expect(cache.count == 0)
+
+        // 重新添加同 id 服务器：恢复正常缓存
+        cache.revive(serverID: server.id)
+        _ = cache.client(for: server)
+        #expect(cache.count == 1)
+    }
+
     /// 默认容量需 ≥ PageVMStore 容量：常驻 VM 持有的 client 不因容量不足
     /// 被逐轮淘汰（淘汰虽已不再 invalidate，重建本身也是无谓开销）
     @Test("默认容量与 PageVMStore 同量级（32）")

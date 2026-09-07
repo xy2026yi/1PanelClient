@@ -108,8 +108,14 @@ final class PageVMStore {
 // MARK: - 页面 key
 
 extension ManageItem {
-    /// VM 缓存键：页面 + 服务器 id + 配置指纹（任一变化即新 VM）
+    /// VM 缓存键：页面 + 服务器 id + 配置指纹 + 当前节点（任一变化即新 VM）。
+    /// 节点维度必须入键：应用/网站/数据库/计划任务页都可从「管理根入口」与
+    /// 「多机管理-节点」两条路径进入，请求经 CurrentNode 头按当前节点路由——
+    /// 若 key 不含节点，5 秒节流窗口内从节点 A 的页面退回再进节点 B 的页面
+    /// 会直接渲染 A 的列表快照，行点击带着 B 的节点头按自增 id 请求，
+    /// 极易命中 B 上的同 id 资源（列表显示 A、操作落在 B 的错靶）
     func storeKey(server: ServerConfig) -> String {
-        "page|\(rawValue)|\(server.id.uuidString)|\(server.hashValue)"
+        let node = NodeScope.current(for: server.id) ?? "local"
+        return "page|\(rawValue)|\(server.id.uuidString)|\(server.hashValue)|node|\(node)"
     }
 }

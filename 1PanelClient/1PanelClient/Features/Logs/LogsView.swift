@@ -76,6 +76,12 @@ struct OperationLogView: View {
     @State private var page = 1
     @State private var total = 0
     @State private var isLoadingMore = false
+    /// 列表代数：load() 替换列表时递增，追加页响应到达时与捕获值比对——
+    /// 期间发生过任何重载即丢弃过期追加。用代数而非页码比对：页码归 1 后
+    /// next==2==page+1 恒成立，首次翻页恰是页码判定的盲区。本页刷新时
+    /// isLoading 仅在列表为空时为 true，追加页可在刷新在途时启动，
+    /// 故代数必须在替换点（而非 load 入口）递增
+    @State private var loadGeneration = 0
     private let pageSize = 100
 
     private var hasMore: Bool { items.count < total }
@@ -175,6 +181,7 @@ struct OperationLogView: View {
             items = resp.items ?? []
             total = resp.total
             page = 1
+            loadGeneration += 1
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -188,13 +195,15 @@ struct OperationLogView: View {
         isLoadingMore = true
         defer { isLoadingMore = false }
         let next = page + 1
+        let gen = loadGeneration
         do {
             let resp: OperationLogResponse = try await client.send(
                 path: APIEndpoint.logsOperation.path,
                 body: OperationLogRequest(page: next, pageSize: pageSize),
                 as: OperationLogResponse.self
             )
-            guard next == page + 1 else { return }
+            // 期间列表已被重载（下拉刷新触发新代数）：丢弃过期追加
+            guard gen == loadGeneration else { return }
             let existing = Set(items.map(\.id))
             items += (resp.items ?? []).filter { !existing.contains($0.id) }
             total = resp.total
@@ -216,6 +225,8 @@ struct LoginLogView: View {
     @State private var page = 1
     @State private var total = 0
     @State private var isLoadingMore = false
+    /// 列表代数：同操作日志——load() 替换列表时递增，追加页据此丢弃过期追加
+    @State private var loadGeneration = 0
     private let pageSize = 100
 
     private var hasMore: Bool { items.count < total }
@@ -307,6 +318,7 @@ struct LoginLogView: View {
             items = resp.items ?? []
             total = resp.total
             page = 1
+            loadGeneration += 1
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -320,13 +332,15 @@ struct LoginLogView: View {
         isLoadingMore = true
         defer { isLoadingMore = false }
         let next = page + 1
+        let gen = loadGeneration
         do {
             let resp: LoginLogResponse = try await client.send(
                 path: APIEndpoint.logsLogin.path,
                 body: LoginLogRequest(page: next, pageSize: pageSize),
                 as: LoginLogResponse.self
             )
-            guard next == page + 1 else { return }
+            // 期间列表已被重载（下拉刷新触发新代数）：丢弃过期追加
+            guard gen == loadGeneration else { return }
             let existing = Set(items.map(\.id))
             items += (resp.items ?? []).filter { !existing.contains($0.id) }
             total = resp.total

@@ -34,6 +34,13 @@ final class FirewallViewModel: ObservableObject {
     private var rulesPage = 1
     private var forwardsPage = 1
     private var addressesPage = 1
+    /// 三段各自的列表代数：对应 load* 替换列表时递增，追加页响应到达时与
+    /// 捕获值比对，期间该段发生过任何重载（下拉/增删规则后重拉）即丢弃过期
+    /// 追加。用代数而非页码比对：页码归 1 后 next==2==page+1 恒成立，
+    /// 首次翻页恰是页码判定的盲区
+    private var rulesGeneration = 0
+    private var forwardsGeneration = 0
+    private var addressesGeneration = 0
     private static let pageSize = 200
 
     private let client: APIClient
@@ -88,6 +95,7 @@ final class FirewallViewModel: ObservableObject {
             self.rules = resp.items ?? []
             self.rulesTotal = resp.total ?? resp.items?.count ?? 0
             self.rulesPage = 1
+            self.rulesGeneration += 1
             self.errorMessage = nil
         } catch {
             // 页面退出取消不是失败：保留原快照
@@ -98,10 +106,11 @@ final class FirewallViewModel: ObservableObject {
 
     /// 追加下一页端口规则（滚动到底触发；组合 id 去重，防翻页期间增删规则跨页重复）
     func loadMoreRules() async {
-        guard rules.count < rulesTotal, !isLoadingMore else { return }
+        guard rules.count < rulesTotal, !isLoadingMore, !isLoading else { return }
         isLoadingMore = true
         defer { isLoadingMore = false }
         let next = rulesPage + 1
+        let gen = rulesGeneration
         let req = FirewallSearchRequest(type: "port", status: "", strategy: "", page: next, pageSize: Self.pageSize)
         do {
             let resp: PageResponse<FirewallRule> = try await client.send(
@@ -109,8 +118,8 @@ final class FirewallViewModel: ObservableObject {
                 body: req,
                 as: PageResponse<FirewallRule>.self
             )
-            // 期间首屏已重载（下拉刷新/增删后 loadRules 把页码归 1）：丢弃过期追加
-            guard next == rulesPage + 1 else { return }
+            // 期间本段已重载（下拉/增删规则触发新代数）：丢弃过期追加
+            guard gen == rulesGeneration else { return }
             let existing = Set(rules.map(\.id))
             rules += (resp.items ?? []).filter { !existing.contains($0.id) }
             rulesTotal = resp.total ?? rulesTotal
@@ -265,6 +274,7 @@ final class FirewallViewModel: ObservableObject {
             self.forwards = resp.items ?? []
             self.forwardsTotal = resp.total ?? resp.items?.count ?? 0
             self.forwardsPage = 1
+            self.forwardsGeneration += 1
             self.errorMessage = nil
         } catch {
             // 页面退出取消不是失败：保留原快照
@@ -275,16 +285,17 @@ final class FirewallViewModel: ObservableObject {
 
     /// 追加下一页端口转发（滚动到底触发；同 loadMoreRules 去重与过期丢弃）
     func loadMoreForwards() async {
-        guard forwards.count < forwardsTotal, !isLoadingMore else { return }
+        guard forwards.count < forwardsTotal, !isLoadingMore, !isLoading else { return }
         isLoadingMore = true
         defer { isLoadingMore = false }
         let next = forwardsPage + 1
+        let gen = forwardsGeneration
         let req = FirewallSearchRequest(type: "forward", status: "", strategy: "", page: next, pageSize: Self.pageSize)
         do {
             let resp: PageResponse<FirewallRule> = try await client.send(
                 path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
             )
-            guard next == forwardsPage + 1 else { return }
+            guard gen == forwardsGeneration else { return }
             let existing = Set(forwards.map(\.id))
             forwards += (resp.items ?? []).filter { !existing.contains($0.id) }
             forwardsTotal = resp.total ?? forwardsTotal
@@ -376,6 +387,7 @@ final class FirewallViewModel: ObservableObject {
             self.addresses = resp.items ?? []
             self.addressesTotal = resp.total ?? resp.items?.count ?? 0
             self.addressesPage = 1
+            self.addressesGeneration += 1
             self.errorMessage = nil
         } catch {
             // 页面退出取消不是失败：保留原快照
@@ -386,16 +398,17 @@ final class FirewallViewModel: ObservableObject {
 
     /// 追加下一页 IP 规则（滚动到底触发；同 loadMoreRules 去重与过期丢弃）
     func loadMoreAddresses() async {
-        guard addresses.count < addressesTotal, !isLoadingMore else { return }
+        guard addresses.count < addressesTotal, !isLoadingMore, !isLoading else { return }
         isLoadingMore = true
         defer { isLoadingMore = false }
         let next = addressesPage + 1
+        let gen = addressesGeneration
         let req = FirewallSearchRequest(type: "address", status: "", strategy: "", page: next, pageSize: Self.pageSize)
         do {
             let resp: PageResponse<FirewallRule> = try await client.send(
                 path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
             )
-            guard next == addressesPage + 1 else { return }
+            guard gen == addressesGeneration else { return }
             let existing = Set(addresses.map(\.id))
             addresses += (resp.items ?? []).filter { !existing.contains($0.id) }
             addressesTotal = resp.total ?? addressesTotal

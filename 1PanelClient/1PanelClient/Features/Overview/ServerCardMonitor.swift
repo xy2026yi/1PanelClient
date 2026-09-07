@@ -25,7 +25,10 @@ final class ServerCardMonitor: ObservableObject {
     private var round = 0
     /// 各服务器连续失败次数（成功清零）
     private var failures: [UUID: Int] = [:]
-    /// 各服务器恢复拉取的轮次（当前轮 < 该值时跳过）
+    /// 各服务器恢复拉取的轮次（当前轮 < 该值时跳过）。
+    /// 设为「失败轮次 + 跳过轮数 + 1」：第 r 轮失败跳过 N 轮即
+    /// r+1…r+N 不参与，r+N+1 起恢复（若少加 1，实际只跳 N-1 轮，
+    /// 首次失败会完全无退避）
     private var skipUntil: [UUID: Int] = [:]
 
     /// - Parameter force: 下拉刷新传 true——清空退避状态强制重试全部服务器
@@ -43,7 +46,7 @@ final class ServerCardMonitor: ObservableObject {
         if force {
             for s in targets { skipUntil[s.id] = nil }
         }
-        // 退避中的服务器本轮不请求（跳过计数每轮 -1，归零后重试）
+        // 退避中的服务器本轮不参与（skipUntil 与全局轮次比较，见属性注释）
         let due = targets.enumerated().filter { _, s in
             if (skipUntil[s.id] ?? 0) > round { return false }
             return true
@@ -69,10 +72,11 @@ final class ServerCardMonitor: ObservableObject {
             for await (id, cur) in group {
                 currents[id] = cur
                 if cur == nil {
-                    // 指数退避：连续第 f 次失败跳过 2^(f-1) 轮（1/2/4…），封顶 4 轮（≈20s）
+                    // 指数退避：连续第 f 次失败跳过 2^(f-1) 轮（1/2/4…），
+                    // 封顶 4 轮（5 秒一轮 ≈20s）；+1 见 skipUntil 属性注释
                     let f = (failures[id] ?? 0) + 1
                     failures[id] = f
-                    skipUntil[id] = round + min(1 << (f - 1), 4)
+                    skipUntil[id] = round + min(1 << (f - 1), 4) + 1
                 } else {
                     failures[id] = nil
                     skipUntil[id] = nil

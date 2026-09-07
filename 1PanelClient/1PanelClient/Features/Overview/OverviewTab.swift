@@ -7,8 +7,11 @@ import SwiftUI
 import Combine
 
 /// 首页导航路由（path 驱动；不用 isPresented 绑定——iOS 26 上 back 返回后
-/// 绑定写回延迟甚至丢失，MainTabView 依路径计数推导底部栏可见性会失步）
-private enum OverviewRoute: Hashable {
+/// 绑定写回延迟甚至丢失，MainTabView 依路径计数推导底部栏可见性会失步）。
+/// internal + 类型化数组（而非 NavigationPath）：MainTabView 需在切换服务器时
+/// 检视栈内容以保留服务器管理页（服务器切换正是该页的核心操作），
+/// NavigationPath 不暴露元素无法检视
+enum OverviewRoute: Hashable {
     case servers
     case upgradeLog
 }
@@ -17,7 +20,7 @@ struct OverviewTab: View {
     @ObservedObject var manager: ServerManager
     @Binding var selectedTab: AppTab
     /// 导航路径由 MainTabView 持有（跨尺寸类重建不丢栈）；底部栏可见性由计数推导
-    @Binding var navPath: NavigationPath
+    @Binding var navPath: [OverviewRoute]
     @StateObject private var vm: OverviewViewModel
     /// 多机管理切换的当前节点名（nil=local），工具栏提示当前展示的是哪个节点的数据
     @State private var currentNodeName: String? = nil
@@ -31,7 +34,7 @@ struct OverviewTab: View {
     init(
         manager: ServerManager,
         selectedTab: Binding<AppTab> = .constant(.overview),
-        navPath: Binding<NavigationPath> = .constant(NavigationPath()),
+        navPath: Binding<[OverviewRoute]> = .constant([]),
         onSelectManageItem: ((ManageItem) -> Void)? = nil
     ) {
         self.manager = manager

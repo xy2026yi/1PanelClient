@@ -45,13 +45,22 @@ extension Font {
             }
         } ?? .regular
         let base = UIFont.systemFont(ofSize: size, weight: uiWeight)
+        // withDesign 完整覆盖三种 design（symbolic traits 只能表达等宽，
+        // 会把 .rounded/.serif 静默丢成默认平体——AppLock 数字键等
+        // 圆体场景会视觉回归）；design 挂在 descriptor 上保留 weight
         if let design {
-            let traits: UIFontDescriptor.SymbolicTraits =
-                design == .monospaced ? .traitMonoSpace : []
-            let desc = base.fontDescriptor.withSymbolicTraits(traits) ?? base.fontDescriptor
-            let mono = UIFont(descriptor: desc, size: size)
-            let scaled = UIFontMetrics(forTextStyle: style).scaledFont(for: mono)
-            return Font(scaled)
+            let designName: String?
+            switch design {
+            case .rounded:    designName = "rounded"
+            case .serif:      designName = "serif"
+            case .monospaced: designName = "monospaced"
+            default:          designName = nil
+            }
+            let desc = designName.flatMap {
+                base.fontDescriptor.withDesign(UIFontDescriptor.SystemDesign(rawValue: $0))
+            } ?? base.fontDescriptor
+            let font = UIFont(descriptor: desc, size: size)
+            return Font(UIFontMetrics(forTextStyle: style).scaledFont(for: font))
         }
         return Font(UIFontMetrics(forTextStyle: style).scaledFont(for: base))
     }

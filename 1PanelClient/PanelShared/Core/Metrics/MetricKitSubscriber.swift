@@ -11,7 +11,14 @@ import MetricKit
 /// 订阅 MXMetricManager 的每日指标与崩溃/卡顿诊断，JSON 原样写入
 /// `Application Support/Metrics/`，保留最近 30 天。
 /// 零上报立场：数据不出设备，导出只能由用户在设置-关于-诊断数据里手动分享。
-final class MetricKitSubscriber: NSObject, MXMetricManagerSubscriber {
+///
+/// nonisolated（整个类型）：MXMetricManager 从自己的内部队列回调 didReceive，
+/// 并不承诺主线程。项目默认 MainActor 隔离下，隔离的 @objc witness 会生成
+/// executor 断言——后台队列回调即崩溃（Xcode 直跑基本不交付 payload 所以本地
+/// 不可见，TestFlight/Ad-Hoc 分发版每日指标交付必现）。落盘走全静态无共享
+/// 可变状态的 MetricStore，线程安全；顺带把磁盘 IO 留在回调线程不占主线程。
+/// @unchecked Sendable：无可变实例状态（static let shared 需要）
+nonisolated final class MetricKitSubscriber: NSObject, MXMetricManagerSubscriber, @unchecked Sendable {
     static let shared = MetricKitSubscriber()
     /// 本地保留窗口（ADR-0002）
     static let retentionDays = 30
@@ -33,8 +40,9 @@ final class MetricKitSubscriber: NSObject, MXMetricManagerSubscriber {
     }
 }
 
-/// payload 落盘/清理/列目录。文件名 `<前缀>-<时间戳>.json`
-enum MetricStore {
+/// payload 落盘/清理/列目录。文件名 `<前缀>-<时间戳>.json`。
+/// nonisolated：需被 nonisolated 的 MetricKit 回调同步调用（全静态无共享可变状态）
+nonisolated enum MetricStore {
     /// 本地保留窗口（ADR-0002）
     static let retentionDays = MetricKitSubscriber.retentionDays
 

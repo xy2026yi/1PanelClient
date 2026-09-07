@@ -30,9 +30,10 @@ struct MainTabView: View {
     /// 三个 Tab 的导航路径都由这里持有（path 驱动，底部栏可见性由计数直接推导）：
     /// ① iPad 窗口缩放跨尺寸类时双形态分支互换会重建整棵导航树，路径留在子视图
     ///    @State 里会丢栈跳回根页；② 子视图用 isPresented 绑定导航时，iOS 26 上
-    ///    back 返回后绑定写回延迟甚至丢失，栏位状态会卡死（见 showTabBar 注释）
+    ///    back 返回后绑定写回延迟甚至丢失，栏位状态会卡死（见 showTabBar 注释）。
+    ///    首页栈用类型化数组：切换服务器时需检视栈内容保留服务器管理页
     @State private var manageNavPath = NavigationPath()
-    @State private var overviewNavPath = NavigationPath()
+    @State private var overviewNavPath: [OverviewRoute] = []
     @State private var settingsNavPath = NavigationPath()
     /// regular 侧栏折叠开关（收起为图标栏），跨启动持久化；compact 下无侧栏不生效
     @AppStorage("main.sidebarCollapsed") private var sidebarCollapsed = false
@@ -63,12 +64,22 @@ struct MainTabView: View {
 
     var body: some View {
         rootContent
-            // 切换/移除当前服务器时清空管理/首页导航栈：栈内页面的 VM 与 path 里存的值
-            // （网站等模型，ID 按服务器自增）都绑旧服务器，带着新 VM 操作旧 id
-            // 会误伤新服务器上的数据；回根后重新 push 自然用新服务器构建
+            // 切换/移除当前服务器时收拢导航栈：栈内页面（升级日志等）的 VM 与
+            // path 里存的值（网站等模型，ID 按服务器自增）都绑旧服务器，带着新
+            // VM 操作旧 id 会误伤新服务器上的数据。但服务器管理页按 manager
+            // 实时列表渲染、切换/编辑服务器正是它的核心操作，保留在栈内，
+            // 否则每切一台就被弹回首页无法连续操作
             .onChange(of: manager.currentServerID) { _, _ in
                 manageNavPath = NavigationPath()
-                overviewNavPath = NavigationPath()
+                if manager.currentServerID == nil {
+                    // 全部移除（回到欢迎页）：整栈清空
+                    overviewNavPath = []
+                } else {
+                    overviewNavPath = overviewNavPath.filter {
+                        if case .servers = $0 { return true }
+                        return false
+                    }
+                }
             }
     }
 
@@ -127,8 +138,8 @@ struct MainTabView: View {
                 selectedTab: $selectedTab,
                 navPath: $overviewNavPath,
                 onSelectManageItem: { item in
-                    // 先提交 Tab 切换这一帧，下一拍再投递跳转目标；
-                    // Tab 栏收起已由 manageNavPath.count 的延后传播与 push 解耦
+                    // 先提交 Tab 切换这一帧，下一拍再投递跳转目标——与切 Tab
+                    // 同帧发生多次导航更新会触发 NavigationRequestObserver 警告
                     selectedTab = .manage
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         pendingManageItem = item

@@ -44,6 +44,9 @@ final class ServerManager: ObservableObject {
     // MARK: - CRUD
 
     func add(_ server: ServerConfig) {
+        // 若此前移除过同 id 服务器（正常流程 id 为新 UUID，理论不可达），
+        // 解除连接缓存墓碑，恢复复用
+        APIClient.revive(serverID: server.id)
         servers.append(server)
         persistServers()
         if currentServerID == nil {

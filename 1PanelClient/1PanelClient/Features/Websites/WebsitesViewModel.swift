@@ -17,6 +17,11 @@ final class WebsitesViewModel: ObservableObject {
     @Published private(set) var total = 0
     @Published private(set) var isLoadingMore = false
     private var page = 1
+    /// 首屏加载代数：load() 入口递增，追加页响应到达时与捕获值比对——
+    /// 期间发生过任何首屏重载（搜索/下拉/安装完成刷新）即丢弃过期追加。
+    /// 用代数而非页码比对：页码归 1 后 next==2==page+1 恒成立，
+    /// 首次翻页恰是页码判定的盲区
+    private var loadGeneration = 0
     /// 追加页需沿用当前搜索词（否则翻页结果与首屏不是同一筛选）
     private var lastQuery = ""
     private static let pageSize = 20
@@ -74,6 +79,7 @@ final class WebsitesViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+        loadGeneration += 1
         lastQuery = query
         page = 1
 
@@ -112,6 +118,7 @@ final class WebsitesViewModel: ObservableObject {
         isLoadingMore = true
         defer { isLoadingMore = false }
         let next = page + 1
+        let gen = loadGeneration
         let req = WebsiteSearchRequest(
             name: lastQuery,
             page: next,
@@ -127,8 +134,8 @@ final class WebsitesViewModel: ObservableObject {
                 body: req,
                 as: WebsiteListResponse.self
             )
-            // 期间首屏已重载（搜索/下拉把页码归 1）：丢弃过期追加
-            guard next == page + 1 else { return }
+            // 期间首屏已重载（搜索/下拉触发新加载代数）：丢弃过期追加
+            guard gen == loadGeneration else { return }
             let existing = Set(websites.map(\.id))
             websites += (resp.items ?? []).filter { !existing.contains($0.id) }
             total = resp.total
