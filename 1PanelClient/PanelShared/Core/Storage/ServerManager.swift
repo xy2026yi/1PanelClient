@@ -7,6 +7,7 @@ import Foundation
 import SwiftUI
 import Combine
 import os
+import WidgetKit
 
 @MainActor
 final class ServerManager: ObservableObject {
@@ -35,6 +36,9 @@ final class ServerManager: ObservableObject {
     private init() {
         migrateLegacyKeyMirrors()
         load()
+        // 冷启动对齐一次小组件：覆盖「重装 App 后桌面小组件冻结在旧时间线」的
+        // 场景（重装后不重新添加小组件，它会一直显示旧的空态/数据）
+        reloadWidgets()
     }
 
     // MARK: - CRUD
@@ -79,6 +83,7 @@ final class ServerManager: ObservableObject {
         } else {
             storage.removeObject(forKey: currentKey)
         }
+        reloadWidgets()
     }
 
     // MARK: - 持久化（敏感字段只进 Keychain，不落 UserDefaults）
@@ -96,6 +101,16 @@ final class ServerManager: ObservableObject {
         for s in servers {
             KeychainStore.save(s.apiKey, for: s.id.uuidString)
         }
+        reloadWidgets()
+    }
+
+    /// 服务器列表/当前服务器变化后重载桌面小组件时间线。真机实测：添加服务器后
+    /// 若不主动 reload，小组件要等系统按刷新预算自行重算（30 分钟策略可能拖到
+    /// 数小时），期间一直显示「离线：请先添加服务器」空态。PanelShared 同时编入
+    /// 主 App 与 Widget 扩展，扩展进程内 reload 无效，跳过。
+    private func reloadWidgets() {
+        guard !Bundle.main.bundlePath.hasSuffix(".appex") else { return }
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     /// 一次性迁移：旧版本在模拟器上写入的 API Key 明文镜像读回 Keychain 后删除，

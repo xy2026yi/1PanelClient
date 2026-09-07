@@ -5,6 +5,13 @@
 	<!-- Widget 时间线在扩展进程内直连面板拉数据，局域网地址同样触发本地网络权限 -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>用于连接局域网内的 1Panel 服务器面板，获取服务器状态与监控数据。</string>
+	<!-- ATS 豁免必须与主 App 一致：扩展进程用自己的 Info.plist，缺此项时所有
+	     http:// 明文面板地址的请求被 ATS 掐断（-1022），小组件永远显示离线 -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>

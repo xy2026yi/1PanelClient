@@ -100,7 +100,13 @@ struct ServerStatusEntryView: View {
             metricRow(L10n.t("CPU"), entry.cpu)
             metricRow(L10n.t("内存"), entry.memory)
             metricRow(L10n.t("负载"), entry.load1, percentStyle: false)
-            if isLarge {
+            // 快照时间提示：小组件为低频快照（时间线 30 分钟策略 + 系统预算），
+            // 中/大尺寸标注「更新于」，让数据新旧一目了然（小尺寸空间不足省略）
+            if family == .systemMedium {
+                Text(L10n.f("更新于 %@", entry.date.formatted(.relative(presentation: .named))))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            } else if isLarge {
                 Divider()
                 Text(L10n.f("更新于 %@", entry.date.formatted(.relative(presentation: .named))))
                     .font(.caption2)
