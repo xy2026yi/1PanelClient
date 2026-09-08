@@ -451,10 +451,10 @@ struct ServerSwitchIcon: View {
     }
 }
 
-/// 首页顶栏「服务器」图标（server.rack，蓝色着色）
+/// 首页顶栏「服务器」图标（app.badge，蓝色着色）
 struct ServerInfoIcon: View {
     var body: some View {
-        Image(systemName: "server.rack")
+        Image(systemName: "app.badge")
             .font(.system(size: 19, weight: .medium))
             .foregroundStyle(.blue)
             .frame(width: 26, height: 26)

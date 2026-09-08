@@ -64,10 +64,10 @@ struct AppStoreTab: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("更新远程"), isDisabled: vm.isSyncing) {
+                    .action(title: L10n.t("更新远程"), icon: "arrow.trianglehead.2.clockwise.rotate.90", isDisabled: vm.isSyncing) {
                         Task { await vm.syncRemote() }
                     },
-                    .action(title: L10n.t("同步本地"), isDisabled: vm.isSyncing) {
+                    .action(title: L10n.t("同步本地"), icon: "arrow.trianglehead.2.clockwise.rotate.90", isDisabled: vm.isSyncing) {
                         Task {
                             if let taskID = await vm.syncLocal() {
                                 syncTaskID = taskID
