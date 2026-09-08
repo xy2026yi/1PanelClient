@@ -53,11 +53,12 @@ final class FirewallViewModel: ObservableObject {
     }
 
     func refresh() async {
-        // 进页 .task 与下拉/回调并发时只跑一轮。例外：首屏尚无任何内容时不
-        // 短路——秒退秒进场景下在途刷新被取消、页面为空，短路不仅让快照卡
-        // 空态，还会让 autoRefresh 误记 5 秒节流窗口（没刷也算刷过）
-        guard !isLoading,
-              base != nil || !rules.isEmpty || !forwards.isEmpty || !addresses.isEmpty
+        // 进页 .task 与下拉/回调并发时只跑一轮（在途且有快照才跳过）。
+        // 例外：首屏尚无任何内容时不短路——秒退秒进场景下在途刷新被取消、
+        // 页面为空，短路不仅让快照卡空态，还会让 autoRefresh 误记 5 秒节流
+        // 窗口（没刷也算刷过）。与 BackupAccountsViewModel.refresh 同构
+        guard !isLoading
+            || (base == nil && rules.isEmpty && forwards.isEmpty && addresses.isEmpty)
         else { return }
         isLoading = true
         // 首屏四请求（状态卡 + 端口/转发/IP 规则）并行，完成即结束整页加载态；
