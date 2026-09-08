@@ -293,7 +293,7 @@ struct BackupSubmitError: Error {
 struct BackupProgressState: Equatable {
     let taskID: String
     let title: String
-    /// 备份=true（追读），恢复=false（从头读），与网页端抓包一致
+    /// 读取方向：网页端创建/恢复备份均 latest=false 从头读（0908 抓包）
     let latest: Bool
 }
 
@@ -363,7 +363,7 @@ struct BackupListView: View {
                 switch await vm.createBackup(secret: secret, description: description, args: args) {
                 case .success(let taskID):
                     pendingProgress = BackupProgressState(
-                        taskID: taskID, title: L10n.f("备份 %@", vm.target.detailName), latest: true
+                        taskID: taskID, title: L10n.f("备份 %@", vm.target.detailName), latest: false
                     )
                     return nil
                 case .failure(let error):
@@ -397,16 +397,10 @@ struct BackupListView: View {
             }
         }
         .onChange(of: showCreate) { _, shown in
-            if !shown, let p = pendingProgress {
-                pendingProgress = nil
-                progress = p
-            }
+            if !shown { pushPendingProgressAfterTransition() }
         }
         .onChange(of: recoveringRecord) { old, new in
-            if old != nil && new == nil, let p = pendingProgress {
-                pendingProgress = nil
-                progress = p
-            }
+            if old != nil && new == nil { pushPendingProgressAfterTransition() }
         }
         .alert(
             L10n.t("删除备份"),
@@ -443,6 +437,18 @@ struct BackupListView: View {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(L10n.f("已保存到「文件」App：我的 iPhone/1PanelClient/%@", vm.downloadedFileName ?? ""))
+        }
+    }
+
+    /// 表单转场（创建页 pop / 恢复 sheet 消失）进行中直接 push 进度页会被
+    /// NavigationStack 丢弃——binding 已置 true 但转场不发生，进度页永远
+    /// 不出来（提交后看似「什么都没发生」）。延迟到转场结束再压栈
+    private func pushPendingProgressAfterTransition() {
+        guard let p = pendingProgress else { return }
+        pendingProgress = nil
+        Task {
+            try? await Task.sleep(for: .seconds(0.45))
+            progress = p
         }
     }
 
