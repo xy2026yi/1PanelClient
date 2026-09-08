@@ -349,7 +349,7 @@ struct OverviewTab: View {
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.apps) } label: {
-                StatCard(title: L10n.t("应用"), count: b.appInstalledNumber, icon: "app.badge", color: .blue, updateCount: vm.appUpdateCount, customIcon: "icon-apps-o")
+                StatCard(title: L10n.t("应用"), count: b.appInstalledNumber, icon: "app.specular", color: .blue, updateCount: vm.appUpdateCount)
             }
             .buttonStyle(PressableCardStyle())
 
@@ -434,14 +434,12 @@ struct OverviewTab: View {
 
 // MARK: - 子视图
 
-/// 首页顶栏「切换服务器」图标：logs/切换.svg 样式（圆环 + 上下两条平行反向箭头，template 随明暗自适应）
+/// 首页顶栏「切换服务器」图标（point.bottomleft.forward.to.arrow.triangle.scurvepath，
+/// 次要色置于浅色圆底上，随明暗自适应）
 struct ServerSwitchIcon: View {
     var body: some View {
-        Image("icon-switch")
-            .renderingMode(.template)
-            .resizable()
-            .interpolation(.high)
-            .scaledToFit()
+        Image(systemName: "point.bottomleft.forward.to.arrow.triangle.scurvepath")
+            .font(.system(size: 11, weight: .medium))
             .foregroundStyle(.secondary)
             .frame(width: 13, height: 13)
             .padding(3.5)
@@ -453,14 +451,11 @@ struct ServerSwitchIcon: View {
     }
 }
 
-/// 首页顶栏「服务器」图标：logs/服务器.svg（卫星造型，template 随明暗自适应，蓝色着色）
+/// 首页顶栏「服务器」图标（server.rack，蓝色着色）
 struct ServerInfoIcon: View {
     var body: some View {
-        Image("icon-server")
-            .renderingMode(.template)
-            .resizable()
-            .interpolation(.high)
-            .scaledToFit()
+        Image(systemName: "server.rack")
+            .font(.system(size: 19, weight: .medium))
             .foregroundStyle(.blue)
             .frame(width: 26, height: 26)
     }
@@ -528,7 +523,7 @@ struct RingStatView: View {
     }
 }
 
-/// 资源统计卡左上角图标：默认 SF Symbol，可换内置自绘图标（docker 鲸鱼 / 应用空心四宫格）
+/// 资源统计卡左上角图标：默认 SF Symbol，容器卡用内置 docker 鲸鱼图标（icon-docker）
 struct StatCard: View {
     let title: String
     let count: Int?
@@ -577,7 +572,7 @@ struct StatCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    /// 自定义图标（logs/docker.svg 鲸鱼、logs/应用APP_o.svg 空心四宫格）与 SF Symbol 同尺寸展示
+    /// 自定义图标（docker.svg 鲸鱼）与 SF Symbol 同尺寸展示
     @ViewBuilder
     private var iconView: some View {
         if let customIcon {

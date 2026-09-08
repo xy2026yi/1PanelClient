@@ -14,10 +14,11 @@ import SwiftUI
 
 // MARK: - 菜单项
 
-/// 自绘菜单条目：动作或分隔线
+/// 自绘菜单条目：动作或分隔线（icon 为 SF Symbol 名，非空时显示在文字左侧）
 enum EllipsisMenuEntry {
     case action(
         title: String,
+        icon: String? = nil,
         role: ButtonRole? = nil,
         isDisabled: Bool = false,
         handler: () -> Void
@@ -61,8 +62,8 @@ struct EllipsisMenuPopup: View {
             VStack(spacing: 0) {
                 ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
                     switch entry {
-                    case .action(let title, let role, let isDisabled, let handler):
-                        rowButton(title: title, role: role, isDisabled: isDisabled, handler: handler)
+                    case .action(let title, let icon, let role, let isDisabled, let handler):
+                        rowButton(title: title, icon: icon, role: role, isDisabled: isDisabled, handler: handler)
                     case .divider:
                         Divider()
                     }
@@ -81,6 +82,7 @@ struct EllipsisMenuPopup: View {
 
     private func rowButton(
         title: String,
+        icon: String?,
         role: ButtonRole?,
         isDisabled: Bool,
         handler: @escaping () -> Void
@@ -89,7 +91,14 @@ struct EllipsisMenuPopup: View {
             onDismiss()
             handler()
         } label: {
-            HStack {
+            HStack(spacing: 10) {
+                if let icon {
+                    // 固定图标列宽：同菜单各项文字左对齐
+                    Image(systemName: icon)
+                        .font(.body)
+                        .frame(width: 22)
+                        .foregroundStyle(role == .destructive ? Color.red : Color.accentColor)
+                }
                 Text(title)
                     .foregroundStyle(role == .destructive ? Color.red : Color.primary)
                 Spacer(minLength: 12)

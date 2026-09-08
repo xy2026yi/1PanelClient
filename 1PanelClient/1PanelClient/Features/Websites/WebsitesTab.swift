@@ -433,20 +433,17 @@ struct WebsiteRow: View {
     }
 }
 
-// MARK: - 网站详情页图标（logs/HTTPS.svg 样式）
+// MARK: - 网站详情页图标
 
-/// HTTPS 入口行首图标（HTTPS.svg 样式的盾牌，template 渲染随明暗主题自适应）
+/// HTTPS 入口行首图标（key.shield，蓝色随明暗主题自适应）
 struct HTTPSLinkIcon: View {
     var size: CGFloat = 20
 
     var body: some View {
-        Image("icon-https")
-            .renderingMode(.template)
-            .resizable()
-            .interpolation(.high)
-            .scaledToFit()
-            .frame(width: size, height: size)
+        Image(systemName: "key.shield")
+            .font(.system(size: size * 0.85, weight: .medium))
             .foregroundStyle(.blue)
+            .frame(width: size, height: size)
     }
 }
 

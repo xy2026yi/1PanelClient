@@ -146,7 +146,7 @@ struct ServiceStatusCard<HeaderIcon: View, Extra: View>: View {
         .disabled(isOperating || act.isDisabled)
     }
 
-    /// 自定义图标（如 logs/创建数据库.svg）与 SF Symbol 同尺寸着色展示
+    /// 自定义图标（asset 名）与 SF Symbol 同尺寸着色展示
     @ViewBuilder
     private func actionIcon(_ act: ServiceAction) -> some View {
         if let custom = act.customIcon {

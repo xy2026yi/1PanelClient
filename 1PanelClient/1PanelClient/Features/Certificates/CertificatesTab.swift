@@ -175,7 +175,7 @@ struct CertificatesTab: View {
                 ServiceAction(title: L10n.t("DNS 账户"), icon: "network", color: .teal) {
                     showDns = true
                 },
-                ServiceAction(title: L10n.t("自签证书"), icon: "checkmark.seal", color: .orange, customIcon: "icon-cert") {
+                ServiceAction(title: L10n.t("自签证书"), icon: "key.shield", color: .orange) {
                     showCA = true
                 }
             ]

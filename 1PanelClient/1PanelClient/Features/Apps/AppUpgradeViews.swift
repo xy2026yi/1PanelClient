@@ -195,7 +195,7 @@ struct UpgradeSheetView: View {
 
 /// 应用列表菜单「可升级」进入：update=true & sync=true 查询待升级应用，
 /// 点击应用直接进入版本选择（UpgradeSheetView）；
-/// 「查看忽略应用」入口固定在页面底部（同管理页「编辑」样式）
+/// 「查看忽略应用」入口在右上角图标按钮
 struct UpgradableAppsView: View {
     @ObservedObject var vm: AppsViewModel
 
@@ -220,13 +220,23 @@ struct UpgradableAppsView: View {
                     systemImage: "checkmark.seal",
                     description: Text(L10n.t("已安装的应用均为最新版本"))
                 )
-                .safeAreaInset(edge: .bottom) { bottomIgnoredEntry }
             } else {
                 upgradableList
             }
         }
         .navigationTitle(L10n.t("可升级"))
         .navigationBarTitleDisplayMode(.inline)
+        // 「查看忽略应用」：右上角图标按钮（原在列表底部，需滚到底才能看到）
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showIgnored = true
+                } label: {
+                    Image(systemName: "exclamationmark.arrow.trianglehead.2.clockwise.rotate.90")
+                }
+                .accessibilityLabel(L10n.t("查看忽略应用"))
+            }
+        }
         .task { await load() }
         // 从「忽略升级」页返回时（取消忽略会置 needsRefresh）重载列表
         .onAppear {
@@ -259,41 +269,9 @@ struct UpgradableAppsView: View {
                     .buttonStyle(.plain)
                 }
             }
-
-            ignoredEntry
         }
         .listStyle(.insetGrouped)
         .refreshable { await load() }
-    }
-
-    /// 底部「查看忽略应用」入口：管理页「编辑」同款整行居中按钮
-    private var ignoredEntry: some View {
-        Section {
-            Button {
-                showIgnored = true
-            } label: {
-                HStack {
-                    Spacer()
-                    Text(L10n.t("查看忽略应用"))
-                    Spacer()
-                }
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    /// 空列表态的底部「查看忽略应用」入口（无 List 包裹，用材质底条承载）
-    private var bottomIgnoredEntry: some View {
-        Button {
-            showIgnored = true
-        } label: {
-            Text(L10n.t("查看忽略应用"))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .background(.regularMaterial)
     }
 
     private func load() async {

@@ -86,9 +86,9 @@ struct AppsTab: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("商店")) { showStore = true },
-                    .action(title: L10n.t("可升级")) { showUpgradable = true },
-                    .action(title: L10n.t("设置")) { showSettings = true },
+                    .action(title: L10n.t("商店"), icon: "storefront") { showStore = true },
+                    .action(title: L10n.t("可升级"), icon: "arrow.trianglehead.2.clockwise.rotate.90") { showUpgradable = true },
+                    .action(title: L10n.t("设置"), icon: "gear") { showSettings = true },
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
                 }
