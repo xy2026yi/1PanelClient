@@ -349,7 +349,7 @@ struct OverviewTab: View {
             .buttonStyle(PressableCardStyle())
 
             Button { tapManage(.apps) } label: {
-                StatCard(title: L10n.t("应用"), count: b.appInstalledNumber, icon: "app.specular", color: .blue, updateCount: vm.appUpdateCount)
+                StatCard(title: L10n.t("应用"), count: b.appInstalledNumber, icon: "app.badge", color: .blue, updateCount: vm.appUpdateCount)
             }
             .buttonStyle(PressableCardStyle())
 
@@ -451,10 +451,10 @@ struct ServerSwitchIcon: View {
     }
 }
 
-/// 首页顶栏「服务器」图标（app.badge，蓝色着色）
+/// 首页顶栏「服务器」图标（server.rack，蓝色着色）
 struct ServerInfoIcon: View {
     var body: some View {
-        Image(systemName: "app.badge")
+        Image(systemName: "server.rack")
             .font(.system(size: 19, weight: .medium))
             .foregroundStyle(.blue)
             .frame(width: 26, height: 26)

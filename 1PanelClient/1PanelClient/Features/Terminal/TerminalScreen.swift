@@ -170,11 +170,13 @@ struct TerminalScreen: View {
 
     private var toolbarMenu: some View {
         Menu {
-            Button(L10n.t("快速命令")) {
+            Button {
                 showQuickCommands = true
+            } label: {
+                Label(L10n.t("快速命令"), systemImage: "apple.terminal.on.rectangle")
             }
             .disabled(!session.isConnected)
-            Button(session.isConnected ? L10n.t("断开连接") : L10n.t("重新连接")) {
+            Button {
                 // 等菜单完成收起再翻转连接状态：菜单可见期间 isConnected 变化
                 // 会触发 UIContextMenuInteraction updateVisibleMenu 系统警告
                 let shouldDisconnect = session.isConnected
@@ -185,18 +187,32 @@ struct TerminalScreen: View {
                         session.connect()
                     }
                 }
+            } label: {
+                // 断开/重连共用一项，图标随连接状态切换
+                Label(
+                    session.isConnected ? L10n.t("断开连接") : L10n.t("重新连接"),
+                    systemImage: session.isConnected ? "icloud.slash" : "icloud.and.arrow.up"
+                )
             }
-            Button(L10n.t("放大字号")) {
+            Button {
                 fontSize = min(fontSize + 1, 24)
+            } label: {
+                Label(L10n.t("放大字号"), systemImage: "plus.magnifyingglass")
             }
-            Button(L10n.t("缩小字号")) {
+            Button {
                 fontSize = max(fontSize - 1, 9)
+            } label: {
+                Label(L10n.t("缩小字号"), systemImage: "minus.magnifyingglass")
             }
-            Button(L10n.t("清屏")) {
+            Button {
                 bridge.view?.getTerminal().softReset()
+            } label: {
+                Label(L10n.t("清屏"), systemImage: "xmark.rectangle.portrait")
             }
-            Button(L10n.t("滚动到底部")) {
+            Button {
                 bridge.view?.scroll(toPosition: 1)
+            } label: {
+                Label(L10n.t("滚动到底部"), systemImage: "arrow.down.to.line")
             }
         } label: {
             Image(systemName: "ellipsis.circle")

@@ -57,8 +57,8 @@ struct TerminalHostsView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("快速命令")) { showQuickCommands = true },
-                    .action(title: L10n.t("设置")) { showSettings = true },
+                    .action(title: L10n.t("快速命令"), icon: "apple.terminal.on.rectangle") { showQuickCommands = true },
+                    .action(title: L10n.t("设置"), icon: "gear") { showSettings = true },
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
                 }
