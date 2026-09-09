@@ -373,6 +373,14 @@ enum APIEndpoint {
     case nodesList               // POST 节点列表（含地址/分组/版本）
     case nodesTestByInfo         // POST 添加节点前可用性检查（byinfo）
     case nodesCreate             // POST 添加节点（异步任务，返回 taskID 日志）
+
+    // MARK: - 许可证（专业版授权；0909 抓包）
+    case licensesSearch          // POST 许可证分页列表
+    case licensesUpload          // POST 上传授权文件（multipart）
+    case licensesBind            // POST 绑定节点（syncList 固定四项同步）
+    case licensesUnbind          // POST 解绑
+    case licensesDel             // POST 删除（已绑定的需先解绑）
+    case licensesSync            // POST 同步
     case licensesOptions         // POST 许可证选项列表（添加专业版节点用）
     case nodesSearch             // POST 节点详情分页查询（字段全，详情页/编辑用）
     case nodesUpdate             // POST 编辑节点（完整对象回传，异步任务）
@@ -676,6 +684,12 @@ enum APIEndpoint {
         case .logsReadWebsite:       return "/api/v2/files/read/website"
         case .nodesCurrent:          return "/api/v2/core/xpack/nodes/current"
         case .nodesList:             return "/api/v2/core/nodes/list"
+        case .licensesSearch:        return "/api/v2/core/licenses/search"
+        case .licensesUpload:        return "/api/v2/core/licenses/upload"
+        case .licensesBind:          return "/api/v2/core/licenses/bind"
+        case .licensesUnbind:        return "/api/v2/core/licenses/unbind"
+        case .licensesDel:           return "/api/v2/core/licenses/del"
+        case .licensesSync:          return "/api/v2/core/licenses/sync"
         case .nodesTestByInfo:       return "/api/v2/core/xpack/nodes/test/byinfo"
         case .nodesCreate:           return "/api/v2/core/xpack/nodes"
         case .licensesOptions:       return "/api/v2/core/licenses/options"

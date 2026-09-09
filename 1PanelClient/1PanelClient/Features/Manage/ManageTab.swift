@@ -223,6 +223,11 @@ struct ManageTab: View {
             WebsiteMonitorView(server: server)
         case .wafMonitor:
             WAFMonitorView(server: server)
+        case .panelSettings:
+            // 设置 Hub：告警通知 / 备份账号 / 许可证（对齐网页端面板菜单）
+            ManageHubView(title: L10n.t("设置"), items: [.alert, .backupAccount, .license])
+        case .license:
+            LicenseView(server: server)
         }
     }
 }
@@ -384,6 +389,10 @@ enum ManageItem: String, Identifiable {
     case logs
     case websiteMonitor
     case wafMonitor
+    /// 设置（Hub 子页：告警通知 / 备份账号 / 许可证）
+    case panelSettings
+    /// 许可证（设置 Hub 子页）
+    case license
 
     var id: String { rawValue }
 
@@ -395,7 +404,8 @@ enum ManageItem: String, Identifiable {
             (L10n.t("应用"), [.apps, .websites, .database, .containers]),
             (L10n.t("主机"), [.terminal, .files, .monitor, .process, .sshService, .firewall]),
             (L10n.t("高级功能"), [.websiteMonitor, .nodeManage, .wafMonitor]),
-            (L10n.t("面板"), [.alert, .backupAccount, .cronjob, .taskCenter, .logs]),
+            // 告警通知 / 备份账号 / 许可证收进「设置」Hub（对齐网页端面板菜单）
+            (L10n.t("面板"), [.panelSettings, .cronjob, .taskCenter, .logs]),
         ]
     }
 
@@ -425,7 +435,9 @@ enum ManageItem: String, Identifiable {
         case .logs:        return L10n.t("日志")
         case .websiteMonitor: return L10n.t("网站监控")
         case .wafMonitor:  return L10n.t("WAF 监控")
-        }
+        case .panelSettings: return L10n.t("设置")
+        case .license:     return L10n.t("许可证")
+    }
     }
 
     var subtitle: String {
@@ -454,6 +466,8 @@ enum ManageItem: String, Identifiable {
         case .logs:        return L10n.t("面板 / SSH / 网站日志")
         case .websiteMonitor: return L10n.t("QPS / 访客趋势 / 访客地图 / 请求日志")
         case .wafMonitor:  return L10n.t("拦截趋势 / 拦截记录 / 封锁记录")
+        case .panelSettings: return L10n.t("告警通知 / 备份账号 / 许可证")
+        case .license:     return L10n.t("专业版授权绑定 / 同步")
         }
     }
 
@@ -483,6 +497,8 @@ enum ManageItem: String, Identifiable {
         case .logs:        return "doc.text.magnifyingglass"
         case .websiteMonitor: return "chart.pie.fill"
         case .wafMonitor:  return "chart.bar.xaxis"
+        case .panelSettings: return "gearshape.fill"
+        case .license:     return "checkmark.seal.fill"
         }
     }
 
@@ -512,6 +528,8 @@ enum ManageItem: String, Identifiable {
         case .logs:        return .cyan
         case .websiteMonitor: return .indigo
         case .wafMonitor:  return .red
+        case .panelSettings: return .blue
+        case .license:     return .orange
         }
     }
 

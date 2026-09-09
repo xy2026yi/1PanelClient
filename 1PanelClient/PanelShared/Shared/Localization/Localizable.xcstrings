@@ -21309,6 +21309,303 @@
           }
         }
       }
+    },
+    "专业版授权绑定 / 同步": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro license binding / sync"
+          }
+        }
+      }
+    },
+    "告警通知 / 备份账号 / 许可证": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alerts / Backup accounts / License"
+          }
+        }
+      }
+    },
+    "暂无许可证": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Licenses"
+          }
+        }
+      }
+    },
+    "上传授权文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upload License File"
+          }
+        }
+      }
+    },
+    "点击右上角 + 上传授权文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap + in the top-right corner to upload a license file"
+          }
+        }
+      }
+    },
+    "授权文件已上传": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "License file uploaded"
+          }
+        }
+      }
+    },
+    "上传失败：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upload failed: %@"
+          }
+        }
+      }
+    },
+    "绑定节点": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bind to Node"
+          }
+        }
+      }
+    },
+    "已绑定": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bound"
+          }
+        }
+      }
+    },
+    "未绑定": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbound"
+          }
+        }
+      }
+    },
+    "试用": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trial"
+          }
+        }
+      }
+    },
+    "全部版本": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All versions"
+          }
+        }
+      }
+    },
+    "绑定节点：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bound node: %@"
+          }
+        }
+      }
+    },
+    "创建：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Created: %@"
+          }
+        }
+      }
+    },
+    "同步：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synced: %@"
+          }
+        }
+      }
+    },
+    "短信：已用 %ld / %ld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SMS: %ld / %ld used"
+          }
+        }
+      }
+    },
+    "解绑许可证": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbind License"
+          }
+        }
+      }
+    },
+    "解绑后专业版功能将不可用，绑定节点上的数据不会删除。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro features will be unavailable after unbinding. Data on the bound node is kept."
+          }
+        }
+      }
+    },
+    "解绑": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbind"
+          }
+        }
+      }
+    },
+    "删除许可证": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete License"
+          }
+        }
+      }
+    },
+    "确定删除该许可证吗？已绑定的许可证需先解绑。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this license? Bound licenses must be unbound first."
+          }
+        }
+      }
+    },
+    "已解绑": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbound"
+          }
+        }
+      }
+    },
+    "已同步": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synced"
+          }
+        }
+      }
+    },
+    "许可证（%ld）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licenses (%ld)"
+          }
+        }
+      }
+    },
+    "节点列表加载失败，请重试": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to load nodes, please retry"
+          }
+        }
+      }
+    },
+    "绑定后自动同步系统代理 / 告警设置 / 自定义应用 / 备份账号。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Binding syncs system proxy, alert settings, custom apps and backup accounts."
+          }
+        }
+      }
+    },
+    "绑定": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bind"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
