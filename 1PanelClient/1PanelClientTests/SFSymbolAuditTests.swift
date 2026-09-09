@@ -16,11 +16,13 @@ import Foundation
 @Suite("SF Symbol 审计")
 struct SFSymbolAuditTests {
     /// 覆盖的参数形态：Image/IconBadge 的 systemName、Label/ContentUnavailableView 的
-    /// systemImage、AppShortcut 的 systemImageName
+    /// systemImage、AppShortcut 的 systemImageName、ActionBottomSheet/EllipsisMenuPopup
+    /// 等菜单项的 icon（此前 certificate 空白一例正是经 icon: 传入、逃过了审计）
     private static let patterns = [
         #"systemName:\s*"([^"\\]+)""#,
         #"systemImage:\s*"([^"\\]+)""#,
         #"systemImageName:\s*"([^"\\]+)""#,
+        #"icon:\s*"([^"\\]+)""#,
     ]
 
     /// 扫描这三个源码目录（app / 共享层 / Widget）

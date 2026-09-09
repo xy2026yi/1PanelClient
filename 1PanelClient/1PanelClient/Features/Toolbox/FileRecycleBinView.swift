@@ -40,7 +40,8 @@ struct RecycleItem: Decodable, Identifiable {
     /// 回收站内的存放目录（如 /.1panel_clash/files）
     let from: String?
 
-    var id: String { rName ?? sourcePath ?? name ?? UUID().uuidString }
+    /// 固定回退串（不用 UUID：每次访问都变会让去重/删除按 id 失配）
+    var id: String { rName ?? sourcePath ?? name ?? "unknown" }
 
     /// 还原请求路径（from + rName）
     var recyclePath: String {
