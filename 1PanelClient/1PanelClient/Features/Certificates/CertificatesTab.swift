@@ -8,6 +8,7 @@
 
 import SwiftUI
 import Combine
+import UniformTypeIdentifiers
 
 struct CertificatesTab: View {
     @ObservedObject var manager: ServerManager
@@ -175,12 +176,12 @@ struct CertificatesTab: View {
                 ServiceAction(title: L10n.t("DNS 账户"), icon: "network", color: .teal) {
                     showDns = true
                 },
-                ServiceAction(title: L10n.t("自签证书"), icon: "person.text.rectangle.badge.clock", color: .orange) {
+                ServiceAction(title: L10n.t("自签证书"), icon: "person.crop.circle.badge.clock", color: .orange) {
                     showCA = true
                 }
             ]
         ) {
-            IconBadge(systemName: "key.horizontal", color: .indigo, size: 44)
+            IconBadge(systemName: "checkmark.seal", color: .indigo, size: 44)
         }
     }
 }
@@ -529,11 +530,22 @@ struct UploadCertificateView: View {
     @State private var certificate = ""
     @State private var privateKeyPath = ""
     @State private var certificatePath = ""
+    // 手机上传：fileImporter 当前选择的目标 + 已选文件名
+    @State private var showFilePicker = false
+    @State private var pickTarget: PickTarget?
+    @State private var privateKeyFileName: String?
+    @State private var certificateFileName: String?
 
     private enum UploadMode: String, CaseIterable, Identifiable {
         case paste = "粘贴内容"
         case local = "服务器文件"
+        case phone = "手机上传"
         var id: String { rawValue }
+    }
+
+    private enum PickTarget {
+        case privateKey
+        case certificate
     }
 
     private var isUpdate: Bool { existingCert != nil }
@@ -587,10 +599,37 @@ struct UploadCertificateView: View {
                 Section {
                     TextField(L10n.t("如 /home/user/fullchain.pem"), text: $certificatePath)
                 } header: { Text(L10n.t("证书文件路径")) }
+
+            case .phone:
+                // 手机上传：读文件内容提交（type=paste），网页端「上传」同本质
+                Section {
+                    phoneFileRow(
+                        title: L10n.t("私钥文件"),
+                        fileName: privateKeyFileName,
+                        action: { pickTarget = .privateKey; showFilePicker = true }
+                    )
+                    phoneFileRow(
+                        title: L10n.t("证书文件"),
+                        fileName: certificateFileName,
+                        action: { pickTarget = .certificate; showFilePicker = true }
+                    )
+                } header: {
+                    Text(L10n.t("选择文件"))
+                } footer: {
+                    Text(L10n.t("从手机选择 .pem / .key / .crt 等文本格式的证书文件，读取内容后提交。"))
+                }
             }
         }
         .navigationTitle(isUpdate ? L10n.t("更新证书") : L10n.t("上传证书"))
         .navigationBarTitleDisplayMode(.inline)
+        .fileImporter(
+            isPresented: $showFilePicker,
+            allowedContentTypes: [.data],
+            allowsMultipleSelection: false
+        ) { result in
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            loadPickedFile(url)
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -609,7 +648,7 @@ struct UploadCertificateView: View {
 
     private var canSubmit: Bool {
         switch mode {
-        case .paste:
+        case .paste, .phone:
             return !privateKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && !certificate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .local:
@@ -618,13 +657,49 @@ struct UploadCertificateView: View {
         }
     }
 
+    /// 手机上传的文件选择行：标题 + 已选文件名（未选显示「选择文件」）
+    private func phoneFileRow(title: String, fileName: String?, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text(fileName ?? L10n.t("选择文件"))
+                    .font(.caption)
+                    .foregroundStyle(fileName == nil ? Color.accentColor : Color.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+    }
+
+    /// 读取选中文件内容填入私钥/证书（安全作用域内读文本；读取失败保持原值）
+    private func loadPickedFile(_ url: URL) {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url),
+              let text = String(data: data, encoding: .utf8),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        switch pickTarget {
+        case .privateKey:
+            privateKey = text
+            privateKeyFileName = url.lastPathComponent
+        case .certificate:
+            certificate = text
+            certificateFileName = url.lastPathComponent
+        case nil:
+            break
+        }
+    }
+
     private func submit() async {
         var req = WebsiteSSLUploadRequest()
-        req.type = (mode == .paste) ? "paste" : "local"
+        // 手机上传读文件内容提交，与「粘贴内容」同为 paste 类型
+        req.type = (mode == .local) ? "local" : "paste"
         req.description = description
         req.sslID = existingCert?.id ?? 0
         switch mode {
-        case .paste:
+        case .paste, .phone:
             req.privateKey = privateKey
             req.certificate = certificate
         case .local:

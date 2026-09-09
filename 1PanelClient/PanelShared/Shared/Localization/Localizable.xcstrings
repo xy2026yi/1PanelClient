@@ -599,6 +599,17 @@
         }
       }
     },
+    "1PanelClient 是开源服务器管理面板 1Panel 的 iOS 客户端。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1PanelClient is an iOS client for the open-source server management panel 1Panel."
+          }
+        }
+      }
+    },
     "1分钟": {
       "extractionState": "manual",
       "localizations": {
@@ -1003,6 +1014,28 @@
         }
       }
     },
+    "DNS 不可用": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS unreachable"
+          }
+        }
+      }
+    },
+    "DNS 可用": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS reachable"
+          }
+        }
+      }
+    },
     "DNS 服务器 1（可选）": {
       "extractionState": "manual",
       "localizations": {
@@ -1172,6 +1205,17 @@
         }
       }
     },
+    "HTTP 方法过滤": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP Method Filter"
+          }
+        }
+      }
+    },
     "HTTP 明文连接：API Key 与数据可能被链路窃听，建议改用 https://": {
       "extractionState": "manual",
       "localizations": {
@@ -1279,6 +1323,17 @@
       }
     },
     "ID: %lld": {},
+    "iOS 钥匙串 · 连接你自己的 1Panel 面板": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS Keychain · Connecting to your own 1Panel panel"
+          }
+        }
+      }
+    },
     "IP / CIDR，留空=任意": {
       "extractionState": "manual",
       "localizations": {
@@ -1330,6 +1385,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "IP Database"
+          }
+        }
+      }
+    },
+    "IP 或域名": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IP or domain"
           }
         }
       }
@@ -1480,6 +1546,17 @@
       }
     },
     "nginx.conf": {},
+    "NTP 服务器": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NTP Server"
+          }
+        }
+      }
+    },
     "off": {},
     "on": {},
     "OpenResty %@": {},
@@ -1518,6 +1595,7 @@
         }
       }
     },
+    "pool.ntp.org": {},
     "QPS / 访客趋势 / 访客地图 / 请求日志": {
       "extractionState": "manual",
       "localizations": {
@@ -1583,6 +1661,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "SMTP Server"
+          }
+        }
+      }
+    },
+    "SQL注入": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SQL Injection"
           }
         }
       }
@@ -1796,6 +1885,17 @@
       }
     },
     "Website": {},
+    "XSS": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XSS"
+          }
+        }
+      }
+    },
     "XSS防御": {
       "extractionState": "manual",
       "localizations": {
@@ -1803,6 +1903,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "XSS Protection"
+          }
+        }
+      }
+    },
+    "一句话木马": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-Line Trojan"
           }
         }
       }
@@ -1873,6 +1984,28 @@
         }
       }
     },
+    "上传失败：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upload failed: %@"
+          }
+        }
+      }
+    },
+    "上传授权文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upload License File"
+          }
+        }
+      }
+    },
     "上传文件": {
       "extractionState": "manual",
       "localizations": {
@@ -1880,6 +2013,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Upload File"
+          }
+        }
+      }
+    },
+    "上传文件夹": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upload Folder"
           }
         }
       }
@@ -2027,6 +2171,17 @@
         }
       }
     },
+    "不勾选时移入服务器回收站，可在回收站中还原。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When unchecked, files are moved to the server recycle bin and can be restored later."
+          }
+        }
+      }
+    },
     "不导出GTID": {
       "extractionState": "manual",
       "localizations": {
@@ -2056,6 +2211,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "No Access"
+          }
+        }
+      }
+    },
+    "不离开设备": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never leaves this device"
+          }
+        }
+      }
+    },
+    "不离开设备（仅发往你配置的面板地址）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never leaves this device (sent only to the panel address you configured)"
           }
         }
       }
@@ -2111,6 +2288,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pro Enabled"
+          }
+        }
+      }
+    },
+    "专业版授权绑定 / 同步": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro license binding / sync"
           }
         }
       }
@@ -2177,6 +2365,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Strict mode must be enabled in the global config first"
+          }
+        }
+      }
+    },
+    "中国大陆": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mainland China"
           }
         }
       }
@@ -2401,6 +2600,17 @@
         }
       }
     },
+    "仅当你主动分享导出时离开设备": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leaves this device only when you explicitly share or export it"
+          }
+        }
+      }
+    },
     "仅显示类型为「网站」且未被使用的已安装应用": {
       "extractionState": "manual",
       "localizations": {
@@ -2577,6 +2787,28 @@
         }
       }
     },
+    "代理": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy"
+          }
+        }
+      }
+    },
+    "代理地址": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Host"
+          }
+        }
+      }
+    },
     "代理地址：%@%@": {
       "extractionState": "manual",
       "localizations": {
@@ -2588,6 +2820,17 @@
         }
       }
     },
+    "代理服务器": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Server"
+          }
+        }
+      }
+    },
     "代理目标": {
       "extractionState": "manual",
       "localizations": {
@@ -2595,6 +2838,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Proxy Target"
+          }
+        }
+      }
+    },
+    "代理端口": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Port"
+          }
+        }
+      }
+    },
+    "代理类型": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Type"
           }
         }
       }
@@ -3259,6 +3524,17 @@
         }
       }
     },
+    "停用后删除文件将不进入回收站；已回收的文件仍可还原或删除。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When disabled, deleted files will not go to the recycle bin; files already in the bin can still be restored or deleted."
+          }
+        }
+      }
+    },
     "停用防火墙": {
       "extractionState": "manual",
       "localizations": {
@@ -3347,6 +3623,28 @@
         }
       }
     },
+    "全球": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Global"
+          }
+        }
+      }
+    },
+    "全选": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select All"
+          }
+        }
+      }
+    },
     "全部": {
       "extractionState": "manual",
       "localizations": {
@@ -3380,6 +3678,17 @@
         }
       }
     },
+    "全部版本": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All versions"
+          }
+        }
+      }
+    },
     "全部网站": {
       "extractionState": "manual",
       "localizations": {
@@ -3387,6 +3696,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "All Websites"
+          }
+        }
+      }
+    },
+    "全部网站即传入所有网站，与面板 Web 端一致": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"All websites\" applies the rules to every website, same as the web console."
           }
         }
       }
@@ -3732,6 +4052,17 @@
         }
       }
     },
+    "最后更新：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last updated: %@"
+          }
+        }
+      }
+    },
     "最大上传文件": {
       "extractionState": "manual",
       "localizations": {
@@ -3904,6 +4235,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Create IP Rule"
+          }
+        }
+      }
+    },
+    "创建：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Created: %@"
           }
         }
       }
@@ -4161,6 +4503,17 @@
         }
       }
     },
+    "删除 操作不可回滚，是否继续？": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete cannot be undone. Continue?"
+          }
+        }
+      }
+    },
     "删除（%ld）": {
       "extractionState": "manual",
       "localizations": {
@@ -4359,6 +4712,17 @@
         }
       }
     },
+    "删除数据": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleting Data"
+          }
+        }
+      }
+    },
     "删除数据库": {
       "extractionState": "manual",
       "localizations": {
@@ -4388,6 +4752,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Delete User"
+          }
+        }
+      }
+    },
+    "删除的文件将在此显示，可还原或彻底删除": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted files are listed here for restore or permanent deletion"
           }
         }
       }
@@ -4454,6 +4829,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Delete Node Data"
+          }
+        }
+      }
+    },
+    "删除许可证": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete License"
           }
         }
       }
@@ -5283,6 +5669,17 @@
         }
       }
     },
+    "卸载应用即删除本机所有数据（Keychain 条目随卸载清除）；面板侧的 API 密钥可随时在 1Panel 面板「面板设置 → API 接口」中禁用或重新生成。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uninstalling the app deletes all local data (Keychain entries are removed with it); the panel-side API key can be disabled or regenerated at any time in 1Panel under Panel Settings → API."
+          }
+        }
+      }
+    },
     "压缩密码（可选）": {
       "extractionState": "manual",
       "localizations": {
@@ -5536,6 +5933,17 @@
         }
       }
     },
+    "取消全选": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deselect All"
+          }
+        }
+      }
+    },
     "取消忽略": {
       "extractionState": "manual",
       "localizations": {
@@ -5576,6 +5984,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cancel Editing"
+          }
+        }
+      }
+    },
+    "只允许 IP 或域名，不能带 http/https 或端口": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only an IP or domain is allowed — no http/https scheme or port"
           }
         }
       }
@@ -5719,6 +6138,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sync WAF IP Groups"
+          }
+        }
+      }
+    },
+    "同步：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synced: %@"
           }
         }
       }
@@ -5954,6 +6384,17 @@
         }
       }
     },
+    "启用后将优先体验未正式发布的新功能，稳定性可能降低。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get early access to unreleased features. Stability may be reduced."
+          }
+        }
+      }
+    },
     "启用告警": {
       "extractionState": "manual",
       "localizations": {
@@ -5961,6 +6402,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enable Alert"
+          }
+        }
+      }
+    },
+    "启用回收站": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable Recycle Bin"
           }
         }
       }
@@ -6137,6 +6589,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Notifications"
+          }
+        }
+      }
+    },
+    "告警通知 / 备份账号 / 许可证": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alerts / Backup accounts / License"
           }
         }
       }
@@ -6405,6 +6868,39 @@
         }
       }
     },
+    "回收站": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recycle Bin"
+          }
+        }
+      }
+    },
+    "回收站为空": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recycle bin is empty"
+          }
+        }
+      }
+    },
+    "回收站已停用：新删除的文件将不进入回收站，直接删除。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recycle bin is disabled: newly deleted files are removed immediately instead of going to the recycle bin."
+          }
+        }
+      }
+    },
     "国家代号": {
       "extractionState": "manual",
       "localizations": {
@@ -6592,6 +7088,17 @@
         }
       }
     },
+    "域名（可多个，空格分隔）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domains (space-separated)"
+          }
+        }
+      }
+    },
     "基本": {
       "extractionState": "manual",
       "localizations": {
@@ -6636,6 +7143,17 @@
         }
       }
     },
+    "基础设置": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basic Settings"
+          }
+        }
+      }
+    },
     "基础配置": {
       "extractionState": "manual",
       "localizations": {
@@ -6654,6 +7172,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "0 means unlimited"
+          }
+        }
+      }
+    },
+    "增删均为全量覆盖提交，系统默认条目请谨慎移除。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add/remove submits the full list. Be careful removing system defaults."
           }
         }
       }
@@ -7065,6 +7594,17 @@
         }
       }
     },
+    "如果原路径存在同名文件或目录，将会被覆盖，是否继续？": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If a file or folder with the same name exists at the original path, it will be overwritten. Continue?"
+          }
+        }
+      }
+    },
     "子网站": {
       "extractionState": "manual",
       "localizations": {
@@ -7182,6 +7722,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Install OpenResty"
+          }
+        }
+      }
+    },
+    "安装 OpenResty 并创建网站后才能应用规则": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install OpenResty and create websites before applying rules"
           }
         }
       }
@@ -7659,6 +8210,17 @@
         }
       }
     },
+    "将 %ld 个文件上传至此网站？\n此操作会上传\"%@\"下的所有文件。请仅在您信任该网站的情况下执行此操作。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upload %ld files to this site?\nThis will upload all files under \"%@\". Only do this if you trust this site."
+          }
+        }
+      }
+    },
     "将主节点对应的配置同步到新节点。": {
       "extractionState": "manual",
       "localizations": {
@@ -7978,6 +8540,17 @@
         }
       }
     },
+    "崩溃与性能诊断由系统每日聚合，产生后会自动出现在这里": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crash and performance diagnostics are aggregated daily by the system and will appear here automatically"
+          }
+        }
+      }
+    },
     "工具": {
       "extractionState": "manual",
       "localizations": {
@@ -8099,6 +8672,17 @@
         }
       }
     },
+    "已删除（%ld）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted (%ld)"
+          }
+        }
+      }
+    },
     "已取消": {
       "extractionState": "manual",
       "localizations": {
@@ -8117,6 +8701,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Unignored — upgrade checks resumed"
+          }
+        }
+      }
+    },
+    "已同步": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synced"
           }
         }
       }
@@ -8374,6 +8969,39 @@
         }
       }
     },
+    "已移入回收站": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moved to recycle bin"
+          }
+        }
+      }
+    },
+    "已绑定": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bound"
+          }
+        }
+      }
+    },
+    "已解绑": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbound"
+          }
+        }
+      }
+    },
     "已认证": {
       "extractionState": "manual",
       "localizations": {
@@ -8528,6 +9156,17 @@
         }
       }
     },
+    "应用偏好设置": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App preferences"
+          }
+        }
+      }
+    },
     "应用到网站": {
       "extractionState": "manual",
       "localizations": {
@@ -8535,6 +9174,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Apply to Websites"
+          }
+        }
+      }
+    },
+    "应用危险目录过滤": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risky App Directory Filter"
           }
         }
       }
@@ -8594,6 +9244,17 @@
         }
       }
     },
+    "应用成功": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applied"
+          }
+        }
+      }
+    },
     "应用日志": {
       "extractionState": "manual",
       "localizations": {
@@ -8612,6 +9273,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "App"
+          }
+        }
+      }
+    },
+    "应用规则": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply"
           }
         }
       }
@@ -8656,6 +9328,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "App Lock uses a 4-digit passcode, with Face ID / Touch ID quick unlock when available. Verification is required when opening the app or returning from background."
+          }
+        }
+      }
+    },
+    "应用锁密码": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App lock passcode"
           }
         }
       }
@@ -9166,6 +9849,17 @@
         }
       }
     },
+    "总则": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
+          }
+        }
+      }
+    },
     "总握手次数": {
       "extractionState": "manual",
       "localizations": {
@@ -9408,6 +10102,17 @@
         }
       }
     },
+    "所有请求仅发往你本人添加的面板地址；应用不连接任何开发者或第三方服务器。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All requests go only to panel addresses you added yourself; the app never connects to any developer or third-party server."
+          }
+        }
+      }
+    },
     "手动": {
       "extractionState": "manual",
       "localizations": {
@@ -9617,6 +10322,17 @@
         }
       }
     },
+    "扫描器过滤": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scanner Filter"
+          }
+        }
+      }
+    },
     "拉取中…": {
       "extractionState": "manual",
       "localizations": {
@@ -9789,6 +10505,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Disk usage per monitored mount; triggers above the threshold"
+          }
+        }
+      }
+    },
+    "换行输入，每行一个；保存为全量覆盖。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One per line; saving overwrites the full list."
+          }
+        }
+      }
+    },
+    "授权文件已上传": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "License file uploaded"
           }
         }
       }
@@ -10365,6 +11103,17 @@
         }
       }
     },
+    "数据仅保存在本机（最近 30 天），不会自动上传；卸载 App 后即消失": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data is stored only on this device (last 30 days) and never uploaded; it is removed when the app is uninstalled"
+          }
+        }
+      }
+    },
     "数据同步": {
       "extractionState": "manual",
       "localizations": {
@@ -10372,6 +11121,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Data Sync"
+          }
+        }
+      }
+    },
+    "数据存储与使用范围": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data Storage & Usage"
           }
         }
       }
@@ -10563,6 +11323,17 @@
         }
       }
     },
+    "文档来源": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Documentation Source"
+          }
+        }
+      }
+    },
     "断开连接": {
       "extractionState": "manual",
       "localizations": {
@@ -10691,6 +11462,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No linked databases"
+          }
+        }
+      }
+    },
+    "无匹配的数据库": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No matching databases"
           }
         }
       }
@@ -11322,17 +12104,6 @@
         }
       }
     },
-    "无匹配的数据库": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No matching databases"
-          }
-        }
-      }
-    },
     "暂无数据库": {
       "extractionState": "manual",
       "localizations": {
@@ -11373,6 +12144,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No upgrade records"
+          }
+        }
+      }
+    },
+    "暂无服务器": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Servers Yet"
           }
         }
       }
@@ -11520,6 +12302,17 @@
         }
       }
     },
+    "暂无许可证": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Licenses"
+          }
+        }
+      }
+    },
     "暂无访问日志": {
       "extractionState": "manual",
       "localizations": {
@@ -11538,6 +12331,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No certificates"
+          }
+        }
+      }
+    },
+    "暂无诊断数据": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Diagnostics Yet"
           }
         }
       }
@@ -11949,6 +12753,17 @@
         }
       }
     },
+    "服务器时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server Time"
+          }
+        }
+      }
+    },
     "服务器概览": {
       "extractionState": "manual",
       "localizations": {
@@ -12235,6 +13050,17 @@
         }
       }
     },
+    "未绑定": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbound"
+          }
+        }
+      }
+    },
     "未获取": {
       "extractionState": "manual",
       "localizations": {
@@ -12301,6 +13127,28 @@
         }
       }
     },
+    "本地网络：用于连接局域网内的面板，仅在你主动测试连接时触发系统弹窗。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Network: used to reach panels on your LAN; the system prompt appears only when you actively test a connection."
+          }
+        }
+      }
+    },
+    "本应用不收集、不上传任何用户数据——无内嵌分析 SDK、无广告、无追踪、无账号体系。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This app does not collect or upload any user data — no embedded analytics SDK, no ads, no tracking, no account system."
+          }
+        }
+      }
+    },
     "本机": {
       "extractionState": "manual",
       "localizations": {
@@ -12308,6 +13156,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Local"
+          }
+        }
+      }
+    },
+    "本机 App 沙盒 · 离线展示最近一次快照": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local app sandbox · Shows the latest snapshot offline"
+          }
+        }
+      }
+    },
+    "本机 Application Support · 崩溃与性能自诊断，保留 30 天": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Application Support · Crash & performance self-diagnostics, kept for 30 days"
+          }
+        }
+      }
+    },
+    "本机 UserDefaults · 记住你的设置": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local UserDefaults · Remembers your settings"
           }
         }
       }
@@ -12385,6 +13266,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permissions"
+          }
+        }
+      }
+    },
+    "权限使用": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permission Usage"
           }
         }
       }
@@ -12473,6 +13365,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Build request failed: %@"
+          }
+        }
+      }
+    },
+    "查看在线版本": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View the online version"
           }
         }
       }
@@ -12983,6 +13886,17 @@
         }
       }
     },
+    "此文件不支持预览": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file type can't be previewed"
+          }
+        }
+      }
+    },
     "此设备未设置密码或生物识别，无法启用应用锁": {
       "extractionState": "manual",
       "localizations": {
@@ -13034,6 +13948,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Monthly"
+          }
+        }
+      }
+    },
+    "每行一个 DNS 地址": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One DNS address per line"
+          }
+        }
+      }
+    },
+    "永久删除文件（不进入回收站，直接删除）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete permanently (skip the recycle bin)"
           }
         }
       }
@@ -13111,6 +14047,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Test send failed — check the config"
+          }
+        }
+      }
+    },
+    "测试可用性": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test"
           }
         }
       }
@@ -13236,6 +14183,17 @@
         }
       }
     },
+    "添加 Hosts 记录": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Hosts Entry"
+          }
+        }
+      }
+    },
     "添加 IP 规则": {
       "extractionState": "manual",
       "localizations": {
@@ -13276,6 +14234,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Add registry failed: %@"
+          }
+        }
+      }
+    },
+    "添加你的 1Panel 面板地址与 API 密钥，开始管理服务器": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add your 1Panel panel address and API key to start managing servers"
           }
         }
       }
@@ -13555,6 +14524,28 @@
         }
       }
     },
+    "清空": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        }
+      }
+    },
+    "清空回收站": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty Recycle Bin"
+          }
+        }
+      }
+    },
     "清除全部": {
       "extractionState": "manual",
       "localizations": {
@@ -13628,6 +14619,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tap \"Run Now\" in task details to create the first record"
+          }
+        }
+      }
+    },
+    "点击右上角 + 上传授权文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap + in the top-right corner to upload a license file"
           }
         }
       }
@@ -13804,6 +14806,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tap for details"
+          }
+        }
+      }
+    },
+    "点击预置项自动填入，也可自定义输入。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a preset to fill in, or enter your own."
           }
         }
       }
@@ -14325,6 +15338,17 @@
         }
       }
     },
+    "目录过滤": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Directory Filter"
+          }
+        }
+      }
+    },
     "目标 IP": {
       "extractionState": "manual",
       "localizations": {
@@ -14442,6 +15466,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Real IP Source"
+          }
+        }
+      }
+    },
+    "短信：已用 %ld / %ld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SMS: %ld / %ld used"
           }
         }
       }
@@ -14589,6 +15624,17 @@
         }
       }
     },
+    "确定删除该许可证吗？已绑定的许可证需先解绑。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this license? Bound licenses must be unbound first."
+          }
+        }
+      }
+    },
     "确定删除账号「%@」吗？使用该账号的计划任务备份将失败。": {
       "extractionState": "manual",
       "localizations": {
@@ -14651,6 +15697,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Delete account \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确定要彻底删除 \"%@\" 吗？删除后不可恢复。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permanently delete \"%@\"? This cannot be undone."
           }
         }
       }
@@ -14871,6 +15928,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Community"
+          }
+        }
+      }
+    },
+    "社区版: %ld/%ld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Community: %ld/%ld"
           }
         }
       }
@@ -15157,6 +16225,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Restart Later"
+          }
+        }
+      }
+    },
+    "空文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty File"
           }
         }
       }
@@ -15601,6 +16680,17 @@
         }
       }
     },
+    "系统钥匙串 · 本机解锁校验": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Keychain · Local unlock verification"
+          }
+        }
+      }
+    },
     "线程数": {
       "extractionState": "manual",
       "localizations": {
@@ -15656,6 +16746,17 @@
         }
       }
     },
+    "绑定": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bind"
+          }
+        }
+      }
+    },
     "绑定主机 IP": {
       "extractionState": "manual",
       "localizations": {
@@ -15663,6 +16764,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bind to host IP"
+          }
+        }
+      }
+    },
+    "绑定后自动同步系统代理 / 告警设置 / 自定义应用 / 备份账号。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Binding syncs system proxy, alert settings, custom apps and backup accounts."
           }
         }
       }
@@ -15685,6 +16797,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bound User"
+          }
+        }
+      }
+    },
+    "绑定节点": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bind to Node"
+          }
+        }
+      }
+    },
+    "绑定节点：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bound node: %@"
           }
         }
       }
@@ -16327,6 +17461,17 @@
         }
       }
     },
+    "联系方式": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contact"
+          }
+        }
+      }
+    },
     "脚本": {
       "extractionState": "manual",
       "localizations": {
@@ -16536,6 +17681,17 @@
         }
       }
     },
+    "节点列表加载失败，请重试": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to load nodes, please retry"
+          }
+        }
+      }
+    },
     "节点列表接口不可用（多机管理为专业版功能），已回退为本机节点。": {
       "extractionState": "manual",
       "localizations": {
@@ -16598,6 +17754,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Node Detail"
+          }
+        }
+      }
+    },
+    "若你配置了 http:// 明文地址，界面会明示风险，并可在设置中开启「仅允许 HTTPS 连接」。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you configure a plaintext http:// address, the app shows the risk explicitly, and you can enable \"HTTPS Only\" in Settings."
           }
         }
       }
@@ -16822,6 +17989,39 @@
         }
       }
     },
+    "解绑": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbind"
+          }
+        }
+      }
+    },
+    "解绑后专业版功能将不可用，绑定节点上的数据不会删除。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro features will be unavailable after unbinding. Data on the bound node is kept."
+          }
+        }
+      }
+    },
+    "解绑许可证": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbind License"
+          }
+        }
+      }
+    },
     "解锁": {
       "extractionState": "manual",
       "localizations": {
@@ -16921,6 +18121,17 @@
         }
       }
     },
+    "认证（可选）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authentication (optional)"
+          }
+        }
+      }
+    },
     "认证与目录": {
       "extractionState": "manual",
       "localizations": {
@@ -16954,6 +18165,17 @@
         }
       }
     },
+    "记住密码": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remember Password"
+          }
+        }
+      }
+    },
     "记住认证信息": {
       "extractionState": "manual",
       "localizations": {
@@ -16983,6 +18205,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "License"
+          }
+        }
+      }
+    },
+    "许可证（%ld）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licenses (%ld)"
           }
         }
       }
@@ -17262,6 +18495,39 @@
         }
       }
     },
+    "诊断数据（MetricKit）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostic data (MetricKit)"
+          }
+        }
+      }
+    },
+    "诊断数据（本地）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostics (Local)"
+          }
+        }
+      }
+    },
+    "试用": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trial"
+          }
+        }
+      }
+    },
     "该任务暂无日志": {
       "extractionState": "manual",
       "localizations": {
@@ -17357,6 +18623,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "This will [forbid] auto-connecting to the node terminal when opening the terminal. Continue?"
+          }
+        }
+      }
+    },
+    "该文件夹内没有文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This folder contains no files"
+          }
+        }
+      }
+    },
+    "该文件没有内容": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file has no content"
           }
         }
       }
@@ -17577,6 +18865,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Secret Key is required"
+          }
+        }
+      }
+    },
+    "请填写代理地址与端口": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy host and port are required"
           }
         }
       }
@@ -18186,6 +19485,17 @@
         }
       }
     },
+    "超时时间内无操作将自动退出登录。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You will be logged out automatically after this period of inactivity."
+          }
+        }
+      }
+    },
     "超级用户": {
       "extractionState": "manual",
       "localizations": {
@@ -18226,6 +19536,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "When set to Follow System, appearance switches with the device setting"
+          }
+        }
+      }
+    },
+    "跟随系统语言": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow system language"
+          }
+        }
+      }
+    },
+    "跟随运行区域": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow region"
           }
         }
       }
@@ -18439,6 +19771,17 @@
         }
       }
     },
+    "运行区域": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Region"
+          }
+        }
+      }
+    },
     "运行时长": {
       "extractionState": "manual",
       "localizations": {
@@ -18556,6 +19899,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Back"
+          }
+        }
+      }
+    },
+    "还原": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore"
           }
         }
       }
@@ -18945,6 +20299,17 @@
         }
       }
     },
+    "连接超时。请检查：面板端口是否正确、服务器防火墙是否放行、面板是否在线；若连接的是局域网地址，还请在「设置 → 隐私与安全性 → 本地网络」中允许本 App（模拟器则在 macOS 同名设置中允许 Simulator）。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection timed out. Check that the panel port is correct, the server firewall allows it, and the panel is online. For a LAN address, also allow this app in Settings → Privacy & Security → Local Network (for the simulator, allow Simulator in the equivalent macOS setting)."
+          }
+        }
+      }
+    },
     "连接超时时间": {
       "extractionState": "manual",
       "localizations": {
@@ -19249,6 +20614,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ban IPs via firewallcmd ipset"
+          }
+        }
+      }
+    },
+    "通过 GitHub Issue 反馈": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback via GitHub issues"
           }
         }
       }
@@ -19891,6 +21267,17 @@
         }
       }
     },
+    "阿里": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba"
+          }
+        }
+      }
+    },
     "阿里云": {
       "extractionState": "manual",
       "localizations": {
@@ -19931,6 +21318,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Preset"
+          }
+        }
+      }
+    },
+    "隐私政策": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy Policy"
           }
         }
       }
@@ -20012,6 +21410,17 @@
         }
       }
     },
+    "面容 ID / 触控 ID：仅用于应用锁解锁（可选功能），不上传任何生物信息。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face ID / Touch ID: used only for app lock unlock (optional); no biometric data is ever uploaded."
+          }
+        }
+      }
+    },
     "面板": {
       "extractionState": "manual",
       "localizations": {
@@ -20089,6 +21498,28 @@
         }
       }
     },
+    "面板别名": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panel Name"
+          }
+        }
+      }
+    },
+    "面板别名 / 超时 / 代理 / 运行环境": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panel name / timeout / proxy / runtime"
+          }
+        }
+      }
+    },
     "面板地址": {
       "extractionState": "manual",
       "localizations": {
@@ -20096,6 +21527,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Panel URL"
+          }
+        }
+      }
+    },
+    "面板地址、名称与 API 密钥": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panel address, name & API key"
           }
         }
       }
@@ -20133,6 +21575,17 @@
         }
       }
     },
+    "面板对外访问地址（IP 或域名），留空表示未指定。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The public address (IP or domain) of the panel. Empty means unset."
+          }
+        }
+      }
+    },
     "面板将以剩余天数为准，在到期前触发告警": {
       "extractionState": "manual",
       "localizations": {
@@ -20151,6 +21604,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Panel host"
+          }
+        }
+      }
+    },
+    "面板数据本地缓存": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local panel data cache"
           }
         }
       }
@@ -20232,6 +21696,28 @@
         }
       }
     },
+    "面板设置加载失败，请重试": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to load panel settings, please retry"
+          }
+        }
+      }
+    },
+    "面板超时时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Session Timeout"
+          }
+        }
+      }
+    },
     "颁发组织": {
       "extractionState": "manual",
       "localizations": {
@@ -20250,6 +21736,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Preview: %@:%ld"
+          }
+        }
+      }
+    },
+    "预览体验计划": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview Experience Program"
           }
         }
       }
@@ -20518,1172 +22015,6 @@
         }
       }
     },
-    "默认连接": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Default Connection"
-          }
-        }
-      }
-    },
-    "应用规则": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apply"
-          }
-        }
-      }
-    },
-    "应用成功": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Applied"
-          }
-        }
-      }
-    },
-    "全选": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Select All"
-          }
-        }
-      }
-    },
-    "取消全选": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deselect All"
-          }
-        }
-      }
-    },
-    "全部网站即传入所有网站，与面板 Web 端一致": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "\"All websites\" applies the rules to every website, same as the web console."
-          }
-        }
-      }
-    },
-    "安装 OpenResty 并创建网站后才能应用规则": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Install OpenResty and create websites before applying rules"
-          }
-        }
-      }
-    },
-    "SQL注入": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SQL Injection"
-          }
-        }
-      }
-    },
-    "一句话木马": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "One-Line Trojan"
-          }
-        }
-      }
-    },
-    "目录过滤": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Directory Filter"
-          }
-        }
-      }
-    },
-    "应用危险目录过滤": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Risky App Directory Filter"
-          }
-        }
-      }
-    },
-    "扫描器过滤": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scanner Filter"
-          }
-        }
-      }
-    },
-    "HTTP 方法过滤": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HTTP Method Filter"
-          }
-        }
-      }
-    },
-    "XSS": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "XSS"
-          }
-        }
-      }
-    },
-    "隐私政策": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Privacy Policy"
-          }
-        }
-      }
-    },
-    "诊断数据（本地）": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diagnostics (Local)"
-          }
-        }
-      }
-    },
-    "暂无诊断数据": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Diagnostics Yet"
-          }
-        }
-      }
-    },
-    "崩溃与性能诊断由系统每日聚合，产生后会自动出现在这里": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Crash and performance diagnostics are aggregated daily by the system and will appear here automatically"
-          }
-        }
-      }
-    },
-    "数据仅保存在本机（最近 30 天），不会自动上传；卸载 App 后即消失": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Data is stored only on this device (last 30 days) and never uploaded; it is removed when the app is uninstalled"
-          }
-        }
-      }
-    },
-    "连接超时。请检查：面板端口是否正确、服务器防火墙是否放行、面板是否在线；若连接的是局域网地址，还请在「设置 → 隐私与安全性 → 本地网络」中允许本 App（模拟器则在 macOS 同名设置中允许 Simulator）。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connection timed out. Check that the panel port is correct, the server firewall allows it, and the panel is online. For a LAN address, also allow this app in Settings → Privacy & Security → Local Network (for the simulator, allow Simulator in the equivalent macOS setting)."
-          }
-        }
-      }
-    },
-    "暂无服务器": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Servers Yet"
-          }
-        }
-      }
-    },
-    "添加你的 1Panel 面板地址与 API 密钥，开始管理服务器": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add your 1Panel panel address and API key to start managing servers"
-          }
-        }
-      }
-    },
-    "总则": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "General"
-          }
-        }
-      }
-    },
-    "1PanelClient 是开源服务器管理面板 1Panel 的 iOS 客户端。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1PanelClient is an iOS client for the open-source server management panel 1Panel."
-          }
-        }
-      }
-    },
-    "本应用不收集、不上传任何用户数据——无内嵌分析 SDK、无广告、无追踪、无账号体系。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This app does not collect or upload any user data — no embedded analytics SDK, no ads, no tracking, no account system."
-          }
-        }
-      }
-    },
-    "最后更新：%@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Last updated: %@"
-          }
-        }
-      }
-    },
-    "数据存储与使用范围": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Data Storage & Usage"
-          }
-        }
-      }
-    },
-    "面板地址、名称与 API 密钥": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Panel address, name & API key"
-          }
-        }
-      }
-    },
-    "iOS 钥匙串 · 连接你自己的 1Panel 面板": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iOS Keychain · Connecting to your own 1Panel panel"
-          }
-        }
-      }
-    },
-    "不离开设备（仅发往你配置的面板地址）": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Never leaves this device (sent only to the panel address you configured)"
-          }
-        }
-      }
-    },
-    "应用偏好设置": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App preferences"
-          }
-        }
-      }
-    },
-    "本机 UserDefaults · 记住你的设置": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local UserDefaults · Remembers your settings"
-          }
-        }
-      }
-    },
-    "不离开设备": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Never leaves this device"
-          }
-        }
-      }
-    },
-    "应用锁密码": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App lock passcode"
-          }
-        }
-      }
-    },
-    "系统钥匙串 · 本机解锁校验": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "System Keychain · Local unlock verification"
-          }
-        }
-      }
-    },
-    "面板数据本地缓存": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local panel data cache"
-          }
-        }
-      }
-    },
-    "本机 App 沙盒 · 离线展示最近一次快照": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local app sandbox · Shows the latest snapshot offline"
-          }
-        }
-      }
-    },
-    "诊断数据（MetricKit）": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diagnostic data (MetricKit)"
-          }
-        }
-      }
-    },
-    "本机 Application Support · 崩溃与性能自诊断，保留 30 天": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local Application Support · Crash & performance self-diagnostics, kept for 30 days"
-          }
-        }
-      }
-    },
-    "仅当你主动分享导出时离开设备": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Leaves this device only when you explicitly share or export it"
-          }
-        }
-      }
-    },
-    "所有请求仅发往你本人添加的面板地址；应用不连接任何开发者或第三方服务器。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All requests go only to panel addresses you added yourself; the app never connects to any developer or third-party server."
-          }
-        }
-      }
-    },
-    "若你配置了 http:// 明文地址，界面会明示风险，并可在设置中开启「仅允许 HTTPS 连接」。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "If you configure a plaintext http:// address, the app shows the risk explicitly, and you can enable \"HTTPS Only\" in Settings."
-          }
-        }
-      }
-    },
-    "权限使用": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Permission Usage"
-          }
-        }
-      }
-    },
-    "本地网络：用于连接局域网内的面板，仅在你主动测试连接时触发系统弹窗。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local Network: used to reach panels on your LAN; the system prompt appears only when you actively test a connection."
-          }
-        }
-      }
-    },
-    "面容 ID / 触控 ID：仅用于应用锁解锁（可选功能），不上传任何生物信息。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Face ID / Touch ID: used only for app lock unlock (optional); no biometric data is ever uploaded."
-          }
-        }
-      }
-    },
-    "删除数据": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deleting Data"
-          }
-        }
-      }
-    },
-    "卸载应用即删除本机所有数据（Keychain 条目随卸载清除）；面板侧的 API 密钥可随时在 1Panel 面板「面板设置 → API 接口」中禁用或重新生成。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uninstalling the app deletes all local data (Keychain entries are removed with it); the panel-side API key can be disabled or regenerated at any time in 1Panel under Panel Settings → API."
-          }
-        }
-      }
-    },
-    "联系方式": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contact"
-          }
-        }
-      }
-    },
-    "通过 GitHub Issue 反馈": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feedback via GitHub issues"
-          }
-        }
-      }
-    },
-    "查看在线版本": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View the online version"
-          }
-        }
-      }
-    },
-    "回收站": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recycle Bin"
-          }
-        }
-      }
-    },
-    "还原": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restore"
-          }
-        }
-      }
-    },
-    "清空": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear"
-          }
-        }
-      }
-    },
-    "清空回收站": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Empty Recycle Bin"
-          }
-        }
-      }
-    },
-    "启用回收站": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enable Recycle Bin"
-          }
-        }
-      }
-    },
-    "回收站为空": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recycle bin is empty"
-          }
-        }
-      }
-    },
-    "删除的文件将在此显示，可还原或彻底删除": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deleted files are listed here for restore or permanent deletion"
-          }
-        }
-      }
-    },
-    "回收站已停用：新删除的文件将不进入回收站，直接删除。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recycle bin is disabled: newly deleted files are removed immediately instead of going to the recycle bin."
-          }
-        }
-      }
-    },
-    "停用后删除文件将不进入回收站；已回收的文件仍可还原或删除。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When disabled, deleted files will not go to the recycle bin; files already in the bin can still be restored or deleted."
-          }
-        }
-      }
-    },
-    "如果原路径存在同名文件或目录，将会被覆盖，是否继续？": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "If a file or folder with the same name exists at the original path, it will be overwritten. Continue?"
-          }
-        }
-      }
-    },
-    "确定要彻底删除 \"%@\" 吗？删除后不可恢复。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Permanently delete \"%@\"? This cannot be undone."
-          }
-        }
-      }
-    },
-    "删除 操作不可回滚，是否继续？": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete cannot be undone. Continue?"
-          }
-        }
-      }
-    },
-    "已删除（%ld）": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deleted (%ld)"
-          }
-        }
-      }
-    },
-    "上传文件夹": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Upload Folder"
-          }
-        }
-      }
-    },
-    "该文件夹内没有文件": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This folder contains no files"
-          }
-        }
-      }
-    },
-    "永久删除文件（不进入回收站，直接删除）": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete permanently (skip the recycle bin)"
-          }
-        }
-      }
-    },
-    "不勾选时移入服务器回收站，可在回收站中还原。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When unchecked, files are moved to the server recycle bin and can be restored later."
-          }
-        }
-      }
-    },
-    "已移入回收站": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Moved to recycle bin"
-          }
-        }
-      }
-    },
-    "将 %ld 个文件上传至此网站？\n此操作会上传\"%@\"下的所有文件。请仅在您信任该网站的情况下执行此操作。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Upload %ld files to this site?\nThis will upload all files under \"%@\". Only do this if you trust this site."
-          }
-        }
-      }
-    },
-    "此文件不支持预览": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This file type can't be previewed"
-          }
-        }
-      }
-    },
-    "空文件": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Empty File"
-          }
-        }
-      }
-    },
-    "该文件没有内容": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This file has no content"
-          }
-        }
-      }
-    },
-    "专业版授权绑定 / 同步": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pro license binding / sync"
-          }
-        }
-      }
-    },
-    "告警通知 / 备份账号 / 许可证": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alerts / Backup accounts / License"
-          }
-        }
-      }
-    },
-    "暂无许可证": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Licenses"
-          }
-        }
-      }
-    },
-    "上传授权文件": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Upload License File"
-          }
-        }
-      }
-    },
-    "点击右上角 + 上传授权文件": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tap + in the top-right corner to upload a license file"
-          }
-        }
-      }
-    },
-    "授权文件已上传": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "License file uploaded"
-          }
-        }
-      }
-    },
-    "上传失败：%@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Upload failed: %@"
-          }
-        }
-      }
-    },
-    "绑定节点": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bind to Node"
-          }
-        }
-      }
-    },
-    "已绑定": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bound"
-          }
-        }
-      }
-    },
-    "未绑定": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unbound"
-          }
-        }
-      }
-    },
-    "试用": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trial"
-          }
-        }
-      }
-    },
-    "全部版本": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All versions"
-          }
-        }
-      }
-    },
-    "绑定节点：%@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bound node: %@"
-          }
-        }
-      }
-    },
-    "创建：%@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Created: %@"
-          }
-        }
-      }
-    },
-    "同步：%@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Synced: %@"
-          }
-        }
-      }
-    },
-    "短信：已用 %ld / %ld": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SMS: %ld / %ld used"
-          }
-        }
-      }
-    },
-    "解绑许可证": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unbind License"
-          }
-        }
-      }
-    },
-    "解绑后专业版功能将不可用，绑定节点上的数据不会删除。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pro features will be unavailable after unbinding. Data on the bound node is kept."
-          }
-        }
-      }
-    },
-    "解绑": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unbind"
-          }
-        }
-      }
-    },
-    "删除许可证": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete License"
-          }
-        }
-      }
-    },
-    "确定删除该许可证吗？已绑定的许可证需先解绑。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete this license? Bound licenses must be unbound first."
-          }
-        }
-      }
-    },
-    "已解绑": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unbound"
-          }
-        }
-      }
-    },
-    "已同步": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Synced"
-          }
-        }
-      }
-    },
-    "许可证（%ld）": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Licenses (%ld)"
-          }
-        }
-      }
-    },
-    "节点列表加载失败，请重试": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Failed to load nodes, please retry"
-          }
-        }
-      }
-    },
-    "绑定后自动同步系统代理 / 告警设置 / 自定义应用 / 备份账号。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Binding syncs system proxy, alert settings, custom apps and backup accounts."
-          }
-        }
-      }
-    },
-    "绑定": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bind"
-          }
-        }
-      }
-    },
-    "基础设置": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Basic Settings"
-          }
-        }
-      }
-    },
-    "面板别名 / 超时 / 代理 / 运行环境": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Panel name / timeout / proxy / runtime"
-          }
-        }
-      }
-    },
-    "面板别名": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Panel Name"
-          }
-        }
-      }
-    },
-    "面板超时时间": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Session Timeout"
-          }
-        }
-      }
-    },
-    "超时时间内无操作将自动退出登录。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You will be logged out automatically after this period of inactivity."
-          }
-        }
-      }
-    },
-    "预览体验计划": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preview Experience Program"
-          }
-        }
-      }
-    },
-    "启用后将优先体验未正式发布的新功能，稳定性可能降低。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Get early access to unreleased features. Stability may be reduced."
-          }
-        }
-      }
-    },
     "默认访问地址": {
       "extractionState": "manual",
       "localizations": {
@@ -21695,343 +22026,68 @@
         }
       }
     },
-    "IP 或域名": {
+    "默认连接": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "IP or domain"
+            "value": "Default Connection"
           }
         }
       }
     },
-    "只允许 IP 或域名，不能带 http/https 或端口": {
+    "手机上传": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Only an IP or domain is allowed — no http/https scheme or port"
+            "value": "From Phone"
           }
         }
       }
     },
-    "面板对外访问地址（IP 或域名），留空表示未指定。": {
+    "选择文件": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The public address (IP or domain) of the panel. Empty means unset."
+            "value": "Choose File"
           }
         }
       }
     },
-    "代理服务器": {
+    "私钥文件": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Proxy Server"
+            "value": "Private Key File"
           }
         }
       }
     },
-    "代理": {
+    "证书文件": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Proxy"
+            "value": "Certificate File"
           }
         }
       }
     },
-    "运行区域": {
+    "从手机选择 .pem / .key / .crt 等文本格式的证书文件，读取内容后提交。": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Region"
-          }
-        }
-      }
-    },
-    "中国大陆": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mainland China"
-          }
-        }
-      }
-    },
-    "全球": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Global"
-          }
-        }
-      }
-    },
-    "文档来源": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Documentation Source"
-          }
-        }
-      }
-    },
-    "跟随运行区域": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow region"
-          }
-        }
-      }
-    },
-    "跟随系统语言": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow system language"
-          }
-        }
-      }
-    },
-    "面板设置加载失败，请重试": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Failed to load panel settings, please retry"
-          }
-        }
-      }
-    },
-    "代理类型": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Proxy Type"
-          }
-        }
-      }
-    },
-    "代理地址": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Proxy Host"
-          }
-        }
-      }
-    },
-    "代理端口": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Proxy Port"
-          }
-        }
-      }
-    },
-    "认证（可选）": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Authentication (optional)"
-          }
-        }
-      }
-    },
-    "记住密码": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remember Password"
-          }
-        }
-      }
-    },
-    "请填写代理地址与端口": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Proxy host and port are required"
-          }
-        }
-      }
-    },
-    "社区版: %ld/%ld": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Community: %ld/%ld"
-          }
-        }
-      }
-    },
-    "每行一个 DNS 地址": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "One DNS address per line"
-          }
-        }
-      }
-    },
-    "测试可用性": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Test"
-          }
-        }
-      }
-    },
-    "换行输入，每行一个；保存为全量覆盖。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "One per line; saving overwrites the full list."
-          }
-        }
-      }
-    },
-    "域名（可多个，空格分隔）": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Domains (space-separated)"
-          }
-        }
-      }
-    },
-    "添加 Hosts 记录": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add Hosts Entry"
-          }
-        }
-      }
-    },
-    "增删均为全量覆盖提交，系统默认条目请谨慎移除。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add/remove submits the full list. Be careful removing system defaults."
-          }
-        }
-      }
-    },
-    "NTP 服务器": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "NTP Server"
-          }
-        }
-      }
-    },
-    "点击预置项自动填入，也可自定义输入。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tap a preset to fill in, or enter your own."
-          }
-        }
-      }
-    },
-    "阿里": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alibaba"
-          }
-        }
-      }
-    },
-    "服务器时间": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Server Time"
-          }
-        }
-      }
-    },
-    "DNS 可用": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DNS reachable"
-          }
-        }
-      }
-    },
-    "DNS 不可用": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DNS unreachable"
+            "value": "Pick a text-format certificate file (.pem / .key / .crt) from your phone; its content will be read and submitted."
           }
         }
       }

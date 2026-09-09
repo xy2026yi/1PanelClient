@@ -63,10 +63,10 @@ struct ContainerImageView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("拉取镜像")) { showPull = true },
-                    .action(title: L10n.t("仓库")) { showRepos = true },
+                    .action(title: L10n.t("拉取镜像"), icon: "square.and.arrow.down") { showPull = true },
+                    .action(title: L10n.t("仓库"), icon: "house.circle.fill") { showRepos = true },
                     .divider,
-                    .action(title: L10n.t("清理镜像")) { showPruneSelect = true },
+                    .action(title: L10n.t("清理镜像"), icon: "document.on.trash") { showPruneSelect = true },
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
                 }
