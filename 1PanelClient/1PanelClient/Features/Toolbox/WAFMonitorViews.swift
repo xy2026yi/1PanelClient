@@ -146,11 +146,14 @@ struct WAFOverviewView: View {
         var firstError: String?
         switch tr {
         case .success(let x): today = x
-        case .failure(let e): firstError = e.localizedDescription
+        case .failure(let e):
+            // 取消（离开页面时 .task 被取消）不是失败
+            if !APIError.isCancellation(e) { firstError = e.localizedDescription }
         }
         switch dr {
         case .success(let x): days = x
-        case .failure(let e): firstError = firstError ?? e.localizedDescription
+        case .failure(let e):
+            if !APIError.isCancellation(e) { firstError = firstError ?? e.localizedDescription }
         }
         errorMessage = firstError
     }
@@ -462,6 +465,8 @@ struct WAFInterceptLogDetailView: View {
             detail = try await client.send(path: path, method: "GET", as: WAFLogItem.self)
             errorMessage = nil
         } catch {
+            // 取消（离开页面时 .task 被取消）不是失败
+            guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
         }
     }

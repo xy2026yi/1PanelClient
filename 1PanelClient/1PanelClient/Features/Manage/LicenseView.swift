@@ -98,6 +98,8 @@ struct LicenseView: View {
     @State private var page = 1
     @State private var isLoading = false
     @State private var isLoadingMore = false
+    /// 列表请求代数：刷新与 loadMore 并发时丢弃过期响应，防止幽灵条目复活
+    @State private var loadGeneration = 0
     @State private var loadError: String?
     /// 长按弹出的行操作菜单对应条目
     @State private var actionItem: LicenseItem?
@@ -173,7 +175,9 @@ struct LicenseView: View {
                 items: actionMenuItems(for: item),
                 onDismiss: { actionItem = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: item.isBound ? 2 : 3))])
+            // 高度按实际菜单项数算：Bound（解绑/同步/删除）与 Free 同为 3 项，
+            // 按 isBound ? 2 : 3 会把已绑定条目的删除/取消裁出屏幕外
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionMenuItems(for: item).count))])
             .presentationDragIndicator(.visible)
         }
         // 绑定表单（节点下拉）
@@ -288,6 +292,8 @@ struct LicenseView: View {
     // MARK: - 数据
 
     private func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         isLoading = true
         defer { isLoading = false }
         let req = LicenseSearchRequest(page: 1, pageSize: pageSize)
@@ -296,19 +302,20 @@ struct LicenseView: View {
                 path: APIEndpoint.licensesSearch.path, body: req,
                 as: PageResponse<LicenseItem>.self
             )
-            guard !Task.isCancelled else { return }
+            guard generation == loadGeneration, !Task.isCancelled else { return }
             items = resp.items ?? []
             total = resp.total ?? resp.items?.count ?? 0
             page = 1
             loadError = nil
         } catch {
-            guard !APIError.isCancellation(error), !Task.isCancelled else { return }
+            guard generation == loadGeneration, !APIError.isCancellation(error), !Task.isCancelled else { return }
             if items.isEmpty { loadError = error.localizedDescription }
         }
     }
 
     private func loadMore() async {
         guard items.count < total, !isLoadingMore, !isLoading else { return }
+        let generation = loadGeneration
         isLoadingMore = true
         defer { isLoadingMore = false }
         let req = LicenseSearchRequest(page: page + 1, pageSize: pageSize)
@@ -317,6 +324,8 @@ struct LicenseView: View {
                 path: APIEndpoint.licensesSearch.path, body: req,
                 as: PageResponse<LicenseItem>.self
             )
+            // 加载途中下拉刷新已重置列表：丢弃过期响应，避免幽灵条目复活
+            guard generation == loadGeneration else { return }
             let existing = Set(items.map(\.id))
             let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
             if newItems.isEmpty {
@@ -333,6 +342,7 @@ struct LicenseView: View {
 
     /// 上传授权文件（multipart；网页端仅文件字段无其他表单值）
     private func uploadLicense(_ url: URL) async {
+        guard !isOperating else { return }
         isOperating = true
         defer { isOperating = false }
         let scoped = url.startAccessingSecurityScopedResource()
@@ -356,6 +366,7 @@ struct LicenseView: View {
 
     /// 绑定节点（syncList 对齐网页端固定四项）
     private func bind(_ item: LicenseItem, nodeID: Int) async {
+        guard !isOperating else { return }
         isOperating = true
         defer { isOperating = false }
         let req = LicenseBindRequest(
@@ -375,6 +386,7 @@ struct LicenseView: View {
     }
 
     private func unbind(_ item: LicenseItem) async {
+        guard !isOperating else { return }
         isOperating = true
         defer { isOperating = false }
         let req = LicenseUnbindRequest(id: item.id, withDockerRestart: false)
@@ -390,6 +402,7 @@ struct LicenseView: View {
     }
 
     private func delete(_ item: LicenseItem) async {
+        guard !isOperating else { return }
         isOperating = true
         defer { isOperating = false }
         let req = LicenseIDRequest(id: item.id)
@@ -407,6 +420,7 @@ struct LicenseView: View {
     }
 
     private func sync(_ item: LicenseItem) async {
+        guard !isOperating else { return }
         isOperating = true
         defer { isOperating = false }
         let req = LicenseIDRequest(id: item.id)

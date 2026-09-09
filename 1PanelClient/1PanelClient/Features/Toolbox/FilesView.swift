@@ -180,7 +180,7 @@ struct FilesView: View {
                     items: itemActions(item),
                     onDismiss: { actionItem = nil }
                 )
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: item.isDir ? 2 : 3))])
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: itemActions(item).count))])
                 .presentationDragIndicator(.visible)
             }
             .modifier(FilesTransferModifier(
@@ -423,10 +423,11 @@ struct FilesView: View {
     /// 预览页返回时 .task 会重跑（视图离开层级再回来）：首次加载幂等，
     /// 否则从管理进入的浏览路径会被 baseDir 重置回 /opt/1panel
     @State private var didInitialLoad = false
+    /// 目录请求代数：快速连点目录时丢弃过期响应，保证列表与路径栏一致
+    @State private var loadGeneration = 0
 
     private func initialLoad() async {
         guard !didInitialLoad else { return }
-        didInitialLoad = true
         // 外部指定了起始目录时不覆盖（应用目录等场景），仅默认进入时定位面板 baseDir
         if !hasCustomStart,
            let baseDir: String = try? await client.send(path: APIEndpoint.settingsBaseDir.path, method: "GET", as: String.self) {
@@ -434,6 +435,12 @@ struct FilesView: View {
             pathHistory = [baseDir]
         }
         await loadDir(currentPath)
+        // 加载真正完成才置位：途中 push 预览/回收站会取消 .task（loadDir 被
+        // 取消守卫拦下），此时不置位，返回后 .task 重跑会重新加载——
+        // 否则 guard 拦住重跑导致空列表 + 假错误卡死
+        if !Task.isCancelled {
+            didInitialLoad = true
+        }
     }
 
     // MARK: - 上传
@@ -532,12 +539,11 @@ struct FilesView: View {
             }
             transfer?.status = .done
             await loadDir(currentPath)
-        } catch is CancellationError {
-            transfer?.status = .failed
-            transfer?.errorText = L10n.t("已取消")
         } catch {
+            // 取消可能是裸 CancellationError，也可能是包在 APIError 里的
+            // URLError.cancelled，统一按取消展示
             transfer?.status = .failed
-            transfer?.errorText = error.localizedDescription
+            transfer?.errorText = APIError.isCancellation(error) ? L10n.t("已取消") : error.localizedDescription
         }
     }
 
@@ -578,12 +584,9 @@ struct FilesView: View {
                 transfer?.progress = 1
             }
             transfer?.status = .done
-        } catch is CancellationError {
-            transfer?.status = .failed
-            transfer?.errorText = L10n.t("已取消")
         } catch {
             transfer?.status = .failed
-            transfer?.errorText = error.localizedDescription
+            transfer?.errorText = APIError.isCancellation(error) ? L10n.t("已取消") : error.localizedDescription
         }
     }
 
@@ -725,7 +728,10 @@ struct FilesView: View {
     }
 
     private func loadDir(_ path: String) async {
+        loadGeneration += 1
+        let generation = loadGeneration
         isLoading = true
+        defer { isLoading = false }
         currentPath = path
         let req = FileSearchRequest(path: path, expand: true, page: 1, pageSize: 200, showHidden: true)
         do {
@@ -733,15 +739,18 @@ struct FilesView: View {
                 path: APIEndpoint.filesSearch.path, body: req,
                 as: FileSearchResponse.self
             )
+            // 已有更新的目录请求接管（快速连点目录）：丢弃过期响应
+            guard generation == loadGeneration else { return }
             items = (resp.items ?? []).sorted { a, b in
                 if a.isDir != b.isDir { return a.isDir && !b.isDir }
                 return a.name.localizedStandardCompare(b.name) == .orderedAscending
             }
             errorMessage = nil
         } catch {
+            // 取消（push 离开页面时 .task 被取消）不是失败；过期请求不写错误态
+            guard generation == loadGeneration, !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
         }
-        isLoading = false
     }
 
     private func deleteItem(_ item: FileItem, forceDelete: Bool) async {
@@ -758,7 +767,9 @@ struct FilesView: View {
             successMessage = forceDelete ? L10n.t("已删除") : L10n.t("已移入回收站")
             await loadDir(currentPath)
         } catch {
-            errorMessage = error.localizedDescription
+            if !APIError.isCancellation(error) {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

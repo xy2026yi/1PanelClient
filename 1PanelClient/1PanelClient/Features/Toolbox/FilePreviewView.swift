@@ -91,6 +91,8 @@ struct FilePreviewView: View {
             self.content = resp.content
             self.errorMessage = nil
         } catch {
+            // 取消（离开页面时 .task 被取消）不是失败，不写错误态
+            guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
         }
     }

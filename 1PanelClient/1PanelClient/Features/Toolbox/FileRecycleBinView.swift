@@ -90,6 +90,8 @@ struct FileRecycleBinView: View {
     @State private var deletingItem: RecycleItem?
     @State private var showClearConfirm = false
     @State private var errorMessage: String?
+    /// 列表请求代数：刷新与 loadMore 并发时丢弃过期响应，防止幽灵条目复活
+    @State private var loadGeneration = 0
 
     private let pageSize = 20
     private let client: APIClient
@@ -291,28 +293,36 @@ struct FileRecycleBinView: View {
             )
             isEnabled = value == "Enable"
         } catch {
-            // 状态失败不阻断列表，Toggle 保持禁用
-            isEnabled = nil
+            // 取消保留旧值；真实失败才置 nil（不阻断列表，Toggle 保持禁用）
+            if !APIError.isCancellation(error) {
+                isEnabled = nil
+            }
         }
     }
 
     private func loadFirstPage() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         let req = RecycleSearchRequest(page: 1, pageSize: pageSize)
         do {
             let resp: RecycleSearchResponse = try await client.send(
                 path: APIEndpoint.filesRecycleSearch.path, body: req,
                 as: RecycleSearchResponse.self
             )
+            guard generation == loadGeneration else { return }
             items = resp.items ?? []
             total = resp.total
             page = 1
         } catch {
+            // 取消（离开页面 .task 被取消）不是失败；过期请求不写错误态
+            guard generation == loadGeneration, !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
         }
     }
 
     private func loadMore() async {
         guard items.count < total, !isLoadingMore, !isLoading else { return }
+        let generation = loadGeneration
         isLoadingMore = true
         defer { isLoadingMore = false }
         let req = RecycleSearchRequest(page: page + 1, pageSize: pageSize)
@@ -321,6 +331,8 @@ struct FileRecycleBinView: View {
                 path: APIEndpoint.filesRecycleSearch.path, body: req,
                 as: RecycleSearchResponse.self
             )
+            // 加载途中下拉刷新已重置列表：丢弃过期响应，避免幽灵条目复活
+            guard generation == loadGeneration else { return }
             let existing = Set(items.map(\.id))
             let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
             items += newItems
@@ -346,7 +358,9 @@ struct FileRecycleBinView: View {
             )
             isEnabled = on
         } catch {
-            errorMessage = error.localizedDescription
+            if !APIError.isCancellation(error) {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -361,7 +375,9 @@ struct FileRecycleBinView: View {
             items.removeAll { $0.id == item.id }
             total = max(0, total - 1)
         } catch {
-            errorMessage = error.localizedDescription
+            if !APIError.isCancellation(error) {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -375,7 +391,9 @@ struct FileRecycleBinView: View {
             items.removeAll { $0.id == item.id }
             total = max(0, total - 1)
         } catch {
-            errorMessage = error.localizedDescription
+            if !APIError.isCancellation(error) {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -390,7 +408,9 @@ struct FileRecycleBinView: View {
             items = []
             total = 0
         } catch {
-            errorMessage = error.localizedDescription
+            if !APIError.isCancellation(error) {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

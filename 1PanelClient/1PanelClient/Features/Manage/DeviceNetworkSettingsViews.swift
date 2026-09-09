@@ -18,11 +18,13 @@ private struct KeyValueRequest: Encodable {
 
 // MARK: - DNS 编辑页
 
-/// DNS 多行编辑：每行一个，回车/失焦自动保存（与基线比对有变化才提交）；
-/// 「测试可用性」走 check/dns（逗号拼接）
+/// DNS 多行编辑：进入时自行加载服务器现有 DNS 作为保存基线（父页摘要可能因
+/// device/base 加载失败而为空——若以空快照为基线，用户一保存就会把服务器
+/// 原有 DNS 全量覆盖成输入的那几条）；每行一个，回车/失焦自动保存
+/// （与基线比对有变化才提交）；「测试可用性」走 check/dns（逗号拼接）
 struct DeviceDNSSettingsView: View {
     let server: ServerConfig
-    /// 进入时的现有 DNS 列表（基线）
+    /// 父页摘要快照（仅作加载完成前的初始展示，加载成功后被服务器值覆盖）
     let initial: [String]
     /// 保存成功回调（父页更新摘要）
     var onSaved: ([String]) -> Void
@@ -30,6 +32,8 @@ struct DeviceDNSSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var dnsInput: String
     @State private var baseline: [String]
+    @State private var isLoading = true
+    @State private var loadError: String?
     @State private var isBusy = false
     @State private var toast: String?
     @State private var errorText: String?
@@ -56,24 +60,41 @@ struct DeviceDNSSettingsView: View {
 
     var body: some View {
         Form {
-            Section {
-                TextField(L10n.t("每行一个 DNS 地址"), text: $dnsInput, axis: .vertical)
-                    .lineLimit(6...12)
-                    .font(.system(.body, design: .monospaced))
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.asciiCapable)
-                    .focused($focused)
-                    .onSubmit { Task { await commit() } }
-            } footer: {
-                Text(L10n.t("换行输入，每行一个；失焦或回车后自动保存（全量覆盖）。"))
-            }
-
-            Section {
-                Button(L10n.t("测试可用性")) {
-                    Task { await testDNS() }
+            if isLoading {
+                Section { HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 24) }
+            } else if let loadError {
+                // 拿不到服务器基线时禁止编辑：否则空基线上保存会清空服务器 DNS
+                Section {
+                    ContentUnavailableView {
+                        Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(loadError)
+                    } actions: {
+                        Button(L10n.t("重试")) { Task { await load() } }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    .listRowBackground(Color.clear)
                 }
-                .disabled(isBusy || dnsList.isEmpty)
+            } else {
+                Section {
+                    TextField(L10n.t("每行一个 DNS 地址"), text: $dnsInput, axis: .vertical)
+                        .lineLimit(6...12)
+                        .font(.system(.body, design: .monospaced))
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.asciiCapable)
+                        .focused($focused)
+                        .onSubmit { Task { await commit() } }
+                } footer: {
+                    Text(L10n.t("换行输入，每行一个；失焦或回车后自动保存（全量覆盖）。"))
+                }
+
+                Section {
+                    Button(L10n.t("测试可用性")) {
+                        Task { await testDNS() }
+                    }
+                    .disabled(isBusy || dnsList.isEmpty)
+                }
             }
         }
         .navigationTitle("DNS")
@@ -86,6 +107,7 @@ struct DeviceDNSSettingsView: View {
                 }
             }
         }
+        .task { await load() }
         // 离开输入框（含键盘收起）即提交；返回上级页时兜底提交一次
         .onChange(of: focused) { had, has in
             if had && !has { Task { await commit() } }
@@ -100,6 +122,25 @@ struct DeviceDNSSettingsView: View {
             Text(errorText ?? "")
         }
         .toastOverlay(message: $toast)
+    }
+
+    /// 拉取服务器现有 DNS 作为保存基线（与 Hosts 子页同模式）
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let base: DeviceBaseInfo = try await client.send(
+                path: APIEndpoint.deviceBase.path, as: DeviceBaseInfo.self
+            )
+            let list = base.dns ?? []
+            baseline = list
+            dnsInput = list.joined(separator: "\n")
+            loadError = nil
+        } catch {
+            // 取消（离开页面时 .task 被取消）不是失败
+            guard !APIError.isCancellation(error) else { return }
+            loadError = error.localizedDescription
+        }
     }
 
     /// 有变化才提交（update/conf key=DNS 逗号拼接），成功后更新基线并回调

@@ -371,7 +371,10 @@ struct NodeManageView: View {
             )
             var newCards = items.map { NodeCard(item: $0) }
             // 实时状态（社区版无此接口，失败不阻塞概览）；业务错误（专业版
-            // 未授权等）把服务端 message 提到列表顶部固定显示
+            // 未授权等）把服务端 message 提到列表顶部固定显示。
+            // 先暂存、过代际守卫后再写入：慢请求的旧响应不得把提示挂到
+            // （或反向误清）已由更新请求刷新的面板上
+            var newXpackNotice: String?
             do {
                 let currents = try await client.send(
                     path: APIEndpoint.nodesCurrent.path,
@@ -381,14 +384,14 @@ struct NodeManageView: View {
                 for idx in newCards.indices {
                     newCards[idx].current = currents.first(where: { $0.nodeName == newCards[idx].item.name })
                 }
-                xpackNotice = nil
             } catch {
                 if case APIError.businessError(_, let msg) = error, !msg.isEmpty {
-                    xpackNotice = msg
+                    newXpackNotice = msg
                 }
             }
             guard generation == loadGeneration else { return }
             cards = newCards
+            xpackNotice = newXpackNotice
             listFallback = false
             errorMessage = nil
         } catch APIError.httpError(let code, _) where code == 404 {
