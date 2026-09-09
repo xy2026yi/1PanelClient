@@ -348,6 +348,13 @@ struct LicenseView: View {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
+            // 授权文件为小文本：超过 1MB 视为选错文件（如误选视频），
+            // 拒绝整读进内存（大文件会被系统杀进程）
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            if size > 1_048_576 {
+                errorText = L10n.t("授权文件过大，请确认选择的是许可证文件")
+                return
+            }
             let data = try Data(contentsOf: url)
             try await client.uploadMultipart(
                 path: APIEndpoint.licensesUpload.path,

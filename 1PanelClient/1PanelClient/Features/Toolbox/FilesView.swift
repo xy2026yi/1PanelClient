@@ -87,7 +87,7 @@ struct FilesView: View {
     private let directUploadLimit = 50 * 1024 * 1024
     /// 点击可预览的文本扩展名（其余格式点击仅提示不支持）
     private static let previewableExtensions: Set<String> = [
-        "md", "txt", "log", "pem", "html", "json", "conf", "key", "yml", "sh",
+        "md", "txt", "log", "pem", "html", "json", "conf", "key", "yml", "yaml", "sh",
     ]
     /// 无扩展名的点文件按完整文件名匹配（shell / vim 环境与历史文件均为纯文本）
     private static let previewableDotFiles: Set<String> = [
@@ -189,12 +189,15 @@ struct FilesView: View {
                 transfer: $transfer,
                 onPickFiles: { result in
                     if case .success(let urls) = result {
+                        // 覆盖前先取消旧任务：孤儿任务的回调会写坏新传输的状态
+                        transferTask?.cancel()
                         transferTask = Task { await uploadFiles(urls) }
                     }
                 },
                 onPickFolder: { result in
                     if case .success(let urls) = result, let folder = urls.first {
-                        prepareFolderUpload(folder)
+                        transferTask?.cancel()
+                        transferTask = Task { await prepareFolderUpload(folder) }
                     }
                 },
                 onCancel: { transferTask?.cancel() },
@@ -209,6 +212,7 @@ struct FilesView: View {
                 Button(L10n.t("上传")) {
                     if let pending = pendingFolderUpload {
                         pendingFolderUpload = nil
+                        transferTask?.cancel()
                         transferTask = Task { await uploadFolder(pending.url, files: pending.files) }
                     }
                 }
@@ -458,11 +462,18 @@ struct FilesView: View {
 
     // MARK: - 上传文件夹
 
-    /// 选中文件夹后先收集文件并弹确认（x 个文件 / 文件夹名 y），确认后才真正上传
-    private func prepareFolderUpload(_ folder: URL) {
+    /// 选中文件夹后先收集文件并弹确认（x 个文件 / 文件夹名 y），确认后才真正上传。
+    /// 枚举放后台线程（上千文件的目录在主线程同步枚举会冻结 UI），
+    /// 期间用传输弹窗显示「扫描中」，可通过取消传输中断
+    private func prepareFolderUpload(_ folder: URL) async {
+        transfer = TransferState(kind: L10n.t("扫描"), fileName: folder.lastPathComponent, progress: -1)
         let scoped = folder.startAccessingSecurityScopedResource()
         defer { if scoped { folder.stopAccessingSecurityScopedResource() } }
-        let files = collectFolderFiles(folder)
+        let files = await Task.detached(priority: .userInitiated) {
+            Self.collectFolderFiles(at: folder)
+        }.value
+        transfer = nil
+        if Task.isCancelled { return }
         guard !files.isEmpty else {
             errorMessage = L10n.t("该文件夹内没有文件")
             return
@@ -471,8 +482,9 @@ struct FilesView: View {
     }
 
     /// 递归收集文件夹内全部文件（含 .DS_Store 等隐藏文件，与网页端一致），
-    /// 相对路径含顶层文件夹名（如 "1/2/饮食统计.md"）
-    private func collectFolderFiles(_ folder: URL) -> [FolderUploadFile] {
+    /// 相对路径含顶层文件夹名（如 "1/2/饮食统计.md"）；
+    /// 无隔离要求，可在后台线程执行
+    nonisolated private static func collectFolderFiles(at folder: URL) -> [FolderUploadFile] {
         let folderName = folder.lastPathComponent
         let prefix = folder.path + "/"
         guard let enumerator = FileManager.default.enumerator(
@@ -520,7 +532,10 @@ struct FilesView: View {
                         size: file.size, targetDir: joinServerPath(currentPath, relParent)
                     )
                 } else {
-                    let data = try Data(contentsOf: file.url)
+                    // 整读放后台线程：大文件在主线程读会冻结 UI
+                    let data = try await Task.detached(priority: .userInitiated) {
+                        try Data(contentsOf: file.url)
+                    }.value
                     let relParent = (file.relativePath as NSString).deletingLastPathComponent
                     try await client.uploadMultipart(
                         path: APIEndpoint.filesUpload.path,
@@ -568,7 +583,10 @@ struct FilesView: View {
             if size > Int64(directUploadLimit) {
                 try await chunkUpload(url: url, name: name, size: size, targetDir: uploadTargetDir())
             } else {
-                let data = try Data(contentsOf: url)
+                // 整读放后台线程：50MB 内直传在主线程读会冻结 UI
+                let data = try await Task.detached(priority: .userInitiated) {
+                    try Data(contentsOf: url)
+                }.value
                 try await client.uploadMultipart(
                     path: APIEndpoint.filesUpload.path,
                     fields: [
@@ -666,6 +684,7 @@ struct FilesView: View {
     private func downloadFile(_ item: FileItem) {
         transfer = TransferState(kind: L10n.t("下载"), fileName: item.name, total: Int64(item.size ?? 0))
         let totalSize = Int64(item.size ?? 0)
+        transferTask?.cancel()
         transferTask = Task {
             do {
                 let tempURL = try await client.downloadFile(

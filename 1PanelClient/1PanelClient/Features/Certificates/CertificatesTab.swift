@@ -535,6 +535,9 @@ struct UploadCertificateView: View {
     @State private var pickTarget: PickTarget?
     @State private var privateKeyFileName: String?
     @State private var certificateFileName: String?
+    /// 换选文件读取失败的提示（必须显式报错：静默失败时界面仍显示旧文件名，
+    /// 用户会误以为已换选、实际提交的是旧内容）
+    @State private var loadFileError: String?
 
     private enum UploadMode: String, CaseIterable, Identifiable {
         case paste = "粘贴内容"
@@ -630,6 +633,14 @@ struct UploadCertificateView: View {
             guard case .success(let urls) = result, let url = urls.first else { return }
             loadPickedFile(url)
         }
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { loadFileError != nil },
+            set: { if !$0 { loadFileError = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { loadFileError = nil }
+        } message: {
+            Text(loadFileError ?? "")
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -673,13 +684,37 @@ struct UploadCertificateView: View {
         }
     }
 
-    /// 读取选中文件内容填入私钥/证书（安全作用域内读文本；读取失败保持原值）
+    /// 读取选中文件内容填入私钥/证书（安全作用域内读文本）。
+    /// 失败必须清空旧值并报错：保留旧值会让界面显示旧文件名、提交旧内容，
+    /// 用户以为已换选实际没有（数据正确性问题）
     private func loadPickedFile(_ url: URL) {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        func fail(_ message: String) {
+            switch pickTarget {
+            case .privateKey:
+                privateKey = ""
+                privateKeyFileName = nil
+            case .certificate:
+                certificate = ""
+                certificateFileName = nil
+            case nil:
+                break
+            }
+            loadFileError = message
+        }
+        // 证书/私钥为小文本文件：超过 1MB 视为选错文件，直接拒绝整读
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        if size > 1_048_576 {
+            fail(L10n.f("文件过大（%ld KB），请选择证书/私钥文本文件", size / 1024))
+            return
+        }
         guard let data = try? Data(contentsOf: url),
               let text = String(data: data, encoding: .utf8),
-              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            fail(L10n.t("无法读取该文件：请选择 UTF-8 文本格式的证书/私钥文件"))
+            return
+        }
         switch pickTarget {
         case .privateKey:
             privateKey = text

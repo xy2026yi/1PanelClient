@@ -38,6 +38,8 @@ struct FilePreviewView: View {
     @State private var errorMessage: String?
 
     private let client: APIClient
+    /// 预览大小上限：超过则不拉取（大文本塞进单个 Text 会拖垮渲染）
+    private static let previewSizeLimit = 1_048_576
 
     init(server: ServerConfig, item: FileItem) {
         self.server = server
@@ -82,6 +84,11 @@ struct FilePreviewView: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
+        // 超限直接拒绝，不发请求（误点大 .log 也不全量拉取）
+        if let size = item.size, size > Self.previewSizeLimit {
+            errorMessage = L10n.f("文件超过 %ld KB，暂不支持预览", Self.previewSizeLimit / 1024)
+            return
+        }
         let req = FileContentRequest(path: item.path, expand: true, page: 1, pageSize: 100, isDetail: false)
         do {
             let resp: FileContentResponse = try await client.send(
