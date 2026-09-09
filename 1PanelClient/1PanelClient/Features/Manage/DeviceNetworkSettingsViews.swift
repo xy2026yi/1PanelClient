@@ -58,43 +58,54 @@ struct DeviceDNSSettingsView: View {
             .filter { !$0.isEmpty }
     }
 
+    /// 编辑器是否可见：加载中/失败时隐藏但保留在层级里。
+    /// 竖排 TextField（UIKit 支撑）在 Form 首帧布局完成后才插入会触发
+    /// SwiftUI「Invalid frame dimension (negative or non-finite)」运行时警告
+    /// （iOS 26.5 模拟器已实测：首帧在场/纯 push 均干净，原地换入必触发）
+    private var editorVisible: Bool { !isLoading && loadError == nil }
+
     var body: some View {
         Form {
+            Section {
+                TextField(L10n.t("每行一个 DNS 地址"), text: $dnsInput, axis: .vertical)
+                    .lineLimit(6...12)
+                    .font(.system(.body, design: .monospaced))
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.asciiCapable)
+                    .focused($focused)
+                    .onSubmit { Task { await commit() } }
+                    .opacity(editorVisible ? 1 : 0)
+                    .allowsHitTesting(editorVisible)
+            } footer: {
+                Text(L10n.t("换行输入，每行一个；失焦或回车后自动保存（全量覆盖）。"))
+            }
+
+            Section {
+                Button(L10n.t("测试可用性")) {
+                    Task { await testDNS() }
+                }
+                .disabled(isBusy || dnsList.isEmpty || !editorVisible)
+            }
+        }
+        // loading/错误态用 overlay 表达，不结构性换入换出（见 editorVisible 注释）
+        .overlay {
             if isLoading {
-                Section { HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 24) }
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(.systemGroupedBackground))
             } else if let loadError {
                 // 拿不到服务器基线时禁止编辑：否则空基线上保存会清空服务器 DNS
-                Section {
-                    ContentUnavailableView {
-                        Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                    } description: {
-                        Text(loadError)
-                    } actions: {
-                        Button(L10n.t("重试")) { Task { await load() } }
-                            .buttonStyle(.borderedProminent)
-                    }
-                    .listRowBackground(Color.clear)
+                ContentUnavailableView {
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(loadError)
+                } actions: {
+                    Button(L10n.t("重试")) { Task { await load() } }
+                        .buttonStyle(.borderedProminent)
                 }
-            } else {
-                Section {
-                    TextField(L10n.t("每行一个 DNS 地址"), text: $dnsInput, axis: .vertical)
-                        .lineLimit(6...12)
-                        .font(.system(.body, design: .monospaced))
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.asciiCapable)
-                        .focused($focused)
-                        .onSubmit { Task { await commit() } }
-                } footer: {
-                    Text(L10n.t("换行输入，每行一个；失焦或回车后自动保存（全量覆盖）。"))
-                }
-
-                Section {
-                    Button(L10n.t("测试可用性")) {
-                        Task { await testDNS() }
-                    }
-                    .disabled(isBusy || dnsList.isEmpty)
-                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(.systemGroupedBackground))
             }
         }
         .navigationTitle("DNS")

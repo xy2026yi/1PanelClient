@@ -137,7 +137,9 @@ struct FileRecycleBinView: View {
                 Section {
                     ForEach(items) { item in
                         RecycleRow(item: item)
-                            // 长按弹行操作菜单（对齐文件页交互），左右滑动不暴露操作
+                            // 整行命中：不给 contentShape 时手势可点区只覆盖
+                            // 文字/图标，行尾空白处长按无反应（同 FilesView 的处理）
+                            .contentShape(Rectangle())
                             .onLongPressGesture(minimumDuration: 0.5) {
                                 Haptic.selection()
                                 actionItem = item

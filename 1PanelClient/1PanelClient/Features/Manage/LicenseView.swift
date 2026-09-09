@@ -249,6 +249,9 @@ struct LicenseView: View {
             Section {
                 ForEach(items) { item in
                     LicenseRow(item: item)
+                        // 整行命中：不给 contentShape 时手势可点区只覆盖文字，
+                        // 行尾空白处长按无反应（同文件页/回收站的处理）
+                        .contentShape(Rectangle())
                         .onLongPressGesture(minimumDuration: 0.5) {
                             Haptic.selection()
                             actionItem = item
