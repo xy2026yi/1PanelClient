@@ -21276,6 +21276,39 @@
           }
         }
       }
+    },
+    "此文件不支持预览": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file type can't be previewed"
+          }
+        }
+      }
+    },
+    "空文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty File"
+          }
+        }
+      }
+    },
+    "该文件没有内容": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file has no content"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

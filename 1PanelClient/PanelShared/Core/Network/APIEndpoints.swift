@@ -292,6 +292,7 @@ enum APIEndpoint {
     case filesCreate             // POST 创建文件/文件夹
     case filesDel                // POST 删除文件/文件夹（forceDelete=false 进回收站）
     case filesRename             // POST 重命名
+    case filesContent            // POST 读取文件内容（文本预览）
     case filesBatchCheck         // POST 上传前检查目标路径已存在文件
     case filesRecycleStatus      // GET  回收站启用状态（Enable/Disable）
     case filesRecycleSearch      // POST 回收站文件分页列表
@@ -614,6 +615,7 @@ enum APIEndpoint {
         case .filesCreate:           return "/api/v2/files"
         case .filesDel:              return "/api/v2/files/del"
         case .filesRename:           return "/api/v2/files/rename"
+        case .filesContent:          return "/api/v2/files/content"
         case .filesBatchCheck:       return "/api/v2/files/batch/check"
         case .filesRecycleStatus:    return "/api/v2/files/recycle/status"
         case .filesRecycleSearch:    return "/api/v2/files/recycle/search"

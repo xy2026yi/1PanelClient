@@ -77,10 +77,18 @@ struct FilesView: View {
     @State private var showActionSheet = false
     /// 长按文件行弹出的半屏操作菜单对应的文件
     @State private var actionItem: FileItem?
+    /// 点击文件进入预览的文件（仅 previewableExtensions 内的扩展名）
+    @State private var previewingItem: FileItem?
+    /// 不支持预览的轻提示（toast，2 秒自动消失）
+    @State private var previewToast: String?
     /// 分片大小：与 1Panel 网页端一致（5MB）
     private let uploadChunkSize = 5 * 1024 * 1024
     /// 超过此大小走分片上传
     private let directUploadLimit = 50 * 1024 * 1024
+    /// 点击可预览的文本扩展名（其余格式点击仅提示不支持）
+    private static let previewableExtensions: Set<String> = [
+        "md", "txt", "log", "pem", "html", "json", "conf", "key",
+    ]
 
     private let client: APIClient
     /// 是否从外部指定了起始目录（指定后跳过「默认打开面板 baseDir」逻辑）
@@ -152,7 +160,9 @@ struct FilesView: View {
                         delayedAction { pathInput = currentPath; showPathInput = true }
                     },
                     ActionMenuItem(title: L10n.t("根目录"), icon: "house", color: .green) {
-                        delayedAction { pathInput = "/"; showPathInput = true }
+                        // 直接跳根目录（不经「前往路径」弹窗确认）
+                        pathHistory = ["/"]
+                        Task { await loadDir("/") }
                     }
                 ], onDismiss: { showActionSheet = false })
                 .bottomSheetDetents([.height(ActionBottomSheet.height(for: 7))])
@@ -207,6 +217,16 @@ struct FilesView: View {
             .navigationDestination(isPresented: $showRecycleBin) {
                 FileRecycleBinView(server: server)
             }
+            // 文本预览（仅可预览扩展名会进入）
+            .navigationDestination(isPresented: Binding(
+                get: { previewingItem != nil },
+                set: { if !$0 { previewingItem = nil } }
+            )) {
+                if let item = previewingItem {
+                    FilePreviewView(server: server, item: item)
+                }
+            }
+            .toastOverlay(message: $previewToast, systemImage: "exclamationmark.triangle.fill", iconColor: .orange)
             .modifier(FilesDialogsModifier(
             showCreate: $showCreate,
             createIsDir: createIsDir,
@@ -311,8 +331,22 @@ struct FilesView: View {
             }
             .buttonStyle(.plain)
         } else {
-            // 文件无下级页面：仅长按弹操作菜单
+            // 文件：点击预览（支持文本扩展名）或提示不支持；长按弹操作菜单
             fileRowContent(item)
+                .contentShape(Rectangle())
+                .onTapGesture { openFile(item) }
+        }
+    }
+
+    /// 点击文件：可预览扩展名 push 预览页，其余 toast 提示
+    /// （toast 组件自带触觉与 2 秒自动消失）
+    private func openFile(_ item: FileItem) {
+        let ext = (item.name as NSString).pathExtension.lowercased()
+        if Self.previewableExtensions.contains(ext) {
+            Haptic.selection()
+            previewingItem = item
+        } else {
+            previewToast = L10n.t("此文件不支持预览")
         }
     }
 
