@@ -301,15 +301,15 @@ final class APIClient {
         let boundary = "Boundary-\(UUID().uuidString)"
         var body = Data()
 
-        // 普通字段
+        // 普通字段（value 是报文体，无需转义；name 占 header 语法位需转义）
         for (name, value) in fields {
             body.append(Data("--\(boundary)\r\n".utf8))
-            body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
+            body.append(Data("Content-Disposition: form-data; name=\"\(Self.escapedMultipartToken(name))\"\r\n\r\n".utf8))
             body.append(Data("\(value)\r\n".utf8))
         }
-        // 文件字段
+        // 文件字段（filename 来自用户文件名：引号/反斜杠转义、CR/LF 剔除，防报文结构被破坏）
         body.append(Data("--\(boundary)\r\n".utf8))
-        body.append(Data("Content-Disposition: form-data; name=\"\(fileFieldName)\"; filename=\"\(fileName)\"\r\n".utf8))
+        body.append(Data("Content-Disposition: form-data; name=\"\(Self.escapedMultipartToken(fileFieldName))\"; filename=\"\(Self.escapedMultipartToken(fileName))\"\r\n".utf8))
         body.append(Data("Content-Type: \(mimeType)\r\n\r\n".utf8))
         body.append(fileData)
         body.append(Data("\r\n".utf8))
@@ -347,6 +347,15 @@ final class APIClient {
                 throw APIError.businessError(wrapped.code, wrapped.message ?? L10n.t("上传失败"))
             }
         }
+    }
+
+    /// multipart 头部 token（Content-Disposition 的 name/filename）转义：
+    /// 转义引号与反斜杠，剔除 CR/LF
+    private static func escapedMultipartToken(_ token: String) -> String {
+        token
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .filter { $0 != "\r" && $0 != "\n" }
     }
 
     /// 流式下载文件到临时目录，实时回报进度。

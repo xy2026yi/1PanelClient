@@ -148,7 +148,8 @@ struct DeviceDNSSettingsView: View {
         let list = dnsList
         guard !list.isEmpty, list != baseline else { return }
         // 轻校验：拦截空格/协议头/中文等随意文本直写服务器解析配置
-        if let bad = list.first(where: { !Self.isValidDNS($0) }) {
+        // （复用基础设置的主机校验：IPv4 / IPv6 / 域名）
+        if let bad = list.first(where: { !PanelBasicSettingsView.isValidHostOrIP($0) }) {
             errorText = L10n.f("DNS 地址格式不正确：%@", bad)
             return
         }
@@ -182,18 +183,6 @@ struct DeviceDNSSettingsView: View {
         } catch {
             errorText = error.localizedDescription
         }
-    }
-
-    /// DNS 地址轻校验：IPv4 / IPv6 / 域名（拒绝空格、协议头、中文等随意文本）
-    private static func isValidDNS(_ s: String) -> Bool {
-        guard !s.isEmpty, !s.contains("://"), !s.contains("/"), !s.contains(" ") else { return false }
-        if s.contains(":") {
-            // IPv6（含 IPv4 映射形式）：仅十六进制与冒号/点，且至少一位数字
-            return s.allSatisfy { $0.isHexDigit || $0 == ":" || $0 == "." }
-                && s.contains(where: \.isHexDigit)
-        }
-        // IPv4 / 域名复用基础设置的校验
-        return PanelBasicSettingsView.isValidHostOrIP(s)
     }
 }
 
@@ -370,9 +359,8 @@ struct DeviceHostsSettingsView: View {
     /// Hosts IP 字段校验：仅接受 IPv4 / IPv6（hosts 行首是地址，不是域名）
     private static func isValidHostsIP(_ s: String) -> Bool {
         if s.contains(":") {
-            // IPv6（含 IPv4 映射形式）：仅十六进制与冒号/点，且至少一位数字
-            return s.allSatisfy { $0.isHexDigit || $0 == ":" || $0 == "." }
-                && s.contains(where: \.isHexDigit)
+            // IPv6 全/压缩写法至少两个冒号；单冒号是 host:port，拒绝
+            return s.filter { $0 == ":" }.count >= 2 && PanelBasicSettingsView.isValidIPv6(s)
         }
         let parts = s.split(separator: ".", omittingEmptySubsequences: false)
         return parts.count == 4 && parts.allSatisfy { part in

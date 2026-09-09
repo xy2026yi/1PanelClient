@@ -66,12 +66,17 @@ struct LicenseItem: Decodable, Identifiable {
         return String(t.prefix(19)).replacingOccurrences(of: "T", with: " ")
     }
 
-    /// 最近同步时间（unix 秒 → yyyy-MM-dd HH:mm）
-    var displayLastSync: String? {
-        guard let raw = lastSyncAt, let ts = TimeInterval(raw), ts > 0 else { return nil }
+    /// 最近同步时间（unix 秒 → yyyy-MM-dd HH:mm）。
+    /// formatter 静态缓存：原先每行渲染新建 DateFormatter，列表长时开销显著
+    private static let syncDateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd HH:mm"
-        return f.string(from: Date(timeIntervalSince1970: ts))
+        return f
+    }()
+
+    var displayLastSync: String? {
+        guard let raw = lastSyncAt, let ts = TimeInterval(raw), ts > 0 else { return nil }
+        return Self.syncDateFormatter.string(from: Date(timeIntervalSince1970: ts))
     }
 }
 
@@ -103,6 +108,9 @@ struct LicenseView: View {
     @State private var loadError: String?
     /// 长按弹出的行操作菜单对应条目
     @State private var actionItem: LicenseItem?
+    /// 挂起的菜单动作：菜单完全收起（sheet onDismiss）后再执行，
+    /// 替代原先固定 0.35s 的延迟等待
+    @State private var pendingMenuAction: (() -> Void)?
     /// 待确认解绑 / 删除
     @State private var unbindingItem: LicenseItem?
     @State private var deletingItem: LicenseItem?
@@ -169,7 +177,13 @@ struct LicenseView: View {
             }
         }
         // 长按行操作：绑定(Free)/解绑(Bound)/同步/删除
-        .sheet(item: $actionItem) { item in
+        .sheet(item: $actionItem, onDismiss: {
+            // 菜单完全收起后再执行挂起动作，避免与下一级弹窗的呈现竞争
+            if let action = pendingMenuAction {
+                pendingMenuAction = nil
+                action()
+            }
+        }) { item in
             ActionBottomSheet(
                 title: item.licenseName ?? "—",
                 items: actionMenuItems(for: item),
@@ -186,7 +200,7 @@ struct LicenseView: View {
                 bindingItem = nil
                 Task { await bind(item, nodeID: nodeID) }
             }
-            .presentationDetents([.medium])
+            .bottomSheetDetents([.medium])
             .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("解绑许可证"), isPresented: Binding(
@@ -260,33 +274,26 @@ struct LicenseView: View {
         .listStyle(.insetGrouped)
     }
 
-    /// 长按菜单项：状态相关（Free=绑定 / Bound=解绑）+ 同步 + 删除
+    /// 长按菜单项：状态相关（Free=绑定 / Bound=解绑）+ 同步 + 删除。
+    /// 动作统一挂起，等菜单收起（sheet onDismiss）后再执行
     private func actionMenuItems(for item: LicenseItem) -> [ActionMenuItem] {
         var items: [ActionMenuItem] = []
         if item.isBound {
             items.append(ActionMenuItem(title: L10n.t("解绑"), icon: "arrow.uturn.backward.circle", color: .orange) {
-                delayedMenuAction { unbindingItem = item }
+                pendingMenuAction = { unbindingItem = item }
             })
         } else {
             items.append(ActionMenuItem(title: L10n.t("绑定节点"), icon: "link.badge.plus", color: .green) {
-                delayedMenuAction { bindingItem = item }
+                pendingMenuAction = { bindingItem = item }
             })
         }
         items.append(ActionMenuItem(title: L10n.t("同步"), icon: "arrow.triangle.2.circlepath", color: .blue) {
-            delayedMenuAction { Task { await sync(item) } }
+            pendingMenuAction = { Task { await sync(item) } }
         })
         items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-            delayedMenuAction { deletingItem = item }
+            pendingMenuAction = { deletingItem = item }
         })
         return items
-    }
-
-    /// 等 ActionBottomSheet 收起后再触发下一级呈现（sheet/alert 竞争）
-    private func delayedMenuAction(_ action: @escaping () -> Void) {
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(0.35))
-            action()
-        }
     }
 
     // MARK: - 数据
@@ -551,7 +558,8 @@ private struct LicenseBindSheet: View {
                         }
                     }
                 } header: {
-                    Text(L10n.t(item.licenseName ?? ""))
+                    // 动态值不查表：L10n.t 只接受文案 key（查不到会原样回显）
+                    Text(item.licenseName ?? "—")
                 } footer: {
                     Text(L10n.t("绑定后自动同步系统代理 / 告警设置 / 自定义应用 / 备份账号。"))
                 }

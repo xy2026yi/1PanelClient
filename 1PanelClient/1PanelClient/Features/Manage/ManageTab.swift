@@ -237,10 +237,13 @@ struct ManageTab: View {
 // MARK: - 二级功能 Hub
 
 /// 管理页二级功能中间层（如 网站→[网站/证书]、计划任务→[计划任务/脚本库]），
-/// 入口行与管理页列表同款样式；子项为不在管理根列表的隐藏 ManageItem
+/// 入口行与管理页列表同款样式；子项为不在管理根列表的隐藏 ManageItem。
+/// 消费「自定义功能」隐藏偏好：从根列表移入 Hub 的子项（如告警/备份账号）
+/// 不能对老用户的隐藏设置无条件复活
 struct ManageHubView: View {
     let title: String
     let items: [ManageItem]
+    @EnvironmentObject private var prefs: ManagePrefs
 
     init(title: String, items: [ManageItem]) {
         self.title = title
@@ -250,7 +253,7 @@ struct ManageHubView: View {
     var body: some View {
         List {
             Section {
-                ForEach(items) { item in
+                ForEach(items.filter { prefs.isEnabled($0) }) { item in
                     NavigationLink(value: item) {
                         HStack(spacing: 14) {
                             IconBadge(systemName: item.icon, color: item.color)
@@ -292,27 +295,20 @@ struct ManageEditView: View {
                 ForEach(Array(ManageItem.groups.enumerated()), id: \.offset) { _, group in
                     Section {
                         ForEach(group.items) { item in
-                            HStack(spacing: 12) {
-                                IconBadge(systemName: item.icon, color: item.color, size: 34, cornerRadius: 8)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.title)
-                                    Text(item.subtitle)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Toggle("", isOn: Binding(
-                                    get: { prefs.isEnabled(item) },
-                                    set: { prefs.setEnabled($0, for: item) }
-                                ))
-                                .labelsHidden()
-                            }
-                            .padding(.vertical, 2)
+                            manageEditRow(item)
                         }
                     } header: {
                         if !group.title.isEmpty {
                             Text(group.title)
                         }
+                    }
+                }
+
+                // Hub 二级子项：不占管理根列表，但同样受「自定义功能」控制
+                // （告警/备份账号等移入 Hub 后，老的隐藏偏好要能继续生效与修改）
+                Section(L10n.t("二级功能")) {
+                    ForEach(ManageItem.hubChildren) { item in
+                        manageEditRow(item)
                     }
                 }
             }
@@ -326,6 +322,26 @@ struct ManageEditView: View {
         }
         // sheet 里 environmentObject 会重新注入，避免与 sheet 内部新建冲突
         .environmentObject(prefs)
+    }
+
+    /// 单个功能的显示/隐藏行（根列表项与 Hub 二级子项共用）
+    private func manageEditRow(_ item: ManageItem) -> some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: item.icon, color: item.color, size: 34, cornerRadius: 8)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                Text(item.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Toggle("", isOn: Binding(
+                get: { prefs.isEnabled(item) },
+                set: { prefs.setEnabled($0, for: item) }
+            ))
+            .labelsHidden()
+        }
+        .padding(.vertical, 2)
     }
 }
 
@@ -399,6 +415,13 @@ enum ManageItem: String, Identifiable {
     case license
 
     var id: String { rawValue }
+
+    /// 二级 Hub 子项：不在管理根列表展示（经 Hub 中间层进入），
+    /// 但可在「自定义功能」中单独隐藏（含从根列表移入的老项，如告警/备份账号）
+    static var hubChildren: [ManageItem] {
+        [.websiteList, .certificates, .cronjobList, .scriptLibrary,
+         .basicSettings, .alert, .backupAccount, .license]
+    }
 
     /// 管理页分组（带标题），ManageTab 与「自定义功能」编辑页共用。
     /// 计算属性而非 static let：L10n 语言偏好可能在首次访问后才就绪/切换，

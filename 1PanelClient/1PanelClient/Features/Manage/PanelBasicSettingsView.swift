@@ -90,7 +90,6 @@ struct PanelBasicSettingsView: View {
     // 编辑中的值
     @State private var nameInput = ""
     @State private var ipInput = ""
-    @State private var savingKey: String?
 
     // 设备配置（device/base）
     @State private var hostEntries: [DeviceHostItem] = []
@@ -482,8 +481,6 @@ struct PanelBasicSettingsView: View {
     /// 更新单项：PanelName/SessionTimeout/DeveloperMode/Edition/DocSource 走
     /// core/settings/update；SystemIP 走 settings/update（网页端抓包路径）
     private func updateCore(_ key: String, _ value: String, endpoint: EndpointChoice = .core) async {
-        savingKey = key
-        defer { savingKey = nil }
         let path = endpoint == .core ? APIEndpoint.coreSettingsUpdate.path : APIEndpoint.settingsUpdate.path
         let req = SettingsKeyValueRequest(key: key, value: value)
         do {
@@ -548,23 +545,33 @@ struct PanelBasicSettingsView: View {
         }
     }
 
-    /// 默认访问地址格式：仅 IP 或域名，不允许协议头 / 端口 / 路径
+    /// 默认访问地址格式：仅 IP（IPv4/IPv6）或域名，不允许协议头 / 端口 / 路径
     static func isValidHostOrIP(_ s: String) -> Bool {
         guard !s.isEmpty,
-              !s.contains("://"), !s.contains(":"), !s.contains("/"), !s.contains(" ") else { return false }
+              !s.contains("://"), !s.contains("/"), !s.contains(" ") else { return false }
+        if s.contains(":") {
+            // IPv6 全/压缩写法至少两个冒号；单冒号是 host:port，拒绝
+            return s.filter { $0 == ":" }.count >= 2 && Self.isValidIPv6(s)
+        }
         let parts = s.split(separator: ".", omittingEmptySubsequences: false)
-        // IPv4：四段且各段 0-255
-        if parts.count == 4 {
+        // 四段且每段纯数字才按 IPv4 校验；四段但不全数字的是域名
+        // （如 panel.example.co.uk），落到下面的域名分支
+        let isNumericParts = parts.count == 4 && parts.allSatisfy { !$0.isEmpty && $0.allSatisfy(\.isNumber) }
+        if isNumericParts {
             return parts.allSatisfy { part in
-                guard (1...3).contains(part.count),
-                      part.allSatisfy(\.isNumber),
-                      let n = Int(part), (0...255).contains(n) else { return false }
-                return true
+                (1...3).contains(part.count) && (Int(part).map { (0...255).contains($0) } ?? false)
             }
         }
         // 域名：标签以字母数字开头结尾，至少两级
         let domain = #"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$"#
         return s.range(of: domain, options: .regularExpression) != nil
+    }
+
+    /// IPv6 粗校验（含 IPv4 映射形式，如 ::ffff:192.168.1.1）：
+    /// 仅十六进制与冒号/点，且至少一位数字（拒绝 ":::" 等纯标点）
+    static func isValidIPv6(_ s: String) -> Bool {
+        s.allSatisfy { $0.isHexDigit || $0 == ":" || $0 == "." }
+            && s.contains(where: \.isHexDigit)
     }
 }
 

@@ -86,6 +86,9 @@ struct FileRecycleBinView: View {
     @State private var isClearing = false
     /// 长按弹出的行操作菜单对应的文件
     @State private var actionItem: RecycleItem?
+    /// 挂起的菜单动作：菜单完全收起（sheet onDismiss）后再执行，
+    /// 替代原先固定 0.35s 的延迟等待
+    @State private var pendingMenuAction: (() -> Void)?
     /// 待确认还原 / 删除 / 清空
     @State private var reducingItem: RecycleItem?
     @State private var deletingItem: RecycleItem?
@@ -200,22 +203,21 @@ struct FileRecycleBinView: View {
         }
         .task { await load() }
         .refreshable { await load() }
-        .sheet(item: $actionItem) { item in
+        .sheet(item: $actionItem, onDismiss: {
+            // 菜单完全收起后再执行挂起动作，避免与下一级弹窗的呈现竞争
+            if let action = pendingMenuAction {
+                pendingMenuAction = nil
+                action()
+            }
+        }) { item in
             ActionBottomSheet(
                 title: item.name ?? "—",
                 items: [
                     ActionMenuItem(title: L10n.t("还原"), icon: "arrow.uturn.backward", color: .green) {
-                        // 等 sheet 收起后再弹确认（转场中直接 present 会竞争）
-                        Task { @MainActor in
-                            try? await Task.sleep(for: .seconds(0.35))
-                            reducingItem = item
-                        }
+                        pendingMenuAction = { reducingItem = item }
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                        Task { @MainActor in
-                            try? await Task.sleep(for: .seconds(0.35))
-                            deletingItem = item
-                        }
+                        pendingMenuAction = { deletingItem = item }
                     },
                 ],
                 onDismiss: { actionItem = nil }

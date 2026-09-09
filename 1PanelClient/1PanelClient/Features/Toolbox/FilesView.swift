@@ -53,7 +53,6 @@ struct FilesView: View {
     @State private var items: [FileItem] = []
     @State private var searchText = ""
     @State private var isSearching = false
-    @State private var pathHistory: [String] = ["/"]
     @State private var isLoading = false
     @State private var showCreate = false
     @State private var createIsDir = true
@@ -77,6 +76,9 @@ struct FilesView: View {
     @State private var showActionSheet = false
     /// 长按文件行弹出的半屏操作菜单对应的文件
     @State private var actionItem: FileItem?
+    /// 挂起的菜单动作：菜单完全收起（sheet onDismiss）后再执行，
+    /// 替代原先固定 0.35s 的延迟等待
+    @State private var pendingMenuAction: (() -> Void)?
     /// 点击文件进入预览的文件（仅 previewableExtensions 内的扩展名）
     @State private var previewingItem: FileItem?
     /// 不支持预览的轻提示（toast，2 秒自动消失）
@@ -106,7 +108,6 @@ struct FilesView: View {
         self.client = APIClient.shared(for: server)
         let start = initialPath.isEmpty ? "/" : initialPath
         _currentPath = State(initialValue: start)
-        _pathHistory = State(initialValue: [start])
         hasCustomStart = start != "/"
     }
 
@@ -142,39 +143,41 @@ struct FilesView: View {
             }
             .refreshable { await loadDir(currentPath) }
             .task { await initialLoad() }
-            .sheet(isPresented: $showActionSheet) {
-                // onDismiss 必须关掉本 sheet：菜单项触发的下一级弹窗（fileImporter/
-                // 创建/路径 alert/回收站 push）都要等它收起后经 delayedAction 再呈现，
-                // 否则撞上 "only presenting a single sheet is supported" 被吞
+            .sheet(isPresented: $showActionSheet, onDismiss: {
+                // 菜单完全收起后再执行挂起动作，避免与下一级弹窗的呈现竞争
+                runPendingMenuAction()
+            }) {
                 ActionBottomSheet(title: L10n.t("操作"), items: [
                     ActionMenuItem(title: L10n.t("上传文件"), icon: "arrow.up.circle", color: .blue) {
-                        delayedAction { showUploadPicker = true }
+                        pendingMenuAction = { showUploadPicker = true }
                     },
                     ActionMenuItem(title: L10n.t("上传文件夹"), icon: "arrow.up.folder", color: .cyan) {
-                        delayedAction { showFolderPicker = true }
+                        pendingMenuAction = { showFolderPicker = true }
                     },
                     ActionMenuItem(title: L10n.t("新建文件夹"), icon: "folder.badge.plus", color: .orange) {
-                        delayedAction { createIsDir = true; showCreate = true }
+                        pendingMenuAction = { createIsDir = true; showCreate = true }
                     },
                     ActionMenuItem(title: L10n.t("新建文件"), icon: "doc.badge.plus", color: .teal) {
-                        delayedAction { createIsDir = false; showCreate = true }
+                        pendingMenuAction = { createIsDir = false; showCreate = true }
                     },
                     ActionMenuItem(title: L10n.t("回收站"), icon: "trash", color: .gray) {
-                        delayedAction { showRecycleBin = true }
+                        pendingMenuAction = { showRecycleBin = true }
                     },
                     ActionMenuItem(title: L10n.t("前往路径"), icon: "location", color: .indigo) {
-                        delayedAction { pathInput = currentPath; showPathInput = true }
+                        pendingMenuAction = { pathInput = currentPath; showPathInput = true }
                     },
                     ActionMenuItem(title: L10n.t("根目录"), icon: "house", color: .green) {
                         // 直接跳根目录（不经「前往路径」弹窗确认）
-                        pathHistory = ["/"]
-                        Task { await loadDir("/") }
+                        pendingMenuAction = { Task { await loadDir("/") } }
                     }
                 ], onDismiss: { showActionSheet = false })
                 .bottomSheetDetents([.height(ActionBottomSheet.height(for: 7))])
                 .presentationDragIndicator(.visible)
             }
-            .sheet(item: $actionItem) { item in
+            .sheet(item: $actionItem, onDismiss: {
+                // 菜单完全收起后再执行挂起动作，避免与下一级弹窗的呈现竞争
+                runPendingMenuAction()
+            }) { item in
                 ActionBottomSheet(
                     title: item.name,
                     items: itemActions(item),
@@ -248,7 +251,7 @@ struct FilesView: View {
             successMessage: $successMessage,
             errorMessage: $errorMessage,
             reload: { Task { await loadDir(currentPath) } },
-            jumpTo: { target in pathHistory = [target]; Task { await loadDir(target) } },
+            jumpTo: { target in Task { await loadDir(target) } },
             deleteItem: { item, force in Task { await deleteItem(item, forceDelete: force) } }
         ))
     }
@@ -331,7 +334,6 @@ struct FilesView: View {
     private func fileRow(_ item: FileItem) -> some View {
         if item.isDir {
             Button {
-                pathHistory.append(item.path)
                 Task { await loadDir(item.path) }
             } label: {
                 fileRowContent(item)
@@ -436,7 +438,6 @@ struct FilesView: View {
         if !hasCustomStart,
            let baseDir: String = try? await client.send(path: APIEndpoint.settingsBaseDir.path, method: "GET", as: String.self) {
             currentPath = baseDir
-            pathHistory = [baseDir]
         }
         await loadDir(currentPath)
         // 加载真正完成才置位：途中 push 预览/回收站会取消 .task（loadDir 被
@@ -650,14 +651,12 @@ struct FilesView: View {
         return UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
     }
 
-    /// 延迟执行：等半屏操作菜单收起后再触发下一级弹窗（重命名 sheet/删除 alert），
-    /// 避免 sheet 关闭动画与新的呈现竞争。
-    /// Task@MainActor + sleep 替代 DispatchQueue.asyncAfter（Swift 6 下后者要求 @Sendable 闭包）
-    private func delayedAction(_ action: @escaping () -> Void) {
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(0.35))
-            action()
-        }
+    /// 执行挂起的菜单动作（由两个操作菜单 sheet 的 onDismiss 调用）：
+    /// 等菜单完全收起后再呈现下一级弹窗，避免转场竞争
+    private func runPendingMenuAction() {
+        guard let action = pendingMenuAction else { return }
+        pendingMenuAction = nil
+        action()
     }
 
     /// 长按文件行的操作菜单项（下载/重命名/删除），与全站 ActionBottomSheet 风格一致
@@ -665,14 +664,14 @@ struct FilesView: View {
         var items: [ActionMenuItem] = []
         if !item.isDir {
             items.append(ActionMenuItem(title: L10n.t("下载"), icon: "arrow.down.circle", color: .green) {
-                delayedAction { downloadFile(item) }
+                pendingMenuAction = { downloadFile(item) }
             })
         }
         items.append(ActionMenuItem(title: L10n.t("重命名"), icon: "pencil", color: .blue) {
-            delayedAction { renamingItem = item }
+            pendingMenuAction = { renamingItem = item }
         })
         items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-            delayedAction { deletingItem = item }
+            pendingMenuAction = { deletingItem = item }
         })
         return items
     }
@@ -823,7 +822,7 @@ private struct FilesDialogsModifier: ViewModifier {
                 FileDeleteConfirmSheet(item: item) { forceDelete in
                     deleteItem(item, forceDelete)
                 }
-                .presentationDetents([.medium])
+                .bottomSheetDetents([.medium])
                 .presentationDragIndicator(.visible)
             }
             .alert(L10n.t("前往路径"), isPresented: $showPathInput) {
