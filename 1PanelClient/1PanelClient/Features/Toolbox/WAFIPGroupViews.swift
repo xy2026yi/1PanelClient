@@ -38,40 +38,44 @@ struct WAFIPGroupsView: View {
                 }
                 .listRowBackground(Color.clear)
             } else if items.isEmpty {
-                ContentUnavailableView(L10n.t("暂无 IP 组"), systemImage: "rectangle.on.rectangle.angled")
+                ContentUnavailableView(L10n.t("暂无 IP 组"), systemImage: "rectangle.3.group")
             } else {
-                ForEach(items) { item in
-                    Button {
-                        editingGroup = item
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(item.name).font(.body)
-                                if let content = item.content, !content.isEmpty {
-                                    Text(content.replacingOccurrences(of: "\n", with: ", "))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(2)
-                                }
-                                if let source = item.source, !source.isEmpty {
-                                    StatusBadge(text: source == "imported" ? L10n.t("手动") : L10n.t("远程"), color: .blue)
-                                }
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            pendingDeleteGroup = item
+                Section {
+                    ForEach(items) { item in
+                        Button {
+                            editingGroup = item
                         } label: {
-                            Label(L10n.t("删除"), systemImage: "trash")
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(item.name).font(.body)
+                                    if let content = item.content, !content.isEmpty {
+                                        Text(content.replacingOccurrences(of: "\n", with: ", "))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                    if let source = item.source, !source.isEmpty {
+                                        StatusBadge(text: source == "imported" ? L10n.t("手动") : L10n.t("远程"), color: .blue)
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                pendingDeleteGroup = item
+                            } label: {
+                                Label(L10n.t("删除"), systemImage: "trash")
+                            }
                         }
                     }
+                } header: {
+                    SectionLabel(title: L10n.f("IP 组（%ld）", items.count), systemImage: "rectangle.3.group")
                 }
             }
         }

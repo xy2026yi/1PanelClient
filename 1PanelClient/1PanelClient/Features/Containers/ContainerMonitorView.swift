@@ -110,10 +110,10 @@ struct ContainerMonitorView: View {
                     )
                 }
             } else {
-                monitorSection("CPU", single: vm.cpuPoints, color: .blue, unit: "%", yCap: 100)
-                monitorSection(L10n.t("内存"), dual: memorySeries, styles: [L10n.t("内存"): .purple, L10n.t("缓存"): .orange], unit: "MB")
-                monitorSection(L10n.t("磁盘 I/O"), dual: ioSeries, styles: [L10n.t("读取"): .blue, L10n.t("写入"): .orange], unit: "MB")
-                monitorSection(L10n.t("网络"), dual: networkSeries, styles: [L10n.t("上行"): .green, L10n.t("下行"): .purple], unit: "KB")
+                monitorSection("CPU", icon: "cpu", single: vm.cpuPoints, color: .blue, unit: "%", yCap: 100)
+                monitorSection(L10n.t("内存"), icon: "memorychip", dual: memorySeries, styles: [L10n.t("内存"): .purple, L10n.t("缓存"): .orange], unit: "MB")
+                monitorSection(L10n.t("磁盘 I/O"), icon: "macpro.gen2", dual: ioSeries, styles: [L10n.t("读取"): .blue, L10n.t("写入"): .orange], unit: "MB")
+                monitorSection(L10n.t("网络"), icon: "wifi.router", dual: networkSeries, styles: [L10n.t("上行"): .green, L10n.t("下行"): .purple], unit: "KB")
             }
         }
         .environment(\.defaultMinListRowHeight, 32)
@@ -160,6 +160,7 @@ struct ContainerMonitorView: View {
     @ViewBuilder
     private func monitorSection(
         _ title: String,
+        icon: String,
         single: [MonitorPoint] = [],
         color: Color = .blue,
         dual: [LoadSeriesPoint] = [],
@@ -169,7 +170,8 @@ struct ContainerMonitorView: View {
     ) -> some View {
         Section {
             HStack {
-                Text(title).font(.headline)
+                Label(title, systemImage: icon)
+                    .font(.headline)
                 Spacer()
             }
             .padding(.top, 8)

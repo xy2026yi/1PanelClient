@@ -282,7 +282,7 @@ struct MonitorView: View {
         Section {
             // 标题行 + 下拉按钮
             HStack {
-                Text(L10n.t("平均负载"))
+                Label(L10n.t("平均负载"), systemImage: "gauge.with.dots.needle.67percent")
                     .font(.headline)
                 Spacer()
                 Button {
@@ -436,7 +436,7 @@ struct MonitorView: View {
         Section {
             // 标题行 + 下拉按钮
             HStack {
-                Text("CPU")
+                Label("CPU", systemImage: "cpu")
                     .font(.headline)
                 Spacer()
                 Button {
@@ -522,7 +522,7 @@ struct MonitorView: View {
         Section {
             // 标题行 + 下拉按钮
             HStack {
-                Text(L10n.t("内存"))
+                Label(L10n.t("内存"), systemImage: "memorychip")
                     .font(.headline)
                 Spacer()
                 Button {
@@ -621,7 +621,7 @@ struct MonitorView: View {
     private var ioSection: some View {
         Section {
             HStack {
-                Text(L10n.t("磁盘 I/O"))
+                Label(L10n.t("磁盘 I/O"), systemImage: "macpro.gen2")
                     .font(.headline)
                 Spacer()
             }
@@ -653,7 +653,7 @@ struct MonitorView: View {
     private var networkSection: some View {
         Section {
             HStack {
-                Text(L10n.t("网络"))
+                Label(L10n.t("网络"), systemImage: "wifi.router")
                     .font(.headline)
                 Spacer()
             }
