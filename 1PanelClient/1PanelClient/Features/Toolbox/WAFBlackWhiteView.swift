@@ -63,7 +63,11 @@ struct WAFBlackWhiteView: View {
                     NavigationLink {
                         WAFIPGroupsView(server: server)
                     } label: {
-                        Text(L10n.t("IP 组"))
+                        HStack(spacing: 12) {
+                            IconBadge(systemName: "rectangle.3.group", color: .indigo, size: 34, cornerRadius: 8)
+                            Text(L10n.t("IP 组"))
+                            Spacer()
+                        }
                     }
                 }
             }
