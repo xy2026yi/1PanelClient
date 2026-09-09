@@ -528,6 +528,10 @@ struct PanelBasicSettingsView: View {
     /// 设备配置项通用更新（Ntp / LocalTime）；成功返回 true 并回写 NTP 基线
     @discardableResult
     private func updateConf(_ key: String, _ value: String) async -> Bool {
+        // 重入保护：预置按钮「立即应用」与失焦自动提交并发时，后完成者
+        // 会静默覆盖先完成者；在途期间的新请求直接丢弃（预置按钮本身
+        // 已按 isDeviceBusy 禁用，丢弃的只可能是过期的失焦提交）
+        guard !isDeviceBusy else { return false }
         isDeviceBusy = true
         defer { isDeviceBusy = false }
         let req = SettingsKeyValueRequest(key: key, value: value)
