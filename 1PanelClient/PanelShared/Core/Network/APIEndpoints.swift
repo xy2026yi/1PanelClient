@@ -290,8 +290,13 @@ enum APIEndpoint {
     case settingsBaseDir         // GET  基础目录
     case filesUserGroup          // POST 用户/用户组列表
     case filesCreate             // POST 创建文件/文件夹
-    case filesDel                // POST 删除文件/文件夹
+    case filesDel                // POST 删除文件/文件夹（forceDelete=false 进回收站）
     case filesRename             // POST 重命名
+    case filesBatchCheck         // POST 上传前检查目标路径已存在文件
+    case filesRecycleStatus      // GET  回收站启用状态（Enable/Disable）
+    case filesRecycleSearch      // POST 回收站文件分页列表
+    case filesRecycleReduce      // POST 回收站还原文件
+    case filesRecycleClear       // POST 清空回收站
 
     // MARK: - SSH 管理
     case sshOperate              // POST SSH服务操作(start/stop/restart/enable/disable)
@@ -609,6 +614,11 @@ enum APIEndpoint {
         case .filesCreate:           return "/api/v2/files"
         case .filesDel:              return "/api/v2/files/del"
         case .filesRename:           return "/api/v2/files/rename"
+        case .filesBatchCheck:       return "/api/v2/files/batch/check"
+        case .filesRecycleStatus:    return "/api/v2/files/recycle/status"
+        case .filesRecycleSearch:    return "/api/v2/files/recycle/search"
+        case .filesRecycleReduce:    return "/api/v2/files/recycle/reduce"
+        case .filesRecycleClear:     return "/api/v2/files/recycle/clear"
         case .sshOperate:            return "/api/v2/hosts/ssh/operate"
         case .sshSearch:             return "/api/v2/hosts/ssh/search"
         case .sshUpdate:             return "/api/v2/hosts/ssh/update"
@@ -698,6 +708,7 @@ enum APIEndpoint {
              .wafLocationsWorld, .wafLogDetail,
              .wafStat, .wafStatDays,
              .settingsBaseDir,
+             .filesRecycleStatus,
              .settingsUpgradeCheck, .settingsUpgradeReleases,
              .openrestyConfig, .openrestyStatus, .openrestyHttps, .openrestyModules,
              .settingsSSHConn,

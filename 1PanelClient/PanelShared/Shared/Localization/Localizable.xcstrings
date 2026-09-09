@@ -21067,6 +21067,215 @@
           }
         }
       }
+    },
+    "回收站": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recycle Bin"
+          }
+        }
+      }
+    },
+    "还原": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore"
+          }
+        }
+      }
+    },
+    "清空": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        }
+      }
+    },
+    "清空回收站": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty Recycle Bin"
+          }
+        }
+      }
+    },
+    "启用回收站": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable Recycle Bin"
+          }
+        }
+      }
+    },
+    "回收站为空": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recycle bin is empty"
+          }
+        }
+      }
+    },
+    "删除的文件将在此显示，可还原或彻底删除": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted files are listed here for restore or permanent deletion"
+          }
+        }
+      }
+    },
+    "回收站已停用：新删除的文件将不进入回收站，直接删除。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recycle bin is disabled: newly deleted files are removed immediately instead of going to the recycle bin."
+          }
+        }
+      }
+    },
+    "停用后删除文件将不进入回收站；已回收的文件仍可还原或删除。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When disabled, deleted files will not go to the recycle bin; files already in the bin can still be restored or deleted."
+          }
+        }
+      }
+    },
+    "如果原路径存在同名文件或目录，将会被覆盖，是否继续？": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If a file or folder with the same name exists at the original path, it will be overwritten. Continue?"
+          }
+        }
+      }
+    },
+    "确定要彻底删除 \"%@\" 吗？删除后不可恢复。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permanently delete \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "删除 操作不可回滚，是否继续？": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete cannot be undone. Continue?"
+          }
+        }
+      }
+    },
+    "已删除（%ld）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted (%ld)"
+          }
+        }
+      }
+    },
+    "上传文件夹": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upload Folder"
+          }
+        }
+      }
+    },
+    "该文件夹内没有文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This folder contains no files"
+          }
+        }
+      }
+    },
+    "永久删除文件（不进入回收站，直接删除）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete permanently (skip the recycle bin)"
+          }
+        }
+      }
+    },
+    "不勾选时移入服务器回收站，可在回收站中还原。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When unchecked, files are moved to the server recycle bin and can be restored later."
+          }
+        }
+      }
+    },
+    "已移入回收站": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moved to recycle bin"
+          }
+        }
+      }
+    },
+    "将 %ld 个文件上传至此网站？\n此操作会上传\"%@\"下的所有文件。请仅在您信任该网站的情况下执行此操作。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upload %ld files to this site?\nThis will upload all files under \"%@\". Only do this if you trust this site."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

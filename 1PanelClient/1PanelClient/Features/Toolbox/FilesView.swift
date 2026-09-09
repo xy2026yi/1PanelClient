@@ -32,6 +32,18 @@ struct FileRenameRequest: Encodable {
     let oldName: String
 }
 
+/// 上传文件夹前检查目标路径已存在文件（POST /files/batch/check）
+struct FileBatchCheckRequest: Encodable {
+    let paths: [String]
+}
+
+/// 待上传的本地文件（文件夹上传用）：本地 URL + 含顶层文件夹名的相对路径
+struct FolderUploadFile {
+    let url: URL
+    let relativePath: String
+    let size: Int64
+}
+
 // MARK: - 文件管理视图
 
 struct FilesView: View {
@@ -54,8 +66,13 @@ struct FilesView: View {
 
     // 上传/下载
     @State private var showUploadPicker = false
+    @State private var showFolderPicker = false
+    /// 待确认的文件夹上传（收集完文件后弹确认，确认后才真正上传）
+    @State private var pendingFolderUpload: (url: URL, files: [FolderUploadFile])?
     @State private var transfer: TransferState?
     @State private var transferTask: Task<Void, Never>?
+    /// 回收站入口
+    @State private var showRecycleBin = false
     /// 悬浮 + 号的半屏操作菜单
     @State private var showActionSheet = false
     /// 长按文件行弹出的半屏操作菜单对应的文件
@@ -102,6 +119,14 @@ struct FilesView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        showRecycleBin = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .accessibilityLabel(L10n.t("回收站"))
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         showActionSheet = true
                     } label: {
                         Image(systemName: "plus")
@@ -116,6 +141,9 @@ struct FilesView: View {
                     ActionMenuItem(title: L10n.t("上传文件"), icon: "arrow.up.circle", color: .blue) {
                         showUploadPicker = true
                     },
+                    ActionMenuItem(title: L10n.t("上传文件夹"), icon: "arrow.up.on.square", color: .cyan) {
+                        showFolderPicker = true
+                    },
                     ActionMenuItem(title: L10n.t("新建文件夹"), icon: "folder.badge.plus", color: .orange) {
                         createIsDir = true; showCreate = true
                     },
@@ -129,7 +157,7 @@ struct FilesView: View {
                         pathInput = "/"; showPathInput = true
                     }
                 ], onDismiss: {})
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 5))])
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 6))])
                 .presentationDragIndicator(.visible)
             }
             .sheet(item: $actionItem) { item in
@@ -143,15 +171,44 @@ struct FilesView: View {
             }
             .modifier(FilesTransferModifier(
                 showUploadPicker: $showUploadPicker,
+                showFolderPicker: $showFolderPicker,
                 transfer: $transfer,
                 onPickFiles: { result in
                     if case .success(let urls) = result {
                         transferTask = Task { await uploadFiles(urls) }
                     }
                 },
+                onPickFolder: { result in
+                    if case .success(let urls) = result, let folder = urls.first {
+                        prepareFolderUpload(folder)
+                    }
+                },
                 onCancel: { transferTask?.cancel() },
                 onClose: { transfer = nil }
             ))
+            // 文件夹上传确认（x 个文件 / 文件夹名 y，文案对齐网页端）
+            .alert(L10n.t("上传文件夹"), isPresented: Binding(
+                get: { pendingFolderUpload != nil },
+                set: { if !$0 { pendingFolderUpload = nil } }
+            )) {
+                Button(L10n.t("取消"), role: .cancel) { pendingFolderUpload = nil }
+                Button(L10n.t("上传")) {
+                    if let pending = pendingFolderUpload {
+                        pendingFolderUpload = nil
+                        transferTask = Task { await uploadFolder(pending.url, files: pending.files) }
+                    }
+                }
+            } message: {
+                if let pending = pendingFolderUpload {
+                    Text(L10n.f(
+                        "将 %ld 个文件上传至此网站？\n此操作会上传\"%@\"下的所有文件。请仅在您信任该网站的情况下执行此操作。",
+                        pending.files.count, pending.url.lastPathComponent
+                    ))
+                }
+            }
+            .navigationDestination(isPresented: $showRecycleBin) {
+                FileRecycleBinView(server: server)
+            }
             .modifier(FilesDialogsModifier(
             showCreate: $showCreate,
             createIsDir: createIsDir,
@@ -164,7 +221,7 @@ struct FilesView: View {
             errorMessage: $errorMessage,
             reload: { Task { await loadDir(currentPath) } },
             jumpTo: { target in pathHistory = [target]; Task { await loadDir(target) } },
-            deleteItem: { item in Task { await deleteItem(item) } }
+            deleteItem: { item, force in Task { await deleteItem(item, forceDelete: force) } }
         ))
     }
 
@@ -252,8 +309,16 @@ struct FilesView: View {
                 fileRowContent(item)
             }
             .buttonStyle(.plain)
+            // 整行可点：plain button 默认命中区只覆盖文字/图形，Spacer 留白处点不动
+            .contentShape(Rectangle())
         } else {
             fileRowContent(item)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // 文件无下级页面：点行弹出与长按一致的操作菜单
+                    Haptic.selection()
+                    actionItem = item
+                }
         }
     }
 
@@ -335,6 +400,104 @@ struct FilesView: View {
         }
     }
 
+    // MARK: - 上传文件夹
+
+    /// 选中文件夹后先收集文件并弹确认（x 个文件 / 文件夹名 y），确认后才真正上传
+    private func prepareFolderUpload(_ folder: URL) {
+        let scoped = folder.startAccessingSecurityScopedResource()
+        defer { if scoped { folder.stopAccessingSecurityScopedResource() } }
+        let files = collectFolderFiles(folder)
+        guard !files.isEmpty else {
+            errorMessage = L10n.t("该文件夹内没有文件")
+            return
+        }
+        pendingFolderUpload = (url: folder, files: files)
+    }
+
+    /// 递归收集文件夹内全部文件（含 .DS_Store 等隐藏文件，与网页端一致），
+    /// 相对路径含顶层文件夹名（如 "1/2/饮食统计.md"）
+    private func collectFolderFiles(_ folder: URL) -> [FolderUploadFile] {
+        let folderName = folder.lastPathComponent
+        let prefix = folder.path + "/"
+        guard let enumerator = FileManager.default.enumerator(
+            at: folder, includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey]
+        ) else { return [] }
+        var files: [FolderUploadFile] = []
+        for case let url as URL in enumerator {
+            guard let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey]),
+                  values.isDirectory != true else { continue }
+            let subPath = String(url.path.dropFirst(prefix.count))
+            guard !subPath.isEmpty else { continue }
+            files.append(FolderUploadFile(
+                url: url,
+                relativePath: "\(folderName)/\(subPath)",
+                size: Int64(values.fileSize ?? 0)
+            ))
+        }
+        return files.sorted { $0.relativePath.localizedStandardCompare($1.relativePath) == .orderedAscending }
+    }
+
+    /// 上传文件夹（请求序列对齐网页端抓包）：
+    /// 1. batch/check 检查目标路径（App 恒 overwrite=True，结果仅保持序列一致）
+    /// 2. 逐文件 multipart upload：file 字段 filename=相对路径（含文件夹名前缀），
+    ///    path=目标目录+该文件相对路径的父目录（服务器按 path/文件名落盘）
+    private func uploadFolder(_ folder: URL, files: [FolderUploadFile]) async {
+        let totalSize = files.reduce(Int64(0)) { $0 + $1.size }
+        transfer = TransferState(kind: L10n.t("上传"), fileName: folder.lastPathComponent, total: totalSize)
+
+        let scoped = folder.startAccessingSecurityScopedResource()
+        defer { if scoped { folder.stopAccessingSecurityScopedResource() } }
+
+        do {
+            try Task.checkCancellation()
+            let checkReq = FileBatchCheckRequest(paths: files.map { joinServerPath(currentPath, $0.relativePath) })
+            let _: [String] = try await client.send(
+                path: APIEndpoint.filesBatchCheck.path, body: checkReq, as: [String].self
+            )
+            for file in files {
+                try Task.checkCancellation()
+                transfer?.fileName = file.relativePath
+                if file.size > Int64(directUploadLimit) {
+                    let relParent = (file.relativePath as NSString).deletingLastPathComponent
+                    try await chunkUpload(
+                        url: file.url, name: (file.relativePath as NSString).lastPathComponent,
+                        size: file.size, targetDir: joinServerPath(currentPath, relParent)
+                    )
+                } else {
+                    let data = try Data(contentsOf: file.url)
+                    let relParent = (file.relativePath as NSString).deletingLastPathComponent
+                    try await client.uploadMultipart(
+                        path: APIEndpoint.filesUpload.path,
+                        fields: [
+                            "path": joinServerPath(currentPath, relParent),
+                            "overwrite": "True",
+                        ],
+                        fileFieldName: "file",
+                        fileName: file.relativePath,
+                        mimeType: mime(of: file.relativePath),
+                        fileData: data
+                    )
+                    transfer?.received += file.size
+                    transfer?.progress = Double(transfer?.received ?? 0) / Double(max(totalSize, 1))
+                }
+            }
+            transfer?.status = .done
+            await loadDir(currentPath)
+        } catch is CancellationError {
+            transfer?.status = .failed
+            transfer?.errorText = L10n.t("已取消")
+        } catch {
+            transfer?.status = .failed
+            transfer?.errorText = error.localizedDescription
+        }
+    }
+
+    /// 服务器路径拼接（"/tmp" + "1/2" → "/tmp/1/2"；根目录 "/"+…）
+    private func joinServerPath(_ dir: String, _ sub: String) -> String {
+        if dir == "/" { return "/" + sub }
+        return dir.hasSuffix("/") ? dir + sub : dir + "/" + sub
+    }
+
     /// 上传单个文件：≤50MB 直传，>50MB 分片（5MB/片，与网页端一致）
     private func uploadOneFile(_ url: URL) async {
         let name = url.lastPathComponent
@@ -348,7 +511,7 @@ struct FilesView: View {
         do {
             try Task.checkCancellation()
             if size > Int64(directUploadLimit) {
-                try await chunkUpload(url: url, name: name, size: size)
+                try await chunkUpload(url: url, name: name, size: size, targetDir: uploadTargetDir())
             } else {
                 let data = try Data(contentsOf: url)
                 try await client.uploadMultipart(
@@ -376,7 +539,8 @@ struct FilesView: View {
     }
 
     /// 分片上传：逐片读取（不整体载入内存），按 chunkIndex 顺序提交
-    private func chunkUpload(url: URL, name: String, size: Int64) async throws {
+    /// （targetDir 可指定子目录，文件夹上传的大文件落在对应子目录下）
+    private func chunkUpload(url: URL, name: String, size: Int64, targetDir: String) async throws {
         let chunkCount = Int(ceil(Double(size) / Double(uploadChunkSize)))
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
@@ -390,7 +554,7 @@ struct FilesView: View {
                 path: APIEndpoint.filesChunkUpload.path,
                 fields: [
                     "filename": name,
-                    "path": uploadTargetDir(),
+                    "path": targetDir,
                     "chunkIndex": String(index),
                     "chunkCount": String(chunkCount),
                 ],
@@ -400,7 +564,8 @@ struct FilesView: View {
                 fileData: data
             )
             transfer?.received += Int64(data.count)
-            transfer?.progress = Double(transfer?.received ?? 0) / Double(max(size, 1))
+            // 分母取整批任务总量（文件夹上传时 total 为全部文件合计）
+            transfer?.progress = Double(transfer?.received ?? 0) / Double(max(transfer?.total ?? size, 1))
         }
     }
 
@@ -530,18 +695,18 @@ struct FilesView: View {
         isLoading = false
     }
 
-    private func deleteItem(_ item: FileItem) async {
-        let req = FileDeleteRequest(path: item.path, isDir: item.isDir, forceDelete: true)
+    private func deleteItem(_ item: FileItem, forceDelete: Bool) async {
+        let req = FileDeleteRequest(path: item.path, isDir: item.isDir, forceDelete: forceDelete)
         do {
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.filesDel.path + "?operateNode=undefined",
+                path: APIEndpoint.filesDel.path,
                 body: req, as: EmptyResponse.self
             )
             // 先本地移除再刷新：若直接整表替换 items，会与滑动删除确认的
             // 行移除动画竞争，触发 List "attempt to delete item N from
             // section 0" 越界崩溃（同 dfaa430 数据库删除崩溃的修法）
             items.removeAll { $0.path == item.path }
-            successMessage = L10n.t("已删除")
+            successMessage = forceDelete ? L10n.t("已删除") : L10n.t("已移入回收站")
             await loadDir(currentPath)
         } catch {
             errorMessage = error.localizedDescription
@@ -564,7 +729,7 @@ private struct FilesDialogsModifier: ViewModifier {
     @Binding var errorMessage: String?
     let reload: () -> Void
     let jumpTo: (String) -> Void
-    let deleteItem: (FileItem) -> Void
+    let deleteItem: (FileItem, Bool) -> Void
 
     func body(content: Content) -> some View {
         content
@@ -574,19 +739,13 @@ private struct FilesDialogsModifier: ViewModifier {
             .sheet(item: $renamingItem) { item in
                 FileRenameSheet(item: item, onRenamed: reload)
             }
-            .alert(L10n.t("确认删除"), isPresented: Binding(
-                get: { deletingItem != nil },
-                set: { if !$0 { deletingItem = nil } }
-            )) {
-                Button(L10n.t("取消"), role: .cancel) { deletingItem = nil }
-                Button(L10n.t("删除"), role: .destructive) {
-                    Haptic.warning()
-                    if let item = deletingItem { deleteItem(item) }
+            // 删除确认带「永久删除」勾选项（系统 alert 放不下 Toggle，用 sheet）
+            .sheet(item: $deletingItem) { item in
+                FileDeleteConfirmSheet(item: item) { forceDelete in
+                    deleteItem(item, forceDelete)
                 }
-            } message: {
-                if let item = deletingItem {
-                    Text(L10n.f("确定要删除%@ \"%@\" 吗？", item.isDir ? L10n.t("文件夹") : L10n.t("文件"), item.name))
-                }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
             }
             .alert(L10n.t("前往路径"), isPresented: $showPathInput) {
                 TextField(L10n.t("路径"), text: $pathInput)
@@ -741,8 +900,10 @@ struct TransferSheet: View {
 /// 上传选择器 + 传输进度弹窗（独立 ViewModifier 以控制 body 复杂度）
 private struct FilesTransferModifier: ViewModifier {
     @Binding var showUploadPicker: Bool
+    @Binding var showFolderPicker: Bool
     @Binding var transfer: TransferState?
     let onPickFiles: (Result<[URL], Error>) -> Void
+    let onPickFolder: (Result<[URL], Error>) -> Void
     let onCancel: () -> Void
     let onClose: () -> Void
 
@@ -753,6 +914,12 @@ private struct FilesTransferModifier: ViewModifier {
                 allowedContentTypes: [.item],
                 allowsMultipleSelection: true,
                 onCompletion: onPickFiles
+            )
+            .fileImporter(
+                isPresented: $showFolderPicker,
+                allowedContentTypes: [.folder],
+                allowsMultipleSelection: false,
+                onCompletion: onPickFolder
             )
             .sheet(item: $transfer) { state in
                 TransferSheet(state: state, onCancel: onCancel, onClose: onClose)
@@ -901,5 +1068,57 @@ struct FileRenameSheet: View {
             errorMessage = error.localizedDescription
         }
         isSaving = false
+    }
+}
+
+// MARK: - 删除确认（带「永久删除」勾选项）
+
+/// 删除文件/文件夹确认：默认进回收站，勾选「永久删除」后直接删除
+/// （files/del 的 forceDelete）。系统 alert 放不下 Toggle，用半屏 sheet。
+struct FileDeleteConfirmSheet: View {
+    let item: FileItem
+    /// 确认回调（forceDelete = 是否勾选永久删除）
+    let onDelete: (Bool) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var forceDelete = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.name)
+                            .font(.system(.headline, design: .monospaced))
+                            .lineLimit(2)
+                        Text(item.isDir ? L10n.t("文件夹") : L10n.t("文件"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section {
+                    Toggle(isOn: $forceDelete) {
+                        Label(L10n.t("永久删除文件（不进入回收站，直接删除）"), systemImage: "trash.slash")
+                    }
+                } footer: {
+                    Text(L10n.t("不勾选时移入服务器回收站，可在回收站中还原。"))
+                }
+            }
+            .navigationTitle(L10n.t("确认删除"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("删除"), role: .destructive) {
+                        Haptic.warning()
+                        dismiss()
+                        onDelete(forceDelete)
+                    }
+                }
+            }
+        }
     }
 }
