@@ -87,7 +87,13 @@ struct FilesView: View {
     private let directUploadLimit = 50 * 1024 * 1024
     /// 点击可预览的文本扩展名（其余格式点击仅提示不支持）
     private static let previewableExtensions: Set<String> = [
-        "md", "txt", "log", "pem", "html", "json", "conf", "key",
+        "md", "txt", "log", "pem", "html", "json", "conf", "key", "yml", "sh",
+    ]
+    /// 无扩展名的点文件按完整文件名匹配（shell / vim 环境与历史文件均为纯文本）
+    private static let previewableDotFiles: Set<String> = [
+        ".bash_history", ".bashrc", ".bash_profile", ".bash_logout", ".profile",
+        ".viminfo", ".vimrc",
+        ".zshrc", ".zshenv", ".zprofile", ".zsh_history",
     ]
 
     private let client: APIClient
@@ -338,16 +344,25 @@ struct FilesView: View {
         }
     }
 
-    /// 点击文件：可预览扩展名 push 预览页，其余 toast 提示
+    /// 点击文件：可预览扩展名（或已知文本点文件）push 预览页，其余 toast 提示
     /// （toast 组件自带触觉与 2 秒自动消失）
     private func openFile(_ item: FileItem) {
-        let ext = (item.name as NSString).pathExtension.lowercased()
-        if Self.previewableExtensions.contains(ext) {
+        if Self.isFilePreviewable(item.name) {
             Haptic.selection()
             previewingItem = item
         } else {
             previewToast = L10n.t("此文件不支持预览")
         }
+    }
+
+    /// 预览资格：按扩展名；无扩展名的点文件（.bashrc 等）按完整文件名
+    private static func isFilePreviewable(_ name: String) -> Bool {
+        let lower = name.lowercased()
+        let ext = (name as NSString).pathExtension.lowercased()
+        if !ext.isEmpty {
+            return previewableExtensions.contains(ext)
+        }
+        return previewableDotFiles.contains(lower)
     }
 
     private func fileRowContent(_ item: FileItem) -> some View {
@@ -405,7 +420,13 @@ struct FilesView: View {
         return String(format: "%.1f %@", size, units[idx])
     }
 
+    /// 预览页返回时 .task 会重跑（视图离开层级再回来）：首次加载幂等，
+    /// 否则从管理进入的浏览路径会被 baseDir 重置回 /opt/1panel
+    @State private var didInitialLoad = false
+
     private func initialLoad() async {
+        guard !didInitialLoad else { return }
+        didInitialLoad = true
         // 外部指定了起始目录时不覆盖（应用目录等场景），仅默认进入时定位面板 baseDir
         if !hasCustomStart,
            let baseDir: String = try? await client.send(path: APIEndpoint.settingsBaseDir.path, method: "GET", as: String.self) {
