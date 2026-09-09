@@ -1089,7 +1089,15 @@
       }
     },
     "DNS" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DNS"
+          }
+        }
+      }
     },
     "DNS 不可用" : {
       "extractionState" : "manual",
@@ -1271,7 +1279,15 @@
 
     },
     "Hosts" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hosts"
+          }
+        }
+      }
     },
     "HSTS" : {
 
@@ -1291,7 +1307,15 @@
 
     },
     "HTTP" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP"
+          }
+        }
+      }
     },
     "HTTP Header" : {
       "extractionState" : "manual",
@@ -1394,7 +1418,15 @@
 
     },
     "HTTPS" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS"
+          }
+        }
+      }
     },
     "HTTPS 端口" : {
       "extractionState" : "manual",
@@ -2008,7 +2040,15 @@
 
     },
     "WAF" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WAF"
+          }
+        }
+      }
     },
     "WAF 功能依赖 OpenResty，请先安装后再使用" : {
       "extractionState" : "manual",
@@ -22304,6 +22344,204 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Connection"
+          }
+        }
+      }
+    },
+    "DNS 地址格式不正确：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid DNS address: %@"
+          }
+        }
+      }
+    },
+    "IP 地址格式不正确：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid IP address: %@"
+          }
+        }
+      }
+    },
+    "IP 组（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Groups (%ld)"
+          }
+        }
+      }
+    },
+    "SOCKS5" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SOCKS5"
+          }
+        }
+      }
+    },
+    "二级功能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secondary Features"
+          }
+        }
+      }
+    },
+    "删除 Hosts 记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Hosts Entry"
+          }
+        }
+      }
+    },
+    "删除端口规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Port Rule"
+          }
+        }
+      }
+    },
+    "扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan"
+          }
+        }
+      }
+    },
+    "授权文件过大，请确认选择的是许可证文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "License file is too large. Make sure you selected the license file"
+          }
+        }
+      }
+    },
+    "文件超过 %ld KB，暂不支持预览" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files over %ld KB cannot be previewed"
+          }
+        }
+      }
+    },
+    "文件过大（%ld KB），请选择证书/私钥文本文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File too large (%ld KB). Please choose a certificate/private key text file"
+          }
+        }
+      }
+    },
+    "无法读取该文件：请选择 UTF-8 文本格式的证书/私钥文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot read this file: please choose a certificate/private key file in UTF-8 text format"
+          }
+        }
+      }
+    },
+    "更新于 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated %@"
+          }
+        }
+      }
+    },
+    "服务器未返回模块列表，请确认 OpenResty 已安装且面板版本支持模块功能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server returned no module list. Make sure OpenResty is installed and your panel version supports modules"
+          }
+        }
+      }
+    },
+    "服务器状态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server Status"
+          }
+        }
+      }
+    },
+    "构建选项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build Options"
+          }
+        }
+      }
+    },
+    "确定删除 \"%@ %@\" 吗？删除为全量覆盖提交，系统默认条目请谨慎移除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete \"%@ %@\"? Deletion submits the full list. Be careful removing system default entries."
+          }
+        }
+      }
+    },
+    "网络请求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network Requests"
           }
         }
       }
