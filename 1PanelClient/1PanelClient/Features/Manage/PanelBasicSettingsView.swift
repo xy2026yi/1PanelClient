@@ -102,6 +102,15 @@ struct PanelBasicSettingsView: View {
     @State private var ntpInput = ""
     @State private var localTime = ""
     @State private var isDeviceBusy = false
+    /// 加载时的原始值（判断失焦提交时是否真的变化，避免无谓请求）
+    @State private var originalDNS: [String] = []
+    @State private var originalNtp = ""
+
+    /// 即时保存的输入焦点：回车或切换焦点（失焦）时提交对应项
+    enum InputField: Hashable {
+        case name, ip, dns, ntp
+    }
+    @FocusState private var focusedField: InputField?
 
     @State private var toast: String?
     @State private var errorText: String?
@@ -163,6 +172,11 @@ struct PanelBasicSettingsView: View {
         }
         .navigationTitle(L10n.t("基础设置"))
         .navigationBarTitleDisplayMode(.inline)
+        // 焦点切换（含收起键盘）即提交刚离开的输入项
+        .onChange(of: focusedField) { old, new in
+            guard old != new, let old else { return }
+            commit(old)
+        }
         .task { await load() }
         .refreshable { await load() }
         .alert(L10n.t("提示"), isPresented: Binding(
@@ -181,16 +195,11 @@ struct PanelBasicSettingsView: View {
     private var panelSection: some View {
         Group {
             Section {
-                HStack {
-                    TextField(L10n.t("面板别名"), text: $nameInput)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                    saveButton(
-                        key: "PanelName",
-                        current: core?.panelName ?? "",
-                        input: nameInput.trimmingCharacters(in: .whitespaces)
-                    )
-                }
+                TextField(L10n.t("面板别名"), text: $nameInput)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .focused($focusedField, equals: .name)
+                    .onSubmit { commit(.name) }
 
                 Picker(L10n.t("面板超时时间"), selection: Binding(
                     get: { currentTimeout },
@@ -224,19 +233,12 @@ struct PanelBasicSettingsView: View {
 
     private var accessSection: some View {
         Section {
-            HStack {
-                TextField(L10n.t("IP 或域名"), text: $ipInput)
-                    .keyboardType(.asciiCapable)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                saveButton(
-                    key: "SystemIP",
-                    current: systemIP ?? "",
-                    input: ipInput.trimmingCharacters(in: .whitespaces),
-                    validate: { Self.isValidHostOrIP($0) },
-                    onInvalid: { ipInvalid = true }
-                )
-            }
+            TextField(L10n.t("IP 或域名"), text: $ipInput)
+                .keyboardType(.asciiCapable)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .focused($focusedField, equals: .ip)
+                .onSubmit { commit(.ip) }
         } header: {
             SectionLabel(title: L10n.t("默认访问地址"), systemImage: "globe")
         } footer: {
@@ -320,23 +322,16 @@ struct PanelBasicSettingsView: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .keyboardType(.asciiCapable)
-            HStack {
-                Button(L10n.t("测试可用性")) {
-                    Task { await testDNS() }
-                }
-                .buttonStyle(.bordered)
-                .disabled(isDeviceBusy || dnsList.isEmpty)
-                Spacer()
-                Button(L10n.t("保存")) {
-                    Task { await saveDNS() }
-                }
-                .buttonStyle(.bordered)
-                .disabled(isDeviceBusy || dnsList.isEmpty)
+                .focused($focusedField, equals: .dns)
+                .onSubmit { commit(.dns) }
+            Button(L10n.t("测试可用性")) {
+                Task { await testDNS() }
             }
+            .disabled(isDeviceBusy || dnsList.isEmpty)
         } header: {
             SectionLabel(title: "DNS", systemImage: "dot.radiowaves.up.forward")
         } footer: {
-            Text(L10n.t("换行输入，每行一个；保存为全量覆盖。"))
+            Text(L10n.t("换行输入，每行一个；失焦或回车后自动保存（全量覆盖）。"))
         }
     }
 
@@ -428,28 +423,24 @@ struct PanelBasicSettingsView: View {
                 ForEach(Self.ntpPresets, id: \.url) { preset in
                     Button(preset.name) {
                         ntpInput = preset.url
+                        Task { await updateConf("Ntp", preset.url) }
                     }
                     .buttonStyle(.bordered)
                     .disabled(isDeviceBusy)
                 }
                 Spacer()
             }
-            HStack {
-                TextField("pool.ntp.org", text: $ntpInput)
-                    .font(.system(.body, design: .monospaced))
-                    .keyboardType(.asciiCapable)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                Button(L10n.t("保存")) {
-                    Task { await updateConf("Ntp", ntpInput.trimmingCharacters(in: .whitespaces)) }
-                }
-                .buttonStyle(.bordered)
-                .disabled(isDeviceBusy || ntpInput.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
+            TextField("pool.ntp.org", text: $ntpInput)
+                .font(.system(.body, design: .monospaced))
+                .keyboardType(.asciiCapable)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .focused($focusedField, equals: .ntp)
+                .onSubmit { commit(.ntp) }
         } header: {
             SectionLabel(title: L10n.t("NTP 服务器"), systemImage: "clock.badge")
         } footer: {
-            Text(L10n.t("点击预置项自动填入，也可自定义输入。"))
+            Text(L10n.t("点击预置项立即应用，也可自定义输入（回车或失焦自动保存）。"))
         }
     }
 
@@ -480,27 +471,35 @@ struct PanelBasicSettingsView: View {
         }
     }
 
-    // MARK: 保存按钮（值变化才可用，可选校验）
+    // MARK: 输入类即时保存（回车 / 失焦提交，值有变化才发请求）
 
-    @ViewBuilder
-    private func saveButton(
-        key: String,
-        current: String,
-        input: String,
-        validate: ((String) -> Bool)? = nil,
-        onInvalid: (() -> Void)? = nil
-    ) -> some View {
-        let changed = !(input.isEmpty && current.isEmpty) && input != current
-        Button(L10n.t("保存")) {
-            if let validate, !validate(input) {
-                onInvalid?()
+    /// 提交指定输入项；地址类校验失败置红字提示且不保存
+    private func commit(_ field: InputField) {
+        switch field {
+        case .name:
+            let value = nameInput.trimmingCharacters(in: .whitespaces)
+            guard !value.isEmpty, value != (core?.panelName ?? "") else { return }
+            Task { await updateCore("PanelName", value) }
+        case .ip:
+            let value = ipInput.trimmingCharacters(in: .whitespaces)
+            guard value != (systemIP ?? "") else {
+                ipInvalid = false
+                return
+            }
+            guard Self.isValidHostOrIP(value) else {
+                ipInvalid = true
                 return
             }
             ipInvalid = false
-            Task { await updateCore(key, input, endpoint: key == "SystemIP" ? .panel : .core) }
+            Task { await updateCore("SystemIP", value, endpoint: .panel) }
+        case .dns:
+            guard !dnsList.isEmpty, dnsList != originalDNS else { return }
+            Task { await saveDNS() }
+        case .ntp:
+            let value = ntpInput.trimmingCharacters(in: .whitespaces)
+            guard !value.isEmpty, value != originalNtp else { return }
+            Task { await updateConf("Ntp", value) }
         }
-        .buttonStyle(.bordered)
-        .disabled(!changed || savingKey != nil)
     }
 
     // MARK: 数据
@@ -533,8 +532,10 @@ struct PanelBasicSettingsView: View {
         ipInput = systemIP ?? ""
         if let deviceValue {
             dnsInput = (deviceValue.dns ?? []).joined(separator: "\n")
+            originalDNS = deviceValue.dns ?? []
             hostEntries = deviceValue.hosts ?? []
             ntpInput = deviceValue.ntp ?? ""
+            originalNtp = deviceValue.ntp ?? ""
             localTime = deviceValue.localTime ?? ""
         }
     }
@@ -589,9 +590,11 @@ struct PanelBasicSettingsView: View {
         }
     }
 
-    /// 保存 DNS（update/conf，key=DNS，value 逗号拼接全量覆盖）
+    /// 保存 DNS（update/conf，key=DNS，value 逗号拼接全量覆盖；成功后更新基线）
     private func saveDNS() async {
-        await updateConf("DNS", dnsList.joined(separator: ","))
+        if await updateConf("DNS", dnsList.joined(separator: ",")) {
+            originalDNS = dnsList
+        }
     }
 
     /// 同步服务器时间（update/conf，key=LocalTime，value 固定空串）
@@ -605,8 +608,9 @@ struct PanelBasicSettingsView: View {
         }
     }
 
-    /// 设备配置项通用更新（DNS / Ntp / LocalTime）
-    private func updateConf(_ key: String, _ value: String) async {
+    /// 设备配置项通用更新（DNS / Ntp / LocalTime）；成功返回 true 并回写 NTP 基线
+    @discardableResult
+    private func updateConf(_ key: String, _ value: String) async -> Bool {
         isDeviceBusy = true
         defer { isDeviceBusy = false }
         let req = SettingsKeyValueRequest(key: key, value: value)
@@ -614,9 +618,12 @@ struct PanelBasicSettingsView: View {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.deviceUpdateConf.path, body: req, as: EmptyResponse.self
             )
+            if key == "Ntp" { originalNtp = value }
             toast = L10n.t("已保存")
+            return true
         } catch {
             errorText = error.localizedDescription
+            return false
         }
     }
 

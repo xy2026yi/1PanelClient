@@ -22091,6 +22091,28 @@
           }
         }
       }
+    },
+    "换行输入，每行一个；失焦或回车后自动保存（全量覆盖）。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One per line; auto-saves on return or focus loss (full overwrite)."
+          }
+        }
+      }
+    },
+    "点击预置项立即应用，也可自定义输入（回车或失焦自动保存）。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a preset to apply immediately, or enter your own (auto-saves on return or focus loss)."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
