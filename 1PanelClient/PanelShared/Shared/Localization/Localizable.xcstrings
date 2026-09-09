@@ -21903,6 +21903,138 @@
           }
         }
       }
+    },
+    "每行一个 DNS 地址": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One DNS address per line"
+          }
+        }
+      }
+    },
+    "测试可用性": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test"
+          }
+        }
+      }
+    },
+    "换行输入，每行一个；保存为全量覆盖。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One per line; saving overwrites the full list."
+          }
+        }
+      }
+    },
+    "域名（可多个，空格分隔）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domains (space-separated)"
+          }
+        }
+      }
+    },
+    "添加 Hosts 记录": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Hosts Entry"
+          }
+        }
+      }
+    },
+    "增删均为全量覆盖提交，系统默认条目请谨慎移除。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add/remove submits the full list. Be careful removing system defaults."
+          }
+        }
+      }
+    },
+    "NTP 服务器": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NTP Server"
+          }
+        }
+      }
+    },
+    "点击预置项自动填入，也可自定义输入。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a preset to fill in, or enter your own."
+          }
+        }
+      }
+    },
+    "阿里": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba"
+          }
+        }
+      }
+    },
+    "服务器时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server Time"
+          }
+        }
+      }
+    },
+    "DNS 可用": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS reachable"
+          }
+        }
+      }
+    },
+    "DNS 不可用": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS unreachable"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

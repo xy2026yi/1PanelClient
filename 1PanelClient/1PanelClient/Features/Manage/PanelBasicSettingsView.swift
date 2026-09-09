@@ -60,6 +60,22 @@ nonisolated struct PanelSystemSettings: Decodable {
     let systemIP: String?
 }
 
+/// toolbox/device/base 需要的字段（swap/磁盘等忽略）
+nonisolated struct DeviceBaseInfo: Decodable {
+    let dns: [String]?
+    let hosts: [DeviceHostItem]?
+    let hostname: String?
+    let timeZone: String?
+    let localTime: String?
+    let ntp: String?
+}
+
+/// hosts 单条（update/host 覆盖提交用，需 Encodable；Equatable 供单条删除过滤）
+nonisolated struct DeviceHostItem: Decodable, Encodable, Equatable {
+    var ip: String
+    var host: String
+}
+
 // MARK: - 基础设置页
 
 struct PanelBasicSettingsView: View {
@@ -75,6 +91,17 @@ struct PanelBasicSettingsView: View {
     @State private var nameInput = ""
     @State private var ipInput = ""
     @State private var savingKey: String?
+
+    // 设备配置（device/base）
+    @State private var dnsInput = ""
+    @State private var hostEntries: [DeviceHostItem] = []
+    /// 新增 hosts 行的输入（非 nil 时显示输入行）
+    @State private var addingHost = false
+    @State private var newHostIP = ""
+    @State private var newHostName = ""
+    @State private var ntpInput = ""
+    @State private var localTime = ""
+    @State private var isDeviceBusy = false
 
     @State private var toast: String?
     @State private var errorText: String?
@@ -128,6 +155,10 @@ struct PanelBasicSettingsView: View {
                 accessSection
                 proxySection
                 runtimeSection
+                dnsSection
+                hostsSection
+                ntpSection
+                serverTimeSection
             }
         }
         .navigationTitle(L10n.t("基础设置"))
@@ -271,6 +302,184 @@ struct PanelBasicSettingsView: View {
         }
     }
 
+    // MARK: DNS（换行输入；测试可用性 / 保存为逗号拼接）
+
+    /// 输入按行拆分去空（保存与测试共用；服务器格式为逗号拼接）
+    private var dnsList: [String] {
+        dnsInput
+            .split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    private var dnsSection: some View {
+        Section {
+            TextField(L10n.t("每行一个 DNS 地址"), text: $dnsInput, axis: .vertical)
+                .lineLimit(3...6)
+                .font(.system(.body, design: .monospaced))
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .keyboardType(.asciiCapable)
+            HStack {
+                Button(L10n.t("测试可用性")) {
+                    Task { await testDNS() }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isDeviceBusy || dnsList.isEmpty)
+                Spacer()
+                Button(L10n.t("保存")) {
+                    Task { await saveDNS() }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isDeviceBusy || dnsList.isEmpty)
+            }
+        } header: {
+            SectionLabel(title: "DNS", systemImage: "dot.radiowaves.up.forward")
+        } footer: {
+            Text(L10n.t("换行输入，每行一个；保存为全量覆盖。"))
+        }
+    }
+
+    // MARK: Hosts（一行一条，可单删；添加在下方展开输入行）
+
+    private var hostsSection: some View {
+        Section {
+            ForEach(Array(hostEntries.enumerated()), id: \.offset) { _, entry in
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(entry.ip)
+                            .font(.system(.subheadline, design: .monospaced).bold())
+                        Text(entry.host)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button {
+                        Task { await updateHosts(hostEntries.filter { $0 != entry }) }
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(isDeviceBusy)
+                }
+            }
+
+            if addingHost {
+                VStack(spacing: 8) {
+                    TextField(L10n.t("IP 地址"), text: $newHostIP)
+                        .font(.system(.body, design: .monospaced))
+                        .keyboardType(.asciiCapable)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                    TextField(L10n.t("域名（可多个，空格分隔）"), text: $newHostName)
+                        .font(.system(.body, design: .monospaced))
+                        .keyboardType(.asciiCapable)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                    HStack {
+                        Button(L10n.t("取消")) {
+                            addingHost = false
+                            newHostIP = ""
+                            newHostName = ""
+                        }
+                        .buttonStyle(.bordered)
+                        Spacer()
+                        Button(L10n.t("添加")) {
+                            addHostEntry()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(newHostIP.trimmingCharacters(in: .whitespaces).isEmpty
+                                  || newHostName.trimmingCharacters(in: .whitespaces).isEmpty
+                                  || isDeviceBusy)
+                    }
+                }
+            } else {
+                Button {
+                    addingHost = true
+                } label: {
+                    Label(L10n.t("添加 Hosts 记录"), systemImage: "plus.circle")
+                }
+                .disabled(isDeviceBusy)
+            }
+        } header: {
+            SectionLabel(title: "Hosts", systemImage: "square.grid.2x2")
+        } footer: {
+            Text(L10n.t("增删均为全量覆盖提交，系统默认条目请谨慎移除。"))
+        }
+    }
+
+    /// 校验输入并提交（原数组 + 新条目）
+    private func addHostEntry() {
+        let ip = newHostIP.trimmingCharacters(in: .whitespaces)
+        let host = newHostName.trimmingCharacters(in: .whitespaces)
+        guard !ip.isEmpty, !host.isEmpty else { return }
+        addingHost = false
+        newHostIP = ""
+        newHostName = ""
+        Task { await updateHosts(hostEntries + [DeviceHostItem(ip: ip, host: host)]) }
+    }
+
+    // MARK: NTP（预置三快捷 + 自定义输入）
+
+    private var ntpSection: some View {
+        Section {
+            HStack(spacing: 8) {
+                ForEach(Self.ntpPresets, id: \.url) { preset in
+                    Button(preset.name) {
+                        ntpInput = preset.url
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isDeviceBusy)
+                }
+                Spacer()
+            }
+            HStack {
+                TextField("pool.ntp.org", text: $ntpInput)
+                    .font(.system(.body, design: .monospaced))
+                    .keyboardType(.asciiCapable)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                Button(L10n.t("保存")) {
+                    Task { await updateConf("Ntp", ntpInput.trimmingCharacters(in: .whitespaces)) }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isDeviceBusy || ntpInput.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        } header: {
+            SectionLabel(title: L10n.t("NTP 服务器"), systemImage: "clock.badge")
+        } footer: {
+            Text(L10n.t("点击预置项自动填入，也可自定义输入。"))
+        }
+    }
+
+    /// 预置 NTP：默认 / 阿里 / 谷歌
+    private static let ntpPresets: [(name: String, url: String)] = [
+        (L10n.t("默认"), "pool.ntp.org"),
+        (L10n.t("阿里"), "ntp.aliyun.com"),
+        (L10n.t("谷歌"), "time.google.com"),
+    ]
+
+    // MARK: 服务器时间
+
+    private var serverTimeSection: some View {
+        Section {
+            HStack {
+                Text(localTime.isEmpty ? "—" : localTime)
+                    .font(.system(.subheadline, design: .monospaced))
+                    .lineLimit(2)
+                Spacer()
+                Button(L10n.t("同步")) {
+                    Task { await syncTime() }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isDeviceBusy)
+            }
+        } header: {
+            SectionLabel(title: L10n.t("服务器时间"), systemImage: "clock")
+        }
+    }
+
     // MARK: 保存按钮（值变化才可用，可选校验）
 
     @ViewBuilder
@@ -299,7 +508,8 @@ struct PanelBasicSettingsView: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        // 双接口并行：core 为主（失败即错误态），settings 只取 systemIP（失败留空可保存）
+        // 三接口并行：core 为主（失败即错误态），settings 取 systemIP、
+        // device/base 取 DNS/Hosts/NTP/时间（各自失败留空，可重新保存）
         async let coreResult = try? await client.send(
             path: APIEndpoint.settingsSearch.path, as: PanelCoreSettings.self
         )
@@ -307,7 +517,11 @@ struct PanelBasicSettingsView: View {
             path: APIEndpoint.settingsSearchPanel.path,
             as: PanelSystemSettings.self
         )
-        let (coreValue, panelValue) = await (coreResult, panelResult)
+        async let deviceResult = try? await client.send(
+            path: APIEndpoint.deviceBase.path,
+            as: DeviceBaseInfo.self
+        )
+        let (coreValue, panelValue, deviceValue) = await (coreResult, panelResult, deviceResult)
         if let coreValue {
             core = coreValue
             nameInput = coreValue.panelName ?? ""
@@ -317,6 +531,12 @@ struct PanelBasicSettingsView: View {
         }
         systemIP = panelValue?.systemIP ?? ""
         ipInput = systemIP ?? ""
+        if let deviceValue {
+            dnsInput = (deviceValue.dns ?? []).joined(separator: "\n")
+            hostEntries = deviceValue.hosts ?? []
+            ntpInput = deviceValue.ntp ?? ""
+            localTime = deviceValue.localTime ?? ""
+        }
     }
 
     /// 更新单项：PanelName/SessionTimeout/DeveloperMode/Edition/DocSource 走
@@ -351,6 +571,69 @@ struct PanelBasicSettingsView: View {
     }
 
     enum EndpointChoice { case core, panel }
+
+    // MARK: 设备配置操作（toolbox/device/*）
+
+    /// 测试 DNS 可用性（check/dns，key=form，value 逗号拼接）
+    private func testDNS() async {
+        isDeviceBusy = true
+        defer { isDeviceBusy = false }
+        let req = SettingsKeyValueRequest(key: "form", value: dnsList.joined(separator: ","))
+        do {
+            let ok: Bool = try await client.send(
+                path: APIEndpoint.deviceCheckDns.path, body: req, as: Bool.self
+            )
+            toast = ok ? L10n.t("DNS 可用") : L10n.t("DNS 不可用")
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    /// 保存 DNS（update/conf，key=DNS，value 逗号拼接全量覆盖）
+    private func saveDNS() async {
+        await updateConf("DNS", dnsList.joined(separator: ","))
+    }
+
+    /// 同步服务器时间（update/conf，key=LocalTime，value 固定空串）
+    private func syncTime() async {
+        await updateConf("LocalTime", "")
+        // 重拉取同步后的时间展示
+        if let device = try? await client.send(
+            path: APIEndpoint.deviceBase.path, as: DeviceBaseInfo.self
+        ) {
+            localTime = device.localTime ?? localTime
+        }
+    }
+
+    /// 设备配置项通用更新（DNS / Ntp / LocalTime）
+    private func updateConf(_ key: String, _ value: String) async {
+        isDeviceBusy = true
+        defer { isDeviceBusy = false }
+        let req = SettingsKeyValueRequest(key: key, value: value)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.deviceUpdateConf.path, body: req, as: EmptyResponse.self
+            )
+            toast = L10n.t("已保存")
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    /// 覆盖提交 hosts 完整数组（update/host）
+    private func updateHosts(_ entries: [DeviceHostItem]) async {
+        isDeviceBusy = true
+        defer { isDeviceBusy = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.deviceUpdateHost.path, body: entries, as: EmptyResponse.self
+            )
+            hostEntries = entries
+            toast = L10n.t("已保存")
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
 
     /// 默认访问地址格式：仅 IP 或域名，不允许协议头 / 端口 / 路径
     static func isValidHostOrIP(_ s: String) -> Bool {

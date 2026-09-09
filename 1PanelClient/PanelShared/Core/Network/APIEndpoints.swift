@@ -26,6 +26,9 @@ enum APIEndpoint {
 
     // MARK: - 系统设备信息（toolbox）
     case deviceBase               // POST 设备基础信息
+    case deviceCheckDns           // POST 测试 DNS 可用性（value 逗号拼接）
+    case deviceUpdateConf         // POST 更新设备配置项 {key, value}（DNS/Ntp/LocalTime）
+    case deviceUpdateHost         // POST 覆盖提交 hosts 完整数组
 
     // MARK: - 容器
     case containersSearch         // POST 分页查询容器
@@ -410,6 +413,9 @@ enum APIEndpoint {
         case .settingsUpgrade:       return "/api/v2/core/settings/upgrade"
         case .settingsUpgradeReleases: return "/api/v2/core/settings/upgrade/releases"
         case .deviceBase:            return "/api/v2/toolbox/device/base"
+        case .deviceCheckDns:        return "/api/v2/toolbox/device/check/dns"
+        case .deviceUpdateConf:      return "/api/v2/toolbox/device/update/conf"
+        case .deviceUpdateHost:      return "/api/v2/toolbox/device/update/host"
         case .containersSearch:      return "/api/v2/containers/search"
         case .containersListStats:      return "/api/v2/containers/list/stats"
         case .containersStats:          return "/api/v2/containers/stats/:containerID"
