@@ -129,29 +129,32 @@ struct FilesView: View {
             .refreshable { await loadDir(currentPath) }
             .task { await initialLoad() }
             .sheet(isPresented: $showActionSheet) {
+                // onDismiss 必须关掉本 sheet：菜单项触发的下一级弹窗（fileImporter/
+                // 创建/路径 alert/回收站 push）都要等它收起后经 delayedAction 再呈现，
+                // 否则撞上 "only presenting a single sheet is supported" 被吞
                 ActionBottomSheet(title: L10n.t("操作"), items: [
                     ActionMenuItem(title: L10n.t("上传文件"), icon: "arrow.up.circle", color: .blue) {
-                        showUploadPicker = true
+                        delayedAction { showUploadPicker = true }
                     },
                     ActionMenuItem(title: L10n.t("上传文件夹"), icon: "arrow.up.folder", color: .cyan) {
-                        showFolderPicker = true
+                        delayedAction { showFolderPicker = true }
                     },
                     ActionMenuItem(title: L10n.t("新建文件夹"), icon: "folder.badge.plus", color: .orange) {
-                        createIsDir = true; showCreate = true
+                        delayedAction { createIsDir = true; showCreate = true }
                     },
                     ActionMenuItem(title: L10n.t("新建文件"), icon: "doc.badge.plus", color: .teal) {
-                        createIsDir = false; showCreate = true
+                        delayedAction { createIsDir = false; showCreate = true }
                     },
                     ActionMenuItem(title: L10n.t("回收站"), icon: "trash", color: .gray) {
-                        showRecycleBin = true
+                        delayedAction { showRecycleBin = true }
                     },
                     ActionMenuItem(title: L10n.t("前往路径"), icon: "location", color: .indigo) {
-                        pathInput = currentPath; showPathInput = true
+                        delayedAction { pathInput = currentPath; showPathInput = true }
                     },
                     ActionMenuItem(title: L10n.t("根目录"), icon: "house", color: .green) {
-                        pathInput = "/"; showPathInput = true
+                        delayedAction { pathInput = "/"; showPathInput = true }
                     }
-                ], onDismiss: {})
+                ], onDismiss: { showActionSheet = false })
                 .bottomSheetDetents([.height(ActionBottomSheet.height(for: 7))])
                 .presentationDragIndicator(.visible)
             }
@@ -302,10 +305,11 @@ struct FilesView: View {
                 Task { await loadDir(item.path) }
             } label: {
                 fileRowContent(item)
+                    // 整行命中：Button 的可点区跟随 label 的 contentShape，
+                    // 必须挂在 label 内部（外挂对 buttonStyle 无效），Spacer 留白才可点
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            // 整行可点：plain button 默认命中区只覆盖文字/图形，Spacer 留白处点不动
-            .contentShape(Rectangle())
         } else {
             // 文件无下级页面：仅长按弹操作菜单
             fileRowContent(item)
