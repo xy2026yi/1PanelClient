@@ -173,6 +173,12 @@ struct PanelBasicSettingsView: View {
         }
         .task { await load() }
         .refreshable { await load() }
+        // 手势返回时焦点变更事件不保证派发：兜底提交三个输入项（无变化则空操作）
+        .onDisappear {
+            commit(.name)
+            commit(.ip)
+            commit(.ntp)
+        }
         .alert(L10n.t("提示"), isPresented: Binding(
             get: { errorText != nil },
             set: { if !$0 { errorText = nil } }
@@ -413,9 +419,12 @@ struct PanelBasicSettingsView: View {
                 ipInvalid = false
                 return
             }
-            guard Self.isValidHostOrIP(value) else {
-                ipInvalid = true
-                return
+            // 留空 = 未指定（footer 已注明），仅非空才做格式校验
+            if !value.isEmpty {
+                guard Self.isValidHostOrIP(value) else {
+                    ipInvalid = true
+                    return
+                }
             }
             ipInvalid = false
             Task { await updateCore("SystemIP", value, endpoint: .panel) }
@@ -429,7 +438,9 @@ struct PanelBasicSettingsView: View {
     // MARK: 数据
 
     private func load() async {
-        isLoading = true
+        // 已有数据时（下拉刷新/子页保存回调）不整页切 loading、
+        // 不重置正在编辑的输入，只静默更新快照
+        if core == nil { isLoading = true }
         defer { isLoading = false }
         // 三接口并行：core 为主（失败即错误态），settings 取 systemIP、
         // device/base 取 DNS/Hosts/NTP/时间（各自失败留空，可重新保存）
@@ -445,19 +456,24 @@ struct PanelBasicSettingsView: View {
             as: DeviceBaseInfo.self
         )
         let (coreValue, panelValue, deviceValue) = await (coreResult, panelResult, deviceResult)
+        // 离开页面/刷新被取消时不写错误态（try? 会把取消吞成 nil）
+        guard !Task.isCancelled else { return }
         if let coreValue {
             core = coreValue
-            nameInput = coreValue.panelName ?? ""
+            if focusedField != .name { nameInput = coreValue.panelName ?? "" }
             loadError = nil
         } else {
             loadError = L10n.t("面板设置加载失败，请重试")
         }
-        systemIP = panelValue?.systemIP ?? ""
-        ipInput = systemIP ?? ""
+        // panel 取失败时保留旧值：置空会让后续提交把服务器上的值覆盖掉
+        if let panelValue {
+            systemIP = panelValue.systemIP ?? ""
+            if focusedField != .ip { ipInput = systemIP ?? "" }
+        }
         if let deviceValue {
             originalDNS = deviceValue.dns ?? []
             hostEntries = deviceValue.hosts ?? []
-            ntpInput = deviceValue.ntp ?? ""
+            if focusedField != .ntp { ntpInput = deviceValue.ntp ?? "" }
             originalNtp = deviceValue.ntp ?? ""
             localTime = deviceValue.localTime ?? ""
         }

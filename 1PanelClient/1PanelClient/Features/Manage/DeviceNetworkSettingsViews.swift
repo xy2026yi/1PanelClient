@@ -147,6 +147,11 @@ struct DeviceDNSSettingsView: View {
     private func commit() async {
         let list = dnsList
         guard !list.isEmpty, list != baseline else { return }
+        // 轻校验：拦截空格/协议头/中文等随意文本直写服务器解析配置
+        if let bad = list.first(where: { !Self.isValidDNS($0) }) {
+            errorText = L10n.f("DNS 地址格式不正确：%@", bad)
+            return
+        }
         isBusy = true
         defer { isBusy = false }
         do {
@@ -178,6 +183,18 @@ struct DeviceDNSSettingsView: View {
             errorText = error.localizedDescription
         }
     }
+
+    /// DNS 地址轻校验：IPv4 / IPv6 / 域名（拒绝空格、协议头、中文等随意文本）
+    private static func isValidDNS(_ s: String) -> Bool {
+        guard !s.isEmpty, !s.contains("://"), !s.contains("/"), !s.contains(" ") else { return false }
+        if s.contains(":") {
+            // IPv6（含 IPv4 映射形式）：仅十六进制与冒号/点，且至少一位数字
+            return s.allSatisfy { $0.isHexDigit || $0 == ":" || $0 == "." }
+                && s.contains(where: \.isHexDigit)
+        }
+        // IPv4 / 域名复用基础设置的校验
+        return PanelBasicSettingsView.isValidHostOrIP(s)
+    }
 }
 
 // MARK: - Hosts 编辑页
@@ -195,6 +212,8 @@ struct DeviceHostsSettingsView: View {
     @State private var addingHost = false
     @State private var newHostIP = ""
     @State private var newHostName = ""
+    /// 待确认删除的行（行尾一键删除 = 全量覆盖提交，需先确认）
+    @State private var deletingEntry: DeviceHostItem?
     @State private var isBusy = false
     @State private var toast: String?
     @State private var errorText: String?
@@ -236,7 +255,7 @@ struct DeviceHostsSettingsView: View {
                             }
                             Spacer()
                             Button {
-                                Task { await updateHosts(entries.filter { $0 != entry }) }
+                                deletingEntry = entry
                             } label: {
                                 Image(systemName: "minus.circle.fill")
                                     .foregroundStyle(.red)
@@ -290,6 +309,23 @@ struct DeviceHostsSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .refreshable { await load() }
+        .alert(L10n.t("删除 Hosts 记录"), isPresented: Binding(
+            get: { deletingEntry != nil },
+            set: { if !$0 { deletingEntry = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { deletingEntry = nil }
+            Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
+                if let entry = deletingEntry {
+                    deletingEntry = nil
+                    Task { await updateHosts(entries.filter { $0 != entry }) }
+                }
+            }
+        } message: {
+            if let entry = deletingEntry {
+                Text(L10n.f("确定删除 \"%@ %@\" 吗？删除为全量覆盖提交，系统默认条目请谨慎移除。", entry.ip, entry.host))
+            }
+        }
         .alert(L10n.t("提示"), isPresented: Binding(
             get: { errorText != nil },
             set: { if !$0 { errorText = nil } }
@@ -316,15 +352,33 @@ struct DeviceHostsSettingsView: View {
         }
     }
 
-    /// 校验输入并提交（原数组 + 新条目）
+    /// 校验输入并提交（原数组 + 新条目）；IP 不合法保留输入供修改
     private func addHostEntry() {
         let ip = newHostIP.trimmingCharacters(in: .whitespaces)
         let host = newHostName.trimmingCharacters(in: .whitespaces)
         guard !ip.isEmpty, !host.isEmpty else { return }
+        guard Self.isValidHostsIP(ip) else {
+            errorText = L10n.f("IP 地址格式不正确：%@", ip)
+            return
+        }
         addingHost = false
         newHostIP = ""
         newHostName = ""
         Task { await updateHosts(entries + [DeviceHostItem(ip: ip, host: host)]) }
+    }
+
+    /// Hosts IP 字段校验：仅接受 IPv4 / IPv6（hosts 行首是地址，不是域名）
+    private static func isValidHostsIP(_ s: String) -> Bool {
+        if s.contains(":") {
+            // IPv6（含 IPv4 映射形式）：仅十六进制与冒号/点，且至少一位数字
+            return s.allSatisfy { $0.isHexDigit || $0 == ":" || $0 == "." }
+                && s.contains(where: \.isHexDigit)
+        }
+        let parts = s.split(separator: ".", omittingEmptySubsequences: false)
+        return parts.count == 4 && parts.allSatisfy { part in
+            (1...3).contains(part.count) && part.allSatisfy(\.isNumber)
+                && (Int(part).map { (0...255).contains($0) } ?? false)
+        }
     }
 
     /// 覆盖提交完整数组
