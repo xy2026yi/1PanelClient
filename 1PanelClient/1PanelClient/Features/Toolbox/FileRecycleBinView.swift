@@ -83,6 +83,8 @@ struct FileRecycleBinView: View {
     @State private var isEnabled: Bool?
     @State private var isToggling = false
     @State private var isClearing = false
+    /// 长按弹出的行操作菜单对应的文件
+    @State private var actionItem: RecycleItem?
     /// 待确认还原 / 删除 / 清空
     @State private var reducingItem: RecycleItem?
     @State private var deletingItem: RecycleItem?
@@ -97,29 +99,86 @@ struct FileRecycleBinView: View {
         self.client = APIClient.shared(for: server)
     }
 
-    var body: some View {
-        Group {
+    /// 统一 List：状态开关永远在最上（空态/加载态也可管理），下方为文件列表
+    private var recycleList: some View {
+        List {
+            statusSection
+
             if isLoading && items.isEmpty {
-                LoadingStateView()
+                Section { HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 24) }
             } else if let errorMessage, items.isEmpty {
-                ContentUnavailableView {
-                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(errorMessage)
-                } actions: {
-                    Button(L10n.t("重试")) { Task { await load() } }
-                        .buttonStyle(.borderedProminent)
+                Section {
+                    ContentUnavailableView {
+                        Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(errorMessage)
+                    } actions: {
+                        Button(L10n.t("重试")) { Task { await load() } }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    .listRowBackground(Color.clear)
                 }
             } else if items.isEmpty {
-                ContentUnavailableView(
-                    L10n.t("回收站为空"),
-                    systemImage: "trash.slash",
-                    description: Text(L10n.t("删除的文件将在此显示，可还原或彻底删除"))
-                )
+                Section {
+                    ContentUnavailableView(
+                        L10n.t("回收站为空"),
+                        systemImage: "trash.slash",
+                        description: Text(L10n.t("删除的文件将在此显示，可还原或彻底删除"))
+                    )
+                    .listRowBackground(Color.clear)
+                }
             } else {
-                recycleList
+                Section {
+                    ForEach(items) { item in
+                        RecycleRow(item: item)
+                            // 长按弹行操作菜单（对齐文件页交互），左右滑动不暴露操作
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                Haptic.selection()
+                                actionItem = item
+                            }
+                            .onAppear {
+                                if item.id == items.last?.id {
+                                    Task { await loadMore() }
+                                }
+                            }
+                    }
+                    if items.count < total || isLoadingMore {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        }
+                        .onAppear { Task { await loadMore() } }
+                    }
+                } header: {
+                    SectionLabel(title: L10n.f("已删除（%ld）", total), systemImage: "trash")
+                }
             }
         }
+        .listStyle(.insetGrouped)
+    }
+
+    /// 启用/停用开关（独立 Section，任何状态下都显示）
+    private var statusSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { isEnabled ?? false },
+                set: { on in Task { await toggleRecycle(on) } }
+            )) {
+                Label(L10n.t("启用回收站"), systemImage: "trash")
+            }
+            .disabled(isToggling || isEnabled == nil)
+        } footer: {
+            if isEnabled == false {
+                Text(L10n.t("回收站已停用：新删除的文件将不进入回收站，直接删除。"))
+            } else {
+                Text(L10n.t("停用后删除文件将不进入回收站；已回收的文件仍可还原或删除。"))
+            }
+        }
+    }
+
+    var body: some View {
+        recycleList
         .navigationTitle(L10n.t("回收站"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -138,6 +197,29 @@ struct FileRecycleBinView: View {
         }
         .task { await load() }
         .refreshable { await load() }
+        .sheet(item: $actionItem) { item in
+            ActionBottomSheet(
+                title: item.name ?? "—",
+                items: [
+                    ActionMenuItem(title: L10n.t("还原"), icon: "arrow.uturn.backward", color: .green) {
+                        // 等 sheet 收起后再弹确认（转场中直接 present 会竞争）
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(0.35))
+                            reducingItem = item
+                        }
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(0.35))
+                            deletingItem = item
+                        }
+                    },
+                ],
+                onDismiss: { actionItem = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
         .alert(L10n.t("还原"), isPresented: Binding(
             get: { reducingItem != nil },
             set: { if !$0 { reducingItem = nil } }
@@ -187,63 +269,6 @@ struct FileRecycleBinView: View {
         } message: {
             Text(errorMessage ?? "")
         }
-    }
-
-    // MARK: - 列表
-
-    private var recycleList: some View {
-        List {
-            Section {
-                Toggle(isOn: Binding(
-                    get: { isEnabled ?? false },
-                    set: { on in Task { await toggleRecycle(on) } }
-                )) {
-                    Label(L10n.t("启用回收站"), systemImage: "trash")
-                }
-                .disabled(isToggling || isEnabled == nil)
-            } footer: {
-                if isEnabled == false {
-                    Text(L10n.t("回收站已停用：新删除的文件将不进入回收站，直接删除。"))
-                } else {
-                    Text(L10n.t("停用后删除文件将不进入回收站；已回收的文件仍可还原或删除。"))
-                }
-            }
-
-            Section {
-                ForEach(items) { item in
-                    RecycleRow(item: item)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button {
-                                reducingItem = item
-                            } label: {
-                                Label(L10n.t("还原"), systemImage: "arrow.uturn.backward")
-                            }
-                            .tint(.green)
-                            Button(role: .destructive) {
-                                deletingItem = item
-                            } label: {
-                                Label(L10n.t("删除"), systemImage: "trash")
-                            }
-                        }
-                        .onAppear {
-                            if item.id == items.last?.id {
-                                Task { await loadMore() }
-                            }
-                        }
-                }
-                if items.count < total || isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
-                    .onAppear { Task { await loadMore() } }
-                }
-            } header: {
-                SectionLabel(title: L10n.f("已删除（%ld）", total), systemImage: "trash")
-            }
-        }
-        .listStyle(.insetGrouped)
     }
 
     // MARK: - 数据

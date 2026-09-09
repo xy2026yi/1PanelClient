@@ -119,14 +119,6 @@ struct FilesView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showRecycleBin = true
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .accessibilityLabel(L10n.t("回收站"))
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
                         showActionSheet = true
                     } label: {
                         Image(systemName: "plus")
@@ -141,7 +133,7 @@ struct FilesView: View {
                     ActionMenuItem(title: L10n.t("上传文件"), icon: "arrow.up.circle", color: .blue) {
                         showUploadPicker = true
                     },
-                    ActionMenuItem(title: L10n.t("上传文件夹"), icon: "arrow.up.on.square", color: .cyan) {
+                    ActionMenuItem(title: L10n.t("上传文件夹"), icon: "arrow.up.folder", color: .cyan) {
                         showFolderPicker = true
                     },
                     ActionMenuItem(title: L10n.t("新建文件夹"), icon: "folder.badge.plus", color: .orange) {
@@ -150,6 +142,9 @@ struct FilesView: View {
                     ActionMenuItem(title: L10n.t("新建文件"), icon: "doc.badge.plus", color: .teal) {
                         createIsDir = false; showCreate = true
                     },
+                    ActionMenuItem(title: L10n.t("回收站"), icon: "trash", color: .gray) {
+                        showRecycleBin = true
+                    },
                     ActionMenuItem(title: L10n.t("前往路径"), icon: "location", color: .indigo) {
                         pathInput = currentPath; showPathInput = true
                     },
@@ -157,7 +152,7 @@ struct FilesView: View {
                         pathInput = "/"; showPathInput = true
                     }
                 ], onDismiss: {})
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 6))])
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 7))])
                 .presentationDragIndicator(.visible)
             }
             .sheet(item: $actionItem) { item in
@@ -312,13 +307,8 @@ struct FilesView: View {
             // 整行可点：plain button 默认命中区只覆盖文字/图形，Spacer 留白处点不动
             .contentShape(Rectangle())
         } else {
+            // 文件无下级页面：仅长按弹操作菜单
             fileRowContent(item)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // 文件无下级页面：点行弹出与长按一致的操作菜单
-                    Haptic.selection()
-                    actionItem = item
-                }
         }
     }
 
