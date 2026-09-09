@@ -43,6 +43,8 @@ struct NodeManageView: View {
     @State private var errorMessage: String?
     /// 节点列表接口失败（社区版无多机能力）→ 回退为仅本机节点，计数/日志仍可用
     @State private var listFallback = false
+    /// nodes/current 返回业务错误（专业版未授权等）时的服务端 message，固定显示在列表顶部
+    @State private var xpackNotice: String?
     @State private var showAddSheet = false
     /// 加载代际：并发 load 时只让最后一次的结果生效（下拉刷新连点防旧数据覆盖）
     @State private var loadGeneration = 0
@@ -58,6 +60,15 @@ struct NodeManageView: View {
 
     var body: some View {
         List {
+            // nodes/current 业务错误（专业版未授权等）：服务端 message 固定显示在分组上方
+            if let xpackNotice {
+                Section {
+                    Label(xpackNotice, systemImage: "lock.shield")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             if listFallback {
                 Section {
                     Text(L10n.t("节点列表接口不可用（多机管理为专业版功能），已回退为本机节点。"))
@@ -359,14 +370,21 @@ struct NodeManageView: View {
                 as: [NodeListItem].self
             )
             var newCards = items.map { NodeCard(item: $0) }
-            // 实时状态（社区版无此接口，失败不阻塞概览）
-            if let currents = try? await client.send(
-                path: APIEndpoint.nodesCurrent.path,
-                method: APIEndpoint.nodesCurrent.method,
-                as: [NodeCurrentItem].self
-            ) {
+            // 实时状态（社区版无此接口，失败不阻塞概览）；业务错误（专业版
+            // 未授权等）把服务端 message 提到列表顶部固定显示
+            do {
+                let currents = try await client.send(
+                    path: APIEndpoint.nodesCurrent.path,
+                    method: APIEndpoint.nodesCurrent.method,
+                    as: [NodeCurrentItem].self
+                )
                 for idx in newCards.indices {
                     newCards[idx].current = currents.first(where: { $0.nodeName == newCards[idx].item.name })
+                }
+                xpackNotice = nil
+            } catch {
+                if case APIError.businessError(_, let msg) = error, !msg.isEmpty {
+                    xpackNotice = msg
                 }
             }
             guard generation == loadGeneration else { return }

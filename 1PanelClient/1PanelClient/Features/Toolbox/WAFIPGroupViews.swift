@@ -45,7 +45,10 @@ struct WAFIPGroupsView: View {
                         Button {
                             editingGroup = item
                         } label: {
-                            HStack {
+                            HStack(spacing: 10) {
+                                Image(systemName: "rectangle.3.group")
+                                    .font(.title3)
+                                    .foregroundStyle(.secondary)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(item.name).font(.body)
                                     if let content = item.content, !content.isEmpty {

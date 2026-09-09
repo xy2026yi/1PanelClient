@@ -372,6 +372,8 @@ struct WAFInterceptLogsView: View {
             items = resp.items ?? []
             errorMessage = nil
         } catch {
+            // 切栏/退出时 .task 取消不是失败：不写错误态（否则闪现「加载失败，重试」）
+            guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
         }
     }
@@ -560,6 +562,8 @@ struct WAFBlockRecordsView: View {
             items = resp.items ?? []
             errorMessage = nil
         } catch {
+            // 切栏/退出时 .task 取消不是失败：不写错误态（否则闪现「加载失败，重试」）
+            guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
         }
     }
