@@ -460,6 +460,16 @@ private struct LicenseRow: View {
                     .foregroundStyle(.secondary)
             }
 
+            // 节点配额：bindCount 已绑定 / freeCount 可用（0/0 时无意义不显示）
+            if (item.bindCount ?? 0) + (item.freeCount ?? 0) > 0 {
+                Label(
+                    L10n.f("社区版: %ld/%ld", item.bindCount ?? 0, item.freeCount ?? 0),
+                    systemImage: "person.2"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
             HStack(spacing: 12) {
                 Text(L10n.f("创建：%@", item.displayCreatedAt))
                 if let sync = item.displayLastSync {

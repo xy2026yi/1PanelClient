@@ -21892,6 +21892,17 @@
           }
         }
       }
+    },
+    "社区版: %ld/%ld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Community: %ld/%ld"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
