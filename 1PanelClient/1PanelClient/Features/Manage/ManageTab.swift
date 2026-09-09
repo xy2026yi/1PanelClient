@@ -224,8 +224,10 @@ struct ManageTab: View {
         case .wafMonitor:
             WAFMonitorView(server: server)
         case .panelSettings:
-            // 设置 Hub：告警通知 / 备份账号 / 许可证（对齐网页端面板菜单）
-            ManageHubView(title: L10n.t("设置"), items: [.alert, .backupAccount, .license])
+            // 设置 Hub：基础设置 / 告警通知 / 备份账号 / 许可证（对齐网页端面板菜单）
+            ManageHubView(title: L10n.t("设置"), items: [.basicSettings, .alert, .backupAccount, .license])
+        case .basicSettings:
+            PanelBasicSettingsView(server: server)
         case .license:
             LicenseView(server: server)
         }
@@ -389,8 +391,10 @@ enum ManageItem: String, Identifiable {
     case logs
     case websiteMonitor
     case wafMonitor
-    /// 设置（Hub 子页：告警通知 / 备份账号 / 许可证）
+    /// 设置（Hub 子页：基础设置 / 告警通知 / 备份账号 / 许可证）
     case panelSettings
+    /// 基础设置（设置 Hub 子页）
+    case basicSettings
     /// 许可证（设置 Hub 子页）
     case license
 
@@ -436,6 +440,7 @@ enum ManageItem: String, Identifiable {
         case .websiteMonitor: return L10n.t("网站监控")
         case .wafMonitor:  return L10n.t("WAF 监控")
         case .panelSettings: return L10n.t("设置")
+        case .basicSettings: return L10n.t("基础设置")
         case .license:     return L10n.t("许可证")
     }
     }
@@ -467,6 +472,7 @@ enum ManageItem: String, Identifiable {
         case .websiteMonitor: return L10n.t("QPS / 访客趋势 / 访客地图 / 请求日志")
         case .wafMonitor:  return L10n.t("拦截趋势 / 拦截记录 / 封锁记录")
         case .panelSettings: return L10n.t("告警通知 / 备份账号 / 许可证")
+        case .basicSettings: return L10n.t("面板别名 / 超时 / 代理 / 运行环境")
         case .license:     return L10n.t("专业版授权绑定 / 同步")
         }
     }
@@ -498,6 +504,7 @@ enum ManageItem: String, Identifiable {
         case .websiteMonitor: return "chart.pie.fill"
         case .wafMonitor:  return "chart.bar.xaxis"
         case .panelSettings: return "gearshape.fill"
+        case .basicSettings: return "slider.horizontal.3"
         case .license:     return "checkmark.seal.fill"
         }
     }
@@ -529,6 +536,7 @@ enum ManageItem: String, Identifiable {
         case .websiteMonitor: return .indigo
         case .wafMonitor:  return .red
         case .panelSettings: return .blue
+        case .basicSettings: return .teal
         case .license:     return .orange
         }
     }

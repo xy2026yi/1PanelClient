@@ -21606,6 +21606,292 @@
           }
         }
       }
+    },
+    "基础设置": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basic Settings"
+          }
+        }
+      }
+    },
+    "面板别名 / 超时 / 代理 / 运行环境": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panel name / timeout / proxy / runtime"
+          }
+        }
+      }
+    },
+    "面板别名": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panel Name"
+          }
+        }
+      }
+    },
+    "面板超时时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Session Timeout"
+          }
+        }
+      }
+    },
+    "超时时间内无操作将自动退出登录。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You will be logged out automatically after this period of inactivity."
+          }
+        }
+      }
+    },
+    "预览体验计划": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview Experience Program"
+          }
+        }
+      }
+    },
+    "启用后将优先体验未正式发布的新功能，稳定性可能降低。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get early access to unreleased features. Stability may be reduced."
+          }
+        }
+      }
+    },
+    "默认访问地址": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default Access Address"
+          }
+        }
+      }
+    },
+    "IP 或域名": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IP or domain"
+          }
+        }
+      }
+    },
+    "只允许 IP 或域名，不能带 http/https 或端口": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only an IP or domain is allowed — no http/https scheme or port"
+          }
+        }
+      }
+    },
+    "面板对外访问地址（IP 或域名），留空表示未指定。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The public address (IP or domain) of the panel. Empty means unset."
+          }
+        }
+      }
+    },
+    "代理服务器": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Server"
+          }
+        }
+      }
+    },
+    "代理": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy"
+          }
+        }
+      }
+    },
+    "运行区域": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Region"
+          }
+        }
+      }
+    },
+    "中国大陆": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mainland China"
+          }
+        }
+      }
+    },
+    "全球": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Global"
+          }
+        }
+      }
+    },
+    "文档来源": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Documentation Source"
+          }
+        }
+      }
+    },
+    "跟随运行区域": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow region"
+          }
+        }
+      }
+    },
+    "跟随系统语言": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow system language"
+          }
+        }
+      }
+    },
+    "面板设置加载失败，请重试": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to load panel settings, please retry"
+          }
+        }
+      }
+    },
+    "代理类型": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Type"
+          }
+        }
+      }
+    },
+    "代理地址": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Host"
+          }
+        }
+      }
+    },
+    "代理端口": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Port"
+          }
+        }
+      }
+    },
+    "认证（可选）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authentication (optional)"
+          }
+        }
+      }
+    },
+    "记住密码": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remember Password"
+          }
+        }
+      }
+    },
+    "请填写代理地址与端口": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy host and port are required"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

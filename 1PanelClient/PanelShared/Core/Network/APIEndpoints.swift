@@ -17,6 +17,7 @@ enum APIEndpoint {
     case dashboardTopCPU          // GET CPU占用TOP进程
     case dashboardTopMem          // GET 内存占用TOP进程
     case settingsSearch           // POST 面板设置（含 systemVersion 面板版本）
+    case coreSettingsProxyUpdate  // POST 更新代理服务器（proxyType/Url/Port/User/Passwd/Keep）
     case settingsSearchPanel      // POST 面板设置·Web 端路径（含 firewallPortWhiteList 全量项；/core 变体部分版本不可用）
     case settingsUpdate           // POST 更新面板设置项 {key, value}（端口白名单等）
     case settingsUpgradeCheck     // GET  检查面板更新
@@ -404,6 +405,7 @@ enum APIEndpoint {
         // 面板 Web 端抓包路径（无 /core 前缀），v2 网关对两种前缀等价路由
         case .settingsSearchPanel:   return "/api/v2/settings/search"
         case .settingsUpdate:        return "/api/v2/settings/update"
+        case .coreSettingsProxyUpdate: return "/api/v2/core/settings/proxy/update"
         case .settingsUpgradeCheck:  return "/api/v2/core/settings/upgrade"
         case .settingsUpgrade:       return "/api/v2/core/settings/upgrade"
         case .settingsUpgradeReleases: return "/api/v2/core/settings/upgrade/releases"
