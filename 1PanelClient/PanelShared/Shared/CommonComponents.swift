@@ -674,10 +674,10 @@ struct ActionMenuItem: Identifiable {
 
 enum ActionRole {
     case destructive
-    case cancel
 }
 
-/// 底部操作菜单视图（配合 `.sheet` + `.presentationDetents` 使用）
+/// 底部操作菜单视图（配合 `.sheet` + `.presentationDetents` 使用）。
+/// 全站统一不带底部取消按钮，关闭靠下拉（各调用点均已开启 drag indicator）。
 /// 使用方式：
 /// ```
 /// .sheet(isPresented: $showSheet) {
@@ -723,18 +723,10 @@ struct ActionBottomSheet: View {
                 }
                 .buttonStyle(.plain)
 
-                Divider()
+                if item.id != items.last?.id {
+                    Divider()
+                }
             }
-
-            Button {
-                onDismiss()
-            } label: {
-                Text(L10n.t("取消"))
-                    .font(.body.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-            }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 8)
@@ -744,9 +736,9 @@ struct ActionBottomSheet: View {
         .adaptiveMenuSizing()
     }
 
-    /// 根据 items 数量计算 sheet 高度
+    /// 根据 items 数量计算 sheet 高度（标题区 + 菜单行；无取消行）
     static func height(for itemCount: Int) -> CGFloat {
-        CGFloat(72 + itemCount * 52 + 52)
+        CGFloat(72 + itemCount * 52)
     }
 }
 

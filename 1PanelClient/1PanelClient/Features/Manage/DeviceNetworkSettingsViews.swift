@@ -58,10 +58,8 @@ struct DeviceDNSSettingsView: View {
             .filter { !$0.isEmpty }
     }
 
-    /// 编辑器是否可见：加载中/失败时隐藏但保留在层级里。
-    /// 竖排 TextField（UIKit 支撑）在 Form 首帧布局完成后才插入会触发
-    /// SwiftUI「Invalid frame dimension (negative or non-finite)」运行时警告
-    /// （iOS 26.5 模拟器已实测：首帧在场/纯 push 均干净，原地换入必触发）
+    /// 编辑器可交互态：加载中/失败时由 overlay 全屏覆盖并禁用相关按钮
+    /// （编辑器常驻层级，不做结构换入换出）
     private var editorVisible: Bool { !isLoading && loadError == nil }
 
     var body: some View {
@@ -75,8 +73,6 @@ struct DeviceDNSSettingsView: View {
                     .keyboardType(.asciiCapable)
                     .focused($focused)
                     .onSubmit { Task { await commit() } }
-                    .opacity(editorVisible ? 1 : 0)
-                    .allowsHitTesting(editorVisible)
             } footer: {
                 Text(L10n.t("换行输入，每行一个；失焦或回车后自动保存（全量覆盖）。"))
             }
@@ -111,9 +107,13 @@ struct DeviceDNSSettingsView: View {
         .navigationTitle("DNS")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .keyboard) {
-                HStack {
-                    Spacer()
+            // 「完成」收起键盘。不能用 placement: .keyboard：iOS 26.5 上键盘工具栏
+            // 随页面 push 进含 TextField 的 Form 时，SwiftUI 布局会算出负尺寸并触发
+            // 「Invalid frame dimension (negative or non-finite)」运行时警告
+            // （模拟器逐项二分实测：结构换入/透明度切换/竖排 TextField 均无关，
+            // 仅此 placement 触发；navigationBarTrailing 则干净）
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if focused {
                     Button(L10n.t("完成")) { focused = false }
                 }
             }

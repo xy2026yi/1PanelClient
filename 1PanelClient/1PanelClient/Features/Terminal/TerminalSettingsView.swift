@@ -42,7 +42,8 @@ struct TerminalSettingsView: View {
         .sheet(item: $vm.pendingConnEdit) { conn in
             TerminalSSHConnEditView(vm: vm, existing: conn)
         }
-        // 默认连接确认（自定义 sheet：关闭场景带「重置连接信息」勾选）
+        // 默认连接确认：与「卸载应用」等确认弹窗（TextInputConfirmSheet）同款
+        // 半屏 Form sheet + 导航栏「取消/确认」样式
         .sheet(isPresented: Binding(
             get: { pendingDefaultChange != nil },
             set: { if !$0 { pendingDefaultChange = nil } }
@@ -119,52 +120,50 @@ struct TerminalSettingsView: View {
 
 // MARK: - 默认连接确认弹窗
 
-/// 默认连接开关确认：开启/关闭文案不同，关闭时可勾选「重置连接信息」
+/// 默认连接开关确认：弹窗方式与样式对齐「卸载应用」等确认弹窗（TextInputConfirmSheet）——
+/// 半屏 Form sheet、导航栏「取消/确认」、正文 Section + 选项 Section。
+/// 开启/关闭文案不同，关闭时可勾选「重置连接信息」。
+/// 非高危操作：无输入确认，确认按钮不套 destructive 红。
 struct DefaultConnConfirmSheet: View {
     /// 目标状态：true=即将开启，false=即将关闭
     let target: Bool
     let onConfirm: (_ reset: Bool) -> Void
+
     @Environment(\.dismiss) private var dismiss
     @State private var resetConn = false
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text(L10n.t("默认连接"))
-                .font(.headline)
-                .padding(.top, 20)
-
-            Text(target
-                 ? L10n.t("该操作将【允许】打开终端后自动连接所在节点终端，是否继续？")
-                 : L10n.t("该操作将【禁止】打开终端后自动连接所在节点终端，是否继续？"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 20)
-
-            if !target {
-                Toggle(L10n.t("重置连接信息"), isOn: $resetConn)
-                    .padding(.horizontal, 20)
-            }
-
-            VStack(spacing: 0) {
-                Button {
-                    onConfirm(resetConn)
-                } label: {
-                    Text(L10n.t("确认"))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+        NavigationStack {
+            Form {
+                Section {
+                    Text(target
+                         ? L10n.t("该操作将【允许】打开终端后自动连接所在节点终端，是否继续？")
+                         : L10n.t("该操作将【禁止】打开终端后自动连接所在节点终端，是否继续？"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.borderedProminent)
 
-                Button(L10n.t("取消")) { dismiss() }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                if !target {
+                    Section(L10n.t("选项")) {
+                        Toggle(L10n.t("重置连接信息"), isOn: $resetConn)
+                    }
+                }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
+            .navigationTitle(L10n.t("默认连接"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("确认")) {
+                        onConfirm(resetConn)
+                    }
+                }
+            }
         }
         .bottomSheetDetents([.medium])
-        .presentationDragIndicator(.hidden)
+        .presentationDragIndicator(.visible)
     }
 }
 

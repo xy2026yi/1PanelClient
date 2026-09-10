@@ -137,8 +137,9 @@ struct FileRecycleBinView: View {
                 Section {
                     ForEach(items) { item in
                         RecycleRow(item: item)
-                            // 整行命中：不给 contentShape 时手势可点区只覆盖
-                            // 文字/图标，行尾空白处长按无反应（同 FilesView 的处理）
+                            // 整行命中：行内容（VStack）不占满行宽，须先撑满再给
+                            // contentShape，否则可点区只覆盖文字宽度、行尾空白无反应
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())
                             .onLongPressGesture(minimumDuration: 0.5) {
                                 Haptic.selection()
