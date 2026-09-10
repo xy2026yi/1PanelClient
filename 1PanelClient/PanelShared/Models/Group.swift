@@ -90,4 +90,18 @@ enum GroupScope {
     var deletePath: String {
         self == .website ? APIEndpoint.websitesGroupsDelete.path : APIEndpoint.coreGroupsDelete.path
     }
+
+    /// 删除分组确认文案（与后端实际行为对齐，见 core/agent app/service/group.go Delete）：
+    /// 网站分组仍有网站占用时后端直接拒绝；脚本分组仍被引用时拒绝；
+    /// 计划任务分组后端不迁移成员（上游 switch 无 cronjob 分支），删除后成员成为未分组
+    var deleteConfirmMessage: String {
+        switch self {
+        case .website:
+            return L10n.t("删除分组「%@」后不可恢复；该分组下仍有网站时删除将被拒绝，是否继续？")
+        case .cronjob:
+            return L10n.t("删除分组「%@」后不可恢复，组内计划任务将变为未分组，是否继续？")
+        case .script:
+            return L10n.t("删除分组「%@」后不可恢复；仍有脚本使用该分组时删除将被拒绝，是否继续？")
+        }
+    }
 }

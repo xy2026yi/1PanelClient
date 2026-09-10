@@ -201,7 +201,7 @@ struct GroupManageView: View {
                 }
             }
         } message: { group in
-            Text(L10n.f("删除分组「%@」后，其成员将移入默认分组，是否继续？", group.displayName))
+            Text(L10n.f(vm.scope.deleteConfirmMessage, group.displayName))
         }
         .toastOverlay(message: $vm.toastMessage)
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {

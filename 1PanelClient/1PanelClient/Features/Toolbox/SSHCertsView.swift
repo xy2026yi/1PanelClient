@@ -106,13 +106,16 @@ final class SSHCertsViewModel: ObservableObject {
     @discardableResult
     func delete(cert: SSHCertItem) async -> Bool {
         pendingDeleteCert = nil
+        // 本次删除用的开关值就地取走并复位：失败重试或下次删除都从「未勾选」开始，
+        // 避免上次的强制删除状态无声带到下一次确认弹窗
+        let force = forceDelete
+        forceDelete = false
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.sshCertDelete.path,
-                body: SSHCertDeleteRequest(ids: [cert.id], forceDelete: forceDelete),
+                body: SSHCertDeleteRequest(ids: [cert.id], forceDelete: force),
                 as: EmptyResponse.self
             )
-            forceDelete = false
             showToast(L10n.f("密钥「%@」已删除", cert.name ?? ""))
             await load()
             return true
@@ -292,6 +295,7 @@ struct SSHCertsView: View {
                         editingCert = cert
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        vm.forceDelete = false
                         vm.pendingDeleteCert = cert
                     },
                 ],
@@ -588,13 +592,23 @@ struct SSHCertCreateView: View {
 // MARK: - 密钥详情页
 
 struct SSHCertDetailView: View {
-    /// 打开时的快照（列表刷新后由列表页重新推入）
-    let cert: SSHCertItem
+    /// 打开详情时的快照；实际展示按 id 从 VM 回查（编辑保存、列表刷新后不显示旧值），
+    /// 已被删除等回查不到时回退快照
+    private let certSnapshot: SSHCertItem
     @ObservedObject var vm: SSHCertsViewModel
 
     @State private var showEdit = false
     @State private var toastMessage: String?
     @State private var toastTask: Task<Void, Never>?
+
+    private var cert: SSHCertItem {
+        vm.certs.first(where: { $0.id == certSnapshot.id }) ?? certSnapshot
+    }
+
+    init(cert: SSHCertItem, vm: SSHCertsViewModel) {
+        self.certSnapshot = cert
+        self.vm = vm
+    }
 
     var body: some View {
         List {

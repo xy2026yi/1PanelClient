@@ -5184,13 +5184,35 @@
         }
       }
     },
-    "删除分组「%@」后，其成员将移入默认分组，是否继续？" : {
+    "删除分组「%@」后不可恢复；该分组下仍有网站时删除将被拒绝，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Members of group \"%@\" will be moved to the default group. Continue?"
+            "value" : "Group \"%@\" cannot be restored once deleted; deletion will be rejected while websites still use this group. Continue?"
+          }
+        }
+      }
+    },
+    "删除分组「%@」后不可恢复，组内计划任务将变为未分组，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group \"%@\" cannot be restored once deleted; its cronjobs will become ungrouped. Continue?"
+          }
+        }
+      }
+    },
+    "删除分组「%@」后不可恢复；仍有脚本使用该分组时删除将被拒绝，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group \"%@\" cannot be restored once deleted; deletion will be rejected while scripts still use this group. Continue?"
           }
         }
       }
@@ -17313,6 +17335,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disk Management"
+          }
+        }
+      }
+    },
+    "磁盘 / 分区 / 挂载点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disks / Partitions / Mount Points"
           }
         }
       }

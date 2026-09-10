@@ -58,7 +58,8 @@ nonisolated struct DiskInfo: Decodable, Identifiable, Hashable {
     let serial: String?
     let partitions: [DiskBasicInfo]?
 
-    var id: String { device ?? UUID().uuidString }
+    /// device 缺失时回退 序列号|容量 组合：确定性 id（随机 UUID 会让 ForEach 身份每次访问都漂移）
+    var id: String { device ?? "\(serial ?? model ?? "")|\(size ?? "")" }
 
     var shortDevice: String {
         (device ?? "").replacingOccurrences(of: "/dev/", with: "")

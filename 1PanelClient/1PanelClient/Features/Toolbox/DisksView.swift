@@ -563,7 +563,9 @@ private struct DiskMountFormSheet: View {
                 }
             }
             .sheet(isPresented: $showDirPicker) {
-                DirectoryPickerSheet { path in
+                // 用宿主 VM 的 client：不再自取 ServerManager.current，
+                // 避免多机切换瞬间挂载表单读到别的服务器的目录
+                DirectoryPickerSheet(client: vm.client) { path in
                     mountPoint = path
                 }
             }
@@ -607,9 +609,9 @@ struct DirectoryPickerSheet: View {
 
     private let client: APIClient
 
-    init(onPick: @escaping (String) -> Void) {
+    init(client: APIClient, onPick: @escaping (String) -> Void) {
+        self.client = client
         self.onPick = onPick
-        self.client = APIClient.shared(for: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
     }
 
     var body: some View {

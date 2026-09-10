@@ -514,6 +514,8 @@ struct SSHAuthKeysView: View {
     @State private var isSaving = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
+    /// 读取失败文案：编辑器不落地（防止把加载失败的空内容保存上去清空 authorized_keys）
+    @State private var loadErrorMessage: String?
 
     private let client: APIClient
 
@@ -531,6 +533,17 @@ struct SSHAuthKeysView: View {
         Group {
             if isLoading {
                 LoadingStateView()
+            } else if let loadError = loadErrorMessage {
+                ContentUnavailableView {
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(loadError)
+                } actions: {
+                    Button(L10n.t("重试")) {
+                        Task { await loadKeys() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             } else {
                 VStack(spacing: 0) {
                     if keyCount > 0 {
@@ -576,9 +589,10 @@ struct SSHAuthKeysView: View {
         do {
             let resp: String = try await client.send(path: APIEndpoint.sshFile.path, body: req, as: String.self)
             keysText = resp
-            errorMessage = nil
+            loadErrorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            // 加载失败进错误态（带重试），不进编辑器：空文本一旦保存会清空 authorized_keys
+            loadErrorMessage = error.localizedDescription
         }
         isLoading = false
     }

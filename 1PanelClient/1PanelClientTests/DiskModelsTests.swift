@@ -51,6 +51,22 @@ struct DiskModelsTests {
         #expect(partitions[1].isMounted == true)
     }
 
+    @Test("DiskInfo：device 缺失时 id 确定性（ForEach 身份不漂移）")
+    func diskInfoDeterministicID() throws {
+        let json = """
+        {"size":"64G","model":"1Panel-0 SSD","diskType":"SSD","isRemovable":false,
+         "isSystem":true,"filesystem":"","used":"","avail":"","usePercent":0,
+         "mountPoint":"","isMounted":false,"serial":"XWQY3ES94TK43F7SC37Q",
+         "partitions":[]}
+        """
+        let data = Data(json.utf8)
+        let a = try JSONDecoder().decode(DiskInfo.self, from: data)
+        let b = try JSONDecoder().decode(DiskInfo.self, from: data)
+        // 两次解码 id 一致：随机 UUID 回退会让 ForEach 每次重算都视为新身份
+        #expect(a.id == b.id)
+        #expect(a.id == "XWQY3ES94TK43F7SC37Q|64G")
+    }
+
     @Test("DiskPartitionRequest：立即分区（文件系统二选一 + 双开关默认开）")
     func encodePartition() throws {
         let req = DiskPartitionRequest(
