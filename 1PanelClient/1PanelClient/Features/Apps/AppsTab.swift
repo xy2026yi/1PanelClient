@@ -49,7 +49,18 @@ struct AppsTab: View {
 
     /// 列表根内容（不含 NavigationStack），供 ManageTab 嵌入复用
     var rootContent: some View {
-        Group {
+        VStack(spacing: 0) {
+            // 类别筛选条放在分支外常驻：选中类别无应用时仍能切回「全部」（空 key 无法筛选，剔除）
+            if !vm.tags.isEmpty {
+                ChipsFilterBar(
+                    items: vm.tags
+                        .filter { !($0.key ?? "").isEmpty }
+                        .map { .init(id: $0.key ?? "", title: $0.displayName) },
+                    allID: "",
+                    selectedID: $vm.selectedTagKey
+                )
+            }
+
             if vm.isLoading && vm.apps.isEmpty {
                 LoadingStateView()
             } else if let err = vm.errorMessage, !err.isEmpty, vm.apps.isEmpty {
@@ -57,11 +68,18 @@ struct AppsTab: View {
                     Task { await vm.refresh() }
                 }
             } else if vm.apps.isEmpty {
-                ContentUnavailableView(
-                    L10n.t("暂无已安装应用"),
-                    systemImage: "shippingbox",
-                    description: Text(L10n.t("这台服务器上没有已安装的应用"))
-                )
+                if vm.selectedTagKey.isEmpty {
+                    ContentUnavailableView(
+                        L10n.t("暂无已安装应用"),
+                        systemImage: "shippingbox",
+                        description: Text(L10n.t("这台服务器上没有已安装的应用"))
+                    )
+                } else {
+                    ContentUnavailableView(
+                        L10n.t("该类别暂无已安装应用"),
+                        systemImage: "shippingbox"
+                    )
+                }
             } else {
                 appList
             }
@@ -96,6 +114,10 @@ struct AppsTab: View {
         }
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
+        }
+        .onChange(of: vm.selectedTagKey) { _, _ in
+            // 切换类别：沿用当前搜索词重查第一页
+            Task { await vm.search(query: searchText) }
         }
         .navigationDestination(for: AppInstall.self) { app in
             AppDetailView(app: app, vm: vm)

@@ -19,13 +19,18 @@ struct WebsitesTab: View {
     @State private var showOpenRestyPerformance = false
     @State private var showOpenRestyModules = false
     @State private var showOpenRestyOther = false
+    // 分组管理推页入口（筛选条末尾「管理」chip）
+    @State private var showGroupManage = false
     /// OpenResty 未安装时的应用商店 VM（列表安装按钮直达应用详情，安装流程复用应用商店页面）
     @StateObject private var openRestyInstallVM: AppStoreViewModel
+    /// 分组管理页所需服务器配置（init 时固定，避免 manager.current 中途切换）
+    private let server: ServerConfig
 
 
     init(manager: ServerManager) {
         self.manager = manager
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        self.server = server
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.websiteList.storeKey(server: server)) {
             WebsitesViewModel(server: server)
         })
@@ -49,7 +54,15 @@ struct WebsitesTab: View {
 
     /// 列表根内容（不含 NavigationStack）
     var rootContent: some View {
-        Group {
+        VStack(spacing: 0) {
+            // 分组筛选条放在分支外常驻（末尾「管理」入口推入分组管理页）：
+            // 选中分组无网站时仍能切回「全部」；OpenResty 未安装整页引导时不展示
+            if !vm.openRestyNotInstalled && !vm.groups.isEmpty {
+                GroupFilterBar(groups: vm.groups, selectedID: $vm.selectedGroupID) {
+                    showGroupManage = true
+                }
+            }
+
             // 未装判断放在加载态之前（与 WAF 页一致）：安装完成点「完成」后本页立刻
             // 强制刷新，旧检查结果（未装）让引导分支存活到收栈完成；若加载态优先，
             // 分支切换会把引导组件连同其导航注册一起拔掉，进度页的「完成」收不回导航
@@ -65,7 +78,7 @@ struct WebsitesTab: View {
                 websiteList
             }
         }
-        // 右上角两键：放大镜（搜索）+ 创建；证书入口已上移至 管理-网站 Hub 页
+        // 右上角两键：放大镜（搜索）+ 创建；分组管理入口在筛选条末尾（推页呈现）
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
@@ -89,8 +102,17 @@ struct WebsitesTab: View {
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
         }
+        .onChange(of: vm.selectedGroupID) { _, _ in
+            // 切换分组：沿用当前搜索词重查第一页
+            Task { await vm.search(query: searchText) }
+        }
         .navigationDestination(isPresented: $showCreate) {
             CreateWebsiteView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showGroupManage) {
+            GroupManageView(server: server, scope: .website) {
+                Task { await vm.refresh(force: true) }
+            }
         }
         .navigationDestination(isPresented: $showOpenRestyConfig) {
             OpenRestyConfigView(vm: vm)

@@ -42,9 +42,10 @@ final class CronjobsViewModel: ObservableObject {
     @Published var dbItems: [DBItemOption] = []
     @Published var isLoadingDBItems = false
 
-    /// 默认分组 ID（创建任务时必须填，否则任务会显示在「-」分组）
-    /// 从 POST /api/v2/core/groups/search (type=cronjob) 获取 isDefault=true 的项
-    @Published var defaultGroupID: Int = 0
+    /// 分组（列表筛选 + 创建表单 Picker 数据源）
+    @Published var groups: [PanelGroup] = []
+    /// 当前筛选分组（0 = 全部）
+    @Published var selectedGroupID = 0
 
     private(set) var client: APIClient
 
@@ -52,15 +53,29 @@ final class CronjobsViewModel: ObservableObject {
         self.client = APIClient.shared(for: server)
     }
 
+    /// 默认分组 ID（创建任务时必须填，否则任务会显示在「-」分组；
+    /// 取 core/groups/search (type=cronjob) 中 isDefault=true 的项）
+    var defaultGroupID: Int {
+        groups.first(where: { $0.isDefault == true })?.id ?? groups.first?.id ?? 0
+    }
+
     func refresh() async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
+        async let list: () = loadCronjobs()
+        async let groupList: () = loadGroups()
+        _ = await (list, groupList)
+    }
+
+    private func loadCronjobs() async {
+        var req = CronjobSearchRequest()
+        req.groupIDs = selectedGroupID == 0 ? [] : [selectedGroupID]
         do {
             let resp: CronjobListResponse = try await client.send(
                 path: APIEndpoint.cronjobsSearch.path,
-                body: CronjobSearchRequest(),
+                body: req,
                 as: CronjobListResponse.self
             )
             cronjobs = resp.items ?? []
@@ -73,6 +88,27 @@ final class CronjobsViewModel: ObservableObject {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
             showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
+        }
+    }
+
+    /// 加载计划任务分组（筛选条与创建表单共用；失败静默）
+    /// - Parameter force: true 强制重查（分组管理页变更后）
+    func loadGroups(force: Bool = false) async {
+        guard force || groups.isEmpty else { return }
+        do {
+            let items: [PanelGroup] = try await client.send(
+                path: GroupScope.cronjob.searchPath,
+                body: GroupSearchRequest(type: GroupScope.cronjob.type),
+                as: [PanelGroup].self
+            )
+            groups = items
+            // 选中的分组已被删除：回落「全部」
+            if selectedGroupID != 0, !items.contains(where: { $0.id == selectedGroupID }) {
+                selectedGroupID = 0
+            }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            if force { groups = [] }
         }
     }
 
@@ -247,24 +283,8 @@ final class CronjobsViewModel: ObservableObject {
     }
 
     func loadCreateOptions() async {
-        // 默认分组（创建任务必须指定 groupID，否则任务会显示在「-」分组）
-        if defaultGroupID == 0 {
-            do {
-                let groups: [CronjobGroup] = try await client.send(
-                    path: APIEndpoint.cronjobsGroups.path,
-                    body: CronjobGroupRequest(type: "cronjob"),
-                    as: [CronjobGroup].self
-                )
-                // 优先取 isDefault=true 的项，否则取第一个
-                if let def = groups.first(where: { $0.isDefault == true }) {
-                    defaultGroupID = def.id
-                } else if let first = groups.first {
-                    defaultGroupID = first.id
-                }
-            } catch {
-                // 加载失败保持 0，后端会用其默认值
-            }
-        }
+        // 分组（创建任务必须指定 groupID，否则任务会显示在「-」分组；已加载则秒回）
+        await loadGroups()
         // 系统用户
         if systemUsers.isEmpty {
             do {

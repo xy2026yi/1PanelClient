@@ -199,6 +199,8 @@ struct ManageTab: View {
             TerminalHostsView(server: server, localTitle: manager.current?.name)
         case .process:
             ProcessView(server: server)
+        case .diskManage:
+            DisksView(server: server)
         case .sshService:
             SSHView(server: server)
         case .fail2ban:
@@ -391,6 +393,7 @@ enum ManageItem: String, Identifiable {
     case files
     case monitor
     case process
+    case diskManage
     case sshService
     case firewall
     case fail2ban
@@ -429,7 +432,7 @@ enum ManageItem: String, Identifiable {
     static var groups: [(title: String, items: [ManageItem])] {
         [
             (L10n.t("应用"), [.apps, .websites, .database, .containers]),
-            (L10n.t("主机"), [.terminal, .files, .monitor, .process, .sshService, .firewall]),
+            (L10n.t("主机"), [.terminal, .files, .diskManage, .monitor, .process, .sshService, .firewall]),
             (L10n.t("高级功能"), [.websiteMonitor, .nodeManage, .wafMonitor]),
             // 告警通知 / 备份账号 / 许可证收进「设置」Hub（对齐网页端面板菜单）
             (L10n.t("面板"), [.panelSettings, .cronjob, .taskCenter, .logs]),
@@ -448,6 +451,7 @@ enum ManageItem: String, Identifiable {
         case .files:       return L10n.t("文件")
         case .monitor:     return L10n.t("监控")
         case .process:     return L10n.t("进程")
+        case .diskManage:  return L10n.t("磁盘管理")
         case .sshService:  return L10n.t("SSH 服务管理")
         case .firewall:    return L10n.t("防火墙")
         case .fail2ban:    return "Fail2ban"
@@ -480,6 +484,7 @@ enum ManageItem: String, Identifiable {
         case .files:       return L10n.t("服务器文件管理")
         case .monitor:     return L10n.t("负载 / CPU / 内存 / I/O / 网络")
         case .process:     return L10n.t("系统进程监控")
+        case .diskManage:  return L10n.t("磁盘 / 分区 / 挂载点")
         case .sshService:  return L10n.t("面板主机 SSH 服务与配置")
         case .firewall:    return L10n.t("防火墙规则")
         case .fail2ban:    return L10n.t("SSH 防暴力破解")
@@ -512,6 +517,7 @@ enum ManageItem: String, Identifiable {
         case .files:       return "folder.fill"
         case .monitor:     return "chart.line.uptrend.xyaxis"
         case .process:     return "chart.bar"
+        case .diskManage:  return "internaldrive"
         case .sshService:  return "terminal"
         case .firewall:    return "flame"
         case .fail2ban:    return "shield.lefthalf.filled"
@@ -561,6 +567,7 @@ enum ManageItem: String, Identifiable {
         case .panelSettings: return .blue
         case .basicSettings: return .teal
         case .license:     return .orange
+        case .diskManage:  return .gray
         }
     }
 

@@ -35,6 +35,9 @@
         }
       }
     },
+    ".." : {
+
+    },
     "·" : {
 
     },
@@ -113,6 +116,16 @@
         }
       }
     },
+    "%@ · %@ · %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ · %3$@"
+          }
+        }
+      }
+    },
     "%@ (%@)" : {
       "localizations" : {
         "zh-Hans" : {
@@ -129,6 +142,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ (v%2$@)"
+          }
+        }
+      }
+    },
+    "%@ / %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@"
           }
         }
       }
@@ -1121,6 +1144,17 @@
         }
       }
     },
+    "DNS 地址格式不正确：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid DNS address: %@"
+          }
+        }
+      }
+    },
     "DNS 服务器 1（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1247,6 +1281,9 @@
       }
     },
     "example.com" : {
+
+    },
+    "ext4" : {
 
     },
     "Fail2ban" : {
@@ -1547,6 +1584,17 @@
         }
       }
     },
+    "IP 地址格式不正确：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid IP address: %@"
+          }
+        }
+      }
+    },
     "IP 或域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1587,6 +1635,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "IP Groups"
+          }
+        }
+      }
+    },
+    "IP 组（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Groups (%ld)"
           }
         }
       }
@@ -1847,6 +1906,17 @@
         }
       }
     },
+    "SOCKS5" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SOCKS5"
+          }
+        }
+      }
+    },
     "SQL注入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1871,6 +1941,28 @@
     },
     "SSH" : {
 
+    },
+    "SSH 会话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH Sessions"
+          }
+        }
+      }
+    },
+    "SSH 密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH Keys"
+          }
+        }
+      }
     },
     "SSH 服务管理" : {
       "extractionState" : "manual",
@@ -2095,6 +2187,9 @@
       }
     },
     "Website" : {
+
+    },
+    "xfs" : {
 
     },
     "XSS" : {
@@ -2746,6 +2841,28 @@
         }
       }
     },
+    "二级功能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secondary Features"
+          }
+        }
+      }
+    },
+    "交换分区" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap Partition"
+          }
+        }
+      }
+    },
     "亮色" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2962,6 +3079,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose from Server"
+          }
+        }
+      }
+    },
+    "从本机选择 OpenSSH 格式的密钥文本文件（如 id_ed25519 / id_ed25519.pub），公钥可省略。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose OpenSSH key text files from this device (e.g. id_ed25519 / id_ed25519.pub); the public key is optional."
           }
         }
       }
@@ -3237,6 +3365,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Improved %ld"
+          }
+        }
+      }
+    },
+    "会话已断开" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session disconnected"
           }
         }
       }
@@ -3615,6 +3754,17 @@
         }
       }
     },
+    "修改后将覆盖服务器上的原密钥；粘贴 OpenSSH 格式的完整密钥文本，提交时将 base64 编码传输。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving overwrites the original key on the server; paste the full OpenSSH key text, which will be transmitted base64-encoded."
+          }
+        }
+      }
+    },
     "修改后将重建容器使参数生效。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3967,6 +4117,50 @@
         }
       }
     },
+    "公钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public Key"
+          }
+        }
+      }
+    },
+    "公钥（可选）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public Key (optional)"
+          }
+        }
+      }
+    },
+    "公钥文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public Key File"
+          }
+        }
+      }
+    },
+    "共 %ld 个公钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld public keys in total"
+          }
+        }
+      }
+    },
     "共 %ld 条" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4231,6 +4425,17 @@
         }
       }
     },
+    "内容为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty"
+          }
+        }
+      }
+    },
     "内核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4352,6 +4557,72 @@
         }
       }
     },
+    "分区" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partition"
+          }
+        }
+      }
+    },
+    "分区 %@ 已创建并挂载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partition %@ created and mounted"
+          }
+        }
+      }
+    },
+    "分区 %@ 已取消挂载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partition %@ unmounted"
+          }
+        }
+      }
+    },
+    "分区 %@ 已挂载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partition %@ mounted"
+          }
+        }
+      }
+    },
+    "分区失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partition failed: %@"
+          }
+        }
+      }
+    },
+    "分区将格式化该磁盘并挂载到指定目录，磁盘上现有数据会全部丢失。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partitioning formats the disk and mounts it to the given path; all existing data on the disk will be lost."
+          }
+        }
+      }
+    },
     "分组" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4359,6 +4630,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Group"
+          }
+        }
+      }
+    },
+    "分组「%@」已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group \"%@\" created"
+          }
+        }
+      }
+    },
+    "分组「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "分组「%@」已设为默认" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group \"%@\" set as default"
+          }
+        }
+      }
+    },
+    "分组「%@」已重命名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group \"%@\" renamed"
+          }
+        }
+      }
+    },
+    "分组名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group Name"
+          }
+        }
+      }
+    },
+    "分组管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage Groups"
           }
         }
       }
@@ -4583,6 +4920,17 @@
         }
       }
     },
+    "创建方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creation Method"
+          }
+        }
+      }
+    },
     "创建时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4715,6 +5063,17 @@
         }
       }
     },
+    "删除 Hosts 记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Hosts Entry"
+          }
+        }
+      }
+    },
     "删除 IP 规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4810,6 +5169,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove App Link"
+          }
+        }
+      }
+    },
+    "删除分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Group"
+          }
+        }
+      }
+    },
+    "删除分组「%@」后，其成员将移入默认分组，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Members of group \"%@\" will be moved to the default group. Continue?"
           }
         }
       }
@@ -4924,6 +5305,17 @@
         }
       }
     },
+    "删除密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Key"
+          }
+        }
+      }
+    },
     "删除操作不可撤销，请谨慎操作" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4986,6 +5378,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deleted files are listed here for restore or permanent deletion"
+          }
+        }
+      }
+    },
+    "删除端口规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Port Rule"
           }
         }
       }
@@ -6200,6 +6603,28 @@
         }
       }
     },
+    "取消挂载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unmount"
+          }
+        }
+      }
+    },
+    "取消挂载失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to unmount: %@"
+          }
+        }
+      }
+    },
     "取消编辑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6394,6 +6819,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sync failed: %@"
+          }
+        }
+      }
+    },
+    "同步密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Keys"
+          }
+        }
+      }
+    },
+    "同步操作将清理失效密钥并同步新增的完整密钥对，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync will remove stale keys and import newly added complete key pairs. Continue?"
           }
         }
       }
@@ -8202,6 +8649,17 @@
         }
       }
     },
+    "容量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capacity"
+          }
+        }
+      }
+    },
     "宿主机可用：CPU %ld 核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8257,6 +8715,17 @@
         }
       }
     },
+    "密码与描述" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passphrase & Description"
+          }
+        }
+      }
+    },
     "密码尝试次数过多，请在 %ld 秒后重试" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8264,6 +8733,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Too many failed attempts. Try again in %ld seconds."
+          }
+        }
+      }
+    },
+    "密码用于加密私钥，可留空；自动生成将同时生成公私钥对。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The passphrase encrypts the private key and can be empty; auto-generate creates a full key pair."
           }
         }
       }
@@ -8301,6 +8781,17 @@
         }
       }
     },
+    "密码需与私钥的加密密码一致，未加密私钥可留空。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The passphrase must match the private key encryption; leave it empty for unencrypted keys."
+          }
+        }
+      }
+    },
     "密钥" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8308,6 +8799,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Private Key"
+          }
+        }
+      }
+    },
+    "密钥「%@」已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key \"%@\" created"
+          }
+        }
+      }
+    },
+    "密钥「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "密钥「%@」已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key \"%@\" updated"
+          }
+        }
+      }
+    },
+    "密钥与会话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keys & Sessions"
+          }
+        }
+      }
+    },
+    "密钥内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key Content"
+          }
+        }
+      }
+    },
+    "密钥同步完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key sync completed"
+          }
+        }
+      }
+    },
+    "密钥文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key Files"
           }
         }
       }
@@ -8385,6 +8953,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Import Method"
+          }
+        }
+      }
+    },
+    "导出" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        }
+      }
+    },
+    "导出失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export failed: %@"
           }
         }
       }
@@ -8990,6 +9580,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pinned"
+          }
+        }
+      }
+    },
+    "已复制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
           }
         }
       }
@@ -9731,6 +10332,17 @@
         }
       }
     },
+    "开机自动挂载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mount at boot"
+          }
+        }
+      }
+    },
     "开机自启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9771,6 +10383,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Force Delete: remove the node even if it is abnormal or offline. Delete Node Data: also uninstall the 1Panel service installed on the node."
+          }
+        }
+      }
+    },
+    "强制删除（密钥已被使用时仍删除）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Delete (delete even if in use)"
           }
         }
       }
@@ -9870,6 +10493,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current Access"
+          }
+        }
+      }
+    },
+    "当前没有在线的 SSH 会话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No SSH sessions are currently online"
           }
         }
       }
@@ -10083,6 +10717,17 @@
         }
       }
     },
+    "总容量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Capacity"
+          }
+        }
+      }
+    },
     "总握手次数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10112,6 +10757,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Always pull image (force pull)"
+          }
+        }
+      }
+    },
+    "总览" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overview"
           }
         }
       }
@@ -10391,6 +11047,17 @@
         }
       }
     },
+    "手动输入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual Input"
+          }
+        }
+      }
+    },
     "手动输入桶名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10556,6 +11223,17 @@
         }
       }
     },
+    "扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan"
+          }
+        }
+      }
+    },
     "扫描器过滤" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10666,6 +11344,28 @@
         }
       }
     },
+    "挂载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mount"
+          }
+        }
+      }
+    },
+    "挂载分区" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mount Partition"
+          }
+        }
+      }
+    },
     "挂载卷" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10677,6 +11377,50 @@
         }
       }
     },
+    "挂载失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mount failed: %@"
+          }
+        }
+      }
+    },
+    "挂载失败不影响系统启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System boot unaffected by mount failure (nofail)"
+          }
+        }
+      }
+    },
+    "挂载点：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mount point: %@"
+          }
+        }
+      }
+    },
+    "挂载目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mount Point"
+          }
+        }
+      }
+    },
     "挂载目录「%@」的磁盘占用过高告警" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10684,6 +11428,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "High disk usage on \"%@\""
+          }
+        }
+      }
+    },
+    "挂载设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mount Settings"
           }
         }
       }
@@ -10765,6 +11520,17 @@
         }
       }
     },
+    "授权密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authorized Keys"
+          }
+        }
+      }
+    },
     "授权文件已上传" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10772,6 +11538,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "License file uploaded"
+          }
+        }
+      }
+    },
+    "授权文件过大，请确认选择的是许可证文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "License file is too large. Make sure you selected the license file"
           }
         }
       }
@@ -11480,6 +12257,17 @@
         }
       }
     },
+    "数据磁盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Disks"
+          }
+        }
+      }
+    },
     "数据解析失败: %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11509,6 +12297,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Files"
+          }
+        }
+      }
+    },
+    "文件上传" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload Files"
           }
         }
       }
@@ -11557,6 +12356,61 @@
         }
       }
     },
+    "文件系统" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File System"
+          }
+        }
+      }
+    },
+    "文件系统沿用分区现有格式（%@），不可更改。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The filesystem follows the partition's existing format (%@) and cannot be changed."
+          }
+        }
+      }
+    },
+    "文件超过 %ld KB，暂不支持预览" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files over %ld KB cannot be previewed"
+          }
+        }
+      }
+    },
+    "文件过大（%ld KB），请选择密钥文本文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File too large (%ld KB); please choose a key text file"
+          }
+        }
+      }
+    },
+    "文件过大（%ld KB），请选择证书/私钥文本文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File too large (%ld KB). Please choose a certificate/private key text file"
+          }
+        }
+      }
+    },
     "文档" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11575,6 +12429,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Documentation Source"
+          }
+        }
+      }
+    },
+    "断开" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnect"
           }
         }
       }
@@ -11630,6 +12495,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "New Password"
+          }
+        }
+      }
+    },
+    "新建分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Group"
+          }
+        }
+      }
+    },
+    "新建密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Key"
           }
         }
       }
@@ -11722,6 +12609,17 @@
         }
       }
     },
+    "无可用操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No actions available"
+          }
+        }
+      }
+    },
     "无可用版本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11806,6 +12704,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Could not load server info. Check the API key and network."
+          }
+        }
+      }
+    },
+    "无法读取该文件：请选择 UTF-8 文本格式的密钥文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot read this file: choose a UTF-8 text key file"
+          }
+        }
+      }
+    },
+    "无法读取该文件：请选择 UTF-8 文本格式的证书/私钥文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot read this file: please choose a certificate/private key file in UTF-8 text format"
           }
         }
       }
@@ -11986,6 +12906,17 @@
         }
       }
     },
+    "是否取消挂载分区 %@？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unmount partition %@?"
+          }
+        }
+      }
+    },
     "是否开启压缩传输" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12140,6 +13071,28 @@
         }
       }
     },
+    "暂无会话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Sessions"
+          }
+        }
+      }
+    },
+    "暂无分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Groups"
+          }
+        }
+      }
+    },
     "暂无反向代理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12268,6 +13221,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No containers"
+          }
+        }
+      }
+    },
+    "暂无密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Keys"
           }
         }
       }
@@ -12734,6 +13698,17 @@
         }
       }
     },
+    "更新于 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated %@"
+          }
+        }
+      }
+    },
     "更新仓库失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13009,6 +13984,17 @@
         }
       }
     },
+    "服务器未返回模块列表，请确认 OpenResty 已安装且面板版本支持模块功能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server returned no module list. Make sure OpenResty is installed and your panel version supports modules"
+          }
+        }
+      }
+    },
     "服务器概览" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13016,6 +14002,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Server Overview"
+          }
+        }
+      }
+    },
+    "服务器状态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server Status"
           }
         }
       }
@@ -13060,6 +14057,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unused images (%ld)"
+          }
+        }
+      }
+    },
+    "未分区" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unpartitioned"
+          }
+        }
+      }
+    },
+    "未分区磁盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unpartitioned Disks"
           }
         }
       }
@@ -13335,6 +14354,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No new version config received"
+          }
+        }
+      }
+    },
+    "未获取到磁盘信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No disk information available"
           }
         }
       }
@@ -13621,6 +14651,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Build request failed: %@"
+          }
+        }
+      }
+    },
+    "构建选项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build Options"
           }
         }
       }
@@ -14109,6 +15150,17 @@
         }
       }
     },
+    "此操作不可恢复。请输入密钥名称「%@」以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cannot be undone. Type the key name \"%@\" to confirm deletion."
+          }
+        }
+      }
+    },
     "此操作不可恢复。请输入应用名称「%@」以确认卸载。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14149,6 +15201,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This file type can't be previewed"
+          }
+        }
+      }
+    },
+    "此目录下没有子目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No subdirectories in this directory"
           }
         }
       }
@@ -14413,6 +15476,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Page Views"
+          }
+        }
+      }
+    },
+    "浏览目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse Directories"
           }
         }
       }
@@ -14919,6 +15993,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap + in the top-right corner to create the first command"
+          }
+        }
+      }
+    },
+    "点击右上角 + 新建分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create a group"
+          }
+        }
+      }
+    },
+    "点击右上角 + 新建密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create a key"
           }
         }
       }
@@ -15616,6 +16712,17 @@
         }
       }
     },
+    "目标" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target"
+          }
+        }
+      }
+    },
     "目标 IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15744,6 +16851,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SMS: %ld / %ld used"
+          }
+        }
+      }
+    },
+    "确定删除 \"%@ %@\" 吗？删除为全量覆盖提交，系统默认条目请谨慎移除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete \"%@ %@\"? Deletion submits the full list. Be careful removing system default entries."
           }
         }
       }
@@ -16177,6 +17295,28 @@
         }
       }
     },
+    "磁盘数量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disks"
+          }
+        }
+      }
+    },
+    "磁盘管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Management"
+          }
+        }
+      }
+    },
     "磁盘读" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16529,6 +17669,17 @@
         }
       }
     },
+    "立即分区" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partition Now"
+          }
+        }
+      }
+    },
     "立即同步" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16815,6 +17966,17 @@
         }
       }
     },
+    "粘贴 OpenSSH 格式的完整密钥文本，提交时将 base64 编码传输。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste the full OpenSSH key text; it will be transmitted base64-encoded."
+          }
+        }
+      }
+    },
     "粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16844,6 +18006,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paste Content"
+          }
+        }
+      }
+    },
+    "粘贴密钥内容…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste key content…"
           }
         }
       }
@@ -16910,6 +18083,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "System Logs"
+          }
+        }
+      }
+    },
+    "系统盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Disk"
+          }
+        }
+      }
+    },
+    "系统盘分区不支持取消挂载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System disk partitions cannot be unmounted"
+          }
+        }
+      }
+    },
+    "系统磁盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Disks"
           }
         }
       }
@@ -17332,6 +18538,17 @@
         }
       }
     },
+    "编辑密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Key"
+          }
+        }
+      }
+    },
     "编辑服务器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17706,6 +18923,17 @@
         }
       }
     },
+    "网络请求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network Requests"
+          }
+        }
+      }
+    },
     "网络连接已断开" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17834,6 +19062,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto Refresh"
+          }
+        }
+      }
+    },
+    "自动生成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Generate"
           }
         }
       }
@@ -18509,6 +19748,17 @@
         }
       }
     },
+    "设为默认" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set as Default"
+          }
+        }
+      }
+    },
     "设备" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18839,6 +20089,17 @@
         }
       }
     },
+    "该分组暂无任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Jobs in This Group"
+          }
+        }
+      }
+    },
     "该容器关联的应用不存在或已被卸载" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18967,6 +20228,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This port already exists"
+          }
+        }
+      }
+    },
+    "该类别暂无已安装应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Installed Apps in This Category"
+          }
+        }
+      }
+    },
+    "该类别暂无应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Apps in This Category"
           }
         }
       }
@@ -20709,6 +21992,17 @@
         }
       }
     },
+    "选择公钥文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Public Key File"
+          }
+        }
+      }
+    },
     "选择对象" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20775,6 +22069,17 @@
         }
       }
     },
+    "选择此目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose This Directory"
+          }
+        }
+      }
+    },
     "选择用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20786,6 +22091,17 @@
         }
       }
     },
+    "选择目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Directory"
+          }
+        }
+      }
+    },
     "选择磁盘" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20793,6 +22109,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose Disk"
+          }
+        }
+      }
+    },
+    "选择私钥文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Private Key File"
           }
         }
       }
@@ -21519,6 +22846,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Image (Return to add)"
+          }
+        }
+      }
+    },
+    "长按磁盘可进行分区；分区会格式化所选磁盘，请谨慎操作。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long-press a disk to partition it; partitioning formats the selected disk. Proceed with caution."
           }
         }
       }
@@ -22293,6 +23631,17 @@
         }
       }
     },
+    "默认分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Group"
+          }
+        }
+      }
+    },
     "默认打开端口外部访问" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22344,204 +23693,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Connection"
-          }
-        }
-      }
-    },
-    "DNS 地址格式不正确：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Invalid DNS address: %@"
-          }
-        }
-      }
-    },
-    "IP 地址格式不正确：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Invalid IP address: %@"
-          }
-        }
-      }
-    },
-    "IP 组（%ld）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IP Groups (%ld)"
-          }
-        }
-      }
-    },
-    "SOCKS5" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SOCKS5"
-          }
-        }
-      }
-    },
-    "二级功能" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Secondary Features"
-          }
-        }
-      }
-    },
-    "删除 Hosts 记录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Hosts Entry"
-          }
-        }
-      }
-    },
-    "删除端口规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Port Rule"
-          }
-        }
-      }
-    },
-    "扫描" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan"
-          }
-        }
-      }
-    },
-    "授权文件过大，请确认选择的是许可证文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "License file is too large. Make sure you selected the license file"
-          }
-        }
-      }
-    },
-    "文件超过 %ld KB，暂不支持预览" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Files over %ld KB cannot be previewed"
-          }
-        }
-      }
-    },
-    "文件过大（%ld KB），请选择证书/私钥文本文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File too large (%ld KB). Please choose a certificate/private key text file"
-          }
-        }
-      }
-    },
-    "无法读取该文件：请选择 UTF-8 文本格式的证书/私钥文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cannot read this file: please choose a certificate/private key file in UTF-8 text format"
-          }
-        }
-      }
-    },
-    "更新于 %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updated %@"
-          }
-        }
-      }
-    },
-    "服务器未返回模块列表，请确认 OpenResty 已安装且面板版本支持模块功能" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The server returned no module list. Make sure OpenResty is installed and your panel version supports modules"
-          }
-        }
-      }
-    },
-    "服务器状态" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Server Status"
-          }
-        }
-      }
-    },
-    "构建选项" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Build Options"
-          }
-        }
-      }
-    },
-    "确定删除 \"%@ %@\" 吗？删除为全量覆盖提交，系统默认条目请谨慎移除。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete \"%@ %@\"? Deletion submits the full list. Be careful removing system default entries."
-          }
-        }
-      }
-    },
-    "网络请求" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Network Requests"
           }
         }
       }

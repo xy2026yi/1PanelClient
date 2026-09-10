@@ -32,7 +32,18 @@ struct AppStoreTab: View {
 
     /// 列表根内容（不含 NavigationStack/task），供外层复用
     var storeRootContent: some View {
-        Group {
+        VStack(spacing: 0) {
+            // 类别筛选条放在分支外常驻：选中类别无应用时仍能切回「全部」（空 key 无法筛选，剔除）
+            if !vm.tags.isEmpty {
+                ChipsFilterBar(
+                    items: vm.tags
+                        .filter { !($0.key ?? "").isEmpty }
+                        .map { .init(id: $0.key ?? "", title: $0.displayName) },
+                    allID: "",
+                    selectedID: $vm.selectedTagKey
+                )
+            }
+
             if vm.isLoading && vm.apps.isEmpty {
                 LoadingStateView()
             } else if let err = vm.errorMessage, !err.isEmpty, vm.apps.isEmpty {
@@ -40,7 +51,14 @@ struct AppStoreTab: View {
                     Task { await vm.refresh() }
                 }
             } else if vm.apps.isEmpty {
-                ContentUnavailableView.search(text: searchText)
+                if !vm.selectedTagKey.isEmpty && searchText.isEmpty {
+                    ContentUnavailableView(
+                        L10n.t("该类别暂无应用"),
+                        systemImage: "square.grid.2x2"
+                    )
+                } else {
+                    ContentUnavailableView.search(text: searchText)
+                }
             } else {
                 appList
             }
@@ -97,6 +115,10 @@ struct AppStoreTab: View {
         }
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
+        }
+        .onChange(of: vm.selectedTagKey) { _, _ in
+            // 切换类别：沿用当前搜索词重查
+            Task { await vm.search(query: searchText) }
         }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
@@ -874,6 +896,11 @@ final class AppStoreViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
+    // 类别筛选（GET /api/v2/apps/tags，筛选传 key）
+    @Published var tags: [AppTagInfo] = []
+    /// 当前筛选类别（空串 = 全部）
+    @Published var selectedTagKey = ""
+
     // 安装相关
     @Published var showInstall = false
     @Published var installDetail: AppStoreDetail?
@@ -900,7 +927,24 @@ final class AppStoreViewModel: ObservableObject {
     }
 
     func refresh() async {
-        await search(query: "")
+        async let list: () = search(query: "")
+        async let tagList: () = loadTags()
+        _ = await (list, tagList)
+    }
+
+    /// 加载应用类别（筛选条数据源；失败静默，筛选条不展示）
+    func loadTags() async {
+        guard tags.isEmpty else { return }
+        do {
+            tags = try await client.send(
+                path: APIEndpoint.appsTags.path,
+                method: APIEndpoint.appsTags.method,
+                as: [AppTagInfo].self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            tags = []
+        }
     }
 
     func search(query: String) async {
@@ -911,7 +955,8 @@ final class AppStoreViewModel: ObservableObject {
         let req = AppSearchRequest(
             name: query, page: 1, pageSize: 200,
             recommend: false, resource: "", showCurrentArch: false,
-            tags: [], type: ""
+            tags: selectedTagKey.isEmpty ? [] : [selectedTagKey],
+            type: ""
         )
         do {
             let resp: AppSearchResponse = try await client.send(

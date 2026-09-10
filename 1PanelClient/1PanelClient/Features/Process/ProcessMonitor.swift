@@ -6,7 +6,8 @@
 //  ws://host/api/v2/process/ws?operateNode=local
 //  发送 {"type":"ps","username":"","name":""} → 接收进程列表 JSON
 //  发送 {"type":"net","processName":""} → 接收网络连接列表 JSON
-//  POST /api/v2/process/stop {"PID":123} → 结束进程
+//  发送 {"type":"ssh","loginUser":""} → 接收 SSH 在线会话列表 JSON（会话页复用本监控）
+//  POST /api/v2/process/stop {"PID":123} → 结束进程 / 断开指定会话
 //
 
 import Foundation
@@ -42,6 +43,33 @@ struct ProcessItem: Decodable, Identifiable, Hashable {
     }
 
     var id: Int { pid }
+}
+
+// MARK: - SSH 在线会话模型
+
+/// SSH 在线会话（process/ws type=ssh 响应项，见 logs/SSH服务管理.md）
+struct SSHSessionItem: Decodable, Identifiable, Hashable {
+    let username: String?
+    let pid: Int
+    let terminal: String?
+    let host: String?
+    let loginTime: String?
+
+    enum CodingKeys: String, CodingKey {
+        case pid = "PID"
+        case username, terminal, host, loginTime
+    }
+
+    var id: Int { pid }
+
+    /// 会话标识（用户@来源，操作菜单标题用）
+    var displayTitle: String {
+        let user = username?.isEmpty == false ? username! : "—"
+        if let host, !host.isEmpty {
+            return "\(user)@\(host)"
+        }
+        return user
+    }
 }
 
 // MARK: - 网络连接模型
@@ -85,6 +113,8 @@ private struct WSRequest: Encodable {
     let username: String?
     let name: String?
     let processName: String?
+    /// type=ssh 时的登录用户过滤（空串 = 全部）
+    let loginUser: String?
 }
 
 // MARK: - 结束进程请求
@@ -102,6 +132,7 @@ struct StopProcessRequest: Encodable {
 final class ProcessMonitor: ObservableObject {
     @Published private(set) var processes: [ProcessItem] = []
     @Published private(set) var connections: [NetworkConnection] = []
+    @Published private(set) var sessions: [SSHSessionItem] = []
     @Published private(set) var isConnected = false
     @Published private(set) var isConnecting = false
     @Published private(set) var isStopping = false
@@ -112,9 +143,11 @@ final class ProcessMonitor: ObservableObject {
     @Published var errorMessage: String?
     @Published var successMessage: String?
 
+    /// 进程页的模式切换仅限进程/网络；会话模式由 SSH 会话页使用（type=ssh）
     enum MonitorMode: String, CaseIterable, Identifiable {
         case processes = "进程"
         case network = "网络"
+        case sessions = "会话"
         var id: String { rawValue }
     }
 
@@ -224,6 +257,7 @@ final class ProcessMonitor: ObservableObject {
         isConnecting = false
         processes = []
         connections = []
+        sessions = []
     }
 
     // MARK: - 节点切换防护
@@ -251,18 +285,26 @@ final class ProcessMonitor: ObservableObject {
         switch mode {
         case .processes: requestProcesses()
         case .network:   requestNetwork()
+        case .sessions:  requestSessions()
         }
     }
 
     func requestProcesses(username: String = "", name: String = "") {
         guard let task else { return }
-        let req = WSRequest(type: "ps", username: username, name: name, processName: nil)
+        let req = WSRequest(type: "ps", username: username, name: name, processName: nil, loginUser: nil)
         sendWS(task, req)
     }
 
     func requestNetwork(processName: String = "") {
         guard let task else { return }
-        let req = WSRequest(type: "net", username: nil, name: nil, processName: processName)
+        let req = WSRequest(type: "net", username: nil, name: nil, processName: processName, loginUser: nil)
+        sendWS(task, req)
+    }
+
+    /// SSH 在线会话（{"type":"ssh","loginUser":""}，空用户 = 全部）
+    func requestSessions(loginUser: String = "") {
+        guard let task else { return }
+        let req = WSRequest(type: "ssh", username: nil, name: nil, processName: nil, loginUser: loginUser)
         sendWS(task, req)
     }
 
@@ -288,6 +330,24 @@ final class ProcessMonitor: ObservableObject {
                 path: APIEndpoint.processStop.path, body: req, as: EmptyResponse.self
             )
             successMessage = L10n.f("进程 %ld 已结束", pid)
+            requestCurrent()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 断开指定 SSH 会话（与结束进程同接口：POST /api/v2/process/stop {"PID":n}）
+    func stopSession(pid: Int) async {
+        isStopping = true
+        errorMessage = nil
+        successMessage = nil
+        defer { isStopping = false }
+        let req = StopProcessRequest(pid: pid)
+        do {
+            let _: EmptyResponse = try await apiClient.send(
+                path: APIEndpoint.processStop.path, body: req, as: EmptyResponse.self
+            )
+            successMessage = L10n.t("会话已断开")
             requestCurrent()
         } catch {
             errorMessage = error.localizedDescription
@@ -324,13 +384,17 @@ final class ProcessMonitor: ObservableObject {
         }
     }
 
-    /// 区分进程列表 vs 网络连接：检查首元素是否含 "type" 键
+    /// 区分三种响应：会话（含 loginTime 键）/ 网络连接（含 type 键）/ 进程列表
     private func parseResponse(_ text: String) {
         guard let jsonData = text.data(using: .utf8) else { return }
         guard let array = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]],
               let first = array.first else { return }
 
-        if first["type"] != nil {
+        if first["loginTime"] != nil {
+            if let decoded = try? JSONDecoder().decode([SSHSessionItem].self, from: jsonData) {
+                sessions = decoded
+            }
+        } else if first["type"] != nil {
             if let decoded = try? JSONDecoder().decode([NetworkConnection].self, from: jsonData) {
                 connections = decoded.sorted { $0.name < $1.name }
             }

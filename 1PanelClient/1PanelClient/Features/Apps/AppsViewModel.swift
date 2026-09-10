@@ -25,7 +25,14 @@ final class AppsViewModel: ObservableObject {
     private var loadGeneration = 0
     /// 追加页需沿用当前搜索词（否则翻页结果与首屏不是同一筛选）
     private var lastQuery = ""
+    /// 追加页同样沿用当前类别筛选（否则切换类别后旧类别的追加页会串页）
+    private var lastTagKey = ""
     private static let pageSize = 100
+
+    // 类别筛选（GET /api/v2/apps/tags，筛选传 key）
+    @Published var tags: [AppTagInfo] = []
+    /// 当前筛选类别（空串 = 全部）
+    @Published var selectedTagKey = ""
 
     // 升级相关
     @Published var showUpgradeSheet = false
@@ -75,7 +82,24 @@ final class AppsViewModel: ObservableObject {
     }
 
     func refresh() async {
-        await load(query: "")
+        async let list: () = load(query: "")
+        async let tagList: () = loadTags()
+        _ = await (list, tagList)
+    }
+
+    /// 加载应用类别（筛选条数据源；失败静默，筛选条不展示）
+    func loadTags() async {
+        guard tags.isEmpty else { return }
+        do {
+            tags = try await client.send(
+                path: APIEndpoint.appsTags.path,
+                method: APIEndpoint.appsTags.method,
+                as: [AppTagInfo].self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            tags = []
+        }
     }
 
     func search(query: String) async {
@@ -116,6 +140,7 @@ final class AppsViewModel: ObservableObject {
         defer { isLoading = false }
         loadGeneration += 1
         lastQuery = query
+        lastTagKey = selectedTagKey
         page = 1
 
         // update=false 返回全部应用但 canUpdate 始终 false（后端不计算）
@@ -123,10 +148,12 @@ final class AppsViewModel: ObservableObject {
         // 通过 logs/输出20.log 验证：两者 total 不同
         // 解决方案：先拿全部应用，再并发拿可更新列表，用后者标记前者的 canUpdate
         let allReq = AppInstalledSearchRequest(
-            page: 1, pageSize: Self.pageSize, name: query, type: "", tags: [],
+            page: 1, pageSize: Self.pageSize, name: query, type: "",
+            tags: selectedTagKey.isEmpty ? [] : [selectedTagKey],
             update: false, all: false, unused: false, sync: false
         )
-        // 查询可更新列表时不用 name 过滤，因为可能被搜索词过滤掉
+        // 查询可更新列表时不用 name/tags 过滤（仅用于合并 canUpdate 徽章，
+        // 取全量超集即可，避免把已加载应用的可更新状态过滤掉）
         let updatableReq = AppInstalledSearchRequest(
             page: 1, pageSize: 100, name: "", type: "", tags: [],
             update: true, all: false, unused: false, sync: false
@@ -211,7 +238,8 @@ final class AppsViewModel: ObservableObject {
         let gen = loadGeneration
 
         let allReq = AppInstalledSearchRequest(
-            page: next, pageSize: Self.pageSize, name: lastQuery, type: "", tags: [],
+            page: next, pageSize: Self.pageSize, name: lastQuery, type: "",
+            tags: lastTagKey.isEmpty ? [] : [lastTagKey],
             update: false, all: false, unused: false, sync: false
         )
         let updatableReq = AppInstalledSearchRequest(

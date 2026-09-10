@@ -27,6 +27,9 @@ struct CreateWebsiteView: View {
     @State private var enableSSL = false
     @State private var selectedSSLId: Int? = nil
 
+    // 分组（0 = 未初始化，task 加载后回落默认分组）
+    @State private var selectedGroupID = 0
+
     // 本地反馈
     @State private var showLocalAlert = false
     @State private var localAlertMessage: String?
@@ -61,6 +64,25 @@ struct CreateWebsiteView: View {
                             .multilineTextAlignment(.trailing)
                     }
                     TextField(L10n.t("备注（可选）"), text: $remark)
+
+                    // 分组（未加载到分组数据时仅展示默认分组占位）
+                    if vm.groups.isEmpty {
+                        HStack {
+                            Text(L10n.t("分组"))
+                            Spacer()
+                            Text(L10n.t("默认分组"))
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Picker(L10n.t("分组"), selection: $selectedGroupID) {
+                            // tag(0) 兜底：分组数据先于初值就绪的一帧内 selection 仍为 0，
+                            // 缺少对应 tag 会触发 Picker invalid selection 运行时警告
+                            Text(L10n.t("默认分组")).tag(0)
+                            ForEach(vm.groups) { group in
+                                Text(group.displayName).tag(group.id)
+                            }
+                        }
+                    }
                 } header: {
                     Text(L10n.t("域名"))
                 } footer: {
@@ -125,9 +147,16 @@ struct CreateWebsiteView: View {
             }
             .task {
                 await vm.loadCreateData(type: selectedType)
+                if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
             }
             .onChange(of: selectedType) { _, newType in
                 Task { await vm.loadCreateData(type: newType) }
+            }
+            .onChange(of: vm.groups) { _, _ in
+                // 分组数据晚于表单出现时回落默认分组（重命名默认组后 tag 找回）
+                if selectedGroupID == 0 || !vm.groups.contains(where: { $0.id == selectedGroupID }) {
+                    selectedGroupID = vm.defaultGroupID
+                }
             }
             .alert(L10n.t("提示"), isPresented: $showLocalAlert) {
                 Button(L10n.t("好的"), role: .cancel) {
@@ -209,6 +238,8 @@ struct CreateWebsiteView: View {
         req.alias = primaryDomain.split(separator: ":").first.map(String.init) ?? primaryDomain
         req.primaryDomain = ""
         req.remark = remark
+        // 分组（0 = 未选中，回落默认分组）
+        req.webSiteGroupId = selectedGroupID != 0 ? selectedGroupID : vm.defaultGroupID
         req.enableSSL = enableSSL
         req.websiteSSLID = selectedSSLId ?? 0
         req.taskID = UUID().uuidString

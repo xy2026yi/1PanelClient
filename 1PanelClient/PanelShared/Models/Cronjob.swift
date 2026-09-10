@@ -73,12 +73,14 @@ enum CronjobType: String, CaseIterable, Identifiable, Codable {
 
 // MARK: - 计划任务列表
 
-/// 计划任务搜索请求
+/// 计划任务搜索请求（agent/app/dto PageCronjob）
 nonisolated struct CronjobSearchRequest: Encodable {
     var page: Int = 1
     var pageSize: Int = 20
     var orderBy: String = "createdAt"
     var order: String = "null"
+    /// 分组筛选（注意服务端是复数数组；空数组 = 全部）
+    var groupIDs: [Int] = []
 }
 
 /// 计划任务列表响应
@@ -246,13 +248,8 @@ nonisolated struct CronjobInfo: Decodable {
 
 // MARK: - 创建/编辑计划任务
 
-/// 计划任务分组（response.CronjobGroup）
-nonisolated struct CronjobGroup: Decodable, Identifiable, Hashable {
-    let id: Int
-    let name: String?
-    let type: String?
-    let isDefault: Bool?
-}
+// 分组模型统一见 PanelShared/Models/Group.swift（PanelGroup），
+// 计划任务/脚本/网站三套分组 DTO 一致
 
 /// 备份账号
 nonisolated struct BackupOption: Decodable, Identifiable, Hashable {
@@ -268,11 +265,6 @@ nonisolated struct DBItemOption: Decodable, Identifiable, Hashable {
     let from: String?
     let database: String?     // 服务名，如 "mysql"
     let name: String?         // 数据库名
-}
-
-/// 分组查询请求
-nonisolated struct CronjobGroupRequest: Encodable {
-    let type: String
 }
 
 /// 手动执行计划任务请求

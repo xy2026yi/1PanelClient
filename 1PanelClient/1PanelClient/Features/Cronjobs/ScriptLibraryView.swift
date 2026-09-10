@@ -20,6 +20,10 @@ final class ScriptLibraryViewModel: ObservableObject {
     @Published var toastMessage: String?
     /// 脚本库自动同步开关（settings.search → scriptSync）
     @Published var isAutoSyncEnabled = false
+    /// 分组（列表筛选数据源）
+    @Published var groups: [PanelGroup] = []
+    /// 当前筛选分组（0 = 全部）
+    @Published var selectedGroupID = 0
 
     private var client: APIClient
 
@@ -31,7 +35,7 @@ final class ScriptLibraryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
-        let req = ScriptSearchRequest(info: query, groupID: 0, page: 1, pageSize: 100)
+        let req = ScriptSearchRequest(info: query, groupID: selectedGroupID, page: 1, pageSize: 100)
         do {
             let resp: PageResponse<ScriptItem> = try await client.send(
                 path: APIEndpoint.scriptSearch.path, body: req,
@@ -43,6 +47,27 @@ final class ScriptLibraryViewModel: ObservableObject {
             guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
             self.scripts = []
+        }
+    }
+
+    /// 加载脚本库分组（筛选条数据源；失败静默）
+    /// - Parameter force: true 强制重查（分组管理页变更后）
+    func loadGroups(force: Bool = false) async {
+        guard force || groups.isEmpty else { return }
+        do {
+            let items: [PanelGroup] = try await client.send(
+                path: GroupScope.script.searchPath,
+                body: GroupSearchRequest(type: GroupScope.script.type),
+                as: [PanelGroup].self
+            )
+            groups = items
+            // 选中的分组已被删除：回落「全部」
+            if selectedGroupID != 0, !items.contains(where: { $0.id == selectedGroupID }) {
+                selectedGroupID = 0
+            }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            if force { groups = [] }
         }
     }
 
@@ -134,6 +159,8 @@ struct ScriptLibraryView: View {
     @State private var confirmEnableAutoSync = false
     /// 同步任务 ID（非 nil 时 push 任务进度页）
     @State private var syncTaskID: String?
+    // 分组管理入口（三点菜单；选择脚本模式下不展示）
+    @State private var showGroupManage = false
 
     private let server: ServerConfig
 
@@ -149,7 +176,18 @@ struct ScriptLibraryView: View {
     }
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            // 分组筛选条放在分支外常驻（末尾「管理」入口推入分组管理页）：
+            // 选中分组无脚本时仍能切回「全部」；选择脚本模式（创建计划任务选稿）
+            // 下不显示管理入口
+            if !vm.groups.isEmpty {
+                GroupFilterBar(
+                    groups: vm.groups,
+                    selectedID: $vm.selectedGroupID,
+                    onManage: onPick == nil ? { showGroupManage = true } : nil
+                )
+            }
+
             if vm.isLoading && vm.scripts.isEmpty {
                 LoadingStateView()
             } else if let err = vm.errorMessage, !err.isEmpty, vm.scripts.isEmpty {
@@ -193,14 +231,16 @@ struct ScriptLibraryView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("立即同步")) { confirmSyncNow = true },
-                    .action(title: vm.isAutoSyncEnabled ? L10n.t("关闭自动同步") : L10n.t("开启自动同步")) {
+                    .action(title: L10n.t("立即同步"), icon: "arrow.trianglehead.2.clockwise.rotate.90") { confirmSyncNow = true },
+                    .action(title: vm.isAutoSyncEnabled ? L10n.t("关闭自动同步") : L10n.t("开启自动同步"),
+                            icon: "exclamationmark.arrow.trianglehead.2.clockwise.rotate.90") {
                         if vm.isAutoSyncEnabled {
                             confirmDisableAutoSync = true
                         } else {
                             confirmEnableAutoSync = true
                         }
                     },
+                    // 分组管理入口已移至筛选条末尾「管理」chip（推页呈现）
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
                 }
@@ -252,6 +292,8 @@ struct ScriptLibraryView: View {
             }
         }
         .task {
+            // 分组筛选条数据源（首次进入加载一次，失败静默）
+            await vm.loadGroups()
             // 重访（已有快照）时门控不转圈，这里静默刷新（5 秒内重访节流）
             await PageVMStore.shared.autoRefresh(vm: vm) {
                 await vm.load()
@@ -263,6 +305,22 @@ struct ScriptLibraryView: View {
             searchTask = Task {
                 try? await Task.sleep(for: .milliseconds(300))
                 if !Task.isCancelled { await vm.load(query: newValue) }
+            }
+        }
+        .onChange(of: vm.selectedGroupID) { _, _ in
+            // 切换分组：沿用当前搜索词重查（与搜索同款 300ms 防抖）
+            searchTask?.cancel()
+            searchTask = Task {
+                try? await Task.sleep(for: .milliseconds(300))
+                if !Task.isCancelled { await vm.load(query: searchText) }
+            }
+        }
+        .navigationDestination(isPresented: $showGroupManage) {
+            GroupManageView(server: server, scope: .script) {
+                Task {
+                    await vm.loadGroups(force: true)
+                    await vm.load(query: searchText)
+                }
             }
         }
     }

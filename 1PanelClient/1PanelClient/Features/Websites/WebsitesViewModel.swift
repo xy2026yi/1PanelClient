@@ -24,7 +24,14 @@ final class WebsitesViewModel: ObservableObject {
     private var loadGeneration = 0
     /// 追加页需沿用当前搜索词（否则翻页结果与首屏不是同一筛选）
     private var lastQuery = ""
+    /// 追加页同样沿用当前筛选分组（否则切换分组后旧分组的追加页会串页）
+    private var lastGroupID = 0
     private static let pageSize = 20
+
+    // 分组（列表筛选 + 创建表单 Picker 数据源）
+    @Published var groups: [PanelGroup] = []
+    /// 当前筛选分组（0 = 全部）
+    @Published var selectedGroupID = 0
 
     // 创建网站相关
     @Published var isCreating = false
@@ -64,11 +71,12 @@ final class WebsitesViewModel: ObservableObject {
         openresty == nil && openRestyCheck?.isExist == false
     }
 
-    /// - Parameter force: true 强制刷新（下拉/安装完成后的重查）；false 仅首次加载
+    /// - Parameter force: true 强制刷新（下拉/安装完成/分组变更后的重查）；false 仅首次加载
     func refresh(force: Bool = false) async {
         async let sites: () = load(query: "")
         async let openResty: () = loadOpenResty(force: force)
-        _ = await (sites, openResty)
+        async let groups: () = loadGroups(force: force)
+        _ = await (sites, openResty, groups)
     }
 
     func search(query: String) async {
@@ -81,6 +89,7 @@ final class WebsitesViewModel: ObservableObject {
         defer { isLoading = false }
         loadGeneration += 1
         lastQuery = query
+        lastGroupID = selectedGroupID
         page = 1
 
         let req = WebsiteSearchRequest(
@@ -89,7 +98,7 @@ final class WebsitesViewModel: ObservableObject {
             pageSize: Self.pageSize,
             orderBy: "favorite",
             order: "descending",
-            websiteGroupId: 0,
+            websiteGroupId: selectedGroupID,
             type: ""
         )
         do {
@@ -125,7 +134,7 @@ final class WebsitesViewModel: ObservableObject {
             pageSize: Self.pageSize,
             orderBy: "favorite",
             order: "descending",
-            websiteGroupId: 0,
+            websiteGroupId: lastGroupID,
             type: ""
         )
         do {
@@ -153,8 +162,36 @@ final class WebsitesViewModel: ObservableObject {
 
     // MARK: - 创建网站
 
-    /// 加载创建网站所需的公共数据（可用应用 + SSL 证书）
+    /// 加载网站分组（列表筛选条与创建表单共用；失败静默，不阻塞网站列表）
+    /// - Parameter force: true 强制重查（分组管理页变更后）
+    func loadGroups(force: Bool = false) async {
+        guard force || groups.isEmpty else { return }
+        do {
+            let items: [PanelGroup] = try await client.send(
+                path: GroupScope.website.searchPath,
+                body: GroupSearchRequest(type: GroupScope.website.type),
+                as: [PanelGroup].self
+            )
+            groups = items
+            // 选中的分组已被删除：回落「全部」
+            if selectedGroupID != 0, !items.contains(where: { $0.id == selectedGroupID }) {
+                selectedGroupID = 0
+            }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            if force { groups = [] }
+        }
+    }
+
+    /// 默认分组 ID（创建表单初值；无分组数据时回退 1，对齐服务端默认组）
+    var defaultGroupID: Int {
+        groups.first(where: { $0.isDefault == true })?.id ?? groups.first?.id ?? 1
+    }
+
+    /// 加载创建网站所需的公共数据（可用应用 + SSL 证书 + 分组）
     func loadCreateData(type: WebsiteType) async {
+        // 分组 Picker 数据源（已加载则秒回；失败时表单回退「默认分组」占位）
+        await loadGroups()
         isLoadingCreateData = true
         defer { isLoadingCreateData = false }
 

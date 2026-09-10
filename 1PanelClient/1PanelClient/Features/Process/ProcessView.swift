@@ -126,7 +126,8 @@ struct ProcessView: View {
 
     private var modePicker: some View {
         Picker("", selection: $monitor.mode) {
-            ForEach(ProcessMonitor.MonitorMode.allCases) { m in
+            // 仅进程/网络：会话模式（type=ssh）由 SSH 服务管理的会话页专用，不进本页切换器
+            ForEach([ProcessMonitor.MonitorMode.processes, .network]) { m in
                 Text(m.rawValue).tag(m)
             }
         }
@@ -175,6 +176,7 @@ struct ProcessView: View {
         switch monitor.mode {
         case .processes: return L10n.f("%ld 个进程", filteredProcesses.count)
         case .network:   return L10n.f("%ld 个连接", filteredConnections.count)
+        case .sessions:  return ""  // 会话模式不在本页展示
         }
     }
 

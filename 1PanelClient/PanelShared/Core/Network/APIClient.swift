@@ -78,8 +78,10 @@ final class APIClient {
             "Content-Type": "application/json",
             // 1Panel 后端按 Accept-Language 本地化 API message（go-i18n）：
             // 跟随 App 生效语言，英文模式下后端错误/提示文案不再是中文。
-            // 更新日志 content 仍由面板端运行环境（edition）决定，不受此影响
-            "Accept-Language": L10n.shared.isEnglishEffective ? "en" : "zh-CN"
+            // 更新日志 content 仍由面板端运行环境（edition）决定，不受此影响。
+            // 注意发 "zh" 而非 "zh-CN"：后端 tags 等接口的翻译表以 toLower(原始头) 为 key
+            // 精确匹配（common.GetLang 原样返回），"zh-cn" 会查不到而回落空串
+            "Accept-Language": L10n.shared.isEnglishEffective ? "en" : "zh"
         ]
         // 多机管理：注入当前操作节点（core/init/router/proxy.go 按此路由到对应 agent；
         // 未设置 = local 本机；显式 ?operateNode= 查询参数优先级更高，不受此影响）

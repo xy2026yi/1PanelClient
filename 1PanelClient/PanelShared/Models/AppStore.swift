@@ -28,6 +28,23 @@ nonisolated struct AppSearchResponse: Decodable {
     let items: [AppStoreApp]?
 }
 
+/// 应用类别（GET /api/v2/apps/tags；商店与已安装应用的 tags 筛选均传 key，如 "AI"）
+nonisolated struct AppTagInfo: Decodable, Hashable, Sendable, Identifiable {
+    let key: String?
+    let name: String?
+
+    /// 展示名（本地化类别名；空串/缺失时逐级回退 key，再回退占位符。
+    /// 服务端存在 name 为空串的类别，直接展示会渲染成无文字的空白 chip）
+    var displayName: String {
+        if let name, !name.isEmpty { return name }
+        if let key, !key.isEmpty { return key }
+        return "—"
+    }
+
+    /// chips 筛选条 ForEach 的稳定标识（服务端数值 id 未用，直接以 key 为准）
+    var id: String { key ?? displayName }
+}
+
 /// 应用商店列表项（response.AppItem）
 nonisolated struct AppStoreApp: Decodable, Identifiable, Hashable, Sendable {
     let id: Int

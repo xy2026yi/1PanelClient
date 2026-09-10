@@ -19,6 +19,8 @@ struct CreateCronjobView: View {
 
     @State private var type: CronjobType = .shell
     @State private var name = ""
+    /// 所属分组（0 = 未初始化，加载后回落默认分组）
+    @State private var selectedGroupID = 0
     // 周期（支持多个）
     @State private var schedules: [ScheduleItem] = [ScheduleItem()]
     // Shell
@@ -169,6 +171,25 @@ struct CreateCronjobView: View {
                 Picker(L10n.t("任务类型"), selection: $type) {
                     ForEach(CronjobType.allCases) { t in
                         Label(t.displayName, systemImage: t.icon).tag(t)
+                    }
+                }
+
+                // 分组（未加载到分组数据时仅展示默认分组占位）
+                if vm.groups.isEmpty {
+                    HStack {
+                        Text(L10n.t("分组"))
+                        Spacer()
+                        Text(L10n.t("默认分组"))
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Picker(L10n.t("分组"), selection: $selectedGroupID) {
+                        // tag(0) 兜底：分组数据先于初值就绪的一帧内 selection 仍为 0，
+                        // 缺少对应 tag 会触发 Picker invalid selection 运行时警告
+                        Text(L10n.t("默认分组")).tag(0)
+                        ForEach(vm.groups) { group in
+                            Text(group.displayName).tag(group.id)
+                        }
                     }
                 }
             }
@@ -334,11 +355,18 @@ struct CreateCronjobView: View {
         }
         .task {
             await vm.loadCreateOptions()
+            if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
             if let info = editingJob, !hasPrefilled {
                 prefill(from: info)
                 hasPrefilled = true
             }
             await vm.loadDBItems(dbType: dbType.rawValue)
+        }
+        .onChange(of: vm.groups) { _, _ in
+            // 分组数据晚于表单出现时回落默认分组（选中项被删时找回）
+            if selectedGroupID == 0 || !vm.groups.contains(where: { $0.id == selectedGroupID }) {
+                selectedGroupID = vm.defaultGroupID
+            }
         }
         .sheet(isPresented: $showScriptPicker) {
             NavigationStack {
@@ -462,8 +490,8 @@ struct CreateCronjobView: View {
         req.name = name
         req.type = type.rawValue
         req.retainCopies = retainCopies
-        // 默认分组（不传则任务会显示在「-」分组）
-        req.groupID = vm.defaultGroupID
+        // 分组（0 = 未选中，回落默认分组）
+        req.groupID = selectedGroupID != 0 ? selectedGroupID : vm.defaultGroupID
 
         // 周期（支持多个：spec 用 && 连接，specObjs 与 specs 逐项对应）
         let cronSpecs = schedules.map { $0.cronSpec }
@@ -527,6 +555,8 @@ struct CreateCronjobView: View {
     private func prefill(from info: CronjobInfo) {
         name = info.name ?? ""
         type = info.jobType
+        // 分组（沿用任务原分组）
+        selectedGroupID = info.groupID ?? 0
 
         // 解析 cron 表达式回填周期控件（支持多个周期，spec 以 && 分隔）
         if let spec = info.spec, !spec.isEmpty {

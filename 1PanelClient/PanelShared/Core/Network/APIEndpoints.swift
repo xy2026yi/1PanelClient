@@ -147,13 +147,22 @@ enum APIEndpoint {
     case cronjobsStatus           // POST 启用/停用计划任务
     case cronjobsDelete           // POST 删除计划任务
     case cronjobsRecords          // POST 查询计划任务执行记录
-    case cronjobsGroups           // POST 查询计划任务分组
     case cronjobsBackups          // GET  备份账号列表
     case cronjobsUsers            // GET  系统用户列表
     case cronjobsScripts          // GET  内置脚本列表
     case scriptSearch             // POST 脚本库搜索（core/script/search）
     case scriptSync               // POST 立即同步系统脚本库（异步任务）
     case coreSettingsUpdate       // POST 更新面板设置项（core/settings/update）
+
+    // MARK: - 分组（网站走 /api/v2/groups，计划任务/脚本走 /api/v2/core/groups，DTO 一致）
+    case websitesGroupsSearch     // POST 网站分组查询 {type:"website"}
+    case websitesGroupsCreate     // POST 创建网站分组
+    case websitesGroupsUpdate     // POST 更新网站分组（isDefault=true 即设为默认）
+    case websitesGroupsDelete     // POST 删除网站分组
+    case coreGroupsSearch         // POST 计划任务/脚本分组查询
+    case coreGroupsCreate         // POST 创建计划任务/脚本分组
+    case coreGroupsUpdate         // POST 更新计划任务/脚本分组（isDefault=true 即设为默认）
+    case coreGroupsDelete         // POST 删除计划任务/脚本分组
 
     // MARK: - 防火墙
     case firewallBase             // POST 防火墙基础状态
@@ -309,6 +318,15 @@ enum APIEndpoint {
     case sshUpdate               // POST SSH单项配置修改
     case sshFile                 // POST SSH完整配置文件读取
     case sshFileUpdate           // POST SSH完整配置文件保存
+    case sshCertSearch           // POST SSH密钥列表
+    case sshCertCreate           // POST 创建SSH密钥（generate/input/import）
+    case sshCertUpdate           // POST 更新SSH密钥（名称/描述）
+    case sshCertDelete           // POST 删除SSH密钥（可强制删除）
+    case sshCertSync             // POST 同步SSH密钥（清理失效+同步新增）
+    case disksList               // GET  磁盘总览（系统盘/未分区盘/数据盘）
+    case disksPartition          // POST 立即分区（仅未分区磁盘）
+    case disksMount              // POST 挂载分区
+    case disksUnmount            // POST 取消挂载（按挂载点）
 
     // MARK: - SSH 连接主机
     case hostsSearch             // POST 分页查询已保存主机
@@ -336,6 +354,7 @@ enum APIEndpoint {
     // MARK: - 应用商店
     case appsStoreSearch         // POST 应用商店搜索
     case appsStoreDetail         // GET  按 key 获取应用详情
+    case appsTags                // GET  应用类别列表（商店/已安装应用共用，筛选传 key）
     case appsSyncRemote          // POST 同步远程应用商店
     case appsSyncLocal           // POST 同步本地已安装应用
     case appsIcon                // GET  应用图标（:appID 路径参数，返回二进制图片）
@@ -514,7 +533,6 @@ enum APIEndpoint {
         case .cronjobsStatus:        return "/api/v2/cronjobs/status"
         case .cronjobsDelete:        return "/api/v2/cronjobs/del"
         case .cronjobsRecords:       return "/api/v2/cronjobs/search/records"
-        case .cronjobsGroups:        return "/api/v2/core/groups/search"
         case .cronjobsBackups:       return "/api/v2/backups/options"
         case .cronjobsUsers:         return "/api/v2/toolbox/device/users"
         case .cronjobsScripts:       return "/api/v2/cronjobs/script/options"
@@ -642,6 +660,15 @@ enum APIEndpoint {
         case .sshUpdate:             return "/api/v2/hosts/ssh/update"
         case .sshFile:               return "/api/v2/hosts/ssh/file"
         case .sshFileUpdate:         return "/api/v2/hosts/ssh/file/update"
+        case .sshCertSearch:         return "/api/v2/hosts/ssh/cert/search"
+        case .sshCertCreate:         return "/api/v2/hosts/ssh/cert"
+        case .sshCertUpdate:         return "/api/v2/hosts/ssh/cert/update"
+        case .sshCertDelete:         return "/api/v2/hosts/ssh/cert/delete"
+        case .sshCertSync:           return "/api/v2/hosts/ssh/cert/sync"
+        case .disksList:             return "/api/v2/hosts/disks"
+        case .disksPartition:        return "/api/v2/hosts/disks/partition"
+        case .disksMount:            return "/api/v2/hosts/disks/mount"
+        case .disksUnmount:          return "/api/v2/hosts/disks/unmount"
         case .hostsSearch:           return "/api/v2/hosts/search"
         case .hostsCreate:           return "/api/v2/hosts"
         case .hostsUpdate:           return "/api/v2/hosts/update"
@@ -649,6 +676,14 @@ enum APIEndpoint {
         case .hostsTestByInfo:       return "/api/v2/hosts/test/byinfo"
         case .hostsTestByID:         return "/api/v2/hosts/test/byid"
         case .hostGroupsSearch:      return "/api/v2/groups/search"
+        case .websitesGroupsSearch:  return "/api/v2/groups/search"
+        case .websitesGroupsCreate:  return "/api/v2/groups"
+        case .websitesGroupsUpdate:  return "/api/v2/groups/update"
+        case .websitesGroupsDelete:  return "/api/v2/groups/del"
+        case .coreGroupsSearch:      return "/api/v2/core/groups/search"
+        case .coreGroupsCreate:      return "/api/v2/core/groups"
+        case .coreGroupsUpdate:      return "/api/v2/core/groups/update"
+        case .coreGroupsDelete:      return "/api/v2/core/groups/del"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
@@ -663,6 +698,7 @@ enum APIEndpoint {
         case .appStoreSettingUpdate: return "/api/v2/core/settings/apps/store/update"
         case .appsStoreSearch:       return "/api/v2/apps/search"
         case .appsStoreDetail:       return "/api/v2/apps/:key"
+        case .appsTags:              return "/api/v2/apps/tags"
         case .appsSyncRemote:        return "/api/v2/apps/sync/remote"
         case .appsSyncLocal:         return "/api/v2/apps/sync/local"
         case .appsIcon:              return "/api/v2/apps/icon/:appID"
@@ -717,6 +753,8 @@ enum APIEndpoint {
         case .dashboardOS, .dashboardBase, .dashboardCurrent, .dashboardTopCPU, .dashboardTopMem,
              .monitorNetOptions,
              .appsIgnoredList, .appsStoreDetail,
+             .appsTags,
+             .disksList,
              .appsInstalledDeleteCheck, .appsInstalledParams,
              .appStoreSettingConfig,
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead, .websitesDomains,

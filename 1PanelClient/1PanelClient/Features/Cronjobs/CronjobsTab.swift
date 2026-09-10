@@ -15,10 +15,15 @@ struct CronjobsTab: View {
     @State private var showCreate = false
     @State private var searchText = ""
     @State private var isSearching = false
+    // 分组管理弹窗入口（筛选条末尾「管理」chip）
+    @State private var showGroupManage = false
+    /// 分组管理页所需服务器配置（init 时固定）
+    private let server: ServerConfig
 
     init(manager: ServerManager) {
         self.manager = manager
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        self.server = server
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.cronjobList.storeKey(server: server)) {
             CronjobsViewModel(server: server)
         })
@@ -37,7 +42,15 @@ struct CronjobsTab: View {
 
     /// 列表根内容（不含 NavigationStack），供 ManageTab 嵌入复用
     var rootContent: some View {
-        Group {
+        VStack(spacing: 0) {
+            // 分组筛选条放在分支外常驻（末尾「管理」入口点击弹窗管理分组）：
+            // 选中分组无任务时仍能切回「全部」
+            if !vm.groups.isEmpty {
+                GroupFilterBar(groups: vm.groups, selectedID: $vm.selectedGroupID) {
+                    showGroupManage = true
+                }
+            }
+
             if vm.isLoading && vm.cronjobs.isEmpty {
                 LoadingStateView()
             } else if let err = vm.errorMessage, !err.isEmpty, vm.cronjobs.isEmpty {
@@ -69,22 +82,37 @@ struct CronjobsTab: View {
         )
         .navigationTitle(L10n.t("计划任务"))
         .navigationBarTitleDisplayMode(.inline)
-        // 脚本库入口已上移至 管理-计划任务 Hub；右上角只留 创建 + 搜索
+        // 脚本库入口已上移至 管理-计划任务 Hub；右上角留 搜索 + 创建 两键
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showCreate = true
-                } label: {
-                    Image(systemName: "plus")
+            if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showCreate = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(L10n.t("创建计划任务"))
                 }
-                .accessibilityLabel(L10n.t("创建计划任务"))
             }
+        }
+        .onChange(of: vm.selectedGroupID) { _, _ in
+            Task { await vm.refresh() }
         }
         .navigationDestination(for: Cronjob.self) { job in
             CronjobDetailView(job: job, vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateCronjobView(vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+        }
+        .navigationDestination(isPresented: $showGroupManage) {
+            GroupManageView(server: server, scope: .cronjob) {
+                Task {
+                    // 分组管理内的增删改必须强制重查分组：loadGroups 有「非空跳过」
+                    // 守卫，普通 refresh 不会刷新筛选条（删除后仍显示已删分组）
+                    await vm.loadGroups(force: true)
+                    await vm.refresh()
+                }
+            }
         }
     }
 
@@ -97,22 +125,32 @@ struct CronjobsTab: View {
 
     private var cronjobList: some View {
         List {
-            ForEach(filteredCronjobs) { job in
-                NavigationLink(value: job) {
-                    CronjobRow(job: job)
+            if filteredCronjobs.isEmpty {
+                Section {
+                    ContentUnavailableView(
+                        L10n.t("该分组暂无任务"),
+                        systemImage: "clock.badge.checkmark"
+                    )
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button {
-                        Task { await vm.handle(job: job) }
-                    } label: {
-                        Label(L10n.t("执行"), systemImage: "play.fill")
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(filteredCronjobs) { job in
+                    NavigationLink(value: job) {
+                        CronjobRow(job: job)
                     }
-                    .tint(.blue)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button {
+                            Task { await vm.handle(job: job) }
+                        } label: {
+                            Label(L10n.t("执行"), systemImage: "play.fill")
+                        }
+                        .tint(.blue)
 
-                    Button(role: .destructive) {
-                        vm.pendingDeleteJob = job
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
+                        Button(role: .destructive) {
+                            vm.pendingDeleteJob = job
+                        } label: {
+                            Label(L10n.t("删除"), systemImage: "trash")
+                        }
                     }
                 }
             }
