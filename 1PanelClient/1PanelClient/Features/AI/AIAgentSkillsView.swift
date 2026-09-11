@@ -68,7 +68,7 @@ struct AIAgentSkillsView: View {
                 .pickerStyle(.segmented)
                 .segmentedPickerRow()
                 .onChange(of: mode) { _, newValue in
-                    if newValue == 1, installed.isEmpty {
+                    if newValue == 1 {
                         Task { await loadInstalled() }
                     }
                 }
@@ -94,6 +94,13 @@ struct AIAgentSkillsView: View {
             }
         }
         .toastOverlay(message: $toastMessage)
+        .refreshable {
+            if mode == 1 {
+                await loadInstalled()
+            } else {
+                await search()
+            }
+        }
         .navigationDestination(isPresented: $showProgress) {
             TaskProgressView(taskID: installTaskID, title: L10n.f("安装技能 %@", installingName)) { isDone in
                 if isDone {
@@ -195,52 +202,84 @@ struct AIAgentSkillsView: View {
 
     // MARK: - 已安装
 
+    /// uninstallable=true 为用户安装，false 为内置
+    private var installedSkills: [AIAgentSkillInstalled] {
+        installed.filter { $0.uninstallable == true }
+    }
+
+    private var builtinSkills: [AIAgentSkillInstalled] {
+        installed.filter { $0.uninstallable != true }
+    }
+
+    @ViewBuilder
     private var installedSection: some View {
-        Section {
-            if isLoadingInstalled && installed.isEmpty {
+        if isLoadingInstalled && installed.isEmpty {
+            Section {
                 HStack { Spacer(); ProgressView(); Spacer() }
                 .listRowBackground(Color.clear)
-            } else if installed.isEmpty {
+            }
+        } else if installed.isEmpty {
+            Section {
                 ContentUnavailableView(
                     L10n.t("暂无已安装技能"),
                     systemImage: "checkmark.seal",
                     description: Text(L10n.t("在技能市场搜索并安装技能"))
                 )
                 .listRowBackground(Color.clear)
-            } else {
-                ForEach(installed) { skill in
-                    HStack(spacing: 12) {
-                        IconBadge(
-                            systemName: "checkmark.seal.fill",
-                            color: (skill.source ?? "") == "builtin" ? .secondary : .statusRunning,
-                            size: 38,
-                            cornerRadius: 9
-                        )
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(skill.name ?? "-")
-                                .font(.body.bold())
-                                .lineLimit(1)
-                            if let desc = skill.description, !desc.isEmpty {
-                                Text(desc)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2)
-                            }
-                        }
-                        Spacer()
-                        if let src = skill.source, !src.isEmpty {
-                            StatusBadge(text: src, color: .secondary)
-                        }
+            }
+        } else {
+            if !installedSkills.isEmpty {
+                Section {
+                    ForEach(installedSkills) { skill in
+                        installedRow(skill, builtin: false)
                     }
-                    .padding(.vertical, 3)
+                } header: {
+                    SectionLabel(
+                        title: L10n.f("已安装 · 共 %d 个", installedSkills.count),
+                        systemImage: "checkmark.seal"
+                    )
                 }
             }
-        } header: {
-            SectionLabel(
-                title: L10n.f("已安装 · 共 %d 个", installed.count),
-                systemImage: "checkmark.seal"
-            )
+            if !builtinSkills.isEmpty {
+                Section {
+                    ForEach(builtinSkills) { skill in
+                        installedRow(skill, builtin: true)
+                    }
+                } header: {
+                    SectionLabel(
+                        title: L10n.f("内置 · 共 %d 个", builtinSkills.count),
+                        systemImage: "seal"
+                    )
+                }
+            }
         }
+    }
+
+    private func installedRow(_ skill: AIAgentSkillInstalled, builtin: Bool) -> some View {
+        HStack(spacing: 12) {
+            IconBadge(
+                systemName: builtin ? "seal.fill" : "checkmark.seal.fill",
+                color: builtin ? .secondary : .statusRunning,
+                size: 38,
+                cornerRadius: 9
+            )
+            VStack(alignment: .leading, spacing: 3) {
+                Text(skill.name ?? "-")
+                    .font(.body.bold())
+                    .lineLimit(1)
+                if let desc = skill.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            Spacer()
+            if let src = skill.source, !src.isEmpty {
+                StatusBadge(text: src, color: .secondary)
+            }
+        }
+        .padding(.vertical, 3)
     }
 
     // MARK: - 数据

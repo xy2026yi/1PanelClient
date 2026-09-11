@@ -50,7 +50,6 @@ struct AIMcpFormView: View {
 
     private let transports = ["sse", "streamableHttp"]
     private let types = ["npx", "uvx"]
-    private let protocols = ["http://", "https://"]
 
     private var isEditing: Bool { editing != nil }
 
@@ -129,17 +128,24 @@ struct AIMcpFormView: View {
 
     private var transportSection: some View {
         Section {
-            Picker(L10n.t("协议"), selection: $protocolScheme) {
-                ForEach(protocols, id: \.self) { Text($0).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 160)
+            // 协议前缀与地址同行，点击前缀切换 http/https
+            HStack(spacing: 8) {
+                Button {
+                    protocolScheme = protocolScheme == "http://" ? "https://" : "http://"
+                } label: {
+                    Text(protocolScheme)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(L10n.t("切换协议"))
 
-            TextField(L10n.t("外部访问地址"), text: $urlHost)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.URL)
-                .font(.system(.caption, design: .monospaced))
+                TextField(L10n.t("外部访问地址"), text: $urlHost)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .font(.system(.caption, design: .monospaced))
+            }
 
             Picker(L10n.t("输出类型"), selection: $outputTransport) {
                 ForEach(transports, id: \.self) { Text($0).tag($0) }

@@ -280,12 +280,12 @@ struct AIAccountModelFormView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("模型"), text: $modelId)
+                TextField(L10n.t("模型 ID"), text: $modelId, prompt: Text(L10n.t("如 deepseek-v4-flash")))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .font(.system(.body, design: .monospaced))
                     .disabled(editing != nil)
-                TextField(L10n.t("名称"), text: $modelName)
+                TextField(L10n.t("名称"), text: $modelName, prompt: Text(L10n.t("显示名称，可与模型 ID 不同")))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {
@@ -294,7 +294,7 @@ struct AIAccountModelFormView: View {
                 if editing != nil {
                     Text(L10n.t("模型 ID 不可修改"))
                 } else {
-                    Text(L10n.t("名称留空时与模型 ID 一致"))
+                    Text(L10n.t("模型 ID 为调用接口使用的标识，名称仅用于列表显示；名称留空时与模型 ID 一致"))
                 }
             }
         }

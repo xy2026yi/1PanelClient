@@ -239,21 +239,23 @@ struct AIMcpView: View {
             prompt: L10n.t("搜索名称")
         )
         .toolbar {
+            // 搜索按钮由 searchIconMode 提供；此处合并为单一菜单，避免右上角按钮过多
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showDomain = true
+                Menu {
+                    Button {
+                        showCreate = true
+                    } label: {
+                        Label(L10n.t("创建 MCP"), systemImage: "plus")
+                    }
+                    Button {
+                        showDomain = true
+                    } label: {
+                        Label(L10n.t("域名绑定"), systemImage: "globe")
+                    }
                 } label: {
-                    Image(systemName: "globe")
+                    Image(systemName: "ellipsis")
                 }
-                .accessibilityLabel(L10n.t("域名绑定"))
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showCreate = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .accessibilityLabel(L10n.t("创建 MCP"))
+                .accessibilityLabel(L10n.t("更多操作"))
             }
         }
         .refreshable { await vm.load(name: searchText) }
@@ -476,17 +478,18 @@ struct AIMcpConfigSheet: View {
     let server: McpServer
     @Environment(\.dismiss) private var dismiss
 
-    /// {"mcpServers":{"<name>":{"url":"<baseUrl>"}}}
+    /// {"mcpServers":{"<name>":{"url":"<baseUrl>"}}}（不带 \/ 转义）
     private var configJSON: String {
         let url = server.baseUrl ?? ""
-        let object: [String: Any] = [
+        let object: [String: [String: [String: String]]] = [
             "mcpServers": [
                 server.name: ["url": url]
             ]
         ]
-        if let data = try? JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys]),
-           let text = String(data: data, encoding: .utf8) {
-            return text
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        if let data = try? encoder.encode(object) {
+            return String(data: data, encoding: .utf8) ?? ""
         }
         return ""
     }

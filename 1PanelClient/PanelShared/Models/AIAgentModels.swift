@@ -57,15 +57,17 @@ nonisolated struct AIAgent: Decodable, Identifiable, Hashable {
 nonisolated struct AIAgentType: Identifiable, Hashable {
     let key: String
     let displayName: String
+    /// 创建时名称默认值（与网页端一致，如 Hermes Agent → Hermes-Agent）
+    let defaultName: String
     /// OpenClaw 使用 token / 访问地址；其余使用用户名 + 密码
     let usesToken: Bool
 
     var id: String { key }
 
     static let all: [AIAgentType] = [
-        AIAgentType(key: "openclaw", displayName: "OpenClaw", usesToken: true),
-        AIAgentType(key: "hermes-agent", displayName: "Hermes Agent", usesToken: false),
-        AIAgentType(key: "copaw", displayName: "QwenPaw", usesToken: false),
+        AIAgentType(key: "openclaw", displayName: "OpenClaw", defaultName: "OpenClaw", usesToken: true),
+        AIAgentType(key: "hermes-agent", displayName: "Hermes Agent", defaultName: "Hermes-Agent", usesToken: false),
+        AIAgentType(key: "copaw", displayName: "QwenPaw", defaultName: "QwenPaw", usesToken: false),
     ]
 }
 
@@ -175,7 +177,14 @@ nonisolated struct AIAgentSkillItem: Decodable, Identifiable, Hashable {
     let trust: String?
     let score: String?
 
-    var id: String { identifier ?? slug ?? name ?? UUID().uuidString }
+    /// 跳过空串并保持稳定（不能用 UUID()：每次访问变化会导致身份漂移）
+    var id: String {
+        let key = [identifier, slug, name]
+            .compactMap { $0 }
+            .first { !$0.isEmpty }
+        if let key { return key }
+        return [name ?? "", slug ?? "", source ?? ""].joined(separator: "|")
+    }
 }
 
 nonisolated struct AIAgentSkillInstallRequest: Encodable {
@@ -197,7 +206,15 @@ nonisolated struct AIAgentSkillInstalled: Decodable, Identifiable, Hashable {
     let disabled: Bool?
     let uninstallable: Bool?
 
-    var id: String { identifier ?? name ?? UUID().uuidString }
+    /// 服务端 identifier 可能为空串：跳过空值，避免所有行 ID 相同
+    var id: String {
+        let key = [identifier, name, source]
+            .compactMap { $0 }
+            .first { !$0.isEmpty }
+        if let key { return key }
+        return [name ?? "", source ?? "", description ?? ""]
+            .joined(separator: "|")
+    }
 }
 
 // MARK: - 其他设置 / 配置文件

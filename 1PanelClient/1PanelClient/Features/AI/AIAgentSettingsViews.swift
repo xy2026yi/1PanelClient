@@ -241,20 +241,21 @@ struct AIAgentSettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.t("显示密码"))
+                        Button {
+                            UIPasteboard.general.string = password
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(password.isEmpty)
+                        .accessibilityLabel(L10n.t("复制"))
                     }
                 } header: {
                     SectionLabel(title: L10n.t("控制台账号"), systemImage: "person.crop.circle")
                 } footer: {
                     Text(L10n.t("用于登录智能体 Web 控制台"))
-                }
-
-                Section {
-                    Toggle(L10n.t("浏览器支持"), isOn: $browserEnabled)
-                    TextField("npm Registry", text: $npmRegistry)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                        .font(.system(.caption, design: .monospaced))
                 }
 
                 Section {

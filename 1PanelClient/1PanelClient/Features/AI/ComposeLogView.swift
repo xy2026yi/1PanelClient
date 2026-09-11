@@ -21,6 +21,8 @@ struct ComposeLogView: View {
     @State private var tail = 200
     @State private var sinceMode = "all"
     @State private var streamTask: Task<Void, Never>?
+    /// 跟随滚动防抖（SSE 高频追加时合并同一帧内的多次滚动）
+    @State private var followScrollTask: Task<Void, Never>?
 
     private let sinceOptions: [(value: String, label: String)] = [
         ("all", L10n.t("全部")),
@@ -60,7 +62,10 @@ struct ComposeLogView: View {
         }
         .task { await startStreaming() }
         .refreshable { await startStreaming() }
-        .onDisappear { streamTask?.cancel() }
+        .onDisappear {
+            streamTask?.cancel()
+            followScrollTask?.cancel()
+        }
     }
 
     private var controlBar: some View {
@@ -151,7 +156,11 @@ struct ComposeLogView: View {
                     .contentWidthLimit(860)
                 }
                 .onChange(of: logLines.count) { _, _ in
-                    if isFollowing {
+                    guard isFollowing, !logLines.isEmpty else { return }
+                    followScrollTask?.cancel()
+                    followScrollTask = Task {
+                        try? await Task.sleep(nanoseconds: 150_000_000)
+                        guard !Task.isCancelled else { return }
                         withAnimation(Motion.standard) {
                             proxy.scrollTo(logLines.count - 1, anchor: .bottom)
                         }
@@ -202,22 +211,35 @@ struct ComposeLogView: View {
                     queryItems: queryItems
                 )
                 let maxLines = max(tail * 5, 1000)
-                for try await line in stream {
-                    if Task.isCancelled { break }
-                    await MainActor.run {
-                        if logLines.count >= maxLines {
-                            logLines.removeFirst(logLines.count - maxLines + 1)
-                        }
-                        logLines.append(line)
+                // 批量落地缓冲：同一帧内多次写 @State 会触发 onChange 告警
+                final class LogBuffer { var pending: [String] = [] }
+                let buffer = LogBuffer()
+                @MainActor func flush() {
+                    guard !buffer.pending.isEmpty else { return }
+                    let chunk = buffer.pending
+                    buffer.pending.removeAll()
+                    if logLines.count + chunk.count > maxLines {
+                        logLines.removeFirst(min(logLines.count, logLines.count + chunk.count - maxLines))
+                    }
+                    logLines.append(contentsOf: chunk)
+                }
+                let flusher = Task { @MainActor in
+                    while !Task.isCancelled {
+                        try? await Task.sleep(nanoseconds: 100_000_000)
+                        flush()
                     }
                 }
-                await MainActor.run { isLoading = false }
+                defer { flusher.cancel() }
+                for try await line in stream {
+                    if Task.isCancelled { break }
+                    buffer.pending.append(line)
+                }
+                flush()
+                isLoading = false
             } catch {
-                await MainActor.run {
-                    isLoading = false
-                    if logLines.isEmpty {
-                        errorMessage = error.localizedDescription
-                    }
+                isLoading = false
+                if logLines.isEmpty {
+                    errorMessage = error.localizedDescription
                 }
             }
         }

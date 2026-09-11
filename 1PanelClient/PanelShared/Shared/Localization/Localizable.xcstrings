@@ -1989,9 +1989,6 @@
     "nginx.conf" : {
 
     },
-    "npm Registry" : {
-
-    },
     "NTP 服务器" : {
       "extractionState" : "manual",
       "localizations" : {

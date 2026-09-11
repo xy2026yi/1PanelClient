@@ -62,14 +62,6 @@ struct AIAgentDetailView: View {
         .navigationTitle(agent?.name ?? L10n.t("智能体"))
         .navigationBarTitleDisplayMode(.inline)
         .toastOverlay(message: $listVM.toastMessage)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                EllipsisMenuButton {
-                    Task { await startDelete() }
-                }
-                .accessibilityLabel(L10n.t("更多操作"))
-            }
-        }
         .task { await loadDetail() }
         .refreshable { await loadDetail() }
         .navigationDestination(isPresented: $showChannels) {
@@ -174,10 +166,6 @@ struct AIAgentDetailView: View {
                 }
                 InfoRow(L10n.t("模型供应商"), value: a.providerName ?? a.provider ?? "-")
                 InfoRow(L10n.t("模型"), value: a.model ?? "-", monospaced: true)
-                InfoRow("Base URL", value: a.baseUrl ?? "-", monospaced: true)
-                if let key = a.apiKey, !key.isEmpty {
-                    PasswordRow(key: L10n.t("API Key"), password: key)
-                }
                 if let container = a.containerName, !container.isEmpty {
                     InfoRow(L10n.t("容器名称"), value: container, monospaced: true)
                 }
@@ -186,9 +174,6 @@ struct AIAgentDetailView: View {
                 }
                 if let path = a.path, !path.isEmpty {
                     InfoRow(L10n.t("安装目录"), value: path, monospaced: true)
-                }
-                if let configPath = a.configPath, !configPath.isEmpty {
-                    InfoRow(L10n.t("配置文件"), value: configPath, monospaced: true)
                 }
                 if let message = a.message, !message.isEmpty {
                     InfoRow(L10n.t("消息"), value: message)
@@ -200,21 +185,8 @@ struct AIAgentDetailView: View {
 
             Section {
                 configLink(L10n.t("频道"), icon: "bubble.left.and.bubble.right") { showChannels = true }
-                configLink(L10n.t("模型"), icon: "brain") { showModelConfig = true }
                 configLink(L10n.t("技能"), icon: "wand.and.stars") { showSkills = true }
-                configLink(L10n.t("设置"), icon: "gearshape") { showSettings = true }
                 configLink(L10n.t("日志"), icon: "doc.text.magnifyingglass") { showLog = true }
-                HStack {
-                    configLink(
-                        (a.websiteId ?? 0) > 0
-                            ? L10n.t("网站") + "：" + (a.websitePrimaryDomain ?? "")
-                            : L10n.t("绑定网站"),
-                        icon: "globe"
-                    ) { showWebsiteBind = true }
-                    if (a.websiteId ?? 0) > 0 {
-                        StatusBadge(text: L10n.t("已绑定"), color: .statusRunning)
-                    }
-                }
             } header: {
                 SectionLabel(title: L10n.t("配置"), systemImage: "slider.horizontal.3")
             }
@@ -283,7 +255,8 @@ struct AIAgentDetailView: View {
     }
 
     private func operationsRow(_ a: AIAgent) -> some View {
-        HStack(spacing: 8) {
+        // 三列两行：操作（停止/重启/删除）+ 配置入口（模型/设置/绑定网站）
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
             CardActionButton(
                 title: a.isRunning ? L10n.t("停止") : L10n.t("启动"),
                 icon: a.isRunning ? "stop.fill" : "play.fill",
@@ -310,6 +283,33 @@ struct AIAgentDetailView: View {
                 disabled: isOperating
             ) {
                 Task { await startDelete() }
+            }
+            CardActionButton(
+                title: L10n.t("模型"),
+                icon: "brain",
+                color: .purple,
+                busy: false,
+                disabled: false
+            ) {
+                showModelConfig = true
+            }
+            CardActionButton(
+                title: L10n.t("设置"),
+                icon: "gearshape",
+                color: .teal,
+                busy: false,
+                disabled: false
+            ) {
+                showSettings = true
+            }
+            CardActionButton(
+                title: L10n.t("绑定网站"),
+                icon: "globe",
+                color: .indigo,
+                busy: false,
+                disabled: false
+            ) {
+                showWebsiteBind = true
             }
         }
     }

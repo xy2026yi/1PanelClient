@@ -56,6 +56,11 @@ struct AIAgentCreateView: View {
     @State private var activeTaskID = ""
     @State private var didLoad = false
 
+    // 默认编排（/apps/detail/{appId}/{version}/app 的 dockerCompose）
+    @State private var appStoreId = 0
+    @State private var defaultCompose = ""
+    @State private var composeLoadedKey = ""
+
     private let restartPolicies = ["no", "always", "on-failure", "unless-stopped"]
     private let memoryUnits = ["M", "G"]
 
@@ -65,6 +70,15 @@ struct AIAgentCreateView: View {
 
     private var selectedAccount: AIAccount? {
         accounts.first { $0.id == selectedAccountId }
+    }
+
+    /// 模型选中值：不在当前账号模型池时回落到首个，避免 Picker 无效 selection 告警
+    private var modelSelection: Binding<String> {
+        let ids = selectedAccount?.models?.map(\.id) ?? []
+        return Binding(
+            get: { ids.contains(selectedModel) ? selectedModel : (ids.first ?? "") },
+            set: { selectedModel = $0 }
+        )
     }
 
     private var portValue: Int { Int(webUIPort) ?? 0 }
@@ -120,6 +134,12 @@ struct AIAgentCreateView: View {
             if agentType.usesToken, let port = Int(newValue), port > 0 {
                 allowedOrigin = "http://127.0.0.1:\(port)"
             }
+        }
+        .onChange(of: selectedVersion) { _, _ in
+            Task { await loadDefaultCompose() }
+        }
+        .onChange(of: editCompose) { _, on in
+            if on { Task { await loadDefaultCompose() } }
         }
         .navigationDestination(isPresented: $showProgress) {
             TaskProgressView(taskID: activeTaskID, title: L10n.f("安装 %@", name)) { isDone in
@@ -191,9 +211,19 @@ struct AIAgentCreateView: View {
                     }
                 }
 
-                Picker(L10n.t("模型"), selection: $selectedModel) {
-                    ForEach(selectedAccount?.models ?? []) { model in
-                        Text(model.id).tag(model.id)
+                if let models = selectedAccount?.models, !models.isEmpty {
+                    Picker(L10n.t("模型"), selection: modelSelection) {
+                        ForEach(models) { model in
+                            Text(model.id).tag(model.id)
+                        }
+                    }
+                } else {
+                    HStack {
+                        Text(L10n.t("模型"))
+                        Spacer()
+                        Text(L10n.t("暂无可用模型"))
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
                     }
                 }
             }
@@ -363,7 +393,7 @@ struct AIAgentCreateView: View {
     /// 切换智能体类型：名称/端口默认值、版本列表、token 重置
     private func applyTypeDefaults(_ key: String, initial: Bool = false) async {
         let type = AIAgentType.all.first { $0.key == key } ?? AIAgentType.all[0]
-        name = type.displayName
+        name = type.defaultName
         if type.usesToken {
             token = Self.randomToken()
             webUIPort = "18789"
@@ -380,14 +410,41 @@ struct AIAgentCreateView: View {
         username = "admin"
 
         isLoadingVersions = true
+        defaultCompose = ""
+        composeLoadedKey = ""
         if let detail = await vm.loadAppDetail(key: key) {
+            appStoreId = detail.id
             versions = detail.versions ?? []
             selectedVersion = versions.first ?? ""
+            await loadDefaultCompose()
         } else {
             versions = []
             selectedVersion = ""
         }
         isLoadingVersions = false
+    }
+
+    /// 拉取当前版本的默认 docker-compose（编辑编排时预填）
+    private func loadDefaultCompose() async {
+        guard appStoreId > 0, !selectedVersion.isEmpty else { return }
+        let loadKey = "\(appStoreId)/\(selectedVersion)"
+        guard composeLoadedKey != loadKey else { return }
+        composeLoadedKey = loadKey
+        do {
+            let detail: AppDetail = try await vm.client.send(
+                path: "/api/v2/apps/detail/\(appStoreId)/\(selectedVersion)/app",
+                method: "GET",
+                as: AppDetail.self)
+            let compose = detail.dockerCompose ?? ""
+            // 用户未改动过时跟随新默认值
+            if customCompose.isEmpty || customCompose == defaultCompose {
+                customCompose = compose
+            }
+            defaultCompose = compose
+        } catch {
+            // 静默：编辑器保持现状
+            composeLoadedKey = ""
+        }
     }
 
     /// 32 位随机小写字母数字 Token（OpenClaw 接入用，对齐网页端行为）
@@ -407,7 +464,7 @@ struct AIAgentCreateView: View {
             appVersion: selectedVersion,
             webUIPort: portValue,
             agentType: agentType.key,
-            model: selectedModel,
+            model: modelSelection.wrappedValue,
             accountId: account.id,
             taskID: taskID,
             advanced: advancedEnabled,
