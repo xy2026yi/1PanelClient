@@ -624,8 +624,22 @@
         }
       }
     },
+    "••••••••" : {
+
+    },
     "0" : {
 
+    },
+    "1 CPU，2.0 Ghz+" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 CPU, 2.0 Ghz+"
+          }
+        }
+      }
     },
     "1Panel" : {
 
@@ -687,6 +701,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1 h"
+          }
+        }
+      }
+    },
+    "3 GiB+" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 GiB+"
           }
         }
       }
@@ -976,6 +1001,28 @@
         }
       }
     },
+    "ClamAV 病毒扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ClamAV virus scanning"
+          }
+        }
+      }
+    },
+    "ClamAV 设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ClamAV Settings"
+          }
+        }
+      }
+    },
     "Client ID（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1107,6 +1154,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CPU Cores"
+          }
+        }
+      }
+    },
+    "CPU 要求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU"
+          }
+        }
+      }
+    },
+    "Cron：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cron: %@"
           }
         }
       }
@@ -2094,6 +2163,28 @@
         }
       }
     },
+    "Supervisor 设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supervisor Settings"
+          }
+        }
+      }
+    },
+    "Supervisor 进程守护" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supervisor process guard"
+          }
+        }
+      }
+    },
     "SWAP" : {
 
     },
@@ -2536,6 +2627,17 @@
         }
       }
     },
+    "不操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Action"
+          }
+        }
+      }
+    },
     "不离开设备" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2657,6 +2759,17 @@
         }
       }
     },
+    "两次输入的密码不一致" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwords do not match"
+          }
+        }
+      }
+    },
     "严格模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2708,6 +2821,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Medium risk"
+          }
+        }
+      }
+    },
+    "临时上传文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporary Uploads"
+          }
+        }
+      }
+    },
+    "临时下载文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporary Downloads"
+          }
+        }
+      }
+    },
+    "临时备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporary backups"
           }
         }
       }
@@ -2778,61 +2924,6 @@
         }
       }
     },
-    "已重启" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restarted"
-          }
-        }
-      }
-    },
-    "已启动" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Started"
-          }
-        }
-      }
-    },
-    "已停止" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stopped"
-          }
-        }
-      }
-    },
-    "将对进程「%@」进行 %@ 操作，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apply %2$@ to process \"%1$@\"?"
-          }
-        }
-      }
-    },
-    "进程「%@」%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Process \"%1$@\" %2$@"
-          }
-        }
-      }
-    },
     "主机地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2895,6 +2986,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Host Port"
+          }
+        }
+      }
+    },
+    "主配置文件位置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main Config Path"
           }
         }
       }
@@ -3658,39 +3760,6 @@
         }
       }
     },
-    "保存配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save Config"
-          }
-        }
-      }
-    },
-    "修改配置后需要重启生效。如果确认操作，请手动输入「立即重启」。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changes take effect after a restart. Type \"Restart Now\" to confirm."
-          }
-        }
-      }
-    },
-    "已保存，重启服务后生效" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saved. Restart the service to take effect"
-          }
-        }
-      }
-    },
     "保存中…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3753,6 +3822,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Save Changes"
+          }
+        }
+      }
+    },
+    "保存配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Config"
           }
         }
       }
@@ -3962,6 +4042,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Access"
+          }
+        }
+      }
+    },
+    "修改配置后需要重启生效。如果确认操作，请手动输入「立即重启」。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changes take effect after a restart. Type \"Restart Now\" to confirm."
           }
         }
       }
@@ -4527,6 +4618,17 @@
         }
       }
     },
+    "内存要求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RAM"
+          }
+        }
+      }
+    },
     "内存限制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4593,6 +4695,17 @@
         }
       }
     },
+    "最低配置要求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimum Requirements"
+          }
+        }
+      }
+    },
     "最后更新：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4655,6 +4768,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Write"
+          }
+        }
+      }
+    },
+    "几号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day of Month"
           }
         }
       }
@@ -5143,6 +5267,72 @@
         }
       }
     },
+    "初始化" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialize"
+          }
+        }
+      }
+    },
+    "初始化会重启服务，导致原有的守护进程全部关闭" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialization restarts the service and stops all existing daemons"
+          }
+        }
+      }
+    },
+    "初始化会重启服务，导致原有的守护进程全部关闭。如果确认操作，请手动输入「立即重启」。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialization restarts the service and stops all existing daemons. Type \"Restart Now\" to confirm."
+          }
+        }
+      }
+    },
+    "初始化失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialization failed: %@"
+          }
+        }
+      }
+    },
+    "初始化完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialization completed"
+          }
+        }
+      }
+    },
+    "初始化操作需要修改配置文件的 [include] files 参数，修改后的服务配置文件所在目录为 1Panel 安装目录下 1panel/tools/supervisord/supervisor.d/" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialization modifies the [include] files entry of the config. Process configs will then live in <1Panel install dir>/1panel/tools/supervisord/supervisor.d/"
+          }
+        }
+      }
+    },
     "删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5150,39 +5340,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete"
-          }
-        }
-      }
-    },
-    "确定删除进程「%@」吗？删除后其配置文件将被移除，此操作不可恢复。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete process \"%@\"? Its config file will be removed. This cannot be undone."
-          }
-        }
-      }
-    },
-    "删除病毒文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Infected Files"
-          }
-        }
-      }
-    },
-    "删除任务检测到的病毒文件，以确保服务器的安全和正常运行。此操作不可恢复，请输入规则名称「%@」以确认删除。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete infected files detected by this task to keep the server safe. This cannot be undone. Enter rule name \"%@\" to confirm."
           }
         }
       }
@@ -5304,6 +5461,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Task"
+          }
+        }
+      }
+    },
+    "删除任务检测到的病毒文件，以确保服务器的安全和正常运行。此操作不可恢复，请输入规则名称「%@」以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete infected files detected by this task to keep the server safe. This cannot be undone. Enter rule name \"%@\" to confirm."
           }
         }
       }
@@ -5539,6 +5707,17 @@
         }
       }
     },
+    "删除病毒文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Infected Files"
+          }
+        }
+      }
+    },
     "删除的文件将在此显示，可还原或彻底删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5627,6 +5806,17 @@
         }
       }
     },
+    "删除规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Rule"
+          }
+        }
+      }
+    },
     "删除许可证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5656,6 +5846,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Account"
+          }
+        }
+      }
+    },
+    "删除进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Process"
           }
         }
       }
@@ -6485,6 +6686,17 @@
         }
       }
     },
+    "历史版本子节点升级 / 安装包" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent upgrade / install packages of older versions"
+          }
+        }
+      }
+    },
     "压缩密码（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7112,193 +7324,6 @@
         }
       }
     },
-    "添加进程" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add Process"
-          }
-        }
-      }
-    },
-    "编辑进程" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Process"
-          }
-        }
-      }
-    },
-    "删除进程" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Process"
-          }
-        }
-      }
-    },
-    "启动命令" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start Command"
-          }
-        }
-      }
-    },
-    "启动用户" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Run User"
-          }
-        }
-      }
-    },
-    "运行目录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Working Directory"
-          }
-        }
-      }
-    },
-    "进程数量" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Process Count"
-          }
-        }
-      }
-    },
-    "自动重启" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto Restart"
-          }
-        }
-      }
-    },
-    "自动启动" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto Start"
-          }
-        }
-      }
-    },
-    "进程策略" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Process Policy"
-          }
-        }
-      }
-    },
-    "运行设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Run Settings"
-          }
-        }
-      }
-    },
-    "自动重启在进程异常退出后拉起；自动启动随 Supervisor 服务启动" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto Restart restarts the process after an abnormal exit; Auto Start launches it with the Supervisor service"
-          }
-        }
-      }
-    },
-    "环境变量（KEY=value，多个用逗号分隔）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Environment variables (KEY=value, comma separated)"
-          }
-        }
-      }
-    },
-    "源文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Source File"
-          }
-        }
-      }
-    },
-    "守护进程" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Daemons"
-          }
-        }
-      }
-    },
-    "暂无进程" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No processes"
-          }
-        }
-      }
-    },
-    "点击右上角 + 添加进程" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap + in the top-right corner to add a process"
-          }
-        }
-      }
-    },
     "名称不可修改" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7306,17 +7331,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name cannot be changed"
-          }
-        }
-      }
-    },
-    "移动或复制策略需指定隔离目录，用于存放扫描发现的感染文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move/copy strategy requires a quarantine directory for infected files"
           }
         }
       }
@@ -7376,6 +7390,17 @@
         }
       }
     },
+    "启动命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Command"
+          }
+        }
+      }
+    },
     "启动或停止指定网站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7394,6 +7419,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Boot Time"
+          }
+        }
+      }
+    },
+    "启动用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run User"
           }
         }
       }
@@ -7581,28 +7617,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Send Method"
-          }
-        }
-      }
-    },
-    "请先在「告警通知」中配置发送方式" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configure a send method in \"Alert Notifications\" first"
-          }
-        }
-      }
-    },
-    "扫描到感染文件时通过所选方式发送通知" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notify via the selected method when infected files are found"
           }
         }
       }
@@ -8740,6 +8754,17 @@
         }
       }
     },
+    "存储卷" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volumes"
+          }
+        }
+      }
+    },
     "存储桶" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8758,6 +8783,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Storage Class"
+          }
+        }
+      }
+    },
+    "守护进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daemons"
           }
         }
       }
@@ -8938,6 +8974,17 @@
         }
       }
     },
+    "定期扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled Scan"
+          }
+        }
+      }
+    },
     "客户端请求的头buffer大小" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9000,6 +9047,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Container Address"
+          }
+        }
+      }
+    },
+    "容器垃圾" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Junk"
           }
         }
       }
@@ -9554,39 +9612,6 @@
         }
       }
     },
-    "将对 %@ 进行 %@ 操作，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apply %2$@ to %1$@?"
-          }
-        }
-      }
-    },
-    "已完成" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done"
-          }
-        }
-      }
-    },
-    "该记录没有关联的任务日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This record has no task log"
-          }
-        }
-      }
-    },
     "将对 OpenResty 进行 %@ 操作，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9605,6 +9630,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply %@ to SSH?"
+          }
+        }
+      }
+    },
+    "将对 Supervisor 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to Supervisor?"
           }
         }
       }
@@ -9686,6 +9722,17 @@
         }
       }
     },
+    "将对进程「%@」进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %2$@ to process \"%1$@\"?"
+          }
+        }
+      }
+    },
     "将对选中应用程序进行 %@ 操作，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9693,6 +9740,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply %@ to the selected app?"
+          }
+        }
+      }
+    },
+    "将清理 %ld 项垃圾文件，释放 %@ 磁盘空间。此操作不可恢复，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean %ld items and free up %@ of disk space. This cannot be undone. Continue?"
           }
         }
       }
@@ -9862,798 +9920,6 @@
         }
       }
     },
-    "进程守护" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Process Guard"
-          }
-        }
-      }
-    },
-    "缓存清理" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache Clean"
-          }
-        }
-      }
-    },
-    "系统 / 备份 / 容器 / 日志垃圾清理" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "System / backup / container / log junk cleaning"
-          }
-        }
-      }
-    },
-    "系统垃圾" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "System Junk"
-          }
-        }
-      }
-    },
-    "系统备份" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "System Backups"
-          }
-        }
-      }
-    },
-    "容器垃圾" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Container Junk"
-          }
-        }
-      }
-    },
-    "临时上传文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporary Uploads"
-          }
-        }
-      }
-    },
-    "临时下载文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporary Downloads"
-          }
-        }
-      }
-    },
-    "日志文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Log Files"
-          }
-        }
-      }
-    },
-    "系统快照恢复前备份文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pre-snapshot backup files"
-          }
-        }
-      }
-    },
-    "系统升级备份文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "System upgrade backup files"
-          }
-        }
-      }
-    },
-    "历史版本子节点升级 / 安装包" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Agent upgrade / install packages of older versions"
-          }
-        }
-      }
-    },
-    "恢复前备份目录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pre-recovery backup directories"
-          }
-        }
-      }
-    },
-    "临时备份" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporary backups"
-          }
-        }
-      }
-    },
-    "未关联应用备份" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orphan app backups"
-          }
-        }
-      }
-    },
-    "未关联数据库备份" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orphan database backups"
-          }
-        }
-      }
-    },
-    "未关联网站备份" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orphan website backups"
-          }
-        }
-      }
-    },
-    "未关联快照备份" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orphan snapshot backups"
-          }
-        }
-      }
-    },
-    "未关联网站日志备份文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orphan website log backups"
-          }
-        }
-      }
-    },
-    "存储卷" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Volumes"
-          }
-        }
-      }
-    },
-    "构建缓存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Build Cache"
-          }
-        }
-      }
-    },
-    "推荐" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recommended"
-          }
-        }
-      }
-    },
-    "选择" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select"
-          }
-        }
-      }
-    },
-    "清理（%ld）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clean (%ld)"
-          }
-        }
-      }
-    },
-    "将清理 %ld 项垃圾文件，释放 %@ 磁盘空间。此操作不可恢复，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clean %ld items and free up %@ of disk space. This cannot be undone. Continue?"
-          }
-        }
-      }
-    },
-    "清理完成" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cleaning completed"
-          }
-        }
-      }
-    },
-    "清理失败：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cleaning failed: %@"
-          }
-        }
-      }
-    },
-    "清理" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clean"
-          }
-        }
-      }
-    },
-    "Supervisor 进程守护" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supervisor process guard"
-          }
-        }
-      }
-    },
-    "初始化" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Initialize"
-          }
-        }
-      }
-    },
-    "主配置文件位置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Main Config Path"
-          }
-        }
-      }
-    },
-    "服务名称" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Service Name"
-          }
-        }
-      }
-    },
-    "初始化操作需要修改配置文件的 [include] files 参数，修改后的服务配置文件所在目录为 1Panel 安装目录下 1panel/tools/supervisord/supervisor.d/" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Initialization modifies the [include] files entry of the config. Process configs will then live in <1Panel install dir>/1panel/tools/supervisord/supervisor.d/"
-          }
-        }
-      }
-    },
-    "初始化会重启服务，导致原有的守护进程全部关闭" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Initialization restarts the service and stops all existing daemons"
-          }
-        }
-      }
-    },
-    "初始化会重启服务，导致原有的守护进程全部关闭。如果确认操作，请手动输入「立即重启」。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Initialization restarts the service and stops all existing daemons. Type \"Restart Now\" to confirm."
-          }
-        }
-      }
-    },
-    "初始化完成" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Initialization completed"
-          }
-        }
-      }
-    },
-    "初始化失败：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Initialization failed: %@"
-          }
-        }
-      }
-    },
-    "重新执行初始化会再次接管配置文件并重启服务" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Re-running initialization takes over the config file and restarts the service again"
-          }
-        }
-      }
-    },
-    "病毒扫描" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Virus Scan"
-          }
-        }
-      }
-    },
-    "ClamAV 病毒扫描" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ClamAV virus scanning"
-          }
-        }
-      }
-    },
-    "ClamAV 设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ClamAV Settings"
-          }
-        }
-      }
-    },
-    "病毒库服务" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Virus DB Service"
-          }
-        }
-      }
-    },
-    "病毒库刷新配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FreshClam Config"
-          }
-        }
-      }
-    },
-    "病毒库刷新日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FreshClam Log"
-          }
-        }
-      }
-    },
-    "扫描设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan Settings"
-          }
-        }
-      }
-    },
-    "扫描目录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan Directory"
-          }
-        }
-      }
-    },
-    "扫描日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan Log"
-          }
-        }
-      }
-    },
-    "扫描规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan Rules"
-          }
-        }
-      }
-    },
-    "扫描报告" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan Reports"
-          }
-        }
-      }
-    },
-    "扫描告警" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan Alerts"
-          }
-        }
-      }
-    },
-    "扫描耗时" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan Time"
-          }
-        }
-      }
-    },
-    "感染文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Infected Files"
-          }
-        }
-      }
-    },
-    "感染文件策略" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Infected File Strategy"
-          }
-        }
-      }
-    },
-    "感染 %ld" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Infected %ld"
-          }
-        }
-      }
-    },
-    "不操作" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Action"
-          }
-        }
-      }
-    },
-    "移动" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move"
-          }
-        }
-      }
-    },
-    "隔离目录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quarantine Directory"
-          }
-        }
-      }
-    },
-    "定期扫描" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scheduled Scan"
-          }
-        }
-      }
-    },
-    "几号" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Day of Month"
-          }
-        }
-      }
-    },
-    "手动执行" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manual"
-          }
-        }
-      }
-    },
-    "立即扫描" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan Now"
-          }
-        }
-      }
-    },
-    "删除规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Rule"
-          }
-        }
-      }
-    },
-    "规则名称" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rule Name"
-          }
-        }
-      }
-    },
-    "暂无规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No rules"
-          }
-        }
-      }
-    },
-    "暂无报告" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No reports"
-          }
-        }
-      }
-    },
-    "最低配置要求" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minimum Requirements"
-          }
-        }
-      }
-    },
-    "CPU 要求" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CPU"
-          }
-        }
-      }
-    },
-    "内存要求" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "RAM"
-          }
-        }
-      }
-    },
-    "服务器架构" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disk Space"
-          }
-        }
-      }
-    },
-    "1 CPU，2.0 Ghz+" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 CPU, 2.0 Ghz+"
-          }
-        }
-      }
-    },
-    "3 GiB+" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3 GiB+"
-          }
-        }
-      }
-    },
-    "至少 5GiB 可用磁盘空间" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "At least 5 GiB of free disk space"
-          }
-        }
-      }
-    },
     "左滑可取消忽略，恢复升级检查" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10672,6 +9938,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saved"
+          }
+        }
+      }
+    },
+    "已保存，重启服务后生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved. Restart the service to take effect"
           }
         }
       }
@@ -10903,6 +10180,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "All installed apps are up to date"
+          }
+        }
+      }
+    },
+    "已完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
           }
         }
       }
@@ -11156,6 +10444,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld diff hunks use the old config; upgrade will use this content"
+          }
+        }
+      }
+    },
+    "已重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restarted"
           }
         }
       }
@@ -12139,6 +11438,17 @@
         }
       }
     },
+    "恢复前备份目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pre-recovery backup directories"
+          }
+        }
+      }
+    },
     "恢复前清空当前数据库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12223,6 +11533,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Malicious IP Group"
+          }
+        }
+      }
+    },
+    "感染 %ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Infected %ld"
+          }
+        }
+      }
+    },
+    "感染文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Infected Files"
+          }
+        }
+      }
+    },
+    "感染文件策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Infected File Strategy"
           }
         }
       }
@@ -12322,6 +11665,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Manually imported certificates do not support auto-renewal or re-apply"
+          }
+        }
+      }
+    },
+    "手动执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual"
           }
         }
       }
@@ -12535,6 +11889,39 @@
         }
       }
     },
+    "扫描任务「%@」已开始" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan task \"%@\" started"
+          }
+        }
+      }
+    },
+    "扫描到感染文件时通过所选方式发送通知" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify via the selected method when infected files are found"
+          }
+        }
+      }
+    },
+    "扫描告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Alerts"
+          }
+        }
+      }
+    },
     "扫描器过滤" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12542,6 +11929,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scanner Filter"
+          }
+        }
+      }
+    },
+    "扫描报告" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Reports"
+          }
+        }
+      }
+    },
+    "扫描日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Log"
+          }
+        }
+      }
+    },
+    "扫描目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Directory"
+          }
+        }
+      }
+    },
+    "扫描耗时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Time"
+          }
+        }
+      }
+    },
+    "扫描规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Rules"
+          }
+        }
+      }
+    },
+    "扫描设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Settings"
+          }
+        }
+      }
+    },
+    "报告" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reports"
           }
         }
       }
@@ -13129,6 +12593,17 @@
         }
       }
     },
+    "搜索时区" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search timezones"
+          }
+        }
+      }
+    },
     "搜索脚本名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13180,28 +12655,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Actions"
-          }
-        }
-      }
-    },
-    "将对 Supervisor 进行 %@ 操作，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apply %@ to Supervisor?"
-          }
-        }
-      }
-    },
-    "报告" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reports"
           }
         }
       }
@@ -13822,6 +13275,17 @@
         }
       }
     },
+    "新密码与确认密码一致后才能保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save is enabled when the new password and confirmation match"
+          }
+        }
+      }
+    },
     "新建分组" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14108,101 +13572,13 @@
         }
       }
     },
-    "日志类型" : {
+    "日志文件" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Log Type"
-          }
-        }
-      }
-    },
-    "运行日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Output Log"
-          }
-        }
-      }
-    },
-    "清空当前日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear Current Log"
-          }
-        }
-      }
-    },
-    "清空日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear Log"
-          }
-        }
-      }
-    },
-    "确定清空当前日志吗？清空后不可恢复。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear the current log? This cannot be undone."
-          }
-        }
-      }
-    },
-    "进程「%@」暂无日志内容" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No log content for process \"%@\""
-          }
-        }
-      }
-    },
-    "配置修改" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Config"
-          }
-        }
-      }
-    },
-    "服务日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Service Log"
-          }
-        }
-      }
-    },
-    "Supervisor 设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supervisor Settings"
+            "value" : "Log Files"
           }
         }
       }
@@ -14214,6 +13590,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Log stream request failed"
+          }
+        }
+      }
+    },
+    "日志类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Type"
           }
         }
       }
@@ -14713,6 +14100,17 @@
         }
       }
     },
+    "暂无报告" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No reports"
+          }
+        }
+      }
+    },
     "暂无操作日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14922,6 +14320,17 @@
         }
       }
     },
+    "暂无规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No rules"
+          }
+        }
+      }
+    },
     "暂无计划任务" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14984,6 +14393,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No accounts"
+          }
+        }
+      }
+    },
+    "暂无进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No processes"
           }
         }
       }
@@ -15296,6 +14716,17 @@
         }
       }
     },
+    "服务名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service Name"
+          }
+        }
+      }
+    },
     "服务器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15417,6 +14848,17 @@
         }
       }
     },
+    "服务器架构" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Space"
+          }
+        }
+      }
+    },
     "服务器概览" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15461,6 +14903,17 @@
         }
       }
     },
+    "服务日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service Log"
+          }
+        }
+      }
+    },
     "服务管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15490,6 +14943,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unused images (%ld)"
+          }
+        }
+      }
+    },
+    "未关联应用备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphan app backups"
+          }
+        }
+      }
+    },
+    "未关联快照备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphan snapshot backups"
+          }
+        }
+      }
+    },
+    "未关联数据库备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphan database backups"
+          }
+        }
+      }
+    },
+    "未关联网站备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphan website backups"
+          }
+        }
+      }
+    },
+    "未关联网站日志备份文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphan website log backups"
           }
         }
       }
@@ -16073,6 +15581,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Build Modules"
+          }
+        }
+      }
+    },
+    "构建缓存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build Cache"
           }
         }
       }
@@ -17188,6 +16707,17 @@
         }
       }
     },
+    "添加进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Process"
+          }
+        }
+      }
+    },
     "添加重定向" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17206,6 +16736,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clear Screen"
+          }
+        }
+      }
+    },
+    "清理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean"
+          }
+        }
+      }
+    },
+    "清理（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean (%ld)"
+          }
+        }
+      }
+    },
+    "清理失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleaning failed: %@"
+          }
+        }
+      }
+    },
+    "清理完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleaning completed"
           }
         }
       }
@@ -17320,6 +16894,28 @@
         }
       }
     },
+    "清空当前日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Current Log"
+          }
+        }
+      }
+    },
+    "清空日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Log"
+          }
+        }
+      }
+    },
     "清除全部" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17349,6 +16945,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Source: %@"
+          }
+        }
+      }
+    },
+    "源文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source File"
           }
         }
       }
@@ -17503,6 +17110,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap + in the top-right corner to add an account"
+          }
+        }
+      }
+    },
+    "点击右上角 + 添加进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to add a process"
           }
         }
       }
@@ -17745,6 +17363,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Environment"
+          }
+        }
+      }
+    },
+    "环境变量（KEY=value，多个用逗号分隔）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environment variables (KEY=value, comma separated)"
           }
         }
       }
@@ -18031,6 +17660,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto-generated if empty"
+          }
+        }
+      }
+    },
+    "病毒库刷新日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FreshClam Log"
+          }
+        }
+      }
+    },
+    "病毒库刷新配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FreshClam Config"
+          }
+        }
+      }
+    },
+    "病毒库服务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virus DB Service"
+          }
+        }
+      }
+    },
+    "病毒扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virus Scan"
+          }
+        }
+      }
+    },
+    "病毒扫描「 %@ 」任务检测到感染文件告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virus scan task \"%@\" detected infected files"
           }
         }
       }
@@ -18508,6 +18192,17 @@
         }
       }
     },
+    "确定删除进程「%@」吗？删除后其配置文件将被移除，此操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete process \"%@\"? Its config file will be removed. This cannot be undone."
+          }
+        }
+      }
+    },
     "确定删除镜像「%@」吗？删除后不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18515,6 +18210,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete image \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确定清空当前日志吗？清空后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear the current log? This cannot be undone."
           }
         }
       }
@@ -18625,6 +18331,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm domain"
+          }
+        }
+      }
+    },
+    "确认密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Password"
           }
         }
       }
@@ -19069,6 +18786,28 @@
         }
       }
     },
+    "移动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move"
+          }
+        }
+      }
+    },
+    "移动或复制策略需指定隔离目录，用于存放扫描发现的感染文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move/copy strategy requires a quarantine directory for infected files"
+          }
+        }
+      }
+    },
     "移除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19197,6 +18936,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Run ${job} now"
+          }
+        }
+      }
+    },
+    "立即扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Now"
           }
         }
       }
@@ -19531,6 +19281,17 @@
         }
       }
     },
+    "系统 / 备份 / 容器 / 日志垃圾清理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System / backup / container / log junk cleaning"
+          }
+        }
+      }
+    },
     "系统代理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19553,24 +19314,35 @@
         }
       }
     },
-    "系统快照" : {
+    "系统升级备份文件" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "System Snapshot"
+            "value" : "System upgrade backup files"
           }
         }
       }
     },
-    "系统日志" : {
+    "系统垃圾" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "System Logs"
+            "value" : "System Junk"
+          }
+        }
+      }
+    },
+    "系统备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Backups"
           }
         }
       }
@@ -19586,35 +19358,35 @@
         }
       }
     },
-    "确认密码" : {
+    "系统快照" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Confirm Password"
+            "value" : "System Snapshot"
           }
         }
       }
     },
-    "两次输入的密码不一致" : {
+    "系统快照恢复前备份文件" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passwords do not match"
+            "value" : "Pre-snapshot backup files"
           }
         }
       }
     },
-    "新密码与确认密码一致后才能保存" : {
+    "系统日志" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Save is enabled when the new password and confirmation match"
+            "value" : "System Logs"
           }
         }
       }
@@ -19626,17 +19398,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "System Timezone"
-          }
-        }
-      }
-    },
-    "搜索时区" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search timezones"
           }
         }
       }
@@ -19944,7 +19705,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cache Cleanup"
+            "value" : "Cache Clean"
           }
         }
       }
@@ -20209,6 +19970,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Account"
+          }
+        }
+      }
+    },
+    "编辑进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Process"
           }
         }
       }
@@ -20642,6 +20414,17 @@
         }
       }
     },
+    "自动启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Start"
+          }
+        }
+      }
+    },
     "自动生成" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20660,6 +20443,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto Renew"
+          }
+        }
+      }
+    },
+    "自动重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Restart"
+          }
+        }
+      }
+    },
+    "自动重启在进程异常退出后拉起；自动启动随 Supervisor 服务启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Restart restarts the process after an abnormal exit; Auto Start launches it with the Supervisor service"
           }
         }
       }
@@ -20748,6 +20553,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Self-signed"
+          }
+        }
+      }
+    },
+    "至少 5GiB 可用磁盘空间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At least 5 GiB of free disk space"
           }
         }
       }
@@ -21060,6 +20876,50 @@
         }
       }
     },
+    "规则「%@」已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule \"%@\" created"
+          }
+        }
+      }
+    },
+    "规则「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "规则「%@」已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule \"%@\" updated"
+          }
+        }
+      }
+    },
+    "规则「%@」近 7 天没有扫描记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No scan records for rule \"%@\" in the last 7 days"
+          }
+        }
+      }
+    },
     "规则内容" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21067,6 +20927,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rule Content"
+          }
+        }
+      }
+    },
+    "规则名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule Name"
           }
         }
       }
@@ -21852,6 +21723,17 @@
         }
       }
     },
+    "该记录没有关联的任务日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This record has no task log"
+          }
+        }
+      }
+    },
     "该账号未记住认证信息，凭证需重新填写" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21914,6 +21796,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create a website first"
+          }
+        }
+      }
+    },
+    "请先在「告警通知」中配置发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure a send method in \"Alert Notifications\" first"
           }
         }
       }
@@ -22556,116 +22449,6 @@
         }
       }
     },
-    "规则「%@」已创建" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rule \"%@\" created"
-          }
-        }
-      }
-    },
-    "进程「%@」已创建" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Process \"%@\" created"
-          }
-        }
-      }
-    },
-    "进程「%@」已更新" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Process \"%@\" updated"
-          }
-        }
-      }
-    },
-    "进程「%@」已重启" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Process \"%@\" restarted"
-          }
-        }
-      }
-    },
-    "进程「%@」已删除" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Process \"%@\" deleted"
-          }
-        }
-      }
-    },
-    "规则「%@」已更新" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rule \"%@\" updated"
-          }
-        }
-      }
-    },
-    "规则「%@」已删除" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rule \"%@\" deleted"
-          }
-        }
-      }
-    },
-    "规则「%@」近 7 天没有扫描记录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No scan records for rule \"%@\" in the last 7 days"
-          }
-        }
-      }
-    },
-    "扫描任务「%@」已开始" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan task \"%@\" started"
-          }
-        }
-      }
-    },
-    "病毒扫描「 %@ 」任务检测到感染文件告警" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Virus scan task \"%@\" detected infected files"
-          }
-        }
-      }
-    },
     "账户类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22776,17 +22559,6 @@
         }
       }
     },
-    "超时时间" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timeout"
-          }
-        }
-      }
-    },
     "超时后自动终止扫描，当前为 %ld 秒" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22798,13 +22570,13 @@
         }
       }
     },
-    "Cron：%@" : {
+    "超时时间" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cron: %@"
+            "value" : "Timeout"
           }
         }
       }
@@ -23117,6 +22889,17 @@
         }
       }
     },
+    "运行日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Output Log"
+          }
+        }
+      }
+    },
     "运行时长" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23157,6 +22940,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Runtime"
+          }
+        }
+      }
+    },
+    "运行目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working Directory"
+          }
+        }
+      }
+    },
+    "运行设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Settings"
           }
         }
       }
@@ -23355,6 +23160,105 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Process %ld ended"
+          }
+        }
+      }
+    },
+    "进程「%@」%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process \"%1$@\" %2$@"
+          }
+        }
+      }
+    },
+    "进程「%@」已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process \"%@\" created"
+          }
+        }
+      }
+    },
+    "进程「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "进程「%@」已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process \"%@\" updated"
+          }
+        }
+      }
+    },
+    "进程「%@」已重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process \"%@\" restarted"
+          }
+        }
+      }
+    },
+    "进程「%@」暂无日志内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No log content for process \"%@\""
+          }
+        }
+      }
+    },
+    "进程守护" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Guard"
+          }
+        }
+      }
+    },
+    "进程数量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Count"
+          }
+        }
+      }
+    },
+    "进程策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Policy"
           }
         }
       }
@@ -24140,6 +24044,17 @@
         }
       }
     },
+    "配置修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Config"
+          }
+        }
+      }
+    },
     "配置已保存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24400,6 +24315,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rebuild"
+          }
+        }
+      }
+    },
+    "重新执行初始化会再次接管配置文件并重启服务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-running initialization takes over the config file and restarts the service again"
           }
         }
       }
@@ -24752,6 +24678,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hidden modules disappear from the list but keep running on the server."
+          }
+        }
+      }
+    },
+    "隔离目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quarantine Directory"
           }
         }
       }

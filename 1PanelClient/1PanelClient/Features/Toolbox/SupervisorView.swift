@@ -224,7 +224,6 @@ struct SupervisorView: View {
     /// 进程操作确认目标（启动 / 停止 / 重启）
     @State private var pendingProcessAction: (process: SupervisorProcessItem, operation: String)?
     @State private var showCreate = false
-    @State private var showMenu = false
     @State private var showSettings = false
     /// 长按弹出的操作菜单目标（启动 / 停止 / 重启 / 日志 / 源文 / 编辑 / 删除）
     @State private var actionProcess: SupervisorProcessItem?
@@ -277,14 +276,8 @@ struct SupervisorView: View {
             .navigationTitle(L10n.t("进程守护"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // 未安装/未初始化时不显示设置与添加入口
+                // 未安装/未初始化时不显示添加入口
                 if vm.isInstalled && !vm.needsInit {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        EllipsisMenuButton {
-                            withAnimation(Motion.fast) { showMenu.toggle() }
-                        }
-                        .accessibilityLabel(L10n.t("更多操作"))
-                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             showCreate = true
@@ -292,17 +285,6 @@ struct SupervisorView: View {
                             Image(systemName: "plus")
                         }
                         .accessibilityLabel(L10n.t("添加进程"))
-                    }
-                }
-            }
-            .overlay(alignment: .topTrailing) {
-                if showMenu {
-                    EllipsisMenuPopup(entries: [
-                        .action(title: L10n.t("配置"), icon: "slider.horizontal.3") {
-                            showSettings = true
-                        },
-                    ]) {
-                        withAnimation(Motion.fast) { showMenu = false }
                     }
                 }
             }
@@ -471,6 +453,9 @@ struct SupervisorView: View {
                     ) { pendingAction = (config.status == "running") ? "stop" : "start" },
                     ServiceAction(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
                         pendingAction = "restart"
+                    },
+                    ServiceAction(title: L10n.t("配置"), icon: "slider.horizontal.3", color: .indigo) {
+                        showSettings = true
                     },
                 ]
             ) {
