@@ -255,6 +255,18 @@ enum APIEndpoint {
     case clamFileSearch          // POST 读取配置/日志 {name, tail}
     case clamFileUpdate          // POST 保存配置 {name, file}
 
+    // MARK: - Supervisor 进程守护（工具箱）
+    case supervisorStatus        // POST 安装/初始化状态 {type}
+    case supervisorInit          // POST 初始化 {type, configPath, serviceName}
+    case supervisorServiceOperate // POST 服务操作 {type, operate}
+    case supervisorProcess       // POST 进程操作 {operate: create/update/restart/delete, ...}
+    case supervisorProcessList   // GET  守护进程列表
+    case supervisorProcessFileGet // GET 进程源文（query: name）
+    case supervisorProcessFile   // POST 保存源文 / 清空日志 {name, operate, file[, content]}
+    case supervisorConfigGet     // POST 读取主配置 {type}
+    case supervisorConfigSet     // POST 保存主配置 {type, content}
+    case supervisorLogRead       // POST 进程/服务日志（files/read/supervisor）
+
     // MARK: - 告警通知
     case alertSearch            // POST 分页查询告警规则
     case alertCreate            // POST 创建告警规则
@@ -632,6 +644,16 @@ enum APIEndpoint {
         case .clamRecordSearch:      return "/api/v2/toolbox/clam/record/search"
         case .clamFileSearch:        return "/api/v2/toolbox/clam/file/search"
         case .clamFileUpdate:        return "/api/v2/toolbox/clam/file/update"
+        case .supervisorStatus:      return "/api/v2/hosts/tool/status"
+        case .supervisorInit:        return "/api/v2/hosts/tool/init"
+        case .supervisorServiceOperate: return "/api/v2/hosts/tool/operate"
+        case .supervisorProcess:     return "/api/v2/hosts/tool/supervisor/process"
+        case .supervisorProcessList: return "/api/v2/hosts/tool/supervisor/process"
+        case .supervisorProcessFileGet: return "/api/v2/hosts/tool/supervisor/process/file/get"
+        case .supervisorProcessFile: return "/api/v2/hosts/tool/supervisor/process/file"
+        case .supervisorConfigGet:   return "/api/v2/hosts/tool/config/get"
+        case .supervisorConfigSet:   return "/api/v2/hosts/tool/config/set"
+        case .supervisorLogRead:     return "/api/v2/files/read/supervisor"
         case .filesSearch:           return "/api/v2/files/search"
         case .alertSearch:           return "/api/v2/alert/search"
         case .alertCreate:           return "/api/v2/alert"
@@ -806,6 +828,7 @@ enum APIEndpoint {
              .logsTaskCount,
              .fail2banBase, .fail2banLoadConf,
              .ftpBase,
+             .supervisorProcessList, .supervisorProcessFileGet,
              .alertDisksList,
              .wafStatus, .wafConfigGlobal,
              .wafLocationsWorld, .wafLogDetail,

@@ -5099,6 +5099,17 @@
         }
       }
     },
+    "确定删除进程「%@」吗？删除后其配置文件将被移除，此操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete process \"%@\"? Its config file will be removed. This cannot be undone."
+          }
+        }
+      }
+    },
     "删除病毒文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7042,6 +7053,193 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name"
+          }
+        }
+      }
+    },
+    "添加进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Process"
+          }
+        }
+      }
+    },
+    "编辑进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Process"
+          }
+        }
+      }
+    },
+    "删除进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Process"
+          }
+        }
+      }
+    },
+    "启动命令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Command"
+          }
+        }
+      }
+    },
+    "启动用户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run User"
+          }
+        }
+      }
+    },
+    "运行目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working Directory"
+          }
+        }
+      }
+    },
+    "进程数量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Count"
+          }
+        }
+      }
+    },
+    "自动重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Restart"
+          }
+        }
+      }
+    },
+    "自动启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Start"
+          }
+        }
+      }
+    },
+    "进程策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Policy"
+          }
+        }
+      }
+    },
+    "运行设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Settings"
+          }
+        }
+      }
+    },
+    "自动重启在进程异常退出后拉起；自动启动随 Supervisor 服务启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Restart restarts the process after an abnormal exit; Auto Start launches it with the Supervisor service"
+          }
+        }
+      }
+    },
+    "环境变量（KEY=value，多个用逗号分隔）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environment variables (KEY=value, comma separated)"
+          }
+        }
+      }
+    },
+    "源文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source File"
+          }
+        }
+      }
+    },
+    "守护进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daemons"
+          }
+        }
+      }
+    },
+    "暂无进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No processes"
+          }
+        }
+      }
+    },
+    "点击右上角 + 添加进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to add a process"
           }
         }
       }
@@ -9605,6 +9803,127 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toolbox"
+          }
+        }
+      }
+    },
+    "进程守护" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Guard"
+          }
+        }
+      }
+    },
+    "Supervisor 进程守护" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supervisor process guard"
+          }
+        }
+      }
+    },
+    "初始化" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialize"
+          }
+        }
+      }
+    },
+    "主配置文件位置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main Config Path"
+          }
+        }
+      }
+    },
+    "服务名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service Name"
+          }
+        }
+      }
+    },
+    "初始化操作需要修改配置文件的 [include] files 参数，修改后的服务配置文件所在目录为 1Panel 安装目录下 1panel/tools/supervisord/supervisor.d/" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialization modifies the [include] files entry of the config. Process configs will then live in <1Panel install dir>/1panel/tools/supervisord/supervisor.d/"
+          }
+        }
+      }
+    },
+    "初始化会重启服务，导致原有的守护进程全部关闭" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialization restarts the service and stops all existing daemons"
+          }
+        }
+      }
+    },
+    "初始化会重启服务，导致原有的守护进程全部关闭。如果确认操作，请手动输入「立即重启」。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialization restarts the service and stops all existing daemons. Type \"Restart Now\" to confirm."
+          }
+        }
+      }
+    },
+    "初始化完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialization completed"
+          }
+        }
+      }
+    },
+    "初始化失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialization failed: %@"
+          }
+        }
+      }
+    },
+    "重新执行初始化会再次接管配置文件并重启服务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-running initialization takes over the config file and restarts the service again"
           }
         }
       }
@@ -12513,6 +12832,17 @@
         }
       }
     },
+    "将对 Supervisor 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to Supervisor?"
+          }
+        }
+      }
+    },
     "报告" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13422,6 +13752,105 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Logs"
+          }
+        }
+      }
+    },
+    "日志类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Type"
+          }
+        }
+      }
+    },
+    "运行日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Output Log"
+          }
+        }
+      }
+    },
+    "清空当前日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Current Log"
+          }
+        }
+      }
+    },
+    "清空日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Log"
+          }
+        }
+      }
+    },
+    "确定清空当前日志吗？清空后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear the current log? This cannot be undone."
+          }
+        }
+      }
+    },
+    "进程「%@」暂无日志内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No log content for process \"%@\""
+          }
+        }
+      }
+    },
+    "配置修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Config"
+          }
+        }
+      }
+    },
+    "服务日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service Log"
+          }
+        }
+      }
+    },
+    "Supervisor 设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supervisor Settings"
           }
         }
       }
@@ -21694,6 +22123,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rule \"%@\" created"
+          }
+        }
+      }
+    },
+    "进程「%@」已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process \"%@\" created"
+          }
+        }
+      }
+    },
+    "进程「%@」已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process \"%@\" updated"
+          }
+        }
+      }
+    },
+    "进程「%@」已重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process \"%@\" restarted"
+          }
+        }
+      }
+    },
+    "进程「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process \"%@\" deleted"
           }
         }
       }
