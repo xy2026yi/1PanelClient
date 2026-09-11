@@ -18,6 +18,8 @@ final class ClamViewModel: ObservableObject {
     @Published var isLoading = true
     @Published var isOperating = false
     @Published var errorMessage: String?
+    /// 规则列表加载失败（与空列表区分，避免错误被空态掩盖）
+    @Published var listErrorMessage: String?
 
     @Published var showAlert = false
     @Published var alertMessage = ""
@@ -68,6 +70,7 @@ final class ClamViewModel: ObservableObject {
 
     func loadRules() async {
         isLoadingRules = true
+        listErrorMessage = nil
         defer { isLoadingRules = false }
         page = 1
         loadGeneration += 1
@@ -79,10 +82,10 @@ final class ClamViewModel: ObservableObject {
             total = resp.total ?? 0
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            // 基础状态已可展示：列表失败降级为空列表 + 提示，不整页转错误态
+            // 基础状态已可展示：列表失败单独提示，可重试
             rules = []
             total = 0
-            errorMessage = error.localizedDescription
+            listErrorMessage = error.localizedDescription
         }
     }
 
@@ -413,7 +416,7 @@ struct ClamView: View {
             Divider()
             requirementRow(L10n.t("内存要求"), L10n.t("3 GiB+"))
             Divider()
-            requirementRow(L10n.t("服务器架构"), L10n.t("至少 5GiB 可用磁盘空间"))
+            requirementRow(L10n.t("磁盘空间"), L10n.t("至少 5GiB 可用磁盘空间"))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -462,7 +465,10 @@ struct ClamView: View {
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         vm.deleteInfectedFiles = false
-                        vm.pendingDeleteRule = rule
+                        // 等动作抽屉收起后再弹确认 sheet，避免两个 sheet 同时呈现失败
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                            vm.pendingDeleteRule = rule
+                        }
                     },
                 ],
                 onDismiss: { actionRule = nil }
@@ -549,6 +555,11 @@ struct ClamView: View {
                         Spacer()
                         LoadingStateView()
                         Spacer()
+                    }
+                    .listRowBackground(Color.clear)
+                } else if let listErr = vm.listErrorMessage {
+                    LoadErrorStateView(message: listErr) {
+                        Task { await vm.loadRules() }
                     }
                     .listRowBackground(Color.clear)
                 } else {

@@ -18,6 +18,8 @@ final class FTPViewModel: ObservableObject {
     @Published var isOperating = false
     @Published var isSyncing = false
     @Published var errorMessage: String?
+    /// 账号列表加载失败（与空列表区分，避免错误被空态掩盖）
+    @Published var listErrorMessage: String?
 
     @Published var showAlert = false
     @Published var alertMessage = ""
@@ -64,6 +66,7 @@ final class FTPViewModel: ObservableObject {
 
     func loadAccounts() async {
         isLoadingAccounts = true
+        listErrorMessage = nil
         defer { isLoadingAccounts = false }
         page = 1
         loadGeneration += 1
@@ -75,10 +78,10 @@ final class FTPViewModel: ObservableObject {
             total = resp.total ?? 0
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            // 基础状态已可展示：列表失败降级为空列表 + 提示，不整页转错误态
+            // 基础状态已可展示：列表失败单独提示，可重试
             accounts = []
             total = 0
-            errorMessage = error.localizedDescription
+            listErrorMessage = error.localizedDescription
         }
     }
 
@@ -461,6 +464,11 @@ struct FTPView: View {
                         Spacer()
                     }
                     .listRowBackground(Color.clear)
+                } else if let listErr = vm.listErrorMessage {
+                    LoadErrorStateView(message: listErr) {
+                        Task { await vm.loadAccounts() }
+                    }
+                    .listRowBackground(Color.clear)
                 } else {
                     ContentUnavailableView(
                         L10n.t("暂无账号"),
@@ -638,8 +646,8 @@ struct FTPAccountFormView: View {
                 password = account.password
                 path = account.path
                 desc = account.description ?? ""
-                // 服务端返回明文密码：编辑时直接可见，方便核对后再改
-                showPassword = true
+                // 回填密码默认遮蔽（与网页端一致），需要核对时再点眼睛展开
+                showPassword = false
             } else if password.isEmpty {
                 password = PasswordInputRow.randomPassword()
                 showPassword = true

@@ -18,6 +18,8 @@ final class SupervisorViewModel: ObservableObject {
     @Published var isLoading = true
     @Published var isOperating = false
     @Published var errorMessage: String?
+    /// 进程列表加载失败（与空列表区分，避免错误被空态掩盖）
+    @Published var listErrorMessage: String?
 
     @Published var showAlert = false
     @Published var alertMessage = ""
@@ -63,13 +65,14 @@ final class SupervisorViewModel: ObservableObject {
         }
     }
 
-    /// 已初始化后才拉取进程列表
+    /// 已安装且完成初始化后才拉取进程列表
     func loadProcesses() async {
-        guard !needsInit else {
+        guard isInstalled, !needsInit else {
             processes = []
             return
         }
         isLoadingProcesses = true
+        listErrorMessage = nil
         defer { isLoadingProcesses = false }
         do {
             processes = try await client.send(
@@ -78,9 +81,9 @@ final class SupervisorViewModel: ObservableObject {
                 as: [SupervisorProcessItem].self)
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            // 基础状态已可展示：列表失败降级为空列表 + 提示
+            // 服务卡仍可展示：列表失败单独提示，可重试
             processes = []
-            errorMessage = error.localizedDescription
+            listErrorMessage = error.localizedDescription
         }
     }
 
@@ -515,6 +518,11 @@ struct SupervisorView: View {
                         Spacer()
                     }
                     .listRowBackground(Color.clear)
+                } else if let listErr = vm.listErrorMessage {
+                    LoadErrorStateView(message: listErr) {
+                        Task { await vm.loadProcesses() }
+                    }
+                    .listRowBackground(Color.clear)
                 } else {
                     ContentUnavailableView(
                         L10n.t("暂无进程"),
@@ -618,6 +626,7 @@ struct SupervisorProcessRow: View {
 /// 初始化：修改主配置 [include] 由面板接管进程配置目录，提交前需输入「立即重启」确认
 struct SupervisorInitForm: View {
     @ObservedObject var vm: SupervisorViewModel
+    @Environment(\.dismiss) private var dismiss
 
     @State private var configPath = ""
     @State private var serviceName = ""
@@ -685,7 +694,9 @@ struct SupervisorInitForm: View {
         isSubmitting = true
         defer { isSubmitting = false }
         if await vm.initialize(configPath: configPath, serviceName: serviceName) {
-            // 初始化成功后主页切到正常态，无需留在本页
+            // 初始化成功：主页随 vm.load() 切到正常态，这里关闭确认层并返回
+            showConfirm = false
+            dismiss()
         }
     }
 }

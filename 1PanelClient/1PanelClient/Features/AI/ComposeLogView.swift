@@ -205,24 +205,24 @@ struct ComposeLogView: View {
         ]
 
         streamTask = Task {
+            // 批量落地缓冲：同一帧内多次写 @State 会触发 onChange 告警
+            final class LogBuffer { var pending: [String] = [] }
+            let buffer = LogBuffer()
+            let maxLines = max(tail * 5, 1000)
+            @MainActor func flush() {
+                guard !buffer.pending.isEmpty else { return }
+                let chunk = buffer.pending
+                buffer.pending.removeAll()
+                if logLines.count + chunk.count > maxLines {
+                    logLines.removeFirst(min(logLines.count, logLines.count + chunk.count - maxLines))
+                }
+                logLines.append(contentsOf: chunk)
+            }
             do {
                 let stream = client.streamSSELines(
                     path: "/api/v2/containers/search/log",
                     queryItems: queryItems
                 )
-                let maxLines = max(tail * 5, 1000)
-                // 批量落地缓冲：同一帧内多次写 @State 会触发 onChange 告警
-                final class LogBuffer { var pending: [String] = [] }
-                let buffer = LogBuffer()
-                @MainActor func flush() {
-                    guard !buffer.pending.isEmpty else { return }
-                    let chunk = buffer.pending
-                    buffer.pending.removeAll()
-                    if logLines.count + chunk.count > maxLines {
-                        logLines.removeFirst(min(logLines.count, logLines.count + chunk.count - maxLines))
-                    }
-                    logLines.append(contentsOf: chunk)
-                }
                 let flusher = Task { @MainActor in
                     while !Task.isCancelled {
                         try? await Task.sleep(nanoseconds: 100_000_000)
@@ -234,14 +234,15 @@ struct ComposeLogView: View {
                     if Task.isCancelled { break }
                     buffer.pending.append(line)
                 }
-                flush()
                 isLoading = false
             } catch {
                 isLoading = false
-                if logLines.isEmpty {
+                if logLines.isEmpty && buffer.pending.isEmpty {
                     errorMessage = error.localizedDescription
                 }
             }
+            // 正常结束 / 异常中断：落地剩余缓冲（catch 也走得到）
+            flush()
         }
     }
 }

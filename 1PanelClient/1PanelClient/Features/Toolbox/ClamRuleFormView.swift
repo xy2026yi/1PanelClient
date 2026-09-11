@@ -73,9 +73,8 @@ struct ClamRuleFormView: View {
         guard !name.isEmpty, path.hasPrefix("/"), !isSaving else { return false }
         if needsQuarantine && !quarantineDir.hasPrefix("/") { return false }
         if hasAlert && alertMethodID == 0 { return false }
-        if hasSpec {
-            guard let t = Int(timeoutText), t > 0 else { return false }
-        }
+        // 超时无计划任务也需为正数（服务端默认 300s，前端提交 0 会导致规则立即超时）
+        guard let t = Int(timeoutText), t > 0 else { return false }
         return true
     }
 
@@ -102,6 +101,7 @@ struct ClamRuleFormView: View {
         .task {
             await loadAlertConfigs()
             fillIfEditing()
+            reconcileAlertMethod()
         }
         .sheet(isPresented: $showDirPicker) {
             // 用宿主 VM 的 client：避免多机切换瞬间读到别的服务器的目录
@@ -371,6 +371,15 @@ struct ClamRuleFormView: View {
             hasAlert = true
             alertMethodID = id
             alertCount = rule.alertCount ?? 3
+        }
+    }
+
+    /// 回填的告警方式已不存在（配置被删 / 列表加载失败）时重置，
+    /// 避免 Picker 无效 selection 告警与保存提交失效 id
+    private func reconcileAlertMethod() {
+        guard hasAlert, alertMethodID != 0 else { return }
+        if !alertConfigs.contains(where: { $0.id == alertMethodID }) {
+            alertMethodID = 0
         }
     }
 

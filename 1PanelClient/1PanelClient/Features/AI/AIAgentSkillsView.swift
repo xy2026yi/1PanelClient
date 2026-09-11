@@ -97,7 +97,8 @@ struct AIAgentSkillsView: View {
         .refreshable {
             if mode == 1 {
                 await loadInstalled()
-            } else {
+            } else if hasSearched {
+                // 未搜索过不触发请求（避免空关键词误查询）
                 await search()
             }
         }

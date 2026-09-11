@@ -12412,6 +12412,61 @@
         }
       }
     },
+    "网关增强" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway Enhance"
+          }
+        }
+      }
+    },
+    "暂无可用模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No models available"
+          }
+        }
+      }
+    },
+    "切换协议" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch Protocol"
+          }
+        }
+      }
+    },
+    "该模型尚未执行过拉取任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This model has not been pulled yet"
+          }
+        }
+      }
+    },
+    "磁盘空间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Space"
+          }
+        }
+      }
+    },
     "手动创建" : {
       "extractionState" : "manual",
       "localizations" : {
