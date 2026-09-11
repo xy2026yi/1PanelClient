@@ -233,8 +233,7 @@ struct SupervisorProcessFileView: View {
         do {
             content = try await client.send(
                 path: APIEndpoint.supervisorProcessFileGet.path,
-                method: "GET",
-                queryItems: [URLQueryItem(name: "name", value: processName)],
+                body: SupervisorFileGetRequest(name: processName, file: "config"),
                 as: String.self)
             loadErrorMessage = nil
         } catch {

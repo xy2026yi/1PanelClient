@@ -396,3 +396,263 @@ struct DeviceHostsSettingsView: View {
         }
     }
 }
+
+// MARK: - 系统密码
+
+/// 修改系统用户密码：新密码与确认密码一致才允许保存，
+/// POST /api/v2/toolbox/device/update/passwd {user, passwd(base64)}
+struct DevicePasswordView: View {
+    let server: ServerConfig
+    var onSaved: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var user = ""
+    @State private var passwd = ""
+    @State private var confirm = ""
+    @State private var showPasswd = false
+    @State private var showConfirm = false
+    @State private var isSaving = false
+    @State private var errorText: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, onSaved: @escaping () -> Void = {}) {
+        self.server = server
+        self.onSaved = onSaved
+        self.client = APIClient.shared(for: server)
+    }
+
+    private var isMatched: Bool {
+        !passwd.isEmpty && passwd == confirm
+    }
+
+    private var canSave: Bool {
+        !user.trimmingCharacters(in: .whitespaces).isEmpty && isMatched && !isSaving
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                TextField(L10n.t("用户"), text: $user)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            } header: {
+                SectionLabel(title: L10n.t("用户"), systemImage: "person.crop.circle")
+            }
+
+            Section {
+                HStack {
+                    if showPasswd {
+                        TextField(L10n.t("新密码"), text: $passwd)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    } else {
+                        SecureField(L10n.t("新密码"), text: $passwd)
+                    }
+                    Button {
+                        showPasswd.toggle()
+                    } label: {
+                        Image(systemName: showPasswd ? "eye.slash" : "eye")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(L10n.t(showPasswd ? "隐藏密码" : "显示密码"))
+                }
+                HStack {
+                    if showConfirm {
+                        TextField(L10n.t("确认密码"), text: $confirm)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    } else {
+                        SecureField(L10n.t("确认密码"), text: $confirm)
+                    }
+                    Button {
+                        showConfirm.toggle()
+                    } label: {
+                        Image(systemName: showConfirm ? "eye.slash" : "eye")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(L10n.t(showConfirm ? "隐藏密码" : "显示密码"))
+                }
+            } header: {
+                SectionLabel(title: L10n.t("密码"), systemImage: "lock")
+            } footer: {
+                if !confirm.isEmpty && !isMatched {
+                    Text(L10n.t("两次输入的密码不一致"))
+                        .foregroundStyle(.red)
+                } else {
+                    Text(L10n.t("新密码与确认密码一致后才能保存"))
+                }
+            }
+        }
+        .navigationTitle(L10n.t("系统密码"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
+                }
+                .disabled(!canSave)
+            }
+        }
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { errorText != nil },
+            set: { if !$0 { errorText = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { errorText = nil }
+        } message: {
+            Text(errorText ?? "")
+        }
+    }
+
+    private func save() async {
+        isSaving = true
+        defer { isSaving = false }
+        let req = DevicePasswdUpdateRequest(
+            user: user.trimmingCharacters(in: .whitespaces),
+            passwd: Data(passwd.utf8).base64EncodedString())
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.deviceUpdatePasswd.path, body: req, as: EmptyResponse.self)
+            onSaved()
+            dismiss()
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+}
+
+/// POST /api/v2/toolbox/device/update/passwd（passwd 为 base64）
+struct DevicePasswdUpdateRequest: Encodable {
+    let user: String
+    let passwd: String
+}
+
+// MARK: - 系统时区
+
+/// 时区选择：GET /api/v2/toolbox/device/zone/options 全量列表（可搜索），
+/// 选中后确认「需要重启服务」再经 update/conf {key: TimeZone} 提交
+struct DeviceTimezoneView: View {
+    let server: ServerConfig
+    /// 进入时的当前时区（device/base 的 timeZone）
+    let current: String
+    var onSaved: (String) -> Void
+
+    @State private var zones: [String] = []
+    @State private var searchText = ""
+    @State private var isLoading = true
+    @State private var loadError: String?
+    @State private var isSaving = false
+    /// 待确认的时区
+    @State private var pendingZone: String?
+    @State private var saveError: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, current: String, onSaved: @escaping (String) -> Void) {
+        self.server = server
+        self.current = current
+        self.onSaved = onSaved
+        self.client = APIClient.shared(for: server)
+    }
+
+    private var filtered: [String] {
+        let keyword = searchText.trimmingCharacters(in: .whitespaces)
+        guard !keyword.isEmpty else { return zones }
+        return zones.filter { $0.localizedCaseInsensitiveContains(keyword) }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                TextField(L10n.t("搜索时区"), text: $searchText)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
+
+            if isLoading {
+                HStack { Spacer(); LoadingStateView(); Spacer() }
+                    .listRowBackground(Color.clear)
+            } else if let loadError {
+                LoadErrorStateView(message: loadError) {
+                    Task { await load() }
+                }
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(filtered, id: \.self) { zone in
+                    Button {
+                        pendingZone = zone
+                    } label: {
+                        HStack {
+                            Text(zone.isEmpty ? "UTC" : zone)
+                                .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if zone == current {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(L10n.t("系统时区"))
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+        .alert(L10n.t("系统时区"), isPresented: Binding(
+            get: { pendingZone != nil },
+            set: { if !$0 { pendingZone = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingZone = nil }
+            Button(L10n.t("确认"), role: .destructive) {
+                let zone = pendingZone
+                pendingZone = nil
+                if let zone { Task { await apply(zone) } }
+            }
+        } message: {
+            Text(L10n.t("系统时区修改需要重启服务，是否继续？"))
+        }
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { saveError = nil }
+        } message: {
+            Text(saveError ?? "")
+        }
+    }
+
+    private func load() async {
+        isLoading = true
+        do {
+            zones = try await client.send(
+                path: APIEndpoint.deviceZoneOptions.path,
+                method: "GET",
+                as: [String].self)
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    private func apply(_ zone: String) async {
+        isSaving = true
+        defer { isSaving = false }
+        let req = SettingsKeyValueRequest(key: "TimeZone", value: zone)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.deviceUpdateConf.path, body: req, as: EmptyResponse.self)
+            onSaved(zone)
+        } catch {
+            saveError = error.localizedDescription
+        }
+    }
+}

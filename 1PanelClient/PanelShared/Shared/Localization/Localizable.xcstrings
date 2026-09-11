@@ -2778,6 +2778,61 @@
         }
       }
     },
+    "已重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restarted"
+          }
+        }
+      }
+    },
+    "已启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Started"
+          }
+        }
+      }
+    },
+    "已停止" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopped"
+          }
+        }
+      }
+    },
+    "将对进程「%@」进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %2$@ to process \"%1$@\"?"
+          }
+        }
+      }
+    },
+    "进程「%@」%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process \"%1$@\" %2$@"
+          }
+        }
+      }
+    },
     "主机地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9814,6 +9869,303 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Process Guard"
+          }
+        }
+      }
+    },
+    "缓存清理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Clean"
+          }
+        }
+      }
+    },
+    "系统 / 备份 / 容器 / 日志垃圾清理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System / backup / container / log junk cleaning"
+          }
+        }
+      }
+    },
+    "系统垃圾" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Junk"
+          }
+        }
+      }
+    },
+    "系统备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Backups"
+          }
+        }
+      }
+    },
+    "容器垃圾" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Junk"
+          }
+        }
+      }
+    },
+    "临时上传文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporary Uploads"
+          }
+        }
+      }
+    },
+    "临时下载文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporary Downloads"
+          }
+        }
+      }
+    },
+    "日志文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Files"
+          }
+        }
+      }
+    },
+    "系统快照恢复前备份文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pre-snapshot backup files"
+          }
+        }
+      }
+    },
+    "系统升级备份文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System upgrade backup files"
+          }
+        }
+      }
+    },
+    "历史版本子节点升级 / 安装包" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent upgrade / install packages of older versions"
+          }
+        }
+      }
+    },
+    "恢复前备份目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pre-recovery backup directories"
+          }
+        }
+      }
+    },
+    "临时备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporary backups"
+          }
+        }
+      }
+    },
+    "未关联应用备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphan app backups"
+          }
+        }
+      }
+    },
+    "未关联数据库备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphan database backups"
+          }
+        }
+      }
+    },
+    "未关联网站备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphan website backups"
+          }
+        }
+      }
+    },
+    "未关联快照备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphan snapshot backups"
+          }
+        }
+      }
+    },
+    "未关联网站日志备份文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphan website log backups"
+          }
+        }
+      }
+    },
+    "存储卷" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volumes"
+          }
+        }
+      }
+    },
+    "构建缓存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build Cache"
+          }
+        }
+      }
+    },
+    "推荐" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended"
+          }
+        }
+      }
+    },
+    "选择" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select"
+          }
+        }
+      }
+    },
+    "清理（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean (%ld)"
+          }
+        }
+      }
+    },
+    "将清理 %ld 项垃圾文件，释放 %@ 磁盘空间。此操作不可恢复，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean %ld items and free up %@ of disk space. This cannot be undone. Continue?"
+          }
+        }
+      }
+    },
+    "清理完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleaning completed"
+          }
+        }
+      }
+    },
+    "清理失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleaning failed: %@"
+          }
+        }
+      }
+    },
+    "清理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean"
           }
         }
       }
@@ -19219,6 +19571,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "System Logs"
+          }
+        }
+      }
+    },
+    "系统密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Password"
+          }
+        }
+      }
+    },
+    "确认密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Password"
+          }
+        }
+      }
+    },
+    "两次输入的密码不一致" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwords do not match"
+          }
+        }
+      }
+    },
+    "新密码与确认密码一致后才能保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save is enabled when the new password and confirmation match"
+          }
+        }
+      }
+    },
+    "系统时区" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Timezone"
+          }
+        }
+      }
+    },
+    "搜索时区" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search timezones"
+          }
+        }
+      }
+    },
+    "系统时区修改需要重启服务，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changing the system timezone requires a service restart. Continue?"
+          }
+        }
+      }
+    },
+    "系统时区修改需要重启服务后生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timezone changes take effect after the service restarts"
           }
         }
       }

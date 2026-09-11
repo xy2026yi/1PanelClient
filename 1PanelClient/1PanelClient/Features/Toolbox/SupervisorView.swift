@@ -157,18 +157,25 @@ final class SupervisorViewModel: ObservableObject {
         }
     }
 
-    func restartProcess(_ process: SupervisorProcessItem) async {
+    /// 进程操作（operate: start/stop/restart，调用方先经确认弹窗）
+    func operateProcess(_ process: SupervisorProcessItem, operate: String) async {
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.supervisorProcess.path,
-                body: SupervisorProcessRequest(operate: "restart", name: process.name),
+                body: SupervisorProcessRequest(operate: operate, name: process.name),
                 as: EmptyResponse.self)
-            showToast(L10n.f("进程「%@」已重启", process.name))
+            let actionName: String
+            switch operate {
+            case "start": actionName = L10n.t("已启动")
+            case "stop":  actionName = L10n.t("已停止")
+            default:      actionName = L10n.t("已重启")
+            }
+            showToast(L10n.f("进程「%@」%@", process.name, actionName))
             await loadProcesses()
         } catch let err as APIError {
-            showAlert(message: L10n.f("重启失败：%@", err.errorDescription ?? L10n.t("未知错误")))
+            showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
-            showAlert(message: L10n.f("重启失败：%@", error.localizedDescription))
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
         }
     }
 
@@ -214,10 +221,12 @@ struct SupervisorView: View {
 
     @State private var isServiceExpanded = false
     @State private var pendingAction: String?
+    /// 进程操作确认目标（启动 / 停止 / 重启）
+    @State private var pendingProcessAction: (process: SupervisorProcessItem, operation: String)?
     @State private var showCreate = false
     @State private var showMenu = false
     @State private var showSettings = false
-    /// 长按弹出的操作菜单目标（重启 / 日志 / 源文 / 编辑 / 删除）
+    /// 长按弹出的操作菜单目标（启动 / 停止 / 重启 / 日志 / 源文 / 编辑 / 删除）
     @State private var actionProcess: SupervisorProcessItem?
     /// 行「编辑」推入的表单目标
     @State private var editingProcess: SupervisorProcessItem?
@@ -289,7 +298,7 @@ struct SupervisorView: View {
             .overlay(alignment: .topTrailing) {
                 if showMenu {
                     EllipsisMenuPopup(entries: [
-                        .action(title: L10n.t("配置修改"), icon: "slider.horizontal.3") {
+                        .action(title: L10n.t("配置"), icon: "slider.horizontal.3") {
                             showSettings = true
                         },
                     ]) {
@@ -327,6 +336,30 @@ struct SupervisorView: View {
         } message: {
             if let action = pendingAction {
                 Text(L10n.f("将对 Supervisor 进行 %@ 操作，是否继续？", supervisorActionDisplayName(action)))
+            }
+        }
+        .alert(
+            pendingProcessAction.map { supervisorActionDisplayName($0.operation) } ?? "",
+            isPresented: Binding(
+                get: { pendingProcessAction != nil },
+                set: { if !$0 { pendingProcessAction = nil } }
+            )
+        ) {
+            Button(L10n.t("取消"), role: .cancel) { pendingProcessAction = nil }
+            Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
+                let target = pendingProcessAction
+                pendingProcessAction = nil
+                if let target {
+                    Task { await vm.operateProcess(target.process, operate: target.operation) }
+                }
+            }
+        } message: {
+            if let target = pendingProcessAction {
+                Text(L10n.f(
+                    "将对进程「%@」进行 %@ 操作，是否继续？",
+                    target.process.name,
+                    supervisorActionDisplayName(target.operation)))
             }
         }
         .alert(L10n.t("删除进程"), isPresented: Binding(
@@ -450,28 +483,40 @@ struct SupervisorView: View {
         .sheet(item: $actionProcess) { process in
             ActionBottomSheet(
                 title: process.name,
-                items: [
-                    ActionMenuItem(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
-                        Task { await vm.restartProcess(process) }
-                    },
-                    ActionMenuItem(title: L10n.t("日志"), icon: "doc.text.magnifyingglass") {
-                        logProcess = process
-                    },
-                    ActionMenuItem(title: L10n.t("源文件"), icon: "doc.text") {
-                        fileProcess = process
-                    },
-                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
-                        editingProcess = process
-                    },
-                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                        vm.pendingDeleteProcess = process
-                    },
-                ],
+                items: processActionItems(process),
                 onDismiss: { actionProcess = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 5))])
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 7))])
             .presentationDragIndicator(.visible)
         }
+    }
+
+    /// 进程长按菜单项：启动/停止按当前状态二选一，操作均先经确认弹窗
+    private func processActionItems(_ process: SupervisorProcessItem) -> [ActionMenuItem] {
+        let isRunning = process.primaryState?.status == "RUNNING"
+        var items: [ActionMenuItem] = [
+            ActionMenuItem(
+                title: isRunning ? L10n.t("停止") : L10n.t("启动"),
+                icon: isRunning ? "stop.fill" : "play.fill",
+                color: isRunning ? .orange : .green
+            ) { pendingProcessAction = (process, isRunning ? "stop" : "start") },
+            ActionMenuItem(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
+                pendingProcessAction = (process, "restart")
+            },
+            ActionMenuItem(title: L10n.t("日志"), icon: "doc.text.magnifyingglass") {
+                logProcess = process
+            },
+            ActionMenuItem(title: L10n.t("源文件"), icon: "doc.text") {
+                fileProcess = process
+            },
+            ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
+                editingProcess = process
+            },
+            ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                vm.pendingDeleteProcess = process
+            },
+        ]
+        return items
     }
 
     @ViewBuilder

@@ -27,8 +27,14 @@ enum APIEndpoint {
     // MARK: - 系统设备信息（toolbox）
     case deviceBase               // POST 设备基础信息
     case deviceCheckDns           // POST 测试 DNS 可用性（value 逗号拼接）
-    case deviceUpdateConf         // POST 更新设备配置项 {key, value}（DNS/Ntp/LocalTime）
+    case deviceUpdateConf         // POST 更新设备配置项 {key, value}（DNS/Ntp/LocalTime/Hostname/TimeZone）
     case deviceUpdateHost         // POST 覆盖提交 hosts 完整数组
+    case deviceUpdatePasswd       // POST 修改系统密码 {user, passwd(base64)}
+    case deviceZoneOptions        // GET  可选时区列表
+
+    // MARK: - 缓存清理（toolbox）
+    case toolboxScan              // POST 扫描可清理项（树形）
+    case toolboxClean             // POST 清理勾选项 [{treeType, name, size}]
 
     // MARK: - 容器
     case containersSearch         // POST 分页查询容器
@@ -261,7 +267,7 @@ enum APIEndpoint {
     case supervisorServiceOperate // POST 服务操作 {type, operate}
     case supervisorProcess       // POST 进程操作 {operate: create/update/restart/delete, ...}
     case supervisorProcessList   // GET  守护进程列表
-    case supervisorProcessFileGet // GET 进程源文（query: name）
+    case supervisorProcessFileGet // POST 进程源文 {name, file:"config"}
     case supervisorProcessFile   // POST 保存源文 / 清空日志 {name, operate, file[, content]}
     case supervisorConfigGet     // POST 读取主配置 {type}
     case supervisorConfigSet     // POST 保存主配置 {type, content}
@@ -469,6 +475,10 @@ enum APIEndpoint {
         case .deviceCheckDns:        return "/api/v2/toolbox/device/check/dns"
         case .deviceUpdateConf:      return "/api/v2/toolbox/device/update/conf"
         case .deviceUpdateHost:      return "/api/v2/toolbox/device/update/host"
+        case .deviceUpdatePasswd:    return "/api/v2/toolbox/device/update/passwd"
+        case .deviceZoneOptions:     return "/api/v2/toolbox/device/zone/options"
+        case .toolboxScan:           return "/api/v2/toolbox/scan"
+        case .toolboxClean:          return "/api/v2/toolbox/clean"
         case .containersSearch:      return "/api/v2/containers/search"
         case .containersListStats:      return "/api/v2/containers/list/stats"
         case .containersStats:          return "/api/v2/containers/stats/:containerID"
@@ -828,9 +838,9 @@ enum APIEndpoint {
              .logsTaskCount,
              .fail2banBase, .fail2banLoadConf,
              .ftpBase,
-             .supervisorProcessList, .supervisorProcessFileGet,
-             .alertDisksList,
-             .wafStatus, .wafConfigGlobal,
+             .supervisorProcessList,
+             .deviceZoneOptions,
+             .alertDisksList,             .wafStatus, .wafConfigGlobal,
              .wafLocationsWorld, .wafLogDetail,
              .wafStat, .wafStatDays,
              .settingsBaseDir,

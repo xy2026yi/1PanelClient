@@ -211,6 +211,8 @@ struct ManageTab: View {
             ClamView(server: server)
         case .supervisor:
             SupervisorView(server: server)
+        case .clean:
+            CleanView(server: server)
         case .waf:
             WAFView(server: server)
         case .nodeManage:
@@ -409,6 +411,8 @@ enum ManageItem: String, Identifiable {
     case clam
     /// 进程守护（工具箱；Supervisor，未安装跳脚本库）
     case supervisor
+    /// 缓存清理（工具箱；系统/备份/容器/日志垃圾）
+    case clean
     case waf
     case alert
     case nodeManage
@@ -446,7 +450,7 @@ enum ManageItem: String, Identifiable {
             (L10n.t("应用"), [.apps, .websites, .database, .containers]),
             // SSH 服务管理收进「SSH」页三点菜单（服务管理入口）；进程/磁盘管理移入工具箱
             (L10n.t("主机"), [.terminal, .files, .monitor, .firewall]),
-            (L10n.t("工具箱"), [.fail2ban, .ftp, .clam, .supervisor, .process, .diskManage]),
+            (L10n.t("工具箱"), [.fail2ban, .ftp, .clam, .supervisor, .process, .diskManage, .clean]),
             (L10n.t("高级功能"), [.websiteMonitor, .nodeManage, .wafMonitor]),
             // 告警通知 / 备份账号 / 许可证收进「设置」Hub（对齐网页端面板菜单）
             (L10n.t("面板"), [.panelSettings, .cronjob, .taskCenter, .logs]),
@@ -472,6 +476,7 @@ enum ManageItem: String, Identifiable {
         case .ftp:         return "FTP"
         case .clam:        return L10n.t("病毒扫描")
         case .supervisor:  return L10n.t("进程守护")
+        case .clean:       return L10n.t("缓存清理")
         case .waf:         return "WAF"
         case .alert:       return L10n.t("告警通知")
         case .nodeManage:  return L10n.t("多机管理")
@@ -508,6 +513,7 @@ enum ManageItem: String, Identifiable {
         case .ftp:         return L10n.t("FTP 账号管理")
         case .clam:        return L10n.t("ClamAV 病毒扫描")
         case .supervisor:  return L10n.t("Supervisor 进程守护")
+        case .clean:       return L10n.t("系统 / 备份 / 容器 / 日志垃圾清理")
         case .waf:         return L10n.t("Web 应用防火墙")
         case .alert:       return L10n.t("告警规则 / 日志 / 发送方式")
         case .nodeManage:  return L10n.t("节点概览 / 添加节点 / 切换（专业版）")
@@ -544,6 +550,7 @@ enum ManageItem: String, Identifiable {
         case .ftp:         return "arrow.up.arrow.down"
         case .clam:        return "cross.case.fill"
         case .supervisor:  return "gearshape.2.fill"
+        case .clean:       return "sparkles"
         case .waf:         return "flame.fill"
         case .alert:       return "bell.badge.fill"
         case .nodeManage:  return "server.rack"
@@ -579,6 +586,7 @@ enum ManageItem: String, Identifiable {
         case .ftp:         return .teal
         case .clam:        return .green
         case .supervisor:  return .blue
+        case .clean:       return .purple
         case .waf:         return .red
         case .alert:       return .orange
         case .nodeManage:  return .teal

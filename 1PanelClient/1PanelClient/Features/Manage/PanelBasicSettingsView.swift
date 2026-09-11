@@ -95,6 +95,9 @@ struct PanelBasicSettingsView: View {
     @State private var hostEntries: [DeviceHostItem] = []
     @State private var ntpInput = ""
     @State private var localTime = ""
+    @State private var deviceHostname = ""
+    @State private var deviceTimezone = ""
+    @State private var showHostnameSheet = false
     @State private var isDeviceBusy = false
     /// 加载时的原始值（DNS 跳转编辑的初始值与摘要 / NTP 失焦比对基线）
     @State private var originalDNS: [String] = []
@@ -158,6 +161,7 @@ struct PanelBasicSettingsView: View {
                 accessSection
                 proxySection
                 runtimeSection
+                systemSection
                 deviceEntrySection
                 ntpSection
                 serverTimeSection
@@ -187,6 +191,17 @@ struct PanelBasicSettingsView: View {
             Text(errorText ?? "")
         }
         .toastOverlay(message: $toast)
+        .sheet(isPresented: $showHostnameSheet) {
+            SSHFieldSheet(
+                title: L10n.t("主机名"),
+                value: deviceHostname,
+                placeholder: "1Panel"
+            ) { newValue in
+                let value = newValue.trimmingCharacters(in: .whitespaces)
+                guard !value.isEmpty, value != deviceHostname else { return }
+                Task { await updateConf("Hostname", value) }
+            }
+        }
     }
 
     // MARK: 面板（别名 / 超时 / 体验计划）
@@ -300,6 +315,64 @@ struct PanelBasicSettingsView: View {
             }
         } header: {
             SectionLabel(title: L10n.t("运行环境"), systemImage: "globe.asia.australia")
+        }
+    }
+
+    // MARK: 系统（密码 / 主机名 / 时区）
+
+    private var systemSection: some View {
+        Section {
+            NavigationLink {
+                DevicePasswordView(server: server)
+            } label: {
+                HStack {
+                    Text(L10n.t("系统密码"))
+                    Spacer()
+                    Text("••••••••")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Button {
+                showHostnameSheet = true
+            } label: {
+                HStack {
+                    Text(L10n.t("主机名"))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text(deviceHostname.isEmpty ? "—" : deviceHostname)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(isDeviceBusy)
+
+            NavigationLink {
+                DeviceTimezoneView(server: server, current: deviceTimezone) { zone in
+                    deviceTimezone = zone
+                }
+            } label: {
+                HStack {
+                    Text(L10n.t("系统时区"))
+                    Spacer()
+                    Text(deviceTimezone.isEmpty ? "—" : deviceTimezone)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+        } header: {
+            SectionLabel(title: L10n.t("系统"), systemImage: "cpu")
+        } footer: {
+            Text(L10n.t("系统时区修改需要重启服务后生效"))
         }
     }
 
@@ -475,6 +548,8 @@ struct PanelBasicSettingsView: View {
             if focusedField != .ntp { ntpInput = deviceValue.ntp ?? "" }
             originalNtp = deviceValue.ntp ?? ""
             localTime = deviceValue.localTime ?? ""
+            deviceHostname = deviceValue.hostname ?? ""
+            deviceTimezone = deviceValue.timeZone ?? ""
         }
     }
 
@@ -537,6 +612,7 @@ struct PanelBasicSettingsView: View {
                 path: APIEndpoint.deviceUpdateConf.path, body: req, as: EmptyResponse.self
             )
             if key == "Ntp" { originalNtp = value }
+            if key == "Hostname" { deviceHostname = value }
             toast = L10n.t("已保存")
             return true
         } catch {

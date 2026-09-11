@@ -114,6 +114,12 @@ nonisolated struct SupervisorProcessState: Decodable, Hashable {
 
 // MARK: - 源文 / 日志文件操作
 
+/// POST /api/v2/hosts/tool/supervisor/process/file/get {"name", "file":"config"}
+nonisolated struct SupervisorFileGetRequest: Encodable {
+    let name: String
+    let file: String
+}
+
 /// POST /api/v2/hosts/tool/supervisor/process/file：
 /// operate=update 保存源文（file="config"）；operate=clear 清空日志（file="out.log"/"err.log"）
 nonisolated struct SupervisorProcessFileRequest: Encodable {

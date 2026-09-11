@@ -162,7 +162,7 @@ struct SupervisorSettingsView: View {
                 NavigationLink {
                     SupervisorConfigEditView(server: server)
                 } label: {
-                    Label(L10n.t("配置修改"), systemImage: "slider.horizontal.3")
+                    Label(L10n.t("配置"), systemImage: "slider.horizontal.3")
                 }
                 NavigationLink {
                     SupervisorServiceLogView(server: server)
@@ -232,7 +232,7 @@ struct SupervisorConfigEditView: View {
                     .textInputAutocapitalization(.never)
             }
         }
-        .navigationTitle(L10n.t("配置修改"))
+        .navigationTitle(L10n.t("配置"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
