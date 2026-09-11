@@ -233,6 +233,8 @@ struct ManageTab: View {
             WebsiteMonitorView(server: server)
         case .wafMonitor:
             WAFMonitorView(server: server)
+        case .gpuMonitor:
+            GPUMonitorView(server: server)
         case .panelSettings:
             // 设置 Hub：基础设置 / 告警通知 / 备份账号 / 许可证（对齐网页端面板菜单）
             ManageHubView(title: L10n.t("设置"), items: [.basicSettings, .alert, .backupAccount, .license])
@@ -437,6 +439,8 @@ enum ManageItem: String, Identifiable {
     case logs
     case websiteMonitor
     case wafMonitor
+    /// GPU 监控（/ai/gpu/*：实时快照 + 历史曲线）
+    case gpuMonitor
     /// 设置（Hub 子页：基础设置 / 告警通知 / 备份账号 / 许可证）
     case panelSettings
     /// 基础设置（设置 Hub 子页）
@@ -473,7 +477,7 @@ enum ManageItem: String, Identifiable {
             // SSH 服务管理收进「SSH」页三点菜单（服务管理入口）；磁盘管理移入工具箱
             (L10n.t("主机"), [.terminal, .files, .monitor, .process, .firewall]),
             (L10n.t("工具箱"), [.fail2ban, .ftp, .clam, .supervisor, .diskManage, .clean]),
-            (L10n.t("高级功能"), [.websiteMonitor, .nodeManage, .wafMonitor]),
+            (L10n.t("高级功能"), [.gpuMonitor, .websiteMonitor, .nodeManage, .wafMonitor]),
             // 告警通知 / 备份账号 / 许可证收进「设置」Hub（对齐网页端面板菜单）
             (L10n.t("面板"), [.panelSettings, .cronjob, .taskCenter, .logs]),
         ]
@@ -510,6 +514,7 @@ enum ManageItem: String, Identifiable {
         case .logs:        return L10n.t("日志")
         case .websiteMonitor: return L10n.t("网站监控")
         case .wafMonitor:  return L10n.t("WAF 监控")
+        case .gpuMonitor:  return L10n.t("GPU 监控")
         case .panelSettings: return L10n.t("设置")
         case .basicSettings: return L10n.t("基础设置")
         case .license:     return L10n.t("许可证")
@@ -552,6 +557,7 @@ enum ManageItem: String, Identifiable {
         case .logs:        return L10n.t("面板 / SSH / 网站日志")
         case .websiteMonitor: return L10n.t("QPS / 访客趋势 / 访客地图 / 请求日志")
         case .wafMonitor:  return L10n.t("拦截趋势 / 拦截记录 / 封锁记录")
+        case .gpuMonitor:  return L10n.t("利用率 / 显存 / 温度 / 功耗 / 进程")
         case .panelSettings: return L10n.t("告警通知 / 备份账号 / 许可证")
         case .basicSettings: return L10n.t("面板别名 / 超时 / 代理 / 运行环境")
         case .license:     return L10n.t("专业版授权绑定 / 同步")
@@ -594,6 +600,7 @@ enum ManageItem: String, Identifiable {
         case .logs:        return "doc.text.magnifyingglass"
         case .websiteMonitor: return "chart.pie.fill"
         case .wafMonitor:  return "chart.bar.xaxis"
+        case .gpuMonitor:  return "memorychip"
         case .panelSettings: return "gearshape.fill"
         case .basicSettings: return "slider.horizontal.3"
         case .license:     return "checkmark.seal.fill"
@@ -635,6 +642,7 @@ enum ManageItem: String, Identifiable {
         case .logs:        return .cyan
         case .websiteMonitor: return .indigo
         case .wafMonitor:  return .red
+        case .gpuMonitor:  return .mint
         case .panelSettings: return .blue
         case .basicSettings: return .teal
         case .license:     return .orange

@@ -506,6 +506,10 @@ enum APIEndpoint {
     case aiDomainGet            // POST 网关域名信息 {appInstallID}
     case aiDomainBind           // POST 网关域名绑定
     case aiDomainUpdate         // POST 网关域名更新
+    // GPU 监控（AI 路由下的加速器监控：nvidia-smi 解析，另支持 NPU/XPU）
+    case aiGpuLoad              // GET GPU 实时快照（设备/驱动/进程）
+    case aiGpuOptions           // GET GPU 监控配置（gpuType 等）
+    case aiGpuMonitorSearch     // POST GPU 监控历史 {productName, startTime, endTime}
 
     var path: String {
         switch self {
@@ -916,6 +920,9 @@ enum APIEndpoint {
         case .aiDomainGet:           return "/api/v2/ai/domain/get"
         case .aiDomainBind:          return "/api/v2/ai/domain/bind"
         case .aiDomainUpdate:        return "/api/v2/ai/domain/update"
+        case .aiGpuLoad:             return "/api/v2/ai/gpu/load"
+        case .aiGpuOptions:          return "/api/v2/ai/gpu/options"
+        case .aiGpuMonitorSearch:    return "/api/v2/ai/gpu/search"
         }
     }
 
@@ -951,7 +958,8 @@ enum APIEndpoint {
              .nodesCurrent, .licensesOptions,
              .backupsLocal,
              .filesDownload,
-             .aiAccountProviders, .aiMcpDomainGet:
+             .aiAccountProviders, .aiMcpDomainGet,
+             .aiGpuLoad, .aiGpuOptions:
             return "GET"
         default:
             return "POST"
