@@ -1289,6 +1289,15 @@
     "Fail2ban" : {
 
     },
+    "file.txt" : {
+
+    },
+    "folder_name" : {
+
+    },
+    "FTP" : {
+
+    },
     "FTP 账号管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1299,56 +1308,6 @@
           }
         }
       }
-    },
-    "将对 FTP 进行 %@ 操作，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apply %@ to FTP?"
-          }
-        }
-      }
-    },
-    "开启 FTP 将修改整个 %@ 目录权限，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enabling FTP will change the permissions of the entire %@ directory. Continue?"
-          }
-        }
-      }
-    },
-    "开启 FTP 将修改整个根目录的权限" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enabling FTP will change the permissions of the entire root directory"
-          }
-        }
-      }
-    },
-    "将同步服务器上的 FTP 账号列表，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync the FTP account list from the server?"
-          }
-        }
-      }
-    },
-    "file.txt" : {
-
-    },
-    "folder_name" : {
-
     },
     "GitHub" : {
 
@@ -2008,17 +1967,6 @@
         }
       }
     },
-    "会话" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sessions"
-          }
-        }
-      }
-    },
     "SSH 密钥" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2037,17 +1985,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SSH Service"
-          }
-        }
-      }
-    },
-    "服务管理" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Service Management"
           }
         }
       }
@@ -3446,6 +3383,17 @@
         }
       }
     },
+    "会话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessions"
+          }
+        }
+      }
+    },
     "会话已断开" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3651,6 +3599,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Save"
+          }
+        }
+      }
+    },
+    "保存配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Config"
+          }
+        }
+      }
+    },
+    "修改配置后需要重启生效。如果确认操作，请手动输入「立即重启」。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changes take effect after a restart. Type \"Restart Now\" to confirm."
+          }
+        }
+      }
+    },
+    "已保存，重启服务后生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved. Restart the service to take effect"
           }
         }
       }
@@ -5118,6 +5099,28 @@
         }
       }
     },
+    "删除病毒文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Infected Files"
+          }
+        }
+      }
+    },
+    "删除任务检测到的病毒文件，以确保服务器的安全和正常运行。此操作不可恢复，请输入规则名称「%@」以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete infected files detected by this task to keep the server safe. This cannot be undone. Enter rule name \"%@\" to confirm."
+          }
+        }
+      }
+    },
     "删除 Acme 账户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5261,17 +5264,6 @@
         }
       }
     },
-    "删除分组「%@」后不可恢复；该分组下仍有网站时删除将被拒绝，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Group \"%@\" cannot be restored once deleted; deletion will be rejected while websites still use this group. Continue?"
-          }
-        }
-      }
-    },
     "删除分组「%@」后不可恢复，组内计划任务将变为未分组，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5290,6 +5282,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Group \"%@\" cannot be restored once deleted; deletion will be rejected while scripts still use this group. Continue?"
+          }
+        }
+      }
+    },
+    "删除分组「%@」后不可恢复；该分组下仍有网站时删除将被拒绝，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group \"%@\" cannot be restored once deleted; deletion will be rejected while websites still use this group. Continue?"
           }
         }
       }
@@ -5576,6 +5579,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Certificate"
+          }
+        }
+      }
+    },
+    "删除账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Account"
           }
         }
       }
@@ -6878,17 +6892,6 @@
         }
       }
     },
-    "同步完成" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync completed"
-          }
-        }
-      }
-    },
     "同步 WAF IP 组" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6929,6 +6932,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sync failed: %@"
+          }
+        }
+      }
+    },
+    "同步完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync completed"
           }
         }
       }
@@ -7028,6 +7042,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name"
+          }
+        }
+      }
+    },
+    "名称不可修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name cannot be changed"
+          }
+        }
+      }
+    },
+    "移动或复制策略需指定隔离目录，用于存放扫描发现的感染文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move/copy strategy requires a quarantine directory for infected files"
           }
         }
       }
@@ -7292,6 +7328,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Send Method"
+          }
+        }
+      }
+    },
+    "请先在「告警通知」中配置发送方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure a send method in \"Alert Notifications\" first"
+          }
+        }
+      }
+    },
+    "扫描到感染文件时通过所选方式发送通知" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify via the selected method when infected files are found"
           }
         }
       }
@@ -9166,6 +9224,17 @@
         }
       }
     },
+    "将同步服务器上的 FTP 账号列表，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync the FTP account list from the server?"
+          }
+        }
+      }
+    },
     "将域名反向代理到指定地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9217,6 +9286,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply %@ to Fail2ban?"
+          }
+        }
+      }
+    },
+    "将对 FTP 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to FTP?"
+          }
+        }
+      }
+    },
+    "将对 %@ 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %2$@ to %1$@?"
+          }
+        }
+      }
+    },
+    "已完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
+    "该记录没有关联的任务日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This record has no task log"
           }
         }
       }
@@ -9492,6 +9605,380 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toolbox"
+          }
+        }
+      }
+    },
+    "病毒扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virus Scan"
+          }
+        }
+      }
+    },
+    "ClamAV 病毒扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ClamAV virus scanning"
+          }
+        }
+      }
+    },
+    "ClamAV 设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ClamAV Settings"
+          }
+        }
+      }
+    },
+    "病毒库服务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virus DB Service"
+          }
+        }
+      }
+    },
+    "病毒库刷新配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FreshClam Config"
+          }
+        }
+      }
+    },
+    "病毒库刷新日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FreshClam Log"
+          }
+        }
+      }
+    },
+    "扫描设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Settings"
+          }
+        }
+      }
+    },
+    "扫描目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Directory"
+          }
+        }
+      }
+    },
+    "扫描日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Log"
+          }
+        }
+      }
+    },
+    "扫描规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Rules"
+          }
+        }
+      }
+    },
+    "扫描报告" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Reports"
+          }
+        }
+      }
+    },
+    "扫描告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Alerts"
+          }
+        }
+      }
+    },
+    "扫描耗时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Time"
+          }
+        }
+      }
+    },
+    "感染文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Infected Files"
+          }
+        }
+      }
+    },
+    "感染文件策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Infected File Strategy"
+          }
+        }
+      }
+    },
+    "感染 %ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Infected %ld"
+          }
+        }
+      }
+    },
+    "不操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Action"
+          }
+        }
+      }
+    },
+    "移动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move"
+          }
+        }
+      }
+    },
+    "隔离目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quarantine Directory"
+          }
+        }
+      }
+    },
+    "定期扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled Scan"
+          }
+        }
+      }
+    },
+    "几号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day of Month"
+          }
+        }
+      }
+    },
+    "手动执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual"
+          }
+        }
+      }
+    },
+    "立即扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Now"
+          }
+        }
+      }
+    },
+    "删除规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Rule"
+          }
+        }
+      }
+    },
+    "规则名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule Name"
+          }
+        }
+      }
+    },
+    "暂无规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No rules"
+          }
+        }
+      }
+    },
+    "暂无报告" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No reports"
+          }
+        }
+      }
+    },
+    "最低配置要求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimum Requirements"
+          }
+        }
+      }
+    },
+    "CPU 要求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU"
+          }
+        }
+      }
+    },
+    "内存要求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RAM"
+          }
+        }
+      }
+    },
+    "服务器架构" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Space"
+          }
+        }
+      }
+    },
+    "1 CPU，2.0 Ghz+" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 CPU, 2.0 Ghz+"
+          }
+        }
+      }
+    },
+    "3 GiB+" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 GiB+"
+          }
+        }
+      }
+    },
+    "至少 5GiB 可用磁盘空间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At least 5 GiB of free disk space"
           }
         }
       }
@@ -10317,6 +10804,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enable"
+          }
+        }
+      }
+    },
+    "开启 FTP 将修改整个 %@ 目录权限，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enabling FTP will change the permissions of the entire %@ directory. Continue?"
+          }
+        }
+      }
+    },
+    "开启 FTP 将修改整个根目录的权限" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enabling FTP will change the permissions of the entire root directory"
           }
         }
       }
@@ -12000,6 +12509,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Actions"
+          }
+        }
+      }
+    },
+    "报告" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reports"
           }
         }
       }
@@ -14160,6 +14680,17 @@
         }
       }
     },
+    "服务管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service Management"
+          }
+        }
+      }
+    },
     "未使用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15865,6 +16396,17 @@
         }
       }
     },
+    "添加账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Account"
+          }
+        }
+      }
+    },
     "添加重定向" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16140,17 +16682,6 @@
         }
       }
     },
-    "点击右上角 + 添加账号" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap + in the top-right corner to add an account"
-          }
-        }
-      }
-    },
     "点击右上角 + 添加" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16180,6 +16711,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap + at the top right to add a rule"
+          }
+        }
+      }
+    },
+    "点击右上角 + 添加账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to add an account"
           }
         }
       }
@@ -16514,17 +17056,6 @@
         }
       }
     },
-    "用户名不可修改" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Username cannot be changed"
-          }
-        }
-      }
-    },
     "用户名（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16543,6 +17074,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Username (defaults to name)"
+          }
+        }
+      }
+    },
+    "用户名不可修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username cannot be changed"
           }
         }
       }
@@ -17174,6 +17716,17 @@
         }
       }
     },
+    "确定删除账号「%@」吗？此操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete account \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
     "确定删除镜像「%@」吗？删除后不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17372,6 +17925,17 @@
         }
       }
     },
+    "磁盘 / 分区 / 挂载点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disks / Partitions / Mount Points"
+          }
+        }
+      }
+    },
     "磁盘 I/O" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17456,17 +18020,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disk Management"
-          }
-        }
-      }
-    },
-    "磁盘 / 分区 / 挂载点" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disks / Partitions / Mount Points"
           }
         }
       }
@@ -21090,39 +21643,6 @@
         }
       }
     },
-    "添加账号" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add Account"
-          }
-        }
-      }
-    },
-    "删除账号" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Account"
-          }
-        }
-      }
-    },
-    "确定删除账号「%@」吗？此操作不可恢复。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete account \"%@\"? This cannot be undone."
-          }
-        }
-      }
-    },
     "账号「%@」已创建" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21130,17 +21650,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Account \"%@\" created"
-          }
-        }
-      }
-    },
-    "账号「%@」已更新" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Account \"%@\" updated"
           }
         }
       }
@@ -21156,6 +21665,17 @@
         }
       }
     },
+    "账号「%@」已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account \"%@\" updated"
+          }
+        }
+      }
+    },
     "账号「%@」暂无传输记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21163,6 +21683,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No transfer records for account \"%@\""
+          }
+        }
+      }
+    },
+    "规则「%@」已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule \"%@\" created"
+          }
+        }
+      }
+    },
+    "规则「%@」已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule \"%@\" updated"
+          }
+        }
+      }
+    },
+    "规则「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "规则「%@」近 7 天没有扫描记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No scan records for rule \"%@\" in the last 7 days"
+          }
+        }
+      }
+    },
+    "扫描任务「%@」已开始" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan task \"%@\" started"
+          }
+        }
+      }
+    },
+    "病毒扫描「 %@ 」任务检测到感染文件告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virus scan task \"%@\" detected infected files"
           }
         }
       }
@@ -21284,6 +21870,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Timeout"
+          }
+        }
+      }
+    },
+    "超时后自动终止扫描，当前为 %ld 秒" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan stops after timeout. Currently %ld seconds"
+          }
+        }
+      }
+    },
+    "Cron：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cron: %@"
           }
         }
       }

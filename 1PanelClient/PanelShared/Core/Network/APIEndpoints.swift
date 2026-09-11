@@ -243,6 +243,18 @@ enum APIEndpoint {
     case ftpDelete               // POST 删除账号 {ids}
     case ftpSync                 // POST 同步账号
 
+    // MARK: - ClamAV 病毒扫描（工具箱）
+    case clamBase                // POST 安装/运行状态（ClamAV + FreshClam）
+    case clamSearch              // POST 分页查询扫描规则 {page, pageSize, orderBy, order}
+    case clamCreate              // POST 创建扫描规则
+    case clamUpdate              // POST 更新扫描规则（全字段回传）
+    case clamHandle              // POST 立即执行扫描 {id}
+    case clamOperate             // POST 服务操作 {operation}（fresh- 前缀为病毒库服务）
+    case clamDelete              // POST 删除规则 {ids[, isDeleteFile]}
+    case clamRecordSearch        // POST 分页查询扫描报告
+    case clamFileSearch          // POST 读取配置/日志 {name, tail}
+    case clamFileUpdate          // POST 保存配置 {name, file}
+
     // MARK: - 告警通知
     case alertSearch            // POST 分页查询告警规则
     case alertCreate            // POST 创建告警规则
@@ -610,6 +622,16 @@ enum APIEndpoint {
         case .ftpLogSearch:          return "/api/v2/toolbox/ftp/log/search"
         case .ftpDelete:             return "/api/v2/toolbox/ftp/del"
         case .ftpSync:               return "/api/v2/toolbox/ftp/sync"
+        case .clamBase:              return "/api/v2/toolbox/clam/base"
+        case .clamSearch:            return "/api/v2/toolbox/clam/search"
+        case .clamCreate:            return "/api/v2/toolbox/clam"
+        case .clamUpdate:            return "/api/v2/toolbox/clam/update"
+        case .clamHandle:            return "/api/v2/toolbox/clam/handle"
+        case .clamOperate:           return "/api/v2/toolbox/clam/operate"
+        case .clamDelete:            return "/api/v2/toolbox/clam/del"
+        case .clamRecordSearch:      return "/api/v2/toolbox/clam/record/search"
+        case .clamFileSearch:        return "/api/v2/toolbox/clam/file/search"
+        case .clamFileUpdate:        return "/api/v2/toolbox/clam/file/update"
         case .filesSearch:           return "/api/v2/files/search"
         case .alertSearch:           return "/api/v2/alert/search"
         case .alertCreate:           return "/api/v2/alert"

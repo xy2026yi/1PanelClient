@@ -389,7 +389,7 @@ struct FTPView: View {
             NavigationLink {
                 ScriptLibraryView(server: server)
             } label: {
-                Label(L10n.f("安装 %@", "FTP"), systemImage: "arrow.down.circle.fill")
+                Label(L10n.f("安装 %@", "Pure-FTPd"), systemImage: "arrow.down.circle.fill")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
             }
