@@ -1289,6 +1289,61 @@
     "Fail2ban" : {
 
     },
+    "FTP 账号管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FTP account management"
+          }
+        }
+      }
+    },
+    "将对 FTP 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to FTP?"
+          }
+        }
+      }
+    },
+    "开启 FTP 将修改整个 %@ 目录权限，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enabling FTP will change the permissions of the entire %@ directory. Continue?"
+          }
+        }
+      }
+    },
+    "开启 FTP 将修改整个根目录的权限" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enabling FTP will change the permissions of the entire root directory"
+          }
+        }
+      }
+    },
+    "将同步服务器上的 FTP 账号列表，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync the FTP account list from the server?"
+          }
+        }
+      }
+    },
     "file.txt" : {
 
     },
@@ -1953,6 +2008,17 @@
         }
       }
     },
+    "会话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessions"
+          }
+        }
+      }
+    },
     "SSH 密钥" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1971,6 +2037,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SSH Service"
+          }
+        }
+      }
+    },
+    "服务管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service Management"
           }
         }
       }
@@ -6801,6 +6878,17 @@
         }
       }
     },
+    "同步完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync completed"
+          }
+        }
+      }
+    },
     "同步 WAF IP 组" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8820,7 +8908,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Private Key"
+            "value" : "Keys"
           }
         }
       }
@@ -9393,6 +9481,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tools"
+          }
+        }
+      }
+    },
+    "工具箱" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toolbox"
           }
         }
       }
@@ -16041,6 +16140,17 @@
         }
       }
     },
+    "点击右上角 + 添加账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to add an account"
+          }
+        }
+      }
+    },
     "点击右上角 + 添加" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16400,6 +16510,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Username"
+          }
+        }
+      }
+    },
+    "用户名不可修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username cannot be changed"
           }
         }
       }
@@ -20965,6 +21086,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Account"
+          }
+        }
+      }
+    },
+    "添加账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Account"
+          }
+        }
+      }
+    },
+    "删除账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Account"
+          }
+        }
+      }
+    },
+    "确定删除账号「%@」吗？此操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete account \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "账号「%@」已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account \"%@\" created"
+          }
+        }
+      }
+    },
+    "账号「%@」已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account \"%@\" updated"
+          }
+        }
+      }
+    },
+    "账号「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "账号「%@」暂无传输记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No transfer records for account \"%@\""
           }
         }
       }

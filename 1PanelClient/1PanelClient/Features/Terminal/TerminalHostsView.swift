@@ -23,6 +23,10 @@ struct TerminalHostsView: View {
     @State private var showQuickCommands = false
     @State private var showSettings = false
     @State private var showMenu = false
+    // SSH 服务管理相关的三个入口（自 SSH 服务管理页移入）
+    @State private var showCerts = false
+    @State private var showSessions = false
+    @State private var showServiceManage = false
 
     init(server: ServerConfig, localTitle: String?) {
         self.server = server
@@ -36,7 +40,7 @@ struct TerminalHostsView: View {
             hostsSection
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(L10n.t("终端"))
+        .navigationTitle("SSH")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -57,6 +61,9 @@ struct TerminalHostsView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
+                    .action(title: L10n.t("密钥"), icon: "key") { showCerts = true },
+                    .action(title: L10n.t("会话"), icon: "person.2") { showSessions = true },
+                    .action(title: L10n.t("服务管理"), icon: "gearshape.2") { showServiceManage = true },
                     .action(title: L10n.t("快速命令"), icon: "apple.terminal.on.rectangle") { showQuickCommands = true },
                     .action(title: L10n.t("设置"), icon: "gear") { showSettings = true },
                 ]) {
@@ -92,6 +99,15 @@ struct TerminalHostsView: View {
         }
         .navigationDestination(isPresented: $showSettings) {
             TerminalSettingsView(server: server)
+        }
+        .navigationDestination(isPresented: $showCerts) {
+            SSHCertsView(server: server)
+        }
+        .navigationDestination(isPresented: $showSessions) {
+            SSHSessionsView(server: server)
+        }
+        .navigationDestination(isPresented: $showServiceManage) {
+            SSHView(server: server)
         }
         .navigationDestination(isPresented: Binding(
             get: { editingHost != nil },

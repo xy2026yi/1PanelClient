@@ -344,7 +344,7 @@ struct CreateCAView: View {
                 }
                 .pickerStyle(.menu)
             } header: {
-                Text(L10n.t("密钥"))
+                Text(L10n.t("私钥"))
             }
         }
         .navigationTitle(L10n.t("创建机构"))

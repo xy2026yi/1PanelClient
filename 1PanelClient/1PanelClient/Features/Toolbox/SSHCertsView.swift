@@ -173,12 +173,17 @@ struct SSHCertsView: View {
     @State private var showCreate = false
     @State private var showMenu = false
     @State private var confirmSync = false
+    /// 授权密钥（authorized_keys）推页入口（右上角菜单）
+    @State private var showAuthKeys = false
     /// 长按弹出的操作菜单目标（编辑 / 删除）
     @State private var actionCert: SSHCertItem?
     /// 长按「编辑」推入的编辑页目标
     @State private var editingCert: SSHCertItem?
+    /// 授权密钥页所需服务器配置（init 时固定）
+    private let server: ServerConfig
 
     init(server: ServerConfig) {
+        self.server = server
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: "sshCerts:\(server.id)") {
             SSHCertsViewModel(server: server)
         })
@@ -233,6 +238,9 @@ struct SSHCertsView: View {
                     .action(title: L10n.t("同步密钥"), icon: "arrow.trianglehead.2.clockwise.rotate.90", isDisabled: vm.isSyncing) {
                         confirmSync = true
                     },
+                    .action(title: L10n.t("授权密钥"), icon: "checkmark.seal") {
+                        showAuthKeys = true
+                    },
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
                 }
@@ -248,6 +256,9 @@ struct SSHCertsView: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             SSHCertCreateView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showAuthKeys) {
+            SSHAuthKeysView(server: server)
         }
         .navigationDestination(isPresented: Binding(
             get: { editingCert != nil },
@@ -348,6 +359,8 @@ struct SSHCertRow: View {
             StatusBadge(text: (cert.encryptionMode ?? "—").uppercased(), color: .blue, monospaced: true)
         }
         .padding(.vertical, 4)
+        // 整行（含空白处）可命中长按手势，否则只有文字/图标区域响应
+        .contentShape(Rectangle())
     }
 }
 

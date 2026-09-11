@@ -205,6 +205,8 @@ struct ManageTab: View {
             SSHView(server: server)
         case .fail2ban:
             Fail2banView(server: server)
+        case .ftp:
+            FTPView(server: server)
         case .waf:
             WAFView(server: server)
         case .nodeManage:
@@ -397,6 +399,8 @@ enum ManageItem: String, Identifiable {
     case sshService
     case firewall
     case fail2ban
+    /// FTP（工具箱；未安装跳脚本库）
+    case ftp
     case waf
     case alert
     case nodeManage
@@ -432,7 +436,9 @@ enum ManageItem: String, Identifiable {
     static var groups: [(title: String, items: [ManageItem])] {
         [
             (L10n.t("应用"), [.apps, .websites, .database, .containers]),
-            (L10n.t("主机"), [.terminal, .files, .diskManage, .monitor, .process, .sshService, .firewall]),
+            // SSH 服务管理收进「SSH」页三点菜单（服务管理入口）；进程/磁盘管理移入工具箱
+            (L10n.t("主机"), [.terminal, .files, .monitor, .firewall]),
+            (L10n.t("工具箱"), [.fail2ban, .ftp, .process, .diskManage]),
             (L10n.t("高级功能"), [.websiteMonitor, .nodeManage, .wafMonitor]),
             // 告警通知 / 备份账号 / 许可证收进「设置」Hub（对齐网页端面板菜单）
             (L10n.t("面板"), [.panelSettings, .cronjob, .taskCenter, .logs]),
@@ -447,14 +453,15 @@ enum ManageItem: String, Identifiable {
         case .certificates: return L10n.t("证书")
         case .database:    return L10n.t("数据库")
         case .containers:  return L10n.t("容器")
-        case .terminal:    return L10n.t("终端")
+        case .terminal:    return L10n.t("SSH")
         case .files:       return L10n.t("文件")
         case .monitor:     return L10n.t("监控")
         case .process:     return L10n.t("进程")
         case .diskManage:  return L10n.t("磁盘管理")
-        case .sshService:  return L10n.t("SSH 服务管理")
+        case .sshService:  return L10n.t("服务管理")
         case .firewall:    return L10n.t("防火墙")
         case .fail2ban:    return "Fail2ban"
+        case .ftp:         return "FTP"
         case .waf:         return "WAF"
         case .alert:       return L10n.t("告警通知")
         case .nodeManage:  return L10n.t("多机管理")
@@ -488,6 +495,7 @@ enum ManageItem: String, Identifiable {
         case .sshService:  return L10n.t("面板主机 SSH 服务与配置")
         case .firewall:    return L10n.t("防火墙规则")
         case .fail2ban:    return L10n.t("SSH 防暴力破解")
+        case .ftp:         return L10n.t("FTP 账号管理")
         case .waf:         return L10n.t("Web 应用防火墙")
         case .alert:       return L10n.t("告警规则 / 日志 / 发送方式")
         case .nodeManage:  return L10n.t("节点概览 / 添加节点 / 切换（专业版）")
@@ -518,9 +526,10 @@ enum ManageItem: String, Identifiable {
         case .monitor:     return "chart.line.uptrend.xyaxis"
         case .process:     return "chart.bar"
         case .diskManage:  return "internaldrive"
-        case .sshService:  return "terminal"
+        case .sshService:  return "gearshape.2"
         case .firewall:    return "flame"
         case .fail2ban:    return "shield.lefthalf.filled"
+        case .ftp:         return "arrow.up.arrow.down"
         case .waf:         return "flame.fill"
         case .alert:       return "bell.badge.fill"
         case .nodeManage:  return "server.rack"
@@ -553,6 +562,7 @@ enum ManageItem: String, Identifiable {
         case .sshService:  return .blue
         case .firewall:    return .orange
         case .fail2ban:    return .indigo
+        case .ftp:         return .teal
         case .waf:         return .red
         case .alert:       return .orange
         case .nodeManage:  return .teal

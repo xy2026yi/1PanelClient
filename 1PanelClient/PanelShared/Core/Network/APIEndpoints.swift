@@ -233,6 +233,16 @@ enum APIEndpoint {
     case fail2banSearch          // POST 查询白/黑名单 {status}
     case fail2banOperateSSHD     // POST 增删IP {operate, ips}
 
+    // MARK: - FTP（工具箱）
+    case ftpBase                 // GET  安装/运行状态
+    case ftpSearch               // POST 分页查询账号 {page, pageSize}
+    case ftpCreate               // POST 创建账号 {user, password(base64), path, description?}
+    case ftpUpdate               // POST 更新账号（全字段回传）
+    case ftpOperate              // POST 服务操作 {operation}
+    case ftpLogSearch            // POST 分页查询用户日志 {user, operation, page, pageSize}
+    case ftpDelete               // POST 删除账号 {ids}
+    case ftpSync                 // POST 同步账号
+
     // MARK: - 告警通知
     case alertSearch            // POST 分页查询告警规则
     case alertCreate            // POST 创建告警规则
@@ -592,6 +602,14 @@ enum APIEndpoint {
         case .fail2banOperate:       return "/api/v2/toolbox/fail2ban/operate"
         case .fail2banSearch:        return "/api/v2/toolbox/fail2ban/search"
         case .fail2banOperateSSHD:   return "/api/v2/toolbox/fail2ban/operate/sshd"
+        case .ftpBase:               return "/api/v2/toolbox/ftp/base"
+        case .ftpSearch:             return "/api/v2/toolbox/ftp/search"
+        case .ftpCreate:             return "/api/v2/toolbox/ftp"
+        case .ftpUpdate:             return "/api/v2/toolbox/ftp/update"
+        case .ftpOperate:            return "/api/v2/toolbox/ftp/operate"
+        case .ftpLogSearch:          return "/api/v2/toolbox/ftp/log/search"
+        case .ftpDelete:             return "/api/v2/toolbox/ftp/del"
+        case .ftpSync:               return "/api/v2/toolbox/ftp/sync"
         case .filesSearch:           return "/api/v2/files/search"
         case .alertSearch:           return "/api/v2/alert/search"
         case .alertCreate:           return "/api/v2/alert"
@@ -765,6 +783,7 @@ enum APIEndpoint {
              .appsServices,
              .logsTaskCount,
              .fail2banBase, .fail2banLoadConf,
+             .ftpBase,
              .alertDisksList,
              .wafStatus, .wafConfigGlobal,
              .wafLocationsWorld, .wafLogDetail,

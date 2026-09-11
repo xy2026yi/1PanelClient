@@ -593,6 +593,15 @@ struct FirewallView: View {
             }
         }
         .toolbar {
+            // WAF 入口在左，+ 在最右（与其余列表页的「其他入口 + 号居右」统一）
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showWAF = true
+                } label: {
+                    Image(systemName: "flame.fill")
+                }
+                .accessibilityLabel(L10n.t("WAF"))
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     switch segment {
@@ -605,14 +614,6 @@ struct FirewallView: View {
                 }
                 .disabled(vm.base?.isExist != true)
                 .accessibilityLabel(segment == 1 ? L10n.t("添加端口转发") : segment == 2 ? L10n.t("添加 IP 规则") : L10n.t("添加规则"))
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showWAF = true
-                } label: {
-                    Image(systemName: "flame.fill")
-                }
-                .accessibilityLabel(L10n.t("WAF"))
             }
         }
         .navigationDestination(isPresented: $showAdd) {
