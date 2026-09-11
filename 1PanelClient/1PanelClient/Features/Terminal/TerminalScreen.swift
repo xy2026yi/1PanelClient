@@ -47,6 +47,8 @@ struct TerminalScreen: View {
             self.title = title ?? L10n.t("Redis 终端")
         case .database:
             self.title = title ?? L10n.t("数据库终端")
+        case .ollamaModel(let name, _, _):
+            self.title = title ?? L10n.f("模型终端 · %@", name)
         }
     }
 

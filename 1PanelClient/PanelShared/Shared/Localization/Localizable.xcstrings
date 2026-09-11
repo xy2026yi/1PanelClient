@@ -208,6 +208,17 @@
         }
       }
     },
+    "%@ 个模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ models"
+          }
+        }
+      }
+    },
     "%@ 备份参数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -873,6 +884,12 @@
     "1000" : {
 
     },
+    "8000" : {
+
+    },
+    "18789" : {
+
+    },
     "Access Key" : {
 
     },
@@ -908,6 +925,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ACME Account"
+          }
+        }
+      }
+    },
+    "AI" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        }
+      }
+    },
+    "AI 网关增强" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Gateway"
           }
         }
       }
@@ -965,6 +1004,34 @@
         }
       }
     },
+    "API 类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API Type"
+          }
+        }
+      }
+    },
+    "App ID" : {
+
+    },
+    "App ID / App Secret" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App ID / App Secret"
+          }
+        }
+      }
+    },
+    "App Secret" : {
+
+    },
     "Bark 的推送 Webhook 地址，形如 https://api.day.app/xxxxxx" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -972,6 +1039,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bark webhook URL, e.g. https://api.day.app/xxxxxx"
+          }
+        }
+      }
+    },
+    "Base URL" : {
+
+    },
+    "Bot ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "Bot ID / 密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bot ID / Secret"
+          }
+        }
+      }
+    },
+    "Bot Token" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -1023,6 +1126,9 @@
         }
       }
     },
+    "Client ID" : {
+
+    },
     "Client ID（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1033,6 +1139,9 @@
           }
         }
       }
+    },
+    "Client Secret" : {
+
     },
     "CloudDNS 凭证" : {
       "extractionState" : "manual",
@@ -1179,6 +1288,9 @@
           }
         }
       }
+    },
+    "Discord" : {
+
     },
     "DNS" : {
       "extractionState" : "manual",
@@ -1810,11 +1922,36 @@
         }
       }
     },
+    "KEY" : {
+
+    },
     "KEY=VALUE" : {
 
     },
     "MB" : {
 
+    },
+    "MCP Server 网关管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP Server gateway management"
+          }
+        }
+      }
+    },
+    "MCP「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP \"%@\" deleted"
+          }
+        }
+      }
     },
     "MINIO / WebDAV / SFTP 备份存储" : {
       "extractionState" : "manual",
@@ -1852,6 +1989,9 @@
     "nginx.conf" : {
 
     },
+    "npm Registry" : {
+
+    },
     "NTP 服务器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1866,8 +2006,30 @@
     "off" : {
 
     },
+    "Ollama 模型拉取与运行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull and run Ollama models"
+          }
+        }
+      }
+    },
     "on" : {
 
+    },
+    "OpenClaw / Hermes Agent / QwenPaw" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenClaw / Hermes Agent / QwenPaw"
+          }
+        }
+      }
     },
     "OpenResty %@" : {
 
@@ -1924,6 +2086,9 @@
           }
         }
       }
+    },
+    "QQ" : {
+
     },
     "Redis 终端" : {
       "extractionState" : "manual",
@@ -2018,6 +2183,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SQL Injection Protection"
+          }
+        }
+      }
+    },
+    "SSE 路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSE Path"
           }
         }
       }
@@ -2188,8 +2364,25 @@
     "SWAP" : {
 
     },
+    "Telegram" : {
+
+    },
     "TLS" : {
 
+    },
+    "Token" : {
+
+    },
+    "Token 由系统自动生成，用于 OpenClaw 控制台接入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token is generated automatically for OpenClaw console access"
+          }
+        }
+      }
     },
     "TTY" : {
 
@@ -2234,6 +2427,9 @@
       }
     },
     "v%@" : {
+
+    },
+    "VALUE" : {
 
     },
     "WAF" : {
@@ -2990,6 +3186,17 @@
         }
       }
     },
+    "主模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primary Model"
+          }
+        }
+      }
+    },
     "主配置文件位置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3019,6 +3226,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Secondary Features"
+          }
+        }
+      }
+    },
+    "二维码生成失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to generate QR code"
           }
         }
       }
@@ -3529,6 +3747,17 @@
         }
       }
     },
+    "企业微信" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WeCom"
+          }
+        }
+      }
+    },
     "优化 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3749,6 +3978,17 @@
         }
       }
     },
+    "供应商列表加载失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load providers: %@"
+          }
+        }
+      }
+    },
     "保存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3789,6 +4029,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pass the connection test before saving"
+          }
+        }
+      }
+    },
+    "保存后智能体即可在 QQ 平台对话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After saving, the agent can chat on QQ"
           }
         }
       }
@@ -4354,6 +4605,17 @@
         }
       }
     },
+    "共 %@ 个" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total: %@"
+          }
+        }
+      }
+    },
     "共 %ld 个公钥" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4394,6 +4656,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "About"
+          }
+        }
+      }
+    },
+    "关联" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync"
           }
         }
       }
@@ -4992,6 +5265,17 @@
         }
       }
     },
+    "创建 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create %@"
+          }
+        }
+      }
+    },
     "创建 Acme 账户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5032,6 +5316,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create IP Rule"
+          }
+        }
+      }
+    },
+    "创建 MCP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create MCP"
           }
         }
       }
@@ -5175,6 +5470,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Created"
+          }
+        }
+      }
+    },
+    "创建智能体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Agent"
+          }
+        }
+      }
+    },
+    "创建智能体将安装对应应用，可在应用列表中管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creating an agent installs the corresponding app, which can be managed in Apps"
           }
         }
       }
@@ -5344,6 +5661,17 @@
         }
       }
     },
+    "删除 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete %@"
+          }
+        }
+      }
+    },
     "删除 Acme 账户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5384,6 +5712,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete IP Rule"
+          }
+        }
+      }
+    },
+    "删除 MCP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete MCP"
           }
         }
       }
@@ -5575,6 +5914,17 @@
         }
       }
     },
+    "删除后本地模型文件将被清理，不可恢复。请输入模型名称「%@」以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local model files will be cleaned up irreversibly. Type the model name \"%@\" to confirm."
+          }
+        }
+      }
+    },
     "删除告警" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5652,6 +6002,28 @@
         }
       }
     },
+    "删除对接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Pairing"
+          }
+        }
+      }
+    },
+    "删除成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "删除操作不可撤销，请谨慎操作" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5681,6 +6053,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Database"
+          }
+        }
+      }
+    },
+    "删除智能体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Agent"
+          }
+        }
+      }
+    },
+    "删除模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Model"
           }
         }
       }
@@ -6334,6 +6728,28 @@
         }
       }
     },
+    "勾选后密钥将保存在服务端，供其他功能直接调用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, the key is stored on the server for other features to use"
+          }
+        }
+      }
+    },
+    "勾选后连接信息变更将同步到使用该账号的智能体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, connection changes are synced to agents using this account"
+          }
+        }
+      }
+    },
     "升级" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6473,6 +6889,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Protocol"
+          }
+        }
+      }
+    },
+    "协议版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protocol Version"
           }
         }
       }
@@ -7115,6 +7542,17 @@
         }
       }
     },
+    "可用性验证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Availability Verification"
+          }
+        }
+      }
+    },
     "可选描述" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7199,6 +7637,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sync registry failed: %@"
+          }
+        }
+      }
+    },
+    "同步关联智能体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync linked agents"
           }
         }
       }
@@ -7346,6 +7795,17 @@
         }
       }
     },
+    "名称留空时与模型 ID 一致" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defaults to the model ID if left empty"
+          }
+        }
+      }
+    },
     "后台运行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7397,6 +7857,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Start Command"
+          }
+        }
+      }
+    },
+    "启动命令为 stdio 命令行，多个命令换行分隔" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Startup command is a stdio command line; separate multiple commands with newlines"
           }
         }
       }
@@ -8050,6 +8521,17 @@
         }
       }
     },
+    "在技能市场搜索并安装技能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search and install skills from the market"
+          }
+        }
+      }
+    },
     "在浏览器打开网站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8200,6 +8682,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Domains (space-separated)"
+          }
+        }
+      }
+    },
+    "域名绑定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -8556,6 +9049,39 @@
         }
       }
     },
+    "外部端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "External Port"
+          }
+        }
+      }
+    },
+    "外部访问地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "外部连接需在防火墙放行对应端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "External access requires the port to be allowed in the firewall"
+          }
+        }
+      }
+    },
     "多个 IP 用英文逗号分隔，如: 192.168.50.100,192.168.51.100" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8886,6 +9412,17 @@
         }
       }
     },
+    "安装技能 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Skill %@"
+          }
+        }
+      }
+    },
     "安装时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8937,6 +9474,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Full URL: %@%@"
+          }
+        }
+      }
+    },
+    "官方" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Official"
           }
         }
       }
@@ -9146,6 +9694,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Host capacity: %ld CPU cores"
+          }
+        }
+      }
+    },
+    "宿主机目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -9403,6 +9962,17 @@
         }
       }
     },
+    "对接日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairing Log"
+          }
+        }
+      }
+    },
     "对比/编辑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9574,7 +10144,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apply %@ to %@?"
+            "value" : "Apply %2$@ to %1$@?"
           }
         }
       }
@@ -9608,6 +10178,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply %@ to FTP?"
+          }
+        }
+      }
+    },
+    "将对 Ollama 进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to Ollama?"
           }
         }
       }
@@ -9696,6 +10277,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply %@ to the container?"
+          }
+        }
+      }
+    },
+    "将对智能体「%@」进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %@ to agent \"%@\"?"
           }
         }
       }
@@ -9839,6 +10431,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hour: %ld"
+          }
+        }
+      }
+    },
+    "尚未执行过模型拉取任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No model pull tasks yet"
+          }
+        }
+      }
+    },
+    "尝试其他关键词或来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try other keywords or sources"
           }
         }
       }
@@ -10162,6 +10776,17 @@
         }
       }
     },
+    "已安装 · 共 %d 个" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed · %d total"
+          }
+        }
+      }
+    },
     "已安装应用 / 应用商店" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10224,6 +10849,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "\"HTTPS-only Connections\" is on: turn it off in Settings → Security, or use an https:// address"
+          }
+        }
+      }
+    },
+    "已开启可用性验证：点击模型选中验证所用模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Availability verification is on: tap a model to select it for verification"
           }
         }
       }
@@ -10305,6 +10941,17 @@
         }
       }
     },
+    "已断开「%@」" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnected \"%@\""
+          }
+        }
+      }
+    },
     "已暂停" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10378,6 +11025,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bound"
+          }
+        }
+      }
+    },
+    "已绑定网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bound Website"
           }
         }
       }
@@ -10477,6 +11135,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Locked"
+          }
+        }
+      }
+    },
+    "已验证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verified"
           }
         }
       }
@@ -10668,6 +11337,17 @@
         }
       }
     },
+    "应用版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Version"
+          }
+        }
+      }
+    },
     "应用程序" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10800,6 +11480,17 @@
         }
       }
     },
+    "开启 HTTPS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable HTTPS"
+          }
+        }
+      }
+    },
     "开启「记住认证信息」后凭证加密存储在服务器，编辑时可直接回显；备份目录为该账号下的备份存放路径，需手动填写（如 /backup）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10807,6 +11498,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "With \"Remember credentials\" on, credentials are encrypted on the server and pre-filled when editing; the backup directory is the path under this account (e.g. /backup)"
+          }
+        }
+      }
+    },
+    "开启后 MCP 端口将对外开放（0.0.0.0）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, the MCP port is exposed publicly (0.0.0.0)"
+          }
+        }
+      }
+    },
+    "开启后保存时将使用所选验证模型测试账号连接，不可用时保存失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, saving tests the account with the selected verification model and fails if unreachable"
           }
         }
       }
@@ -10928,6 +11641,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Start Time"
+          }
+        }
+      }
+    },
+    "开放" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
           }
         }
       }
@@ -11097,6 +11821,17 @@
         }
       }
     },
+    "当前模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Model"
+          }
+        }
+      }
+    },
     "当前没有在线的 SSH 会话" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11126,6 +11861,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dynamic modules are not supported in this environment; building will fully rebuild the image and restart the container"
+          }
+        }
+      }
+    },
+    "当前绑定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Binding"
           }
         }
       }
@@ -11170,6 +11916,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pending"
+          }
+        }
+      }
+    },
+    "微信" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WeChat"
+          }
+        }
+      }
+    },
+    "微信频道通过扫码对接启用，关闭需删除对接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WeChat is enabled by scanning; to disable, delete the pairing"
           }
         }
       }
@@ -11999,6 +12767,39 @@
         }
       }
     },
+    "扫码对接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair via QR Code"
+          }
+        }
+      }
+    },
+    "技能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skills"
+          }
+        }
+      }
+    },
+    "技能市场" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skill Market"
+          }
+        }
+      }
+    },
     "报告" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12010,6 +12811,28 @@
         }
       }
     },
+    "拉取" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull"
+          }
+        }
+      }
+    },
+    "拉取 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull %@"
+          }
+        }
+      }
+    },
     "拉取中…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12017,6 +12840,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pulling…"
+          }
+        }
+      }
+    },
+    "拉取失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull failed: %@"
+          }
+        }
+      }
+    },
+    "拉取日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull Log"
+          }
+        }
+      }
+    },
+    "拉取模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull Model"
           }
         }
       }
@@ -12384,6 +13240,17 @@
         }
       }
     },
+    "控制台账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Console Account"
+          }
+        }
+      }
+    },
     "推荐" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12527,6 +13394,17 @@
         }
       }
     },
+    "搜索名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search by name"
+          }
+        }
+      }
+    },
     "搜索域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12582,6 +13460,17 @@
         }
       }
     },
+    "搜索技能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search skills"
+          }
+        }
+      }
+    },
     "搜索数据库 / 用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12622,6 +13511,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search certificates"
+          }
+        }
+      }
+    },
+    "搜索账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search accounts"
           }
         }
       }
@@ -13440,6 +14340,17 @@
         }
       }
     },
+    "无法删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot Delete"
+          }
+        }
+      }
+    },
     "无法加载参数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13759,6 +14670,17 @@
         }
       }
     },
+    "显示密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show secret"
+          }
+        }
+      }
+    },
     "普通用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13766,6 +14688,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Standard user"
+          }
+        }
+      }
+    },
+    "智能体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "智能体类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent Type"
           }
         }
       }
@@ -13832,6 +14776,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No IP rules"
+          }
+        }
+      }
+    },
+    "暂无 MCP Server" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No MCP servers"
           }
         }
       }
@@ -13968,6 +14923,17 @@
         }
       }
     },
+    "暂无可用模型账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No model accounts available"
+          }
+        }
+      }
+    },
     "暂无可用用户，请先创建用户或切换为「创建」模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13975,6 +14941,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No users available — create one or switch to Create mode"
+          }
+        }
+      }
+    },
+    "暂无可用网站，请先创建网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No websites available; create one first"
+          }
+        }
+      }
+    },
+    "暂无可用账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No available accounts"
           }
         }
       }
@@ -14052,6 +15040,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No installed apps"
+          }
+        }
+      }
+    },
+    "暂无已安装技能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No installed skills"
           }
         }
       }
@@ -14155,6 +15154,17 @@
         }
       }
     },
+    "暂无智能体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No agents yet"
+          }
+        }
+      }
+    },
     "暂无更新日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14217,6 +15227,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Modules"
+          }
+        }
+      }
+    },
+    "暂无模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "暂无模型：可自动获取或手动添加" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No models yet: fetch automatically or add manually"
           }
         }
       }
@@ -14492,6 +15524,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "More Actions"
+          }
+        }
+      }
+    },
+    "更换账号后主模型将切换到该账号的模型池" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switching accounts moves the primary model to that account's pool"
           }
         }
       }
@@ -15024,6 +16067,28 @@
         }
       }
     },
+    "未发现可用模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No models found"
+          }
+        }
+      }
+    },
+    "未启用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "未命名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15130,6 +16195,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Container not found"
+          }
+        }
+      }
+    },
+    "未找到技能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No skills found"
           }
         }
       }
@@ -15332,6 +16408,17 @@
         }
       }
     },
+    "未验证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unverified"
+          }
+        }
+      }
+    },
     "本地时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15350,6 +16437,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Building modules locally consumes CPU and memory; static modules will also rebuild and restart OpenResty. Continue?"
+          }
+        }
+      }
+    },
+    "本地模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -15970,6 +17068,149 @@
         }
       }
     },
+    "模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model"
+          }
+        }
+      }
+    },
+    "模型 · 共 %d 个" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Models · %d total"
+          }
+        }
+      }
+    },
+    "模型 ID 不可修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model ID cannot be changed"
+          }
+        }
+      }
+    },
+    "模型「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "模型供应商" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model Provider"
+          }
+        }
+      }
+    },
+    "模型供应商账号与模型池" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provider accounts and model pools"
+          }
+        }
+      }
+    },
+    "模型名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model Name"
+          }
+        }
+      }
+    },
+    "模型池" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model Pool"
+          }
+        }
+      }
+    },
+    "模型池 · 共 %d 个" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model Pool · %d items"
+          }
+        }
+      }
+    },
+    "模型终端 · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "模型账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "模型账号 / 智能体 / MCP / 本地模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model accounts / Agents / MCP / Local models"
+          }
+        }
+      }
+    },
+    "模型配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model Configuration"
+          }
+        }
+      }
+    },
     "模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16043,6 +17284,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Testing connection"
+          }
+        }
+      }
+    },
+    "正在生成二维码…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating QR code…"
           }
         }
       }
@@ -16142,6 +17394,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This cannot be undone. Type the username \"%@\" to confirm deletion."
+          }
+        }
+      }
+    },
+    "此操作将卸载对应应用与数据，不可恢复。请输入名称「%@」以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This uninstalls the app and its data irreversibly. Type the name \"%@\" to confirm."
           }
         }
       }
@@ -16278,6 +17541,17 @@
         }
       }
     },
+    "流式传输路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaming Path"
+          }
+        }
+      }
+    },
     "流式接收中…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16410,6 +17684,17 @@
         }
       }
     },
+    "浏览器支持" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser Support"
+          }
+        }
+      }
+    },
     "浏览峰值 %ld，访客峰值 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16439,6 +17724,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Browse Directories"
+          }
+        }
+      }
+    },
+    "消息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message"
           }
         }
       }
@@ -16615,6 +17911,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Server"
+          }
+        }
+      }
+    },
+    "添加模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Model"
           }
         }
       }
@@ -17015,6 +18322,28 @@
         }
       }
     },
+    "点击右上角 + 创建 MCP Server" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create an MCP server"
+          }
+        }
+      }
+    },
+    "点击右上角 + 创建智能体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create an agent"
+          }
+        }
+      }
+    },
     "点击右上角 + 创建第一个备份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17044,6 +18373,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap + in the top-right corner to create the first command"
+          }
+        }
+      }
+    },
+    "点击右上角 + 拉取模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to pull a model"
           }
         }
       }
@@ -17088,6 +18428,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap + at the top right to add a MINIO / Alibaba OSS / WebDAV / SFTP account"
+          }
+        }
+      }
+    },
+    "点击右上角 + 添加模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "点击右上角 + 添加模型账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to add a model account"
           }
         }
       }
@@ -17231,6 +18593,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap for details"
+          }
+        }
+      }
+    },
+    "点击模型进入运行终端，长按查看更多操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a model to open its terminal; long-press for more actions"
           }
         }
       }
@@ -17407,6 +18780,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Effective"
+          }
+        }
+      }
+    },
+    "用于登录智能体 Web 控制台" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used to sign in to the agent's web console"
           }
         }
       }
@@ -17730,6 +19114,17 @@
         }
       }
     },
+    "白名单 IP：一行一个 IP 或 IP 段，支持 IPv4 和 IPv6" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whitelist IPs: one IP or CIDR per line, IPv4 and IPv6 supported"
+          }
+        }
+      }
+    },
     "白名单内的 IP 登录失败不会触发告警，每行一个，支持 IP 或 CIDR 网段" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18005,6 +19400,17 @@
         }
       }
     },
+    "确定从模型池删除「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove \"%@\" from the model pool?"
+          }
+        }
+      }
+    },
     "确定删除 \"%@ %@\" 吗？删除为全量覆盖提交，系统默认条目请谨慎移除。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18023,6 +19429,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete IP \"%@\"?"
+          }
+        }
+      }
+    },
+    "确定删除 MCP「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete MCP \"%@\"?"
           }
         }
       }
@@ -18115,6 +19532,17 @@
         }
       }
     },
+    "确定删除微信频道对接吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the WeChat channel pairing?"
+          }
+        }
+      }
+    },
     "确定删除端口规则「%@」吗？删除后不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18177,6 +19605,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete account \"%@\"? Scheduled backups using it will fail."
+          }
+        }
+      }
+    },
+    "确定删除账号「%@」吗？已绑定智能体的账号无法删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to delete account \"%@\"? Accounts bound to agents cannot be deleted."
           }
         }
       }
@@ -18555,6 +19994,17 @@
         }
       }
     },
+    "视图" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View"
+          }
+        }
+      }
+    },
     "视频" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18595,6 +20045,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deny SSH login"
+          }
+        }
+      }
+    },
+    "禁用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled"
           }
         }
       }
@@ -18661,6 +20122,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Offline: %@"
+          }
+        }
+      }
+    },
+    "私聊策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DM Policy"
+          }
+        }
+      }
+    },
+    "私聊策略支持配队码与开放" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DM policy supports pairing code and open"
           }
         }
       }
@@ -19589,6 +21072,17 @@
         }
       }
     },
+    "绑定后可通过该网站域名访问智能体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After binding, the agent is reachable via the website domain"
+          }
+        }
+      }
+    },
     "绑定后自动同步系统代理 / 告警设置 / 自定义应用 / 备份账号。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19596,6 +21090,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Binding syncs system proxy, alert settings, custom apps and backup accounts."
+          }
+        }
+      }
+    },
+    "绑定域名后可从外部访问 Ollama 接口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After binding a domain, the Ollama API is reachable externally"
+          }
+        }
+      }
+    },
+    "绑定域名后可通过该地址访问 Ollama OpenAI 兼容接口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After binding, the Ollama OpenAI-compatible API is reachable at this address"
           }
         }
       }
@@ -19618,6 +21134,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bound User"
+          }
+        }
+      }
+    },
+    "绑定网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bind Website"
+          }
+        }
+      }
+    },
+    "绑定网站之后会修改所有已安装 MCP Server 的访问地址，并关闭端口的外部访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Binding a website changes the access address of all installed MCP servers and disables external port access"
           }
         }
       }
@@ -19765,6 +21303,17 @@
         }
       }
     },
+    "编辑 MCP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit MCP"
+          }
+        }
+      }
+    },
     "编辑主机" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19897,6 +21446,17 @@
         }
       }
     },
+    "编辑模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Model"
+          }
+        }
+      }
+    },
     "编辑端口转发" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20014,6 +21574,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Smaller Text"
+          }
+        }
+      }
+    },
+    "缺少应用安装信息，无法操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Missing app install info; cannot operate"
+          }
+        }
+      }
+    },
+    "网关配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway Configuration"
           }
         }
       }
@@ -20304,6 +21886,17 @@
         }
       }
     },
+    "群组策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group Policy"
+          }
+        }
+      }
+    },
     "耗时 %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20443,6 +22036,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto Renew"
+          }
+        }
+      }
+    },
+    "自动获取支持当前 API 类型时可用；也可在下方手动输入模型与名称逐个添加" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-fetch works when the current API type supports it; you can also add models manually below"
           }
         }
       }
@@ -20788,6 +22392,28 @@
         }
       }
     },
+    "获取模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetch Models"
+          }
+        }
+      }
+    },
+    "获取模型失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to fetch models: %@"
+          }
+        }
+      }
+    },
     "获取监控数据失败" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20971,6 +22597,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pro features will be unavailable after unbinding. Data on the bound node is kept."
+          }
+        }
+      }
+    },
+    "解绑后智能体将不再通过该网站对外提供服务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After unbinding, the agent no longer serves through this website"
+          }
+        }
+      }
+    },
+    "解绑网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbind Website"
           }
         }
       }
@@ -21283,6 +22931,28 @@
         }
       }
     },
+    "访问地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access Address"
+          }
+        }
+      }
+    },
+    "访问地址与端口供客户端接入 MCP Server 使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The address and port are used by clients to reach the MCP server"
+          }
+        }
+      }
+    },
     "访问控制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21334,6 +23004,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Access Accounts"
+          }
+        }
+      }
+    },
+    "访问配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access"
           }
         }
       }
@@ -21525,6 +23206,17 @@
         }
       }
     },
+    "该 API 类型的访问地址由供应商固定，不可修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The base URL for this API type is fixed by the provider and cannot be edited"
+          }
+        }
+      }
+    },
     "该任务暂无日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21554,6 +23246,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The app linked to this container no longer exists"
+          }
+        }
+      }
+    },
+    "该容器暂未产生日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The container has no logs yet"
           }
         }
       }
@@ -21668,6 +23371,17 @@
         }
       }
     },
+    "该智能体已绑定以下资源，需先解绑后才能删除：\n%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This agent has bound resources. Unbind them before deleting:\n%@"
+          }
+        }
+      }
+    },
     "该端口已存在" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21778,6 +23492,17 @@
         }
       }
     },
+    "请使用微信扫描二维码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan the QR code with WeChat"
+          }
+        }
+      }
+    },
     "请先创建 IP 组" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21829,6 +23554,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Configure at least one send method in Settings first"
+          }
+        }
+      }
+    },
+    "请先在模型账号页添加账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add an account on the Model Accounts page first"
           }
         }
       }
@@ -22262,6 +23998,17 @@
         }
       }
     },
+    "请重新输入 API Key 后保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-enter the API Key before saving"
+          }
+        }
+      }
+    },
     "读取" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22445,6 +24192,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No transfer records for account \"%@\""
+          }
+        }
+      }
+    },
+    "账号信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account Info"
+          }
+        }
+      }
+    },
+    "账号已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account updated"
           }
         }
       }
@@ -22779,6 +24548,39 @@
         }
       }
     },
+    "输入 Ollama 模型名称（如 llama3.2、deepseek-v4-flash），拉取进度将在任务中展示" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter an Ollama model name (e.g. llama3.2, deepseek-v4-flash); pull progress is shown in tasks"
+          }
+        }
+      }
+    },
+    "输入关键词后在技能市场搜索" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search the skill market by keyword"
+          }
+        }
+      }
+    },
+    "输入关键词搜索" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search by keyword"
+          }
+        }
+      }
+    },
     "输入密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22834,6 +24636,17 @@
         }
       }
     },
+    "输入配队码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter pairing code"
+          }
+        }
+      }
+    },
     "输入镜像名后回车继续添加，支持同时拉取多个镜像。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22845,6 +24658,17 @@
         }
       }
     },
+    "输出类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Output Type"
+          }
+        }
+      }
+    },
     "过期时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22852,6 +24676,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Expires At"
+          }
+        }
+      }
+    },
+    "运行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run"
           }
         }
       }
@@ -24028,7 +25863,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Config"
+            "value" : "Configuration"
           }
         }
       }
@@ -24110,6 +25945,17 @@
         }
       }
     },
+    "配置消息平台接入，使智能体可在对应平台对话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure messaging platforms so the agent can chat on them"
+          }
+        }
+      }
+    },
     "配置邮箱、Bark 等发送方式后才能创建告警" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24117,6 +25963,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Configure an email / Bark send method before creating alerts"
+          }
+        }
+      }
+    },
+    "配队码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairing Code"
           }
         }
       }
@@ -24396,6 +26253,17 @@
         }
       }
     },
+    "重试拉取" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry Pull"
+          }
+        }
+      }
+    },
     "重试次数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24414,6 +26282,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reload"
+          }
+        }
+      }
+    },
+    "钉钉" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DingTalk"
           }
         }
       }
@@ -25122,6 +27001,17 @@
         }
       }
     },
+    "频道" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channels"
+          }
+        }
+      }
+    },
     "风险等级" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25129,6 +27019,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Risk level"
+          }
+        }
+      }
+    },
+    "飞书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feishu"
+          }
+        }
+      }
+    },
+    "飞书私聊策略支持配队码与开放" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feishu DM policy supports pairing code and open"
           }
         }
       }
@@ -25173,6 +27085,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verification"
+          }
+        }
+      }
+    },
+    "验证模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify Model"
+          }
+        }
+      }
+    },
+    "验证账号可用性" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify account availability"
           }
         }
       }

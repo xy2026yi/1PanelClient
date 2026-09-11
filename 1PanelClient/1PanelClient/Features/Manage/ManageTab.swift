@@ -240,6 +240,17 @@ struct ManageTab: View {
             PanelBasicSettingsView(server: server)
         case .license:
             LicenseView(server: server)
+        case .ai:
+            // AI Hub：模型账号 / 智能体 / MCP / 本地模型
+            ManageHubView(title: L10n.t("AI"), items: [.aiAccounts, .aiAgents, .aiMcp, .aiOllama])
+        case .aiAccounts:
+            AIAccountsView(server: server)
+        case .aiAgents:
+            AIAgentsView(server: server)
+        case .aiMcp:
+            AIMcpView(server: server)
+        case .aiOllama:
+            AIOllamaView(server: server)
         }
     }
 }
@@ -432,6 +443,16 @@ enum ManageItem: String, Identifiable {
     case basicSettings
     /// 许可证（设置 Hub 子页）
     case license
+    /// AI（Hub：模型账号 / 智能体 / MCP / 本地模型）
+    case ai
+    /// 模型账号（AI Hub 子页）
+    case aiAccounts
+    /// 智能体（AI Hub 子页）
+    case aiAgents
+    /// MCP（AI Hub 子页）
+    case aiMcp
+    /// 本地模型 Ollama（AI Hub 子页）
+    case aiOllama
 
     var id: String { rawValue }
 
@@ -439,6 +460,7 @@ enum ManageItem: String, Identifiable {
     /// 但可在「自定义功能」中单独隐藏（含从根列表移入的老项，如告警/备份账号）
     static var hubChildren: [ManageItem] {
         [.websiteList, .certificates, .cronjobList, .scriptLibrary,
+         .aiAccounts, .aiAgents, .aiMcp, .aiOllama,
          .basicSettings, .alert, .backupAccount, .license]
     }
 
@@ -451,6 +473,7 @@ enum ManageItem: String, Identifiable {
             // SSH 服务管理收进「SSH」页三点菜单（服务管理入口）；磁盘管理移入工具箱
             (L10n.t("主机"), [.terminal, .files, .monitor, .process, .firewall]),
             (L10n.t("工具箱"), [.fail2ban, .ftp, .clam, .supervisor, .diskManage, .clean]),
+            (L10n.t("AI"), [.ai]),
             (L10n.t("高级功能"), [.websiteMonitor, .nodeManage, .wafMonitor]),
             // 告警通知 / 备份账号 / 许可证收进「设置」Hub（对齐网页端面板菜单）
             (L10n.t("面板"), [.panelSettings, .cronjob, .taskCenter, .logs]),
@@ -491,7 +514,12 @@ enum ManageItem: String, Identifiable {
         case .panelSettings: return L10n.t("设置")
         case .basicSettings: return L10n.t("基础设置")
         case .license:     return L10n.t("许可证")
-    }
+        case .ai:          return "AI"
+        case .aiAccounts:  return L10n.t("模型账号")
+        case .aiAgents:    return L10n.t("智能体")
+        case .aiMcp:       return "MCP"
+        case .aiOllama:    return L10n.t("本地模型")
+        }
     }
 
     var subtitle: String {
@@ -528,6 +556,11 @@ enum ManageItem: String, Identifiable {
         case .panelSettings: return L10n.t("告警通知 / 备份账号 / 许可证")
         case .basicSettings: return L10n.t("面板别名 / 超时 / 代理 / 运行环境")
         case .license:     return L10n.t("专业版授权绑定 / 同步")
+        case .ai:          return L10n.t("模型账号 / 智能体 / MCP / 本地模型")
+        case .aiAccounts:  return L10n.t("模型供应商账号与模型池")
+        case .aiAgents:    return L10n.t("OpenClaw / Hermes Agent / QwenPaw")
+        case .aiMcp:       return L10n.t("MCP Server 网关管理")
+        case .aiOllama:    return L10n.t("Ollama 模型拉取与运行")
         }
     }
 
@@ -565,6 +598,11 @@ enum ManageItem: String, Identifiable {
         case .panelSettings: return "gearshape.fill"
         case .basicSettings: return "slider.horizontal.3"
         case .license:     return "checkmark.seal.fill"
+        case .ai:          return "brain"
+        case .aiAccounts:  return "key.horizontal"
+        case .aiAgents:    return "figure.run"
+        case .aiMcp:       return "puzzlepiece"
+        case .aiOllama:    return "cpu"
         }
     }
 
@@ -601,6 +639,11 @@ enum ManageItem: String, Identifiable {
         case .panelSettings: return .blue
         case .basicSettings: return .teal
         case .license:     return .orange
+        case .ai:          return .indigo
+        case .aiAccounts:  return .blue
+        case .aiAgents:    return .green
+        case .aiMcp:       return .orange
+        case .aiOllama:    return .purple
         case .diskManage:  return .gray
         }
     }

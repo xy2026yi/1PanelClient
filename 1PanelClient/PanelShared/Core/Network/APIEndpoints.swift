@@ -454,6 +454,59 @@ enum APIEndpoint {
     case nodesUpgradeLogs        // POST 节点更新记录分页查询
     case nodeGroupsSearch        // POST 节点分组列表（type=node）
 
+    // MARK: - AI 模块（logs/AI.md 抓包 2026-09-11；标 [推测] 的端点未抓到完整请求，按命名规律推定，联调时集中修正）
+    // 模型账号
+    case aiAccountsSearch       // POST 分页查询模型账号 [推测：抓包列表 URL 笔误]
+    case aiAccountsCreate       // POST 创建模型账号（validateAvailability=true 时后端验证连通）
+    case aiAccountsUpdate       // POST 更新模型账号（syncAgents 同步关联智能体）
+    case aiAccountsDelete       // POST 删除模型账号 {id}（被智能体绑定时后端报错）
+    case aiAccountProviders     // GET  预设供应商列表（含 apiTypes/预设模型）
+    case aiAccountModelsDiscover // POST 发现远端模型 {provider, baseURL, apiKey, apiType}
+    case aiAccountModelsList    // POST 账号模型池 {accountId}
+    case aiAccountModelCreate   // POST 模型池添加 {accountId, model}
+    case aiAccountModelUpdate   // POST 模型池编辑 {accountId, model}
+    case aiAccountModelDelete   // POST 模型池删除 {accountId, recordId}（verifyModel 不可删）
+    // 智能体
+    case aiAgentsSearch         // POST 分页查询智能体 [推测：抓包列表 URL 笔误]
+    case aiAgentsCreate         // POST 创建智能体（安装应用，带 taskID）
+    case aiAgentsDeleteCheck    // POST 删除前检查绑定资源 {agentId}
+    case aiAgentsDelete         // POST 删除智能体 {id, taskID, forceDelete}
+    case aiAgentWebsiteBind     // POST 绑定网站 {agentId, websiteId}
+    case aiAgentWebsiteUnbind   // POST 解绑网站 {agentId}
+    case aiAgentModelGet        // POST 读取模型配置 {agentId}
+    case aiAgentModelUpdate     // POST 保存模型配置 {agentId, accountId, model, fallbacks}
+    case aiAgentSkillsSearch    // POST 技能市场搜索 {agentId, source, keyword}
+    case aiAgentSkillsInstall   // POST 安装技能 {agentId, source, slug, taskID}
+    case aiAgentSkillsList      // POST 已安装技能 {agentId}
+    case aiAgentOtherGet        // POST 其他设置（时区/用户名/密码等）{agentId}
+    case aiAgentOtherUpdate     // POST 保存其他设置
+    case aiAgentConfigFileGet   // POST 读取配置文件 {agentId}
+    case aiAgentChannelGet      // POST 频道配置读取（:type = weixin/qqbot/wecom/dingtalk/feishu/telegram/discord）
+    case aiAgentChannelUpdate   // POST 频道配置保存 [推测：抓包缺失]
+    case aiAgentWeixinLogin     // POST 微信扫码对接 {agentId}（任务日志中输出二维码 URL）
+    case aiAgentChannelDelete   // POST 删除频道对接 {agentId, type}
+    // MCP
+    case aiMcpSearch            // POST 分页查询 MCP Server {page, pageSize, name}
+    case aiMcpServerCreate      // POST 创建 MCP Server（带 taskID）
+    case aiMcpServerUpdate      // POST 编辑 MCP Server（全字段回传，带 taskID）
+    case aiMcpServerDelete      // POST 删除 MCP Server {id}
+    case aiMcpServerOperate     // POST 启停/重启 {id, operate}
+    case aiMcpStatusSync        // POST 批量同步状态 {ids}
+    case aiMcpConnectionTest    // POST 测试连接 {id}
+    case aiMcpDomainGet         // GET  MCP 域名绑定信息
+    case aiMcpDomainBind        // POST MCP 绑定网站/域名
+    case aiMcpDomainUpdate      // POST MCP 域名绑定更新（含 HTTPS）
+    // 本地模型 Ollama
+    case aiOllamaModelSearch    // POST Ollama 模型分页列表 [推测：抓包缺失]
+    case aiOllamaModelCreate    // POST 拉取模型 {name, taskID}
+    case aiOllamaModelRecreate  // POST 拉取失败重试 {name, taskID}
+    case aiOllamaModelDelete    // POST 删除模型 {ids, forceDelete}
+    case aiOllamaClose          // POST 断开运行中模型会话 {name}
+    // Ollama AI 网关域名
+    case aiDomainGet            // POST 网关域名信息 {appInstallID}
+    case aiDomainBind           // POST 网关域名绑定
+    case aiDomainUpdate         // POST 网关域名更新
+
     var path: String {
         switch self {
         case .dashboardOS:           return "/api/v2/dashboard/base/os"
@@ -817,6 +870,52 @@ enum APIEndpoint {
         case .nodesDelete:           return "/api/v2/core/xpack/nodes/del"
         case .nodesUpgradeLogs:      return "/api/v2/core/xpack/nodes/search/upgrade/logs"
         case .nodeGroupsSearch:      return "/api/v2/core/groups/search"
+        case .aiAccountsSearch:      return "/api/v2/ai/accounts/search"
+        case .aiAccountsCreate:      return "/api/v2/ai/accounts"
+        case .aiAccountsUpdate:      return "/api/v2/ai/accounts/update"
+        case .aiAccountsDelete:      return "/api/v2/ai/accounts/delete"
+        case .aiAccountProviders:    return "/api/v2/ai/accounts/providers"
+        case .aiAccountModelsDiscover: return "/api/v2/ai/accounts/models/discover"
+        case .aiAccountModelsList:   return "/api/v2/ai/accounts/models"
+        case .aiAccountModelCreate:  return "/api/v2/ai/accounts/models/create"
+        case .aiAccountModelUpdate:  return "/api/v2/ai/accounts/models/update"
+        case .aiAccountModelDelete:  return "/api/v2/ai/accounts/models/delete"
+        case .aiAgentsSearch:        return "/api/v2/ai/agents/search"
+        case .aiAgentsCreate:        return "/api/v2/ai/agents"
+        case .aiAgentsDeleteCheck:   return "/api/v2/ai/agents/delete/check"
+        case .aiAgentsDelete:        return "/api/v2/ai/agents/delete"
+        case .aiAgentWebsiteBind:    return "/api/v2/ai/agents/website/bind"
+        case .aiAgentWebsiteUnbind:  return "/api/v2/ai/agents/website/unbind"
+        case .aiAgentModelGet:       return "/api/v2/ai/agents/model/get"
+        case .aiAgentModelUpdate:    return "/api/v2/ai/agents/model/update"
+        case .aiAgentSkillsSearch:   return "/api/v2/ai/agents/skills/search"
+        case .aiAgentSkillsInstall:  return "/api/v2/ai/agents/skills/install"
+        case .aiAgentSkillsList:     return "/api/v2/ai/agents/skills/list"
+        case .aiAgentOtherGet:       return "/api/v2/ai/agents/other/get"
+        case .aiAgentOtherUpdate:    return "/api/v2/ai/agents/other/update"
+        case .aiAgentConfigFileGet:  return "/api/v2/ai/agents/config-file/get"
+        case .aiAgentChannelGet:     return "/api/v2/ai/agents/channel/:type/get"
+        case .aiAgentChannelUpdate:  return "/api/v2/ai/agents/channel/:type/update"
+        case .aiAgentWeixinLogin:    return "/api/v2/ai/agents/channel/weixin/login"
+        case .aiAgentChannelDelete:  return "/api/v2/ai/agents/channel/delete"
+        case .aiMcpSearch:           return "/api/v2/ai/mcp/search"
+        case .aiMcpServerCreate:     return "/api/v2/ai/mcp/server"
+        case .aiMcpServerUpdate:     return "/api/v2/ai/mcp/server/update"
+        case .aiMcpServerDelete:     return "/api/v2/ai/mcp/server/del"
+        case .aiMcpServerOperate:    return "/api/v2/ai/mcp/server/op"
+        case .aiMcpStatusSync:       return "/api/v2/ai/mcp/server/status/sync"
+        case .aiMcpConnectionTest:   return "/api/v2/ai/mcp/server/connection/test"
+        case .aiMcpDomainGet:        return "/api/v2/ai/mcp/domain/get"
+        case .aiMcpDomainBind:       return "/api/v2/ai/mcp/domain/bind"
+        case .aiMcpDomainUpdate:     return "/api/v2/ai/mcp/domain/update"
+        case .aiOllamaModelSearch:   return "/api/v2/ai/ollama/model/search"
+        case .aiOllamaModelCreate:   return "/api/v2/ai/ollama/model"
+        case .aiOllamaModelRecreate: return "/api/v2/ai/ollama/model/recreate"
+        case .aiOllamaModelDelete:   return "/api/v2/ai/ollama/model/del"
+        case .aiOllamaClose:         return "/api/v2/ai/ollama/close"
+        case .aiDomainGet:           return "/api/v2/ai/domain/get"
+        case .aiDomainBind:          return "/api/v2/ai/domain/bind"
+        case .aiDomainUpdate:        return "/api/v2/ai/domain/update"
         }
     }
 
@@ -851,7 +950,8 @@ enum APIEndpoint {
              .logsSystemFiles, .logsWebsitesList,
              .nodesCurrent, .licensesOptions,
              .backupsLocal,
-             .filesDownload:
+             .filesDownload,
+             .aiAccountProviders, .aiMcpDomainGet:
             return "GET"
         default:
             return "POST"

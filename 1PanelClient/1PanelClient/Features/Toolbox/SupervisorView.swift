@@ -479,7 +479,7 @@ struct SupervisorView: View {
     /// 进程长按菜单项：启动/停止按当前状态二选一，操作均先经确认弹窗
     private func processActionItems(_ process: SupervisorProcessItem) -> [ActionMenuItem] {
         let isRunning = process.primaryState?.status == "RUNNING"
-        var items: [ActionMenuItem] = [
+        let items: [ActionMenuItem] = [
             ActionMenuItem(
                 title: isRunning ? L10n.t("停止") : L10n.t("启动"),
                 icon: isRunning ? "stop.fill" : "play.fill",
