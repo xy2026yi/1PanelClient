@@ -193,8 +193,8 @@ private struct ChannelPolicyPicker: View {
     }
 }
 
-/// 白名单编辑（策略=白名单时显示，一行一个）
-private struct WhitelistEditor: View {
+/// 白名单编辑（策略=白名单时显示，一行一个；设置页 allowedOrigins 复用）
+struct WhitelistEditor: View {
     let title: String
     @Binding var list: [String]
 

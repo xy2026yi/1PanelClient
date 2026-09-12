@@ -230,13 +230,22 @@ nonisolated struct AIAgentOtherConfig: Decodable, Hashable {
     let dashboardPassword: String?
 }
 
+/// other/update：OpenClaw 无控制台账号，dashboard 字段不携带（抓包确认 nil 不编码）
 nonisolated struct AIAgentOtherUpdateRequest: Encodable {
     let agentId: Int
     let userTimezone: String
     let browserEnabled: Bool
     let npmRegistry: String
-    let dashboardUsername: String
-    let dashboardPassword: String
+    var dashboardUsername: String? = nil
+    var dashboardPassword: String? = nil
+}
+
+// MARK: - 安全设置（OpenClaw 专属：allowedOrigins）
+
+/// POST security/get 响应 / security/update 请求体 {agentId, allowedOrigins}
+nonisolated struct AIAgentSecurityConfig: Codable, Hashable {
+    var agentId: Int? = nil
+    var allowedOrigins: [String]? = nil
 }
 
 nonisolated struct AIAgentConfigFileRequest: Encodable {

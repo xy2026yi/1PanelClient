@@ -478,8 +478,10 @@ enum APIEndpoint {
     case aiAgentSkillsSearch    // POST 技能市场搜索 {agentId, source, keyword}
     case aiAgentSkillsInstall   // POST 安装技能 {agentId, source, slug, taskID}
     case aiAgentSkillsList      // POST 已安装技能 {agentId}
-    case aiAgentOtherGet        // POST 其他设置（时区/用户名/密码等）{agentId}
+    case aiAgentOtherGet        // POST 其他设置（时区/浏览器/NPM 源；OpenClaw 无控制台账号字段）
     case aiAgentOtherUpdate     // POST 保存其他设置
+    case aiAgentSecurityGet     // POST 安全设置读取（OpenClaw：allowedOrigins）
+    case aiAgentSecurityUpdate  // POST 安全设置保存
     case aiAgentConfigFileGet   // POST 读取配置文件 {agentId}
     case aiAgentChannelGet      // POST 频道配置读取（:type = weixin/qqbot/wecom/dingtalk/feishu/telegram/discord）
     case aiAgentChannelUpdate   // POST 频道配置保存（logs/增加和修正.md 确认，凭证在 bots 数组内）
@@ -922,6 +924,8 @@ enum APIEndpoint {
         case .aiAgentSkillsList:     return "/api/v2/ai/agents/skills/list"
         case .aiAgentOtherGet:       return "/api/v2/ai/agents/other/get"
         case .aiAgentOtherUpdate:    return "/api/v2/ai/agents/other/update"
+        case .aiAgentSecurityGet:    return "/api/v2/ai/agents/security/get"
+        case .aiAgentSecurityUpdate: return "/api/v2/ai/agents/security/update"
         case .aiAgentConfigFileGet:  return "/api/v2/ai/agents/config-file/get"
         case .aiAgentChannelGet:     return "/api/v2/ai/agents/channel/:type/get"
         case .aiAgentChannelUpdate:  return "/api/v2/ai/agents/channel/:type/update"

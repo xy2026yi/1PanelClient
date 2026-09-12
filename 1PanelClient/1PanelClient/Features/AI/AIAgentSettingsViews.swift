@@ -282,6 +282,9 @@ struct AIAgentSettingsView: View {
     @State private var configFileError: String?
     @State private var showConfigFile = false
 
+    // 安全设置（OpenClaw）
+    @State private var allowedOrigins: [String] = []
+
     private let client: APIClient
 
     /// 常用时区（settings 页 device/zone/options 接口可选时区过多，取常用子集）
@@ -301,9 +304,21 @@ struct AIAgentSettingsView: View {
     }
 
     private var isCopaw: Bool { agentType == "copaw" }
+    /// OpenClaw 设置页与其他类型不同：无控制台账号，另有「安全」（allowedOrigins）
+    private var isOpenClaw: Bool { agentType == "openclaw" }
+
+    /// NPM 源预设（抓包下拉项；腾讯源在文档中重复出现，取唯一集）
+    private let npmMirrors = [
+        "https://mirrors.cloud.tencent.com/npm/",
+        "https://registry.npmjs.org/",
+        "https://repo.huaweicloud.com/repository/npm/",
+    ]
 
     private var canSubmit: Bool {
-        !username.isEmpty && !password.isEmpty && !isSaving
+        guard !isSaving else { return false }
+        // 控制台账号仅非 OpenClaw 类型显示（OpenClaw 抓包无该分区）
+        if !isOpenClaw, username.isEmpty || password.isEmpty { return false }
+        return true
     }
 
     var body: some View {
@@ -311,8 +326,22 @@ struct AIAgentSettingsView: View {
             if isLoading {
                 Section { HStack { Spacer(); ProgressView(); Spacer() } }
             } else if config != nil {
+                if isOpenClaw {
+                    securitySection
+                }
+
                 if !isCopaw {
                     Section {
+                        Toggle(L10n.t("浏览器"), isOn: $browserEnabled)
+                        Picker(L10n.t("NPM 源"), selection: $npmRegistry) {
+                            // 当前值不在预设内时补一个 tag，避免无效 selection 告警
+                            if !npmMirrors.contains(npmRegistry), !npmRegistry.isEmpty {
+                                Text(npmRegistry).tag(npmRegistry)
+                            }
+                            ForEach(npmMirrors, id: \.self) { mirror in
+                                Text(mirror).tag(mirror)
+                            }
+                        }
                         Picker(L10n.t("时区"), selection: $timezone) {
                             ForEach(timezones, id: \.self) { tz in
                                 Text(tz).tag(tz)
@@ -323,41 +352,43 @@ struct AIAgentSettingsView: View {
                     }
                 }
 
-                Section {
-                    TextField(L10n.t("用户名"), text: $username)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    HStack {
-                        if showPassword {
-                            TextField(L10n.t("密码"), text: $password)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .font(.system(.body, design: .monospaced))
-                        } else {
-                            SecureField(L10n.t("密码"), text: $password)
+                if !isOpenClaw {
+                    Section {
+                        TextField(L10n.t("用户名"), text: $username)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        HStack {
+                            if showPassword {
+                                TextField(L10n.t("密码"), text: $password)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .font(.system(.body, design: .monospaced))
+                            } else {
+                                SecureField(L10n.t("密码"), text: $password)
+                            }
+                            Button {
+                                showPassword.toggle()
+                            } label: {
+                                Image(systemName: showPassword ? "eye.slash" : "eye")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel(L10n.t("显示密码"))
+                            Button {
+                                UIPasteboard.general.string = password
+                            } label: {
+                                Image(systemName: "doc.on.doc")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.borderless)
+                            .disabled(password.isEmpty)
+                            .accessibilityLabel(L10n.t("复制"))
                         }
-                        Button {
-                            showPassword.toggle()
-                        } label: {
-                            Image(systemName: showPassword ? "eye.slash" : "eye")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel(L10n.t("显示密码"))
-                        Button {
-                            UIPasteboard.general.string = password
-                        } label: {
-                            Image(systemName: "doc.on.doc")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .disabled(password.isEmpty)
-                        .accessibilityLabel(L10n.t("复制"))
+                    } header: {
+                        SectionLabel(title: L10n.t("控制台账号"), systemImage: "person.crop.circle")
+                    } footer: {
+                        Text(L10n.t("用于登录智能体 Web 控制台"))
                     }
-                } header: {
-                    SectionLabel(title: L10n.t("控制台账号"), systemImage: "person.crop.circle")
-                } footer: {
-                    Text(L10n.t("用于登录智能体 Web 控制台"))
                 }
 
                 if !isCopaw {
@@ -394,6 +425,17 @@ struct AIAgentSettingsView: View {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(errorMessage ?? "")
+        }
+    }
+
+    /// 安全设置（OpenClaw 专属）：allowedOrigins 多行编辑，一行一个
+    private var securitySection: some View {
+        Section {
+            WhitelistEditor(title: L10n.t("允许的访问来源"), list: $allowedOrigins)
+        } header: {
+            SectionLabel(title: L10n.t("安全"), systemImage: "lock.shield")
+        } footer: {
+            Text(L10n.t("一行一个来源（协议+地址+端口），如 http://127.0.0.1:18789"))
         }
     }
 
@@ -455,7 +497,23 @@ struct AIAgentSettingsView: View {
             guard !APIError.isCancellation(error) else { return }
             loadError = error.localizedDescription
         }
+        if isOpenClaw {
+            await loadSecurity()
+        }
         isLoading = false
+    }
+
+    private func loadSecurity() async {
+        do {
+            let resp = try await client.send(
+                path: APIEndpoint.aiAgentSecurityGet.path,
+                body: AIAgentModelRequest(agentId: agentId),
+                as: AIAgentSecurityConfig.self)
+            allowedOrigins = resp.allowedOrigins ?? []
+        } catch {
+            // 安全设置读取失败静默（其他分区仍可保存）
+            allowedOrigins = []
+        }
     }
 
     private func loadConfigFile() async {
@@ -479,16 +537,30 @@ struct AIAgentSettingsView: View {
         isSaving = true
         defer { isSaving = false }
         do {
+            // other/update：OpenClaw 不携带控制台账号字段（抓包确认）；
+            // copaw 只有控制台账号分区（无其他分区），全量回传
+            var otherReq = AIAgentOtherUpdateRequest(
+                agentId: agentId,
+                userTimezone: timezone,
+                browserEnabled: browserEnabled,
+                npmRegistry: npmRegistry)
+            if !isOpenClaw {
+                otherReq.dashboardUsername = username
+                otherReq.dashboardPassword = password
+            }
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentOtherUpdate.path,
-                body: AIAgentOtherUpdateRequest(
-                    agentId: agentId,
-                    userTimezone: timezone,
-                    browserEnabled: browserEnabled,
-                    npmRegistry: npmRegistry,
-                    dashboardUsername: username,
-                    dashboardPassword: password),
+                body: otherReq,
                 as: EmptyResponse.self)
+
+            // OpenClaw 的安全设置单独保存
+            if isOpenClaw {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.aiAgentSecurityUpdate.path,
+                    body: AIAgentSecurityConfig(agentId: agentId, allowedOrigins: allowedOrigins),
+                    as: EmptyResponse.self)
+            }
+
             errorMessage = L10n.t("保存成功")
             showError = true
         } catch {

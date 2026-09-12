@@ -1,68 +1,6 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "" : {},
-    "%@" : {},
-    "%@ %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@"
-          }
-        }
-      }
-    },
-    "%@ %@%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@%3$@"
-          }
-        }
-      }
-    },
-    "%@ %lld" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$lld"
-          }
-        }
-      }
-    },
-    "%@ (%@)" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ (%2$@)"
-          }
-        }
-      }
-    },
-    "%@ (v%@)" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ (v%2$@)"
-          }
-        }
-      }
-    },
-    "%@ / %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ / %2$@"
-          }
-        }
-      }
-    },
     "%@ / %ld 核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -81,26 +19,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ Docker failed: %@"
-          }
-        }
-      }
-    },
-    "%@ · %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "%@ · %@ · %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@ · %3$@"
           }
         }
       }
@@ -138,72 +56,13 @@
         }
       }
     },
-    "%@%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@%2$@"
-          }
-        }
-      }
-    },
     "%@.%@" : {
+      "extractionState" : "manual",
       "localizations" : {
-        "zh-Hans" : {
+        "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@.%2$@"
-          }
-        }
-      }
-    },
-    "%@: %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@: %2$@"
-          }
-        }
-      }
-    },
-    "%@: %lld" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@: %2$lld"
-          }
-        }
-      }
-    },
-    "%@:%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@:%2$@"
-          }
-        }
-      }
-    },
-    "%@:%lld" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@:%2$lld"
-          }
-        }
-      }
-    },
-    "%@@%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@@%2$@"
+            "value" : ""
           }
         }
       }
@@ -516,18 +375,6 @@
         }
       }
     },
-    "%lld" : {},
-    "%lld%%" : {},
-    "%lld%%  %@ / %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld%%  %2$@ / %3$@"
-          }
-        }
-      }
-    },
     "(未命名)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -550,15 +397,6 @@
         }
       }
     },
-    "*" : {},
-    "-" : {},
-    "-----BEGIN OPENSSH PRIVATE KEY-----" : {},
-    ".." : {},
-    "/" : {},
-    "/opt/1panel/ai/models" : {},
-    "/opt/1panel/backup" : {},
-    "/var/log/auth.log" : {},
-    "0" : {},
     "1 CPU，2.0 Ghz+" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -570,8 +408,6 @@
         }
       }
     },
-    "100" : {},
-    "1000" : {},
     "15分钟" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -583,10 +419,6 @@
         }
       }
     },
-    "18789" : {},
-    "1Panel" : {},
-    "1Panel Client" : {},
-    "1Panel Server" : {},
     "1Panel 官网" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -642,8 +474,6 @@
         }
       }
     },
-    "200" : {},
-    "22" : {},
     "24小时" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -655,7 +485,6 @@
         }
       }
     },
-    "25" : {},
     "3 GiB+" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -667,10 +496,6 @@
         }
       }
     },
-    "30" : {},
-    "300" : {},
-    "301" : {},
-    "302" : {},
     "360搜索" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -682,7 +507,6 @@
         }
       }
     },
-    "404" : {},
     "404 频率限制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -727,8 +551,6 @@
         }
       }
     },
-    "500" : {},
-    "512" : {},
     "5xx 数量" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -773,8 +595,6 @@
         }
       }
     },
-    "8000" : {},
-    ":%lld" : {},
     "ACME 服务 URL" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -808,7 +628,6 @@
         }
       }
     },
-    "API Key" : {},
     "API Key 已失效，长按重新录入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -831,8 +650,6 @@
         }
       }
     },
-    "API Token" : {},
-    "API User" : {},
     "API 接口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -866,8 +683,6 @@
         }
       }
     },
-    "Access Key" : {},
-    "Access Key ID" : {},
     "Acme 账号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -890,7 +705,6 @@
         }
       }
     },
-    "App ID" : {},
     "App ID / App Secret" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -902,7 +716,6 @@
         }
       }
     },
-    "App Secret" : {},
     "Bark 的推送 Webhook 地址，形如 https://api.day.app/xxxxxx" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -914,7 +727,6 @@
         }
       }
     },
-    "Base URL" : {},
     "Bot ID" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -959,7 +771,6 @@
         }
       }
     },
-    "CDN" : {},
     "CDN Headers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1114,7 +925,6 @@
         }
       }
     },
-    "Client ID" : {},
     "Client ID（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1126,7 +936,6 @@
         }
       }
     },
-    "Client Secret" : {},
     "CloudDNS 凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1171,7 +980,6 @@
         }
       }
     },
-    "Container" : {},
     "Cookie规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1282,7 +1090,6 @@
         }
       }
     },
-    "Discord" : {},
     "Docker 容器" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1305,8 +1112,6 @@
         }
       }
     },
-    "EAB HmacKey" : {},
-    "EAB kid" : {},
     "EAB 凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1340,7 +1145,6 @@
         }
       }
     },
-    "Endpoint" : {},
     "Endpoint 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1352,7 +1156,6 @@
         }
       }
     },
-    "FTP" : {},
     "FTP 账号管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1364,8 +1167,6 @@
         }
       }
     },
-    "Fail2ban" : {},
-    "GB" : {},
     "GPU 推理服务引擎实例管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1399,8 +1200,6 @@
         }
       }
     },
-    "GitHub" : {},
-    "HSTS" : {},
     "HSTS 包含子域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1500,7 +1299,6 @@
         }
       }
     },
-    "HTTP/3 (QUIC)" : {},
     "HTTPS" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1589,7 +1387,6 @@
         }
       }
     },
-    "ID: %lld" : {},
     "IP / CIDR，留空=任意" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1788,9 +1585,6 @@
         }
       }
     },
-    "KEY" : {},
-    "KEY=VALUE" : {},
-    "MB" : {},
     "MCP Server 网关管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1820,6 +1614,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "MINIO / WebDAV / SFTP backup storage"
+          }
+        }
+      }
+    },
+    "NPM 源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NPM Registry"
           }
         }
       }
@@ -1857,7 +1662,6 @@
         }
       }
     },
-    "Ollama" : {},
     "Ollama 模型拉取与运行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1880,7 +1684,6 @@
         }
       }
     },
-    "OpenResty %@" : {},
     "OpenResty 未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1903,8 +1706,6 @@
         }
       }
     },
-    "PID %lld" : {},
-    "Password" : {},
     "QPS / 访客趋势 / 访客地图 / 请求日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1916,7 +1717,6 @@
         }
       }
     },
-    "QQ" : {},
     "Redis 终端" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1994,7 +1794,17 @@
         }
       }
     },
-    "SSH" : {},
+    "SSH" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "SSH 会话" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2094,7 +1904,6 @@
         }
       }
     },
-    "SSL" : {},
     "SSL 证书" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2128,10 +1937,6 @@
         }
       }
     },
-    "SWAP" : {},
-    "Scheduled Task" : {},
-    "Secret ID" : {},
-    "Secret Key" : {},
     "Shell 脚本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2165,10 +1970,6 @@
         }
       }
     },
-    "TLS" : {},
-    "TTY" : {},
-    "Telegram" : {},
-    "Token" : {},
     "Token 由系统自动生成，用于 OpenClaw 控制台接入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2180,7 +1981,6 @@
         }
       }
     },
-    "URL" : {},
     "URL 模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2203,7 +2003,6 @@
         }
       }
     },
-    "User-Agent" : {},
     "User-Agent规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2215,7 +2014,6 @@
         }
       }
     },
-    "VALUE" : {},
     "WAF" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2271,7 +2069,6 @@
         }
       }
     },
-    "Website" : {},
     "XSS" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2294,16 +2091,6 @@
         }
       }
     },
-    "[%@]" : {},
-    "docker-compose" : {},
-    "docker-compose.yml" : {},
-    "example.com" : {},
-    "ext4" : {},
-    "file.txt" : {},
-    "folder_name" : {},
-    "gzip" : {},
-    "hostname" : {},
-    "http" : {},
     "http 仓库添加授信需要重启 Docker 服务" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2315,13 +2102,6 @@
         }
       }
     },
-    "http://" : {},
-    "http://10.0.0.1:36130" : {},
-    "https" : {},
-    "https://" : {},
-    "https://..." : {},
-    "https://hf-mirror.com" : {},
-    "https://www.modelscope.cn" : {},
     "iOS 钥匙串 · 连接你自己的 1Panel 面板" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2333,9 +2113,6 @@
         }
       }
     },
-    "nginx.conf" : {},
-    "off" : {},
-    "on" : {},
     "ping 失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2347,7 +2124,6 @@
         }
       }
     },
-    "pool.ntp.org" : {},
     "root 用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2359,14 +2135,6 @@
         }
       }
     },
-    "sshd_config" : {},
-    "v%@" : {},
-    "vLLM" : {},
-    "xfs" : {},
-    "·" : {},
-    "· %@" : {},
-    "—" : {},
-    "••••••••" : {},
     "「%@」已加入下载队列" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2407,6 +2175,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "One domain per line; * and IP addresses supported"
+          }
+        }
+      }
+    },
+    "一行一个来源（协议+地址+端口），如 http://127.0.0.1:18789" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One origin per line (scheme + host + port), e.g. http://127.0.0.1:18789"
           }
         }
       }
@@ -4453,6 +4232,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Allow SSH login"
+          }
+        }
+      }
+    },
+    "允许的访问来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed Origins"
           }
         }
       }
@@ -18598,7 +18388,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Browsers"
+            "value" : "Browser"
           }
         }
       }

@@ -179,6 +179,19 @@ struct AIAgentDetailView: View {
             Section {
                 InfoRow(L10n.t("类型"), value: a.agentType ?? "-")
                 InfoRow(L10n.t("应用版本"), value: a.appVersion ?? "-")
+                // 凭证行（可复制）：OpenClaw 为 Token，其余类型为控制台用户名/密码
+                if isOpenClawAgent(a) {
+                    if let token = a.token, !token.isEmpty {
+                        CopyableInfoRow("Token", value: token, monospaced: true)
+                    }
+                } else {
+                    if let user = a.dashboardUsername, !user.isEmpty {
+                        CopyableInfoRow(L10n.t("用户名"), value: user, monospaced: true)
+                    }
+                    if let pwd = a.dashboardPassword, !pwd.isEmpty {
+                        PasswordRow(password: pwd)
+                    }
+                }
                 if let remark = a.remark, !remark.isEmpty {
                     InfoRow(L10n.t("备注"), value: remark)
                 }
@@ -237,6 +250,11 @@ struct AIAgentDetailView: View {
         case "error", "failed": return .statusError
         default: return .secondary
         }
+    }
+
+    /// OpenClaw 用 Token 访问；其余类型（Hermes/QwenPaw）用控制台账号
+    private func isOpenClawAgent(_ a: AIAgent) -> Bool {
+        a.agentType == "openclaw"
     }
 
     private func drawerHeaderRow(_ a: AIAgent) -> some View {
