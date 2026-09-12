@@ -243,8 +243,8 @@ struct ManageTab: View {
         case .license:
             LicenseView(server: server)
         case .ai:
-            // AI Hub：模型账号 / 智能体 / MCP / 本地模型
-            ManageHubView(title: L10n.t("AI"), items: [.aiAccounts, .aiAgents, .aiMcp, .aiOllama])
+            // AI Hub：模型账号 / 智能体 / MCP / Ollama / vLLM / 模型下载
+            ManageHubView(title: L10n.t("AI"), items: [.aiAccounts, .aiAgents, .aiMcp, .aiOllama, .aiVllm, .aiDownloader])
         case .aiAccounts:
             AIAccountsView(server: server)
         case .aiAgents:
@@ -253,6 +253,10 @@ struct ManageTab: View {
             AIMcpView(server: server)
         case .aiOllama:
             AIOllamaView(server: server)
+        case .aiVllm:
+            AIVllmView(server: server)
+        case .aiDownloader:
+            AIDownloaderView(server: server)
         }
     }
 }
@@ -447,7 +451,7 @@ enum ManageItem: String, Identifiable {
     case basicSettings
     /// 许可证（设置 Hub 子页）
     case license
-    /// AI（Hub：模型账号 / 智能体 / MCP / 本地模型）
+    /// AI（Hub：模型账号 / 智能体 / MCP / Ollama / vLLM / 模型下载）
     case ai
     /// 模型账号（AI Hub 子页）
     case aiAccounts
@@ -457,6 +461,10 @@ enum ManageItem: String, Identifiable {
     case aiMcp
     /// 本地模型 Ollama（AI Hub 子页）
     case aiOllama
+    /// vLLM 推理实例（AI Hub 子页）
+    case aiVllm
+    /// 模型下载器（AI Hub 子页）
+    case aiDownloader
 
     var id: String { rawValue }
 
@@ -464,7 +472,7 @@ enum ManageItem: String, Identifiable {
     /// 但可在「自定义功能」中单独隐藏（含从根列表移入的老项，如告警/备份账号）
     static var hubChildren: [ManageItem] {
         [.websiteList, .certificates, .cronjobList, .scriptLibrary,
-         .aiAccounts, .aiAgents, .aiMcp, .aiOllama,
+         .aiAccounts, .aiAgents, .aiMcp, .aiOllama, .aiVllm, .aiDownloader,
          .basicSettings, .alert, .backupAccount, .license]
     }
 
@@ -522,7 +530,9 @@ enum ManageItem: String, Identifiable {
         case .aiAccounts:  return L10n.t("模型账号")
         case .aiAgents:    return L10n.t("智能体")
         case .aiMcp:       return "MCP"
-        case .aiOllama:    return L10n.t("本地模型")
+        case .aiOllama:    return "Ollama"
+        case .aiVllm:      return "vLLM"
+        case .aiDownloader: return L10n.t("模型下载")
         }
     }
 
@@ -561,11 +571,13 @@ enum ManageItem: String, Identifiable {
         case .panelSettings: return L10n.t("告警通知 / 备份账号 / 许可证")
         case .basicSettings: return L10n.t("面板别名 / 超时 / 代理 / 运行环境")
         case .license:     return L10n.t("专业版授权绑定 / 同步")
-        case .ai:          return L10n.t("模型账号 / 智能体 / MCP / 本地模型")
+        case .ai:          return L10n.t("模型账号 / 智能体 / MCP / Ollama / vLLM / 模型下载")
         case .aiAccounts:  return L10n.t("模型供应商账号与模型池")
         case .aiAgents:    return L10n.t("OpenClaw / Hermes Agent / QwenPaw")
         case .aiMcp:       return L10n.t("MCP Server 网关管理")
         case .aiOllama:    return L10n.t("Ollama 模型拉取与运行")
+        case .aiVllm:      return L10n.t("GPU 推理服务引擎实例管理")
+        case .aiDownloader: return L10n.t("HuggingFace / ModelScope 模型下载")
         }
     }
 
@@ -609,6 +621,8 @@ enum ManageItem: String, Identifiable {
         case .aiAgents:    return "figure.run"
         case .aiMcp:       return "puzzlepiece"
         case .aiOllama:    return "cpu"
+        case .aiVllm:      return "bolt.horizontal.circle"
+        case .aiDownloader: return "arrow.down.circle"
         }
     }
 
@@ -651,6 +665,8 @@ enum ManageItem: String, Identifiable {
         case .aiAgents:    return .green
         case .aiMcp:       return .orange
         case .aiOllama:    return .purple
+        case .aiVllm:      return .mint
+        case .aiDownloader: return .cyan
         case .diskManage:  return .gray
         }
     }

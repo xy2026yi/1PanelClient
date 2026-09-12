@@ -264,7 +264,7 @@ struct AIOllamaView: View {
                 }
             }
         }
-        .navigationTitle(L10n.t("本地模型"))
+        .navigationTitle("Ollama")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if vm.isInstalled {

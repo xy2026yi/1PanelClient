@@ -180,6 +180,12 @@ final class APIClient {
         do {
             return try await Self.decode(data, as: T.self)
         } catch {
+            // 解码失败与业务错误同样打 DEBUG 日志：字段类型不匹配时
+            // 直接可见原始返回，避免「静默空列表」式的排查盲区
+            #if DEBUG
+            Logger(subsystem: "com.xy.1PanelClient.debug", category: "api")
+                .warning("[API-DEBUG] 解码失败 \(path, privacy: .public) -> \(String(data: data, encoding: .utf8) ?? "", privacy: .public)")
+            #endif
             throw APIError.decodingError(error.localizedDescription)
         }
     }

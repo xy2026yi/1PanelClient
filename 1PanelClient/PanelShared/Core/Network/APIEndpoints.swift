@@ -511,6 +511,30 @@ enum APIEndpoint {
     case aiGpuOptions           // GET GPU 监控配置（gpuType 等）
     case aiGpuMonitorSearch     // POST GPU 监控历史 {productName, startTime, endTime}
 
+    // MARK: - vLLM（logs/vLLM与下载器.md 抓包 2026-09-12；标 [推测] 的端点未抓到请求，按命名规律推定，联调时集中修正）
+    // 实例版本列表复用 appsStoreDetail（GET /api/v2/apps/:key，key=vllm）
+    case vllmSearch             // POST 分页查询实例 {page, pageSize, info}
+    case vllmCreate             // POST 创建实例（全字段 + taskID，进度走任务日志 operateNode=local）
+    case vllmUpdate             // POST 编辑实例（create 全字段，名称/类型/版本不可改）
+    case vllmOperate            // POST 启停/重启 {id, operate, taskID}；删除同端点 operate=delete + forceDelete
+    case vllmCompose            // POST 按类型获取 compose 模板 {imageType}
+    case vllmCommandTemplateList // POST 启动命令模板列表 {imageType}
+
+    // MARK: - 模型下载器（logs/vLLM与下载器.md 抓包 2026-09-12；标 [推测] 的端点未抓到请求）
+    case modelDownloaderSettings       // GET/POST 下载设置（模型目录 / HF 与 ModelScope 端点及令牌）
+    case modelDownloaderLocalSearch    // POST 已下载模型分页 {page, pageSize, info}
+    case modelDownloaderLocalDelete    // POST 删除已下载模型 {name}
+    case modelDownloaderTasksSearch    // POST 下载队列分页 {page, pageSize, info, status}
+    case modelDownloaderTaskCancel     // POST 取消下载任务 {id} [推测：抓包缺失]
+    case modelDownloaderTaskRetry      // POST 重试失败任务 {id} [推测：抓包缺失]
+    case modelDownloaderTaskDelete     // POST 移除任务记录 {id} [推测：抓包缺失]
+    case modelDownloaderHFSearch       // POST HuggingFace 仓库搜索 {query, sort, page, pageSize}
+    case modelDownloaderHFInfo         // POST HuggingFace 仓库详情 {repoID}（模型卡 + 文件列表）
+    case modelDownloaderHFDownload     // POST 从 HuggingFace 下载 {repoID}
+    case modelDownloaderMSSearch       // POST ModelScope 仓库搜索 {query, sort, page, pageSize}
+    case modelDownloaderMSInfo         // POST ModelScope 仓库详情 {repoID}
+    case modelDownloaderMSDownload     // POST 从 ModelScope 下载 {repoID}
+
     var path: String {
         switch self {
         case .dashboardOS:           return "/api/v2/dashboard/base/os"
@@ -923,6 +947,25 @@ enum APIEndpoint {
         case .aiGpuLoad:             return "/api/v2/ai/gpu/load"
         case .aiGpuOptions:          return "/api/v2/ai/gpu/options"
         case .aiGpuMonitorSearch:    return "/api/v2/ai/gpu/search"
+        case .vllmSearch:            return "/api/v2/xpack/vllm/search"
+        case .vllmCreate:            return "/api/v2/xpack/vllm/create"
+        case .vllmUpdate:            return "/api/v2/xpack/vllm/update"
+        case .vllmOperate:           return "/api/v2/xpack/vllm/operate"
+        case .vllmCompose:           return "/api/v2/xpack/vllm/compose"
+        case .vllmCommandTemplateList: return "/api/v2/xpack/vllm/command-template/list"
+        case .modelDownloaderSettings:      return "/api/v2/xpack/model/downloader/settings"
+        case .modelDownloaderLocalSearch:   return "/api/v2/xpack/model/downloader/local/search"
+        case .modelDownloaderLocalDelete:   return "/api/v2/xpack/model/downloader/local/delete"
+        case .modelDownloaderTasksSearch:   return "/api/v2/xpack/model/downloader/tasks/search"
+        case .modelDownloaderTaskCancel:    return "/api/v2/xpack/model/downloader/tasks/cancel"
+        case .modelDownloaderTaskRetry:     return "/api/v2/xpack/model/downloader/tasks/retry"
+        case .modelDownloaderTaskDelete:    return "/api/v2/xpack/model/downloader/tasks/delete"
+        case .modelDownloaderHFSearch:      return "/api/v2/xpack/model/downloader/hf/search"
+        case .modelDownloaderHFInfo:        return "/api/v2/xpack/model/downloader/hf/info"
+        case .modelDownloaderHFDownload:    return "/api/v2/xpack/model/downloader/hf/download"
+        case .modelDownloaderMSSearch:      return "/api/v2/xpack/model/downloader/modelscope/search"
+        case .modelDownloaderMSInfo:        return "/api/v2/xpack/model/downloader/modelscope/info"
+        case .modelDownloaderMSDownload:    return "/api/v2/xpack/model/downloader/modelscope/download"
         }
     }
 
@@ -959,7 +1002,8 @@ enum APIEndpoint {
              .backupsLocal,
              .filesDownload,
              .aiAccountProviders, .aiMcpDomainGet,
-             .aiGpuLoad, .aiGpuOptions:
+             .aiGpuLoad, .aiGpuOptions,
+             .modelDownloaderSettings:
             return "GET"
         default:
             return "POST"
