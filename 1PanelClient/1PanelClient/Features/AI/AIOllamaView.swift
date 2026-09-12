@@ -16,6 +16,8 @@ import Combine
 final class AIOllamaViewModel: ObservableObject {
     @Published var check: AppInstallCheck?
     @Published var models: [AIOllamaModel] = []
+    /// 模型列表加载失败（与「真无模型」区分；服务卡仍可展示）
+    @Published private(set) var modelsError: String?
     @Published private(set) var total = 0
     @Published private(set) var isLoading = true
     @Published private(set) var isLoadingModels = false
@@ -28,7 +30,6 @@ final class AIOllamaViewModel: ObservableObject {
     @Published var toastMessage: String?
 
     @Published var isOperating = false
-    @Published var pendingDeleteModels: [AIOllamaModel]?
 
     private var page = 1
     private var loadGeneration = 0
@@ -77,12 +78,14 @@ final class AIOllamaViewModel: ObservableObject {
             guard generation == loadGeneration else { return }
             models = resp.items ?? []
             total = resp.total ?? 0
+            modelsError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
             guard generation == loadGeneration else { return }
-            // 已有数据时保留列表；首屏失败仅显示空态（服务卡仍可展示）
+            // 已有数据时保留列表；首屏失败展示错误态（服务卡仍可展示）
             if models.isEmpty {
                 total = 0
+                modelsError = error.localizedDescription
             }
         }
     }
@@ -120,7 +123,9 @@ final class AIOllamaViewModel: ObservableObject {
             total = resp.total ?? total
             page = next
         } catch {
-            // 追加失败静默
+            guard !APIError.isCancellation(error) else { return }
+            // 追加失败：收敛 total 到已加载数，底部进度行不再常驻（下拉刷新重置）
+            total = models.count
         }
     }
 
@@ -168,7 +173,6 @@ final class AIOllamaViewModel: ObservableObject {
     }
 
     func deleteModels(_ targets: [AIOllamaModel], forceDelete: Bool) async {
-        pendingDeleteModels = nil
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiOllamaModelDelete.path,
@@ -554,6 +558,11 @@ struct AIOllamaView: View {
                     Spacer()
                 }
                 .listRowBackground(Color.clear)
+            } else if let err = vm.modelsError, vm.models.isEmpty {
+                LoadErrorStateView(message: err) {
+                    Task { await vm.loadModels() }
+                }
+                .listRowBackground(Color.clear)
             } else if vm.models.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无模型"),
@@ -750,6 +759,7 @@ struct AIOllamaGatewayView: View {
 
     @State private var info: AIDomainInfo?
     @State private var isLoading = true
+    @State private var loadError: String?
 
     private let client: APIClient
 
@@ -763,6 +773,14 @@ struct AIOllamaGatewayView: View {
         Group {
             if isLoading {
                 LoadingStateView()
+            } else if let err = loadError {
+                ContentUnavailableView {
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(err)
+                } actions: {
+                    Button(L10n.t("重试")) { Task { await load() } }
+                }
             } else {
                 DomainBindFormView(
                     server: server,
@@ -787,9 +805,20 @@ struct AIOllamaGatewayView: View {
                 path: APIEndpoint.aiDomainGet.path,
                 body: AIDomainGetRequest(appInstallID: appInstallID),
                 as: AIDomainInfo.self)
+            loadError = nil
+        } catch let err as APIError {
+            guard !err.isCancellation else { return }
+            if case .businessError(200, _) = err {
+                // code=200 但 data=null：服务端「未绑定」语义，进创建模式
+                info = nil
+                loadError = nil
+            } else {
+                // 业务失败 / 网络错误：不能当未绑定（已绑定的会被误判进创建模式）
+                loadError = err.errorDescription
+            }
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            info = nil
+            loadError = error.localizedDescription
         }
         isLoading = false
     }

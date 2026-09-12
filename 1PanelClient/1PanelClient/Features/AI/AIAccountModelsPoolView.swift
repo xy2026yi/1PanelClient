@@ -29,7 +29,6 @@ struct AIAccountModelsPoolView: View {
     @State private var showAdd = false
     @State private var editingModel: AIModelRef?
     @State private var pendingDelete: AIModelRef?
-    @State private var isDeleting = false
     @State private var actionModel: AIModelRef?
     @State private var showEditAccount = false
 
@@ -236,8 +235,6 @@ struct AIAccountModelsPoolView: View {
 
     private func deleteModel(_ model: AIModelRef) async {
         pendingDelete = nil
-        isDeleting = true
-        defer { isDeleting = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAccountModelDelete.path,

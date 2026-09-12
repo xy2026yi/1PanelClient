@@ -102,13 +102,17 @@ final class AIAgentsViewModel: ObservableObject {
             total = resp.total ?? total
             page = next
         } catch {
-            // 追加失败不打断列表
+            guard !APIError.isCancellation(error) else { return }
+            // 追加失败：收敛 total 到已加载数，底部进度行不再常驻（下拉刷新重置）
+            total = agents.count
         }
     }
 
     // MARK: 创建辅助（拉模型账号与其模型池）
 
-    func loadAccounts() async -> [AIAccount] {
+    /// 创建表单用：拉模型账号与其模型池；失败返回 nil（区别于「无账号」空数组），
+    /// 供表单展示可重试的错误态而不是误导性的「暂无可用账号」
+    func loadAccounts() async -> [AIAccount]? {
         do {
             let resp: PageResponse<AIAccount> = try await client.send(
                 path: APIEndpoint.aiAccountsSearch.path,
@@ -116,8 +120,8 @@ final class AIAgentsViewModel: ObservableObject {
                 as: PageResponse<AIAccount>.self)
             return resp.items ?? []
         } catch {
-            guard !APIError.isCancellation(error) else { return [] }
-            return []
+            guard !APIError.isCancellation(error) else { return nil }
+            return nil
         }
     }
 
@@ -223,9 +227,6 @@ struct AIAgentsView: View {
     private let server: ServerConfig
 
     @State private var showCreate = false
-    @State private var showProgress = false
-    @State private var activeTaskID = ""
-    @State private var progressTitle = ""
     @State private var detailAgent: AIAgent?
 
     init(server: ServerConfig) {
@@ -287,14 +288,6 @@ struct AIAgentsView: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             AIAgentCreateView(server: server, vm: vm)
-        }
-        .navigationDestination(isPresented: $showProgress) {
-            TaskProgressView(taskID: activeTaskID, title: progressTitle) { isDone in
-                if isDone {
-                    Task { await vm.load() }
-                }
-                return false
-            }
         }
         .navigationDestination(isPresented: Binding(
             get: { detailAgent != nil },

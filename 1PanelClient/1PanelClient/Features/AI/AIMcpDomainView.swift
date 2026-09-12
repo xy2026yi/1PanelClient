@@ -107,6 +107,12 @@ struct DomainBindFormView: View {
                     }
                     if !certs.isEmpty {
                         Picker("", selection: $selectedSSLId) {
+                            // 已绑定证书不在当前账户的证书列表（绑定在其他账户下）：
+                            // 保留原选择并以占位项展示，不悄悄改绑列表第一张
+                            if let bound = selectedSSLId,
+                               !certs.contains(where: { $0.id == bound }) {
+                                Text(L10n.f("当前绑定证书 · %d", bound)).tag(Optional(bound))
+                            }
                             ForEach(certs) { cert in
                                 Text(cert.displayName).tag(Optional(cert.id))
                             }
@@ -142,7 +148,9 @@ struct DomainBindFormView: View {
                     ipList = ips.joined(separator: "\n")
                 }
                 enableSSL = (info.sslID ?? 0) > 0
-                selectedSSLId = info.sslID
+                if let ssl = info.sslID, ssl > 0 {
+                    selectedSSLId = ssl
+                }
                 selectedAcmeId = info.acmeAccountID
                 if enableSSL {
                     await loadAcmeAccounts()
@@ -183,7 +191,9 @@ struct DomainBindFormView: View {
                 path: APIEndpoint.websitesSSLSearch.path,
                 body: WebsiteSSLSearchRequest(acmeAccountID: String(acmeId)),
                 as: [WebsiteSSL].self)
-            if selectedSSLId == nil || !certs.contains(where: { $0.id == selectedSSLId }) {
+            // 仅未选择时自动取第一张；已绑定证书不在列表时保留原值
+            // （由 Picker 占位项展示），避免原样保存被静默换绑
+            if selectedSSLId == nil {
                 selectedSSLId = certs.first?.id
             }
         } catch {
@@ -236,6 +246,14 @@ struct AIMcpDomainView: View {
         Group {
             if isLoading {
                 LoadingStateView()
+            } else if let err = loadError {
+                ContentUnavailableView {
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(err)
+                } actions: {
+                    Button(L10n.t("重试")) { Task { await load() } }
+                }
             } else {
                 DomainBindFormView(
                     server: server,
@@ -262,10 +280,19 @@ struct AIMcpDomainView: View {
                 method: "GET",
                 as: AIDomainInfo.self)
             loadError = nil
+        } catch let err as APIError {
+            guard !err.isCancellation else { return }
+            if case .businessError(200, _) = err {
+                // code=200 但 data=null：服务端「未绑定」语义，进创建模式
+                info = nil
+                loadError = nil
+            } else {
+                // 业务失败 / 网络错误：不能当未绑定（已绑定的会被误判进创建模式）
+                loadError = err.errorDescription
+            }
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            // 未绑定时接口可能返回空 data：视为未绑定
-            info = nil
+            loadError = error.localizedDescription
         }
         isLoading = false
     }

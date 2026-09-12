@@ -17,10 +17,17 @@ final class AIDownloaderViewModel: ObservableObject {
     @Published var settings: ModelDownloaderSettings?
     @Published var localModels: [ModelLocalItem] = []
     @Published private(set) var localTotal = 0
+    @Published private(set) var isLoadingMoreLocal = false
     /// 列表为空且加载失败时的错误（有内容时保留旧列表不显示错误）
     @Published private(set) var localError: String?
     @Published var tasks: [ModelDownloadTask] = []
+    @Published private(set) var tasksTotal = 0
+    @Published private(set) var isLoadingMoreTasks = false
     @Published private(set) var tasksError: String?
+
+    private var localPage = 1
+    private var tasksPage = 1
+    private static let pageSize = 20
     @Published private(set) var isLoading = true
     @Published private(set) var isLoadingTasks = false
     @Published var errorMessage: String?
@@ -78,6 +85,7 @@ final class AIDownloaderViewModel: ObservableObject {
     // MARK: 已下载模型
 
     func loadLocal() async {
+        localPage = 1
         do {
             let resp: PageResponse<ModelLocalItem> = try await client.send(
                 path: APIEndpoint.modelDownloaderLocalSearch.path,
@@ -92,6 +100,27 @@ final class AIDownloaderViewModel: ObservableObject {
             if localModels.isEmpty {
                 localError = error.localizedDescription
             }
+        }
+    }
+
+    func loadMoreLocal() async {
+        guard localModels.count < localTotal, !isLoadingMoreLocal else { return }
+        isLoadingMoreLocal = true
+        defer { isLoadingMoreLocal = false }
+        let next = localPage + 1
+        do {
+            let resp: PageResponse<ModelLocalItem> = try await client.send(
+                path: APIEndpoint.modelDownloaderLocalSearch.path,
+                body: ModelDownloaderPageRequest(page: next, pageSize: Self.pageSize),
+                as: PageResponse<ModelLocalItem>.self)
+            let existing = Set(localModels.map(\.id))
+            localModels += (resp.items ?? []).filter { !existing.contains($0.id) }
+            localTotal = resp.total ?? localTotal
+            localPage = next
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            // 追加失败：收敛 total 到已加载数，底部进度行不再常驻（切回分段/下拉重置）
+            localTotal = localModels.count
         }
     }
 
@@ -115,6 +144,7 @@ final class AIDownloaderViewModel: ObservableObject {
     func loadTasks() async {
         isLoadingTasks = true
         defer { isLoadingTasks = false }
+        tasksPage = 1
         let previousActiveIDs = Set(tasks.filter { $0.isActive }.map(\.id))
         do {
             let resp: PageResponse<ModelDownloadTask> = try await client.send(
@@ -122,6 +152,7 @@ final class AIDownloaderViewModel: ObservableObject {
                 body: ModelDownloaderTasksRequest(),
                 as: PageResponse<ModelDownloadTask>.self)
             tasks = resp.items ?? []
+            tasksTotal = resp.total ?? 0
             tasksError = nil
             // 有任务在本次刷新中从进行中转为成功：顺带刷新已下载列表，
             // 用户在队列页等到完成后切到「已下载」即可见最新数据
@@ -138,6 +169,26 @@ final class AIDownloaderViewModel: ObservableObject {
             if tasks.isEmpty {
                 tasksError = error.localizedDescription
             }
+        }
+    }
+
+    func loadMoreTasks() async {
+        guard tasks.count < tasksTotal, !isLoadingMoreTasks, !isLoadingTasks else { return }
+        isLoadingMoreTasks = true
+        defer { isLoadingMoreTasks = false }
+        let next = tasksPage + 1
+        do {
+            let resp: PageResponse<ModelDownloadTask> = try await client.send(
+                path: APIEndpoint.modelDownloaderTasksSearch.path,
+                body: ModelDownloaderTasksRequest(page: next, pageSize: Self.pageSize),
+                as: PageResponse<ModelDownloadTask>.self)
+            let existing = Set(tasks.map(\.id))
+            tasks += (resp.items ?? []).filter { !existing.contains($0.id) }
+            tasksTotal = resp.total ?? tasksTotal
+            tasksPage = next
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            tasksTotal = tasks.count
         }
     }
 
@@ -317,10 +368,18 @@ struct AIDownloaderView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
 
-            switch segment {
-            case .local: localList
-            case .tasks: tasksList
-            case .search: AIDownloaderSearchView(vm: vm)
+            // 三分段叠放 + 透明度切换：切换不销毁视图，搜索结果/滚动位置保留
+            // （allowsHitTesting 挡住隐藏分层的触摸）
+            ZStack {
+                localList
+                    .opacity(segment == .local ? 1 : 0)
+                    .allowsHitTesting(segment == .local)
+                tasksList
+                    .opacity(segment == .tasks ? 1 : 0)
+                    .allowsHitTesting(segment == .tasks)
+                AIDownloaderSearchView(vm: vm)
+                    .opacity(segment == .search ? 1 : 0)
+                    .allowsHitTesting(segment == .search)
             }
         }
     }
@@ -358,6 +417,20 @@ struct AIDownloaderView: View {
                                     Label(L10n.t("删除"), systemImage: "trash")
                                 }
                             }
+                            .onAppear {
+                                if item.id == vm.localModels.last?.id {
+                                    Task { await vm.loadMoreLocal() }
+                                }
+                            }
+                    }
+
+                    if vm.localModels.count < vm.localTotal || vm.isLoadingMoreLocal {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        }
+                        .onAppear { Task { await vm.loadMoreLocal() } }
                     }
                 }
             } header: {
@@ -408,11 +481,25 @@ struct AIDownloaderView: View {
                             onRemoveRecord: task.canRemoveRecord == true
                                 ? { Task<Void, Never> { await vm.removeTaskRecord(task) } } : nil
                         )
+                        .onAppear {
+                            if task.id == vm.tasks.last?.id {
+                                Task { await vm.loadMoreTasks() }
+                            }
+                        }
+                    }
+
+                    if vm.tasks.count < vm.tasksTotal || vm.isLoadingMoreTasks {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        }
+                        .onAppear { Task { await vm.loadMoreTasks() } }
                     }
                 }
             } header: {
                 SectionLabel(
-                    title: L10n.f("下载队列 · 共 %d 条", vm.tasks.count),
+                    title: L10n.f("下载队列 · 共 %d 条", vm.tasksTotal),
                     systemImage: "arrow.down.circle.dotted"
                 )
             } footer: {

@@ -26,8 +26,8 @@ final class AIVllmViewModel: ObservableObject {
     /// 清理由 toastOverlay 组件内建完成（2 秒自动消失），VM 只负责赋值
     @Published var toastMessage: String?
 
-    /// 操作中的实例 ID（行内禁重复点击）
-    @Published private(set) var operatingID: Int?
+    /// 操作中的实例 ID 集合（并发操作多行时各自独立显示转圈）
+    @Published private(set) var operatingIDs: Set<Int> = []
 
     private var page = 1
     private var loadGeneration = 0
@@ -95,8 +95,8 @@ final class AIVllmViewModel: ObservableObject {
 
     /// 启动/停止/重启/删除（同一 operate 端点，delete 额外携带 forceDelete）
     func operate(_ instance: VllmInstance, operate: String, forceDelete: Bool = false) async {
-        operatingID = instance.id
-        defer { operatingID = nil }
+        operatingIDs.insert(instance.id)
+        defer { operatingIDs.remove(instance.id) }
         let isDelete = operate == "delete"
         do {
             let _: EmptyResponse = try await client.send(
@@ -338,7 +338,7 @@ struct AIVllmView: View {
                         Button {
                             actionInstance = instance
                         } label: {
-                            VllmInstanceRow(instance: instance, isOperating: vm.operatingID == instance.id)
+                            VllmInstanceRow(instance: instance, isOperating: vm.operatingIDs.contains(instance.id))
                         }
                         .buttonStyle(.plain)
                         .onAppear {

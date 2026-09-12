@@ -241,7 +241,10 @@ struct ComposeLogView: View {
                     errorMessage = error.localizedDescription
                 }
             }
-            // 正常结束 / 异常中断：落地剩余缓冲（catch 也走得到）
+            // 正常结束 / 异常中断：落地剩余缓冲（catch 也走得到）。
+            // 被新一轮 startStreaming 取消的旧流不落地——否则取消前 ≤100ms 的
+            // 旧缓冲会混进已清空/新流的开头
+            guard !Task.isCancelled else { return }
             flush()
         }
     }

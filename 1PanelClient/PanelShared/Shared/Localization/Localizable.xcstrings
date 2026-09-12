@@ -920,8 +920,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Bot ID"
           }
         }
       }
@@ -942,8 +942,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Bot Token"
           }
         }
       }
@@ -4968,8 +4968,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Built-in · %d"
           }
         }
       }
@@ -6002,8 +6002,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Deleted successfully"
           }
         }
       }
@@ -8807,8 +8807,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Domain Binding"
           }
         }
       }
@@ -9203,8 +9203,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "External Access URL"
           }
         }
       }
@@ -9368,8 +9368,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "e.g. deepseek-v4-flash"
           }
         }
       }
@@ -9885,8 +9885,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Host Directory"
           }
         }
       }
@@ -12142,6 +12142,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current Binding"
+          }
+        }
+      }
+    },
+    "当前绑定证书 · %d" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Currently bound certificate · %d"
           }
         }
       }
@@ -15066,8 +15077,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Display name (can differ from the model ID)"
           }
         }
       }
@@ -15110,8 +15121,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Agent"
           }
         }
       }
@@ -15682,8 +15693,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "No models"
           }
         }
       }
@@ -16650,8 +16661,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Disabled"
           }
         }
       }
@@ -17706,8 +17717,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Model ID"
           }
         }
       }
@@ -17728,8 +17739,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "The model ID is the identifier used by the API; the name is only shown in lists. If left empty, it defaults to the model ID."
           }
         }
       }
@@ -19191,8 +19202,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to add a model"
           }
         }
       }
@@ -24252,7 +24263,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This agent has bound resources. Unbind them before deleting:\n%@"
+            "value" : "This agent has the following resources bound. Unbind them before deleting:\n%@"
           }
         }
       }
@@ -24341,6 +24352,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Credentials are not remembered for this account — re-enter them"
+          }
+        }
+      }
+    },
+    "该账号未设置验证模型，编辑时无法启用验证（验证模型在创建账号时选择）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This account has no verify model set; verification cannot be enabled while editing (choose a verify model when creating the account)"
           }
         }
       }
@@ -25144,6 +25166,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Account Info"
+          }
+        }
+      }
+    },
+    "账号列表加载失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load model accounts"
           }
         }
       }

@@ -202,13 +202,24 @@ struct AIAccountFormView: View {
         }
     }
 
+    /// 编辑模式下账号原本就没有验证模型：无法在编辑表单里补选，
+    /// 开关置灰说明（避免 UI 开着、提交时被静默置 false）
+    private var isEditingWithoutVerifyModel: Bool {
+        editing != nil && verifyModelId.isEmpty
+    }
+
     private var verifySection: some View {
         Section {
             Toggle(L10n.t("验证账号可用性"), isOn: $validateAvailability)
+                .disabled(isEditingWithoutVerifyModel)
         } header: {
             SectionLabel(title: L10n.t("可用性验证"), systemImage: "checkmark.seal")
         } footer: {
-            Text(L10n.t("开启后保存时将使用所选验证模型测试账号连接，不可用时保存失败"))
+            if isEditingWithoutVerifyModel {
+                Text(L10n.t("该账号未设置验证模型，编辑时无法启用验证（验证模型在创建账号时选择）"))
+            } else {
+                Text(L10n.t("开启后保存时将使用所选验证模型测试账号连接，不可用时保存失败"))
+            }
         }
     }
 

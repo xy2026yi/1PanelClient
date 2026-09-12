@@ -19,6 +19,8 @@ struct AIAgentModelConfigView: View {
 
     @State private var config: AIAgentModelConfig?
     @State private var accounts: [AIAccount] = []
+    /// 账号列表加载失败（与「真无账号」区分）
+    @State private var accountsLoadFailed = false
     @State private var selectedAccountId: Int?
     @State private var selectedModel = ""
     @State private var isLoading = true
@@ -49,7 +51,14 @@ struct AIAgentModelConfigView: View {
                 Section { HStack { Spacer(); ProgressView(); Spacer() } }
             } else if let c = config {
                 Section {
-                    if accounts.isEmpty {
+                    if accountsLoadFailed {
+                        // 配置已加载但账号列表失败：展示错误 + 重试，
+                        // 不误显示为「暂无可用模型账号」
+                        LoadErrorStateView(message: loadError ?? L10n.t("账号列表加载失败")) {
+                            Task { await loadAccountsOnly() }
+                        }
+                        .listRowBackground(Color.clear)
+                    } else if accounts.isEmpty {
                         Text(L10n.t("暂无可用模型账号"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -122,6 +131,7 @@ struct AIAgentModelConfigView: View {
                 body: AISearchPageRequest(page: 1, pageSize: 200),
                 as: PageResponse<AIAccount>.self)
             accounts = resp.items ?? []
+            accountsLoadFailed = false
             selectedAccountId = config?.accountId ?? accounts.first?.id
             if let model = config?.model, !model.isEmpty {
                 selectedModel = model
@@ -131,9 +141,31 @@ struct AIAgentModelConfigView: View {
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
+            // config 已加载时仅账号请求失败：进错误态分支（loadAccountsOnly 重试）
+            if config != nil { accountsLoadFailed = true }
             loadError = error.localizedDescription
         }
         isLoading = false
+    }
+
+    /// 仅重试账号列表（配置已加载、账号请求失败的分支）
+    private func loadAccountsOnly() async {
+        do {
+            let resp: PageResponse<AIAccount> = try await client.send(
+                path: APIEndpoint.aiAccountsSearch.path,
+                body: AISearchPageRequest(page: 1, pageSize: 200),
+                as: PageResponse<AIAccount>.self)
+            accounts = resp.items ?? []
+            accountsLoadFailed = false
+            if selectedAccountId == nil {
+                selectedAccountId = config?.accountId ?? accounts.first?.id
+                selectedModel = selectedAccount?.models?.first?.id ?? ""
+            }
+            loadError = nil
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            loadError = error.localizedDescription
+        }
     }
 
     private func save() async {

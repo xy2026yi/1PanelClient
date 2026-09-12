@@ -41,6 +41,9 @@ struct AIAgentSkillsView: View {
     // 已安装
     @State private var installed: [AIAgentSkillInstalled] = []
     @State private var isLoadingInstalled = true
+    /// 已安装列表加载失败（与「真无技能」区分，提供重试）
+    @State private var installedLoadFailed = false
+    @State private var installedLoadError: String?
 
     // 安装进度
     @State private var showProgress = false
@@ -219,6 +222,13 @@ struct AIAgentSkillsView: View {
                 HStack { Spacer(); ProgressView(); Spacer() }
                 .listRowBackground(Color.clear)
             }
+        } else if installedLoadFailed {
+            Section {
+                LoadErrorStateView(message: installedLoadError ?? "") {
+                    Task { await loadInstalled() }
+                }
+                .listRowBackground(Color.clear)
+            }
         } else if installed.isEmpty {
             Section {
                 ContentUnavailableView(
@@ -310,9 +320,13 @@ struct AIAgentSkillsView: View {
                 path: APIEndpoint.aiAgentSkillsList.path,
                 body: AIAgentModelRequest(agentId: agentId),
                 as: [AIAgentSkillInstalled].self)
+            installedLoadFailed = false
+            installedLoadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
             installed = []
+            installedLoadFailed = true
+            installedLoadError = error.localizedDescription
         }
     }
 

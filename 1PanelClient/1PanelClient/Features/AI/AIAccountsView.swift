@@ -90,7 +90,9 @@ final class AIAccountViewModel: ObservableObject {
             total = resp.total ?? total
             page = next
         } catch {
-            // 追加失败不打断列表，下拉刷新可重试
+            guard !APIError.isCancellation(error) else { return }
+            // 追加失败：收敛 total 到已加载数，底部进度行不再常驻（下拉刷新重置）
+            total = accounts.count
         }
     }
 

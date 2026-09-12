@@ -81,10 +81,16 @@ struct AIVllmCreateView: View {
     @State private var showDirPicker = false
     @State private var allVersions: [String] = []
     @State private var isLoadingMeta = true
+    /// 版本列表加载失败（与「无版本」区分，提供重试）
+    @State private var metaError: String?
     @State private var isSubmitting = false
     @State private var validationMessage: String?
 
     private let client: APIClient
+
+    /// 实例的原始 imageType 无法映射到已知枚举时保留原值，
+    /// 展示与提交都用原字符串，不回退成 nvidia（违反「类型不可改」约定）
+    private let originalImageTypeRaw: String?
 
     private var isEdit: Bool { instance != nil }
 
@@ -99,8 +105,12 @@ struct AIVllmCreateView: View {
         self.client = APIClient.shared(for: server)
 
         if let i = instance {
+            let rawType = i.imageType ?? ""
+            // 未知类型（如服务端新增 rocm）保留原值，不回退 nvidia
+            originalImageTypeRaw = VllmImageType(rawValue: rawType) == nil && !rawType.isEmpty
+                ? rawType : nil
             _name = State(initialValue: i.name ?? "vLLM")
-            _imageType = State(initialValue: VllmImageType(rawValue: i.imageType ?? "") ?? .nvidia)
+            _imageType = State(initialValue: VllmImageType(rawValue: rawType) ?? .nvidia)
             _appVersion = State(initialValue: i.appVersion ?? "")
             _image = State(initialValue: i.image ?? "")
             _portText = State(initialValue: String(i.port ?? 8000))
@@ -120,6 +130,8 @@ struct AIVllmCreateView: View {
             _pullImage = State(initialValue: i.pullImage ?? true)
             _editCompose = State(initialValue: i.editCompose ?? false)
             _dockerCompose = State(initialValue: i.dockerCompose ?? "")
+        } else {
+            originalImageTypeRaw = nil
         }
     }
 
@@ -191,10 +203,9 @@ struct AIVllmCreateView: View {
 
     private var availableVersions: [String] {
         var list = VllmImageMapper.versions(of: imageType, in: allVersions)
-        // 编辑中的版本可能已从商店下架，保底保留当前类型下的当前值
-        // （切到别的类型时不保留，避免混入不属于该类型的版本）
-        if let current = instance?.appVersion, !current.isEmpty, !list.contains(current),
-           imageType.rawValue == instance?.imageType {
+        // 编辑中的版本可能已从商店下架，保底保留当前值
+        // （编辑模式类型已锁定，不存在跨类型混入的问题）
+        if let current = instance?.appVersion, !current.isEmpty, !list.contains(current) {
             list.insert(current, at: 0)
         }
         return list
@@ -206,8 +217,9 @@ struct AIVllmCreateView: View {
                 .disabled(isEdit)
 
             if isEdit {
-                // 编辑时类型/版本不可修改（服务端约定），以信息行展示
-                InfoRow(L10n.t("类型"), value: imageType.displayName)
+                // 编辑时类型/版本不可修改（服务端约定），以信息行展示；
+                // 未知类型保留服务端原字符串
+                InfoRow(L10n.t("类型"), value: originalImageTypeRaw ?? imageType.displayName)
                 InfoRow(L10n.t("版本"), value: appVersion)
             } else {
                 Picker(L10n.t("类型"), selection: $imageType) {
@@ -223,6 +235,11 @@ struct AIVllmCreateView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                } else if let err = metaError, allVersions.isEmpty {
+                    LoadErrorStateView(message: err) {
+                        Task { await loadMeta() }
+                    }
+                    .listRowBackground(Color.clear)
                 } else {
                     Picker(L10n.t("版本"), selection: $appVersion) {
                         ForEach(availableVersions, id: \.self) { v in
@@ -468,7 +485,7 @@ struct AIVllmCreateView: View {
         let request = VllmCreateRequest(
             name: trimmedName,
             appVersion: appVersion,
-            imageType: imageType.rawValue,
+            imageType: originalImageTypeRaw ?? imageType.rawValue,
             image: image.trimmingCharacters(in: .whitespaces),
             commandTemplateID: selectedTemplateID,
             port: port,
@@ -517,9 +534,15 @@ struct AIVllmCreateView: View {
         // 版本列表
         if allVersions.isEmpty {
             let path = APIEndpoint.appsStoreDetail.path.replacingOccurrences(of: ":key", with: "vllm")
-            if let detail: AppStoreDetail = try? await client.send(
-                path: path, method: "GET", body: nil, as: AppStoreDetail.self) {
+            do {
+                let detail: AppStoreDetail = try await client.send(
+                    path: path, method: "GET", body: nil, as: AppStoreDetail.self)
                 allVersions = detail.versions ?? []
+                metaError = nil
+            } catch {
+                guard !APIError.isCancellation(error) else { return }
+                // 版本拿不到时创建无法继续：展示错误 + 重试（模板/compose 仍尝试加载）
+                metaError = error.localizedDescription
             }
         }
         if appVersion.isEmpty {

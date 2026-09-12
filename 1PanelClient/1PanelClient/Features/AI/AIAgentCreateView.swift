@@ -36,6 +36,8 @@ struct AIAgentCreateView: View {
 
     // 模型配置
     @State private var accounts: [AIAccount] = []
+    /// 账号列表加载失败（与「无账号」区分，提供重试）
+    @State private var accountsLoadFailed = false
     @State private var selectedAccountId: Int?
     @State private var selectedModel = ""
 
@@ -196,7 +198,12 @@ struct AIAgentCreateView: View {
 
     private var modelSection: some View {
         Section {
-            if accounts.isEmpty {
+            if accountsLoadFailed {
+                LoadErrorStateView(message: L10n.t("账号列表加载失败")) {
+                    Task { await reloadAccounts() }
+                }
+                .listRowBackground(Color.clear)
+            } else if accounts.isEmpty {
                 HStack {
                     Text(L10n.t("模型账号"))
                     Spacer()
@@ -382,11 +389,23 @@ struct AIAgentCreateView: View {
         guard !didLoad else { return }
         didLoad = true
         await applyTypeDefaults(selectedTypeKey, initial: true)
-        accounts = await vm.loadAccounts()
-        selectedAccountId = accounts.first?.id
-        selectedModel = selectedAccount?.models?.first?.id ?? ""
+        await reloadAccounts()
         if !agentType.usesToken && password.isEmpty {
             password = PasswordInputRow.randomPassword()
+        }
+    }
+
+    /// 拉取模型账号：失败置错误态（可重试），不误显示为「暂无可用账号」
+    private func reloadAccounts() async {
+        guard let list = await vm.loadAccounts() else {
+            accountsLoadFailed = true
+            return
+        }
+        accountsLoadFailed = false
+        accounts = list
+        if selectedAccount == nil {
+            selectedAccountId = accounts.first?.id
+            selectedModel = selectedAccount?.models?.first?.id ?? ""
         }
     }
 
