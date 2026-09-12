@@ -76,8 +76,8 @@ struct AIAccountFormView: View {
         guard !isSaving, !name.isEmpty, !baseURL.isEmpty, !apiKey.isEmpty else { return false }
         if isEditing { return true }
         guard !selectedProvider.isEmpty, !selectedApiType.isEmpty else { return false }
-        // 开启验证时必须选择验证模型
-        return !validateAvailability || !verifyModelId.isEmpty
+        // 开启验证时必须选择验证模型（图片类型不支持验证）
+        return isImageApi || !validateAvailability || !verifyModelId.isEmpty
     }
 
     var body: some View {
@@ -164,10 +164,17 @@ struct AIAccountFormView: View {
         } header: {
             SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
         } footer: {
-            if !editableBaseURL {
+            if isImageApi {
+                Text(L10n.t("图片账号请填写完整的图片生成接口 URL，系统不会自动补全路径，例如：http://127.0.0.1:8000/v1/images/generations"))
+            } else if !editableBaseURL {
                 Text(L10n.t("该 API 类型的访问地址由供应商固定，不可修改"))
             }
         }
+    }
+
+    /// openai-images 图片类型：Base URL 需完整接口地址，且不支持可用性验证（抓包确认）
+    private var isImageApi: Bool {
+        selectedApiTypeItem?.apiType == "openai-images" || editing?.apiType == "openai-images"
     }
 
     private var authSection: some View {
@@ -210,12 +217,16 @@ struct AIAccountFormView: View {
 
     private var verifySection: some View {
         Section {
-            Toggle(L10n.t("验证账号可用性"), isOn: $validateAvailability)
-                .disabled(isEditingWithoutVerifyModel)
+            Toggle(L10n.t("验证账号可用性"), isOn: Binding(
+                get: { validateAvailability && !isImageApi },
+                set: { validateAvailability = isImageApi ? false : $0 }))
+                .disabled(isEditingWithoutVerifyModel || isImageApi)
         } header: {
             SectionLabel(title: L10n.t("可用性验证"), systemImage: "checkmark.seal")
         } footer: {
-            if isEditingWithoutVerifyModel {
+            if isImageApi {
+                Text(L10n.t("图片类型账号不支持可用性验证"))
+            } else if isEditingWithoutVerifyModel {
                 Text(L10n.t("该账号未设置验证模型，编辑时无法启用验证（验证模型在创建账号时选择）"))
             } else {
                 Text(L10n.t("开启后保存时将使用所选验证模型测试账号连接，不可用时保存失败"))
@@ -442,6 +453,14 @@ struct AIAccountFormView: View {
             ))
             if ok { dismiss() }
         } else {
+            // 图片类型不支持可用性验证（抓包确认 validateAvailability=false）；
+            // 模型池条目创建时统一 recordId=0（服务端按新纪录入库）
+            let wantsVerify = validateAvailability && !isImageApi
+            let poolModels = models.map { model -> AIModelRef in
+                var m = model
+                m.recordId = 0
+                return m
+            }
             let ok = await vm.create(req: AIAccountCreateRequest(
                 provider: selectedProvider,
                 name: name,
@@ -450,9 +469,9 @@ struct AIAccountFormView: View {
                 rememberApiKey: rememberApiKey,
                 apiType: selectedApiType,
                 authMode: authMode,
-                verifyModel: validateAvailability ? verifyModelId : "",
-                validateAvailability: validateAvailability,
-                models: models,
+                verifyModel: wantsVerify ? verifyModelId : "",
+                validateAvailability: wantsVerify,
+                models: poolModels,
                 remark: remark
             ))
             if ok { dismiss() }

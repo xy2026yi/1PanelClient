@@ -86,9 +86,12 @@ struct AIAgentCreateView: View {
     private var portValue: Int { Int(webUIPort) ?? 0 }
 
     private var canSubmit: Bool {
-        let hasBaseURL = selectedAccount?.baseUrl?.isEmpty == false
-        guard !name.isEmpty, !selectedVersion.isEmpty, portValue > 0,
-              hasBaseURL, !selectedModel.isEmpty, !vm.isSubmitting else { return false }
+        guard !name.isEmpty, !selectedVersion.isEmpty, portValue > 0, !vm.isSubmitting else { return false }
+        // QwenPaw(copaw) 创建不绑定模型账号
+        if agentType.needsModel {
+            let hasBaseURL = selectedAccount?.baseUrl?.isEmpty == false
+            guard hasBaseURL, !selectedModel.isEmpty else { return false }
+        }
         if agentType.usesToken {
             return !token.isEmpty
         } else {
@@ -99,7 +102,9 @@ struct AIAgentCreateView: View {
     var body: some View {
         Form {
             typeSection
-            modelSection
+            if agentType.needsModel {
+                modelSection
+            }
             webUISection
             advancedToggleSection
             if advancedEnabled {
@@ -126,7 +131,14 @@ struct AIAgentCreateView: View {
         }
         .task { await load() }
         .onChange(of: selectedTypeKey) { _, newValue in
-            Task { await applyTypeDefaults(newValue) }
+            Task {
+                await applyTypeDefaults(newValue)
+                // 从 QwenPaw 切到需绑定模型的类型时补拉账号
+                if AIAgentType.all.first(where: { $0.key == newValue })?.needsModel == true,
+                   accounts.isEmpty, !accountsLoadFailed {
+                    await reloadAccounts()
+                }
+            }
         }
         .onChange(of: selectedAccountId) { _, _ in
             selectedModel = selectedAccount?.models?.first?.id ?? ""
@@ -475,7 +487,6 @@ struct AIAgentCreateView: View {
     // MARK: - 提交
 
     private func submit() async {
-        guard let account = selectedAccount else { return }
         let taskID = UUID().uuidString
         var req = AIAgentCreateRequest(
             name: name,
@@ -483,8 +494,6 @@ struct AIAgentCreateView: View {
             appVersion: selectedVersion,
             webUIPort: portValue,
             agentType: agentType.key,
-            model: modelSelection.wrappedValue,
-            accountId: account.id,
             taskID: taskID,
             advanced: advancedEnabled,
             containerName: containerName,
@@ -498,6 +507,12 @@ struct AIAgentCreateView: View {
             editCompose: editCompose,
             dockerCompose: editCompose ? customCompose : ""
         )
+        if agentType.needsModel {
+            // QwenPaw(copaw) 创建请求不含模型绑定字段（抓包确认）
+            guard let account = selectedAccount else { return }
+            req.model = modelSelection.wrappedValue
+            req.accountId = account.id
+        }
         if agentType.usesToken {
             req.allowedOrigins = [allowedOrigin]
             req.token = token

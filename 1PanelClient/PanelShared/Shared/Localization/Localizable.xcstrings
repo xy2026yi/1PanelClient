@@ -948,6 +948,17 @@
         }
       }
     },
+    "Bot 列表 · 共 %d 个" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bots · %d"
+          }
+        }
+      }
+    },
     "CDN" : {},
     "CDN Headers" : {
       "extractionState" : "manual",
@@ -3148,6 +3159,17 @@
         }
       }
     },
+    "主模型不可用时按列表顺序使用备用模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fallbacks are used in order when the primary model is unavailable."
+          }
+        }
+      }
+    },
     "主配置文件位置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3782,6 +3804,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Session disconnected"
+          }
+        }
+      }
+    },
+    "会话独立" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Separate sessions"
+          }
+        }
+      }
+    },
+    "会话设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversation Settings"
           }
         }
       }
@@ -8659,6 +8703,28 @@
         }
       }
     },
+    "图片类型账号不支持可用性验证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image accounts do not support availability verification."
+          }
+        }
+      }
+    },
+    "图片账号请填写完整的图片生成接口 URL，系统不会自动补全路径，例如：http://127.0.0.1:8000/v1/images/generations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For image accounts, enter the full image generation endpoint URL — the path is not auto-completed, e.g. http://127.0.0.1:8000/v1/images/generations"
+          }
+        }
+      }
+    },
     "在技能市场搜索并安装技能" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9139,6 +9205,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notes (optional)"
+          }
+        }
+      }
+    },
+    "备用模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fallback Models"
           }
         }
       }
@@ -11178,6 +11255,17 @@
         }
       }
     },
+    "已批准配对" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairing approved"
+          }
+        }
+      }
+    },
     "已断开" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11955,6 +12043,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unhealthy"
+          }
+        }
+      }
+    },
+    "异步回执文案" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Async acknowledgement text"
+          }
+        }
+      }
+    },
+    "异步模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Async mode"
           }
         }
       }
@@ -13077,6 +13187,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pair via QR Code"
+          }
+        }
+      }
+    },
+    "批准配对" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve Pairing"
           }
         }
       }
@@ -14511,6 +14632,17 @@
         }
       }
     },
+    "新增 Bot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Bot"
+          }
+        }
+      }
+    },
     "新增备份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14518,6 +14650,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "New Backup"
+          }
+        }
+      }
+    },
+    "新增备用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Fallback"
           }
         }
       }
@@ -15442,6 +15585,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No backup accounts"
+          }
+        }
+      }
+    },
+    "暂无备用模型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No fallback models"
           }
         }
       }
@@ -18284,6 +18438,17 @@
         }
       }
     },
+    "流式传输" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaming"
+          }
+        }
+      }
+    },
     "流式传输路径" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18302,6 +18467,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Streaming…"
+          }
+        }
+      }
+    },
+    "流式输出" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaming output"
           }
         }
       }
@@ -19050,6 +19226,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scroll to Bottom"
+          }
+        }
+      }
+    },
+    "点击 Bot 编辑凭证与策略；删除与设为默认将立即保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a bot to edit credentials and policies; delete and set-as-default save immediately."
           }
         }
       }
@@ -20209,6 +20396,17 @@
         }
       }
     },
+    "确定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
     "确定从模型池删除「%@」吗？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20924,6 +21122,17 @@
         }
       }
     },
+    "私聊白名单" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DM allowlist"
+          }
+        }
+      }
+    },
     "私聊策略" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20931,6 +21140,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DM Policy"
+          }
+        }
+      }
+    },
+    "私聊策略为配队码时，用户发起对话后在对应平台提交配对码，在此批准完成对接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the DM policy is pairing code, users submit a code in the platform chat; approve it here to finish linking."
           }
         }
       }
@@ -21425,7 +21645,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Policy"
+            "value" : "Policies"
           }
         }
       }
@@ -22075,6 +22295,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit"
+          }
+        }
+      }
+    },
+    "编辑 Bot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Bot"
           }
         }
       }
@@ -22739,6 +22970,17 @@
         }
       }
     },
+    "群组白名单" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group allowlist"
+          }
+        }
+      }
+    },
     "群组策略" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22746,6 +22988,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Group Policy"
+          }
+        }
+      }
+    },
+    "群聊需@机器人" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Require @mention in groups"
           }
         }
       }
@@ -24092,6 +24345,17 @@
         }
       }
     },
+    "话题式会话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thread sessions"
+          }
+        }
+      }
+    },
     "该 API 类型的访问地址由供应商固定，不可修改" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24912,7 +25176,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Select…"
+            "value" : "Please select"
           }
         }
       }
@@ -25192,6 +25456,17 @@
         }
       }
     },
+    "账户 ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account ID"
+          }
+        }
+      }
+    },
     "账户类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25408,6 +25683,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Follow region"
+          }
+        }
+      }
+    },
+    "跨会话共享记忆" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared memory across conversations"
           }
         }
       }
@@ -25947,6 +26233,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open App Store"
+          }
+        }
+      }
+    },
+    "进度输出" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress"
           }
         }
       }
@@ -26798,6 +27095,17 @@
         }
       }
     },
+    "部分输出" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partial"
+          }
+        }
+      }
+    },
     "部署已安装的网站类应用（WordPress 等）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26827,6 +27135,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Department (optional)"
+          }
+        }
+      }
+    },
+    "配对" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "配对码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairing Code"
           }
         }
       }
@@ -27465,6 +27795,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Firewall Rules"
+          }
+        }
+      }
+    },
+    "阻塞输出" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block"
           }
         }
       }

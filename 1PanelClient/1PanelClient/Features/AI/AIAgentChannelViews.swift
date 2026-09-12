@@ -2,9 +2,10 @@
 //  AIAgentChannelViews.swift
 //  1PanelClient
 //
-//  智能体 · 消息频道（/api/v2/ai/agents/channel/*）：
-//  频道列表（并行读取 enabled）/ 各频道配置表单 / 微信扫码对接（任务日志提取二维码）
-//  保存端点 /channel/:type/update 为推测（抓包缺失），策略取值见 AIChannelPolicy
+//  智能体 · 消息频道（/api/v2/ai/agents/channel/*，logs/增加和修正.md 抓包确认）：
+//  频道列表（并行读取 enabled）/ 各频道配置表单 / 微信扫码对接 /
+//  配对码批准（channel/pairing/approve）/ Telegram 多 Bot 管理
+//  凭证字段在 bots 数组内（各频道 Bot 结构不同），保存为 get 响应整体回传
 //
 
 import SwiftUI
@@ -177,47 +178,102 @@ struct AIAgentChannelsView: View {
 
 // MARK: - 通用小组件
 
-/// 私聊策略 Picker（配队码 / 开放 / 禁用）
-private struct DmPolicyPicker: View {
+/// 策略 Picker（选项集按频道传入：pairing / open / allowlist / disabled）
+private struct ChannelPolicyPicker: View {
+    let title: String
+    let options: [(value: String, label: String)]
     @Binding var value: String
 
     var body: some View {
-        Picker(L10n.t("私聊策略"), selection: $value) {
-            ForEach(AIChannelPolicy.dmPolicies, id: \.value) { p in
+        Picker(title, selection: $value) {
+            ForEach(options, id: \.value) { p in
                 Text(p.label).tag(p.value)
             }
         }
     }
 }
 
-/// 群组策略 Picker（开放 / 禁用）
-private struct GroupPolicyPicker: View {
-    @Binding var value: String
+/// 白名单编辑（策略=白名单时显示，一行一个）
+private struct WhitelistEditor: View {
+    let title: String
+    @Binding var list: [String]
 
     var body: some View {
-        Picker(L10n.t("群组策略"), selection: $value) {
-            ForEach(AIChannelPolicy.groupPolicies, id: \.value) { p in
-                Text(p.label).tag(p.value)
-            }
-        }
-    }
-}
-
-/// 配对码输入（私聊策略=配队码时显示）
-private struct PairCodeRow: View {
-    @Binding var allowFrom: [String]
-
-    var body: some View {
-        HStack {
-            Text(L10n.t("配队码")).foregroundStyle(.secondary)
-            Spacer()
-            TextField(L10n.t("输入配队码"), text: Binding(
-                get: { allowFrom.first ?? "" },
-                set: { allowFrom = $0.isEmpty ? [] : [$0] }
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            TextEditor(text: Binding(
+                get: { list.joined(separator: "\n") },
+                set: { list = $0.split(whereSeparator: \.isNewline).map(String.init) }
             ))
-            .multilineTextAlignment(.trailing)
-            .frame(maxWidth: 180)
+            .font(.system(.caption, design: .monospaced))
+            .frame(minHeight: 64)
+            .scrollContentBackground(.hidden)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
+    }
+}
+
+/// 配对码批准（私聊策略=配队码时显示；POST channel/pairing/approve）
+private struct PairingApproveSection: View {
+    let client: APIClient
+    let agentId: Int
+    let type: String
+    /// 多 Bot 频道（Telegram）传默认账号 id
+    var accountId: String? = nil
+
+    @State private var pairingCode = ""
+    @State private var isSubmitting = false
+    @State private var message: String?
+    @State private var showError = false
+
+    var body: some View {
+        Section {
+            TextField(L10n.t("配对码"), text: $pairingCode)
+                .keyboardType(.numberPad)
+            Button {
+                Task { await approve() }
+            } label: {
+                if isSubmitting {
+                    ProgressView()
+                } else {
+                    Label(L10n.t("批准配对"), systemImage: "checkmark.seal")
+                }
+            }
+            .disabled(pairingCode.isEmpty || isSubmitting)
+        } header: {
+            SectionLabel(title: L10n.t("配对"), systemImage: "link")
+        } footer: {
+            Text(L10n.t("私聊策略为配队码时，用户发起对话后在对应平台提交配对码，在此批准完成对接"))
+        }
+        .alert(L10n.t("提示"), isPresented: $showError) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(message ?? "")
+        }
+    }
+
+    private func approve() async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentChannelPairingApprove.path,
+                body: AIAgentChannelPairingApproveRequest(
+                    agentId: agentId,
+                    type: type,
+                    pairingCode: pairingCode,
+                    accountId: accountId),
+                as: EmptyResponse.self)
+            message = L10n.t("已批准配对")
+            pairingCode = ""
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            message = error.localizedDescription
+        }
+        showError = true
     }
 }
 
@@ -433,7 +489,10 @@ struct AIAgentQQChannelView: View {
     let agentId: Int
 
     @Environment(\.dismiss) private var dismiss
-    @State private var config: AIChannelQQBot?
+    @State private var c = AIChannelQQBot()
+    /// 凭证与私聊白名单在 bots[0]（抓包确认）；其余 bots 原样保留
+    @State private var bot = AIChannelQQBotItem(accountId: "default", name: "Default", enabled: true, isDefault: true)
+    @State private var extraBots: [AIChannelQQBotItem] = []
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
@@ -452,35 +511,33 @@ struct AIAgentQQChannelView: View {
         Form {
             if isLoading {
                 Section { HStack { Spacer(); ProgressView(); Spacer() } }
-            } else if var c = config {
-                Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false },
-                        set: { c.enabled = $0; config = c }
-                    ))
-                    TextField("App ID", text: Binding(
-                        get: { c.appId ?? "" }, set: { c.appId = $0; config = c }))
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    SecureField("App Secret", text: Binding(
-                        get: { c.appSecret ?? "" }, set: { c.appSecret = $0; config = c }))
-                    .textInputAutocapitalization(.never)
-                    DmPolicyPicker(value: Binding(
-                        get: { c.dmPolicy ?? "" }, set: { c.dmPolicy = $0; config = c }))
-                    if c.dmPolicy == "paircode" {
-                        PairCodeRow(allowFrom: Binding(
-                            get: { c.allowFrom ?? [] }, set: { c.allowFrom = $0; config = c }))
-                    }
-                    GroupPolicyPicker(value: Binding(
-                        get: { c.groupPolicy ?? "" }, set: { c.groupPolicy = $0; config = c }))
-                } footer: {
-                    Text(L10n.t("保存后智能体即可在 QQ 平台对话"))
-                }
-            } else {
+            } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
                         Task { await load() }
                     }
+                }
+            } else {
+                Section {
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    TextField("App ID", text: Binding(
+                        get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    SecureField("App Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
+                        .textInputAutocapitalization(.never)
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
+                                         value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
+                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                } footer: {
+                    Text(L10n.t("保存后智能体即可在 QQ 平台对话"))
+                }
+
+                if c.dmPolicy == "pairing" {
+                    PairingApproveSection(client: client, agentId: agentId, type: "qqbot")
                 }
             }
         }
@@ -493,7 +550,7 @@ struct AIAgentQQChannelView: View {
                 } label: {
                     if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
-                .disabled(config == nil || isSaving)
+                .disabled(isLoading || loadError != nil || isSaving)
             }
         }
         .task { await load() }
@@ -506,10 +563,13 @@ struct AIAgentQQChannelView: View {
 
     private func load() async {
         do {
-            config = try await client.send(
+            let resp: AIChannelQQBot = try await client.send(
                 path: APIEndpoint.aiAgentChannelGet.path.replacingOccurrences(of: ":type", with: "qqbot"),
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelQQBot.self)
+            c = resp
+            bot = resp.bots?.first ?? bot
+            extraBots = Array((resp.bots ?? []).dropFirst())
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -519,14 +579,17 @@ struct AIAgentQQChannelView: View {
     }
 
     private func save() async {
-        guard var c = config else { return }
-        c.agentId = agentId
+        var out = c
+        out.agentId = agentId
+        var bot = bot
+        bot.enabled = c.enabled ?? true
+        out.bots = [bot] + extraBots
         isSaving = true
         defer { isSaving = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "qqbot"),
-                body: c,
+                body: out,
                 as: EmptyResponse.self)
             dismiss()
         } catch {
@@ -544,7 +607,7 @@ struct AIAgentWecomChannelView: View {
     let agentId: Int
 
     @Environment(\.dismiss) private var dismiss
-    @State private var config: AIChannelWecom?
+    @State private var c = AIChannelWecom()
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
@@ -563,29 +626,29 @@ struct AIAgentWecomChannelView: View {
         Form {
             if isLoading {
                 Section { HStack { Spacer(); ProgressView(); Spacer() } }
-            } else if var c = config {
-                Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0; config = c }))
-                    TextField(L10n.t("Bot ID"), text: Binding(
-                        get: { c.botId ?? "" }, set: { c.botId = $0; config = c }))
-                    .textInputAutocapitalization(.never)
-                    SecureField(L10n.t("密钥"), text: Binding(
-                        get: { c.secret ?? "" }, set: { c.secret = $0; config = c }))
-                    DmPolicyPicker(value: Binding(
-                        get: { c.dmPolicy ?? "" }, set: { c.dmPolicy = $0; config = c }))
-                    if c.dmPolicy == "paircode" {
-                        PairCodeRow(allowFrom: Binding(
-                            get: { c.allowFrom ?? [] }, set: { c.allowFrom = $0; config = c }))
-                    }
-                    GroupPolicyPicker(value: Binding(
-                        get: { c.groupPolicy ?? "" }, set: { c.groupPolicy = $0; config = c }))
-                }
-            } else {
+            } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
                         Task { await load() }
                     }
+                }
+            } else {
+                Section {
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    TextField(L10n.t("Bot ID"), text: Binding(
+                        get: { c.botId ?? "" }, set: { c.botId = $0 }))
+                        .textInputAutocapitalization(.never)
+                    SecureField(L10n.t("密钥"), text: Binding(
+                        get: { c.secret ?? "" }, set: { c.secret = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
+                                         value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
+                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                }
+
+                if c.dmPolicy == "pairing" {
+                    PairingApproveSection(client: client, agentId: agentId, type: "wecom")
                 }
             }
         }
@@ -598,7 +661,7 @@ struct AIAgentWecomChannelView: View {
                 } label: {
                     if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
-                .disabled(config == nil || isSaving)
+                .disabled(isLoading || loadError != nil || isSaving)
             }
         }
         .task { await load() }
@@ -611,7 +674,7 @@ struct AIAgentWecomChannelView: View {
 
     private func load() async {
         do {
-            config = try await client.send(
+            c = try await client.send(
                 path: APIEndpoint.aiAgentChannelGet.path.replacingOccurrences(of: ":type", with: "wecom"),
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelWecom.self)
@@ -624,14 +687,14 @@ struct AIAgentWecomChannelView: View {
     }
 
     private func save() async {
-        guard var c = config else { return }
-        c.agentId = agentId
+        var out = c
+        out.agentId = agentId
         isSaving = true
         defer { isSaving = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "wecom"),
-                body: c,
+                body: out,
                 as: EmptyResponse.self)
             dismiss()
         } catch {
@@ -649,7 +712,9 @@ struct AIAgentDingtalkChannelView: View {
     let agentId: Int
 
     @Environment(\.dismiss) private var dismiss
-    @State private var config: AIChannelDingtalk?
+    @State private var c = AIChannelDingtalk()
+    @State private var bot = AIChannelDingtalkBotItem(accountId: "default", name: "Default", enabled: true, isDefault: true)
+    @State private var extraBots: [AIChannelDingtalkBotItem] = []
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
@@ -668,29 +733,44 @@ struct AIAgentDingtalkChannelView: View {
         Form {
             if isLoading {
                 Section { HStack { Spacer(); ProgressView(); Spacer() } }
-            } else if var c = config {
-                Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0; config = c }))
-                    TextField("Client ID", text: Binding(
-                        get: { c.clientId ?? "" }, set: { c.clientId = $0; config = c }))
-                    .textInputAutocapitalization(.never)
-                    SecureField("Client Secret", text: Binding(
-                        get: { c.clientSecret ?? "" }, set: { c.clientSecret = $0; config = c }))
-                    DmPolicyPicker(value: Binding(
-                        get: { c.dmPolicy ?? "" }, set: { c.dmPolicy = $0; config = c }))
-                    if c.dmPolicy == "paircode" {
-                        PairCodeRow(allowFrom: Binding(
-                            get: { c.allowFrom ?? [] }, set: { c.allowFrom = $0; config = c }))
-                    }
-                    GroupPolicyPicker(value: Binding(
-                        get: { c.groupPolicy ?? "" }, set: { c.groupPolicy = $0; config = c }))
-                }
-            } else {
+            } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
                         Task { await load() }
                     }
+                }
+            } else {
+                Section {
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    TextField("Client ID", text: Binding(
+                        get: { bot.clientId ?? "" }, set: { bot.clientId = $0 }))
+                        .textInputAutocapitalization(.never)
+                    SecureField("Client Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
+                                         value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
+                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                }
+
+                Section {
+                    Toggle(L10n.t("会话独立"), isOn: Binding(
+                        get: { c.separateSessionByConversation ?? false },
+                        set: { c.separateSessionByConversation = $0 }))
+                    Toggle(L10n.t("跨会话共享记忆"), isOn: Binding(
+                        get: { c.sharedMemoryAcrossConversations ?? false },
+                        set: { c.sharedMemoryAcrossConversations = $0 }))
+                    Toggle(L10n.t("异步模式"), isOn: Binding(
+                        get: { c.asyncMode ?? false }, set: { c.asyncMode = $0 }))
+                    TextField(L10n.t("异步回执文案"), text: Binding(
+                        get: { c.ackText ?? "" }, set: { c.ackText = $0 }))
+                } header: {
+                    SectionLabel(title: L10n.t("会话设置"), systemImage: "bubble.left.and.bubble.right")
+                }
+
+                if c.dmPolicy == "pairing" {
+                    PairingApproveSection(client: client, agentId: agentId, type: "dingtalk")
                 }
             }
         }
@@ -703,7 +783,7 @@ struct AIAgentDingtalkChannelView: View {
                 } label: {
                     if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
-                .disabled(config == nil || isSaving)
+                .disabled(isLoading || loadError != nil || isSaving)
             }
         }
         .task { await load() }
@@ -716,10 +796,13 @@ struct AIAgentDingtalkChannelView: View {
 
     private func load() async {
         do {
-            config = try await client.send(
+            let resp: AIChannelDingtalk = try await client.send(
                 path: APIEndpoint.aiAgentChannelGet.path.replacingOccurrences(of: ":type", with: "dingtalk"),
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelDingtalk.self)
+            c = resp
+            bot = resp.bots?.first ?? bot
+            extraBots = Array((resp.bots ?? []).dropFirst())
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -729,14 +812,17 @@ struct AIAgentDingtalkChannelView: View {
     }
 
     private func save() async {
-        guard var c = config else { return }
-        c.agentId = agentId
+        var out = c
+        out.agentId = agentId
+        var bot = bot
+        bot.enabled = c.enabled ?? true
+        out.bots = [bot] + extraBots
         isSaving = true
         defer { isSaving = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "dingtalk"),
-                body: c,
+                body: out,
                 as: EmptyResponse.self)
             dismiss()
         } catch {
@@ -754,7 +840,10 @@ struct AIAgentFeishuChannelView: View {
     let agentId: Int
 
     @Environment(\.dismiss) private var dismiss
-    @State private var config: AIChannelFeishu?
+    @State private var c = AIChannelFeishu()
+    /// 飞书的私聊策略与凭证在 bots[0]（顶层无 dmPolicy，抓包确认）
+    @State private var bot = AIChannelFeishuBotItem(accountId: "default", name: "Default", enabled: true, isDefault: true)
+    @State private var extraBots: [AIChannelFeishuBotItem] = []
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
@@ -773,28 +862,41 @@ struct AIAgentFeishuChannelView: View {
         Form {
             if isLoading {
                 Section { HStack { Spacer(); ProgressView(); Spacer() } }
-            } else if var c = config {
-                Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0; config = c }))
-                    TextField("App ID", text: Binding(
-                        get: { c.appId ?? "" }, set: { c.appId = $0; config = c }))
-                    .textInputAutocapitalization(.never)
-                    SecureField("App Secret", text: Binding(
-                        get: { c.appSecret ?? "" }, set: { c.appSecret = $0; config = c }))
-                    DmPolicyPicker(value: Binding(
-                        get: { c.dmPolicy ?? AIChannelPolicy.dmPolicies[0].value },
-                        set: { c.dmPolicy = $0; config = c }))
-                    GroupPolicyPicker(value: Binding(
-                        get: { c.groupPolicy ?? "" }, set: { c.groupPolicy = $0; config = c }))
-                } footer: {
-                    Text(L10n.t("飞书私聊策略支持配队码与开放"))
-                }
-            } else {
+            } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
                         Task { await load() }
                     }
+                }
+            } else {
+                Section {
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    TextField("App ID", text: Binding(
+                        get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
+                        .textInputAutocapitalization(.never)
+                    SecureField("App Secret", text: Binding(
+                        get: { bot.appSecret ?? "" }, set: { bot.appSecret = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
+                                         value: Binding(get: { bot.dmPolicy ?? "open" }, set: { bot.dmPolicy = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
+                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                }
+
+                Section {
+                    Toggle(L10n.t("话题式会话"), isOn: Binding(
+                        get: { c.threadSession ?? false }, set: { c.threadSession = $0 }))
+                    Toggle(L10n.t("流式输出"), isOn: Binding(
+                        get: { c.streaming ?? false }, set: { c.streaming = $0 }))
+                    Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
+                        get: { (c.requireMention ?? "") == "true" },
+                        set: { c.requireMention = $0 ? "true" : "false" }))
+                } header: {
+                    SectionLabel(title: L10n.t("会话设置"), systemImage: "bubble.left.and.bubble.right")
+                }
+
+                if (bot.dmPolicy ?? "") == "pairing" {
+                    PairingApproveSection(client: client, agentId: agentId, type: "feishu")
                 }
             }
         }
@@ -807,7 +909,7 @@ struct AIAgentFeishuChannelView: View {
                 } label: {
                     if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
-                .disabled(config == nil || isSaving)
+                .disabled(isLoading || loadError != nil || isSaving)
             }
         }
         .task { await load() }
@@ -820,10 +922,13 @@ struct AIAgentFeishuChannelView: View {
 
     private func load() async {
         do {
-            config = try await client.send(
+            let resp: AIChannelFeishu = try await client.send(
                 path: APIEndpoint.aiAgentChannelGet.path.replacingOccurrences(of: ":type", with: "feishu"),
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelFeishu.self)
+            c = resp
+            bot = resp.bots?.first ?? bot
+            extraBots = Array((resp.bots ?? []).dropFirst())
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -833,14 +938,17 @@ struct AIAgentFeishuChannelView: View {
     }
 
     private func save() async {
-        guard var c = config else { return }
-        c.agentId = agentId
+        var out = c
+        out.agentId = agentId
+        var bot = bot
+        bot.enabled = c.enabled ?? true
+        out.bots = [bot] + extraBots
         isSaving = true
         defer { isSaving = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "feishu"),
-                body: c,
+                body: out,
                 as: EmptyResponse.self)
             dismiss()
         } catch {
@@ -851,19 +959,22 @@ struct AIAgentFeishuChannelView: View {
     }
 }
 
-// MARK: - Telegram
+// MARK: - Telegram（完整策略 + 多 Bot 管理）
 
 struct AIAgentTelegramChannelView: View {
     let server: ServerConfig
     let agentId: Int
 
     @Environment(\.dismiss) private var dismiss
-    @State private var config: AIChannelTelegram?
+    @State private var c = AIChannelTelegram()
+    @State private var bots: [AIChannelTelegramBotItem] = []
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
     @State private var errorMessage: String?
     @State private var showError = false
+    @State private var editingBot: AIChannelTelegramBotItem?
+    @State private var showAddBot = false
 
     private let client: APIClient
 
@@ -877,28 +988,48 @@ struct AIAgentTelegramChannelView: View {
         Form {
             if isLoading {
                 Section { HStack { Spacer(); ProgressView(); Spacer() } }
-            } else if var c = config {
-                Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0; config = c }))
-                    SecureField(L10n.t("Bot Token"), text: Binding(
-                        get: { c.botToken ?? "" }, set: { c.botToken = $0; config = c }))
-                    .textInputAutocapitalization(.never)
-                    DmPolicyPicker(value: Binding(
-                        get: { c.dmPolicy ?? AIChannelPolicy.dmPolicies[0].value },
-                        set: { c.dmPolicy = $0; config = c }))
-                    if c.dmPolicy == "paircode" {
-                        PairCodeRow(allowFrom: Binding(
-                            get: { c.allowFrom ?? [] }, set: { c.allowFrom = $0; config = c }))
-                    }
-                } footer: {
-                    Text(L10n.t("私聊策略支持配队码与开放"))
-                }
-            } else {
+            } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
                         Task { await load() }
                     }
+                }
+            } else {
+                Section {
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
+                        get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesFull,
+                                         value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
+                    if c.dmPolicy == "allowlist" {
+                        WhitelistEditor(title: L10n.t("私聊白名单"), list: Binding(
+                            get: { c.allowFrom ?? [] }, set: { c.allowFrom = $0 }))
+                    }
+                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
+                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                    if c.groupPolicy == "allowlist" {
+                        WhitelistEditor(title: L10n.t("群组白名单"), list: Binding(
+                            get: { c.groupAllowFrom ?? [] }, set: { c.groupAllowFrom = $0 }))
+                    }
+                    TextField(L10n.t("代理服务器"), text: Binding(
+                        get: { c.proxy ?? "" }, set: { c.proxy = $0 }))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                    Picker(L10n.t("流式传输"), selection: Binding(
+                        get: { c.streaming ?? "partial" }, set: { c.streaming = $0 })) {
+                        ForEach(AIChannelStreaming.options, id: \.value) { o in
+                            Text(o.label).tag(o.value)
+                        }
+                    }
+                }
+
+                botListSection
+
+                if c.dmPolicy == "pairing" {
+                    PairingApproveSection(client: client, agentId: agentId, type: "telegram",
+                                          accountId: c.defaultAccount)
                 }
             }
         }
@@ -911,7 +1042,7 @@ struct AIAgentTelegramChannelView: View {
                 } label: {
                     if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
-                .disabled(config == nil || isSaving)
+                .disabled(isLoading || loadError != nil || isSaving)
             }
         }
         .task { await load() }
@@ -920,14 +1051,134 @@ struct AIAgentTelegramChannelView: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        .sheet(item: $editingBot) { bot in
+            AITelegramBotFormSheet(bot: bot, isEdit: true) { updated in
+                if let idx = bots.firstIndex(where: { $0.id == updated.id }) {
+                    bots[idx] = updated
+                }
+            }
+        }
+        .sheet(isPresented: $showAddBot) {
+            AITelegramBotFormSheet(
+                bot: AIChannelTelegramBotItem(enabled: true, isDefault: false, dmPolicy: "open", groupPolicy: "open", streaming: c.streaming ?? "partial"),
+                isEdit: false) { newBot in
+                bots.append(newBot)
+            }
+        }
+    }
+
+    private var botListSection: some View {
+        Section {
+            ForEach(bots) { bot in
+                Button {
+                    editingBot = bot
+                } label: {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                Text(bot.name ?? bot.accountId ?? "-")
+                                    .font(.body.bold())
+                                    .foregroundStyle(.primary)
+                                if bot.isDefault == true {
+                                    StatusBadge(text: L10n.t("默认"), color: .blue)
+                                }
+                                if bot.enabled != true {
+                                    StatusBadge(text: L10n.t("未启用"), color: .secondary)
+                                }
+                            }
+                            Text(bot.accountId ?? "-")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 3)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        Task { await removeBot(bot) }
+                    } label: {
+                        Label(L10n.t("删除"), systemImage: "trash")
+                    }
+                    if bot.isDefault != true {
+                        Button {
+                            Task { await setDefaultBot(bot) }
+                        } label: {
+                            Label(L10n.t("设为默认"), systemImage: "star")
+                        }
+                        .tint(.blue)
+                    }
+                }
+            }
+
+            Button {
+                showAddBot = true
+            } label: {
+                Label(L10n.t("新增 Bot"), systemImage: "plus.circle")
+            }
+        } header: {
+            SectionLabel(title: L10n.f("Bot 列表 · 共 %d 个", bots.count), systemImage: "person.2")
+        } footer: {
+            Text(L10n.t("点击 Bot 编辑凭证与策略；删除与设为默认将立即保存"))
+        }
+    }
+
+    /// 变更 bots 后整体保存（删除/设为默认共用，抓包均为全量 update）
+    private func saveBots(_ updated: [AIChannelTelegramBotItem], defaultAccount: String? = nil) async {
+        bots = updated
+        var out = c
+        out.agentId = agentId
+        out.bots = updated
+        if let defaultAccount {
+            out.defaultAccount = defaultAccount
+        }
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "telegram"),
+                body: out,
+                as: EmptyResponse.self)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    private func removeBot(_ bot: AIChannelTelegramBotItem) async {
+        var remaining = bots.filter { $0.id != bot.id }
+        // 删除默认 Bot 时把默认让给第一个
+        if bot.isDefault == true, !remaining.isEmpty {
+            remaining[0].isDefault = true
+            await saveBots(remaining, defaultAccount: remaining[0].accountId)
+        } else {
+            await saveBots(remaining)
+        }
+    }
+
+    private func setDefaultBot(_ bot: AIChannelTelegramBotItem) async {
+        let updated = bots.map { item in
+            var copy = item
+            copy.isDefault = (item.id == bot.id)
+            return copy
+        }
+        await saveBots(updated, defaultAccount: bot.accountId)
     }
 
     private func load() async {
         do {
-            config = try await client.send(
+            let resp: AIChannelTelegram = try await client.send(
                 path: APIEndpoint.aiAgentChannelGet.path.replacingOccurrences(of: ":type", with: "telegram"),
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelTelegram.self)
+            c = resp
+            bots = resp.bots ?? []
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -937,14 +1188,15 @@ struct AIAgentTelegramChannelView: View {
     }
 
     private func save() async {
-        guard var c = config else { return }
-        c.agentId = agentId
+        var out = c
+        out.agentId = agentId
+        out.bots = bots
         isSaving = true
         defer { isSaving = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "telegram"),
-                body: c,
+                body: out,
                 as: EmptyResponse.self)
             dismiss()
         } catch {
@@ -955,6 +1207,73 @@ struct AIAgentTelegramChannelView: View {
     }
 }
 
+/// Telegram Bot 新建/编辑表单（名称/账户ID/状态/Token/策略/流式）
+private struct AITelegramBotFormSheet: View {
+    @State var bot: AIChannelTelegramBotItem
+    let isEdit: Bool
+    let onConfirm: (AIChannelTelegramBotItem) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var canSubmit: Bool {
+        !(bot.name ?? "").isEmpty && !(bot.accountId ?? "").isEmpty && !(bot.botToken ?? "").isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(L10n.t("名称"), text: Binding(
+                        get: { bot.name ?? "" }, set: { bot.name = $0 }))
+                        .textInputAutocapitalization(.never)
+                    TextField(L10n.t("账户 ID"), text: Binding(
+                        get: { bot.accountId ?? "" }, set: { bot.accountId = $0 }))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { bot.enabled ?? true }, set: { bot.enabled = $0 }))
+                    SecureField(L10n.t("Bot Token"), text: Binding(
+                        get: { bot.botToken ?? "" }, set: { bot.botToken = $0 }))
+                        .textInputAutocapitalization(.never)
+                } header: {
+                    SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
+                }
+
+                Section {
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesFull,
+                                         value: Binding(get: { bot.dmPolicy ?? "open" }, set: { bot.dmPolicy = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
+                                         value: Binding(get: { bot.groupPolicy ?? "open" }, set: { bot.groupPolicy = $0 }))
+                    Picker(L10n.t("流式传输"), selection: Binding(
+                        get: { bot.streaming ?? "partial" }, set: { bot.streaming = $0 })) {
+                        ForEach(AIChannelStreaming.options, id: \.value) { o in
+                            Text(o.label).tag(o.value)
+                        }
+                    }
+                } header: {
+                    SectionLabel(title: L10n.t("策略"), systemImage: "slider.horizontal.3")
+                }
+            }
+            .navigationTitle(isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("确定")) {
+                        onConfirm(bot)
+                        dismiss()
+                    }
+                    .disabled(!canSubmit)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.large])
+    }
+}
+
 // MARK: - Discord
 
 struct AIAgentDiscordChannelView: View {
@@ -962,7 +1281,9 @@ struct AIAgentDiscordChannelView: View {
     let agentId: Int
 
     @Environment(\.dismiss) private var dismiss
-    @State private var config: AIChannelDiscord?
+    @State private var c = AIChannelDiscord()
+    @State private var bot = AIChannelDiscordBotItem(accountId: "default", name: "Default", enabled: true, isDefault: true)
+    @State private var extraBots: [AIChannelDiscordBotItem] = []
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
@@ -981,28 +1302,30 @@ struct AIAgentDiscordChannelView: View {
         Form {
             if isLoading {
                 Section { HStack { Spacer(); ProgressView(); Spacer() } }
-            } else if var c = config {
-                Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0; config = c }))
-                    SecureField("Token", text: Binding(
-                        get: { c.token ?? "" }, set: { c.token = $0; config = c }))
-                    .textInputAutocapitalization(.never)
-                    DmPolicyPicker(value: Binding(
-                        get: { c.dmPolicy ?? AIChannelPolicy.dmPolicies[0].value },
-                        set: { c.dmPolicy = $0; config = c }))
-                    if c.dmPolicy == "paircode" {
-                        PairCodeRow(allowFrom: Binding(
-                            get: { c.allowFrom ?? [] }, set: { c.allowFrom = $0; config = c }))
-                    }
-                } footer: {
-                    Text(L10n.t("私聊策略支持配队码与开放"))
-                }
-            } else {
+            } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
                         Task { await load() }
                     }
+                }
+            } else {
+                Section {
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    SecureField("Token", text: Binding(
+                        get: { bot.token ?? "" }, set: { bot.token = $0 }))
+                        .textInputAutocapitalization(.never)
+                    Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
+                        get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"),
+                                         options: AIChannelPolicy.dmPoliciesFull.filter { $0.value != "allowlist" },
+                                         value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
+                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                }
+
+                if c.dmPolicy == "pairing" {
+                    PairingApproveSection(client: client, agentId: agentId, type: "discord")
                 }
             }
         }
@@ -1015,7 +1338,7 @@ struct AIAgentDiscordChannelView: View {
                 } label: {
                     if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
-                .disabled(config == nil || isSaving)
+                .disabled(isLoading || loadError != nil || isSaving)
             }
         }
         .task { await load() }
@@ -1028,10 +1351,13 @@ struct AIAgentDiscordChannelView: View {
 
     private func load() async {
         do {
-            config = try await client.send(
+            let resp: AIChannelDiscord = try await client.send(
                 path: APIEndpoint.aiAgentChannelGet.path.replacingOccurrences(of: ":type", with: "discord"),
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelDiscord.self)
+            c = resp
+            bot = resp.bots?.first ?? bot
+            extraBots = Array((resp.bots ?? []).dropFirst())
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -1041,14 +1367,17 @@ struct AIAgentDiscordChannelView: View {
     }
 
     private func save() async {
-        guard var c = config else { return }
-        c.agentId = agentId
+        var out = c
+        out.agentId = agentId
+        var bot = bot
+        bot.enabled = c.enabled ?? true
+        out.bots = [bot] + extraBots
         isSaving = true
         defer { isSaving = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "discord"),
-                body: c,
+                body: out,
                 as: EmptyResponse.self)
             dismiss()
         } catch {

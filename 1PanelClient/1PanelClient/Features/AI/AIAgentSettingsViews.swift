@@ -23,6 +23,9 @@ struct AIAgentModelConfigView: View {
     @State private var accountsLoadFailed = false
     @State private var selectedAccountId: Int?
     @State private var selectedModel = ""
+    /// 备用模型（主模型不可用时按顺序回退）
+    @State private var fallbacks: [String] = []
+    @State private var fallbackCandidate = ""
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
@@ -39,6 +42,12 @@ struct AIAgentModelConfigView: View {
 
     private var selectedAccount: AIAccount? {
         accounts.first { $0.id == selectedAccountId }
+    }
+
+    /// 备用模型候选：当前账号池中排除主模型与已选备用
+    private var fallbackCandidates: [String] {
+        let pool = selectedAccount?.models?.map(\.id) ?? []
+        return pool.filter { $0 != selectedModel && !fallbacks.contains($0) }
     }
 
     private var canSubmit: Bool {
@@ -82,6 +91,52 @@ struct AIAgentModelConfigView: View {
                 } footer: {
                     Text(L10n.t("更换账号后主模型将切换到该账号的模型池"))
                 }
+
+                // 备用模型：主模型不可用时按顺序回退（抓包确认 fallbacks 数组）
+                Section {
+                    if fallbacks.isEmpty {
+                        Text(L10n.t("暂无备用模型"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(Array(fallbacks.enumerated()), id: \.offset) { _, model in
+                            HStack {
+                                Text(model)
+                                    .font(.system(.subheadline, design: .monospaced))
+                                Spacer()
+                                Button {
+                                    fallbacks.removeAll { $0 == model }
+                                } label: {
+                                    Image(systemName: "minus.circle")
+                                        .foregroundStyle(.red)
+                                }
+                                .buttonStyle(.borderless)
+                                .accessibilityLabel(L10n.t("删除"))
+                            }
+                        }
+                    }
+
+                    if !fallbackCandidates.isEmpty {
+                        Picker(L10n.t("备用模型"), selection: $fallbackCandidate) {
+                            Text(L10n.t("请选择")).tag("")
+                            ForEach(fallbackCandidates, id: \.self) { m in
+                                Text(m).tag(m)
+                            }
+                        }
+                        Button {
+                            guard !fallbackCandidate.isEmpty else { return }
+                            fallbacks.append(fallbackCandidate)
+                            fallbackCandidate = ""
+                        } label: {
+                            Label(L10n.t("新增备用"), systemImage: "plus.circle")
+                        }
+                        .disabled(fallbackCandidate.isEmpty)
+                    }
+                } header: {
+                    SectionLabel(title: L10n.t("备用模型"), systemImage: "arrow.triangle.branch")
+                } footer: {
+                    Text(L10n.t("主模型不可用时按列表顺序使用备用模型"))
+                }
             } else {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
@@ -104,7 +159,8 @@ struct AIAgentModelConfigView: View {
         }
         .task { await load() }
         .onChange(of: selectedAccountId) { _, newValue in
-            // 切换账号时主模型回落到该账号池中的当前值或首个
+            // 切换账号时主模型回落到该账号池中的当前值或首个；
+            // 备用模型属于原账号的模型池，清空待重选
             if let model = config?.model,
                let account = accounts.first(where: { $0.id == newValue }),
                account.models?.contains(where: { $0.id == model }) == true {
@@ -112,6 +168,8 @@ struct AIAgentModelConfigView: View {
             } else {
                 selectedModel = selectedAccount?.models?.first?.id ?? ""
             }
+            fallbacks = []
+            fallbackCandidate = ""
         }
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
@@ -138,6 +196,7 @@ struct AIAgentModelConfigView: View {
             } else {
                 selectedModel = selectedAccount?.models?.first?.id ?? ""
             }
+            fallbacks = config?.fallbacks ?? []
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -179,7 +238,7 @@ struct AIAgentModelConfigView: View {
                     agentId: agentId,
                     accountId: accountId,
                     model: selectedModel,
-                    fallbacks: config?.fallbacks ?? []),
+                    fallbacks: fallbacks),
                 as: EmptyResponse.self)
             dismiss()
         } catch {
@@ -195,6 +254,8 @@ struct AIAgentModelConfigView: View {
 struct AIAgentSettingsView: View {
     let server: ServerConfig
     let agentId: Int
+    /// copaw(QwenPaw) 仅有控制台账号设置（抓包确认），隐藏时区与配置文件
+    var agentType: String? = nil
 
     @State private var config: AIAgentOtherConfig?
     @State private var isLoading = true
@@ -228,11 +289,14 @@ struct AIAgentSettingsView: View {
         "Australia/Sydney", "UTC"
     ]
 
-    init(server: ServerConfig, agentId: Int) {
+    init(server: ServerConfig, agentId: Int, agentType: String? = nil) {
         self.server = server
         self.agentId = agentId
+        self.agentType = agentType
         self.client = APIClient.shared(for: server)
     }
+
+    private var isCopaw: Bool { agentType == "copaw" }
 
     private var canSubmit: Bool {
         !username.isEmpty && !password.isEmpty && !isSaving
@@ -243,14 +307,16 @@ struct AIAgentSettingsView: View {
             if isLoading {
                 Section { HStack { Spacer(); ProgressView(); Spacer() } }
             } else if config != nil {
-                Section {
-                    Picker(L10n.t("时区"), selection: $timezone) {
-                        ForEach(timezones, id: \.self) { tz in
-                            Text(tz).tag(tz)
+                if !isCopaw {
+                    Section {
+                        Picker(L10n.t("时区"), selection: $timezone) {
+                            ForEach(timezones, id: \.self) { tz in
+                                Text(tz).tag(tz)
+                            }
                         }
+                    } header: {
+                        SectionLabel(title: L10n.t("其他"), systemImage: "gearshape")
                     }
-                } header: {
-                    SectionLabel(title: L10n.t("其他"), systemImage: "gearshape")
                 }
 
                 Section {
@@ -290,11 +356,13 @@ struct AIAgentSettingsView: View {
                     Text(L10n.t("用于登录智能体 Web 控制台"))
                 }
 
-                Section {
-                    NavigationLink {
-                        configFileView
-                    } label: {
-                        Label(L10n.t("配置文件"), systemImage: "doc.text")
+                if !isCopaw {
+                    Section {
+                        NavigationLink {
+                            configFileView
+                        } label: {
+                            Label(L10n.t("配置文件"), systemImage: "doc.text")
+                        }
                     }
                 }
             } else {

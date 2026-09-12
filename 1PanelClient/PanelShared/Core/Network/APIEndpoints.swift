@@ -482,9 +482,10 @@ enum APIEndpoint {
     case aiAgentOtherUpdate     // POST 保存其他设置
     case aiAgentConfigFileGet   // POST 读取配置文件 {agentId}
     case aiAgentChannelGet      // POST 频道配置读取（:type = weixin/qqbot/wecom/dingtalk/feishu/telegram/discord）
-    case aiAgentChannelUpdate   // POST 频道配置保存 [推测：抓包缺失]
+    case aiAgentChannelUpdate   // POST 频道配置保存（logs/增加和修正.md 确认，凭证在 bots 数组内）
     case aiAgentWeixinLogin     // POST 微信扫码对接 {agentId}（任务日志中输出二维码 URL）
     case aiAgentChannelDelete   // POST 删除频道对接 {agentId, type}
+    case aiAgentChannelPairingApprove // POST 批准配对 {agentId, type, pairingCode[, accountId]}
     // MCP
     case aiMcpSearch            // POST 分页查询 MCP Server {page, pageSize, name}
     case aiMcpServerCreate      // POST 创建 MCP Server（带 taskID）
@@ -926,6 +927,7 @@ enum APIEndpoint {
         case .aiAgentChannelUpdate:  return "/api/v2/ai/agents/channel/:type/update"
         case .aiAgentWeixinLogin:    return "/api/v2/ai/agents/channel/weixin/login"
         case .aiAgentChannelDelete:  return "/api/v2/ai/agents/channel/delete"
+        case .aiAgentChannelPairingApprove: return "/api/v2/ai/agents/channel/pairing/approve"
         case .aiMcpSearch:           return "/api/v2/ai/mcp/search"
         case .aiMcpServerCreate:     return "/api/v2/ai/mcp/server"
         case .aiMcpServerUpdate:     return "/api/v2/ai/mcp/server/update"

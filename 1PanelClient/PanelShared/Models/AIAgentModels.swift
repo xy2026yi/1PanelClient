@@ -61,25 +61,28 @@ nonisolated struct AIAgentType: Identifiable, Hashable {
     let defaultName: String
     /// OpenClaw 使用 token / 访问地址；其余使用用户名 + 密码
     let usesToken: Bool
+    /// QwenPaw(copaw) 创建时不绑定模型账号（请求体无 model/accountId 字段）
+    let needsModel: Bool
 
     var id: String { key }
 
     static let all: [AIAgentType] = [
-        AIAgentType(key: "openclaw", displayName: "OpenClaw", defaultName: "OpenClaw", usesToken: true),
-        AIAgentType(key: "hermes-agent", displayName: "Hermes Agent", defaultName: "Hermes-Agent", usesToken: false),
-        AIAgentType(key: "copaw", displayName: "QwenPaw", defaultName: "QwenPaw", usesToken: false),
+        AIAgentType(key: "openclaw", displayName: "OpenClaw", defaultName: "OpenClaw", usesToken: true, needsModel: true),
+        AIAgentType(key: "hermes-agent", displayName: "Hermes Agent", defaultName: "Hermes-Agent", usesToken: false, needsModel: true),
+        AIAgentType(key: "copaw", displayName: "QwenPaw", defaultName: "QwenPaw", usesToken: false, needsModel: false),
     ]
 }
 
-/// POST /api/v2/ai/agents（创建；OpenClaw 带 token/allowedOrigins，其余带用户名/密码）
+/// POST /api/v2/ai/agents（创建；OpenClaw 带 token/allowedOrigins，QwenPaw 无模型绑定）
 nonisolated struct AIAgentCreateRequest: Encodable {
     var name: String
     var remark: String
     var appVersion: String
     var webUIPort: Int
     var agentType: String
-    var model: String
-    var accountId: Int
+    /// QwenPaw(copaw) 不携带
+    var model: String? = nil
+    var accountId: Int? = nil
     var taskID: String
     var advanced: Bool
     var containerName: String
@@ -244,7 +247,7 @@ nonisolated struct AIAgentConfigFile: Decodable {
     let content: String?
 }
 
-// MARK: - 消息频道（通用读取请求）
+// MARK: - 消息频道（logs/增加和修正.md 2026-09-12 抓包确认）
 
 nonisolated struct AIAgentChannelRequest: Encodable {
     let agentId: Int
@@ -256,18 +259,80 @@ nonisolated struct AIAgentChannelDeleteRequest: Encodable {
     let type: String
 }
 
-// MARK: - 频道配置（7 种，字段按抓包全设可选）
-// 保存请求为 {agentId} + 配置字段平铺：各结构体带 var agentId（GET 响应不含、
-// 保存前由视图填入），编码时自然并入同一层 JSON；
-// 凭证类字段（AppID/Secret/Token 等）抓包 get 响应未回显，为表单提交补充
-
-/// 微信：{enabled}
-nonisolated struct AIChannelWeixin: Codable, Hashable {
-    var agentId: Int? = nil
-    var enabled: Bool? = nil
+/// POST /api/v2/ai/agents/channel/pairing/approve
+/// {agentId, type, pairingCode[, accountId]}（多 Bot 频道带 accountId）
+nonisolated struct AIAgentChannelPairingApproveRequest: Encodable {
+    let agentId: Int
+    let type: String
+    let pairingCode: String
+    var accountId: String? = nil
 }
 
-/// QQ：{enabled, dmPolicy, allowFrom, groupPolicy, groupAllowFrom, bots, installed} + 表单凭证 appId/appSecret
+// MARK: - 频道 Bot 条目（凭证在 bots 数组内，各频道字段不同）
+
+/// QQ Bot：{accountId, name, enabled, isDefault, appId, clientSecret, allowFrom, systemPrompt}
+nonisolated struct AIChannelQQBotItem: Codable, Hashable, Identifiable {
+    var accountId: String? = nil
+    var name: String? = nil
+    var enabled: Bool? = nil
+    var isDefault: Bool? = nil
+    var appId: String? = nil
+    var clientSecret: String? = nil
+    var allowFrom: [String]? = nil
+    var systemPrompt: String? = nil
+    var id: String { accountId ?? name ?? UUID().uuidString }
+}
+
+/// 飞书 Bot：{accountId, name, enabled, isDefault, appId, appSecret, dmPolicy, allowFrom}
+nonisolated struct AIChannelFeishuBotItem: Codable, Hashable, Identifiable {
+    var accountId: String? = nil
+    var name: String? = nil
+    var enabled: Bool? = nil
+    var isDefault: Bool? = nil
+    var appId: String? = nil
+    var appSecret: String? = nil
+    var dmPolicy: String? = nil
+    var allowFrom: [String]? = nil
+    var id: String { accountId ?? name ?? UUID().uuidString }
+}
+
+/// Telegram Bot：{accountId, name, enabled, isDefault, botToken, dmPolicy, groupPolicy, streaming}
+nonisolated struct AIChannelTelegramBotItem: Codable, Hashable, Identifiable {
+    var accountId: String? = nil
+    var name: String? = nil
+    var enabled: Bool? = nil
+    var isDefault: Bool? = nil
+    var botToken: String? = nil
+    var dmPolicy: String? = nil
+    var groupPolicy: String? = nil
+    var streaming: String? = nil
+    var id: String { accountId ?? name ?? UUID().uuidString }
+}
+
+/// Discord Bot：{accountId, name, enabled, isDefault, token}
+nonisolated struct AIChannelDiscordBotItem: Codable, Hashable, Identifiable {
+    var accountId: String? = nil
+    var name: String? = nil
+    var enabled: Bool? = nil
+    var isDefault: Bool? = nil
+    var token: String? = nil
+    var id: String { accountId ?? name ?? UUID().uuidString }
+}
+
+/// 钉钉 Bot：{accountId, name, enabled, isDefault, clientId, clientSecret}
+nonisolated struct AIChannelDingtalkBotItem: Codable, Hashable, Identifiable {
+    var accountId: String? = nil
+    var name: String? = nil
+    var enabled: Bool? = nil
+    var isDefault: Bool? = nil
+    var clientId: String? = nil
+    var clientSecret: String? = nil
+    var id: String { accountId ?? name ?? UUID().uuidString }
+}
+
+// MARK: - 频道配置（get 响应 + update 请求体同构：{agentId} + 字段平铺）
+
+/// QQ：抓包 update 请求体（凭证在 bots[0]，非顶层）
 nonisolated struct AIChannelQQBot: Codable, Hashable {
     var agentId: Int? = nil
     var enabled: Bool? = nil
@@ -275,13 +340,11 @@ nonisolated struct AIChannelQQBot: Codable, Hashable {
     var allowFrom: [String]? = nil
     var groupPolicy: String? = nil
     var groupAllowFrom: [String]? = nil
-    var appId: String? = nil
-    var appSecret: String? = nil
-    var bots: [String]? = nil
+    var bots: [AIChannelQQBotItem]? = nil
     var installed: Bool? = nil
 }
 
-/// 企业微信：{enabled, dmPolicy, ..., botId, secret, installed}
+/// 企业微信：{enabled, dmPolicy, ..., botId, secret}
 nonisolated struct AIChannelWecom: Codable, Hashable {
     var agentId: Int? = nil
     var enabled: Bool? = nil
@@ -294,7 +357,7 @@ nonisolated struct AIChannelWecom: Codable, Hashable {
     var installed: Bool? = nil
 }
 
-/// 钉钉：{enabled, dmPolicy, ..., bots, installed} + 表单凭证 clientId/clientSecret
+/// 钉钉：{enabled, dmPolicy, 会话/异步设置, bots[{clientId, clientSecret}]}
 nonisolated struct AIChannelDingtalk: Codable, Hashable {
     var agentId: Int? = nil
     var enabled: Bool? = nil
@@ -302,84 +365,103 @@ nonisolated struct AIChannelDingtalk: Codable, Hashable {
     var allowFrom: [String]? = nil
     var groupPolicy: String? = nil
     var groupAllowFrom: [String]? = nil
-    var clientId: String? = nil
-    var clientSecret: String? = nil
     var separateSessionByConversation: Bool? = nil
     var groupSessionScope: String? = nil
     var sharedMemoryAcrossConversations: Bool? = nil
     var asyncMode: Bool? = nil
     var ackText: String? = nil
-    var bots: [String]? = nil
+    var bots: [AIChannelDingtalkBotItem]? = nil
     var installed: Bool? = nil
 }
 
-/// 飞书：{enabled, threadSession, ..., bots, installed} + 表单凭证 appId/appSecret
+/// 飞书：{enabled, threadSession, replyMode, streaming, requireMention,
+/// groupPolicy, ..., bots[{appId, appSecret, dmPolicy}]}
 nonisolated struct AIChannelFeishu: Codable, Hashable {
     var agentId: Int? = nil
     var enabled: Bool? = nil
-    var appId: String? = nil
-    var appSecret: String? = nil
     var threadSession: Bool? = nil
     var replyMode: String? = nil
     var streaming: Bool? = nil
+    /// 抓包为字符串 "true" / ""
     var requireMention: String? = nil
     var groupPolicy: String? = nil
     var groupAllowFrom: [String]? = nil
     var dmPolicy: String? = nil
     var domain: String? = nil
     var connectionMode: String? = nil
-    var bots: [String]? = nil
+    var bots: [AIChannelFeishuBotItem]? = nil
     var installed: Bool? = nil
 }
 
-/// Telegram：{enabled, dmPolicy, ..., bots} + 表单凭证 botToken
+/// Telegram：{enabled, dmPolicy, requireMention, groupPolicy, proxy,
+/// streaming, defaultAccount, bots[{botToken, 策略, streaming}]}
 nonisolated struct AIChannelTelegram: Codable, Hashable {
     var agentId: Int? = nil
     var enabled: Bool? = nil
-    var botToken: String? = nil
     var dmPolicy: String? = nil
     var allowFrom: [String]? = nil
     var requireMention: Bool? = nil
     var groupPolicy: String? = nil
     var groupAllowFrom: [String]? = nil
     var proxy: String? = nil
+    /// off / partial / block / progress
     var streaming: String? = nil
     var defaultAccount: String? = nil
-    var bots: [String]? = nil
+    var bots: [AIChannelTelegramBotItem]? = nil
 }
 
-/// Discord：与 Telegram 同构 + 表单凭证 token
+/// Discord：与 Telegram 同构，bots 凭证为 token
 nonisolated struct AIChannelDiscord: Codable, Hashable {
     var agentId: Int? = nil
     var enabled: Bool? = nil
-    var token: String? = nil
     var dmPolicy: String? = nil
     var allowFrom: [String]? = nil
     var requireMention: Bool? = nil
     var groupPolicy: String? = nil
     var groupAllowFrom: [String]? = nil
     var proxy: String? = nil
-    var streaming: String? = nil
     var defaultAccount: String? = nil
-    var bots: [String]? = nil
+    var bots: [AIChannelDiscordBotItem]? = nil
 }
 
-// MARK: - 频道策略取值 [推测：抓包 get 响应均为空串，按语义推定，联调时修正]
+// MARK: - 频道策略与流式取值（抓包确认：pairing / open / allowlist / disabled）
 
 enum AIChannelPolicy {
-    /// 私聊策略：配队码 / 开放 / 禁用（计算属性：L10n 语言切换后不固化旧文案）
-    static var dmPolicies: [(value: String, label: String)] {
+    /// 私聊策略全集：配队码 / 开放 / 白名单 / 禁用
+    static var dmPoliciesFull: [(value: String, label: String)] {
         [
-            ("paircode", L10n.t("配队码")),
+            ("pairing", L10n.t("配队码")),
             ("open", L10n.t("开放")),
+            ("allowlist", L10n.t("白名单")),
             ("disabled", L10n.t("禁用")),
         ]
     }
-    /// 群组策略：开放 / 禁用
-    static var groupPolicies: [(value: String, label: String)] {
+    /// 基础私聊策略（QQ / 飞书 / 钉钉 / 企微）：配队码 / 开放 / 禁用
+    static var dmPoliciesBasic: [(value: String, label: String)] {
+        dmPoliciesFull.filter { $0.value != "allowlist" }
+    }
+    /// 群组策略全集：开放 / 白名单 / 禁用
+    static var groupPoliciesFull: [(value: String, label: String)] {
         [
             ("open", L10n.t("开放")),
+            ("allowlist", L10n.t("白名单")),
             ("disabled", L10n.t("禁用")),
+        ]
+    }
+    /// 基础群组策略：开放 / 禁用
+    static var groupPoliciesBasic: [(value: String, label: String)] {
+        groupPoliciesFull.filter { $0.value != "allowlist" }
+    }
+}
+
+/// Telegram 流式传输取值（抓包：off / partial / block / progress）
+enum AIChannelStreaming {
+    static var options: [(value: String, label: String)] {
+        [
+            ("off", L10n.t("关闭")),
+            ("partial", L10n.t("部分输出")),
+            ("block", L10n.t("阻塞输出")),
+            ("progress", L10n.t("进度输出")),
         ]
     }
 }

@@ -92,7 +92,7 @@ struct AIAgentDetailView: View {
             AIAgentSkillsView(server: server, agentId: agentId, agentName: agent?.name ?? "")
         }
         .navigationDestination(isPresented: $showSettings) {
-            AIAgentSettingsView(server: server, agentId: agentId)
+            AIAgentSettingsView(server: server, agentId: agentId, agentType: agent?.agentType)
         }
         .navigationDestination(isPresented: $showLog) {
             ComposeLogView(
