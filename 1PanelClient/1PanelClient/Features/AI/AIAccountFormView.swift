@@ -72,6 +72,18 @@ struct AIAccountFormView: View {
         selectedApiTypeItem?.authModes ?? []
     }
 
+    /// 认证方式 Picker 的取值兜底：当前值不在候选内（含空串）时显示首个候选，
+    /// 提交仍以 state 为准（applyApiTypeDefaults 已归一化）
+    private var authModeBinding: Binding<String> {
+        Binding(
+            get: {
+                if authModeOptions.contains(authMode) { return authMode }
+                return authModeOptions.first ?? ""
+            },
+            set: { authMode = $0 }
+        )
+    }
+
     private var canSubmit: Bool {
         guard !isSaving, !name.isEmpty, !baseURL.isEmpty, !apiKey.isEmpty else { return false }
         if isEditing { return true }
@@ -133,6 +145,11 @@ struct AIAccountFormView: View {
                     Spacer()
                     ProgressView()
                 }
+            } else if providers.isEmpty {
+                // 供应商列表加载失败（空）：占位展示，避免零选项 Picker 的
+                // 空 selection 告警；重进或重试后恢复
+                LabeledContent(L10n.t("模型供应商"), value: "-")
+                LabeledContent(L10n.t("API 类型"), value: "-")
             } else {
                 Picker(L10n.t("模型供应商"), selection: $selectedProvider) {
                     ForEach(providers) { p in
@@ -140,10 +157,14 @@ struct AIAccountFormView: View {
                     }
                 }
 
-                Picker(L10n.t("API 类型"), selection: $selectedApiType) {
-                    ForEach(selectedProviderItem?.apiTypes ?? []) { t in
-                        Text(t.apiType).tag(t.apiType)
+                if let apiTypes = selectedProviderItem?.apiTypes, !apiTypes.isEmpty {
+                    Picker(L10n.t("API 类型"), selection: $selectedApiType) {
+                        ForEach(apiTypes) { t in
+                            Text(t.apiType).tag(t.apiType)
+                        }
                     }
+                } else {
+                    LabeledContent(L10n.t("API 类型"), value: "-")
                 }
             }
 
@@ -155,7 +176,7 @@ struct AIAccountFormView: View {
                 .disabled(!editableBaseURL)
 
             if !isEditing && authModeOptions.count > 1 {
-                Picker(L10n.t("认证方式"), selection: $authMode) {
+                Picker(L10n.t("认证方式"), selection: authModeBinding) {
                     ForEach(authModeOptions, id: \.self) { mode in
                         Text(mode).tag(mode)
                     }
@@ -387,7 +408,11 @@ struct AIAccountFormView: View {
 
     private func applyApiTypeDefaults(_ apiType: AIProviderApiType?, provider: AIProvider?) {
         baseURL = apiType?.baseUrl ?? provider?.baseUrl ?? ""
-        authMode = apiType?.defaultAuthMode ?? ""
+        // 服务端预设可能缺 defaultAuthMode 或取值不在候选内：
+        // 回退到首个候选，避免认证方式 Picker 出现无 tag 的空 selection 告警
+        let modes = apiType?.authModes ?? []
+        let def = apiType?.defaultAuthMode ?? ""
+        authMode = modes.contains(def) ? def : (modes.first ?? "")
         // 预设供应商（DeepSeek 等）直接给固定模型清单；custom 为空靠发现/手填
         models = provider?.models ?? []
         verifyModelId = models.first?.id ?? ""
