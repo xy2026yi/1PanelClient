@@ -4654,6 +4654,17 @@
         }
       }
     },
+    "其他设置已保存；安全设置未加载，本次未保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other settings saved; security settings were not loaded and were not saved."
+          }
+        }
+      }
+    },
     "其他选项" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9380,6 +9391,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Credentials"
+          }
+        }
+      }
+    },
+    "安全设置保存失败：%@（其他设置已保存）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to save security settings: %@ (other settings were saved)"
           }
         }
       }
@@ -26934,8 +26956,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Pairing"
           }
         }
       }

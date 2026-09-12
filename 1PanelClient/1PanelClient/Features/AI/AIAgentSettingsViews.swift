@@ -167,13 +167,15 @@ struct AIAgentModelConfigView: View {
             } else {
                 selectedModel = selectedAccount?.models?.first?.id ?? ""
             }
-            // 备用模型属于原账号的模型池，切走时清空待重选。
-            // 初次载入回填也会触发本 onChange（nil → 配置账号），必须排除，
-            // 否则刚从接口读到的 fallbacks 会被立即清空（显示为「暂无备用模型」）
-            if let configAccount = config?.accountId, newValue != configAccount {
+            // 备用模型属于账号的模型池：切走清空待重选；切回配置账号时还原
+            // 服务端值（滚轮 Picker 误滑再滑回是常见操作，不还原的话一次保存
+            // 就会把服务端的备用模型清掉）。config 账号为 nil 时任何选择都算切走
+            if newValue != config?.accountId {
                 fallbacks = []
-                fallbackCandidate = ""
+            } else {
+                fallbacks = config?.fallbacks ?? []
             }
+            fallbackCandidate = ""
         }
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
@@ -284,6 +286,9 @@ struct AIAgentSettingsView: View {
 
     // 安全设置（OpenClaw）
     @State private var allowedOrigins: [String] = []
+    /// security/get 失败标记：保存时跳过 security/update，
+    /// 避免把读失败的空列表全量写回、清掉服务端白名单
+    @State private var securityLoadFailed = false
 
     private let client: APIClient
 
@@ -315,7 +320,9 @@ struct AIAgentSettingsView: View {
     ]
 
     private var canSubmit: Bool {
-        guard !isSaving else { return false }
+        // 加载失败（config 未落地）时禁止保存：@State 全是默认值，
+        // 保存会用默认值覆盖服务端真实配置
+        guard !isSaving, config != nil else { return false }
         // 控制台账号仅非 OpenClaw 类型显示（OpenClaw 抓包无该分区）
         if !isOpenClaw, username.isEmpty || password.isEmpty { return false }
         return true
@@ -510,9 +517,11 @@ struct AIAgentSettingsView: View {
                 body: AIAgentModelRequest(agentId: agentId),
                 as: AIAgentSecurityConfig.self)
             allowedOrigins = resp.allowedOrigins ?? []
+            securityLoadFailed = false
         } catch {
-            // 安全设置读取失败静默（其他分区仍可保存）
+            // 读取失败置标记：保存时跳过该分区（发空列表会清掉服务端数据）
             allowedOrigins = []
+            securityLoadFailed = true
         }
     }
 
@@ -553,12 +562,24 @@ struct AIAgentSettingsView: View {
                 body: otherReq,
                 as: EmptyResponse.self)
 
-            // OpenClaw 的安全设置单独保存
+            // OpenClaw 的安全设置单独保存；读取失败时跳过（防止空列表覆盖服务端白名单）
             if isOpenClaw {
-                let _: EmptyResponse = try await client.send(
-                    path: APIEndpoint.aiAgentSecurityUpdate.path,
-                    body: AIAgentSecurityConfig(agentId: agentId, allowedOrigins: allowedOrigins),
-                    as: EmptyResponse.self)
+                if securityLoadFailed {
+                    errorMessage = L10n.t("其他设置已保存；安全设置未加载，本次未保存")
+                    showError = true
+                    return
+                }
+                do {
+                    let _: EmptyResponse = try await client.send(
+                        path: APIEndpoint.aiAgentSecurityUpdate.path,
+                        body: AIAgentSecurityConfig(agentId: agentId, allowedOrigins: allowedOrigins),
+                        as: EmptyResponse.self)
+                } catch {
+                    guard !APIError.isCancellation(error) else { return }
+                    errorMessage = L10n.f("安全设置保存失败：%@（其他设置已保存）", error.localizedDescription)
+                    showError = true
+                    return
+                }
             }
 
             errorMessage = L10n.t("保存成功")

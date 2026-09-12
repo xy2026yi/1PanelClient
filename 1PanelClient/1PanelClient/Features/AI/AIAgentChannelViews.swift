@@ -1053,7 +1053,9 @@ struct AIAgentTelegramChannelView: View {
         }
         .sheet(item: $editingBot) { bot in
             AITelegramBotFormSheet(bot: bot, isEdit: true) { updated in
-                if let idx = bots.firstIndex(where: { $0.id == updated.id }) {
+                // 按打开弹窗时的行身份匹配（sheet 闭包捕获的 bot 快照）：
+                // 允许修改账户 ID——updated.id 已是新值，按它找必然失配、编辑被静默丢弃
+                if let idx = bots.firstIndex(where: { $0.id == bot.id }) {
                     bots[idx] = updated
                 }
             }
@@ -1128,15 +1130,19 @@ struct AIAgentTelegramChannelView: View {
         }
     }
 
-    /// 变更 bots 后整体保存（删除/设为默认共用，抓包均为全量 update）
+    /// 变更 bots 后整体保存（删除/设为默认共用，抓包均为全量 update）。
+    /// 成功后回写本地 defaultAccount（否则批准配对仍携带旧默认账号），失败回滚
     private func saveBots(_ updated: [AIChannelTelegramBotItem], defaultAccount: String? = nil) async {
+        guard !isSaving else { return }
+        let previousBots = bots
+        let previousDefault = c.defaultAccount
         bots = updated
+        if let defaultAccount {
+            c.defaultAccount = defaultAccount
+        }
         var out = c
         out.agentId = agentId
         out.bots = updated
-        if let defaultAccount {
-            out.defaultAccount = defaultAccount
-        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -1146,6 +1152,9 @@ struct AIAgentTelegramChannelView: View {
                 as: EmptyResponse.self)
         } catch {
             guard !APIError.isCancellation(error) else { return }
+            // 回滚本地状态，避免与服务端分叉
+            bots = previousBots
+            c.defaultAccount = previousDefault
             errorMessage = error.localizedDescription
             showError = true
         }
