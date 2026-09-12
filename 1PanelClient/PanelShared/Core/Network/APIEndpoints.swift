@@ -456,7 +456,7 @@ enum APIEndpoint {
 
     // MARK: - AI 模块（logs/AI.md 抓包 2026-09-11；标 [推测] 的端点未抓到完整请求，按命名规律推定，联调时集中修正）
     // 模型账号
-    case aiAccountsSearch       // POST 分页查询模型账号 [推测：抓包列表 URL 笔误]
+    case aiAccountsSearch       // POST 分页查询模型账号（端点确认.md 确认，抓包原文 URL 笔误已修正）
     case aiAccountsCreate       // POST 创建模型账号（validateAvailability=true 时后端验证连通）
     case aiAccountsUpdate       // POST 更新模型账号（syncAgents 同步关联智能体）
     case aiAccountsDelete       // POST 删除模型账号 {id}（被智能体绑定时后端报错）
@@ -467,7 +467,7 @@ enum APIEndpoint {
     case aiAccountModelUpdate   // POST 模型池编辑 {accountId, model}
     case aiAccountModelDelete   // POST 模型池删除 {accountId, recordId}（verifyModel 不可删）
     // 智能体
-    case aiAgentsSearch         // POST 分页查询智能体 [推测：抓包列表 URL 笔误]
+    case aiAgentsSearch         // POST 分页查询智能体（端点确认.md 确认）
     case aiAgentsCreate         // POST 创建智能体（安装应用，带 taskID）
     case aiAgentsDeleteCheck    // POST 删除前检查绑定资源 {agentId}
     case aiAgentsDelete         // POST 删除智能体 {id, taskID, forceDelete}
@@ -497,7 +497,7 @@ enum APIEndpoint {
     case aiMcpDomainBind        // POST MCP 绑定网站/域名
     case aiMcpDomainUpdate      // POST MCP 域名绑定更新（含 HTTPS）
     // 本地模型 Ollama
-    case aiOllamaModelSearch    // POST Ollama 模型分页列表 [推测：抓包缺失]
+    case aiOllamaModelSearch    // POST Ollama 模型分页列表（端点确认.md 确认；size 可能是非数字字符串如 "- Less"）
     case aiOllamaModelCreate    // POST 拉取模型 {name, taskID}
     case aiOllamaModelRecreate  // POST 拉取失败重试 {name, taskID}
     case aiOllamaModelDelete    // POST 删除模型 {ids, forceDelete}
@@ -525,9 +525,9 @@ enum APIEndpoint {
     case modelDownloaderLocalSearch    // POST 已下载模型分页 {page, pageSize, info}
     case modelDownloaderLocalDelete    // POST 删除已下载模型 {name}
     case modelDownloaderTasksSearch    // POST 下载队列分页 {page, pageSize, info, status}
-    case modelDownloaderTaskCancel     // POST 取消下载任务 {id} [推测：抓包缺失]
-    case modelDownloaderTaskRetry      // POST 重试失败任务 {id} [推测：抓包缺失]
-    case modelDownloaderTaskDelete     // POST 移除任务记录 {id} [推测：抓包缺失]
+    case modelDownloaderTaskCancel     // POST 取消下载任务 {id}（端点确认.md 确认）
+    case modelDownloaderTaskRetry      // POST 重试失败任务 {id}，返回更新后的任务对象
+    case modelDownloaderTaskRemove     // POST 移除任务记录 {id}（tasks/remove，端点确认.md 确认）
     case modelDownloaderHFSearch       // POST HuggingFace 仓库搜索 {query, sort, page, pageSize}
     case modelDownloaderHFInfo         // POST HuggingFace 仓库详情 {repoID}（模型卡 + 文件列表）
     case modelDownloaderHFDownload     // POST 从 HuggingFace 下载 {repoID}
@@ -959,7 +959,7 @@ enum APIEndpoint {
         case .modelDownloaderTasksSearch:   return "/api/v2/xpack/model/downloader/tasks/search"
         case .modelDownloaderTaskCancel:    return "/api/v2/xpack/model/downloader/tasks/cancel"
         case .modelDownloaderTaskRetry:     return "/api/v2/xpack/model/downloader/tasks/retry"
-        case .modelDownloaderTaskDelete:    return "/api/v2/xpack/model/downloader/tasks/delete"
+        case .modelDownloaderTaskRemove:    return "/api/v2/xpack/model/downloader/tasks/remove"
         case .modelDownloaderHFSearch:      return "/api/v2/xpack/model/downloader/hf/search"
         case .modelDownloaderHFInfo:        return "/api/v2/xpack/model/downloader/hf/info"
         case .modelDownloaderHFDownload:    return "/api/v2/xpack/model/downloader/hf/download"

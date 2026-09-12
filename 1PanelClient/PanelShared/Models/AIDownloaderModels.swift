@@ -209,7 +209,7 @@ nonisolated struct ModelDownloaderTasksRequest: Encodable {
     var status: String = ""
 }
 
-/// POST cancel/retry/delete {id}（三个端点请求体一致）[推测：抓包缺失]
+/// POST cancel/retry/remove {id}（三个端点请求体一致，端点确认.md 2026-09-12 确认）
 nonisolated struct ModelTaskIDRequest: Encodable {
     let id: Int
 }

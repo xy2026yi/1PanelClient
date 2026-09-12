@@ -64,6 +64,24 @@ struct AIAgentDetailView: View {
         .toastOverlay(message: $listVM.toastMessage)
         .task { await loadDetail() }
         .refreshable { await loadDetail() }
+        // 子页（模型配置 / 设置 / 绑定网站 / 频道 / 技能）保存后返回时刷新详情：
+        // agent 是 .task 首次加载的快照，不重载会导致绑定状态与模型信息失真
+        // （如绑定网站后再进绑定页仍判定未绑定，可重复提交）
+        .onChange(of: showModelConfig) { _, shown in
+            if !shown { Task { await loadDetail() } }
+        }
+        .onChange(of: showSettings) { _, shown in
+            if !shown { Task { await loadDetail() } }
+        }
+        .onChange(of: showWebsiteBind) { _, shown in
+            if !shown { Task { await loadDetail() } }
+        }
+        .onChange(of: showChannels) { _, shown in
+            if !shown { Task { await loadDetail() } }
+        }
+        .onChange(of: showSkills) { _, shown in
+            if !shown { Task { await loadDetail() } }
+        }
         .navigationDestination(isPresented: $showChannels) {
             AIAgentChannelsView(server: server, agentId: agentId, agentName: agent?.name ?? "")
         }

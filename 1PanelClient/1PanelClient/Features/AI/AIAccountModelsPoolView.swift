@@ -10,9 +10,16 @@ import SwiftUI
 
 struct AIAccountModelsPoolView: View {
     let server: ServerConfig
+    /// 推入时的账号快照：仅用于 id 定位与列表查不到时的兜底展示
     let account: AIAccount
     /// 变更后刷新账号列表（行上的模型数）
     @ObservedObject var listVM: AIAccountViewModel
+
+    /// 实时账号：编辑账号保存后 listVM 已刷新，从列表取最新数据回显，
+    /// 避免本页信息区与再次进入的编辑表单停留在旧快照（旧名称再保存会改回旧值）
+    private var liveAccount: AIAccount {
+        listVM.accounts.first { $0.id == account.id } ?? account
+    }
 
     @State private var models: [AIModelRef] = []
     @State private var isLoading = true
@@ -38,14 +45,14 @@ struct AIAccountModelsPoolView: View {
     var body: some View {
         List {
             Section {
-                InfoRow(L10n.t("名称"), value: account.name)
-                InfoRow(L10n.t("模型供应商"), value: account.providerName ?? account.provider)
-                InfoRow(L10n.t("API 类型"), value: account.apiType ?? "-")
-                InfoRow("Base URL", value: account.baseUrl ?? "-", monospaced: true)
-                if let verify = account.verifyModel, !verify.isEmpty {
+                InfoRow(L10n.t("名称"), value: liveAccount.name)
+                InfoRow(L10n.t("模型供应商"), value: liveAccount.providerName ?? liveAccount.provider)
+                InfoRow(L10n.t("API 类型"), value: liveAccount.apiType ?? "-")
+                InfoRow("Base URL", value: liveAccount.baseUrl ?? "-", monospaced: true)
+                if let verify = liveAccount.verifyModel, !verify.isEmpty {
                     InfoRow(L10n.t("验证模型"), value: verify, monospaced: true)
                 }
-                if let remark = account.remark, !remark.isEmpty {
+                if let remark = liveAccount.remark, !remark.isEmpty {
                     InfoRow(L10n.t("备注"), value: remark)
                 }
             } header: {
@@ -156,7 +163,7 @@ struct AIAccountModelsPoolView: View {
             }
         }
         .navigationDestination(isPresented: $showEditAccount) {
-            AIAccountFormView(server: server, editing: account, vm: listVM)
+                AIAccountFormView(server: server, editing: liveAccount, vm: listVM)
         }
     }
 
@@ -191,7 +198,7 @@ struct AIAccountModelsPoolView: View {
     }
 
     private func isVerifyModel(_ model: AIModelRef) -> Bool {
-        account.verifyModel == model.id
+        liveAccount.verifyModel == model.id
     }
 
     /// 长按菜单条目：验证模型不可删除

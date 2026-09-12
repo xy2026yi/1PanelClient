@@ -158,7 +158,7 @@ final class AIDownloaderViewModel: ObservableObject {
     }
 
     func removeTaskRecord(_ task: ModelDownloadTask) async {
-        await operate(task, path: APIEndpoint.modelDownloaderTaskDelete.path,
+        await operate(task, path: APIEndpoint.modelDownloaderTaskRemove.path,
                       success: L10n.t("已移除记录"))
     }
 

@@ -24,8 +24,8 @@ final class AIOllamaViewModel: ObservableObject {
 
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// 清理由 toastOverlay 组件内建完成（2 秒自动消失），VM 只负责赋值
     @Published var toastMessage: String?
-    private var toastTask: Task<Void, Never>?
 
     @Published var isOperating = false
     @Published var pendingDeleteModels: [AIOllamaModel]?
@@ -69,17 +69,37 @@ final class AIOllamaViewModel: ObservableObject {
         defer { isLoadingModels = false }
         page = 1
         loadGeneration += 1
+        let generation = loadGeneration
         let req = AISearchPageRequest(page: 1, pageSize: Self.pageSize)
         do {
             let resp: PageResponse<AIOllamaModel> = try await client.send(
                 path: APIEndpoint.aiOllamaModelSearch.path, body: req, as: PageResponse<AIOllamaModel>.self)
+            guard generation == loadGeneration else { return }
             models = resp.items ?? []
             total = resp.total ?? 0
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            // 拉取列表失败不整页报错（服务卡仍可展示）
-            models = []
-            total = 0
+            guard generation == loadGeneration else { return }
+            // 已有数据时保留列表；首屏失败仅显示空态（服务卡仍可展示）
+            if models.isEmpty {
+                total = 0
+            }
+        }
+    }
+
+    /// 静默整体刷新（运行轮询用）：按已加载条数取整页，
+    /// 避免轮询把翻页加载的列表塌缩回第一页的 20 条
+    func reloadModelsSilently() async {
+        let generation = loadGeneration
+        let req = AISearchPageRequest(page: 1, pageSize: max(Self.pageSize, models.count))
+        do {
+            let resp: PageResponse<AIOllamaModel> = try await client.send(
+                path: APIEndpoint.aiOllamaModelSearch.path, body: req, as: PageResponse<AIOllamaModel>.self)
+            guard generation == loadGeneration else { return }
+            models = resp.items ?? []
+            total = resp.total ?? 0
+        } catch {
+            // 轮询失败静默，保留旧状态
         }
     }
 
@@ -205,12 +225,7 @@ final class AIOllamaViewModel: ObservableObject {
     }
 
     private func showToast(_ message: String) {
-        toastTask?.cancel()
         toastMessage = message
-        toastTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run { self?.toastMessage = nil }
-        }
     }
 }
 
@@ -281,7 +296,7 @@ struct AIOllamaView: View {
         .refreshable { await vm.load() }
         .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() } }
         .adaptivePolling(interval: 10, isActive: { hasRunning }) {
-            await vm.loadModels()
+            await vm.reloadModelsSilently()
         }
         .toastOverlay(message: $vm.toastMessage)
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
@@ -578,7 +593,7 @@ struct AIOllamaView: View {
             }
         } header: {
             SectionLabel(
-                title: L10n.f("模型 · 共 %d 个", vm.models.count),
+                title: L10n.f("模型 · 共 %d 个", vm.total),
                 systemImage: "shippingbox"
             )
         } footer: {

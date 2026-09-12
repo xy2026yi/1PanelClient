@@ -21,8 +21,8 @@ final class AIAgentsViewModel: ObservableObject {
 
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// 清理由 toastOverlay 组件内建完成（2 秒自动消失），VM 只负责赋值
     @Published var toastMessage: String?
-    private var toastTask: Task<Void, Never>?
 
     /// 安装/操作进行中（禁用提交）
     @Published var isSubmitting = false
@@ -47,18 +47,24 @@ final class AIAgentsViewModel: ObservableObject {
         defer { isLoading = false }
         page = 1
         loadGeneration += 1
+        let generation = loadGeneration
         let req = AISearchPageRequest(page: 1, pageSize: Self.pageSize)
         do {
             let resp: PageResponse<AIAgent> = try await client.send(
                 path: APIEndpoint.aiAgentsSearch.path, body: req, as: PageResponse<AIAgent>.self)
+            // 进页刷新 / 下拉 / 操作后刷新并发时，旧响应不得覆盖新结果
+            guard generation == loadGeneration else { return }
             agents = resp.items ?? []
             total = resp.total ?? 0
             errorMessage = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            agents = []
-            total = 0
-            errorMessage = error.localizedDescription
+            guard generation == loadGeneration else { return }
+            // 已有数据时保留列表（瞬时失败不清空），仅首屏失败进错误页
+            if agents.isEmpty {
+                total = 0
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -206,12 +212,7 @@ final class AIAgentsViewModel: ObservableObject {
     }
 
     func showToast(_ message: String) {
-        toastTask?.cancel()
         toastMessage = message
-        toastTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run { self?.toastMessage = nil }
-        }
     }
 }
 

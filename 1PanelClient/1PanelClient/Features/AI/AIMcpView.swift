@@ -22,8 +22,8 @@ final class AIMcpViewModel: ObservableObject {
 
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// 清理由 toastOverlay 组件内建完成（2 秒自动消失），VM 只负责赋值
     @Published var toastMessage: String?
-    private var toastTask: Task<Void, Never>?
 
     @Published var isOperating = false
     @Published var pendingDelete: McpServer?
@@ -31,6 +31,9 @@ final class AIMcpViewModel: ObservableObject {
     private var page = 1
     private var loadGeneration = 0
     private static let pageSize = 20
+    /// 最近一次加载使用的搜索词：操作后的内部刷新沿用，
+    /// 避免过滤态下启停/删除后列表被重置为全量（与搜索框显示不一致）
+    private(set) var currentName = ""
 
     private(set) var client: APIClient
 
@@ -45,20 +48,27 @@ final class AIMcpViewModel: ObservableObject {
         defer { isLoading = false }
         page = 1
         loadGeneration += 1
+        let generation = loadGeneration
+        currentName = name
         let req = AISearchPageRequest(page: 1, pageSize: Self.pageSize, name: name)
         do {
             let resp: PageResponse<McpServer> = try await client.send(
                 path: APIEndpoint.aiMcpSearch.path, body: req, as: PageResponse<McpServer>.self)
+            // 防抖搜索 / 下拉刷新并发时，慢返回的旧响应不得覆盖新结果
+            guard generation == loadGeneration else { return }
             servers = resp.items ?? []
             total = resp.total ?? 0
             errorMessage = nil
+            await syncStatus()
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            servers = []
-            total = 0
-            errorMessage = error.localizedDescription
+            guard generation == loadGeneration else { return }
+            // 已有数据时保留列表（瞬时失败不清空），仅首屏失败进错误页
+            if servers.isEmpty {
+                total = 0
+                errorMessage = error.localizedDescription
+            }
         }
-        await syncStatus()
     }
 
     func loadMore(name: String = "") async {
@@ -121,7 +131,7 @@ final class AIMcpViewModel: ObservableObject {
                 as: EmptyResponse.self)
             showToast(L10n.t("操作成功"))
             try? await Task.sleep(nanoseconds: 1_000_000_000)
-            await load()
+            await load(name: currentName)
         } catch let err as APIError {
             showAlert(message: L10n.f("操作失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
@@ -159,7 +169,7 @@ final class AIMcpViewModel: ObservableObject {
                 body: McpServerDeleteRequest(id: server.id),
                 as: EmptyResponse.self)
             showToast(L10n.f("MCP「%@」已删除", server.name))
-            await load()
+            await load(name: currentName)
         } catch let err as APIError {
             showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
@@ -175,12 +185,7 @@ final class AIMcpViewModel: ObservableObject {
     }
 
     private func showToast(_ message: String) {
-        toastTask?.cancel()
         toastMessage = message
-        toastTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run { self?.toastMessage = nil }
-        }
     }
 }
 

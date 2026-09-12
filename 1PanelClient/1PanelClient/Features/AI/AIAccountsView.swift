@@ -21,8 +21,8 @@ final class AIAccountViewModel: ObservableObject {
 
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// 清理由 toastOverlay 组件内建完成（2 秒自动消失），VM 只负责赋值
     @Published var toastMessage: String?
-    private var toastTask: Task<Void, Never>?
 
     @Published var pendingDelete: AIAccount?
     @Published private(set) var isDeleting = false
@@ -30,6 +30,9 @@ final class AIAccountViewModel: ObservableObject {
     private var page = 1
     private var loadGeneration = 0
     private static let pageSize = 20
+    /// 最近一次加载使用的搜索词：增删改后的内部刷新沿用，
+    /// 避免过滤态下操作完列表被重置为全量（与搜索框显示不一致）
+    private(set) var currentName = ""
 
     private(set) var client: APIClient
 
@@ -44,18 +47,25 @@ final class AIAccountViewModel: ObservableObject {
         defer { isLoading = false }
         page = 1
         loadGeneration += 1
+        let generation = loadGeneration
+        currentName = name
         let req = AISearchPageRequest(page: 1, pageSize: Self.pageSize, name: name)
         do {
             let resp: PageResponse<AIAccount> = try await client.send(
                 path: APIEndpoint.aiAccountsSearch.path, body: req, as: PageResponse<AIAccount>.self)
+            // 防抖搜索 / 下拉刷新并发时，慢返回的旧响应不得覆盖新结果
+            guard generation == loadGeneration else { return }
             accounts = resp.items ?? []
             total = resp.total ?? 0
             errorMessage = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            accounts = []
-            total = 0
-            errorMessage = error.localizedDescription
+            guard generation == loadGeneration else { return }
+            // 已有数据时保留列表（瞬时失败不清空），仅首屏失败进错误页
+            if accounts.isEmpty {
+                total = 0
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -118,7 +128,7 @@ final class AIAccountViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAccountsCreate.path, body: req, as: EmptyResponse.self)
             showToast(L10n.f("账号「%@」已创建", req.name))
-            await load()
+            await load(name: currentName)
             return true
         } catch let err as APIError {
             showAlert(message: L10n.f("创建失败：%@", err.errorDescription ?? L10n.t("未知错误")))
@@ -135,7 +145,7 @@ final class AIAccountViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAccountsUpdate.path, body: req, as: EmptyResponse.self)
             showToast(L10n.t("账号已更新"))
-            await load()
+            await load(name: currentName)
             return true
         } catch let err as APIError {
             showAlert(message: L10n.f("更新失败：%@", err.errorDescription ?? L10n.t("未知错误")))
@@ -156,7 +166,7 @@ final class AIAccountViewModel: ObservableObject {
                 body: AIAccountDeleteRequest(id: account.id),
                 as: EmptyResponse.self)
             showToast(L10n.f("账号「%@」已删除", account.name))
-            await load()
+            await load(name: currentName)
         } catch let err as APIError {
             // 已绑定智能体等后端拦截错误直接透出 message
             showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
@@ -173,12 +183,7 @@ final class AIAccountViewModel: ObservableObject {
     }
 
     private func showToast(_ message: String) {
-        toastTask?.cancel()
         toastMessage = message
-        toastTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run { self?.toastMessage = nil }
-        }
     }
 }
 
