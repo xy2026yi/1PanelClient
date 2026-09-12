@@ -27,9 +27,9 @@ final class AIDownloaderViewModel: ObservableObject {
 
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// 清理由 toastOverlay 组件内建完成（2 秒自动消失），VM 只负责赋值
     @Published var toastMessage: String?
 
-    private var toastTask: Task<Void, Never>?
     private(set) var client: APIClient
 
     init(server: ServerConfig) {
@@ -211,12 +211,7 @@ final class AIDownloaderViewModel: ObservableObject {
     }
 
     private func showToast(_ message: String) {
-        toastTask?.cancel()
         toastMessage = message
-        toastTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run { self?.toastMessage = nil }
-        }
     }
 }
 

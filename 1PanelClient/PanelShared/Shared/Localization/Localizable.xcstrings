@@ -1138,6 +1138,17 @@
         }
       }
     },
+    "Compose 内容为空，请先获取模板或关闭「编辑 Compose 文件」" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compose content is empty. Load the template first or turn off \"Edit Compose File\"."
+          }
+        }
+      }
+    },
     "Compose 文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1835,6 +1846,7 @@
         }
       }
     },
+    "Ollama" : {},
     "Ollama 模型拉取与运行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17200,7 +17212,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Referrers"
+            "value" : "Source"
           }
         }
       }
@@ -17751,6 +17763,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Model Downloads"
+          }
+        }
+      }
+    },
+    "模型仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model Repository"
           }
         }
       }

@@ -23,8 +23,8 @@ final class AIVllmViewModel: ObservableObject {
 
     @Published var showAlert = false
     @Published var alertMessage = ""
+    /// 清理由 toastOverlay 组件内建完成（2 秒自动消失），VM 只负责赋值
     @Published var toastMessage: String?
-    private var toastTask: Task<Void, Never>?
 
     /// 操作中的实例 ID（行内禁重复点击）
     @Published private(set) var operatingID: Int?
@@ -48,16 +48,20 @@ final class AIVllmViewModel: ObservableObject {
     func loadInstances() async {
         page = 1
         loadGeneration += 1
+        let generation = loadGeneration
         do {
             let resp: PageResponse<VllmInstance> = try await client.send(
                 path: APIEndpoint.vllmSearch.path,
                 body: VllmSearchRequest(),
                 as: PageResponse<VllmInstance>.self)
+            // autoRefresh / 轮询 / 删除复查三方并发时，慢返回的旧响应不得覆盖新结果
+            guard generation == loadGeneration else { return }
             instances = resp.items ?? []
             total = resp.total ?? 0
             errorMessage = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
+            guard generation == loadGeneration else { return }
             if instances.isEmpty {
                 errorMessage = error.localizedDescription
             }
@@ -169,12 +173,7 @@ final class AIVllmViewModel: ObservableObject {
     }
 
     private func showToast(_ message: String) {
-        toastTask?.cancel()
         toastMessage = message
-        toastTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run { self?.toastMessage = nil }
-        }
     }
 }
 

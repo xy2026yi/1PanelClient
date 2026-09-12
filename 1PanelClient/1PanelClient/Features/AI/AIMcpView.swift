@@ -478,9 +478,17 @@ struct AIMcpConfigSheet: View {
     let server: McpServer
     @Environment(\.dismiss) private var dismiss
 
-    /// {"mcpServers":{"<name>":{"url":"<baseUrl>"}}}（不带 \/ 转义）
+    /// {"mcpServers":{"<name>":{"url":"<baseUrl + 接入路径>"}}}（不带 \/ 转义）。
+    /// baseUrl 只含协议+主机，SSE / streamableHttp 的端点路径在独立字段，缺了会 404
     private var configJSON: String {
-        let url = server.baseUrl ?? ""
+        let path = (server.outputTransport == "sse")
+            ? (server.ssePath ?? "")
+            : (server.streamableHttpPath ?? "")
+        var url = server.baseUrl ?? ""
+        if !path.isEmpty {
+            if !url.hasSuffix("/"), !path.hasPrefix("/") { url += "/" }
+            url += path
+        }
         let object: [String: [String: [String: String]]] = [
             "mcpServers": [
                 server.name: ["url": url]

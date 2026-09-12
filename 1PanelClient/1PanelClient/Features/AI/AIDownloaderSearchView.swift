@@ -39,6 +39,16 @@ struct AIDownloaderSearchView: View {
 
     var body: some View {
         List {
+            Section {
+                Picker(L10n.t("来源"), selection: $source) {
+                    ForEach(ModelRepoSource.allCases) { s in
+                        Text(s.displayName).tag(s)
+                    }
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                SectionLabel(title: L10n.t("模型仓库"), systemImage: "globe")
+            }
             manualSection
             searchSection
         }

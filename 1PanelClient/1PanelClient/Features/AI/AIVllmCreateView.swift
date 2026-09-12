@@ -460,6 +460,10 @@ struct AIVllmCreateView: View {
             validationMessage = L10n.t("请填写 Base URL")
             return
         }
+        if editCompose, dockerCompose.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            validationMessage = L10n.t("Compose 内容为空，请先获取模板或关闭「编辑 Compose 文件」")
+            return
+        }
 
         let request = VllmCreateRequest(
             name: trimmedName,
@@ -483,7 +487,9 @@ struct AIVllmCreateView: View {
             modelAccountBaseURL: syncModelAccount ? baseURL.trimmingCharacters(in: .whitespaces) : "",
             pullImage: pullImage,
             editCompose: editCompose,
-            dockerCompose: editCompose ? dockerCompose : "",
+            // 抓包显示 editCompose=false 时创建体也携带完整模板内容；
+            // 状态里模板已随类型加载（编辑模式为实例保存值），直接回传
+            dockerCompose: dockerCompose,
             syncAgents: false,
             taskID: UUID().uuidString,
             id: instance?.id)
@@ -548,6 +554,13 @@ struct AIVllmCreateView: View {
     }
 
     private func loadCompose() async {
+        // 编辑模式优先保留实例已保存的 compose（可能含用户自定义内容），
+        // 不用默认模板覆盖——覆盖后原样保存会静默丢失自定义配置；
+        // 仅创建模式（或实例未保存过 compose）时拉取当前类型的模板
+        if let saved = instance?.dockerCompose, !saved.isEmpty {
+            dockerCompose = saved
+            return
+        }
         do {
             let resp: VllmComposeResponse = try await client.send(
                 path: APIEndpoint.vllmCompose.path,
