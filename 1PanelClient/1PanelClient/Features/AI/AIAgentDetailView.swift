@@ -83,7 +83,8 @@ struct AIAgentDetailView: View {
             if !shown { Task { await loadDetail() } }
         }
         .navigationDestination(isPresented: $showChannels) {
-            AIAgentChannelsView(server: server, agentId: agentId, agentName: agent?.name ?? "")
+            AIAgentChannelsView(server: server, agentId: agentId, agentName: agent?.name ?? "",
+                                agentType: agent?.agentType)
         }
         .navigationDestination(isPresented: $showModelConfig) {
             AIAgentModelConfigView(server: server, agentId: agentId)

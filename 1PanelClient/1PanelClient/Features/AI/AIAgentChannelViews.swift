@@ -65,16 +65,19 @@ struct AIAgentChannelsView: View {
     let server: ServerConfig
     let agentId: Int
     let agentName: String
+    /// 智能体类型：Telegram 等频道的策略选项集随类型不同（抓包确认）
+    var agentType: String? = nil
 
     @State private var enabledMap: [String: Bool] = [:]
     @State private var isLoading = true
 
     private let client: APIClient
 
-    init(server: ServerConfig, agentId: Int, agentName: String) {
+    init(server: ServerConfig, agentId: Int, agentName: String, agentType: String? = nil) {
         self.server = server
         self.agentId = agentId
         self.agentName = agentName
+        self.agentType = agentType
         self.client = APIClient.shared(for: server)
     }
 
@@ -130,7 +133,7 @@ struct AIAgentChannelsView: View {
         case .feishu:
             AIAgentFeishuChannelView(server: server, agentId: agentId)
         case .telegram:
-            AIAgentTelegramChannelView(server: server, agentId: agentId)
+            AIAgentTelegramChannelView(server: server, agentId: agentId, agentType: agentType)
         case .discord:
             AIAgentDiscordChannelView(server: server, agentId: agentId)
         }
@@ -581,6 +584,8 @@ struct AIAgentQQChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
+        // update 体不含 get 回传的 installed 标记（抓包确认）
+        out.installed = nil
         // bot.enabled 与顶层开关相互独立（抓包确认：bot 开启 + 顶层关闭同体保存）
         out.bots = [bot] + extraBots
         isSaving = true
@@ -688,6 +693,7 @@ struct AIAgentWecomChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
+        out.installed = nil
         isSaving = true
         defer { isSaving = false }
         do {
@@ -799,9 +805,19 @@ struct AIAgentDingtalkChannelView: View {
                 path: APIEndpoint.aiAgentChannelGet.path.replacingOccurrences(of: ":type", with: "dingtalk"),
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelDingtalk.self)
-            c = resp
-            bot = resp.bots?.first ?? bot
-            extraBots = Array((resp.bots ?? []).dropFirst())
+            var loaded = resp
+            // 群组策略空串折叠为默认值，避免 Picker 空 selection
+            if (loaded.groupPolicy ?? "").isEmpty { loaded.groupPolicy = "open" }
+            // 未配置（作用域与回执全空）时按网页端默认值回显：
+            // 会话独立=true、作用域 group_sender、默认回执文案（对齐网页端首次保存体）
+            if (loaded.groupSessionScope ?? "").isEmpty && (loaded.ackText ?? "").isEmpty {
+                loaded.separateSessionByConversation = true
+                loaded.groupSessionScope = "group_sender"
+                loaded.ackText = "任务已接收，处理中..."
+            }
+            c = loaded
+            bot = loaded.bots?.first ?? bot
+            extraBots = Array((loaded.bots ?? []).dropFirst())
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -813,6 +829,7 @@ struct AIAgentDingtalkChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
+        out.installed = nil
         out.bots = [bot] + extraBots
         isSaving = true
         defer { isSaving = false }
@@ -937,6 +954,10 @@ struct AIAgentFeishuChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
+        // update 体不含 get 回传的 installed / domain / connectionMode（抓包确认）
+        out.installed = nil
+        out.domain = nil
+        out.connectionMode = nil
         out.bots = [bot] + extraBots
         isSaving = true
         defer { isSaving = false }
@@ -959,6 +980,9 @@ struct AIAgentFeishuChannelView: View {
 struct AIAgentTelegramChannelView: View {
     let server: ServerConfig
     let agentId: Int
+    /// 私聊策略选项集随智能体类型不同：OpenClaw 全集（含白名单/禁用），
+    /// Hermes/QwenPaw 仅 配队码/开放（抓包确认）
+    var agentType: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var c = AIChannelTelegram()
@@ -973,10 +997,18 @@ struct AIAgentTelegramChannelView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, agentId: Int) {
+    init(server: ServerConfig, agentId: Int, agentType: String? = nil) {
         self.server = server
         self.agentId = agentId
+        self.agentType = agentType
         self.client = APIClient.shared(for: server)
+    }
+
+    /// 私聊策略选项集：OpenClaw 全集，基础类型（Hermes/QwenPaw）仅 配队码/开放
+    private var dmPolicies: [(value: String, label: String)] {
+        agentType == "openclaw"
+            ? AIChannelPolicy.dmPoliciesFull
+            : AIChannelPolicy.dmPoliciesFull.filter { $0.value == "pairing" || $0.value == "open" }
     }
 
     var body: some View {
@@ -995,7 +1027,7 @@ struct AIAgentTelegramChannelView: View {
                         get: { c.enabled ?? false }, set: { c.enabled = $0 }))
                     Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
                         get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
-                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesFull,
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
                                          value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                     if c.dmPolicy == "allowlist" {
                         WhitelistEditor(title: L10n.t("私聊白名单"), list: Binding(
@@ -1047,7 +1079,7 @@ struct AIAgentTelegramChannelView: View {
             Text(errorMessage ?? "")
         }
         .sheet(item: $editingBot) { bot in
-            AITelegramBotFormSheet(bot: bot, isEdit: true) { updated in
+            AITelegramBotFormSheet(bot: bot, isEdit: true, dmOptions: dmPolicies) { updated in
                 // 按打开弹窗时的行身份匹配（sheet 闭包捕获的 bot 快照）：
                 // 允许修改账户 ID——updated.id 已是新值，按它找必然失配、编辑被静默丢弃
                 if let idx = bots.firstIndex(where: { $0.id == bot.id }) {
@@ -1058,7 +1090,8 @@ struct AIAgentTelegramChannelView: View {
         .sheet(isPresented: $showAddBot) {
             AITelegramBotFormSheet(
                 bot: AIChannelTelegramBotItem(enabled: true, isDefault: false, dmPolicy: "open", groupPolicy: "open", streaming: c.streaming ?? "partial"),
-                isEdit: false) { newBot in
+                isEdit: false,
+                dmOptions: dmPolicies) { newBot in
                 bots.append(newBot)
             }
         }
@@ -1211,10 +1244,12 @@ struct AIAgentTelegramChannelView: View {
     }
 }
 
-/// Telegram Bot 新建/编辑表单（名称/账户ID/状态/Token/策略/流式）
+/// Telegram Bot 新建/编辑表单（名称/账户ID/状态/Token/策略/流式）；
+/// 私聊策略选项集随智能体类型由调用方传入
 private struct AITelegramBotFormSheet: View {
     @State var bot: AIChannelTelegramBotItem
     let isEdit: Bool
+    let dmOptions: [(value: String, label: String)]
     let onConfirm: (AIChannelTelegramBotItem) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -1244,7 +1279,7 @@ private struct AITelegramBotFormSheet: View {
                 }
 
                 Section {
-                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesFull,
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmOptions,
                                          value: Binding(get: { bot.dmPolicy ?? "open" }, set: { bot.dmPolicy = $0 }))
                     ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
                                          value: Binding(get: { bot.groupPolicy ?? "open" }, set: { bot.groupPolicy = $0 }))

@@ -185,6 +185,37 @@ struct AIAgentChannelModelsTests {
         #expect(plainObj["textOnly"] == nil)
     }
 
+    @Test("update 体剥离 get 回传标记：视图置 nil 后 installed / domain / connectionMode 不编码")
+    func encodeStripsGetOnlyFields() throws {
+        var qq = AIChannelQQBot()
+        qq.agentId = 13
+        qq.enabled = true
+        qq.dmPolicy = "open"
+        qq.groupPolicy = "open"
+        qq.installed = false
+        qq.bots = [AIChannelQQBotItem(accountId: "default", name: "Default", enabled: true,
+                                      isDefault: true, appId: "123", clientSecret: "123",
+                                      allowFrom: [], systemPrompt: "")]
+        // 视图保存前的剥离动作：get 回传标记置 nil，编码即省略（与网页端 update 体一致）
+        qq.installed = nil
+        let qqObj = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(qq)) as? [String: Any])
+        #expect(qqObj["installed"] == nil)
+
+        var feishu = AIChannelFeishu()
+        feishu.agentId = 13
+        feishu.enabled = true
+        feishu.installed = false
+        feishu.domain = "feishu"
+        feishu.connectionMode = "websocket"
+        feishu.installed = nil
+        feishu.domain = nil
+        feishu.connectionMode = nil
+        let feishuObj = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(feishu)) as? [String: Any])
+        #expect(feishuObj["installed"] == nil)
+        #expect(feishuObj["domain"] == nil)
+        #expect(feishuObj["connectionMode"] == nil)
+    }
+
     @Test("策略取值与抓包一致（pairing / allowlist）")
     func policyValues() {
         let dmValues = AIChannelPolicy.dmPoliciesFull.map(\.value)
