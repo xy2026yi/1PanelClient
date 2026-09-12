@@ -190,9 +190,10 @@ struct AIAgentModelConfigView: View {
                 path: APIEndpoint.aiAgentModelGet.path,
                 body: AIAgentModelRequest(agentId: agentId),
                 as: AIAgentModelConfig.self)
+            // 网页端模型页仅查文本类账号（textOnly，过滤 openai-images 图片账号）
             let resp: PageResponse<AIAccount> = try await client.send(
                 path: APIEndpoint.aiAccountsSearch.path,
-                body: AISearchPageRequest(page: 1, pageSize: 200),
+                body: AISearchPageRequest(page: 1, pageSize: 200, textOnly: true),
                 as: PageResponse<AIAccount>.self)
             accounts = resp.items ?? []
             accountsLoadFailed = false
@@ -218,7 +219,7 @@ struct AIAgentModelConfigView: View {
         do {
             let resp: PageResponse<AIAccount> = try await client.send(
                 path: APIEndpoint.aiAccountsSearch.path,
-                body: AISearchPageRequest(page: 1, pageSize: 200),
+                body: AISearchPageRequest(page: 1, pageSize: 200, textOnly: true),
                 as: PageResponse<AIAccount>.self)
             accounts = resp.items ?? []
             accountsLoadFailed = false

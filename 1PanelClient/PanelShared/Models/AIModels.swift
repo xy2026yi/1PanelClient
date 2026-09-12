@@ -19,11 +19,13 @@ nonisolated struct AIModelRef: Codable, Identifiable, Hashable {
 
 // MARK: - 分页请求
 
-/// AI 模块通用分页查询（accounts/agents/mcp/ollama 列表）
+/// AI 模块通用分页查询（accounts/agents/mcp/ollama 列表）；
+/// 模型绑定场景（智能体创建/模型配置）传 textOnly=true 过滤图片类账号（网页端行为）
 nonisolated struct AISearchPageRequest: Encodable {
     var page: Int = 1
     var pageSize: Int = 20
     var name: String = ""
+    var textOnly: Bool? = nil
 }
 
 // MARK: - 键值对（MCP 环境变量）

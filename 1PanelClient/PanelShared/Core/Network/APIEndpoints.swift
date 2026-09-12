@@ -481,7 +481,7 @@ enum APIEndpoint {
     case aiAgentOtherGet        // POST 其他设置（时区/浏览器/NPM 源；OpenClaw 无控制台账号字段）
     case aiAgentOtherUpdate     // POST 保存其他设置
     case aiAgentSecurityGet     // POST 安全设置读取（OpenClaw：allowedOrigins）
-    case aiAgentSecurityUpdate  // POST 安全设置保存
+    case aiAgentSecurityUpdate  // POST 安全设置保存（全量携带 allowedOrigins，网页端抓包确认）
     case aiAgentConfigFileGet   // POST 读取配置文件 {agentId}
     case aiAgentChannelGet      // POST 频道配置读取（:type = weixin/qqbot/wecom/dingtalk/feishu/telegram/discord）
     case aiAgentChannelUpdate   // POST 频道配置保存（logs/增加和修正.md 确认，凭证在 bots 数组内）

@@ -110,13 +110,14 @@ final class AIAgentsViewModel: ObservableObject {
 
     // MARK: 创建辅助（拉模型账号与其模型池）
 
-    /// 创建表单用：拉模型账号与其模型池；失败返回 nil（区别于「无账号」空数组），
+    /// 创建表单用：拉模型账号与其模型池（textOnly 过滤图片类账号）；
+    /// 失败返回 nil（区别于「无账号」空数组），
     /// 供表单展示可重试的错误态而不是误导性的「暂无可用账号」
     func loadAccounts() async -> [AIAccount]? {
         do {
             let resp: PageResponse<AIAccount> = try await client.send(
                 path: APIEndpoint.aiAccountsSearch.path,
-                body: AISearchPageRequest(page: 1, pageSize: 200),
+                body: AISearchPageRequest(page: 1, pageSize: 200, textOnly: true),
                 as: PageResponse<AIAccount>.self)
             return resp.items ?? []
         } catch {

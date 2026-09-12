@@ -150,6 +150,41 @@ struct AIAgentChannelModelsTests {
         #expect(obj2["accountId"] as? Int == 4)
     }
 
+    @Test("Discord 频道 update 编码（多 Bot + 代理 + defaultAccount，抓包对齐）")
+    func encodeDiscordUpdate() throws {
+        var c = AIChannelDiscord()
+        c.agentId = 12
+        c.enabled = true
+        c.dmPolicy = "pairing"
+        c.allowFrom = []
+        c.requireMention = false
+        c.groupPolicy = "open"
+        c.proxy = ""
+        c.defaultAccount = "1234"
+        c.bots = [
+            AIChannelDiscordBotItem(accountId: "1234", name: "1", enabled: true, isDefault: true, token: "123456"),
+            AIChannelDiscordBotItem(accountId: "234", name: "234", enabled: true, isDefault: false, token: "234564789"),
+        ]
+        let obj = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(c)) as? [String: Any])
+        #expect(obj["dmPolicy"] as? String == "pairing")
+        #expect(obj["defaultAccount"] as? String == "1234")
+        #expect((obj["bots"] as? [[String: Any]])?.count == 2)
+        #expect(obj["streaming"] == nil)
+        #expect(obj["groupAllowFrom"] == nil)
+    }
+
+    @Test("账号搜索请求 textOnly 编码（模型绑定场景过滤图片账号）")
+    func encodeTextOnlySearch() throws {
+        let req = AISearchPageRequest(page: 1, pageSize: 200, textOnly: true)
+        let obj = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(req)) as? [String: Any])
+        #expect(obj["textOnly"] as? Bool == true)
+        #expect(obj["page"] as? Int == 1)
+        // 普通列表查询不携带该字段
+        let plain = AISearchPageRequest()
+        let plainObj = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(plain)) as? [String: Any])
+        #expect(plainObj["textOnly"] == nil)
+    }
+
     @Test("策略取值与抓包一致（pairing / allowlist）")
     func policyValues() {
         let dmValues = AIChannelPolicy.dmPoliciesFull.map(\.value)

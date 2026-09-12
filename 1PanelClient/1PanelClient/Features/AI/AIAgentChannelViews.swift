@@ -581,8 +581,7 @@ struct AIAgentQQChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
-        var bot = bot
-        bot.enabled = c.enabled ?? true
+        // bot.enabled 与顶层开关相互独立（抓包确认：bot 开启 + 顶层关闭同体保存）
         out.bots = [bot] + extraBots
         isSaving = true
         defer { isSaving = false }
@@ -814,8 +813,6 @@ struct AIAgentDingtalkChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
-        var bot = bot
-        bot.enabled = c.enabled ?? true
         out.bots = [bot] + extraBots
         isSaving = true
         defer { isSaving = false }
@@ -940,8 +937,6 @@ struct AIAgentFeishuChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
-        var bot = bot
-        bot.enabled = c.enabled ?? true
         out.bots = [bot] + extraBots
         isSaving = true
         defer { isSaving = false }
@@ -1283,7 +1278,7 @@ private struct AITelegramBotFormSheet: View {
     }
 }
 
-// MARK: - Discord
+// MARK: - Discord（多 Bot 管理，logs/修正3 抓包确认）
 
 struct AIAgentDiscordChannelView: View {
     let server: ServerConfig
@@ -1291,15 +1286,21 @@ struct AIAgentDiscordChannelView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var c = AIChannelDiscord()
-    @State private var bot = AIChannelDiscordBotItem(accountId: "default", name: "Default", enabled: true, isDefault: true)
-    @State private var extraBots: [AIChannelDiscordBotItem] = []
+    @State private var bots: [AIChannelDiscordBotItem] = []
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
     @State private var errorMessage: String?
     @State private var showError = false
+    @State private var editingBot: AIChannelDiscordBotItem?
+    @State private var showAddBot = false
 
     private let client: APIClient
+
+    /// 私聊策略仅 配队码 / 开放；群组策略 开放 / 禁用（抓包确认，无白名单）
+    private var dmPolicies: [(value: String, label: String)] {
+        AIChannelPolicy.dmPoliciesFull.filter { $0.value == "pairing" || $0.value == "open" }
+    }
 
     init(server: ServerConfig, agentId: Int) {
         self.server = server
@@ -1321,20 +1322,24 @@ struct AIAgentDiscordChannelView: View {
                 Section {
                     Toggle(L10n.t("启用"), isOn: Binding(
                         get: { c.enabled ?? false }, set: { c.enabled = $0 }))
-                    SecureField("Token", text: Binding(
-                        get: { bot.token ?? "" }, set: { bot.token = $0 }))
-                        .textInputAutocapitalization(.never)
                     Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
                         get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
-                    ChannelPolicyPicker(title: L10n.t("私聊策略"),
-                                         options: AIChannelPolicy.dmPoliciesFull.filter { $0.value != "allowlist" },
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
                                          value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
-                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
+                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
                                          value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                    TextField(L10n.t("代理服务器"), text: Binding(
+                        get: { c.proxy ?? "" }, set: { c.proxy = $0 }))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
                 }
 
+                botListSection
+
                 if c.dmPolicy == "pairing" {
-                    PairingApproveSection(client: client, agentId: agentId, type: "discord")
+                    PairingApproveSection(client: client, agentId: agentId, type: "discord",
+                                          accountId: c.defaultAccount)
                 }
             }
         }
@@ -1356,6 +1361,129 @@ struct AIAgentDiscordChannelView: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        .sheet(item: $editingBot) { bot in
+            AIDiscordBotFormSheet(bot: bot, isEdit: true) { updated in
+                // 按打开弹窗时的行身份匹配（sheet 闭包捕获的 bot 快照），允许修改账户 ID
+                if let idx = bots.firstIndex(where: { $0.id == bot.id }) {
+                    bots[idx] = updated
+                }
+            }
+        }
+        .sheet(isPresented: $showAddBot) {
+            AIDiscordBotFormSheet(
+                bot: AIChannelDiscordBotItem(enabled: true, isDefault: false),
+                isEdit: false) { newBot in
+                bots.append(newBot)
+            }
+        }
+    }
+
+    private var botListSection: some View {
+        Section {
+            ForEach(bots) { bot in
+                Button {
+                    editingBot = bot
+                } label: {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                Text(bot.name ?? bot.accountId ?? "-")
+                                    .font(.body.bold())
+                                    .foregroundStyle(.primary)
+                                if bot.isDefault == true {
+                                    StatusBadge(text: L10n.t("默认"), color: .blue)
+                                }
+                                if bot.enabled != true {
+                                    StatusBadge(text: L10n.t("未启用"), color: .secondary)
+                                }
+                            }
+                            Text(bot.accountId ?? "-")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 3)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        Task { await removeBot(bot) }
+                    } label: {
+                        Label(L10n.t("删除"), systemImage: "trash")
+                    }
+                    if bot.isDefault != true {
+                        Button {
+                            Task { await setDefaultBot(bot) }
+                        } label: {
+                            Label(L10n.t("设为默认"), systemImage: "star")
+                        }
+                        .tint(.blue)
+                    }
+                }
+            }
+
+            Button {
+                showAddBot = true
+            } label: {
+                Label(L10n.t("新增 Bot"), systemImage: "plus.circle")
+            }
+        } header: {
+            SectionLabel(title: L10n.f("Bot 列表 · 共 %d 个", bots.count), systemImage: "person.2")
+        } footer: {
+            Text(L10n.t("点击 Bot 编辑凭证与状态；删除与设为默认将立即保存"))
+        }
+    }
+
+    /// 变更 bots 后整体保存（与 Telegram 同款：成功回写 defaultAccount，失败回滚）
+    private func saveBots(_ updated: [AIChannelDiscordBotItem], defaultAccount: String? = nil) async {
+        guard !isSaving else { return }
+        let previousBots = bots
+        let previousDefault = c.defaultAccount
+        bots = updated
+        if let defaultAccount {
+            c.defaultAccount = defaultAccount
+        }
+        var out = c
+        out.agentId = agentId
+        out.bots = updated
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "discord"),
+                body: out,
+                as: EmptyResponse.self)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            bots = previousBots
+            c.defaultAccount = previousDefault
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    private func removeBot(_ bot: AIChannelDiscordBotItem) async {
+        var remaining = bots.filter { $0.id != bot.id }
+        if bot.isDefault == true, !remaining.isEmpty {
+            remaining[0].isDefault = true
+            await saveBots(remaining, defaultAccount: remaining[0].accountId)
+        } else {
+            await saveBots(remaining)
+        }
+    }
+
+    private func setDefaultBot(_ bot: AIChannelDiscordBotItem) async {
+        let updated = bots.map { item in
+            var copy = item
+            copy.isDefault = (item.id == bot.id)
+            return copy
+        }
+        await saveBots(updated, defaultAccount: bot.accountId)
     }
 
     private func load() async {
@@ -1365,8 +1493,7 @@ struct AIAgentDiscordChannelView: View {
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelDiscord.self)
             c = resp
-            bot = resp.bots?.first ?? bot
-            extraBots = Array((resp.bots ?? []).dropFirst())
+            bots = resp.bots ?? []
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -1378,9 +1505,7 @@ struct AIAgentDiscordChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
-        var bot = bot
-        bot.enabled = c.enabled ?? true
-        out.bots = [bot] + extraBots
+        out.bots = bots
         isSaving = true
         defer { isSaving = false }
         do {
@@ -1394,5 +1519,57 @@ struct AIAgentDiscordChannelView: View {
             errorMessage = error.localizedDescription
             showError = true
         }
+    }
+}
+
+/// Discord Bot 新建/编辑表单（名称/账户ID/状态/Token，抓包确认无策略项）
+private struct AIDiscordBotFormSheet: View {
+    @State var bot: AIChannelDiscordBotItem
+    let isEdit: Bool
+    let onConfirm: (AIChannelDiscordBotItem) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var canSubmit: Bool {
+        !(bot.name ?? "").isEmpty && !(bot.accountId ?? "").isEmpty && !(bot.token ?? "").isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(L10n.t("名称"), text: Binding(
+                        get: { bot.name ?? "" }, set: { bot.name = $0 }))
+                        .textInputAutocapitalization(.never)
+                    TextField(L10n.t("账户 ID"), text: Binding(
+                        get: { bot.accountId ?? "" }, set: { bot.accountId = $0 }))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { bot.enabled ?? true }, set: { bot.enabled = $0 }))
+                    SecureField("Token", text: Binding(
+                        get: { bot.token ?? "" }, set: { bot.token = $0 }))
+                        .textInputAutocapitalization(.never)
+                } header: {
+                    SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
+                }
+            }
+            .navigationTitle(isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("确定")) {
+                        onConfirm(bot)
+                        dismiss()
+                    }
+                    .disabled(!canSubmit)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.medium])
     }
 }

@@ -19042,6 +19042,17 @@
         }
       }
     },
+    "点击 Bot 编辑凭证与状态；删除与设为默认将立即保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a bot to edit credentials and status; delete and set-as-default save immediately."
+          }
+        }
+      }
+    },
     "点击 Bot 编辑凭证与策略；删除与设为默认将立即保存" : {
       "extractionState" : "manual",
       "localizations" : {
