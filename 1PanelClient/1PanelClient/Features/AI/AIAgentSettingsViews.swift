@@ -159,8 +159,7 @@ struct AIAgentModelConfigView: View {
         }
         .task { await load() }
         .onChange(of: selectedAccountId) { _, newValue in
-            // 切换账号时主模型回落到该账号池中的当前值或首个；
-            // 备用模型属于原账号的模型池，清空待重选
+            // 切换账号时主模型回落到该账号池中的当前值或首个
             if let model = config?.model,
                let account = accounts.first(where: { $0.id == newValue }),
                account.models?.contains(where: { $0.id == model }) == true {
@@ -168,8 +167,13 @@ struct AIAgentModelConfigView: View {
             } else {
                 selectedModel = selectedAccount?.models?.first?.id ?? ""
             }
-            fallbacks = []
-            fallbackCandidate = ""
+            // 备用模型属于原账号的模型池，切走时清空待重选。
+            // 初次载入回填也会触发本 onChange（nil → 配置账号），必须排除，
+            // 否则刚从接口读到的 fallbacks 会被立即清空（显示为「暂无备用模型」）
+            if let configAccount = config?.accountId, newValue != configAccount {
+                fallbacks = []
+                fallbackCandidate = ""
+            }
         }
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
