@@ -46,6 +46,8 @@ struct AIAgentSkillsView: View {
     /// 已安装列表加载失败（与「真无技能」区分，提供重试）
     @State private var installedLoadFailed = false
     @State private var installedLoadError: String?
+    /// 启停操作中的技能名（行级防抖）
+    @State private var updatingSkillNames: Set<String> = []
 
     // 安装进度
     @State private var showProgress = false
@@ -298,7 +300,8 @@ struct AIAgentSkillsView: View {
             if skill.disabled == true {
                 StatusBadge(text: L10n.t("已禁用"), color: .secondary)
             }
-            // 启用/禁用（skills/update，抓包确认；内置技能同样可禁用）
+            // 启用/禁用（skills/update，抓包确认；内置技能同样可禁用）。
+            // 行级防抖：操作中的行禁用，防止并发 update + 交错 reload 导致开关回跳
             Toggle("", isOn: Binding(
                 get: { skill.disabled != true },
                 set: { on in
@@ -306,13 +309,17 @@ struct AIAgentSkillsView: View {
                 }
             ))
             .labelsHidden()
+            .disabled(!updatingSkillNames.isEmpty)
         }
         .padding(.vertical, 3)
     }
 
     /// 启用/禁用技能
     private func setSkillEnabled(_ skill: AIAgentSkillInstalled, enabled: Bool) async {
-        guard let name = skill.name, !name.isEmpty else { return }
+        guard let name = skill.name, !name.isEmpty,
+              !updatingSkillNames.contains(name) else { return }
+        updatingSkillNames.insert(name)
+        defer { updatingSkillNames.remove(name) }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentSkillUpdate.path,

@@ -84,6 +84,10 @@ struct AIAgentDetailView: View {
         .onChange(of: showSkills) { _, shown in
             if !shown { Task { await loadDetail() } }
         }
+        .onChange(of: showPlugins) { _, shown in
+            // 插件启停会重启智能体（抓包确认），返回时刷新状态抽屉
+            if !shown { Task { await loadDetail() } }
+        }
         .navigationDestination(isPresented: $showChannels) {
             AIAgentChannelsView(server: server, agentId: agentId, agentName: agent?.name ?? "",
                                 agentType: agent?.agentType)

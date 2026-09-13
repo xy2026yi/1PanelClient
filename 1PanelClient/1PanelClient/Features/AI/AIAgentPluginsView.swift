@@ -34,7 +34,8 @@ struct AIAgentPluginsView: View {
     @State private var progressTaskID = ""
     @State private var progressTitle = ""
     @State private var showProgress = false
-    @State private var isOperating = false
+    /// 操作中的插件 id（行级 spinner，其余行仅禁用）
+    @State private var operatingPluginID: String?
 
     @State private var toastMessage: String?
     @State private var errorMessage: String?
@@ -77,10 +78,9 @@ struct AIAgentPluginsView: View {
             Text(errorMessage ?? "")
         }
         .navigationDestination(isPresented: $showProgress) {
-            TaskProgressView(taskID: progressTaskID, title: progressTitle, latest: false, node: "local") { isDone in
-                if isDone {
-                    Task { await loadInstalled() }
-                }
+            TaskProgressView(taskID: progressTaskID, title: progressTitle, latest: false, node: "local") { _ in
+                // 完成 or 用户选后台运行：都刷新（后台运行后版本/启停状态仍会变化）
+                Task { await loadInstalled() }
                 return false
             }
         }
@@ -129,7 +129,7 @@ struct AIAgentPluginsView: View {
                             }
                         }
                         Spacer()
-                        if isOperating {
+                        if operatingPluginID == plugin.id {
                             ProgressView().scaleEffect(0.8)
                         } else {
                             Toggle("", isOn: Binding(
@@ -139,6 +139,7 @@ struct AIAgentPluginsView: View {
                                 }
                             ))
                             .labelsHidden()
+                            .disabled(operatingPluginID != nil)
                         }
                     }
                     .padding(.vertical, 3)
@@ -236,7 +237,7 @@ struct AIAgentPluginsView: View {
             Button {
                 Task { await install(plugin) }
             } label: {
-                if isOperating {
+                if operatingPluginID == plugin.id {
                     ProgressView()
                 } else {
                     Text(L10n.t("安装"))
@@ -244,7 +245,7 @@ struct AIAgentPluginsView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
-            .disabled(isOperating)
+            .disabled(operatingPluginID != nil)
         }
         .padding(.vertical, 3)
     }
@@ -287,8 +288,10 @@ struct AIAgentPluginsView: View {
 
     /// 启停插件（operate enable/disable，任务进度）
     private func operate(_ plugin: AIAgentPluginInfo, enabled: Bool) async {
-        isOperating = true
-        defer { isOperating = false }
+        // 进度页在栈期间不再受理新操作（推送字段会被覆盖、旧进度页轮询错位）
+        guard !showProgress, operatingPluginID == nil else { return }
+        operatingPluginID = plugin.id
+        defer { operatingPluginID = nil }
         let taskID = UUID().uuidString
         do {
             let _: EmptyResponse = try await client.send(
@@ -309,8 +312,9 @@ struct AIAgentPluginsView: View {
 
     /// 市场插件安装（带版本）
     private func install(_ plugin: AIAgentMarketPlugin) async {
-        isOperating = true
-        defer { isOperating = false }
+        guard !showProgress, operatingPluginID == nil else { return }
+        operatingPluginID = plugin.id
+        defer { operatingPluginID = nil }
         let taskID = UUID().uuidString
         do {
             let _: EmptyResponse = try await client.send(

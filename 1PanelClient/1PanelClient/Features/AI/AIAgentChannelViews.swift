@@ -302,6 +302,8 @@ struct ChannelPluginSection: View {
     var onChanged: () -> Void = {}
     /// 卸载完成后额外回调（微信：清空本地对接状态）
     var onUninstalled: () -> Void = {}
+    /// 状态加载后回调（微信：用 installed 驱动「删除对接」入口——该频道无 get 接口）
+    var onStatus: (AIAgentPluginStatus?) -> Void = { _ in }
 
     @State private var status: AIAgentPluginStatus?
     @State private var confirmUninstall = false
@@ -358,16 +360,15 @@ struct ChannelPluginSection: View {
                 Text(errorMessage ?? "")
             }
             .navigationDestination(isPresented: $showProgress) {
-                TaskProgressView(taskID: progressTaskID, title: progressTitle, latest: false, node: "local") { isDone in
-                    if isDone {
-                        let wasUninstall = progressIsUninstall
-                        Task {
-                            await load()
-                            await MainActor.run {
-                                // 插件动作完成后：通用刷新；卸载额外回调（get 的 installed 会变化）
-                                onChanged()
-                                if wasUninstall { onUninstalled() }
-                            }
+                TaskProgressView(taskID: progressTaskID, title: progressTitle, latest: false, node: "local") { _ in
+                    // 完成 or 用户选后台运行都刷新（后台运行后插件状态同样变化）
+                    let wasUninstall = progressIsUninstall
+                    Task {
+                        await load()
+                        await MainActor.run {
+                            // 插件动作完成后：通用刷新；卸载额外回调（get 的 installed 会变化）
+                            onChanged()
+                            if wasUninstall { onUninstalled() }
                         }
                     }
                     return false
@@ -387,6 +388,7 @@ struct ChannelPluginSection: View {
             // 检查失败隐藏整区（不影响频道配置）
             status = nil
         }
+        onStatus(status)
     }
 
     private func install() async {
@@ -453,9 +455,10 @@ struct AIAgentWeixinChannelView: View {
     /// OpenClaw 的频道为插件（版本/卸载），抓包确认
     var agentType: String? = nil
 
-    @Environment(\.dismiss) private var dismiss
-
     @State private var enabled = false
+    /// 微信频道无 get 接口：插件 installed 作为对接状态的替代信号，
+    /// 驱动「删除对接」入口（否则重进页面后入口消失）
+    @State private var pluginInstalled = false
     @State private var isLoggingIn = false
     @State private var logLines: [String] = []
     @State private var qrURL: String?
@@ -480,7 +483,11 @@ struct AIAgentWeixinChannelView: View {
                 ChannelPluginSection(client: client, agentId: agentId, type: "weixin",
                                      onUninstalled: {
                                          enabled = false
+                                         pluginInstalled = false
                                          qrURL = nil
+                                     },
+                                     onStatus: { status in
+                                         pluginInstalled = (status?.installed == true)
                                      })
             }
 
@@ -540,7 +547,7 @@ struct AIAgentWeixinChannelView: View {
                 }
             }
 
-            if enabled {
+            if enabled || pluginInstalled {
                 Section {
                     Button(role: .destructive) {
                         confirmDelete = true
@@ -679,6 +686,8 @@ struct AIAgentQQChannelView: View {
     @State private var extraBots: [AIChannelQQBotItem] = []
     /// OpenClaw：Bot 列表整列编辑
     @State private var bots: [AIChannelQQBotItem] = []
+    /// 上次已保存的 Bot 列表快照（滑动删除的组装基准，不含表单草稿）
+    @State private var savedBots: [AIChannelQQBotItem] = []
     @State private var savedC = AIChannelQQBot()
     @State private var isLoading = true
     @State private var isSaving = false
@@ -721,14 +730,6 @@ struct AIAgentQQChannelView: View {
 
                 openclawBotList
 
-                if (savedC.dmPolicy ?? "").isEmpty == false {
-                    // OpenClaw 抓包 update 体无顶层策略，但 get 带值时不丟字段：
-                    // 私聊策略=配队码时仍提供批准配对（带默认账户）
-                    if savedC.dmPolicy == "pairing" {
-                        PairingApproveSection(client: client, agentId: agentId, type: "qqbot",
-                                              accountId: bots.first(where: { $0.isDefault == true })?.accountId)
-                    }
-                }
             } else {
                 Section {
                     Toggle(L10n.t("启用"), isOn: Binding(
@@ -831,7 +832,7 @@ struct AIAgentQQChannelView: View {
                 .buttonStyle(.plain)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
-                        Task { await saveBots(bots.filter { $0.id != bot.id }) }
+                        Task { await removeBot(bot) }
                     } label: {
                         Label(L10n.t("删除"), systemImage: "trash")
                     }
@@ -850,10 +851,26 @@ struct AIAgentQQChannelView: View {
         }
     }
 
-    /// OpenClaw：Bot 删除即时全量保存（顶层取已保存快照，不含草稿）
+    /// 删除 Bot：基于已保存快照组装（不携带表单未保存草稿），
+    /// 删除默认 Bot 时默认让位第一个；至少保留一个（抓包从未出现空 bots 数组）
+    private func removeBot(_ bot: AIChannelQQBotItem) async {
+        guard savedBots.count > 1 else {
+            errorMessage = L10n.t("至少保留一个 Bot")
+            showError = true
+            return
+        }
+        var updated = savedBots.filter { $0.id != bot.id }
+        if bot.isDefault == true, !updated.isEmpty {
+            updated[0].isDefault = true
+        }
+        await saveBots(updated)
+    }
+
+    /// OpenClaw：Bot 删除即时全量保存（顶层与 bots 均取已保存快照，不含草稿）
     private func saveBots(_ updated: [AIChannelQQBotItem]) async {
         guard !isSaving, !updated.isEmpty else { return }
         let previousBots = bots
+        let previousSavedBots = savedBots
         bots = updated
         var out = savedC
         out.agentId = agentId
@@ -872,9 +889,11 @@ struct AIAgentQQChannelView: View {
                 body: out,
                 as: EmptyResponse.self)
             savedC = out
+            savedBots = updated
         } catch {
             guard !APIError.isCancellation(error) else { return }
             bots = previousBots
+            savedBots = previousSavedBots
             errorMessage = error.localizedDescription
             showError = true
         }
@@ -927,6 +946,7 @@ struct AIAgentQQChannelView: View {
                 body: out,
                 as: EmptyResponse.self)
             savedC = out
+            savedBots = out.bots ?? []
             dismiss()
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -1175,6 +1195,8 @@ struct AIAgentDingtalkChannelView: View {
     @State private var extraBots: [AIChannelDingtalkBotItem] = []
     /// OpenClaw：Bot 列表整列编辑
     @State private var bots: [AIChannelDingtalkBotItem] = []
+    /// 上次已保存的 Bot 列表快照（滑动删除的组装基准，不含表单草稿）
+    @State private var savedBots: [AIChannelDingtalkBotItem] = []
     @State private var savedC = AIChannelDingtalk()
     @State private var isLoading = true
     @State private var isSaving = false
@@ -1388,7 +1410,7 @@ struct AIAgentDingtalkChannelView: View {
                 .buttonStyle(.plain)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
-                        Task { await saveBots(bots.filter { $0.id != bot.id }) }
+                        Task { await removeBot(bot) }
                     } label: {
                         Label(L10n.t("删除"), systemImage: "trash")
                     }
@@ -1407,11 +1429,22 @@ struct AIAgentDingtalkChannelView: View {
         }
     }
 
-    /// OpenClaw：Bot 删除即时全量保存（顶层取已保存快照，不含草稿）；
-    /// 钉钉 Bot 无默认标记（抓包 isDefault 恒 false），允许删到零后重新添加
+    /// 删除 Bot：基于已保存快照组装（不含表单草稿）；抓包从未出现空 bots
+    /// 数组，至少保留一个（与 QQ/飞书/Telegram/Discord 一致）
+    private func removeBot(_ bot: AIChannelDingtalkBotItem) async {
+        guard savedBots.count > 1 else {
+            errorMessage = L10n.t("至少保留一个 Bot")
+            showError = true
+            return
+        }
+        await saveBots(savedBots.filter { $0.id != bot.id })
+    }
+
+    /// OpenClaw：Bot 删除即时全量保存（顶层与 bots 均取已保存快照，不含草稿）
     private func saveBots(_ updated: [AIChannelDingtalkBotItem]) async {
-        guard !isSaving else { return }
+        guard !isSaving, !updated.isEmpty else { return }
         let previousBots = bots
+        let previousSavedBots = savedBots
         bots = updated
         var out = savedC
         out.agentId = agentId
@@ -1425,9 +1458,11 @@ struct AIAgentDingtalkChannelView: View {
                 body: out,
                 as: EmptyResponse.self)
             savedC = out
+            savedBots = updated
         } catch {
             guard !APIError.isCancellation(error) else { return }
             bots = previousBots
+            savedBots = previousSavedBots
             errorMessage = error.localizedDescription
             showError = true
         }
@@ -1445,8 +1480,9 @@ struct AIAgentDingtalkChannelView: View {
             if isOpenClaw {
                 if (loaded.dmPolicy ?? "").isEmpty { loaded.dmPolicy = "open" }
                 if (loaded.groupSessionScope ?? "").isEmpty { loaded.groupSessionScope = "group_sender" }
-            } else if (loaded.groupSessionScope ?? "").isEmpty && (loaded.ackText ?? "").isEmpty {
-                // 未配置时按网页端默认值回显（基础类型首次保存体对齐）
+            } else if (loaded.groupSessionScope ?? "").isEmpty {
+                // 未配置（scope 为空，网页端保存必带有效值）时按默认值回显；
+                // 不以 ackText 空串判定——用户主动清空回执保存后重进不应被回填
                 loaded.separateSessionByConversation = true
                 loaded.groupSessionScope = "group_sender"
                 loaded.ackText = "任务已接收，处理中..."
@@ -1455,6 +1491,7 @@ struct AIAgentDingtalkChannelView: View {
             savedC = loaded
             if isOpenClaw {
                 bots = loaded.bots ?? []
+                savedBots = bots
             } else {
                 bot = loaded.bots?.first ?? bot
                 extraBots = Array((loaded.bots ?? []).dropFirst())
@@ -1485,6 +1522,7 @@ struct AIAgentDingtalkChannelView: View {
                 body: out,
                 as: EmptyResponse.self)
             savedC = out
+            savedBots = out.bots ?? []
             dismiss()
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -1579,6 +1617,8 @@ struct AIAgentFeishuChannelView: View {
     @State private var extraBots: [AIChannelFeishuBotItem] = []
     /// OpenClaw：Bot 列表整列编辑
     @State private var bots: [AIChannelFeishuBotItem] = []
+    /// 上次已保存的 Bot 列表快照（滑动删除的组装基准，不含表单草稿）
+    @State private var savedBots: [AIChannelFeishuBotItem] = []
     @State private var savedC = AIChannelFeishu()
     @State private var isLoading = true
     @State private var isSaving = false
@@ -1799,7 +1839,7 @@ struct AIAgentFeishuChannelView: View {
                         .tint(.teal)
                     }
                     Button(role: .destructive) {
-                        Task { await saveBots(bots.filter { $0.id != bot.id }) }
+                        Task { await removeBot(bot) }
                     } label: {
                         Label(L10n.t("删除"), systemImage: "trash")
                     }
@@ -1818,10 +1858,26 @@ struct AIAgentFeishuChannelView: View {
         }
     }
 
-    /// OpenClaw：Bot 删除即时全量保存（顶层取已保存快照，不含草稿）
+    /// 删除 Bot：基于已保存快照组装（不含表单草稿）；至少保留一个，
+    /// 删除默认 Bot 时默认让位第一个
+    private func removeBot(_ bot: AIChannelFeishuBotItem) async {
+        guard savedBots.count > 1 else {
+            errorMessage = L10n.t("至少保留一个 Bot")
+            showError = true
+            return
+        }
+        var updated = savedBots.filter { $0.id != bot.id }
+        if bot.isDefault == true, !updated.isEmpty {
+            updated[0].isDefault = true
+        }
+        await saveBots(updated)
+    }
+
+    /// OpenClaw：Bot 删除即时全量保存（顶层与 bots 均取已保存快照，不含草稿）
     private func saveBots(_ updated: [AIChannelFeishuBotItem]) async {
         guard !isSaving, !updated.isEmpty else { return }
         let previousBots = bots
+        let previousSavedBots = savedBots
         bots = updated
         var out = savedC
         out.agentId = agentId
@@ -1838,9 +1894,11 @@ struct AIAgentFeishuChannelView: View {
                 body: out,
                 as: EmptyResponse.self)
             savedC = out
+            savedBots = updated
         } catch {
             guard !APIError.isCancellation(error) else { return }
             bots = previousBots
+            savedBots = previousSavedBots
             errorMessage = error.localizedDescription
             showError = true
         }
@@ -1882,6 +1940,7 @@ struct AIAgentFeishuChannelView: View {
             savedC = loaded
             if isOpenClaw {
                 bots = loaded.bots ?? []
+                savedBots = bots
             } else {
                 bot = loaded.bots?.first ?? bot
                 extraBots = Array((loaded.bots ?? []).dropFirst())
@@ -1916,6 +1975,7 @@ struct AIAgentFeishuChannelView: View {
                 body: out,
                 as: EmptyResponse.self)
             savedC = out
+            savedBots = out.bots ?? []
             dismiss()
         } catch {
             guard !APIError.isCancellation(error) else { return }

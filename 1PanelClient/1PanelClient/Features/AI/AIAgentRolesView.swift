@@ -32,9 +32,15 @@ struct AIAgentRolesView: View {
         self.client = APIClient.shared(for: server)
     }
 
-    /// 模型候选：文本类账号的模型池平铺（id 显示）
+    /// 模型候选：文本类账号的模型池平铺去重（多账号含相同模型 id 时 Picker 会重复 tag）
     private var modelOptions: [String] {
-        accounts.flatMap { $0.models?.map(\.id) ?? [] }
+        var seen = Set<String>()
+        var result: [String] = []
+        for id in accounts.flatMap({ $0.models?.map(\.id) ?? [] }) where !seen.contains(id) {
+            seen.insert(id)
+            result.append(id)
+        }
+        return result
     }
 
     var body: some View {
@@ -70,6 +76,8 @@ struct AIAgentRolesView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                // 加载期间禁用：进 Sheet 会拿到空的频道/模型数据源
+                .disabled(isLoading || loadError != nil)
                 .accessibilityLabel(L10n.t("创建角色"))
             }
         }
@@ -126,12 +134,12 @@ struct AIAgentRolesView: View {
                     Button(role: .destructive) {
                         Task { await unbind(role, binding) }
                     } label: {
-                        Label(L10n.t("取消绑定"), systemImage: "link.badge.plus")
+                        Label(L10n.t("取消绑定"), systemImage: "minus.circle")
                     }
                 }
             }
 
-            RoleBindRow(channels: channels) { channel, account in
+            RoleBindRow(channels: channels, existingBindings: role.bindings ?? []) { channel, account in
                 Task { await bind(role, channel: channel, account: account) }
             }
 
@@ -148,6 +156,11 @@ struct AIAgentRolesView: View {
     // MARK: 操作
 
     private func bind(_ role: AIAgentRole, channel: String, account: String) async {
+        // 查重：重复绑定会让服务端回显重复行，行 ID（channel:accountId）冲突导致列表错乱
+        guard !(role.bindings ?? []).contains(where: { $0.channel == channel && $0.accountId == account }) else {
+            toastMessage = L10n.t("该频道已绑定此账户")
+            return
+        }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentRoleBind.path,
@@ -226,6 +239,8 @@ struct AIAgentRolesView: View {
 
 struct RoleBindRow: View {
     let channels: [AIAgentRoleChannel]
+    /// 当前角色已有绑定（频道选项标注「已绑定」）
+    var existingBindings: [AIAgentRoleBinding] = []
     let onAdd: (String, String) -> Void
 
     @State private var channel: String = ""
@@ -235,12 +250,20 @@ struct RoleBindRow: View {
         channels.first(where: { $0.name == channel })?.accountIds ?? []
     }
 
+    private func isBound(_ name: String) -> Bool {
+        existingBindings.contains(where: { $0.channel == name })
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             Picker(L10n.t("频道"), selection: $channel) {
                 Text(L10n.t("请选择")).tag("")
                 ForEach(channels) { ch in
-                    Text(ch.name).tag(ch.name)
+                    if isBound(ch.name) {
+                        Text("\(ch.name)（\(L10n.t("已绑定"))）").tag(ch.name)
+                    } else {
+                        Text(ch.name).tag(ch.name)
+                    }
                 }
             }
             .onChange(of: channel) { _, _ in

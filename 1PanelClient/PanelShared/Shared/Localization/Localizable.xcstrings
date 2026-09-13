@@ -13668,8 +13668,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Try a different keyword"
           }
         }
       }
@@ -25000,6 +25000,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This panel uses a plain HTTP connection"
+          }
+        }
+      }
+    },
+    "该频道已绑定此账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This channel is already bound to this account"
           }
         }
       }

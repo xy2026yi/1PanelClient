@@ -162,7 +162,7 @@ nonisolated struct AIAgentModelUpdateRequest: Encodable {
 
 nonisolated struct AIAgentSkillSearchRequest: Encodable {
     let agentId: Int
-    /// official / skills-sh
+    /// clawhub-cn / clawhub-global / skillhub（OpenClaw 抓包确认）
     let source: String
     let keyword: String
 }
@@ -174,9 +174,9 @@ nonisolated struct AIAgentSkillItem: Decodable, Identifiable, Hashable {
     let description: String?
     let summary: String?
     let version: String?
-    /// official / skills-sh / builtin
+    /// clawhub-* / skillhub（市场返回）
     let source: String?
-    /// official / skills-sh / builtin
+    /// 同 source 取值集
     let trust: String?
     let score: String?
 
