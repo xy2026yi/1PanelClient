@@ -12,6 +12,8 @@ import Combine
 struct ManageTab: View {
     @ObservedObject var manager: ServerManager
     @StateObject private var prefs = ManagePrefs()
+    /// 高级功能门禁：license / 连点解锁状态变化时根列表与 Hub 即时重渲染
+    @ObservedObject private var gate = AdvancedFeatureGate.shared
     /// 导航路径由 MainTabView 持有：iPad 窗口缩放跨尺寸类切换时双形态分支互换、
     /// 整棵导航树重建，@State 会随重建清空而跳回管理根页
     @Binding var navPath: NavigationPath
@@ -33,15 +35,19 @@ struct ManageTab: View {
         NavigationStack(path: $navPath) {
             List {
                 ForEach(Array(ManageItem.groups.enumerated()), id: \.offset) { _, group in
-                    Section {
-                        ForEach(group.items) { item in
-                            if prefs.isEnabled(item) {
+                    // 门禁项隐藏后整组为空时不渲染分组（含分组标题）
+                    let visibleItems = group.items.filter {
+                        gate.shows($0, prefsEnabled: prefs.isEnabled($0))
+                    }
+                    if !visibleItems.isEmpty {
+                        Section {
+                            ForEach(visibleItems) { item in
                                 manageRow(item)
                             }
-                        }
-                    } header: {
-                        if !group.title.isEmpty {
-                            Text(group.title)
+                        } header: {
+                            if !group.title.isEmpty {
+                                Text(group.title)
+                            }
                         }
                     }
                 }
@@ -108,6 +114,12 @@ struct ManageTab: View {
                 pushIfNeeded(newItem)
             }
             initialItem = nil
+        }
+        // 进入 / 切换服务器时刷新许可证检测（结果按服务器缓存）
+        .task(id: manager.current?.id) {
+            if let server = manager.current {
+                await gate.refresh(server: server)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .popAppDetail)) { _ in
             popToAppList()
@@ -271,6 +283,7 @@ struct ManageHubView: View {
     let title: String
     let items: [ManageItem]
     @EnvironmentObject private var prefs: ManagePrefs
+    @ObservedObject private var gate = AdvancedFeatureGate.shared
 
     init(title: String, items: [ManageItem]) {
         self.title = title
@@ -280,7 +293,7 @@ struct ManageHubView: View {
     var body: some View {
         List {
             Section {
-                ForEach(items.filter { prefs.isEnabled($0) }) { item in
+                ForEach(items.filter { gate.shows($0, prefsEnabled: prefs.isEnabled($0)) }) { item in
                     NavigationLink(value: item) {
                         HStack(spacing: 14) {
                             IconBadge(systemName: item.icon, color: item.color)
@@ -309,6 +322,7 @@ struct ManageHubView: View {
 struct ManageEditView: View {
     @ObservedObject var prefs: ManagePrefs
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var gate = AdvancedFeatureGate.shared
 
     var body: some View {
         NavigationStack {
@@ -320,22 +334,31 @@ struct ManageEditView: View {
                 }
 
                 ForEach(Array(ManageItem.groups.enumerated()), id: \.offset) { _, group in
-                    Section {
-                        ForEach(group.items) { item in
-                            manageEditRow(item)
-                        }
-                    } header: {
-                        if !group.title.isEmpty {
-                            Text(group.title)
+                    // 门禁锁定项（无 license 且未连点解锁）不出现在编辑列表：
+                    // 在这里开启会绕过门禁
+                    let editableItems = group.items.filter { gate.shows($0, prefsEnabled: true) }
+                    if !editableItems.isEmpty {
+                        Section {
+                            ForEach(editableItems) { item in
+                                manageEditRow(item)
+                            }
+                        } header: {
+                            if !group.title.isEmpty {
+                                Text(group.title)
+                            }
                         }
                     }
                 }
 
                 // Hub 二级子项：不占管理根列表，但同样受「自定义功能」控制
-                // （告警/备份账号等移入 Hub 后，老的隐藏偏好要能继续生效与修改）
-                Section(L10n.t("二级功能")) {
-                    ForEach(ManageItem.hubChildren) { item in
-                        manageEditRow(item)
+                // （告警/备份账号等移入 Hub 后，老的隐藏偏好要能继续生效与修改）；
+                // 门禁锁定项排除
+                let editableChildren = ManageItem.hubChildren.filter { gate.shows($0, prefsEnabled: true) }
+                if !editableChildren.isEmpty {
+                    Section(L10n.t("二级功能")) {
+                        ForEach(editableChildren) { item in
+                            manageEditRow(item)
+                        }
                     }
                 }
             }
@@ -571,7 +594,14 @@ enum ManageItem: String, Identifiable {
         case .panelSettings: return L10n.t("告警通知 / 备份账号 / 许可证")
         case .basicSettings: return L10n.t("面板别名 / 超时 / 代理 / 运行环境")
         case .license:     return L10n.t("专业版授权绑定 / 同步")
-        case .ai:          return L10n.t("模型账号 / 智能体 / MCP / Ollama / vLLM / 模型下载")
+        case .ai: return {
+            // 门禁锁定时不出现 vLLM / 模型下载字样（避免自我暴露隐藏功能）
+            let gate = AdvancedFeatureGate.shared
+            if gate.serverLicensed == true || gate.isUnlocked {
+                return L10n.t("模型账号 / 智能体 / MCP / Ollama / vLLM / 模型下载")
+            }
+            return L10n.t("模型账号 / 智能体 / MCP / Ollama")
+        }()
         case .aiAccounts:  return L10n.t("模型供应商账号与模型池")
         case .aiAgents:    return L10n.t("OpenClaw / Hermes Agent / QwenPaw")
         case .aiMcp:       return L10n.t("MCP Server 网关管理")

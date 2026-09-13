@@ -221,10 +221,18 @@ struct AboutDetailView: View {
 private struct AboutDetailContent: View {
     var onOpen: (SettingsRoute) -> Void
 
+    @ObservedObject private var gate = AdvancedFeatureGate.shared
+    /// 连点版本号解锁计数（Android 开发者选项同款彩蛋）
+    @State private var versionTaps = 0
+    @State private var tapToast: String?
+    private static let unlockTaps = 7
+
     var body: some View {
         List {
             Section(L10n.t("版本信息")) {
                 LabeledContent(L10n.t("版本"), value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0")
+                    .contentShape(Rectangle())
+                    .onTapGesture { handleVersionTap() }
                 LabeledContent(L10n.t("API 版本"), value: "v2")
             }
             Section {
@@ -245,6 +253,26 @@ private struct AboutDetailContent: View {
                     Label(L10n.t("诊断数据（本地）"), systemImage: "stethoscope")
                 }
             }
+        }
+        .localToast(message: $tapToast)
+    }
+
+    // MARK: 连点解锁（7 次，第 3 次起渐进提示；一次性解锁后交给「管理→编辑」管控）
+
+    private func handleVersionTap() {
+        if gate.isUnlocked {
+            tapToast = L10n.t("高级功能入口已开启，可在「管理 → 编辑」中调整")
+            return
+        }
+        versionTaps += 1
+        let remaining = Self.unlockTaps - versionTaps
+        if remaining <= 0 {
+            gate.unlock()
+            versionTaps = 0
+            Haptic.success()
+            tapToast = L10n.t("已开启高级功能入口，可在「管理 → 编辑」中调整")
+        } else if remaining <= Self.unlockTaps - 3 {
+            tapToast = L10n.f("再点 %d 次开启高级功能入口", remaining)
         }
     }
 }
