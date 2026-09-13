@@ -216,8 +216,11 @@ struct AIAgentDetailView: View {
             }
 
             Section {
-                configLink(L10n.t("频道"), icon: "bubble.left.and.bubble.right") { showChannels = true }
-                configLink(L10n.t("技能"), icon: "wand.and.stars") { showSkills = true }
+                // QwenPaw(copaw) 无频道/技能功能（网页端无入口，用户确认），仅保留日志
+                if let a = agent, !isCopawAgent(a) {
+                    configLink(L10n.t("频道"), icon: "bubble.left.and.bubble.right") { showChannels = true }
+                    configLink(L10n.t("技能"), icon: "wand.and.stars") { showSkills = true }
+                }
                 configLink(L10n.t("日志"), icon: "doc.text.magnifyingglass") { showLog = true }
             } header: {
                 SectionLabel(title: L10n.t("配置"), systemImage: "slider.horizontal.3")
