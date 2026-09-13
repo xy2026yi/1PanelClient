@@ -292,21 +292,24 @@ private struct PairingApproveSection: View {
 // MARK: - 频道插件区（OpenClaw 频道为插件：版本 / 卸载带进度）
 
 /// 频道页顶部插件状态区：plugin/check（checkLatest=true 取最新版本）；
-/// 已安装 → 版本 + 卸载；未安装 → 安装（plugin/install，taskID 驱动进度页）；
+/// 已安装 → 版本 + 升级 + 卸载；未安装 → 安装（plugin/install，taskID 驱动进度页）；
 /// 检查失败时整区隐藏
 struct ChannelPluginSection: View {
     let client: APIClient
     let agentId: Int
     let type: String
+    /// 任一插件动作（安装/升级/卸载）完成后的通用刷新
+    var onChanged: () -> Void = {}
+    /// 卸载完成后额外回调（微信：清空本地对接状态）
     var onUninstalled: () -> Void = {}
-    var onInstalled: () -> Void = {}
 
     @State private var status: AIAgentPluginStatus?
-    @State private var isLoading = true
     @State private var confirmUninstall = false
     @State private var progressTaskID = ""
     @State private var showProgress = false
     @State private var progressTitle = ""
+    /// 进度页对应的动作（uninstall：完成时分派 onUninstalled）
+    @State private var progressIsUninstall = false
     @State private var errorMessage: String?
     @State private var showError = false
 
@@ -354,24 +357,23 @@ struct ChannelPluginSection: View {
             } message: {
                 Text(errorMessage ?? "")
             }
-            .background(
-                NavigationLink(isActive: $showProgress) {
-                    TaskProgressView(taskID: progressTaskID, title: progressTitle, latest: false, node: "local") { isDone in
-                        if isDone {
-                            Task {
-                                await load()
-                                await MainActor.run {
-                                    // 卸载/安装完成后回调刷新频道配置（get 的 installed 会变化）
-                                    onUninstalled()
-                                    onInstalled()
-                                }
+            .navigationDestination(isPresented: $showProgress) {
+                TaskProgressView(taskID: progressTaskID, title: progressTitle, latest: false, node: "local") { isDone in
+                    if isDone {
+                        let wasUninstall = progressIsUninstall
+                        Task {
+                            await load()
+                            await MainActor.run {
+                                // 插件动作完成后：通用刷新；卸载额外回调（get 的 installed 会变化）
+                                onChanged()
+                                if wasUninstall { onUninstalled() }
                             }
                         }
-                        return false
                     }
-                } label: { EmptyView() }
-                .hidden()
-            )
+                    return false
+                }
+            }
+            .task { await load() }
         }
     }
 
@@ -385,7 +387,6 @@ struct ChannelPluginSection: View {
             // 检查失败隐藏整区（不影响频道配置）
             status = nil
         }
-        isLoading = false
     }
 
     private func install() async {
@@ -397,6 +398,7 @@ struct ChannelPluginSection: View {
                 as: EmptyResponse.self)
             progressTaskID = taskID
             progressTitle = L10n.t("安装插件")
+            progressIsUninstall = false
             showProgress = true
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -414,6 +416,7 @@ struct ChannelPluginSection: View {
                 as: EmptyResponse.self)
             progressTaskID = taskID
             progressTitle = L10n.t("升级插件")
+            progressIsUninstall = false
             showProgress = true
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -431,6 +434,7 @@ struct ChannelPluginSection: View {
                 as: EmptyResponse.self)
             progressTaskID = taskID
             progressTitle = L10n.t("卸载插件")
+            progressIsUninstall = true
             showProgress = true
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -473,10 +477,11 @@ struct AIAgentWeixinChannelView: View {
     var body: some View {
         List {
             if agentType == "openclaw" {
-                ChannelPluginSection(client: client, agentId: agentId, type: "weixin") {
-                    enabled = false
-                    qrURL = nil
-                }
+                ChannelPluginSection(client: client, agentId: agentId, type: "weixin",
+                                     onUninstalled: {
+                                         enabled = false
+                                         qrURL = nil
+                                     })
             }
 
             Section {
@@ -1729,13 +1734,15 @@ struct AIAgentFeishuChannelView: View {
         // 行内批准配对（私聊策略=配队码的 Bot）
         .alert(L10n.t("批准配对"), isPresented: Binding(
             get: { pairingBot != nil },
-            set: { if !$0 { pairingBot = nil; pairingCode = "" } }
+            set: { if !$0 { pairingBot = nil } }
         )) {
             TextField(L10n.t("配对码"), text: $pairingCode)
                 .keyboardType(.numberPad)
             Button(L10n.t("批准配对")) {
+                // alert 关闭先于 Task 执行：配对码在 action 内捕获，避免发出空串
                 if let bot = pairingBot {
-                    Task { await approvePairing(bot) }
+                    let code = pairingCode
+                    Task { await approvePairing(bot, code: code) }
                 }
             }
             .disabled(pairingCode.isEmpty || isApproving)
@@ -1839,8 +1846,8 @@ struct AIAgentFeishuChannelView: View {
         }
     }
 
-    /// 行内批准配对（带该 Bot 的 accountId）
-    private func approvePairing(_ bot: AIChannelFeishuBotItem) async {
+    /// 行内批准配对（带该 Bot 的 accountId；配对码由调用方捕获传入）
+    private func approvePairing(_ bot: AIChannelFeishuBotItem, code: String) async {
         isApproving = true
         defer { isApproving = false }
         do {
@@ -1848,7 +1855,7 @@ struct AIAgentFeishuChannelView: View {
                 path: APIEndpoint.aiAgentChannelPairingApprove.path,
                 body: AIAgentChannelPairingApproveRequest(
                     agentId: agentId, type: "feishu",
-                    pairingCode: pairingCode, accountId: bot.accountId),
+                    pairingCode: code, accountId: bot.accountId),
                 as: EmptyResponse.self)
             pairingBot = nil
             pairingCode = ""
@@ -2505,13 +2512,15 @@ struct AIAgentDiscordChannelView: View {
         // 行内批准配对（Bot 列表滑动操作）
         .alert(L10n.t("批准配对"), isPresented: Binding(
             get: { pairingBot != nil },
-            set: { if !$0 { pairingBot = nil; pairingCode = "" } }
+            set: { if !$0 { pairingBot = nil } }
         )) {
             TextField(L10n.t("配对码"), text: $pairingCode)
                 .keyboardType(.numberPad)
             Button(L10n.t("批准配对")) {
+                // alert 关闭先于 Task 执行：配对码在 action 内捕获，避免发出空串
                 if let bot = pairingBot {
-                    Task { await approvePairing(bot) }
+                    let code = pairingCode
+                    Task { await approvePairing(bot, code: code) }
                 }
             }
             .disabled(pairingCode.isEmpty || isApproving)
@@ -2651,8 +2660,8 @@ struct AIAgentDiscordChannelView: View {
         await saveBots(updated, defaultAccount: bot.accountId)
     }
 
-    /// 行内批准配对（带该 Bot 的 accountId，抓包确认）
-    private func approvePairing(_ bot: AIChannelDiscordBotItem) async {
+    /// 行内批准配对（带该 Bot 的 accountId；配对码由调用方捕获传入）
+    private func approvePairing(_ bot: AIChannelDiscordBotItem, code: String) async {
         isApproving = true
         defer { isApproving = false }
         do {
@@ -2660,7 +2669,7 @@ struct AIAgentDiscordChannelView: View {
                 path: APIEndpoint.aiAgentChannelPairingApprove.path,
                 body: AIAgentChannelPairingApproveRequest(
                     agentId: agentId, type: "discord",
-                    pairingCode: pairingCode, accountId: bot.accountId),
+                    pairingCode: code, accountId: bot.accountId),
                 as: EmptyResponse.self)
             pairingBot = nil
             pairingCode = ""

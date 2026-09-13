@@ -108,7 +108,9 @@ struct AIAgentSkillsView: View {
             }
         }
         .navigationDestination(isPresented: $showProgress) {
-            TaskProgressView(taskID: installTaskID, title: L10n.f("安装技能 %@", installingName)) { isDone in
+            // 任务日志按 taskID 从头读（latest=false，operateNode=local），对齐网页端抓包
+            TaskProgressView(taskID: installTaskID, title: L10n.f("安装技能 %@", installingName),
+                             latest: false, node: "local") { isDone in
                 if isDone {
                     Task { await loadInstalled() }
                 }
