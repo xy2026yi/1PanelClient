@@ -13,16 +13,18 @@ struct AIAgentSkillsView: View {
     let agentId: Int
     let agentName: String
 
-    /// 市场来源
+    /// 市场来源（OpenClaw 抓包确认：clawhub 中国/全球 + SkillHub 腾讯）
     enum SkillSource: String, CaseIterable, Identifiable {
-        case official = "official"
-        case skillsSh = "skills-sh"
+        case clawhubCN = "clawhub-cn"
+        case clawhubGlobal = "clawhub-global"
+        case skillhub = "skillhub"
 
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .official: return L10n.t("官方")
-            case .skillsSh: return "skills.sh"
+            case .clawhubCN: return "Clawhub（" + L10n.t("中国") + "）"
+            case .clawhubGlobal: return "Clawhub（" + L10n.t("全球") + "）"
+            case .skillhub: return "SkillHub（" + L10n.t("腾讯") + "）"
             }
         }
     }
@@ -30,7 +32,7 @@ struct AIAgentSkillsView: View {
     @State private var mode = 0 // 0 市场 / 1 已安装
 
     // 市场
-    @State private var source: SkillSource = .official
+    @State private var source: SkillSource = .clawhubCN
     @State private var keyword = ""
     @State private var marketItems: [AIAgentSkillItem] = []
     @State private var isSearching = false
@@ -206,13 +208,30 @@ struct AIAgentSkillsView: View {
 
     // MARK: - 已安装
 
-    /// uninstallable=true 为用户安装，false 为内置
-    private var installedSkills: [AIAgentSkillInstalled] {
-        installed.filter { $0.uninstallable == true }
-    }
-
-    private var builtinSkills: [AIAgentSkillInstalled] {
-        installed.filter { $0.uninstallable != true }
+    /// 按 source 前缀分组（抓包确认）：openclaw-bundled 内置 /
+    /// openclaw-extra 扩展 / openclaw-managed 外部；旧值/未知归其他
+    private var groupedInstalled: [(title: String, icon: String, items: [AIAgentSkillInstalled])] {
+        let groups: [(prefix: String, title: String, icon: String)] = [
+            ("openclaw-bundled", L10n.t("内置技能"), "seal.fill"),
+            ("openclaw-extra", L10n.t("扩展技能"), "arrow.down.circle.fill"),
+            ("openclaw-managed", L10n.t("外部技能"), "shippingbox.fill"),
+        ]
+        var result: [(String, String, [AIAgentSkillInstalled])] = []
+        for group in groups {
+            let items = installed.filter { ($0.source ?? "").hasPrefix(group.prefix) }
+            if !items.isEmpty {
+                result.append((group.title, group.icon, items))
+            }
+        }
+        let known = Set(groups.map(\.prefix))
+        let others = installed.filter { item in
+            guard let s = item.source, !s.isEmpty else { return true }
+            return !known.contains(where: { s.hasPrefix($0) })
+        }
+        if !others.isEmpty {
+            result.append((L10n.t("其他"), "circle.grid.cross", others))
+        }
+        return result
     }
 
     @ViewBuilder
@@ -239,38 +258,26 @@ struct AIAgentSkillsView: View {
                 .listRowBackground(Color.clear)
             }
         } else {
-            if !installedSkills.isEmpty {
+            ForEach(Array(groupedInstalled.enumerated()), id: \.offset) { _, group in
                 Section {
-                    ForEach(installedSkills) { skill in
-                        installedRow(skill, builtin: false)
+                    ForEach(group.items) { skill in
+                        installedRow(skill, icon: group.icon)
                     }
                 } header: {
                     SectionLabel(
-                        title: L10n.f("已安装 · 共 %d 个", installedSkills.count),
-                        systemImage: "checkmark.seal"
-                    )
-                }
-            }
-            if !builtinSkills.isEmpty {
-                Section {
-                    ForEach(builtinSkills) { skill in
-                        installedRow(skill, builtin: true)
-                    }
-                } header: {
-                    SectionLabel(
-                        title: L10n.f("内置 · 共 %d 个", builtinSkills.count),
-                        systemImage: "seal"
+                        title: L10n.f("%@ · 共 %d 个", group.title, group.items.count),
+                        systemImage: group.icon
                     )
                 }
             }
         }
     }
 
-    private func installedRow(_ skill: AIAgentSkillInstalled, builtin: Bool) -> some View {
+    private func installedRow(_ skill: AIAgentSkillInstalled, icon: String) -> some View {
         HStack(spacing: 12) {
             IconBadge(
-                systemName: builtin ? "seal.fill" : "checkmark.seal.fill",
-                color: builtin ? .secondary : .statusRunning,
+                systemName: skill.disabled == true ? "moon.zzz.fill" : icon,
+                color: skill.disabled == true ? .secondary : .statusRunning,
                 size: 38,
                 cornerRadius: 9
             )
@@ -286,11 +293,34 @@ struct AIAgentSkillsView: View {
                 }
             }
             Spacer()
-            if let src = skill.source, !src.isEmpty {
-                StatusBadge(text: src, color: .secondary)
+            if skill.disabled == true {
+                StatusBadge(text: L10n.t("已禁用"), color: .secondary)
             }
+            // 启用/禁用（skills/update，抓包确认；内置技能同样可禁用）
+            Toggle("", isOn: Binding(
+                get: { skill.disabled != true },
+                set: { on in
+                    Task { await setSkillEnabled(skill, enabled: on) }
+                }
+            ))
+            .labelsHidden()
         }
         .padding(.vertical, 3)
+    }
+
+    /// 启用/禁用技能
+    private func setSkillEnabled(_ skill: AIAgentSkillInstalled, enabled: Bool) async {
+        guard let name = skill.name, !name.isEmpty else { return }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentSkillUpdate.path,
+                body: AIAgentSkillUpdateRequest(agentId: agentId, name: name, enabled: enabled),
+                as: EmptyResponse.self)
+            await loadInstalled()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            toastMessage = L10n.f("操作失败：%@", error.localizedDescription)
+        }
     }
 
     // MARK: - 数据

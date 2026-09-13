@@ -492,6 +492,20 @@ enum APIEndpoint {
     case aiAgentPluginInstall    // POST 频道插件安装 {agentId, type, taskID}（带任务进度）
     case aiAgentPluginUpgrade    // POST 频道插件升级 {agentId, type, taskID}（带任务进度）
     case aiAgentPluginUninstall  // POST 频道插件卸载 {agentId, type, taskID}（带任务进度）
+    // 角色（OpenClaw 多角色）
+    case aiAgentRolesList        // POST 角色列表 {agentId}（含频道绑定）
+    case aiAgentRoleChannels     // POST 可绑定频道 {agentId}（含账号列表）
+    case aiAgentRoleCreate       // POST 创建角色 {agentId, name, model, bindings}
+    case aiAgentRoleBind         // POST 绑定频道 {agentId, id, channel, accountId}
+    case aiAgentRoleUnbind       // POST 解绑频道 [推测：抓包缺失，与 bind 对称]
+    case aiAgentRoleDelete       // POST 删除角色 {agentId, id}
+    // 技能启停
+    case aiAgentSkillUpdate      // POST 技能启用/禁用 {agentId, name, enabled}
+    // 智能体插件（与频道插件两套端点）
+    case aiAgentPluginsList      // POST 已安装插件 {agentId}
+    case aiAgentPluginsOperate   // POST 插件启停 {agentId, pluginId, operate, taskID}（带进度）
+    case aiAgentPluginsSearch    // POST 插件市场搜索 {agentId, keyword, limit}
+    case aiAgentPluginsInstall   // POST 市场插件安装 {agentId, package, version, taskID}（带进度）
     // MCP
     case aiMcpSearch            // POST 分页查询 MCP Server {page, pageSize, name}
     case aiMcpServerCreate      // POST 创建 MCP Server（带 taskID）
@@ -940,6 +954,17 @@ enum APIEndpoint {
         case .aiAgentPluginInstall:   return "/api/v2/ai/agents/plugin/install"
         case .aiAgentPluginUpgrade:   return "/api/v2/ai/agents/plugin/upgrade"
         case .aiAgentPluginUninstall: return "/api/v2/ai/agents/plugin/uninstall"
+        case .aiAgentRolesList:       return "/api/v2/ai/agents/agent/list"
+        case .aiAgentRoleChannels:    return "/api/v2/ai/agents/agent/channels"
+        case .aiAgentRoleCreate:      return "/api/v2/ai/agents/agent/create"
+        case .aiAgentRoleBind:        return "/api/v2/ai/agents/agent/bind"
+        case .aiAgentRoleUnbind:      return "/api/v2/ai/agents/agent/unbind"
+        case .aiAgentRoleDelete:      return "/api/v2/ai/agents/agent/delete"
+        case .aiAgentSkillUpdate:     return "/api/v2/ai/agents/skills/update"
+        case .aiAgentPluginsList:     return "/api/v2/ai/agents/plugins/list"
+        case .aiAgentPluginsOperate:  return "/api/v2/ai/agents/plugins/operate"
+        case .aiAgentPluginsSearch:   return "/api/v2/ai/agents/plugins/search"
+        case .aiAgentPluginsInstall:  return "/api/v2/ai/agents/plugins/install"
         case .aiMcpSearch:           return "/api/v2/ai/mcp/search"
         case .aiMcpServerCreate:     return "/api/v2/ai/mcp/server"
         case .aiMcpServerUpdate:     return "/api/v2/ai/mcp/server/update"

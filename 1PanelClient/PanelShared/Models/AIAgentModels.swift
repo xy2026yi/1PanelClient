@@ -277,6 +277,121 @@ nonisolated struct AIAgentChannelPairingApproveRequest: Encodable {
     var accountId: String? = nil
 }
 
+// MARK: - 角色（OpenClaw 多角色：/api/v2/ai/agents/agent/*）
+
+/// POST agent/list {agentId} 返回的角色
+nonisolated struct AIAgentRole: Decodable, Identifiable, Hashable {
+    let id: String
+    let name: String?
+    let workspace: String?
+    let model: String?
+    let agentDir: String?
+    let bindings: [AIAgentRoleBinding]?
+}
+
+nonisolated struct AIAgentRoleBinding: Codable, Hashable, Identifiable {
+    var channel: String?
+    var accountId: String?
+    var id: String { (channel ?? "?") + ":" + (accountId ?? "?") }
+}
+
+/// POST agent/channels {agentId} 返回的可绑定频道（含账号列表）
+nonisolated struct AIAgentRoleChannel: Decodable, Hashable, Identifiable {
+    let name: String
+    let bound: Bool?
+    let accountIds: [String]?
+    var id: String { name }
+}
+
+/// POST agent/create {agentId, name, model, bindings}
+nonisolated struct AIAgentRoleCreateRequest: Encodable {
+    let agentId: Int
+    let name: String
+    let model: String
+    let bindings: [AIAgentRoleBinding]
+}
+
+/// POST agent/bind {agentId, id, channel, accountId}
+nonisolated struct AIAgentRoleBindRequest: Encodable {
+    let agentId: Int
+    let id: String
+    let channel: String
+    let accountId: String
+}
+
+/// POST agent/unbind [推测：抓包缺失，与 bind 对称]
+nonisolated struct AIAgentRoleUnbindRequest: Encodable {
+    let agentId: Int
+    let id: String
+    let channel: String
+    let accountId: String
+}
+
+/// POST agent/delete {agentId, id}
+nonisolated struct AIAgentRoleDeleteRequest: Encodable {
+    let agentId: Int
+    let id: String
+}
+
+// MARK: - 技能启停（skills/update）
+
+/// POST /api/v2/ai/agents/skills/update {agentId, name, enabled}
+nonisolated struct AIAgentSkillUpdateRequest: Encodable {
+    let agentId: Int
+    let name: String
+    let enabled: Bool
+}
+
+// MARK: - 智能体插件（OpenClaw：plugins/*，与频道插件 plugin/* 是两套端点）
+
+/// POST plugins/list {agentId} 返回的已安装插件
+nonisolated struct AIAgentPluginInfo: Decodable, Identifiable, Hashable {
+    let id: String
+    let name: String?
+    let version: String?
+    /// bundled / global 等
+    let origin: String?
+    let enabled: Bool?
+}
+
+/// POST plugins/operate {agentId, pluginId, operate, taskID}（启停，带任务进度）
+nonisolated struct AIAgentPluginsOperateRequest: Encodable {
+    let agentId: Int
+    let pluginId: String
+    let operate: String
+    let taskID: String
+}
+
+/// POST plugins/search {agentId, keyword, limit} 返回的市场插件
+nonisolated struct AIAgentMarketPlugin: Decodable, Identifiable, Hashable {
+    let package: String
+    let pluginId: String?
+    let name: String?
+    let description: String?
+    let version: String?
+    let channel: String?
+    let verificationTier: String?
+    let categories: [String]?
+    let official: Bool?
+    let downloads: Int?
+    let score: Int?
+    var id: String { package }
+}
+
+nonisolated struct AIAgentPluginsSearchRequest: Encodable {
+    let agentId: Int
+    let keyword: String
+    let limit: Int
+}
+
+/// POST plugins/install {agentId, package, version, taskID}（带任务进度）
+nonisolated struct AIAgentPluginsInstallRequest: Encodable {
+    let agentId: Int
+    let package: String
+    let version: String
+    let taskID: String
+}
+
 // MARK: - 频道插件（OpenClaw 频道为插件：安装检查 / 版本 / 卸载）
 
 /// POST /api/v2/ai/agents/plugin/check {agentId, type, checkLatest}

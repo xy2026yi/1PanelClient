@@ -23,6 +23,17 @@
         }
       }
     },
+    "%@ · 共 %d 个" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %d"
+          }
+        }
+      }
+    },
     "%@ 个模型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -107,6 +118,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ container failed: %@"
+          }
+        }
+      }
+    },
+    "%@插件 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ plugin %@"
           }
         }
       }
@@ -2740,6 +2762,17 @@
         }
       }
     },
+    "中国" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "China"
+          }
+        }
+      }
+    },
     "中国大陆" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4258,6 +4291,17 @@
         }
       }
     },
+    "全局" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global"
+          }
+        }
+      }
+    },
     "全局模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4297,7 +4341,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Global"
+            "value" : "Worldwide"
           }
         }
       }
@@ -4467,6 +4511,17 @@
         }
       }
     },
+    "共 %d 个结果" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d results"
+          }
+        }
+      }
+    },
     "共 %ld 个公钥" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4627,7 +4682,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Other"
+            "value" : "Others"
           }
         }
       }
@@ -4814,7 +4869,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Built-in"
+            "value" : "Bundled"
           }
         }
       }
@@ -4826,6 +4881,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Built-in · %d"
+          }
+        }
+      }
+    },
+    "内置技能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundled skills"
           }
         }
       }
@@ -5046,6 +5112,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Switch"
+          }
+        }
+      }
+    },
+    "切换到「插件市场」搜索并安装" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch to Plugin Market to search and install"
           }
         }
       }
@@ -5376,6 +5453,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create Website"
+          }
+        }
+      }
+    },
+    "创建角色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Role"
           }
         }
       }
@@ -6051,6 +6139,17 @@
         }
       }
     },
+    "删除角色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Role"
+          }
+        }
+      }
+    },
     "删除许可证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6399,6 +6498,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load"
+          }
+        }
+      }
+    },
+    "加载失败，请下拉重试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load failed. Pull to retry."
           }
         }
       }
@@ -7437,6 +7547,17 @@
         }
       }
     },
+    "取消绑定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbind"
+          }
+        }
+      }
+    },
     "取消编辑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7565,6 +7686,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Optional mysqldump options for large datasets or special backup scenarios."
+          }
+        }
+      }
+    },
+    "可选；创建后也可在角色卡片内添加或取消绑定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional; bindings can also be added or removed in the role card later."
           }
         }
       }
@@ -7829,6 +7961,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No"
+          }
+        }
+      }
+    },
+    "启停将重启智能体，进度见任务页" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggling restarts the agent; see the task page for progress"
           }
         }
       }
@@ -9120,6 +9263,17 @@
         }
       }
     },
+    "外部技能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Managed skills"
+          }
+        }
+      }
+    },
     "外部端口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9545,6 +9699,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Install Plugin"
+          }
+        }
+      }
+    },
+    "安装插件 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install plugin %@"
           }
         }
       }
@@ -10678,6 +10843,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crash and performance diagnostics are aggregated daily by the system and will appear here automatically"
+          }
+        }
+      }
+    },
+    "工作区目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace"
           }
         }
       }
@@ -12948,6 +13124,17 @@
         }
       }
     },
+    "扩展技能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extra skills"
+          }
+        }
+      }
+    },
     "扫描" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13476,6 +13663,17 @@
         }
       }
     },
+    "换个关键词试试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "换行输入，每行一个；保存为全量覆盖。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13729,6 +13927,28 @@
         }
       }
     },
+    "插件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plugins"
+          }
+        }
+      }
+    },
+    "插件市场" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plugin Market"
+          }
+        }
+      }
+    },
     "插件版本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13846,6 +14066,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search skills"
+          }
+        }
+      }
+    },
+    "搜索插件，如 mem" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search plugins, e.g. mem"
           }
         }
       }
@@ -15665,6 +15896,17 @@
         }
       }
     },
+    "暂无插件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No plugins"
+          }
+        }
+      }
+    },
     "暂无操作日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15925,6 +16167,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No rules"
+          }
+        }
+      }
+    },
+    "暂无角色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No roles"
           }
         }
       }
@@ -19328,6 +19581,17 @@
         }
       }
     },
+    "点击右上角 + 创建角色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create a role"
+          }
+        }
+      }
+    },
     "点击右上角 + 拉取模型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20578,6 +20842,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete port forwarding \"%@\"? Force delete if the port is in use."
+          }
+        }
+      }
+    },
+    "确定删除角色「%@」吗？其工作区与绑定将一并移除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete role \"%@\"? Its workspace and bindings will be removed."
           }
         }
       }
@@ -23134,6 +23409,17 @@
         }
       }
     },
+    "腾讯" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tencent"
+          }
+        }
+      }
+    },
     "腾讯云" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23789,7 +24075,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Role"
+            "value" : "Roles"
           }
         }
       }
@@ -28476,6 +28762,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Channel Plugin"
+          }
+        }
+      }
+    },
+    "频道绑定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channel Bindings"
           }
         }
       }

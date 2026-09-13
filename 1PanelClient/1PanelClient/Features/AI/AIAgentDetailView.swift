@@ -27,6 +27,8 @@ struct AIAgentDetailView: View {
     @State private var showSettings = false
     @State private var showLog = false
     @State private var showWebsiteBind = false
+    @State private var showRoles = false
+    @State private var showPlugins = false
 
     // 删除
     @State private var showDeleteSheet = false
@@ -104,6 +106,12 @@ struct AIAgentDetailView: View {
         }
         .navigationDestination(isPresented: $showWebsiteBind) {
             AIAgentWebsiteBindView(server: server, agentId: agentId, current: agent)
+        }
+        .navigationDestination(isPresented: $showRoles) {
+            AIAgentRolesView(server: server, agentId: agentId)
+        }
+        .navigationDestination(isPresented: $showPlugins) {
+            AIAgentPluginsView(server: server, agentId: agentId)
         }
         .navigationDestination(isPresented: $showDeleteProgress) {
             TaskProgressView(taskID: deleteTaskID, title: L10n.f("删除 %@", agent?.name ?? "")) { isDone in
@@ -216,7 +224,11 @@ struct AIAgentDetailView: View {
             }
 
             Section {
-                // QwenPaw(copaw) 无频道/技能功能（网页端无入口，用户确认），仅保留日志
+                // 角色 / 插件为 OpenClaw 专属（抓包确认）；QwenPaw 无频道/技能功能
+                if let a = agent, isOpenClawAgent(a) {
+                    configLink(L10n.t("角色"), icon: "person.2") { showRoles = true }
+                    configLink(L10n.t("插件"), icon: "puzzlepiece.extension") { showPlugins = true }
+                }
                 if let a = agent, !isCopawAgent(a) {
                     configLink(L10n.t("频道"), icon: "bubble.left.and.bubble.right") { showChannels = true }
                     configLink(L10n.t("技能"), icon: "wand.and.stars") { showSkills = true }
