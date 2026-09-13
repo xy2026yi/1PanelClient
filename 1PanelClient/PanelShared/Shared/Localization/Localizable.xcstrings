@@ -7008,6 +7008,17 @@
         }
       }
     },
+    "卸载后该频道将不可用，需重新安装插件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The channel becomes unavailable after uninstalling; reinstall the plugin to use it again."
+          }
+        }
+      }
+    },
     "卸载失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7037,6 +7048,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uninstalling the app deletes all local data (Keychain entries are removed with it); the panel-side API key can be disabled or regenerated at any time in 1Panel under Panel Settings → API."
+          }
+        }
+      }
+    },
+    "卸载插件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall Plugin"
           }
         }
       }
@@ -13630,6 +13652,17 @@
         }
       }
     },
+    "插件版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plugin version"
+          }
+        }
+      }
+    },
     "搜狗" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16232,7 +16265,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Latest Version"
+            "value" : "Latest version"
           }
         }
       }
@@ -19064,6 +19097,17 @@
         }
       }
     },
+    "点击 Bot 编辑凭证与策略；删除将立即保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a bot to edit credentials and policies; delete saves immediately."
+          }
+        }
+      }
+    },
     "点击任务详情中的「立即执行」生成第一条记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19940,6 +19984,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Whitelist IPs: one IP or CIDR per line, IPv4 and IPv6 supported"
+          }
+        }
+      }
+    },
+    "白名单一行一个；系统提示词随每个 Bot 生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One entry per line in the allowlist; the system prompt applies per bot."
           }
         }
       }
@@ -21722,6 +21777,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pre-snapshot backup files"
+          }
+        }
+      }
+    },
+    "系统提示词" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Prompt"
           }
         }
       }
@@ -28212,6 +28278,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Channels"
+          }
+        }
+      }
+    },
+    "频道插件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channel Plugin"
           }
         }
       }

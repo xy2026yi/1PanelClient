@@ -303,7 +303,8 @@ struct AIVllmView: View {
             .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showProgress) {
-            TaskProgressView(taskID: activeTaskID, title: L10n.t("创建 vLLM 实例"), node: "local") { isDone in
+            // 网页端创建进度从头读日志（latest=false），任务日志查询参数均空、仅按 taskID
+            TaskProgressView(taskID: activeTaskID, title: L10n.t("创建 vLLM 实例"), latest: false, node: "local") { isDone in
                 if isDone {
                     Task { await vm.loadInstances() }
                 }

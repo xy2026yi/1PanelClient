@@ -229,7 +229,7 @@ nonisolated enum VllmImageMapper {
 // MARK: - 模型账号 Base URL 选项
 
 /// 创建表单「访问地址」四选一：选中后自动填充 Base URL；
-/// container / systemIP 已抓包确认，localhost / custom 按同名规律推定
+/// 四个取值均已被抓包确认（container/systemIP/localhost/custom，2026-09-13）
 nonisolated enum VllmBaseURLType: String, CaseIterable, Identifiable {
     case container
     case localhost

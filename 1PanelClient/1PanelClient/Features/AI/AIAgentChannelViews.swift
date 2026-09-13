@@ -123,9 +123,10 @@ struct AIAgentChannelsView: View {
     private func channelDestination(_ kind: AIChannelKind) -> some View {
         switch kind {
         case .weixin:
-            AIAgentWeixinChannelView(server: server, agentId: agentId, initialEnabled: enabledMap[kind.rawValue] ?? false)
+            AIAgentWeixinChannelView(server: server, agentId: agentId, initialEnabled: enabledMap[kind.rawValue] ?? false,
+                                     agentType: agentType)
         case .qqbot:
-            AIAgentQQChannelView(server: server, agentId: agentId)
+            AIAgentQQChannelView(server: server, agentId: agentId, agentType: agentType)
         case .wecom:
             AIAgentWecomChannelView(server: server, agentId: agentId)
         case .dingtalk:
@@ -151,10 +152,10 @@ struct AIAgentChannelsView: View {
         }
     }
 
-    /// 并行读取 7 个频道 enabled 状态（单条失败不影响其他）
+    /// 并行读取频道 enabled 状态（微信无 get 接口，跳过；单条失败不影响其他）
     private func loadAllStatus() async {
         await withTaskGroup(of: (String, Bool?).self) { group in
-            for kind in AIChannelKind.allCases {
+            for kind in AIChannelKind.allCases where kind != .weixin {
                 let path = APIEndpoint.aiAgentChannelGet.path
                     .replacingOccurrences(of: ":type", with: kind.rawValue)
                 group.addTask { [client] in
@@ -288,12 +289,102 @@ private struct PairingApproveSection: View {
     }
 }
 
+// MARK: - 频道插件区（OpenClaw 频道为插件：版本 / 卸载带进度）
+
+/// 频道页顶部插件状态区：plugin/check（checkLatest=true 取最新版本）+
+/// plugin/uninstall（taskID 驱动进度页）；未安装/检查失败时整区隐藏
+struct ChannelPluginSection: View {
+    let client: APIClient
+    let agentId: Int
+    let type: String
+    var onUninstalled: () -> Void = {}
+
+    @State private var status: AIAgentPluginStatus?
+    @State private var isLoading = true
+    @State private var confirmUninstall = false
+    @State private var uninstallTaskID = ""
+    @State private var showProgress = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+
+    var body: some View {
+        if let s = status, s.installed == true {
+            Section {
+                LabeledContent(L10n.t("插件版本"), value: s.currentVersion ?? "-")
+                if let latest = s.latestVersion, !latest.isEmpty, latest != s.currentVersion {
+                    LabeledContent(L10n.t("最新版本"), value: latest)
+                }
+                Button(role: .destructive) {
+                    confirmUninstall = true
+                } label: {
+                    Label(L10n.t("卸载插件"), systemImage: "trash")
+                }
+            } header: {
+                SectionLabel(title: L10n.t("频道插件"), systemImage: "puzzlepiece")
+            }
+            .alert(L10n.t("卸载插件"), isPresented: $confirmUninstall) {
+                Button(L10n.t("取消"), role: .cancel) {}
+                Button(L10n.t("卸载"), role: .destructive) {
+                    Task { await uninstall() }
+                }
+            } message: {
+                Text(L10n.t("卸载后该频道将不可用，需重新安装插件"))
+            }
+            .background(
+                NavigationLink(isActive: $showProgress) {
+                    TaskProgressView(taskID: uninstallTaskID, title: L10n.t("卸载插件"), latest: false, node: "local") { isDone in
+                        if isDone {
+                            Task {
+                                await load()
+                                await MainActor.run { onUninstalled() }
+                            }
+                        }
+                        return false
+                    }
+                } label: { EmptyView() }
+                .hidden()
+            )
+        }
+    }
+
+    private func load() async {
+        do {
+            status = try await client.send(
+                path: APIEndpoint.aiAgentPluginCheck.path,
+                body: AIAgentPluginCheckRequest(agentId: agentId, type: type, checkLatest: true),
+                as: AIAgentPluginStatus.self)
+        } catch {
+            // 检查失败隐藏整区（不影响频道配置）
+            status = nil
+        }
+        isLoading = false
+    }
+
+    private func uninstall() async {
+        let taskID = UUID().uuidString
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentPluginUninstall.path,
+                body: AIAgentPluginUninstallRequest(agentId: agentId, type: type, taskID: taskID),
+                as: EmptyResponse.self)
+            uninstallTaskID = taskID
+            showProgress = true
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+}
+
 // MARK: - 微信（扫码对接 + 任务日志二维码）
 
 struct AIAgentWeixinChannelView: View {
     let server: ServerConfig
     let agentId: Int
     let initialEnabled: Bool
+    /// OpenClaw 的频道为插件（版本/卸载），抓包确认
+    var agentType: String? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -308,15 +399,23 @@ struct AIAgentWeixinChannelView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, agentId: Int, initialEnabled: Bool) {
+    init(server: ServerConfig, agentId: Int, initialEnabled: Bool, agentType: String? = nil) {
         self.server = server
         self.agentId = agentId
         self.initialEnabled = initialEnabled
+        self.agentType = agentType
         self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
         List {
+            if agentType == "openclaw" {
+                ChannelPluginSection(client: client, agentId: agentId, type: "weixin") {
+                    enabled = false
+                    qrURL = nil
+                }
+            }
+
             Section {
                 Toggle(L10n.t("启用"), isOn: Binding(
                     get: { enabled },
@@ -404,16 +503,16 @@ struct AIAgentWeixinChannelView: View {
         }
     }
 
-    /// 发起扫码对接：login 成功后轮询任务日志，从行中提取二维码 URL
+    /// 发起扫码对接：login 返回 taskID（[推测：响应体未抓包]），按 taskID 轮询任务日志
     private func startLogin() async {
         isLoggingIn = true
         defer { isLoggingIn = false }
         do {
-            let _: EmptyResponse = try await client.send(
+            let resp: AIAgentWeixinLoginResponse = try await client.send(
                 path: APIEndpoint.aiAgentWeixinLogin.path,
                 body: AIAgentChannelRequest(agentId: agentId),
-                as: EmptyResponse.self)
-            startPolling()
+                as: AIAgentWeixinLoginResponse.self)
+            startPolling(taskID: resp.taskID)
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
@@ -421,9 +520,9 @@ struct AIAgentWeixinChannelView: View {
         }
     }
 
-    /// 轮询任务日志（weixin 任务按 AI 类型 + 智能体资源过滤 [推测：抓包 post 体缺失]），
-    /// 提取 liteapp 二维码链接渲染；视图退出即停止
-    private func startPolling() {
+    /// 轮询任务日志：网页端仅按 taskID 查询（taskType/taskOperate/name/resourceID
+    /// 均为空、latest=false 从头读，抓包确认）；响应未携带 taskID 时回退旧过滤参数
+    private func startPolling(taskID: String?) {
         isPolling = true
         Task {
             while isPolling && !Task.isCancelled {
@@ -431,10 +530,12 @@ struct AIAgentWeixinChannelView: View {
                     let resp: TaskLogResponse = try await client.send(
                         path: APIEndpoint.logsTaskRead.path,
                         body: TaskLogReadRequest(
-                            id: 0, type: "task", name: "weixin",
-                            page: 1, pageSize: 500, latest: true,
-                            taskID: "", taskType: "AI", taskOperate: "weixin",
-                            resourceID: agentId),
+                            id: 0, type: "task", name: "",
+                            page: 1, pageSize: 500, latest: false,
+                            taskID: taskID ?? "",
+                            taskType: taskID == nil ? "AI" : "",
+                            taskOperate: taskID == nil ? "weixin" : "",
+                            resourceID: taskID == nil ? agentId : 0),
                         queryItems: [URLQueryItem(name: "operateNode", value: "local")],
                         as: TaskLogResponse.self)
                     let lines = (resp.lines ?? []).map { $0.trimmingCharacters(in: .whitespaces) }
@@ -498,23 +599,34 @@ struct AIAgentWeixinChannelView: View {
 struct AIAgentQQChannelView: View {
     let server: ServerConfig
     let agentId: Int
+    /// OpenClaw 的 QQ 为插件 + 多 Bot（更新体无顶层策略，抓包确认）；
+    /// 基础类型（Hermes/QwenPaw）为单默认 Bot + 顶层策略表单
+    var agentType: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var c = AIChannelQQBot()
-    /// 凭证与私聊白名单在 bots[0]（抓包确认）；其余 bots 原样保留
+    /// 基础类型：凭证与私聊白名单在 bots[0]（抓包确认）；其余 bots 原样保留
     @State private var bot = AIChannelQQBotItem(accountId: "default", name: "Default", enabled: true, isDefault: true)
     @State private var extraBots: [AIChannelQQBotItem] = []
+    /// OpenClaw：Bot 列表整列编辑
+    @State private var bots: [AIChannelQQBotItem] = []
+    @State private var savedC = AIChannelQQBot()
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
     @State private var errorMessage: String?
     @State private var showError = false
+    @State private var editingBot: AIChannelQQBotItem?
+    @State private var showAddBot = false
 
     private let client: APIClient
 
-    init(server: ServerConfig, agentId: Int) {
+    private var isOpenClaw: Bool { agentType == "openclaw" }
+
+    init(server: ServerConfig, agentId: Int, agentType: String? = nil) {
         self.server = server
         self.agentId = agentId
+        self.agentType = agentType
         self.client = APIClient.shared(for: server)
     }
 
@@ -526,6 +638,26 @@ struct AIAgentQQChannelView: View {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
                         Task { await load() }
+                    }
+                }
+            } else if isOpenClaw {
+                ChannelPluginSection(client: client, agentId: agentId, type: "qqbot") {
+                    Task { await load() }
+                }
+
+                Section {
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                }
+
+                openclawBotList
+
+                if (savedC.dmPolicy ?? "").isEmpty == false {
+                    // OpenClaw 抓包 update 体无顶层策略，但 get 带值时不丟字段：
+                    // 私聊策略=配队码时仍提供批准配对（带默认账户）
+                    if savedC.dmPolicy == "pairing" {
+                        PairingApproveSection(client: client, agentId: agentId, type: "qqbot",
+                                              accountId: bots.first(where: { $0.isDefault == true })?.accountId)
                     }
                 }
             } else {
@@ -570,6 +702,113 @@ struct AIAgentQQChannelView: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        .sheet(item: $editingBot) { bot in
+            AIQQBotFormSheet(
+                bot: bot, isEdit: true,
+                existingAccountIDs: bots.compactMap(\.accountId),
+                selfOriginalID: bot.accountId) { updated in
+                // 按打开弹窗时的行身份匹配（允许修改账户 ID）
+                if let idx = bots.firstIndex(where: { $0.id == bot.id }) {
+                    bots[idx] = updated
+                }
+            }
+        }
+        .sheet(isPresented: $showAddBot) {
+            AIQQBotFormSheet(
+                bot: AIChannelQQBotItem(accountId: bots.isEmpty ? "default" : "",
+                                        name: "Default", enabled: true,
+                                        isDefault: bots.isEmpty),
+                isEdit: false,
+                lockAccountID: bots.isEmpty,
+                existingAccountIDs: bots.compactMap(\.accountId)) { newBot in
+                bots.append(newBot)
+            }
+        }
+    }
+
+    // MARK: OpenClaw Bot 列表
+
+    private var openclawBotList: some View {
+        Section {
+            ForEach(bots) { bot in
+                Button {
+                    editingBot = bot
+                } label: {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                Text(bot.name ?? bot.accountId ?? "-")
+                                    .font(.body.bold())
+                                    .foregroundStyle(.primary)
+                                if bot.isDefault == true {
+                                    StatusBadge(text: L10n.t("默认"), color: .blue)
+                                }
+                                if bot.enabled != true {
+                                    StatusBadge(text: L10n.t("未启用"), color: .secondary)
+                                }
+                            }
+                            Text(bot.accountId ?? "-")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 3)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        Task { await saveBots(bots.filter { $0.id != bot.id }) }
+                    } label: {
+                        Label(L10n.t("删除"), systemImage: "trash")
+                    }
+                }
+            }
+
+            Button {
+                showAddBot = true
+            } label: {
+                Label(L10n.t("新增 Bot"), systemImage: "plus.circle")
+            }
+        } header: {
+            SectionLabel(title: L10n.f("Bot 列表 · 共 %d 个", bots.count), systemImage: "person.2")
+        } footer: {
+            Text(L10n.t("点击 Bot 编辑凭证与策略；删除将立即保存"))
+        }
+    }
+
+    /// OpenClaw：Bot 删除即时全量保存（顶层取已保存快照，不含草稿）
+    private func saveBots(_ updated: [AIChannelQQBotItem]) async {
+        guard !isSaving, !updated.isEmpty else { return }
+        let previousBots = bots
+        bots = updated
+        var out = savedC
+        out.agentId = agentId
+        out.installed = nil
+        // OpenClaw 抓包 update 体无顶层策略字段
+        out.dmPolicy = nil
+        out.groupPolicy = nil
+        out.allowFrom = nil
+        out.groupAllowFrom = nil
+        out.bots = updated
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "qqbot"),
+                body: out,
+                as: EmptyResponse.self)
+            savedC = out
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            bots = previousBots
+            errorMessage = error.localizedDescription
+            showError = true
+        }
     }
 
     private func load() async {
@@ -579,8 +818,13 @@ struct AIAgentQQChannelView: View {
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelQQBot.self)
             c = resp
-            bot = resp.bots?.first ?? bot
-            extraBots = Array((resp.bots ?? []).dropFirst())
+            savedC = resp
+            if isOpenClaw {
+                bots = resp.bots ?? []
+            } else {
+                bot = resp.bots?.first ?? bot
+                extraBots = Array((resp.bots ?? []).dropFirst())
+            }
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -594,8 +838,18 @@ struct AIAgentQQChannelView: View {
         out.agentId = agentId
         // update 体不含 get 回传的 installed 标记（抓包确认）
         out.installed = nil
-        // bot.enabled 与顶层开关相互独立（抓包确认：bot 开启 + 顶层关闭同体保存）
-        out.bots = [bot] + extraBots
+        if isOpenClaw {
+            // OpenClaw 抓包 update 体：{agentId, enabled, bots}（无顶层策略）；
+            // Bot 编辑走草稿 + 保存按钮（删除/插件即时保存）
+            out.dmPolicy = nil
+            out.groupPolicy = nil
+            out.allowFrom = nil
+            out.groupAllowFrom = nil
+            out.bots = bots
+        } else {
+            // bot.enabled 与顶层开关相互独立（抓包确认：bot 开启 + 顶层关闭同体保存）
+            out.bots = [bot] + extraBots
+        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -603,12 +857,109 @@ struct AIAgentQQChannelView: View {
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "qqbot"),
                 body: out,
                 as: EmptyResponse.self)
+            savedC = out
             dismiss()
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
             showError = true
         }
+    }
+}
+
+/// OpenClaw QQ Bot 新建/编辑表单（名称/账户ID/状态/AppID/AppSecret/
+/// 私聊白名单/系统提示词；首个 Bot 账户 ID 固定 default，抓包确认）
+private struct AIQQBotFormSheet: View {
+    @State var bot: AIChannelQQBotItem
+    let isEdit: Bool
+    /// 首个 Bot 的账户 ID 固定为 default（不可修改，网页端行为）
+    var lockAccountID: Bool = false
+    var existingAccountIDs: [String] = []
+    var selfOriginalID: String? = nil
+    let onConfirm: (AIChannelQQBotItem) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var isDuplicateAccount: Bool {
+        let id = (bot.accountId ?? "").trimmingCharacters(in: .whitespaces)
+        guard !id.isEmpty else { return false }
+        return existingAccountIDs.filter { $0 != selfOriginalID }.contains(id)
+    }
+
+    private var canSubmit: Bool {
+        !(bot.accountId ?? "").isEmpty && !(bot.appId ?? "").isEmpty
+            && !(bot.clientSecret ?? "").isEmpty && !isDuplicateAccount
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(L10n.t("名称"), text: Binding(
+                        get: { bot.name ?? "" }, set: { bot.name = $0 }))
+                        .textInputAutocapitalization(.never)
+                    TextField(L10n.t("账户 ID"), text: Binding(
+                        get: { bot.accountId ?? "" }, set: { bot.accountId = $0 }))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .disabled(lockAccountID)
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { bot.enabled ?? true }, set: { bot.enabled = $0 }))
+                    TextField("App ID", text: Binding(
+                        get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
+                        .textInputAutocapitalization(.never)
+                    SecureField("App Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
+                        .textInputAutocapitalization(.never)
+                } header: {
+                    SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
+                } footer: {
+                    if isDuplicateAccount {
+                        Text(L10n.t("账户 ID 与现有 Bot 重复"))
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                Section {
+                    WhitelistEditor(title: L10n.t("私聊白名单"), list: Binding(
+                        get: { bot.allowFrom ?? [] },
+                        set: { bot.allowFrom = $0.isEmpty ? nil : $0 }))
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(L10n.t("系统提示词"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextEditor(text: Binding(
+                            get: { bot.systemPrompt ?? "" },
+                            set: { bot.systemPrompt = $0 }))
+                            .font(.system(.caption, design: .monospaced))
+                            .frame(minHeight: 72)
+                            .scrollContentBackground(.hidden)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                } header: {
+                    SectionLabel(title: L10n.t("策略"), systemImage: "slider.horizontal.3")
+                } footer: {
+                    Text(L10n.t("白名单一行一个；系统提示词随每个 Bot 生效"))
+                }
+            }
+            .navigationTitle(isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("确定")) {
+                        onConfirm(bot)
+                        dismiss()
+                    }
+                    .disabled(!canSubmit)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.large])
     }
 }
 

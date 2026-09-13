@@ -230,10 +230,10 @@ nonisolated struct AIAgentOtherConfig: Decodable, Hashable {
     let dashboardPassword: String?
 }
 
-/// other/update：OpenClaw 无控制台账号，dashboard 字段不携带（抓包确认 nil 不编码）
+/// other/update：OpenClaw 无控制台账号、QwenPaw 不带时区（抓包确认；nil 不编码）
 nonisolated struct AIAgentOtherUpdateRequest: Encodable {
     let agentId: Int
-    let userTimezone: String
+    var userTimezone: String? = nil
     let browserEnabled: Bool
     let npmRegistry: String
     var dashboardUsername: String? = nil
@@ -275,6 +275,36 @@ nonisolated struct AIAgentChannelPairingApproveRequest: Encodable {
     let type: String
     let pairingCode: String
     var accountId: String? = nil
+}
+
+// MARK: - 频道插件（OpenClaw 频道为插件：安装检查 / 版本 / 卸载）
+
+/// POST /api/v2/ai/agents/plugin/check {agentId, type, checkLatest}
+nonisolated struct AIAgentPluginCheckRequest: Encodable {
+    let agentId: Int
+    let type: String
+    let checkLatest: Bool
+}
+
+/// plugin/check 返回：installed / currentVersion / latestVersion / upgradable
+nonisolated struct AIAgentPluginStatus: Decodable, Hashable {
+    let installed: Bool?
+    let currentVersion: String?
+    let latestVersion: String?
+    let upgradable: Bool?
+}
+
+/// POST /api/v2/ai/agents/plugin/uninstall {agentId, type, taskID}
+nonisolated struct AIAgentPluginUninstallRequest: Encodable {
+    let agentId: Int
+    let type: String
+    let taskID: String
+}
+
+/// POST /api/v2/ai/agents/weixin/login 响应 [推测：抓包缺失，按任务日志
+/// taskID 轮询机制推定返回 taskID；解码失败时回退旧过滤参数轮询]
+nonisolated struct AIAgentWeixinLoginResponse: Decodable {
+    let taskID: String?
 }
 
 // MARK: - 频道 Bot 条目（凭证在 bots 数组内，各频道字段不同）

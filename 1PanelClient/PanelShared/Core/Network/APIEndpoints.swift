@@ -488,6 +488,8 @@ enum APIEndpoint {
     case aiAgentWeixinLogin     // POST 微信扫码对接 {agentId}（任务日志中输出二维码 URL）
     case aiAgentChannelDelete   // POST 删除频道对接 {agentId, type}
     case aiAgentChannelPairingApprove // POST 批准配对 {agentId, type, pairingCode[, accountId]}
+    case aiAgentPluginCheck      // POST 频道插件检查 {agentId, type, checkLatest}（版本/可升级）
+    case aiAgentPluginUninstall  // POST 频道插件卸载 {agentId, type, taskID}（带任务进度）
     // MCP
     case aiMcpSearch            // POST 分页查询 MCP Server {page, pageSize, name}
     case aiMcpServerCreate      // POST 创建 MCP Server（带 taskID）
@@ -932,6 +934,8 @@ enum APIEndpoint {
         case .aiAgentWeixinLogin:    return "/api/v2/ai/agents/channel/weixin/login"
         case .aiAgentChannelDelete:  return "/api/v2/ai/agents/channel/delete"
         case .aiAgentChannelPairingApprove: return "/api/v2/ai/agents/channel/pairing/approve"
+        case .aiAgentPluginCheck:     return "/api/v2/ai/agents/plugin/check"
+        case .aiAgentPluginUninstall: return "/api/v2/ai/agents/plugin/uninstall"
         case .aiMcpSearch:           return "/api/v2/ai/mcp/search"
         case .aiMcpServerCreate:     return "/api/v2/ai/mcp/server"
         case .aiMcpServerUpdate:     return "/api/v2/ai/mcp/server/update"

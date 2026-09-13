@@ -549,11 +549,10 @@ struct AIAgentSettingsView: View {
         isSaving = true
         defer { isSaving = false }
         do {
-            // other/update：OpenClaw 不携带控制台账号字段（抓包确认）；
-            // copaw 只有控制台账号分区（无其他分区），全量回传
+            // other/update：OpenClaw 不携带控制台账号字段、QwenPaw 不带时区（抓包确认）
             var otherReq = AIAgentOtherUpdateRequest(
                 agentId: agentId,
-                userTimezone: timezone,
+                userTimezone: isCopaw ? nil : timezone,
                 browserEnabled: browserEnabled,
                 npmRegistry: npmRegistry)
             if !isOpenClaw {
