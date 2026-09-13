@@ -28,18 +28,26 @@ nonisolated struct AIOllamaModel: Decodable, Identifiable, Hashable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(Int.self, forKey: .id)
-        name = try c.decodeIfPresent(String.self, forKey: .name)
-        model = try c.decodeIfPresent(String.self, forKey: .model)
+        name = try? c.decode(String.self, forKey: .name)
+        model = try? c.decode(String.self, forKey: .model)
+        // size 可为数字（字节）或文本（如 "- Less"，模型未落地本地）：
+        // 数字换算展示；非数字文本原样进 sizeText（网页端行为）
+        var text = try? c.decodeIfPresent(String.self, forKey: .sizeText)
         if let d = try? c.decode(Double.self, forKey: .size) {
             size = d
-        } else if let s = try? c.decode(String.self, forKey: .size), let d = Double(s) {
-            size = d
+        } else if let s = try? c.decode(String.self, forKey: .size) {
+            if let d = Double(s) {
+                size = d
+            } else {
+                size = nil
+                if text?.isEmpty != false { text = s }
+            }
         } else {
             size = nil
         }
-        sizeText = try c.decodeIfPresent(String.self, forKey: .sizeText)
-        status = try c.decodeIfPresent(String.self, forKey: .status)
-        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        sizeText = text
+        status = try? c.decode(String.self, forKey: .status)
+        createdAt = try? c.decode(String.self, forKey: .createdAt)
     }
 
     var displayName: String { model ?? name ?? "#" + String(id) }

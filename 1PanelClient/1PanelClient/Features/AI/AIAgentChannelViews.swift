@@ -2113,6 +2113,10 @@ struct AIAgentDiscordChannelView: View {
     @State private var showError = false
     @State private var editingBot: AIChannelDiscordBotItem?
     @State private var showAddBot = false
+    /// 行内批准配对（Bot 列表滑动操作，私聊策略=配队码时）
+    @State private var pairingBot: AIChannelDiscordBotItem?
+    @State private var pairingCode = ""
+    @State private var isApproving = false
 
     private let client: APIClient
 
@@ -2206,6 +2210,26 @@ struct AIAgentDiscordChannelView: View {
                 bots.append(newBot)
             }
         }
+        // 行内批准配对（Bot 列表滑动操作）
+        .alert(L10n.t("批准配对"), isPresented: Binding(
+            get: { pairingBot != nil },
+            set: { if !$0 { pairingBot = nil; pairingCode = "" } }
+        )) {
+            TextField(L10n.t("配对码"), text: $pairingCode)
+                .keyboardType(.numberPad)
+            Button(L10n.t("批准配对")) {
+                if let bot = pairingBot {
+                    Task { await approvePairing(bot) }
+                }
+            }
+            .disabled(pairingCode.isEmpty || isApproving)
+            Button(L10n.t("取消"), role: .cancel) {
+                pairingBot = nil
+                pairingCode = ""
+            }
+        } message: {
+            Text(L10n.f("为 Bot「%@」批准配对", pairingBot?.name ?? pairingBot?.accountId ?? ""))
+        }
     }
 
     private var botListSection: some View {
@@ -2241,6 +2265,14 @@ struct AIAgentDiscordChannelView: View {
                 }
                 .buttonStyle(.plain)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if (c.dmPolicy ?? "") == "pairing" {
+                        Button {
+                            pairingBot = bot
+                        } label: {
+                            Label(L10n.t("批准配对"), systemImage: "link")
+                        }
+                        .tint(.teal)
+                    }
                     Button(role: .destructive) {
                         Task { await removeBot(bot) }
                     } label: {
@@ -2265,7 +2297,7 @@ struct AIAgentDiscordChannelView: View {
         } header: {
             SectionLabel(title: L10n.f("Bot 列表 · 共 %d 个", bots.count), systemImage: "person.2")
         } footer: {
-            Text(L10n.t("点击 Bot 编辑凭证与状态；删除与设为默认将立即保存"))
+            Text(L10n.t("点击 Bot 编辑凭证与状态；批准配对与删除将立即保存"))
         }
     }
 
@@ -2325,6 +2357,28 @@ struct AIAgentDiscordChannelView: View {
             return copy
         }
         await saveBots(updated, defaultAccount: bot.accountId)
+    }
+
+    /// 行内批准配对（带该 Bot 的 accountId，抓包确认）
+    private func approvePairing(_ bot: AIChannelDiscordBotItem) async {
+        isApproving = true
+        defer { isApproving = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentChannelPairingApprove.path,
+                body: AIAgentChannelPairingApproveRequest(
+                    agentId: agentId, type: "discord",
+                    pairingCode: pairingCode, accountId: bot.accountId),
+                as: EmptyResponse.self)
+            pairingBot = nil
+            pairingCode = ""
+            errorMessage = L10n.t("已批准配对")
+            showError = true
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
     }
 
     private func load() async {
