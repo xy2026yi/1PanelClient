@@ -301,6 +301,13 @@ nonisolated struct AIAgentPluginUninstallRequest: Encodable {
     let taskID: String
 }
 
+/// POST /api/v2/ai/agents/plugin/install {agentId, type, taskID}（进度同卸载）
+nonisolated struct AIAgentPluginInstallRequest: Encodable {
+    let agentId: Int
+    let type: String
+    let taskID: String
+}
+
 /// POST /api/v2/ai/agents/weixin/login 响应 [推测：抓包缺失，按任务日志
 /// taskID 轮询机制推定返回 taskID；解码失败时回退旧过滤参数轮询]
 nonisolated struct AIAgentWeixinLoginResponse: Decodable {

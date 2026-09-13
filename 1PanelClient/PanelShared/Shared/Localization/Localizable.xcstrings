@@ -2795,6 +2795,17 @@
         }
       }
     },
+    "为 Bot「%@」批准配对" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve pairing for bot \"%@\""
+          }
+        }
+      }
+    },
     "为用户「%@」设置数据库权限。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8449,6 +8460,17 @@
         }
       }
     },
+    "回复模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply mode"
+          }
+        }
+      }
+    },
     "回收站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9501,6 +9523,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Install Skill %@"
+          }
+        }
+      }
+    },
+    "安装插件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Plugin"
           }
         }
       }
@@ -13388,6 +13421,17 @@
         }
       }
     },
+    "按群组配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per group"
+          }
+        }
+      }
+    },
     "换个关键词或排序试试" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14825,6 +14869,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Could not reach \"%@\" — check the host status and credentials"
+          }
+        }
+      }
+    },
+    "无需@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No @ needed"
           }
         }
       }
@@ -16705,7 +16760,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Not Installed"
+            "value" : "Not installed"
           }
         }
       }
@@ -19104,6 +19159,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap a bot to edit credentials and policies; delete saves immediately."
+          }
+        }
+      }
+    },
+    "点击 Bot 编辑凭证与策略；批准配对与删除将立即保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a bot to edit credentials and policies; approve-pairing and delete save immediately."
           }
         }
       }
@@ -21920,6 +21986,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "System Keychain · Local unlock verification"
+          }
+        }
+      }
+    },
+    "线程会话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thread sessions"
           }
         }
       }
@@ -27849,6 +27926,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "NVIDIA driver or a supported accelerator (NPU/XPU) is required"
+          }
+        }
+      }
+    },
+    "需要@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Require @"
           }
         }
       }

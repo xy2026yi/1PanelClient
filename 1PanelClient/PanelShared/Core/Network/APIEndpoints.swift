@@ -489,6 +489,7 @@ enum APIEndpoint {
     case aiAgentChannelDelete   // POST 删除频道对接 {agentId, type}
     case aiAgentChannelPairingApprove // POST 批准配对 {agentId, type, pairingCode[, accountId]}
     case aiAgentPluginCheck      // POST 频道插件检查 {agentId, type, checkLatest}（版本/可升级）
+    case aiAgentPluginInstall    // POST 频道插件安装 {agentId, type, taskID}（带任务进度）
     case aiAgentPluginUninstall  // POST 频道插件卸载 {agentId, type, taskID}（带任务进度）
     // MCP
     case aiMcpSearch            // POST 分页查询 MCP Server {page, pageSize, name}
@@ -935,6 +936,7 @@ enum APIEndpoint {
         case .aiAgentChannelDelete:  return "/api/v2/ai/agents/channel/delete"
         case .aiAgentChannelPairingApprove: return "/api/v2/ai/agents/channel/pairing/approve"
         case .aiAgentPluginCheck:     return "/api/v2/ai/agents/plugin/check"
+        case .aiAgentPluginInstall:   return "/api/v2/ai/agents/plugin/install"
         case .aiAgentPluginUninstall: return "/api/v2/ai/agents/plugin/uninstall"
         case .aiMcpSearch:           return "/api/v2/ai/mcp/search"
         case .aiMcpServerCreate:     return "/api/v2/ai/mcp/server"
