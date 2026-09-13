@@ -308,10 +308,18 @@ nonisolated struct AIAgentPluginInstallRequest: Encodable {
     let taskID: String
 }
 
-/// POST /api/v2/ai/agents/weixin/login 响应 [推测：抓包缺失，按任务日志
-/// taskID 轮询机制推定返回 taskID；解码失败时回退旧过滤参数轮询]
-nonisolated struct AIAgentWeixinLoginResponse: Decodable {
-    let taskID: String?
+/// POST /api/v2/ai/agents/plugin/upgrade {agentId, type, taskID}（进度同安装/卸载）
+nonisolated struct AIAgentPluginUpgradeRequest: Encodable {
+    let agentId: Int
+    let type: String
+    let taskID: String
+}
+
+/// POST /api/v2/ai/agents/channel/weixin/login {agentId, taskID}
+/// taskID 由客户端生成（抓包确认：响应 data 为 null，进度按该 taskID 查询）
+nonisolated struct AIAgentWeixinLoginRequest: Encodable {
+    let agentId: Int
+    let taskID: String
 }
 
 // MARK: - 频道 Bot 条目（凭证在 bots 数组内，各频道字段不同）

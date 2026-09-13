@@ -6788,6 +6788,17 @@
         }
       }
     },
+    "升级插件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade Plugin"
+          }
+        }
+      }
+    },
     "升级选项" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11936,6 +11947,17 @@
         }
       }
     },
+    "异步模式下先回复确认消息，任务完成后再次回复" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In async mode the bot replies with the acknowledgement first, then again when the task completes."
+          }
+        }
+      }
+    },
     "强制删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13399,6 +13421,17 @@
         }
       }
     },
+    "按会话隔离" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isolate by conversation"
+          }
+        }
+      }
+    },
     "按当前来源（%@）直接下载指定仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14319,6 +14352,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Count"
+          }
+        }
+      }
+    },
+    "整群共享" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whole group shared"
           }
         }
       }
@@ -19141,6 +19185,17 @@
         }
       }
     },
+    "点击 Bot 编辑凭证与状态；删除将立即保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "点击 Bot 编辑凭证与状态；批准配对与删除将立即保存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20754,6 +20809,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pull"
+          }
+        }
+      }
+    },
+    "确认消息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acknowledgement"
           }
         }
       }
@@ -22943,6 +23009,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Network error: %@"
+          }
+        }
+      }
+    },
+    "群会话范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group session scope"
+          }
+        }
+      }
+    },
+    "群内按人隔离" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isolate per sender"
           }
         }
       }

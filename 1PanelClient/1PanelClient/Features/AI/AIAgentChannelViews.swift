@@ -130,7 +130,7 @@ struct AIAgentChannelsView: View {
         case .wecom:
             AIAgentWecomChannelView(server: server, agentId: agentId, agentType: agentType)
         case .dingtalk:
-            AIAgentDingtalkChannelView(server: server, agentId: agentId)
+            AIAgentDingtalkChannelView(server: server, agentId: agentId, agentType: agentType)
         case .feishu:
             AIAgentFeishuChannelView(server: server, agentId: agentId, agentType: agentType)
         case .telegram:
@@ -317,6 +317,13 @@ struct ChannelPluginSection: View {
                     LabeledContent(L10n.t("插件版本"), value: s.currentVersion ?? "-")
                     if let latest = s.latestVersion, !latest.isEmpty, latest != s.currentVersion {
                         LabeledContent(L10n.t("最新版本"), value: latest)
+                        if s.upgradable == true {
+                            Button {
+                                Task { await upgrade() }
+                            } label: {
+                                Label(L10n.t("升级插件"), systemImage: "arrow.up.circle")
+                            }
+                        }
                     }
                     Button(role: .destructive) {
                         confirmUninstall = true
@@ -390,6 +397,23 @@ struct ChannelPluginSection: View {
                 as: EmptyResponse.self)
             progressTaskID = taskID
             progressTitle = L10n.t("安装插件")
+            showProgress = true
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    private func upgrade() async {
+        let taskID = UUID().uuidString
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentPluginUpgrade.path,
+                body: AIAgentPluginUpgradeRequest(agentId: agentId, type: type, taskID: taskID),
+                as: EmptyResponse.self)
+            progressTaskID = taskID
+            progressTitle = L10n.t("升级插件")
             showProgress = true
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -542,16 +566,18 @@ struct AIAgentWeixinChannelView: View {
         }
     }
 
-    /// 发起扫码对接：login 返回 taskID（[推测：响应体未抓包]），按 taskID 轮询任务日志
+    /// 发起扫码对接：taskID 由客户端生成随请求体发出（抓包确认响应 data 为 null），
+    /// 按该 taskID 轮询任务日志提取二维码
     private func startLogin() async {
         isLoggingIn = true
         defer { isLoggingIn = false }
+        let taskID = UUID().uuidString
         do {
-            let resp: AIAgentWeixinLoginResponse = try await client.send(
+            let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentWeixinLogin.path,
-                body: AIAgentChannelRequest(agentId: agentId),
-                as: AIAgentWeixinLoginResponse.self)
-            startPolling(taskID: resp.taskID)
+                body: AIAgentWeixinLoginRequest(agentId: agentId, taskID: taskID),
+                as: EmptyResponse.self)
+            startPolling(taskID: taskID)
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
@@ -559,9 +585,9 @@ struct AIAgentWeixinChannelView: View {
         }
     }
 
-    /// 轮询任务日志：网页端仅按 taskID 查询（taskType/taskOperate/name/resourceID
-    /// 均为空、latest=false 从头读，抓包确认）；响应未携带 taskID 时回退旧过滤参数
-    private func startPolling(taskID: String?) {
+    /// 轮询任务日志：仅按 taskID 查询（taskType/taskOperate/name/resourceID
+    /// 均为空、latest=false 从头读，抓包确认）
+    private func startPolling(taskID: String) {
         isPolling = true
         Task {
             while isPolling && !Task.isCancelled {
@@ -571,10 +597,9 @@ struct AIAgentWeixinChannelView: View {
                         body: TaskLogReadRequest(
                             id: 0, type: "task", name: "",
                             page: 1, pageSize: 500, latest: false,
-                            taskID: taskID ?? "",
-                            taskType: taskID == nil ? "AI" : "",
-                            taskOperate: taskID == nil ? "weixin" : "",
-                            resourceID: taskID == nil ? agentId : 0),
+                            taskID: taskID,
+                            taskType: "", taskOperate: "",
+                            resourceID: 0),
                         queryItems: [URLQueryItem(name: "operateNode", value: "local")],
                         as: TaskLogResponse.self)
                     let lines = (resp.lines ?? []).map { $0.trimmingCharacters(in: .whitespaces) }
@@ -1129,27 +1154,50 @@ struct AIAgentWecomChannelView: View {
     }
 }
 
-// MARK: - 钉钉
+// MARK: - 钉钉（OpenClaw 多 Bot；基础类型单默认 Bot）
 
 struct AIAgentDingtalkChannelView: View {
     let server: ServerConfig
     let agentId: Int
+    /// OpenClaw：插件 + 多 Bot + 白名单策略 + 群会话范围（抓包确认）；
+    /// 基础类型（Hermes/QwenPaw）为单默认 Bot + 基础策略表单
+    var agentType: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var c = AIChannelDingtalk()
+    /// 基础类型：凭证在 bots[0]；其余 bots 原样保留
     @State private var bot = AIChannelDingtalkBotItem(accountId: "default", name: "Default", enabled: true, isDefault: true)
     @State private var extraBots: [AIChannelDingtalkBotItem] = []
+    /// OpenClaw：Bot 列表整列编辑
+    @State private var bots: [AIChannelDingtalkBotItem] = []
+    @State private var savedC = AIChannelDingtalk()
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
     @State private var errorMessage: String?
     @State private var showError = false
+    @State private var editingBot: AIChannelDingtalkBotItem?
+    @State private var showAddBot = false
 
     private let client: APIClient
 
-    init(server: ServerConfig, agentId: Int) {
+    private var isOpenClaw: Bool { agentType == "openclaw" }
+
+    /// OpenClaw 私聊策略无配队码（抓包确认）：白名单 / 开放 / 禁用
+    private var dmPolicies: [(value: String, label: String)] {
+        AIChannelPolicy.dmPoliciesFull.filter { $0.value != "pairing" }
+    }
+
+    /// 群会话范围：整群共享 group / 群内按人隔离 group_sender（抓包确认）
+    private let groupScopes: [(value: String, label: String)] = [
+        ("group", L10n.t("整群共享")),
+        ("group_sender", L10n.t("群内按人隔离")),
+    ]
+
+    init(server: ServerConfig, agentId: Int, agentType: String? = nil) {
         self.server = server
         self.agentId = agentId
+        self.agentType = agentType
         self.client = APIClient.shared(for: server)
     }
 
@@ -1163,6 +1211,31 @@ struct AIAgentDingtalkChannelView: View {
                         Task { await load() }
                     }
                 }
+            } else if isOpenClaw {
+                ChannelPluginSection(client: client, agentId: agentId, type: "dingtalk") {
+                    Task { await load() }
+                }
+
+                Section {
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
+                                         value: Binding(get: { c.dmPolicy ?? "open" }, set: { c.dmPolicy = $0 }))
+                    if c.dmPolicy == "allowlist" {
+                        WhitelistEditor(title: L10n.t("私聊白名单"), list: Binding(
+                            get: { c.allowFrom ?? [] }, set: { c.allowFrom = $0 }))
+                    }
+                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
+                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                    if c.groupPolicy == "allowlist" {
+                        WhitelistEditor(title: L10n.t("群组白名单"), list: Binding(
+                            get: { c.groupAllowFrom ?? [] }, set: { c.groupAllowFrom = $0 }))
+                    }
+                }
+
+                sessionSection
+
+                openclawBotList
             } else {
                 Section {
                     Toggle(L10n.t("启用"), isOn: Binding(
@@ -1172,26 +1245,14 @@ struct AIAgentDingtalkChannelView: View {
                         .textInputAutocapitalization(.never)
                     SecureField("Client Secret", text: Binding(
                         get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
+                        .textInputAutocapitalization(.never)
                     ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
                                          value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                     ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
                                          value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
                 }
 
-                Section {
-                    Toggle(L10n.t("会话独立"), isOn: Binding(
-                        get: { c.separateSessionByConversation ?? false },
-                        set: { c.separateSessionByConversation = $0 }))
-                    Toggle(L10n.t("跨会话共享记忆"), isOn: Binding(
-                        get: { c.sharedMemoryAcrossConversations ?? false },
-                        set: { c.sharedMemoryAcrossConversations = $0 }))
-                    Toggle(L10n.t("异步模式"), isOn: Binding(
-                        get: { c.asyncMode ?? false }, set: { c.asyncMode = $0 }))
-                    TextField(L10n.t("异步回执文案"), text: Binding(
-                        get: { c.ackText ?? "" }, set: { c.ackText = $0 }))
-                } header: {
-                    SectionLabel(title: L10n.t("会话设置"), systemImage: "bubble.left.and.bubble.right")
-                }
+                basicSessionSection
 
                 if c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "dingtalk")
@@ -1216,6 +1277,155 @@ struct AIAgentDingtalkChannelView: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        .sheet(item: $editingBot) { bot in
+            AIDingtalkBotFormSheet(
+                bot: bot, isEdit: true,
+                existingAccountIDs: bots.compactMap(\.accountId),
+                selfOriginalID: bot.accountId) { updated in
+                // 按打开弹窗时的行身份匹配（允许修改账户 ID）
+                if let idx = bots.firstIndex(where: { $0.id == bot.id }) {
+                    bots[idx] = updated
+                }
+            }
+        }
+        .sheet(isPresented: $showAddBot) {
+            AIDingtalkBotFormSheet(
+                bot: AIChannelDingtalkBotItem(enabled: true, isDefault: false),
+                isEdit: false,
+                existingAccountIDs: bots.compactMap(\.accountId)) { newBot in
+                bots.append(newBot)
+            }
+        }
+    }
+
+    /// OpenClaw 会话设置：会话隔离 / 群会话范围 / 共享记忆 / 异步模式 + 确认消息
+    private var sessionSection: some View {
+        Section {
+            Toggle(L10n.t("按会话隔离"), isOn: Binding(
+                get: { c.separateSessionByConversation ?? true },
+                set: { c.separateSessionByConversation = $0 }))
+            Picker(L10n.t("群会话范围"), selection: Binding(
+                get: {
+                    let v = c.groupSessionScope ?? ""
+                    return groupScopes.contains(where: { $0.value == v }) ? v : "group_sender"
+                },
+                set: { c.groupSessionScope = $0 })) {
+                ForEach(groupScopes, id: \.value) { s in
+                    Text(s.label).tag(s.value)
+                }
+            }
+            Toggle(L10n.t("跨会话共享记忆"), isOn: Binding(
+                get: { c.sharedMemoryAcrossConversations ?? false },
+                set: { c.sharedMemoryAcrossConversations = $0 }))
+            Toggle(L10n.t("异步模式"), isOn: Binding(
+                get: { c.asyncMode ?? false }, set: { c.asyncMode = $0 }))
+            if c.asyncMode == true {
+                TextField(L10n.t("确认消息"), text: Binding(
+                    get: { c.ackText ?? "" }, set: { c.ackText = $0 }))
+            }
+        } header: {
+            SectionLabel(title: L10n.t("会话设置"), systemImage: "bubble.left.and.bubble.right")
+        } footer: {
+            if c.asyncMode == true {
+                Text(L10n.t("异步模式下先回复确认消息，任务完成后再次回复"))
+            }
+        }
+    }
+
+    /// 基础类型会话设置（抓包无群会话范围下拉，保持既有四项）
+    private var basicSessionSection: some View {
+        Section {
+            Toggle(L10n.t("会话独立"), isOn: Binding(
+                get: { c.separateSessionByConversation ?? false },
+                set: { c.separateSessionByConversation = $0 }))
+            Toggle(L10n.t("跨会话共享记忆"), isOn: Binding(
+                get: { c.sharedMemoryAcrossConversations ?? false },
+                set: { c.sharedMemoryAcrossConversations = $0 }))
+            Toggle(L10n.t("异步模式"), isOn: Binding(
+                get: { c.asyncMode ?? false }, set: { c.asyncMode = $0 }))
+            TextField(L10n.t("异步回执文案"), text: Binding(
+                get: { c.ackText ?? "" }, set: { c.ackText = $0 }))
+        } header: {
+            SectionLabel(title: L10n.t("会话设置"), systemImage: "bubble.left.and.bubble.right")
+        }
+    }
+
+    // MARK: OpenClaw Bot 列表
+
+    private var openclawBotList: some View {
+        Section {
+            ForEach(bots) { bot in
+                Button {
+                    editingBot = bot
+                } label: {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                Text(bot.name ?? bot.accountId ?? "-")
+                                    .font(.body.bold())
+                                    .foregroundStyle(.primary)
+                                if bot.enabled != true {
+                                    StatusBadge(text: L10n.t("未启用"), color: .secondary)
+                                }
+                            }
+                            Text(bot.accountId ?? "-")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 3)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        Task { await saveBots(bots.filter { $0.id != bot.id }) }
+                    } label: {
+                        Label(L10n.t("删除"), systemImage: "trash")
+                    }
+                }
+            }
+
+            Button {
+                showAddBot = true
+            } label: {
+                Label(L10n.t("新增 Bot"), systemImage: "plus.circle")
+            }
+        } header: {
+            SectionLabel(title: L10n.f("Bot 列表 · 共 %d 个", bots.count), systemImage: "person.2")
+        } footer: {
+            Text(L10n.t("点击 Bot 编辑凭证与状态；删除将立即保存"))
+        }
+    }
+
+    /// OpenClaw：Bot 删除即时全量保存（顶层取已保存快照，不含草稿）；
+    /// 钉钉 Bot 无默认标记（抓包 isDefault 恒 false），允许删到零后重新添加
+    private func saveBots(_ updated: [AIChannelDingtalkBotItem]) async {
+        guard !isSaving else { return }
+        let previousBots = bots
+        bots = updated
+        var out = savedC
+        out.agentId = agentId
+        out.installed = nil
+        out.bots = updated
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "dingtalk"),
+                body: out,
+                as: EmptyResponse.self)
+            savedC = out
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            bots = previousBots
+            errorMessage = error.localizedDescription
+            showError = true
+        }
     }
 
     private func load() async {
@@ -1227,16 +1437,23 @@ struct AIAgentDingtalkChannelView: View {
             var loaded = resp
             // 群组策略空串折叠为默认值，避免 Picker 空 selection
             if (loaded.groupPolicy ?? "").isEmpty { loaded.groupPolicy = "open" }
-            // 未配置（作用域与回执全空）时按网页端默认值回显：
-            // 会话独立=true、作用域 group_sender、默认回执文案（对齐网页端首次保存体）
-            if (loaded.groupSessionScope ?? "").isEmpty && (loaded.ackText ?? "").isEmpty {
+            if isOpenClaw {
+                if (loaded.dmPolicy ?? "").isEmpty { loaded.dmPolicy = "open" }
+                if (loaded.groupSessionScope ?? "").isEmpty { loaded.groupSessionScope = "group_sender" }
+            } else if (loaded.groupSessionScope ?? "").isEmpty && (loaded.ackText ?? "").isEmpty {
+                // 未配置时按网页端默认值回显（基础类型首次保存体对齐）
                 loaded.separateSessionByConversation = true
                 loaded.groupSessionScope = "group_sender"
                 loaded.ackText = "任务已接收，处理中..."
             }
             c = loaded
-            bot = loaded.bots?.first ?? bot
-            extraBots = Array((loaded.bots ?? []).dropFirst())
+            savedC = loaded
+            if isOpenClaw {
+                bots = loaded.bots ?? []
+            } else {
+                bot = loaded.bots?.first ?? bot
+                extraBots = Array((loaded.bots ?? []).dropFirst())
+            }
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -1248,8 +1465,13 @@ struct AIAgentDingtalkChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
+        // update 体不含 get 回传的 installed 标记（抓包确认）
         out.installed = nil
-        out.bots = [bot] + extraBots
+        if isOpenClaw {
+            out.bots = bots
+        } else {
+            out.bots = [bot] + extraBots
+        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -1257,12 +1479,82 @@ struct AIAgentDingtalkChannelView: View {
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "dingtalk"),
                 body: out,
                 as: EmptyResponse.self)
+            savedC = out
             dismiss()
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
             showError = true
         }
+    }
+}
+
+/// OpenClaw 钉钉 Bot 新建/编辑表单（名称/账户ID/状态/Client ID/Client Secret）
+private struct AIDingtalkBotFormSheet: View {
+    @State var bot: AIChannelDingtalkBotItem
+    let isEdit: Bool
+    var existingAccountIDs: [String] = []
+    var selfOriginalID: String? = nil
+    let onConfirm: (AIChannelDingtalkBotItem) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var isDuplicateAccount: Bool {
+        let id = (bot.accountId ?? "").trimmingCharacters(in: .whitespaces)
+        guard !id.isEmpty else { return false }
+        return existingAccountIDs.filter { $0 != selfOriginalID }.contains(id)
+    }
+
+    private var canSubmit: Bool {
+        !(bot.accountId ?? "").isEmpty && !(bot.clientId ?? "").isEmpty
+            && !(bot.clientSecret ?? "").isEmpty && !isDuplicateAccount
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(L10n.t("名称"), text: Binding(
+                        get: { bot.name ?? "" }, set: { bot.name = $0 }))
+                        .textInputAutocapitalization(.never)
+                    TextField(L10n.t("账户 ID"), text: Binding(
+                        get: { bot.accountId ?? "" }, set: { bot.accountId = $0 }))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { bot.enabled ?? true }, set: { bot.enabled = $0 }))
+                    TextField("Client ID", text: Binding(
+                        get: { bot.clientId ?? "" }, set: { bot.clientId = $0 }))
+                        .textInputAutocapitalization(.never)
+                    SecureField("Client Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
+                        .textInputAutocapitalization(.never)
+                } header: {
+                    SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
+                } footer: {
+                    if isDuplicateAccount {
+                        Text(L10n.t("账户 ID 与现有 Bot 重复"))
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle(isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("确定")) {
+                        onConfirm(bot)
+                        dismiss()
+                    }
+                    .disabled(!canSubmit)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.medium])
     }
 }
 
