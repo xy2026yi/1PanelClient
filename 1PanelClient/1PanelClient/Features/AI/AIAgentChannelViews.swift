@@ -170,9 +170,9 @@ struct AIAgentChannelsView: View {
                 }
             }
             for await (key, enabled) in group {
-                if let enabled {
-                    enabledMap[key] = enabled
-                }
+                // get 失败（如频道刚被删除）时置 nil 清掉旧徽标，
+                // 不再残留上一次的「已启用」
+                enabledMap[key] = enabled
             }
         }
         isLoading = false
@@ -181,14 +181,22 @@ struct AIAgentChannelsView: View {
 
 // MARK: - 通用小组件
 
-/// 策略 Picker（选项集按频道传入：pairing / open / allowlist / disabled）
+/// 策略 Picker（选项集按频道传入：pairing / open / allowlist / disabled）。
+/// get 可能返回空串/未知值（如钉钉 groupPolicy:""）：不在选项集内时折叠到首个选项，
+/// 避免 Picker 空 selection 告警与空白行（提交仍走 state，用户不改动即保持折叠值）
 private struct ChannelPolicyPicker: View {
     let title: String
     let options: [(value: String, label: String)]
     @Binding var value: String
 
     var body: some View {
-        Picker(title, selection: $value) {
+        Picker(title, selection: Binding(
+            get: {
+                options.contains(where: { $0.value == value })
+                    ? value : (options.first?.value ?? value)
+            },
+            set: { value = $0 }
+        )) {
             ForEach(options, id: \.value) { p in
                 Text(p.label).tag(p.value)
             }
@@ -986,6 +994,9 @@ struct AIAgentTelegramChannelView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var c = AIChannelTelegram()
+    /// 上次已保存的顶层配置快照：滑动操作的立即保存从快照组装，
+    /// 不携带用户未保存的顶层草稿
+    @State private var savedC = AIChannelTelegram()
     @State private var bots: [AIChannelTelegramBotItem] = []
     @State private var isLoading = true
     @State private var isSaving = false
@@ -1009,6 +1020,14 @@ struct AIAgentTelegramChannelView: View {
         agentType == "openclaw"
             ? AIChannelPolicy.dmPoliciesFull
             : AIChannelPolicy.dmPoliciesFull.filter { $0.value == "pairing" || $0.value == "open" }
+    }
+
+    /// 批准配对携带的账户：defaultAccount 空串（基础版 get）回退默认 Bot；
+    /// 基础类型抓包 approve 不携带 accountId，仅 OpenClaw 传
+    private var pairingAccountID: String? {
+        guard agentType == "openclaw" else { return nil }
+        if let id = c.defaultAccount, !id.isEmpty { return id }
+        return bots.first(where: { $0.isDefault == true })?.accountId
     }
 
     var body: some View {
@@ -1045,7 +1064,8 @@ struct AIAgentTelegramChannelView: View {
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
                     Picker(L10n.t("流式传输"), selection: Binding(
-                        get: { c.streaming ?? "partial" }, set: { c.streaming = $0 })) {
+                        get: { let v = c.streaming ?? ""; return v.isEmpty ? "partial" : v },
+                        set: { c.streaming = $0 })) {
                         ForEach(AIChannelStreaming.options, id: \.value) { o in
                             Text(o.label).tag(o.value)
                         }
@@ -1056,7 +1076,7 @@ struct AIAgentTelegramChannelView: View {
 
                 if c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "telegram",
-                                          accountId: c.defaultAccount)
+                                          accountId: pairingAccountID)
                 }
             }
         }
@@ -1079,7 +1099,10 @@ struct AIAgentTelegramChannelView: View {
             Text(errorMessage ?? "")
         }
         .sheet(item: $editingBot) { bot in
-            AITelegramBotFormSheet(bot: bot, isEdit: true, dmOptions: dmPolicies) { updated in
+            AITelegramBotFormSheet(
+                bot: bot, isEdit: true, dmOptions: dmPolicies,
+                existingAccountIDs: bots.compactMap(\.accountId),
+                selfOriginalID: bot.accountId) { updated in
                 // 按打开弹窗时的行身份匹配（sheet 闭包捕获的 bot 快照）：
                 // 允许修改账户 ID——updated.id 已是新值，按它找必然失配、编辑被静默丢弃
                 if let idx = bots.firstIndex(where: { $0.id == bot.id }) {
@@ -1091,7 +1114,8 @@ struct AIAgentTelegramChannelView: View {
             AITelegramBotFormSheet(
                 bot: AIChannelTelegramBotItem(enabled: true, isDefault: false, dmPolicy: "open", groupPolicy: "open", streaming: c.streaming ?? "partial"),
                 isEdit: false,
-                dmOptions: dmPolicies) { newBot in
+                dmOptions: dmPolicies,
+                existingAccountIDs: bots.compactMap(\.accountId)) { newBot in
                 bots.append(newBot)
             }
         }
@@ -1159,7 +1183,9 @@ struct AIAgentTelegramChannelView: View {
     }
 
     /// 变更 bots 后整体保存（删除/设为默认共用，抓包均为全量 update）。
-    /// 成功后回写本地 defaultAccount（否则批准配对仍携带旧默认账号），失败回滚
+    /// 顶层字段取「上次已保存快照」组装——滑动操作的立即保存不得把
+    /// 用户改到一半的顶层草稿（代理/开关等）提前持久化；
+    /// 成功后回写本地 defaultAccount 与快照，失败回滚
     private func saveBots(_ updated: [AIChannelTelegramBotItem], defaultAccount: String? = nil) async {
         guard !isSaving else { return }
         let previousBots = bots
@@ -1168,9 +1194,12 @@ struct AIAgentTelegramChannelView: View {
         if let defaultAccount {
             c.defaultAccount = defaultAccount
         }
-        var out = c
+        var out = savedC
         out.agentId = agentId
         out.bots = updated
+        if let defaultAccount {
+            out.defaultAccount = defaultAccount
+        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -1178,6 +1207,7 @@ struct AIAgentTelegramChannelView: View {
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "telegram"),
                 body: out,
                 as: EmptyResponse.self)
+            savedC = out
         } catch {
             guard !APIError.isCancellation(error) else { return }
             // 回滚本地状态，避免与服务端分叉
@@ -1189,6 +1219,12 @@ struct AIAgentTelegramChannelView: View {
     }
 
     private func removeBot(_ bot: AIChannelTelegramBotItem) async {
+        // 至少保留一个 Bot：删空会让 defaultAccount 悬空（网页端不允许删到最后一个）
+        guard bots.count > 1 else {
+            errorMessage = L10n.t("至少保留一个 Bot")
+            showError = true
+            return
+        }
         var remaining = bots.filter { $0.id != bot.id }
         // 删除默认 Bot 时把默认让给第一个
         if bot.isDefault == true, !remaining.isEmpty {
@@ -1215,6 +1251,7 @@ struct AIAgentTelegramChannelView: View {
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelTelegram.self)
             c = resp
+            savedC = resp
             bots = resp.bots ?? []
             loadError = nil
         } catch {
@@ -1235,6 +1272,7 @@ struct AIAgentTelegramChannelView: View {
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "telegram"),
                 body: out,
                 as: EmptyResponse.self)
+            savedC = out
             dismiss()
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -1245,17 +1283,28 @@ struct AIAgentTelegramChannelView: View {
 }
 
 /// Telegram Bot 新建/编辑表单（名称/账户ID/状态/Token/策略/流式）；
-/// 私聊策略选项集随智能体类型由调用方传入
+/// 私聊策略选项集随智能体类型由调用方传入，账户 ID 在现有 Bot 内查重
 private struct AITelegramBotFormSheet: View {
     @State var bot: AIChannelTelegramBotItem
     let isEdit: Bool
     let dmOptions: [(value: String, label: String)]
+    /// 现有 Bot 的账户 ID（查重用）
+    var existingAccountIDs: [String] = []
+    /// 编辑时的自身原账户 ID（查重排除）
+    var selfOriginalID: String? = nil
     let onConfirm: (AIChannelTelegramBotItem) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
+    private var isDuplicateAccount: Bool {
+        let id = (bot.accountId ?? "").trimmingCharacters(in: .whitespaces)
+        guard !id.isEmpty else { return false }
+        return existingAccountIDs.filter { $0 != selfOriginalID }.contains(id)
+    }
+
     private var canSubmit: Bool {
         !(bot.name ?? "").isEmpty && !(bot.accountId ?? "").isEmpty && !(bot.botToken ?? "").isEmpty
+            && !isDuplicateAccount
     }
 
     var body: some View {
@@ -1276,6 +1325,11 @@ private struct AITelegramBotFormSheet: View {
                         .textInputAutocapitalization(.never)
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
+                } footer: {
+                    if isDuplicateAccount {
+                        Text(L10n.t("账户 ID 与现有 Bot 重复"))
+                            .foregroundStyle(.red)
+                    }
                 }
 
                 Section {
@@ -1284,7 +1338,8 @@ private struct AITelegramBotFormSheet: View {
                     ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
                                          value: Binding(get: { bot.groupPolicy ?? "open" }, set: { bot.groupPolicy = $0 }))
                     Picker(L10n.t("流式传输"), selection: Binding(
-                        get: { bot.streaming ?? "partial" }, set: { bot.streaming = $0 })) {
+                        get: { let v = bot.streaming ?? ""; return v.isEmpty ? "partial" : v },
+                        set: { bot.streaming = $0 })) {
                         ForEach(AIChannelStreaming.options, id: \.value) { o in
                             Text(o.label).tag(o.value)
                         }
@@ -1321,6 +1376,8 @@ struct AIAgentDiscordChannelView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var c = AIChannelDiscord()
+    /// 上次已保存的顶层配置快照（滑动操作立即保存的组装基准，不含未保存草稿）
+    @State private var savedC = AIChannelDiscord()
     @State private var bots: [AIChannelDiscordBotItem] = []
     @State private var isLoading = true
     @State private var isSaving = false
@@ -1335,6 +1392,13 @@ struct AIAgentDiscordChannelView: View {
     /// 私聊策略仅 配队码 / 开放；群组策略 开放 / 禁用（抓包确认，无白名单）
     private var dmPolicies: [(value: String, label: String)] {
         AIChannelPolicy.dmPoliciesFull.filter { $0.value == "pairing" || $0.value == "open" }
+    }
+
+    /// 批准配对携带的账户：defaultAccount 空串回退默认 Bot
+    /// （QwenPaw / OpenClaw 的 Discord approve 抓包均携带 accountId）
+    private var pairingAccountID: String? {
+        if let id = c.defaultAccount, !id.isEmpty { return id }
+        return bots.first(where: { $0.isDefault == true })?.accountId
     }
 
     init(server: ServerConfig, agentId: Int) {
@@ -1374,7 +1438,7 @@ struct AIAgentDiscordChannelView: View {
 
                 if c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "discord",
-                                          accountId: c.defaultAccount)
+                                          accountId: pairingAccountID)
                 }
             }
         }
@@ -1397,7 +1461,10 @@ struct AIAgentDiscordChannelView: View {
             Text(errorMessage ?? "")
         }
         .sheet(item: $editingBot) { bot in
-            AIDiscordBotFormSheet(bot: bot, isEdit: true) { updated in
+            AIDiscordBotFormSheet(
+                bot: bot, isEdit: true,
+                existingAccountIDs: bots.compactMap(\.accountId),
+                selfOriginalID: bot.accountId) { updated in
                 // 按打开弹窗时的行身份匹配（sheet 闭包捕获的 bot 快照），允许修改账户 ID
                 if let idx = bots.firstIndex(where: { $0.id == bot.id }) {
                     bots[idx] = updated
@@ -1407,7 +1474,8 @@ struct AIAgentDiscordChannelView: View {
         .sheet(isPresented: $showAddBot) {
             AIDiscordBotFormSheet(
                 bot: AIChannelDiscordBotItem(enabled: true, isDefault: false),
-                isEdit: false) { newBot in
+                isEdit: false,
+                existingAccountIDs: bots.compactMap(\.accountId)) { newBot in
                 bots.append(newBot)
             }
         }
@@ -1474,7 +1542,8 @@ struct AIAgentDiscordChannelView: View {
         }
     }
 
-    /// 变更 bots 后整体保存（与 Telegram 同款：成功回写 defaultAccount，失败回滚）
+    /// 变更 bots 后整体保存（与 Telegram 同款：从已保存快照组装、
+    /// 成功回写 defaultAccount 与快照，失败回滚）
     private func saveBots(_ updated: [AIChannelDiscordBotItem], defaultAccount: String? = nil) async {
         guard !isSaving else { return }
         let previousBots = bots
@@ -1483,9 +1552,12 @@ struct AIAgentDiscordChannelView: View {
         if let defaultAccount {
             c.defaultAccount = defaultAccount
         }
-        var out = c
+        var out = savedC
         out.agentId = agentId
         out.bots = updated
+        if let defaultAccount {
+            out.defaultAccount = defaultAccount
+        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -1493,6 +1565,7 @@ struct AIAgentDiscordChannelView: View {
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "discord"),
                 body: out,
                 as: EmptyResponse.self)
+            savedC = out
         } catch {
             guard !APIError.isCancellation(error) else { return }
             bots = previousBots
@@ -1503,6 +1576,12 @@ struct AIAgentDiscordChannelView: View {
     }
 
     private func removeBot(_ bot: AIChannelDiscordBotItem) async {
+        // 至少保留一个 Bot：删空会让 defaultAccount 悬空
+        guard bots.count > 1 else {
+            errorMessage = L10n.t("至少保留一个 Bot")
+            showError = true
+            return
+        }
         var remaining = bots.filter { $0.id != bot.id }
         if bot.isDefault == true, !remaining.isEmpty {
             remaining[0].isDefault = true
@@ -1528,6 +1607,7 @@ struct AIAgentDiscordChannelView: View {
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelDiscord.self)
             c = resp
+            savedC = resp
             bots = resp.bots ?? []
             loadError = nil
         } catch {
@@ -1548,6 +1628,7 @@ struct AIAgentDiscordChannelView: View {
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "discord"),
                 body: out,
                 as: EmptyResponse.self)
+            savedC = out
             dismiss()
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -1557,16 +1638,27 @@ struct AIAgentDiscordChannelView: View {
     }
 }
 
-/// Discord Bot 新建/编辑表单（名称/账户ID/状态/Token，抓包确认无策略项）
+/// Discord Bot 新建/编辑表单（名称/账户ID/状态/Token，抓包确认无策略项；账户 ID 查重）
 private struct AIDiscordBotFormSheet: View {
     @State var bot: AIChannelDiscordBotItem
     let isEdit: Bool
+    /// 现有 Bot 的账户 ID（查重用）
+    var existingAccountIDs: [String] = []
+    /// 编辑时的自身原账户 ID（查重排除）
+    var selfOriginalID: String? = nil
     let onConfirm: (AIChannelDiscordBotItem) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
+    private var isDuplicateAccount: Bool {
+        let id = (bot.accountId ?? "").trimmingCharacters(in: .whitespaces)
+        guard !id.isEmpty else { return false }
+        return existingAccountIDs.filter { $0 != selfOriginalID }.contains(id)
+    }
+
     private var canSubmit: Bool {
         !(bot.name ?? "").isEmpty && !(bot.accountId ?? "").isEmpty && !(bot.token ?? "").isEmpty
+            && !isDuplicateAccount
     }
 
     var body: some View {
@@ -1587,6 +1679,11 @@ private struct AIDiscordBotFormSheet: View {
                         .textInputAutocapitalization(.never)
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
+                } footer: {
+                    if isDuplicateAccount {
+                        Text(L10n.t("账户 ID 与现有 Bot 重复"))
+                            .foregroundStyle(.red)
+                    }
                 }
             }
             .navigationTitle(isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"))

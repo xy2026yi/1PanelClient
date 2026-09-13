@@ -23112,6 +23112,17 @@
         }
       }
     },
+    "至少保留一个 Bot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At least one bot must remain"
+          }
+        }
+      }
+    },
     "节点不存在或已被移除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25286,6 +25297,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Account ID"
+          }
+        }
+      }
+    },
+    "账户 ID 与现有 Bot 重复" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This account ID duplicates an existing bot"
           }
         }
       }

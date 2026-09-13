@@ -258,6 +258,11 @@ struct AIAgentDetailView: View {
         a.agentType == "openclaw"
     }
 
+    /// QwenPaw(copaw) 创建时不绑定模型账号
+    private func isCopawAgent(_ a: AIAgent) -> Bool {
+        a.agentType == "copaw"
+    }
+
     private func drawerHeaderRow(_ a: AIAgent) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
@@ -321,14 +326,18 @@ struct AIAgentDetailView: View {
             ) {
                 Task { await startDelete() }
             }
-            CardActionButton(
-                title: L10n.t("模型"),
-                icon: "brain",
-                color: .purple,
-                busy: false,
-                disabled: false
-            ) {
-                showModelConfig = true
+            // QwenPaw(copaw) 不绑定模型账号（创建即无 model/accountId），
+            // 隐藏模型入口——进入会是死页面且触发账号 Picker 无效 selection
+            if !isCopawAgent(a) {
+                CardActionButton(
+                    title: L10n.t("模型"),
+                    icon: "brain",
+                    color: .purple,
+                    busy: false,
+                    disabled: false
+                ) {
+                    showModelConfig = true
+                }
             }
             CardActionButton(
                 title: L10n.t("设置"),

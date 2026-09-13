@@ -279,6 +279,16 @@ nonisolated struct AIAgentChannelPairingApproveRequest: Encodable {
 
 // MARK: - 频道 Bot 条目（凭证在 bots 数组内，各频道字段不同）
 
+/// Bot 行身份：accountId / name 非空串优先，全空兜底 UUID
+/// （空串视为缺失——服务端可能返回 ""，多条会互相撞身份）
+nonisolated enum AIChannelBotIdentity {
+    static func make(_ accountId: String?, _ name: String?) -> String {
+        if let id = accountId, !id.isEmpty { return id }
+        if let n = name, !n.isEmpty { return n }
+        return UUID().uuidString
+    }
+}
+
 /// QQ Bot：{accountId, name, enabled, isDefault, appId, clientSecret, allowFrom, systemPrompt}
 nonisolated struct AIChannelQQBotItem: Codable, Hashable, Identifiable {
     var accountId: String? = nil
@@ -289,7 +299,7 @@ nonisolated struct AIChannelQQBotItem: Codable, Hashable, Identifiable {
     var clientSecret: String? = nil
     var allowFrom: [String]? = nil
     var systemPrompt: String? = nil
-    var id: String { accountId ?? name ?? UUID().uuidString }
+    var id: String { AIChannelBotIdentity.make(accountId, name) }
 }
 
 /// 飞书 Bot：{accountId, name, enabled, isDefault, appId, appSecret, dmPolicy, allowFrom}
@@ -302,7 +312,7 @@ nonisolated struct AIChannelFeishuBotItem: Codable, Hashable, Identifiable {
     var appSecret: String? = nil
     var dmPolicy: String? = nil
     var allowFrom: [String]? = nil
-    var id: String { accountId ?? name ?? UUID().uuidString }
+    var id: String { AIChannelBotIdentity.make(accountId, name) }
 }
 
 /// Telegram Bot：{accountId, name, enabled, isDefault, botToken, dmPolicy, groupPolicy, streaming}
@@ -315,7 +325,7 @@ nonisolated struct AIChannelTelegramBotItem: Codable, Hashable, Identifiable {
     var dmPolicy: String? = nil
     var groupPolicy: String? = nil
     var streaming: String? = nil
-    var id: String { accountId ?? name ?? UUID().uuidString }
+    var id: String { AIChannelBotIdentity.make(accountId, name) }
 }
 
 /// Discord Bot：{accountId, name, enabled, isDefault, token}
@@ -325,7 +335,7 @@ nonisolated struct AIChannelDiscordBotItem: Codable, Hashable, Identifiable {
     var enabled: Bool? = nil
     var isDefault: Bool? = nil
     var token: String? = nil
-    var id: String { accountId ?? name ?? UUID().uuidString }
+    var id: String { AIChannelBotIdentity.make(accountId, name) }
 }
 
 /// 钉钉 Bot：{accountId, name, enabled, isDefault, clientId, clientSecret}
@@ -336,7 +346,7 @@ nonisolated struct AIChannelDingtalkBotItem: Codable, Hashable, Identifiable {
     var isDefault: Bool? = nil
     var clientId: String? = nil
     var clientSecret: String? = nil
-    var id: String { accountId ?? name ?? UUID().uuidString }
+    var id: String { AIChannelBotIdentity.make(accountId, name) }
 }
 
 // MARK: - 频道配置（get 响应 + update 请求体同构：{agentId} + 字段平铺）

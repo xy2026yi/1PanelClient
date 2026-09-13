@@ -495,10 +495,12 @@ struct AIAgentSettingsView: View {
                 body: AIAgentModelRequest(agentId: agentId),
                 as: AIAgentOtherConfig.self)
             config = c
-            timezone = c.userTimezone ?? "Asia/Shanghai"
+            timezone = (c.userTimezone ?? "").isEmpty ? "Asia/Shanghai" : c.userTimezone!
             browserEnabled = c.browserEnabled ?? true
-            npmRegistry = c.npmRegistry ?? "https://registry.npmjs.org/"
-            username = c.dashboardUsername ?? "admin"
+            // npmRegistry 可能返回空串（抓包确认）：折叠为首个预设，
+            // 避免 Picker 空 selection 告警
+            npmRegistry = (c.npmRegistry ?? "").isEmpty ? npmMirrors[0] : c.npmRegistry!
+            username = (c.dashboardUsername ?? "").isEmpty ? "admin" : c.dashboardUsername!
             password = c.dashboardPassword ?? ""
             loadError = nil
         } catch {
