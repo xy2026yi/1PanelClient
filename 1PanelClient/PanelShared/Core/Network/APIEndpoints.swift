@@ -351,6 +351,13 @@ enum APIEndpoint {
     case filesRecycleSearch      // POST 回收站文件分页列表
     case filesRecycleReduce      // POST 回收站还原文件
     case filesRecycleClear       // POST 清空回收站
+    // 文件操作（logs/推荐实现-文件.md 抓包 2026-09-14）
+    case filesCompress           // POST 压缩 {files,type,dst,name,replace,secret,taskID}
+    case filesDecompress         // POST 解压 {type,dst,path,secret,taskID}
+    case filesMove               // POST 移动/剪切 {oldPaths,newPath,type,...}
+    case filesBatchRole          // POST 权限修改 {paths,mode,user,group,sub}
+    case filesWget               // POST 远程下载 {url,path,name,ignoreCertificate,useProxy} → {key}
+    case filesWgetProcessKeys    // GET  进行中下载 key 列表
 
     // MARK: - SSH 管理
     case sshOperate              // POST SSH服务操作(start/stop/restart/enable/disable)
@@ -833,6 +840,12 @@ enum APIEndpoint {
         case .filesRecycleSearch:    return "/api/v2/files/recycle/search"
         case .filesRecycleReduce:    return "/api/v2/files/recycle/reduce"
         case .filesRecycleClear:     return "/api/v2/files/recycle/clear"
+        case .filesCompress:         return "/api/v2/files/compress"
+        case .filesDecompress:       return "/api/v2/files/decompress"
+        case .filesMove:             return "/api/v2/files/move"
+        case .filesBatchRole:        return "/api/v2/files/batch/role"
+        case .filesWget:             return "/api/v2/files/wget"
+        case .filesWgetProcessKeys:  return "/api/v2/files/wget/process/keys"
         case .sshOperate:            return "/api/v2/hosts/ssh/operate"
         case .sshSearch:             return "/api/v2/hosts/ssh/search"
         case .sshUpdate:             return "/api/v2/hosts/ssh/update"

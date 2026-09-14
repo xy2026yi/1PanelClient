@@ -2674,6 +2674,28 @@
         }
       }
     },
+    "下载任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Tasks"
+          }
+        }
+      }
+    },
+    "下载任务创建失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to create the download task"
+          }
+        }
+      }
+    },
     "下载任务将在此显示进度" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3994,6 +4016,17 @@
         }
       }
     },
+    "使用代理下载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download via proxy"
+          }
+        }
+      }
+    },
     "使用单一事务备份InnoDB表，适用于大数据量的备份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4225,6 +4258,17 @@
         }
       }
     },
+    "保存路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save To"
+          }
+        }
+      }
+    },
     "保存配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4397,6 +4441,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Redis must be restarted for the new password to take effect"
+          }
+        }
+      }
+    },
+    "修改所有者/用户组/公共的读取、写入、可执行权限" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set read / write / execute permissions for owner, group and others"
           }
         }
       }
@@ -4716,6 +4771,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "All Config"
+          }
+        }
+      }
+    },
+    "公共" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Others"
           }
         }
       }
@@ -7525,6 +7591,39 @@
         }
       }
     },
+    "压缩" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compress"
+          }
+        }
+      }
+    },
+    "压缩 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compress %@"
+          }
+        }
+      }
+    },
+    "压缩名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archive Name"
+          }
+        }
+      }
+    },
     "压缩密码用于加密备份文件，恢复时需输入相同密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7547,6 +7646,17 @@
         }
       }
     },
+    "压缩格式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archive Format"
+          }
+        }
+      }
+    },
     "压缩率" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7554,6 +7664,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Compression level"
+          }
+        }
+      }
+    },
+    "压缩路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destination"
           }
         }
       }
@@ -7943,6 +8064,17 @@
         }
       }
     },
+    "可执行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Execute"
+          }
+        }
+      }
+    },
     "可用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8005,6 +8137,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Optional; bindings can also be added or removed in the role card later."
+          }
+        }
+      }
+    },
+    "同时修改子文件属性" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply to contained files"
           }
         }
       }
@@ -12794,6 +12937,17 @@
         }
       }
     },
+    "忽略不可信证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore untrusted certificates"
+          }
+        }
+      }
+    },
     "忽略升级" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13219,6 +13373,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "All website certificates expiring"
+          }
+        }
+      }
+    },
+    "所有者" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Owner"
           }
         }
       }
@@ -15005,6 +15170,28 @@
         }
       }
     },
+    "文件名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Name"
+          }
+        }
+      }
+    },
+    "文件名将由下载地址自动带入，可手动修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file name is auto-filled from the URL and can be edited"
+          }
+        }
+      }
+    },
     "文件名称" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15419,6 +15606,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Could not load install parameters"
+          }
+        }
+      }
+    },
+    "无法构造下载进度连接地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to build the download progress connection"
           }
         }
       }
@@ -18778,6 +18976,17 @@
         }
       }
     },
+    "正在获取下载进度…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetching download progress…"
+          }
+        }
+      }
+    },
     "正在连接…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20560,6 +20769,17 @@
         }
       }
     },
+    "用户组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group"
+          }
+        }
+      }
+    },
     "用户（%ld）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20985,6 +21205,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Target Port"
+          }
+        }
+      }
+    },
+    "目标路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destination"
           }
         }
       }
@@ -24366,6 +24597,17 @@
         }
       }
     },
+    "覆盖已存在的文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overwrite existing files"
+          }
+        }
+      }
+    },
     "观察模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24483,6 +24725,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Roles"
+          }
+        }
+      }
+    },
+    "解压" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extract"
+          }
+        }
+      }
+    },
+    "解压 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extract %@"
+          }
+        }
+      }
+    },
+    "解压任务提交后可在任务进度中查看" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track extraction progress in the task view after submission"
+          }
+        }
+      }
+    },
+    "解压路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extract To"
           }
         }
       }

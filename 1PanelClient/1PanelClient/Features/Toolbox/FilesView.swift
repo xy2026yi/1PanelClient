@@ -76,6 +76,16 @@ struct FilesView: View {
     @State private var showActionSheet = false
     /// 长按文件行弹出的半屏操作菜单对应的文件
     @State private var actionItem: FileItem?
+    // 文件操作扩展（压缩/解压/移动/权限/远程下载，FilesOperations.swift）
+    @State private var compressItem: FileItem?
+    @State private var decompressItem: FileItem?
+    @State private var moveItem: FileItem?
+    @State private var permItem: FileItem?
+    @State private var showWget = false
+    @State private var archiveTask: FileArchiveTask?
+    @State private var wgetProgress: FileWgetProgressTarget?
+    /// 进行中的远程下载 key（GET wget/process/keys；非空时工具栏显示入口）
+    @State private var activeWgetKeys: [String] = []
     /// 挂起的菜单动作：菜单完全收起（sheet onDismiss）后再执行，
     /// 替代原先固定 0.35s 的延迟等待
     @State private var pendingMenuAction: (() -> Void)?
@@ -133,15 +143,29 @@ struct FilesView: View {
         )
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showActionSheet = true
-                    } label: {
-                        Image(systemName: "plus")
+                    HStack(spacing: 14) {
+                        // 有进行中的远程下载时显示入口（网页端行为：下载中显示按钮）
+                        if !activeWgetKeys.isEmpty {
+                            Button {
+                                wgetProgress = FileWgetProgressTarget(keys: activeWgetKeys)
+                            } label: {
+                                Image(systemName: "arrow.down.circle")
+                            }
+                            .accessibilityLabel(L10n.t("下载任务"))
+                        }
+                        Button {
+                            showActionSheet = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .accessibilityLabel(L10n.t("操作菜单"))
                     }
-                    .accessibilityLabel(L10n.t("操作菜单"))
                 }
             }
-            .refreshable { await loadDir(currentPath) }
+            .refreshable {
+                await loadDir(currentPath)
+                await checkActiveWgetKeys()
+            }
             .task { await initialLoad() }
             .sheet(isPresented: $showActionSheet, onDismiss: {
                 // 菜单完全收起后再执行挂起动作，避免与下一级弹窗的呈现竞争
@@ -160,6 +184,9 @@ struct FilesView: View {
                     ActionMenuItem(title: L10n.t("新建文件"), icon: "doc.badge.plus", color: .teal) {
                         pendingMenuAction = { createIsDir = false; showCreate = true }
                     },
+                    ActionMenuItem(title: L10n.t("远程下载"), icon: "arrow.down.circle", color: .blue) {
+                        pendingMenuAction = { showWget = true }
+                    },
                     ActionMenuItem(title: L10n.t("回收站"), icon: "trash", color: .gray) {
                         pendingMenuAction = { showRecycleBin = true }
                     },
@@ -171,7 +198,7 @@ struct FilesView: View {
                         pendingMenuAction = { Task { await loadDir("/") } }
                     }
                 ], onDismiss: { showActionSheet = false })
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 7))])
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 8))])
                 .presentationDragIndicator(.visible)
             }
             .sheet(item: $actionItem, onDismiss: {
@@ -253,6 +280,18 @@ struct FilesView: View {
             reload: { Task { await loadDir(currentPath) } },
             jumpTo: { target in Task { await loadDir(target) } },
             deleteItem: { item, force in Task { await deleteItem(item, forceDelete: force) } }
+        ))
+        .modifier(FilesOperationsModifier(
+            server: server,
+            currentPath: currentPath,
+            reload: { Task { await loadDir(currentPath) } },
+            compressItem: $compressItem,
+            decompressItem: $decompressItem,
+            moveItem: $moveItem,
+            permItem: $permItem,
+            showWget: $showWget,
+            archiveTask: $archiveTask,
+            wgetProgress: $wgetProgress
         ))
     }
 
@@ -440,6 +479,7 @@ struct FilesView: View {
             currentPath = baseDir
         }
         await loadDir(currentPath)
+        await checkActiveWgetKeys()
         // 加载真正完成才置位：途中 push 预览/回收站会取消 .task（loadDir 被
         // 取消守卫拦下），此时不置位，返回后 .task 重跑会重新加载——
         // 否则 guard 拦住重跑导致空列表 + 假错误卡死
@@ -659,7 +699,8 @@ struct FilesView: View {
         action()
     }
 
-    /// 长按文件行的操作菜单项（下载/重命名/删除），与全站 ActionBottomSheet 风格一致
+    /// 长按文件行的操作菜单项（下载/压缩/解压/移动/权限/重命名/删除），
+    /// 与全站 ActionBottomSheet 风格一致
     private func itemActions(_ item: FileItem) -> [ActionMenuItem] {
         var items: [ActionMenuItem] = []
         if !item.isDir {
@@ -667,6 +708,20 @@ struct FilesView: View {
                 pendingMenuAction = { downloadFile(item) }
             })
         }
+        items.append(ActionMenuItem(title: L10n.t("压缩"), icon: "doc.zipper", color: .purple) {
+            pendingMenuAction = { compressItem = item }
+        })
+        if Self.isArchiveFile(item.name) {
+            items.append(ActionMenuItem(title: L10n.t("解压"), icon: "doc.badge.ellipsis", color: .indigo) {
+                pendingMenuAction = { decompressItem = item }
+            })
+        }
+        items.append(ActionMenuItem(title: L10n.t("移动"), icon: "arrow.right.square", color: .orange) {
+            pendingMenuAction = { moveItem = item }
+        })
+        items.append(ActionMenuItem(title: L10n.t("权限"), icon: "lock.shield", color: .teal) {
+            pendingMenuAction = { permItem = item }
+        })
         items.append(ActionMenuItem(title: L10n.t("重命名"), icon: "pencil", color: .blue) {
             pendingMenuAction = { renamingItem = item }
         })
@@ -674,6 +729,21 @@ struct FilesView: View {
             pendingMenuAction = { deletingItem = item }
         })
         return items
+    }
+
+    /// 可解压的压缩包扩展名（决定行菜单是否显示「解压」）
+    private static func isArchiveFile(_ name: String) -> Bool {
+        let ext = (name as NSString).pathExtension.lowercased()
+        return ["zip", "gz", "bz2", "tar", "tgz", "xz", "rar", "7z", "zst", "lz4"].contains(ext)
+    }
+
+    /// 查询进行中的远程下载 key（下载完成后接口返回 null/空，入口随之隐藏）
+    private func checkActiveWgetKeys() async {
+        if let resp: FileWgetKeysResponse = try? await client.send(
+            path: APIEndpoint.filesWgetProcessKeys.path, method: "GET", body: nil,
+            as: FileWgetKeysResponse.self) {
+            activeWgetKeys = resp.keys ?? []
+        }
     }
 
     // MARK: - 下载
