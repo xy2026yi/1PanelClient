@@ -229,6 +229,23 @@ final class ContainersViewModel: ObservableObject {
     // MARK: - 单个容器操作（stop/start/restart/kill）
 
     @discardableResult
+    /// 容器重命名（POST /containers/rename；仅非应用、非编排创建的容器可用）
+    func renameContainer(name: String, to newName: String) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersRename.path,
+                body: ContainerRenameRequest(name: name, newName: newName),
+                as: EmptyResponse.self
+            )
+            await load(query: "")
+            showToast(L10n.f("已重命名为「%@」", newName))
+            return true
+        } catch {
+            showAlert(message: L10n.f("重命名失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
     func operateContainer(name: String, operation: String) async -> Bool {
         containerOperating = true
         defer { containerOperating = false }

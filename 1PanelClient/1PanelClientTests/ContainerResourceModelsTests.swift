@@ -56,6 +56,14 @@ struct ContainerResourceModelsTests {
         #expect((obj["auxAddressV6"] as? [[String: String]])?.count == 1)
     }
 
+    @Test("容器重命名请求编码（抓包样本）")
+    func encodeContainerRename() throws {
+        let req = ContainerRenameRequest(name: "123", newName: "234")
+        let obj = try encode(req)
+        #expect(obj["name"] as? String == "123")
+        #expect(obj["newName"] as? String == "234")
+    }
+
     // MARK: 存储卷
 
     @Test("存储卷创建编码（NFS4：options 由地址/版本/挂载点推导，抓包样本）")

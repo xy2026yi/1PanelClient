@@ -28,6 +28,13 @@ nonisolated struct ContainerNamesDeleteRequest: Encodable {
     let names: [String]
 }
 
+/// POST /containers/rename {name,newName}
+/// （仅 isFromApp=false 且 isFromCompose=false 的容器可重命名，抓包 2026-09-14）
+nonisolated struct ContainerRenameRequest: Encodable {
+    let name: String
+    let newName: String
+}
+
 // ContainerPruneRequest 复用 Container.swift 既有定义
 // （taskID/pruneType/withTagAll；pruneType：container/image/network/volume）
 

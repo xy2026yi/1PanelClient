@@ -366,6 +366,7 @@ enum APIEndpoint {
     case containersVolumeSearch    // POST 存储卷分页列表 {page,pageSize}
     case containersVolumeCreate    // POST 创建存储卷（NFS 可选）
     case containersVolumeDelete    // POST 删除存储卷 {names}
+    case containersRename          // POST 容器重命名 {name,newName}（logs/值得添加-1.md 抓包 2026-09-14）
     // containersPrune 复用既有 case（清理容器/镜像/网络/存储卷共用端点，pruneType 区分）
     case containersComposeSearch   // POST 编排列表 {info,page,pageSize,excludeAppStore}
     case containersComposeTest     // POST 编排创建前校验（data:true）
@@ -891,6 +892,7 @@ enum APIEndpoint {
         case .containersVolumeSearch:   return "/api/v2/containers/volume/search"
         case .containersVolumeCreate:   return "/api/v2/containers/volume"
         case .containersVolumeDelete:   return "/api/v2/containers/volume/del"
+        case .containersRename:         return "/api/v2/containers/rename"
         case .containersComposeSearch:  return "/api/v2/containers/compose/search"
         case .containersComposeTest:    return "/api/v2/containers/compose/test"
         case .containersComposeCreate:  return "/api/v2/containers/compose"

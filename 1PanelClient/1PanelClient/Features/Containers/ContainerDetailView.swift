@@ -32,6 +32,10 @@ struct ContainerDetailView: View {
     @State private var pendingDelete = false
     @State private var pendingAction: String?
     @State private var isStatusExpanded = false
+    /// 重命名 Sheet（仅 isFromApp/isFromCompose 均为 false 的容器可用）
+    @State private var showRename = false
+    /// inspect 详情（JSON）
+    @State private var showInspect = false
     /// 暂停/恢复任务进度（非空时 push TaskProgressView）
     @State private var progressTaskID: String?
     @State private var progressTitle = ""
@@ -116,6 +120,21 @@ struct ContainerDetailView: View {
         }
         .navigationDestination(isPresented: $showEdit) {
             ContainerEditView(container: current, vm: vm)
+        }
+        .navigationDestination(isPresented: $showInspect) {
+            ContainerInspectDetailView(
+                client: APIClient.shared(for: server),
+                target: ContainerInspectTarget(
+                    id: current.containerID, type: "container", name: current.displayName))
+        }
+        .sheet(isPresented: $showRename) {
+            ContainerRenameSheet(currentName: current.displayName) { newName in
+                Task {
+                    if await vm.renameContainer(name: current.displayName, to: newName) {
+                        await refreshContainer()
+                    }
+                }
+            }
         }
         .navigationDestination(isPresented: $showTerminal) {
             TerminalScreen(
@@ -203,6 +222,8 @@ struct ContainerDetailView: View {
                 operationsRow1
                     .padding(.top, 4)
                 operationsRow2
+                    .padding(.top, 4)
+                operationsRow3
                     .padding(.top, 4)
                     .padding(.bottom, 2)
             }
@@ -315,6 +336,33 @@ struct ContainerDetailView: View {
                 }
             }
         }
+    }
+
+    /// 第三行：重命名（应用/编排创建的容器不可改名）+ inspect 详情
+    private var operationsRow3: some View {
+        HStack(spacing: 8) {
+            if canRename {
+                actionButton(
+                    title: L10n.t("重命名"),
+                    icon: "pencil",
+                    color: .indigo
+                ) {
+                    showRename = true
+                }
+            }
+            actionButton(
+                title: L10n.t("详情"),
+                icon: "info.circle",
+                color: .gray
+            ) {
+                showInspect = true
+            }
+        }
+    }
+
+    /// 抓包确认：isFromApp 与 isFromCompose 均为 false 才可重命名
+    private var canRename: Bool {
+        current.isFromApp != true && current.isFromCompose != true
     }
 
     @ViewBuilder
@@ -556,3 +604,51 @@ struct ContainerLogView: View {
     }
 }
 
+
+// MARK: - 容器重命名 Sheet
+
+/// POST /containers/rename {name,newName}（抓包 2026-09-14）
+struct ContainerRenameSheet: View {
+    let currentName: String
+    let onConfirm: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var newName = ""
+    @State private var isSubmitting = false
+
+    private var trimmed: String { newName.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(L10n.t("当前名称")) {
+                    Text(currentName).foregroundStyle(.secondary)
+                }
+                Section(L10n.t("新名称")) {
+                    TextField(L10n.t("输入新名称"), text: $newName)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                }
+            }
+            .navigationTitle(L10n.t("重命名"))
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear { newName = currentName }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isSubmitting)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("保存")) {
+                        isSubmitting = true
+                        onConfirm(trimmed)
+                        dismiss()
+                    }
+                    .disabled(trimmed.isEmpty || trimmed == currentName || isSubmitting)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.medium])
+    }
+}
