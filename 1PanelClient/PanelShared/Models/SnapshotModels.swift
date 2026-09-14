@@ -110,34 +110,42 @@ nonisolated struct SnapshotRecoverRequest: Encodable {
     let secret: String
 }
 
-/// POST /settings/snapshot/search 返回的快照条目
-/// （search 响应未抓包：除 id 外全部可选，字段名不符时展示 — 不影响删除/恢复）
+/// POST /settings/snapshot/search（orderBy/order 必填，抓包 2026-09-14 确认：
+/// 缺失时后端返回 400 Field validation failed）
+nonisolated struct SnapshotSearchRequest: Encodable {
+    let page: Int
+    let pageSize: Int
+    let orderBy: String
+    let order: String
+}
+
+nonisolated struct SnapshotSearchResponse: Decodable {
+    let total: Int?
+    let items: [SnapshotItem]?
+}
+
+/// POST /settings/snapshot/search 返回的快照条目（抓包 2026-09-14 字段全集）
 nonisolated struct SnapshotItem: Decodable, Identifiable, Hashable {
     let id: Int
     let name: String?
-    let fromAccount: String?
-    let downloadAccountID: Int?
     let description: String?
+    let sourceAccounts: [String]?
+    let downloadAccount: String?
+    /// Success / ...
+    let status: String?
+    let message: String?
     let createdAt: String?
     /// 字节
     let size: Int64?
     let version: String?
+    let lastRecoveredAt: String?
 
     var displayName: String { name ?? "#\(id)" }
     var displayCreatedAt: String {
         guard let t = createdAt, !t.isEmpty else { return "—" }
         return String(t.prefix(19)).replacingOccurrences(of: "T", with: " ")
     }
-}
-
-nonisolated struct SnapshotSearchRequest: Encodable {
-    let page: Int
-    let pageSize: Int
-}
-
-nonisolated struct SnapshotSearchResponse: Decodable {
-    let total: Int?
-    let items: [SnapshotItem]?
+    var isOK: Bool { (status ?? "").lowercased() == "success" }
 }
 
 // MARK: - 监控设置

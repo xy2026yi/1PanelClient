@@ -8,6 +8,73 @@
 
 import SwiftUI
 
+// MARK: - inspect 详情（网络 / 存储卷共用）
+
+/// inspect 目标（点击行 push 详情页）
+struct ContainerInspectTarget: Identifiable, Hashable {
+    /// 网络用网络 id、存储卷用卷名
+    let id: String
+    /// network / volume
+    let type: String
+    let name: String
+}
+
+/// POST /containers/inspect {id, type, detail:""} → data 为 JSON 字符串，
+/// 格式化展示（网络/存储卷详情，抓包 2026-09-14 确认）
+struct ContainerInspectDetailView: View {
+    let client: APIClient
+    let target: ContainerInspectTarget
+
+    @State private var content: String?
+    @State private var isLoading = true
+    @State private var loadError: String?
+
+    var body: some View {
+        Group {
+            if isLoading {
+                LoadingStateView()
+            } else if let content {
+                ScrollView {
+                    Text(content)
+                        .font(.system(.caption, design: .monospaced))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        .padding()
+                }
+            } else {
+                LoadErrorStateView(message: loadError ?? L10n.t("加载失败")) {
+                    Task { await load() }
+                }
+            }
+        }
+        .navigationTitle(target.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+    }
+
+    private func load() async {
+        do {
+            let raw: String = try await client.send(
+                path: APIEndpoint.containersInspect.path,
+                body: ContainerInspectRequest(id: target.id, type: target.type, detail: ""),
+                as: String.self)
+            // 服务端返回 JSON 字符串：格式化缩进后展示
+            if let data = raw.data(using: .utf8),
+               let obj = try? JSONSerialization.jsonObject(with: data),
+               let pretty = try? JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys]) {
+                content = String(data: pretty, encoding: .utf8) ?? raw
+            } else {
+                content = raw
+            }
+            loadError = nil
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            loadError = error.localizedDescription
+        }
+        isLoading = false
+    }
+}
+
 // MARK: - 动态 key=value 行编辑器（参数/标签/环境变量共用）
 
 /// 一组 "key=value" 行的增删编辑（提交时同时产出数组和换行串，匹配请求体双字段）
@@ -74,6 +141,12 @@ struct ContainerNetworksView: View {
     @State private var showPruneConfirm = false
     /// 清理任务（提交后跳任务进度页）
     @State private var pruneTask: ContainerPruneTask?
+    /// 长按弹出的操作菜单对应的网络
+    @State private var actionItem: ContainerNetwork?
+    /// 点击行查看详情（inspect）
+    @State private var detailTarget: ContainerInspectTarget?
+    /// 菜单收起后再执行的动作（避免与下一级弹窗竞争）
+    @State private var pendingMenuAction: (() -> Void)?
 
     private let client: APIClient
 
@@ -101,6 +174,16 @@ struct ContainerNetworksView: View {
             } else {
                 ForEach(networks) { network in
                     networkRow(network)
+                        .contentShape(Rectangle())
+                        // 点击查看详情（inspect JSON）；长按弹操作菜单
+                        .onTapGesture {
+                            detailTarget = ContainerInspectTarget(
+                                id: network.id, type: "network", name: network.name)
+                        }
+                        .onLongPressGesture(minimumDuration: 0.5) {
+                            Haptic.selection()
+                            actionItem = network
+                        }
                 }
             }
         }
@@ -159,12 +242,43 @@ struct ContainerNetworksView: View {
                 Task { await load() }
             }
         }
+        .sheet(item: $actionItem, onDismiss: {
+            runPendingMenuAction()
+        }) { network in
+            ActionBottomSheet(
+                title: network.name,
+                items: [
+                    ActionMenuItem(title: L10n.t("详情"), icon: "info.circle", color: .blue) {
+                        pendingMenuAction = {
+                            detailTarget = ContainerInspectTarget(
+                                id: network.id, type: "network", name: network.name)
+                        }
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        pendingMenuAction = { pendingDelete = network }
+                    },
+                ],
+                onDismiss: { actionItem = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
+        .navigationDestination(item: $detailTarget) { target in
+            ContainerInspectDetailView(client: client, target: target)
+        }
         .navigationDestination(item: $pruneTask) { task in
             TaskProgressView(taskID: task.taskID, title: task.title) { isDone in
                 if isDone { Task { await load() } }
                 return false
             }
         }
+    }
+
+    /// 菜单完全收起后再执行挂起动作（与文件模块一致）
+    private func runPendingMenuAction() {
+        guard let action = pendingMenuAction else { return }
+        pendingMenuAction = nil
+        action()
     }
 
     private func networkRow(_ network: ContainerNetwork) -> some View {
@@ -188,14 +302,6 @@ struct ContainerNetworksView: View {
             }
         }
         .padding(.vertical, 2)
-        .contentShape(Rectangle())
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                pendingDelete = network
-            } label: {
-                Label(L10n.t("删除"), systemImage: "trash")
-            }
-        }
     }
 
     private func load() async {
@@ -475,6 +581,12 @@ struct ContainerVolumesView: View {
     @State private var pendingDelete: ContainerVolume?
     @State private var showPruneConfirm = false
     @State private var pruneTask: ContainerPruneTask?
+    /// 长按弹出的操作菜单对应的存储卷
+    @State private var actionItem: ContainerVolume?
+    /// 点击行查看详情（inspect）
+    @State private var detailTarget: ContainerInspectTarget?
+    /// 菜单收起后再执行的动作
+    @State private var pendingMenuAction: (() -> Void)?
 
     private let client: APIClient
 
@@ -502,6 +614,15 @@ struct ContainerVolumesView: View {
             } else {
                 ForEach(volumes) { volume in
                     volumeRow(volume)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            detailTarget = ContainerInspectTarget(
+                                id: volume.name, type: "volume", name: volume.name)
+                        }
+                        .onLongPressGesture(minimumDuration: 0.5) {
+                            Haptic.selection()
+                            actionItem = volume
+                        }
                 }
             }
         }
@@ -565,12 +686,43 @@ struct ContainerVolumesView: View {
                 Task { await load() }
             }
         }
+        .sheet(item: $actionItem, onDismiss: {
+            runPendingMenuAction()
+        }) { volume in
+            ActionBottomSheet(
+                title: volume.name,
+                items: [
+                    ActionMenuItem(title: L10n.t("详情"), icon: "info.circle", color: .blue) {
+                        pendingMenuAction = {
+                            detailTarget = ContainerInspectTarget(
+                                id: volume.name, type: "volume", name: volume.name)
+                        }
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        pendingMenuAction = { pendingDelete = volume }
+                    },
+                ],
+                onDismiss: { actionItem = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
+        .navigationDestination(item: $detailTarget) { target in
+            ContainerInspectDetailView(client: client, target: target)
+        }
         .navigationDestination(item: $pruneTask) { task in
             TaskProgressView(taskID: task.taskID, title: task.title) { isDone in
                 if isDone { Task { await load() } }
                 return false
             }
         }
+    }
+
+    /// 菜单完全收起后再执行挂起动作
+    private func runPendingMenuAction() {
+        guard let action = pendingMenuAction else { return }
+        pendingMenuAction = nil
+        action()
     }
 
     private func volumeRow(_ volume: ContainerVolume) -> some View {
@@ -598,14 +750,6 @@ struct ContainerVolumesView: View {
             }
         }
         .padding(.vertical, 2)
-        .contentShape(Rectangle())
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                pendingDelete = volume
-            } label: {
-                Label(L10n.t("删除"), systemImage: "trash")
-            }
-        }
     }
 
     private func load() async {

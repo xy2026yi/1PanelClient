@@ -20,6 +20,8 @@ struct ContainerComposesView: View {
     @State private var showCreate = false
     @State private var showTemplates = false
     @State private var toastMessage: String?
+    /// 创建编排任务进度（由创建 Sheet 回调后从列表页 push，确保可见）
+    @State private var progressTask: ComposeTaskTarget?
 
     private let client: APIClient
 
@@ -81,9 +83,17 @@ struct ContainerComposesView: View {
         .refreshable { await load() }
         .toastOverlay(message: $toastMessage)
         .sheet(isPresented: $showCreate) {
-            ContainerComposeCreateView(server: server) { name in
-                toastMessage = L10n.f("已创建「%@」", name)
+            ContainerComposeCreateView(server: server) { name, taskID in
+                toastMessage = L10n.f("创建编排 %@ 已提交", name)
+                progressTask = ComposeTaskTarget(
+                    taskID: taskID, title: L10n.f("创建编排 %@", name))
                 Task { await load() }
+            }
+        }
+        .navigationDestination(item: $progressTask) { target in
+            TaskProgressView(taskID: target.taskID, title: target.title) { isDone in
+                if isDone { Task { await load() } }
+                return false
             }
         }
         .navigationDestination(isPresented: $showTemplates) {
@@ -147,6 +157,8 @@ struct ContainerComposeDetailView: View {
     @State private var showError = false
     @State private var pendingOperate: String?
     @State private var isOperating = false
+    /// 操作抽屉展开状态（与容器详情一致的下拉抽屉）
+    @State private var isStatusExpanded = false
     @State private var showLog = false
     @State private var showConfig = false
     @State private var showEdit = false
@@ -197,18 +209,61 @@ struct ContainerComposeDetailView: View {
             }))
     }
 
+    /// 有容器在运行即视为运行中（决定启停按钮形态）
+    private var isRunning: Bool { (compose.runningCount ?? 0) > 0 }
+
     private var operateSection: some View {
         Section {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                operateButton("up", title: L10n.t("启动"), icon: "play.fill", color: .green)
-                operateButton("stop", title: L10n.t("停止"), icon: "stop.fill", color: .orange)
-                operateButton("restart", title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue)
-                operateButton("rebuild", title: L10n.t("重建"), icon: "arrow.triangle.2.circlepath.camera", color: .purple)
-                operateButton("delete", title: L10n.t("删除"), icon: "trash", color: .red)
+            operateHeader
+            if isStatusExpanded {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                    // 按运行态隐藏无效操作：已启动不再显示「启动」，未启动不显示停止/重启/重建
+                    if !isRunning {
+                        operateButton("up", title: L10n.t("启动"), icon: "play.fill", color: .green)
+                    } else {
+                        operateButton("stop", title: L10n.t("停止"), icon: "stop.fill", color: .orange)
+                        operateButton("restart", title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue)
+                        operateButton("rebuild", title: L10n.t("重建"), icon: "arrow.triangle.2.circlepath.camera", color: .purple)
+                    }
+                    operateButton("delete", title: L10n.t("删除"), icon: "trash", color: .red)
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 2)
             }
-            .padding(.vertical, 4)
         }
         .listRowBackground(Color.clear)
+    }
+
+    /// 抽屉头部：名称 + 运行态 + 展开箭头（与容器详情状态抽屉同构）
+    private var operateHeader: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(compose.name).font(.body.bold()).lineLimit(1)
+                Text(L10n.f("%ld/%ld 运行", compose.runningCount ?? 0, compose.containerCount ?? 0))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            HStack(spacing: 4) {
+                StatusDot(color: isRunning ? .green : .secondary)
+                Text(isRunning ? L10n.t("运行中") : L10n.t("已停止"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                withAnimation(Motion.standard) {
+                    isStatusExpanded.toggle()
+                }
+            } label: {
+                Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+            .disabled(isOperating)
+        }
+        .padding(.vertical, 2)
     }
 
     private var infoSection: some View {
@@ -627,7 +682,8 @@ struct ComposeTaskTarget: Identifiable, Hashable {
 
 struct ContainerComposeCreateView: View {
     let server: ServerConfig
-    let onCreated: (String) -> Void
+    /// 提交成功回调（名称 + taskID；进度页由列表页 push，避免 Sheet 内嵌跳转不生效）
+    let onCreated: (String, String) -> Void
 
     @Environment(\.dismiss) private var dismiss
     /// edit / path / template
@@ -642,11 +698,10 @@ struct ContainerComposeCreateView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var showError = false
-    @State private var progressTask: ComposeTaskTarget?
 
     private let client: APIClient
 
-    init(server: ServerConfig, onCreated: @escaping (String) -> Void) {
+    init(server: ServerConfig, onCreated: @escaping (String, String) -> Void) {
         self.server = server
         self.onCreated = onCreated
         self.client = APIClient.shared(for: server)
@@ -755,15 +810,6 @@ struct ContainerComposeCreateView: View {
         .presentationDragIndicator(.visible)
         .bottomSheetDetents([.large])
         .interactiveDismissDisabled(isSubmitting)
-        .navigationDestination(item: $progressTask) { target in
-            TaskProgressView(taskID: target.taskID, title: target.title) { isDone in
-                if isDone {
-                    onCreated(nameValue)
-                    Task { try? await Task.sleep(for: .milliseconds(350)); dismiss() }
-                }
-                return false
-            }
-        }
     }
 
     private func loadTemplates() async {
@@ -803,7 +849,9 @@ struct ContainerComposeCreateView: View {
             createReq.name = nameField
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.containersComposeCreate.path, body: createReq, as: EmptyResponse.self)
-            progressTask = ComposeTaskTarget(taskID: taskID, title: L10n.f("创建编排 %@", name))
+            // 提交成功即交回列表页（由其 push 任务进度并刷新）
+            onCreated(name, taskID)
+            dismiss()
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription

@@ -16,13 +16,10 @@ struct MonitorSettingsView: View {
     @State private var isLoading = true
     @State private var netOptions: [String] = []
     @State private var ioOptions: [String] = []
-    @State private var device: DeviceBase?
     @State private var toastMessage: String?
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var showCleanConfirm = false
-    /// Swap 调整任务
-    @State private var swapTask: SwapTaskTarget?
 
     /// 采集间隔的展示单位（秒/分钟/小时；提交换算回秒）
     @State private var intervalValue = 5
@@ -41,7 +38,6 @@ struct MonitorSettingsView: View {
     var body: some View {
         List {
             monitorSection
-            swapSection
         }
         .listStyle(.insetGrouped)
         .navigationTitle(L10n.t("监控设置"))
@@ -61,12 +57,6 @@ struct MonitorSettingsView: View {
             }
         } message: {
             Text(L10n.t("将删除全部历史监控数据，该操作无法回滚，是否继续？"))
-        }
-        .navigationDestination(item: $swapTask) { target in
-            TaskProgressView(taskID: target.taskID, title: target.title) { isDone in
-                if isDone { Task { await loadAll() } }
-                return false
-            }
         }
     }
 
@@ -131,34 +121,7 @@ struct MonitorSettingsView: View {
         }
     }
 
-    // MARK: 虚拟内存
-
-    private var swapSection: some View {
-        Section {
-            if let device {
-                HStack {
-                    InfoRow(L10n.t("Swap 总数"), value: Self.fmt(device.swapMemoryTotal ?? 0))
-                }
-                HStack {
-                    InfoRow(L10n.t("Swap 已用"), value: Self.fmt(device.swapMemoryUsed ?? 0))
-                }
-                HStack {
-                    InfoRow(L10n.t("Swap 空闲"), value: Self.fmt(device.swapMemoryAvailable ?? 0))
-                }
-                ForEach(device.swapDetails ?? []) { detail in
-                    SwapDetailRow(
-                        detail: detail,
-                        maxSizeGB: device.maxSize.map { Double($0) / 1024 / 1024 / 1024 } ?? 8) { path, sizeKB in
-                        Task { await updateSwap(path: path, sizeKB: sizeKB) }
-                    }
-                }
-            }
-        } header: {
-            SectionLabel(title: L10n.t("虚拟内存"), systemImage: "memorychip")
-        } footer: {
-            Text(L10n.t("调整 Swap 大小需要重建交换分区，期间可能短暂占用磁盘与 CPU"))
-        }
-    }
+    // MARK: 虚拟内存（Swap）已移至 面板 → 设置 → 基础设置（DeviceSwapSection）
 
     // MARK: 数据加载
 
@@ -180,10 +143,6 @@ struct MonitorSettingsView: View {
         if let ios: [String] = try? await client.send(
             path: APIEndpoint.monitorIOOptions.path, method: "GET", as: [String].self) {
             ioOptions = ios
-        }
-        if let base: DeviceBase = try? await client.send(
-            path: APIEndpoint.toolboxDeviceBase.path, as: DeviceBase.self) {
-            device = base
         }
         isLoading = false
     }
@@ -231,6 +190,77 @@ struct MonitorSettingsView: View {
         }
     }
 
+    static func fmt(_ bytes: Int64) -> String {
+        let units = ["B", "KB", "MB", "GB", "TB"]
+        var size = Double(bytes)
+        var idx = 0
+        while size >= 1024 && idx < units.count - 1 {
+            size /= 1024
+            idx += 1
+        }
+        return String(format: "%.2f %@", size, units[idx])
+    }
+}
+
+// MARK: - 虚拟内存（Swap）区块（面板 → 设置 → 基础设置内嵌）
+
+/// 自包含 Swap 管理区块：加载 device/base、展示统计与明细、提交调整（任务进度）
+struct DeviceSwapSection: View {
+    let server: ServerConfig
+
+    @State private var device: DeviceBase?
+    @State private var errorMessage: String?
+    @State private var showError = false
+    /// Swap 调整任务
+    @State private var swapTask: SwapTaskTarget?
+
+    private let client: APIClient
+
+    init(server: ServerConfig) {
+        self.server = server
+        self.client = APIClient.shared(for: server)
+    }
+
+    var body: some View {
+        Section {
+            if let device {
+                InfoRow(L10n.t("Swap 总数"), value: MonitorSettingsView.fmt(device.swapMemoryTotal ?? 0))
+                InfoRow(L10n.t("Swap 已用"), value: MonitorSettingsView.fmt(device.swapMemoryUsed ?? 0))
+                InfoRow(L10n.t("Swap 空闲"), value: MonitorSettingsView.fmt(device.swapMemoryAvailable ?? 0))
+                ForEach(device.swapDetails ?? []) { detail in
+                    SwapDetailRow(
+                        detail: detail,
+                        maxSizeGB: device.maxSize.map { Double($0) / 1024 / 1024 / 1024 } ?? 8) { path, sizeKB in
+                        Task { await updateSwap(path: path, sizeKB: sizeKB) }
+                    }
+                }
+            }
+        } header: {
+            SectionLabel(title: L10n.t("虚拟内存"), systemImage: "memorychip")
+        } footer: {
+            Text(L10n.t("调整 Swap 大小需要重建交换分区，期间可能短暂占用磁盘与 CPU"))
+        }
+        .task { await loadDevice() }
+        .alert(L10n.t("提示"), isPresented: $showError) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+        .navigationDestination(item: $swapTask) { target in
+            TaskProgressView(taskID: target.taskID, title: target.title) { isDone in
+                if isDone { Task { await loadDevice() } }
+                return false
+            }
+        }
+    }
+
+    private func loadDevice() async {
+        if let base: DeviceBase = try? await client.send(
+            path: APIEndpoint.toolboxDeviceBase.path, as: DeviceBase.self) {
+            device = base
+        }
+    }
+
     /// 调整 Swap（size KB；used 回传原字符串；任务进度）
     private func updateSwap(path: String, sizeKB: Int) async {
         let taskID = UUID().uuidString
@@ -247,17 +277,6 @@ struct MonitorSettingsView: View {
             errorMessage = error.localizedDescription
             showError = true
         }
-    }
-
-    static func fmt(_ bytes: Int64) -> String {
-        let units = ["B", "KB", "MB", "GB", "TB"]
-        var size = Double(bytes)
-        var idx = 0
-        while size >= 1024 && idx < units.count - 1 {
-            size /= 1024
-            idx += 1
-        }
-        return String(format: "%.2f %@", size, units[idx])
     }
 }
 

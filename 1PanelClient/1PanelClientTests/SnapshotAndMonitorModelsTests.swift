@@ -32,6 +32,30 @@ struct SnapshotAndMonitorModelsTests {
 
     // MARK: 快照
 
+    @Test("快照列表请求必须带排序字段（缺省 400，抓包确认）")
+    func encodeSnapshotSearch() throws {
+        let req = SnapshotSearchRequest(page: 1, pageSize: 20, orderBy: "createdAt", order: "null")
+        let obj = try encode(req)
+        #expect(obj["orderBy"] as? String == "createdAt")
+        #expect(obj["order"] as? String == "null")
+    }
+
+    @Test("快照条目解码（search 响应抓包样本字段）")
+    func decodeSnapshotItem() throws {
+        let json = """
+        {"id":241,"name":"snapshot-1panel-core-v2.2.5-linux-aarch64-202609130230008tw3m",
+         "description":"","sourceAccounts":["Minio"],"downloadAccount":"Minio",
+         "status":"Success","message":"","createdAt":"2026-09-13T02:30:00.513833353+08:00",
+         "version":"v2.2.5","size":0,"taskID":"da6f769e","lastRecoveredAt":""}
+        """
+        let s = try JSONDecoder().decode(SnapshotItem.self, from: Data(json.utf8))
+        #expect(s.id == 241)
+        #expect(s.sourceAccounts == ["Minio"])
+        #expect(s.isOK == true)
+        #expect(s.version == "v2.2.5")
+        #expect(s.displayCreatedAt == "2026-09-13 02:30:00")
+    }
+
     @Test("快照数据树解码（load 响应：应用父子/禁用项，抓包样本节选）")
     func decodeSnapshotTree() throws {
         let json = """

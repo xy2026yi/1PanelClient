@@ -165,6 +165,8 @@ struct PanelBasicSettingsView: View {
                 deviceEntrySection
                 ntpSection
                 serverTimeSection
+                // 虚拟内存（Swap）自包含区块：自带数据加载与任务进度
+                DeviceSwapSection(server: server)
             }
         }
         .navigationTitle(L10n.t("基础设置"))

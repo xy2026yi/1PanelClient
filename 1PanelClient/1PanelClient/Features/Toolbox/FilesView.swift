@@ -371,22 +371,17 @@ struct FilesView: View {
 
     @ViewBuilder
     private func fileRow(_ item: FileItem) -> some View {
-        if item.isDir {
-            Button {
-                Task { await loadDir(item.path) }
-            } label: {
-                fileRowContent(item)
-                    // 整行命中：Button 的可点区跟随 label 的 contentShape，
-                    // 必须挂在 label 内部（外挂对 buttonStyle 无效），Spacer 留白才可点
-                    .contentShape(Rectangle())
+        // 目录与文件统一用 Tap 手势导航/预览：目录若用 Button 包裹，
+        // 外挂的 onLongPressGesture 会被 Button 吞掉（文件夹长按无反应）
+        fileRowContent(item)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if item.isDir {
+                    Task { await loadDir(item.path) }
+                } else {
+                    openFile(item)
+                }
             }
-            .buttonStyle(.plain)
-        } else {
-            // 文件：点击预览（支持文本扩展名）或提示不支持；长按弹操作菜单
-            fileRowContent(item)
-                .contentShape(Rectangle())
-                .onTapGesture { openFile(item) }
-        }
     }
 
     /// 点击文件：可预览扩展名（或已知文本点文件）push 预览页，其余 toast 提示

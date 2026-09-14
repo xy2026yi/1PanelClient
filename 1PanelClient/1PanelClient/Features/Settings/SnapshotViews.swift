@@ -115,9 +115,16 @@ struct SnapshotListView: View {
 
     private func snapshotRow(_ snapshot: SnapshotItem) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(snapshot.displayName)
-                .font(.body.weight(.medium))
-                .lineLimit(2)
+            HStack {
+                Text(snapshot.displayName)
+                    .font(.body.weight(.medium))
+                    .lineLimit(2)
+                Spacer()
+                StatusDot(color: snapshot.isOK ? .green : .orange, diameter: 8)
+                Text(snapshot.status ?? "-")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             HStack(spacing: 8) {
                 Text(snapshot.displayCreatedAt)
                 if let size = snapshot.size, size > 0 {
@@ -129,6 +136,12 @@ struct SnapshotListView: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+            if let accounts = snapshot.sourceAccounts, !accounts.isEmpty {
+                Text((L10n.t("备份账号")) + ": " + accounts.joined(separator: ", "))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
             if let desc = snapshot.description, !desc.isEmpty {
                 Text(desc)
                     .font(.caption)
@@ -159,7 +172,7 @@ struct SnapshotListView: View {
         do {
             let resp: SnapshotSearchResponse = try await client.send(
                 path: APIEndpoint.settingsSnapshotSearch.path,
-                body: SnapshotSearchRequest(page: 1, pageSize: 100),
+                body: SnapshotSearchRequest(page: 1, pageSize: 100, orderBy: "createdAt", order: "null"),
                 as: SnapshotSearchResponse.self)
             snapshots = resp.items ?? []
             loadError = nil
