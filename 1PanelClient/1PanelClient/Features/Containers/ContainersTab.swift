@@ -15,6 +15,9 @@ struct ContainersTab: View {
     @State private var isSearching = false
     @State private var showImages = false
     @State private var showCreate = false
+    @State private var showNetworks = false
+    @State private var showVolumes = false
+    @State private var showComposes = false
 
 
     init(manager: ServerManager) {
@@ -83,14 +86,29 @@ struct ContainersTab: View {
         .navigationDestination(isPresented: $showImages) {
             ContainerImageView(vm: vm)
         }
+        .navigationDestination(isPresented: $showNetworks) {
+            ContainerNetworksView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+        }
+        .navigationDestination(isPresented: $showVolumes) {
+            ContainerVolumesView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+        }
+        .navigationDestination(isPresented: $showComposes) {
+            ContainerComposesView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+        }
     }
 
     private var containerList: some View {
         List {
             // 顶部 Docker 服务状态卡片
-            DockerStatusCard(vm: vm) {
+            DockerStatusCard(vm: vm, onShowImages: {
                 showImages = true
-            }
+            }, onShowNetworks: {
+                showNetworks = true
+            }, onShowVolumes: {
+                showVolumes = true
+            }, onShowComposes: {
+                showComposes = true
+            })
 
             if vm.containers.isEmpty {
                 Section {
@@ -133,6 +151,9 @@ struct ContainersTab: View {
 struct DockerStatusCard: View {
     @ObservedObject var vm: ContainersViewModel
     var onShowImages: () -> Void = {}
+    var onShowNetworks: () -> Void = {}
+    var onShowVolumes: () -> Void = {}
+    var onShowComposes: () -> Void = {}
     @State private var isExpanded = false
     @State private var pendingAction: String?
 
@@ -166,6 +187,15 @@ struct DockerStatusCard: View {
                                 await vm.loadImages()
                                 onShowImages()
                             }
+                        },
+                        ServiceAction(title: L10n.t("容器网络"), icon: "network", color: .cyan) {
+                            onShowNetworks()
+                        },
+                        ServiceAction(title: L10n.t("存储卷"), icon: "externaldrive.fill.badge.timemachine", color: .indigo) {
+                            onShowVolumes()
+                        },
+                        ServiceAction(title: L10n.t("编排"), icon: "square.stack.3d.up.fill", color: .brown) {
+                            onShowComposes()
                         }
                     ]
                 ) {

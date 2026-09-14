@@ -120,11 +120,13 @@ final class BackupViewModel: ObservableObject {
     // MARK: - 新增备份
 
     /// 提交备份任务：成功返回 taskID（用于进度页），失败返回错误信息（由表单内展示）
-    func createBackup(secret: String, description: String, args: [String]) async -> Result<String, BackupSubmitError> {
+    /// stopBefore：编排备份的「备份前停止编排」开关
+    func createBackup(secret: String, description: String, args: [String], stopBefore: Bool = false) async -> Result<String, BackupSubmitError> {
         let taskID = UUID().uuidString
         let req = BackupCreateRequest(
             type: target.type, name: target.name, detailName: target.detailName,
-            secret: secret, taskID: taskID, description: description, args: args
+            secret: secret, taskID: taskID, description: description, args: args,
+            stopBefore: stopBefore
         )
         do {
             let _: EmptyResponse = try await client.send(
@@ -359,8 +361,8 @@ struct BackupListView: View {
             await vm.refresh()
         }
         .navigationDestination(isPresented: $showCreate) {
-            BackupCreateView(target: vm.target) { secret, description, args in
-                switch await vm.createBackup(secret: secret, description: description, args: args) {
+            BackupCreateView(target: vm.target) { secret, description, args, stopBefore in
+                switch await vm.createBackup(secret: secret, description: description, args: args, stopBefore: stopBefore) {
                 case .success(let taskID):
                     pendingProgress = BackupProgressState(
                         taskID: taskID, title: L10n.f("备份 %@", vm.target.detailName), latest: false
@@ -623,11 +625,11 @@ private struct BackupRecordCard: View {
 
 // MARK: - 新增备份表单
 
-/// 新增备份：压缩密码 + 描述（MySQL 系多一个备份参数多选）
+/// 新增备份：压缩密码 + 描述（MySQL 系多一个备份参数多选；编排多一个备份前停止开关）
 private struct BackupCreateView: View {
     let target: BackupTarget
     /// 返回 nil 表示提交成功（表单自行关闭）；返回非 nil 为失败原因（表单内弹提示）
-    let onSubmit: (_ secret: String, _ description: String, _ args: [String]) async -> String?
+    let onSubmit: (_ secret: String, _ description: String, _ args: [String], _ stopBefore: Bool) async -> String?
 
     @Environment(\.dismiss) private var dismiss
     @State private var secret = ""
@@ -635,6 +637,8 @@ private struct BackupCreateView: View {
     @State private var description = ""
     @State private var selectedArgs: Set<String> = []
     @State private var showArgsPicker = false
+    /// 编排：备份前停止编排（完成后自动恢复）
+    @State private var stopBefore = false
     @State private var isSubmitting = false
     @State private var submitError: String?
 
@@ -685,6 +689,14 @@ private struct BackupCreateView: View {
                         Text(L10n.t("与计划任务中备份数据库的参数一致；不选则使用默认方式备份"))
                     }
                 }
+
+                if target.isCompose {
+                    Section {
+                        Toggle(L10n.t("备份前停止编排"), isOn: $stopBefore)
+                    } footer: {
+                        Text(L10n.t("启用后备份前将停止容器或编排服务，完成后自动恢复，以确保数据一致性"))
+                    }
+                }
             }
             .navigationTitle(L10n.t("新增备份"))
             .navigationBarTitleDisplayMode(.inline)
@@ -693,7 +705,7 @@ private struct BackupCreateView: View {
                     Button(isSubmitting ? L10n.t("创建中…") : L10n.t("创建")) {
                         Task {
                             isSubmitting = true
-                            let error = await onSubmit(secret, description, Array(selectedArgs).sorted())
+                            let error = await onSubmit(secret, description, Array(selectedArgs).sorted(), stopBefore)
                             isSubmitting = false
                             if let error {
                                 submitError = error

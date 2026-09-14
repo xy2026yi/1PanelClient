@@ -32,6 +32,8 @@ nonisolated struct BackupTarget {
     var isMongoDB: Bool { baseType == "mongodb" }
     var isPostgreSQL: Bool { baseType == "postgresql" }
     var isDatabase: Bool { isMySQLFamily || isMongoDB || isPostgreSQL }
+    /// 编排备份：支持「备份前停止编排」（stopBefore，抓包 2026-09-14）
+    var isCompose: Bool { baseType == "compose" }
 
     /// 数据库备份目标：type 直接使用服务返回的类型（含 postgresql-cluster 等 cluster 变体，
     /// 与后端按 type 查库及备份记录中存储的 type 保持一致，不做归一），
