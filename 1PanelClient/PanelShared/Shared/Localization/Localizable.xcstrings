@@ -164,8 +164,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "%@.%@"
           }
         }
       }
@@ -2054,8 +2054,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "SSH"
           }
         }
       }
@@ -18607,8 +18607,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Model Terminal · %@"
           }
         }
       }
@@ -19828,8 +19828,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Tap a bot to edit its credentials and status; deletion saves immediately"
           }
         }
       }
