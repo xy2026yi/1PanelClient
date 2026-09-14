@@ -55,7 +55,7 @@ struct DatabaseMySQLStatusView: View {
             }
         }
         .task { await load() }
-        .refreshable { await load() }
+        .refreshable { await load(force: true) }
     }
 
     // MARK: 状态（基础 + 性能）
@@ -95,15 +95,16 @@ struct DatabaseMySQLStatusView: View {
         }
     }
 
-    private func load() async {
+    /// force：下拉刷新绕过 nil 缓存守卫强制重查（首载 nil 守卫只用于跳过重复首载）
+    private func load(force: Bool = false) async {
         let req = DatabaseStatusRequest(type: system.type, name: system.database)
         do {
-            if status == nil {
+            if force || status == nil {
                 let resp: [String: String] = try await client.send(
                     path: APIEndpoint.databasesStatus.path, body: req, as: [String: String].self)
                 status = resp
             }
-            if variables == nil {
+            if force || variables == nil {
                 let resp: [String: String] = try await client.send(
                     path: APIEndpoint.databasesVariables.path, body: req, as: [String: String].self)
                 variables = resp

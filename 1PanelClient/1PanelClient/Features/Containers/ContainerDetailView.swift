@@ -399,7 +399,8 @@ struct ContainerDetailView: View {
                     progressTaskID = taskID
                 }
             } else {
-                await vm.operateContainer(name: current.name, operation: action)
+                // 失败已在 VM 内呈现（alert），此处忽略返回值
+                _ = await vm.operateContainer(name: current.name, operation: action)
             }
         }
     }

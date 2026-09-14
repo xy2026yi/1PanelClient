@@ -28,7 +28,8 @@ nonisolated struct WebsiteSSLByAccountRequest: Encodable {
 }
 
 /// POST /websites/batch/ssl（全字段，抓包 2026-09-14：type=existed 选择已有证书）
-/// httpConfig：HTTPToHTTPS（跳转，抓包确认）/ enable（可直接访问）/ disable（禁止，未抓包按 v1 取值）
+/// httpConfig：HTTPToHTTPS / HTTPAlso / HTTPSOnly（v2 服务端 oneof 校验，
+/// v1 的 enable/disable 会被 400 拒绝）；端口为 httpsPorts 数组（字符串 httpsPort 会被静默丢弃）
 nonisolated struct WebsiteBatchSSLRequest: Encodable {
     let ids: [Int]
     let acmeAccountID: Int
@@ -46,7 +47,7 @@ nonisolated struct WebsiteBatchSSLRequest: Encodable {
     /// 加密算法串（网页端固定默认值，抓包原样）
     let algorithm: String
     let SSLProtocol: [String]
-    let httpsPort: String
+    let httpsPorts: [Int]
     let http3: Bool
     let taskID: String
 

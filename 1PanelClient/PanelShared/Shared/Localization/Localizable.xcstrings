@@ -1851,8 +1851,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "IP Range (optional)"
           }
         }
       }
@@ -6647,8 +6647,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Delete Volume"
           }
         }
       }
@@ -6702,8 +6702,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Delete Snapshot"
           }
         }
       }
@@ -6801,8 +6801,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Delete Template"
           }
         }
       }
@@ -6922,8 +6922,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Delete Network"
           }
         }
       }
@@ -10552,8 +10552,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Subnet"
           }
         }
       }
@@ -11806,8 +11806,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Apply %2$@ to compose \"%1$@\"?"
           }
         }
       }
@@ -12829,8 +12829,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Renamed to \"%@\""
           }
         }
       }
@@ -14160,8 +14160,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Recover Snapshot %@"
           }
         }
       }
@@ -17801,8 +17801,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "No compose templates"
           }
         }
       }
@@ -19132,8 +19132,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Local Models"
           }
         }
       }
@@ -21497,8 +21497,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create a volume"
           }
         }
       }
@@ -21530,8 +21530,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create a template"
           }
         }
       }
@@ -21574,8 +21574,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create a compose"
           }
         }
       }
@@ -21585,8 +21585,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Tap + in the top-right corner to create a network"
           }
         }
       }
@@ -22927,8 +22927,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Delete volume \"%@\"?"
           }
         }
       }
@@ -22971,8 +22971,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Delete template \"%@\"?"
           }
         }
       }
@@ -23004,8 +23004,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Delete network \"%@\"?"
           }
         }
       }
@@ -23114,8 +23114,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Clear \"%@\"? This cannot be undone."
           }
         }
       }
@@ -24863,8 +24863,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Compose"
           }
         }
       }
@@ -25314,8 +25314,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Gateway (optional)"
           }
         }
       }
@@ -30363,8 +30363,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "translated",
+            "value" : "Rename failed: %@"
           }
         }
       }
@@ -31751,6 +31751,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ": %@"
+          }
+        }
+      }
+    },
+    "任务已接收，处理中..." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task received, processing..."
+          }
+        }
+      }
+    },
+    "证书加载失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load certificates"
+          }
+        }
+      }
+    },
+    "%ld 个周期预览失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld schedules failed to preview"
           }
         }
       }

@@ -26,6 +26,8 @@ struct CreateCronjobView: View {
     /// 周期预览（cronjobs/next 返回的每个周期接下来 5 次执行时间）
     @State private var isPreviewing = false
     @State private var previewResults: [(spec: String, times: [String])] = []
+    /// 预览请求失败的周期数（>0 时在预览区尾部提示，避免全部失败时无反馈）
+    @State private var previewFailedCount = 0
     // Shell
     @State private var script = "#!/bin/bash\n"
     @State private var user = ""           // 默认不选（空字符串 = 服务器默认）
@@ -230,6 +232,12 @@ struct CreateCronjobView: View {
                                 .font(.system(.caption, design: .monospaced))
                         }
                     }
+                }
+                if previewFailedCount > 0 {
+                    Label(L10n.f("%ld 个周期预览失败", previewFailedCount),
+                          systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
             } header: {
                 Text(L10n.t("执行周期"))
@@ -514,6 +522,7 @@ struct CreateCronjobView: View {
     private func previewSchedules() async {
         isPreviewing = true
         previewResults = []
+        previewFailedCount = 0
         defer { isPreviewing = false }
         let client = APIClient.shared(for: server)
         var results: [(spec: String, times: [String])] = []
@@ -523,6 +532,8 @@ struct CreateCronjobView: View {
                 path: APIEndpoint.cronjobsNext.path,
                 body: CronjobNextRequest(spec: spec), as: [String].self) {
                 results.append((spec, times))
+            } else {
+                previewFailedCount += 1
             }
         }
         previewResults = results

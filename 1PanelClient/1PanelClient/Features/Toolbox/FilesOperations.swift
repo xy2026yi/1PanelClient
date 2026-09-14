@@ -1165,7 +1165,7 @@ struct FileBatchMoveSheet: View {
                 body: FileBatchCheckRequest(paths: targets),
                 as: [FileItem].self)
             if resp.isEmpty {
-                try await move(paths: items.map(\.path))
+                await move(paths: items.map(\.path))
             } else {
                 conflicts = resp
             }

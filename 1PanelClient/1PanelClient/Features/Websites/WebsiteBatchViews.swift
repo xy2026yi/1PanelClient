@@ -163,16 +163,19 @@ struct WebsiteBatchSSLSheet: View {
     @State private var tls10 = false
     @State private var httpsPort = "443"
     @State private var isLoading = true
+    /// 证书列表加载失败（与「账户下无证书」区分，提供重试）
+    @State private var certLoadFailed = false
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var showError = false
 
     private let client: APIClient
 
+    /// v2 oneof：HTTPToHTTPS / HTTPAlso / HTTPSOnly（enable/disable 为 v1 取值，提交必 400）
     private let httpOptions: [(value: String, label: String)] = [
         ("HTTPToHTTPS", L10n.t("访问 HTTP 自动跳转到 HTTPS")),
-        ("enable", L10n.t("HTTP 可直接访问")),
-        ("disable", L10n.t("禁止 HTTP 访问")),
+        ("HTTPAlso", L10n.t("HTTP 可直接访问")),
+        ("HTTPSOnly", L10n.t("禁止 HTTP 访问")),
     ]
 
     init(server: ServerConfig, ids: [Int], onStarted: @escaping (String) -> Void) {
@@ -207,6 +210,22 @@ struct WebsiteBatchSSLSheet: View {
 
                     if isLoading {
                         HStack { Spacer(); ProgressView(); Spacer() }
+                    } else if certLoadFailed {
+                        VStack(spacing: 8) {
+                            Text(L10n.t("证书加载失败"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button(L10n.t("重试")) {
+                                Task {
+                                    isLoading = true
+                                    await loadAccounts()
+                                    await loadCertificates()
+                                    isLoading = false
+                                }
+                            }
+                            .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity)
                     } else if certificates.isEmpty {
                         Text(L10n.t("该账户下暂无证书"))
                             .font(.caption)
@@ -289,14 +308,19 @@ struct WebsiteBatchSSLSheet: View {
 
     private func loadCertificates() async {
         selectedSSLID = nil
-        if let list: [WebsiteSSL] = try? await client.send(
-            path: APIEndpoint.websitesSSLSearch.path,
-            body: WebsiteSSLByAccountRequest(acmeAccountID: String(selectedAccountID)),
-            as: [WebsiteSSL].self) {
+        do {
+            let list: [WebsiteSSL] = try await client.send(
+                path: APIEndpoint.websitesSSLSearch.path,
+                body: WebsiteSSLByAccountRequest(acmeAccountID: String(selectedAccountID)),
+                as: [WebsiteSSL].self)
             certificates = list
             selectedSSLID = list.first?.id
-        } else {
+            certLoadFailed = false
+        } catch {
+            // 失败不伪装成「无证书」：保留失败态 + 重试入口
+            guard !APIError.isCancellation(error) else { return }
             certificates = []
+            certLoadFailed = true
         }
     }
 
@@ -321,7 +345,7 @@ struct WebsiteBatchSSLSheet: View {
             hstsIncludeSubDomains: hstsSubDomains,
             algorithm: WebsiteBatchSSLRequest.defaultAlgorithm,
             SSLProtocol: sslProtocols,
-            httpsPort: httpsPort.isEmpty ? "443" : httpsPort,
+            httpsPorts: [Int(httpsPort.isEmpty ? "443" : httpsPort) ?? 443],
             http3: http3,
             taskID: taskID)
         do {

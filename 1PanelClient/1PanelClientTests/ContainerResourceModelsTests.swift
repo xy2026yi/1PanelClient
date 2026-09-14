@@ -92,14 +92,16 @@ struct ContainerResourceModelsTests {
             privateKey: "", certificate: "", privateKeyPath: "", certificatePath: "",
             httpConfig: "HTTPToHTTPS", hsts: true, hstsIncludeSubDomains: false,
             algorithm: WebsiteBatchSSLRequest.defaultAlgorithm,
-            SSLProtocol: ["TLSv1.3", "TLSv1.2"], httpsPort: "443",
+            SSLProtocol: ["TLSv1.3", "TLSv1.2"], httpsPorts: [443],
             http3: true, taskID: "748ae5da")
         let obj = try encode(req)
         #expect(obj["websiteSSLId"] as? Int == 10)
         #expect(obj["type"] as? String == "existed")
         #expect(obj["httpConfig"] as? String == "HTTPToHTTPS")
         #expect(obj["SSLProtocol"] as? [String] == ["TLSv1.3", "TLSv1.2"])
-        #expect(obj["httpsPort"] as? String == "443")
+        // v2 为 httpsPorts 数组；字符串 httpsPort 会被服务端静默丢弃
+        #expect(obj["httpsPorts"] as? [Int] == [443])
+        #expect(obj["httpsPort"] == nil)
         #expect(obj["http3"] as? Bool == true)
         // 加密算法串与抓包一致（头尾锚定）
         let algo = try #require(obj["algorithm"] as? String)

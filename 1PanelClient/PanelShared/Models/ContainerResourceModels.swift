@@ -14,7 +14,13 @@ import Foundation
 nonisolated struct ContainerKVPair: Codable, Hashable, Identifiable {
     var key: String
     var value: String
-    var id: String { key + "=" + value }
+    /// 行身份与内容分离：两行空白/同内容行不再撞 ForEach ID、删除不再误删同内容行；
+    /// 不参与 JSON 编解码（CodingKeys 仅含 key/value）
+    var rowID = UUID()
+
+    var id: UUID { rowID }
+
+    enum CodingKeys: String, CodingKey { case key, value }
 }
 
 /// 分页请求 {page,pageSize}（网络/存储卷/模板列表共用）

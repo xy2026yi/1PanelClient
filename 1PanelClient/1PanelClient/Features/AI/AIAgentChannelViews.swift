@@ -1485,7 +1485,7 @@ struct AIAgentDingtalkChannelView: View {
                 // 不以 ackText 空串判定——用户主动清空回执保存后重进不应被回填
                 loaded.separateSessionByConversation = true
                 loaded.groupSessionScope = "group_sender"
-                loaded.ackText = "任务已接收，处理中..."
+                loaded.ackText = L10n.t("任务已接收，处理中...")
             }
             c = loaded
             savedC = loaded

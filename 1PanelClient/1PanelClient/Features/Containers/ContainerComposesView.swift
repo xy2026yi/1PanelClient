@@ -708,15 +708,21 @@ struct ContainerComposeCreateView: View {
     }
 
     private var nameValue: String {
-        // path 来源 name=目录名、dirName 空；其余相反（抓包确认）
-        from == "path" ? pathText.trimmingCharacters(in: .whitespaces) : dirName.trimmingCharacters(in: .whitespaces)
+        // path 来源 name=路径所在目录名、dirName 空；其余相反（抓包确认：
+        // name 须符 ^[a-z0-9][a-z0-9_-]{0,255}$，传完整路径会被服务端拒绝）
+        if from == "path" {
+            let dir = (pathText.trimmingCharacters(in: .whitespaces) as NSString).deletingLastPathComponent
+            return dir.split(separator: "/").last.map(String.init) ?? ""
+        }
+        return dirName.trimmingCharacters(in: .whitespaces)
     }
 
     private var canSubmit: Bool {
         switch from {
         case "path":
             let p = pathText.trimmingCharacters(in: .whitespaces)
-            return !p.isEmpty && p.hasSuffix(".yml")
+            // .yml / .yaml 均合法（docker compose 支持 yaml，服务端不限制后缀）
+            return !p.isEmpty && (p.hasSuffix(".yml") || p.hasSuffix(".yaml"))
         case "template":
             return !dirName.trimmingCharacters(in: .whitespaces).isEmpty && selectedTemplate != nil
         default:
@@ -835,15 +841,18 @@ struct ContainerComposeCreateView: View {
             template: from == "template" ? selectedTemplate : nil,
             env: KVRowsEditor.joined(envRows),
             forcePull: forcePull)
+        // 抓包：test 请求同样携带 name（path 来源为目录名）
+        var testReqNamed = testReq
+        testReqNamed.name = nameField
         do {
             let testOK: Bool = try await client.send(
-                path: APIEndpoint.containersComposeTest.path, body: testReq, as: Bool.self)
+                path: APIEndpoint.containersComposeTest.path, body: testReqNamed, as: Bool.self)
             guard testOK else {
                 errorMessage = L10n.t("校验未通过，请检查编排内容")
                 showError = true
                 return
             }
-            var createReq = testReq
+            var createReq = testReqNamed
             let taskID = UUID().uuidString
             createReq.taskID = taskID
             createReq.name = nameField

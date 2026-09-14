@@ -335,23 +335,25 @@ struct ContainerNetworksView: View {
         }
     }
 
-    /// 清理未使用资源（网络/存储卷共用；抓包：pruneType + taskID 任务日志）
-    static func prune(client: APIClient, type: String, title: String) async -> String? {
+    /// 清理未使用资源（网络/存储卷共用；抓包：pruneType + taskID 任务日志）；
+    /// 失败抛错，由调用方提示（用户已确认不可回滚操作，不能静默吞掉失败）
+    static func prune(client: APIClient, type: String, title: String) async throws -> String {
         let taskID = UUID().uuidString
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.containersPrune.path,
-                body: ContainerPruneRequest(taskID: taskID, pruneType: type, withTagAll: false),
-                as: EmptyResponse.self)
-            return taskID
-        } catch {
-            return nil
-        }
+        let _: EmptyResponse = try await client.send(
+            path: APIEndpoint.containersPrune.path,
+            body: ContainerPruneRequest(taskID: taskID, pruneType: type, withTagAll: false),
+            as: EmptyResponse.self)
+        return taskID
     }
 
     private func prune(type: String, title: String) async {
-        if let taskID = await Self.prune(client: client, type: type, title: title) {
+        do {
+            let taskID = try await Self.prune(client: client, type: type, title: title)
             pruneTask = ContainerPruneTask(taskID: taskID, title: title)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
         }
     }
 }
@@ -510,7 +512,7 @@ private struct ContainerNetworkCreateSheet: View {
                         .frame(maxWidth: 90)
                         .autocorrectionDisabled()
                     TextField("IP", text: rows[idx].value)
-                        .keyboardType(.decimalPad)
+                        // IPv6 排除地址需输入冒号，不用 decimalPad
                         .autocorrectionDisabled()
                 }
             }
@@ -672,9 +674,14 @@ struct ContainerVolumesView: View {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("确认清理"), role: .destructive) {
                 Task {
-                    if let taskID = await ContainerNetworksView.prune(
-                        client: client, type: "volume", title: L10n.t("清理存储卷")) {
+                    do {
+                        let taskID = try await ContainerNetworksView.prune(
+                            client: client, type: "volume", title: L10n.t("清理存储卷"))
                         pruneTask = ContainerPruneTask(taskID: taskID, title: L10n.t("清理存储卷"))
+                    } catch {
+                        guard !APIError.isCancellation(error) else { return }
+                        errorMessage = error.localizedDescription
+                        showError = true
                     }
                 }
             }
@@ -838,8 +845,9 @@ private struct ContainerVolumeCreateSheet: View {
                     Toggle(L10n.t("启用 NFS 存储"), isOn: $nfsEnabled)
                     if nfsEnabled {
                         TextField(L10n.t("地址"), text: $nfsAddress)
-                            .keyboardType(.decimalPad)
+                            // NFS 地址可为域名（含字母），不用 decimalPad
                             .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
                         Picker(L10n.t("版本"), selection: $nfsVersion) {
                             Text("NFS").tag("v3")
                             Text("NFS4").tag("v4")

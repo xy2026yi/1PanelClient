@@ -56,11 +56,14 @@ struct WebsiteLogPage: View {
     @State private var showClearConfirm = false
     @State private var isOperatingLog = false
     @State private var downloadDone: String?
+    /// 下载/清空失败提示（loadError 仅在无内容时渲染，操作失败走独立 toast）
+    @State private var opFailed: String?
 
-    /// 日志文件服务器路径（1Panel 站点目录约定：<www>/sites/<域名>/log/<文件>）
+    /// 日志文件服务器路径（1Panel 站点目录按 alias 命名：<www>/sites/<alias>/log/<文件>；
+    /// alias 缺省回退主域名。安装目录或「网站目录」改过的实例前缀不同，失败时按实际部署核对）
     private var logFilePath: String {
-        let domain = website.primaryDomain ?? website.alias ?? ""
-        return "/opt/1panel/www/sites/\(domain)/log/\(selectedTab.fileName)"
+        let site = website.alias ?? website.primaryDomain ?? ""
+        return "/opt/1panel/www/sites/\(site)/log/\(selectedTab.fileName)"
     }
 
     var body: some View {
@@ -154,6 +157,7 @@ struct WebsiteLogPage: View {
             Text(L10n.f("确定清空「%@」吗？该操作无法回滚。", selectedTab.displayName))
         }
         .toastOverlay(message: $downloadDone)
+        .toastOverlay(message: $opFailed, systemImage: "exclamationmark.triangle.fill", iconColor: .orange)
         .task { await load() }
         .onChange(of: selectedTab) { _, _ in
             lines = []
@@ -194,7 +198,7 @@ struct WebsiteLogPage: View {
             downloadDone = L10n.t("已清空")
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            loadError = error.localizedDescription
+            opFailed = error.localizedDescription
         }
     }
 
@@ -203,22 +207,24 @@ struct WebsiteLogPage: View {
         isOperatingLog = true
         defer { isOperatingLog = false }
         do {
+            // downloadFile 落盘带 UUID 前缀，移入「文件」App 时用目标名（不带前缀）
+            let fileName = "\(website.alias ?? website.primaryDomain ?? "site")-\(selectedTab.fileName)"
             let tempURL = try await vm.client.downloadFile(
                 path: APIEndpoint.filesDownload.path,
                 queryItems: [
                     URLQueryItem(name: "operateNode", value: "local"),
                     URLQueryItem(name: "path", value: logFilePath),
                 ],
-                fileName: "\(website.primaryDomain ?? website.alias ?? "site")-\(selectedTab.fileName)",
+                fileName: fileName,
                 progress: nil)
             let destDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let finalURL = destDir.appendingPathComponent(tempURL.lastPathComponent)
+            let finalURL = destDir.appendingPathComponent(fileName)
             try? FileManager.default.removeItem(at: finalURL)
             try FileManager.default.moveItem(at: tempURL, to: finalURL)
             downloadDone = L10n.t("已保存到「文件」App · 我的 iPhone/1PanelClient")
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            loadError = error.localizedDescription
+            opFailed = error.localizedDescription
         }
     }
 
