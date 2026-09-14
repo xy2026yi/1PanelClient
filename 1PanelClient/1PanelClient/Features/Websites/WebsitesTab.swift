@@ -21,6 +21,14 @@ struct WebsitesTab: View {
     @State private var showOpenRestyOther = false
     // 分组管理推页入口（筛选条末尾「管理」chip）
     @State private var showGroupManage = false
+    // 批量操作（多选模式，logs/网站批量抓包 2026-09-14）
+    @State private var isSelecting = false
+    @State private var selectedIDs: Set<Int> = []
+    @State private var showBatchGroup = false
+    @State private var showBatchSSL = false
+    @State private var pendingBatchDelete = false
+    @State private var isBatchOperating = false
+    @State private var batchTask: WebsiteBatchTask?
     /// OpenResty 未安装时的应用商店 VM（列表安装按钮直达应用详情，安装流程复用应用商店页面）
     @StateObject private var openRestyInstallVM: AppStoreViewModel
     /// 分组管理页所需服务器配置（init 时固定，避免 manager.current 中途切换）
@@ -88,14 +96,28 @@ struct WebsitesTab: View {
         .toolbar {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showCreate = true
-                    } label: {
-                        Image(systemName: "plus")
+                    HStack(spacing: 14) {
+                        // 多选模式开关（批量启停/分组/证书/删除）
+                        Button {
+                            withAnimation(Motion.standard) {
+                                isSelecting.toggle()
+                                if !isSelecting { selectedIDs.removeAll() }
+                            }
+                        } label: {
+                            Image(systemName: isSelecting ? "xmark.circle" : "checkmark.circle")
+                        }
+                        .accessibilityLabel(L10n.t("批量操作"))
+                        if !isSelecting {
+                            Button {
+                                showCreate = true
+                            } label: {
+                                Image(systemName: "plus")
+                            }
+                            // OpenResty 未安装时无法创建网站（环境检查必然失败）
+                            .disabled(vm.openRestyNotInstalled)
+                            .accessibilityLabel(L10n.t("创建网站"))
+                        }
                     }
-                    // OpenResty 未安装时无法创建网站（环境检查必然失败）
-                    .disabled(vm.openRestyNotInstalled)
-                    .accessibilityLabel(L10n.t("创建网站"))
                 }
             }
         }
@@ -128,6 +150,92 @@ struct WebsitesTab: View {
         }
         .navigationDestination(isPresented: $showOpenRestyOther) {
             OpenRestyOtherView(vm: vm)
+        }
+        // 批量操作：删除确认 + 分组/证书 Sheet + 任务进度
+        .alert(L10n.t("批量删除网站"), isPresented: $pendingBatchDelete) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
+                Task { await batchOperate("delete") }
+            }
+        } message: {
+            Text(L10n.f("将删除选中的 %ld 个网站及其配置，该操作无法回滚，是否继续？", selectedIDs.count))
+        }
+        .sheet(isPresented: $showBatchGroup) {
+            WebsiteBatchGroupSheet(server: server, ids: Array(selectedIDs), groups: vm.groups) {
+                exitSelecting()
+                vm.toastMessage = L10n.t("分组已更新")
+                await vm.refresh(force: true)
+            }
+        }
+        .sheet(isPresented: $showBatchSSL) {
+            WebsiteBatchSSLSheet(server: server, ids: Array(selectedIDs)) { taskID in
+                exitSelecting()
+                batchTask = WebsiteBatchTask(taskID: taskID, title: L10n.t("批量设置证书"))
+            }
+        }
+        .navigationDestination(item: $batchTask) { task in
+            TaskProgressView(taskID: task.taskID, title: task.title) { isDone in
+                if isDone {
+                    Task { await vm.refresh(force: true) }
+                }
+                return false
+            }
+        }
+    }
+
+    // MARK: - 批量操作（多选）
+
+    /// 多选行：勾选圈 + 原行内容
+    private func selectingRow(_ w: Website) -> some View {
+        Button {
+            if selectedIDs.contains(w.id) {
+                selectedIDs.remove(w.id)
+            } else {
+                selectedIDs.insert(w.id)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: selectedIDs.contains(w.id) ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selectedIDs.contains(w.id) ? Color.accentColor : Color.secondary)
+                WebsiteRow(website: w)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func exitSelecting() {
+        withAnimation(Motion.standard) {
+            isSelecting = false
+            selectedIDs.removeAll()
+        }
+    }
+
+    /// 批量启停/删除：POST batch/operate（delete 与启停共用端点，抓包确认）
+    private func batchOperate(_ operate: String) async {
+        let ids = Array(selectedIDs)
+        guard !ids.isEmpty else { return }
+        isBatchOperating = true
+        defer { isBatchOperating = false }
+        let taskID = UUID().uuidString
+        do {
+            let _: EmptyResponse = try await vm.client.send(
+                path: APIEndpoint.websitesBatchOperate.path,
+                body: WebsiteBatchOperateRequest(operate: operate, ids: ids, taskID: taskID),
+                as: EmptyResponse.self)
+            exitSelecting()
+            let title: String
+            switch operate {
+            case "start": title = L10n.t("批量开启网站")
+            case "stop": title = L10n.t("批量关闭网站")
+            default: title = L10n.t("批量删除网站")
+            }
+            batchTask = WebsiteBatchTask(taskID: taskID, title: title)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            vm.showAlert = true
+            vm.alertMessage = error.localizedDescription
         }
     }
 
@@ -172,21 +280,25 @@ struct WebsitesTab: View {
             } else {
                 Section {
                     ForEach(vm.websites) { w in
-                        // 直接目标 NavigationLink，不用 navigationDestination(for: Website.self)：
-                        // 本页可经「管理-网站列表」与「多机管理-节点-网站」两条路径先后入栈，
-                        // 值类型注册在同栈共存时会触发 duplicate navigationDestination 警告
-                        NavigationLink {
-                            WebsiteDetailView(website: w, vm: vm)
-                        } label: {
-                            WebsiteRow(website: w)
-                        }
-                        .onAppear {
-                            if w.id == vm.websites.last?.id {
-                                Task { await vm.loadMoreWebsites() }
+                        if isSelecting {
+                            selectingRow(w)
+                        } else {
+                            // 直接目标 NavigationLink，不用 navigationDestination(for: Website.self)：
+                            // 本页可经「管理-网站列表」与「多机管理-节点-网站」两条路径先后入栈，
+                            // 值类型注册在同栈共存时会触发 duplicate navigationDestination 警告
+                            NavigationLink {
+                                WebsiteDetailView(website: w, vm: vm)
+                            } label: {
+                                WebsiteRow(website: w)
+                            }
+                            .onAppear {
+                                if w.id == vm.websites.last?.id {
+                                    Task { await vm.loadMoreWebsites() }
+                                }
                             }
                         }
                     }
-                    if vm.websites.count < vm.total || vm.isLoadingMore {
+                    if !isSelecting && (vm.websites.count < vm.total || vm.isLoadingMore) {
                         HStack {
                             Spacer()
                             ProgressView()
@@ -200,6 +312,38 @@ struct WebsitesTab: View {
         .listStyle(.insetGrouped)
         .refreshable {
             await vm.refresh(force: true)
+        }
+        // 多选模式底部批量操作栏
+        .safeAreaInset(edge: .bottom) {
+            if isSelecting {
+                WebsiteBatchBar(
+                    selectedCount: selectedIDs.count,
+                    totalCount: vm.websites.count,
+                    isOperating: isBatchOperating,
+                    onExit: {
+                        withAnimation(Motion.standard) {
+                            isSelecting = false
+                            selectedIDs.removeAll()
+                        }
+                    },
+                    onSelectAll: {
+                        if selectedIDs.count >= vm.websites.count {
+                            selectedIDs.removeAll()
+                        } else {
+                            selectedIDs = Set(vm.websites.map(\.id))
+                        }
+                    },
+                    onOperate: { operate in
+                        if operate == "delete" {
+                            pendingBatchDelete = true
+                        } else {
+                            Task { await batchOperate(operate) }
+                        }
+                    },
+                    onGroup: { showBatchGroup = true },
+                    onSSL: { showBatchSSL = true }
+                )
+            }
         }
     }
 }

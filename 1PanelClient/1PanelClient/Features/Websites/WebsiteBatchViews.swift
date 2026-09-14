@@ -1,0 +1,338 @@
+//
+//  WebsiteBatchViews.swift
+//  1PanelClient
+//
+//  网站批量操作（logs/网站批量抓包 2026-09-14）：
+//  多选模式底部操作栏（启停/分组/证书/删除）· 分组 Sheet · 证书设置 Sheet
+//
+
+import SwiftUI
+
+// MARK: - 批量操作栏（多选模式底部）
+
+struct WebsiteBatchBar: View {
+    let selectedCount: Int
+    let totalCount: Int
+    let isOperating: Bool
+    let onExit: () -> Void
+    let onSelectAll: () -> Void
+    let onOperate: (String) -> Void      // start / stop / delete
+    let onGroup: () -> Void
+    let onSSL: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button {
+                onSelectAll()
+            } label: {
+                Label(
+                    selectedCount >= totalCount ? L10n.t("取消全选") : L10n.t("全选"),
+                    systemImage: selectedCount >= totalCount ? "circle" : "checkmark.circle"
+                )
+                .font(.caption)
+            }
+            .buttonStyle(.bordered)
+
+            batchButton(L10n.t("启动"), icon: "play.fill", color: .green) { onOperate("start") }
+            batchButton(L10n.t("停止"), icon: "stop.fill", color: .orange) { onOperate("stop") }
+            batchButton(L10n.t("分组"), icon: "folder", color: .blue) { onGroup() }
+            batchButton(L10n.t("证书"), icon: "lock.shield", color: .purple) { onSSL() }
+            batchButton(L10n.t("删除"), icon: "trash", color: .red) { onOperate("delete") }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider() }
+    }
+
+    private func batchButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(.caption)
+                .foregroundStyle(color)
+        }
+        .buttonStyle(.bordered)
+        .disabled(selectedCount == 0 || isOperating)
+    }
+}
+
+// MARK: - 批量分组 Sheet
+
+struct WebsiteBatchGroupSheet: View {
+    let server: ServerConfig
+    let ids: [Int]
+    let groups: [PanelGroup]
+    let onDone: () async -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var groupID: Int?
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+
+    private let client: APIClient
+
+    init(server: ServerConfig, ids: [Int], groups: [PanelGroup], onDone: @escaping () async -> Void) {
+        self.server = server
+        self.ids = ids
+        self.groups = groups
+        self.onDone = onDone
+        self.client = APIClient.shared(for: server)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker(L10n.t("分组"), selection: $groupID) {
+                        ForEach(groups) { group in
+                            Text(group.name ?? "-").tag(Optional(group.id))
+                        }
+                    }
+                } footer: {
+                    Text(L10n.f("将 %ld 个网站移入所选分组", ids.count))
+                }
+            }
+            .navigationTitle(L10n.t("批量设置分组"))
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear { groupID = groups.first?.id }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isSubmitting)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("保存")) {
+                        Task { await submit() }
+                    }
+                    .disabled(groupID == nil || isSubmitting)
+                }
+            }
+            .alert(L10n.t("提示"), isPresented: $showError) {
+                Button(L10n.t("好的"), role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.medium])
+        .interactiveDismissDisabled(isSubmitting)
+    }
+
+    private func submit() async {
+        guard let groupID else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesBatchGroup.path,
+                body: WebsiteBatchGroupRequest(ids: ids, groupID: groupID),
+                as: EmptyResponse.self)
+            await onDone()
+            dismiss()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+}
+
+// MARK: - 批量设置证书 Sheet
+
+/// POST /websites/batch/ssl（type=existed：选择已有证书）；
+/// 证书列表按 Acme 账户过滤（ssl/list {acmeAccountID}，"0"=全部，抓包确认）
+struct WebsiteBatchSSLSheet: View {
+    let server: ServerConfig
+    let ids: [Int]
+    /// 提交成功（taskID → 任务进度页）
+    let onStarted: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var accounts: [AcmeAccount] = []
+    @State private var certificates: [WebsiteSSL] = []
+    @State private var selectedAccountID = 0
+    @State private var selectedSSLID: Int?
+    @State private var httpConfig = "HTTPToHTTPS"
+    @State private var hsts = true
+    @State private var hstsSubDomains = false
+    @State private var http3 = false
+    @State private var tls13 = true
+    @State private var tls12 = true
+    @State private var tls11 = false
+    @State private var tls10 = false
+    @State private var httpsPort = "443"
+    @State private var isLoading = true
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+
+    private let client: APIClient
+
+    private let httpOptions: [(value: String, label: String)] = [
+        ("HTTPToHTTPS", L10n.t("访问 HTTP 自动跳转到 HTTPS")),
+        ("enable", L10n.t("HTTP 可直接访问")),
+        ("disable", L10n.t("禁止 HTTP 访问")),
+    ]
+
+    init(server: ServerConfig, ids: [Int], onStarted: @escaping (String) -> Void) {
+        self.server = server
+        self.ids = ids
+        self.onStarted = onStarted
+        self.client = APIClient.shared(for: server)
+    }
+
+    private var sslProtocols: [String] {
+        var list: [String] = []
+        if tls13 { list.append("TLSv1.3") }
+        if tls12 { list.append("TLSv1.2") }
+        if tls11 { list.append("TLSv1.1") }
+        if tls10 { list.append("TLSv1.0") }
+        return list
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker(L10n.t("Acme 账户"), selection: $selectedAccountID) {
+                        Text(L10n.t("全部")).tag(0)
+                        ForEach(accounts) { account in
+                            Text(account.email.isEmpty ? "#\(account.id)" : account.email).tag(account.id)
+                        }
+                    }
+                    .onChange(of: selectedAccountID) { _, _ in
+                        Task { await loadCertificates() }
+                    }
+
+                    if isLoading {
+                        HStack { Spacer(); ProgressView(); Spacer() }
+                    } else if certificates.isEmpty {
+                        Text(L10n.t("该账户下暂无证书"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Picker(L10n.t("证书"), selection: $selectedSSLID) {
+                            ForEach(certificates) { ssl in
+                                Text(ssl.displayName).tag(Optional(ssl.id))
+                            }
+                        }
+                    }
+                } header: {
+                    SectionLabel(title: L10n.t("证书"), systemImage: "lock.shield")
+                }
+
+                Section {
+                    Picker(L10n.t("HTTP 选项"), selection: $httpConfig) {
+                        ForEach(httpOptions, id: \.value) { option in
+                            Text(option.label).tag(option.value)
+                        }
+                    }
+                    Toggle(L10n.t("启用 HSTS"), isOn: $hsts)
+                    Toggle(L10n.t("HSTS 子域"), isOn: $hstsSubDomains)
+                    Toggle(L10n.t("启用 HTTP3"), isOn: $http3)
+                    TextField("443", text: $httpsPort)
+                        .keyboardType(.numberPad)
+                } header: {
+                    SectionLabel(title: L10n.t("HTTPS 设置"), systemImage: "lock")
+                }
+
+                Section {
+                    Toggle("TLSv1.3", isOn: $tls13)
+                    Toggle("TLSv1.2", isOn: $tls12)
+                    Toggle("TLSv1.1（" + L10n.t("不安全") + "）", isOn: $tls11)
+                    Toggle("TLSv1.0（" + L10n.t("不安全") + "）", isOn: $tls10)
+                } header: {
+                    SectionLabel(title: L10n.t("SSL 协议"), systemImage: "shield.lefthalf.filled")
+                } footer: {
+                    Text(L10n.t("加密算法使用服务器默认配置"))
+                }
+            }
+            .navigationTitle(L10n.t("批量设置证书"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isSubmitting)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("保存")) {
+                        Task { await submit() }
+                    }
+                    .disabled(selectedSSLID == nil || sslProtocols.isEmpty || isSubmitting)
+                }
+            }
+            .alert(L10n.t("提示"), isPresented: $showError) {
+                Button(L10n.t("好的"), role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "")
+            }
+            .task {
+                await loadAccounts()
+                await loadCertificates()
+                isLoading = false
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.large])
+        .interactiveDismissDisabled(isSubmitting)
+    }
+
+    private func loadAccounts() async {
+        if let resp: PageResponse<AcmeAccount> = try? await client.send(
+            path: APIEndpoint.websitesAcmeSearch.path,
+            body: AISearchPageRequest(page: 1, pageSize: 100),
+            as: PageResponse<AcmeAccount>.self) {
+            accounts = resp.items ?? []
+        }
+    }
+
+    private func loadCertificates() async {
+        selectedSSLID = nil
+        if let list: [WebsiteSSL] = try? await client.send(
+            path: APIEndpoint.websitesSSLSearch.path,
+            body: WebsiteSSLByAccountRequest(acmeAccountID: String(selectedAccountID)),
+            as: [WebsiteSSL].self) {
+            certificates = list
+            selectedSSLID = list.first?.id
+        } else {
+            certificates = []
+        }
+    }
+
+    private func submit() async {
+        guard let sslID = selectedSSLID else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        let taskID = UUID().uuidString
+        let req = WebsiteBatchSSLRequest(
+            ids: ids,
+            acmeAccountID: selectedAccountID,
+            enable: false,
+            websiteSSLId: sslID,
+            type: "existed",
+            importType: "paste",
+            privateKey: "",
+            certificate: "",
+            privateKeyPath: "",
+            certificatePath: "",
+            httpConfig: httpConfig,
+            hsts: hsts,
+            hstsIncludeSubDomains: hstsSubDomains,
+            algorithm: WebsiteBatchSSLRequest.defaultAlgorithm,
+            SSLProtocol: sslProtocols,
+            httpsPort: httpsPort.isEmpty ? "443" : httpsPort,
+            http3: http3,
+            taskID: taskID)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesBatchSsl.path, body: req, as: EmptyResponse.self)
+            onStarted(taskID)
+            dismiss()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+}

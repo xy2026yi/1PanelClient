@@ -64,6 +64,49 @@ struct ContainerResourceModelsTests {
         #expect(obj["newName"] as? String == "234")
     }
 
+    // MARK: 网站批量（logs/网站批量抓包 2026-09-14）
+
+    @Test("网站批量操作编码（启停/删除共用端点 + taskID）")
+    func encodeWebsiteBatchOperate() throws {
+        let stop = try encode(WebsiteBatchOperateRequest(
+            operate: "stop", ids: [25, 23], taskID: "41630b88"))
+        #expect(stop["operate"] as? String == "stop")
+        #expect(stop["ids"] as? [Int] == [25, 23])
+        let del = try encode(WebsiteBatchOperateRequest(
+            operate: "delete", ids: [22, 21], taskID: "295c1749"))
+        #expect(del["operate"] as? String == "delete")
+    }
+
+    @Test("网站批量分组编码 {ids,groupID}")
+    func encodeWebsiteBatchGroup() throws {
+        let req = try encode(WebsiteBatchGroupRequest(ids: [25, 23], groupID: 6))
+        #expect(req["ids"] as? [Int] == [25, 23])
+        #expect(req["groupID"] as? Int == 6)
+    }
+
+    @Test("网站批量证书编码（全字段 + 默认加密算法串，抓包对齐）")
+    func encodeWebsiteBatchSSL() throws {
+        let req = WebsiteBatchSSLRequest(
+            ids: [25, 23], acmeAccountID: 0, enable: false,
+            websiteSSLId: 10, type: "existed", importType: "paste",
+            privateKey: "", certificate: "", privateKeyPath: "", certificatePath: "",
+            httpConfig: "HTTPToHTTPS", hsts: true, hstsIncludeSubDomains: false,
+            algorithm: WebsiteBatchSSLRequest.defaultAlgorithm,
+            SSLProtocol: ["TLSv1.3", "TLSv1.2"], httpsPort: "443",
+            http3: true, taskID: "748ae5da")
+        let obj = try encode(req)
+        #expect(obj["websiteSSLId"] as? Int == 10)
+        #expect(obj["type"] as? String == "existed")
+        #expect(obj["httpConfig"] as? String == "HTTPToHTTPS")
+        #expect(obj["SSLProtocol"] as? [String] == ["TLSv1.3", "TLSv1.2"])
+        #expect(obj["httpsPort"] as? String == "443")
+        #expect(obj["http3"] as? Bool == true)
+        // 加密算法串与抓包一致（头尾锚定）
+        let algo = try #require(obj["algorithm"] as? String)
+        #expect(algo.hasPrefix("ECDHE-ECDSA-AES256-GCM-SHA384"))
+        #expect(algo.hasSuffix(":!CAMELLIA:!SEED"))
+    }
+
     // MARK: 存储卷
 
     @Test("存储卷创建编码（NFS4：options 由地址/版本/挂载点推导，抓包样本）")

@@ -112,6 +112,10 @@ enum APIEndpoint {
     case websitesAcmeSearch       // POST 查询 Acme 账户列表
     case websitesAcmeCreate       // POST 创建 Acme 账户
     case websitesAcmeDelete       // POST 删除 Acme 账户
+    // 网站批量操作（logs/网站批量抓包 2026-09-14）
+    case websitesBatchOperate     // POST 批量启停/删除 {operate,ids,taskID}（任务进度）
+    case websitesBatchGroup       // POST 批量设置分组 {ids,groupID}
+    case websitesBatchSsl         // POST 批量设置证书（全字段 + 任务进度）
 
     // MARK: - DNS 账户
     case websitesDnsSearch        // POST 查询 DNS 账户列表
@@ -703,6 +707,9 @@ enum APIEndpoint {
         case .websitesAcmeSearch:    return "/api/v2/websites/acme/search"
         case .websitesAcmeCreate:    return "/api/v2/websites/acme"
         case .websitesAcmeDelete:    return "/api/v2/websites/acme/del"
+        case .websitesBatchOperate:  return "/api/v2/websites/batch/operate"
+        case .websitesBatchGroup:    return "/api/v2/websites/batch/group"
+        case .websitesBatchSsl:      return "/api/v2/websites/batch/ssl"
         case .websitesDnsSearch:     return "/api/v2/websites/dns/search"
         case .websitesDnsCreate:     return "/api/v2/websites/dns"
         case .websitesDnsDelete:     return "/api/v2/websites/dns/del"

@@ -1480,6 +1480,17 @@
         }
       }
     },
+    "HSTS 子域" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HSTS include subdomains"
+          }
+        }
+      }
+    },
     "HTTP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1498,6 +1509,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HTTP Header"
+          }
+        }
+      }
+    },
+    "HTTP 可直接访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow direct HTTP access"
           }
         }
       }
@@ -1557,6 +1579,17 @@
         }
       }
     },
+    "HTTP 选项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP Options"
+          }
+        }
+      }
+    },
     "HTTP 配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1587,6 +1620,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HTTPS Port"
+          }
+        }
+      }
+    },
+    "HTTPS 设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS Settings"
           }
         }
       }
@@ -2222,6 +2266,17 @@
       }
     },
     "SSL" : {},
+    "SSL 协议" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSL Protocols"
+          }
+        }
+      }
+    },
     "SSL 证书" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2942,6 +2997,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "When unchecked, files are moved to the server recycle bin and can be restored later."
+          }
+        }
+      }
+    },
+    "不安全" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insecure"
           }
         }
       }
@@ -5608,6 +5674,17 @@
         }
       }
     },
+    "分组已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group updated"
+          }
+        }
+      }
+    },
     "分组管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7089,6 +7166,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Encryption"
+          }
+        }
+      }
+    },
+    "加密算法使用服务器默认配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cipher suite uses the server default"
           }
         }
       }
@@ -8937,6 +9025,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enable"
+          }
+        }
+      }
+    },
+    "启用 HSTS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable HSTS"
+          }
+        }
+      }
+    },
+    "启用 HTTP3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable HTTP/3"
           }
         }
       }
@@ -11372,6 +11482,17 @@
         }
       }
     },
+    "将 %ld 个网站移入所选分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move %ld websites to the selected group"
+          }
+        }
+      }
+    },
     "将主节点对应的配置同步到新节点。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11434,6 +11555,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This deletes the model directory \"%@\" and its files on the server and cannot be undone. Type the model name to confirm."
+          }
+        }
+      }
+    },
+    "将删除选中的 %ld 个网站及其配置，该操作无法回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes the %ld selected websites and their configs. This cannot be undone. Continue?"
           }
         }
       }
@@ -14558,6 +14690,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Approve Pairing"
+          }
+        }
+      }
+    },
+    "批量关闭网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batch Stop Websites"
+          }
+        }
+      }
+    },
+    "批量删除网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batch Delete Websites"
+          }
+        }
+      }
+    },
+    "批量开启网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batch Start Websites"
+          }
+        }
+      }
+    },
+    "批量操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batch Operations"
+          }
+        }
+      }
+    },
+    "批量设置分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batch Set Group"
+          }
+        }
+      }
+    },
+    "批量设置证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batch Set Certificate"
           }
         }
       }
@@ -23219,6 +23417,17 @@
         }
       }
     },
+    "禁止 HTTP 访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block HTTP access"
+          }
+        }
+      }
+    },
     "禁止 SSH 登陆" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26530,6 +26739,17 @@
         }
       }
     },
+    "访问 HTTP 自动跳转到 HTTPS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect HTTP to HTTPS"
+          }
+        }
+      }
+    },
     "访问地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27098,6 +27318,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This account has no verify model set; verification cannot be enabled while editing (choose a verify model when creating the account)"
+          }
+        }
+      }
+    },
+    "该账户下暂无证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No certificates under this account"
           }
         }
       }
