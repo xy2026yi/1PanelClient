@@ -107,6 +107,15 @@ struct ContainerResourceModelsTests {
         #expect(algo.hasSuffix(":!CAMELLIA:!SEED"))
     }
 
+    @Test("网站日志清空编码（{id,operate:delete,logType}，抓包样本）")
+    func encodeWebsiteLogOperate() throws {
+        let req = WebsiteLogOperateRequest(id: 25, operate: "delete", logType: "access.log")
+        let obj = try encode(req)
+        #expect(obj["id"] as? Int == 25)
+        #expect(obj["operate"] as? String == "delete")
+        #expect(obj["logType"] as? String == "access.log")
+    }
+
     // MARK: 存储卷
 
     @Test("存储卷创建编码（NFS4：options 由地址/版本/挂载点推导，抓包样本）")

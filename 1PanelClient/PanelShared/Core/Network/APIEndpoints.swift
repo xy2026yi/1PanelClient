@@ -116,6 +116,7 @@ enum APIEndpoint {
     case websitesBatchOperate     // POST 批量启停/删除 {operate,ids,taskID}（任务进度）
     case websitesBatchGroup       // POST 批量设置分组 {ids,groupID}
     case websitesBatchSsl         // POST 批量设置证书（全字段 + 任务进度）
+    case websitesLogOperate       // POST 网站日志操作 {id,operate:delete,logType}（清空）
 
     // MARK: - DNS 账户
     case websitesDnsSearch        // POST 查询 DNS 账户列表
@@ -710,6 +711,7 @@ enum APIEndpoint {
         case .websitesBatchOperate:  return "/api/v2/websites/batch/operate"
         case .websitesBatchGroup:    return "/api/v2/websites/batch/group"
         case .websitesBatchSsl:      return "/api/v2/websites/batch/ssl"
+        case .websitesLogOperate:    return "/api/v2/websites/log/operate"
         case .websitesDnsSearch:     return "/api/v2/websites/dns/search"
         case .websitesDnsCreate:     return "/api/v2/websites/dns"
         case .websitesDnsDelete:     return "/api/v2/websites/dns/del"

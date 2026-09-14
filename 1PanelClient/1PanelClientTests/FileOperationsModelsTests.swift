@@ -103,6 +103,29 @@ struct FileOperationsModelsTests {
         #expect(obj["sub"] as? Bool == true)
     }
 
+    @Test("多选权限编码（多路径 0644→0744=484，抓包样本）")
+    func encodeBatchRoleMulti() throws {
+        let req = FileBatchRoleRequest(
+            paths: ["/1G/ftp_test/1.sh", "/1G/ftp_test/1.txt"], mode: 484,
+            user: "root", group: "root", sub: true)
+        let obj = try encode(req)
+        #expect(obj["paths"] as? [String] == ["/1G/ftp_test/1.sh", "/1G/ftp_test/1.txt"])
+        #expect(obj["mode"] as? Int == 484)
+    }
+
+    @Test("多选移动编码（allNames 含全部名称，跳过冲突时 oldPaths 仅未冲突项）")
+    func encodeBatchMove() throws {
+        var req = FileMoveRequest(
+            oldPaths: ["/1G/ftp_test/1.sh"],
+            newPath: "/1G/ftp_test/1", isDir: false)
+        req.allNames = ["1.sh", "1.txt"]
+        let obj = try encode(req)
+        #expect(obj["oldPaths"] as? [String] == ["/1G/ftp_test/1.sh"])
+        #expect(obj["allNames"] as? [String] == ["1.sh", "1.txt"])
+        #expect(obj["type"] as? String == "cut")
+        #expect(obj["cover"] as? Bool == false)
+    }
+
     @Test("wget 请求编码与 key 响应解码")
     func wgetRequestResponse() throws {
         let req = FileWgetRequest(

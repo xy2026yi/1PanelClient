@@ -43,7 +43,7 @@ enum WebsiteLogType {
 // MARK: - 网站日志（合并页）
 
 struct WebsiteLogPage: View {
-    let websiteId: Int
+    let website: Website
     @ObservedObject var vm: WebsitesViewModel
 
     @State private var selectedTab: WebsiteLogType = .access
@@ -52,6 +52,16 @@ struct WebsiteLogPage: View {
     /// 日志加载失败（渲染页内错误态 + 重试）
     @State private var loadError: String?
     @State private var isTracking = false
+    // 下载 / 清空（logs/网站日志抓包 2026-09-14）
+    @State private var showClearConfirm = false
+    @State private var isOperatingLog = false
+    @State private var downloadDone: String?
+
+    /// 日志文件服务器路径（1Panel 站点目录约定：<www>/sites/<域名>/log/<文件>）
+    private var logFilePath: String {
+        let domain = website.primaryDomain ?? website.alias ?? ""
+        return "/opt/1panel/www/sites/\(domain)/log/\(selectedTab.fileName)"
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -111,7 +121,39 @@ struct WebsiteLogPage: View {
                 .toggleStyle(.button)
                 .tint(isTracking ? .green : .secondary)
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        Task { await downloadLog() }
+                    } label: {
+                        Label(L10n.t("下载"), systemImage: "arrow.down.circle")
+                    }
+                    .disabled(isOperatingLog)
+                    Button(role: .destructive) {
+                        showClearConfirm = true
+                    } label: {
+                        Label(L10n.t("清空日志"), systemImage: "trash")
+                    }
+                    .disabled(isOperatingLog)
+                } label: {
+                    if isOperatingLog {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+                .accessibilityLabel(L10n.t("更多操作"))
+            }
         }
+        .alert(L10n.t("清空日志"), isPresented: $showClearConfirm) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("清空"), role: .destructive) {
+                Task { await clearLog() }
+            }
+        } message: {
+            Text(L10n.f("确定清空「%@」吗？该操作无法回滚。", selectedTab.displayName))
+        }
+        .toastOverlay(message: $downloadDone)
         .task { await load() }
         .onChange(of: selectedTab) { _, _ in
             lines = []
@@ -131,9 +173,51 @@ struct WebsiteLogPage: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            lines = try await vm.loadLog(websiteId: websiteId, name: selectedTab.fileName)
+            lines = try await vm.loadLog(websiteId: website.id, name: selectedTab.fileName)
             loadError = nil
         } catch {
+            loadError = error.localizedDescription
+        }
+    }
+
+    /// 清空当前类型日志（POST /websites/log/operate {id,operate:delete,logType}）
+    private func clearLog() async {
+        isOperatingLog = true
+        defer { isOperatingLog = false }
+        do {
+            let _: EmptyResponse = try await vm.client.send(
+                path: APIEndpoint.websitesLogOperate.path,
+                body: WebsiteLogOperateRequest(
+                    id: website.id, operate: "delete", logType: selectedTab.fileName),
+                as: EmptyResponse.self)
+            lines = []
+            downloadDone = L10n.t("已清空")
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            loadError = error.localizedDescription
+        }
+    }
+
+    /// 下载日志文件（GET /files/download?path=<站点日志路径>，保存到「文件」App）
+    private func downloadLog() async {
+        isOperatingLog = true
+        defer { isOperatingLog = false }
+        do {
+            let tempURL = try await vm.client.downloadFile(
+                path: APIEndpoint.filesDownload.path,
+                queryItems: [
+                    URLQueryItem(name: "operateNode", value: "local"),
+                    URLQueryItem(name: "path", value: logFilePath),
+                ],
+                fileName: "\(website.primaryDomain ?? website.alias ?? "site")-\(selectedTab.fileName)",
+                progress: nil)
+            let destDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let finalURL = destDir.appendingPathComponent(tempURL.lastPathComponent)
+            try? FileManager.default.removeItem(at: finalURL)
+            try FileManager.default.moveItem(at: tempURL, to: finalURL)
+            downloadDone = L10n.t("已保存到「文件」App · 我的 iPhone/1PanelClient")
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
             loadError = error.localizedDescription
         }
     }
@@ -143,7 +227,7 @@ struct WebsiteLogPage: View {
             try? await Task.sleep(for: .seconds(2))
             guard isTracking else { break }
             // 追踪轮询失败静默跳过，下轮继续
-            guard let fresh = try? await vm.loadLog(websiteId: websiteId, name: selectedTab.fileName) else { continue }
+            guard let fresh = try? await vm.loadLog(websiteId: website.id, name: selectedTab.fileName) else { continue }
             guard isTracking else { break }
             if fresh.isEmpty { continue }
             let overlap = min(lines.count, fresh.count)

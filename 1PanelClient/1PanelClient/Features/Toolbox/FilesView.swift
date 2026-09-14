@@ -86,6 +86,13 @@ struct FilesView: View {
     @State private var wgetProgress: FileWgetProgressTarget?
     /// 进行中的远程下载 key（GET wget/process/keys；非空时工具栏显示入口）
     @State private var activeWgetKeys: [String] = []
+    // 多选批量（logs/文件多选抓包 2026-09-14：删除/移动/权限）
+    @State private var isSelecting = false
+    @State private var selectedPaths: Set<String> = []
+    @State private var batchPermItems: [FileItem]?
+    @State private var batchMoveItems: [FileItem]?
+    @State private var showBatchDeleteConfirm = false
+    @State private var isBatchOperating = false
     /// 挂起的菜单动作：菜单完全收起（sheet onDismiss）后再执行，
     /// 替代原先固定 0.35s 的延迟等待
     @State private var pendingMenuAction: (() -> Void)?
@@ -153,12 +160,24 @@ struct FilesView: View {
                             }
                             .accessibilityLabel(L10n.t("下载任务"))
                         }
+                        // 多选模式开关（批量删除/移动/权限）
                         Button {
-                            showActionSheet = true
+                            withAnimation(Motion.standard) {
+                                isSelecting.toggle()
+                                if !isSelecting { selectedPaths.removeAll() }
+                            }
                         } label: {
-                            Image(systemName: "plus")
+                            Image(systemName: isSelecting ? "xmark.circle" : "checkmark.circle")
                         }
-                        .accessibilityLabel(L10n.t("操作菜单"))
+                        .accessibilityLabel(L10n.t("批量操作"))
+                        if !isSelecting {
+                            Button {
+                                showActionSheet = true
+                            } label: {
+                                Image(systemName: "plus")
+                            }
+                            .accessibilityLabel(L10n.t("操作菜单"))
+                        }
                     }
                 }
             }
@@ -281,6 +300,32 @@ struct FilesView: View {
             jumpTo: { target in Task { await loadDir(target) } },
             deleteItem: { item, force in Task { await deleteItem(item, forceDelete: force) } }
         ))
+        .sheet(item: Binding(
+            get: { batchPermItems.map { FileItemList(items: $0) } },
+            set: { if $0 == nil { batchPermItems = nil } }
+        )) { list in
+            FilePermissionSheet(server: server, items: list.items) {
+                Task { await loadDir(currentPath) }
+            }
+        }
+        .sheet(item: Binding(
+            get: { batchMoveItems.map { FileItemList(items: $0) } },
+            set: { if $0 == nil { batchMoveItems = nil } }
+        )) { list in
+            FileBatchMoveSheet(server: server, items: list.items, defaultDst: currentPath) {
+                exitSelecting()
+                await loadDir(currentPath)
+            }
+        }
+        .alert(L10n.t("批量删除"), isPresented: $showBatchDeleteConfirm) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
+                Task { await batchDelete() }
+            }
+        } message: {
+            Text(L10n.f("将永久删除选中的 %ld 项（不进入回收站），该操作无法回滚，是否继续？", selectedPaths.count))
+        }
         .modifier(FilesOperationsModifier(
             server: server,
             currentPath: currentPath,
@@ -299,15 +344,42 @@ struct FilesView: View {
     private var fileList: some View {
         List {
             ForEach(filteredItems) { item in
-                fileRow(item)
-                    .onLongPressGesture(minimumDuration: 0.5) {
-                        // 触觉反馈 + 弹出半屏操作菜单（经 Haptic 封装，保持全局触觉埋点规则）
-                        Haptic.selection()
-                        actionItem = item
-                    }
+                if isSelecting {
+                    selectingRow(item)
+                } else {
+                    fileRow(item)
+                        .onLongPressGesture(minimumDuration: 0.5) {
+                            // 触觉反馈 + 弹出半屏操作菜单（经 Haptic 封装，保持全局触觉埋点规则）
+                            Haptic.selection()
+                            actionItem = item
+                        }
+                }
             }
         }
         .listSectionSpacing(8)
+        // 多选模式底部批量操作栏
+        .safeAreaInset(edge: .bottom) {
+            if isSelecting {
+                FilesBatchBar(
+                    selectedCount: selectedPaths.count,
+                    totalCount: filteredItems.count,
+                    isOperating: isBatchOperating,
+                    onSelectAll: {
+                        if selectedPaths.count >= filteredItems.count {
+                            selectedPaths.removeAll()
+                        } else {
+                            selectedPaths = Set(filteredItems.map(\.path))
+                        }
+                    },
+                    onDelete: { showBatchDeleteConfirm = true },
+                    onMove: {
+                        batchMoveItems = filteredItems.filter { selectedPaths.contains($0.path) }
+                    },
+                    onPerm: {
+                        batchPermItems = filteredItems.filter { selectedPaths.contains($0.path) }
+                    })
+            }
+        }
     }
 
     // MARK: - 路径面包屑
@@ -692,6 +764,59 @@ struct FilesView: View {
         guard let action = pendingMenuAction else { return }
         pendingMenuAction = nil
         action()
+    }
+
+    /// 多选行：勾选圈 + 原行内容
+    private func selectingRow(_ item: FileItem) -> some View {
+        Button {
+            if selectedPaths.contains(item.path) {
+                selectedPaths.remove(item.path)
+            } else {
+                selectedPaths.insert(item.path)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: selectedPaths.contains(item.path) ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selectedPaths.contains(item.path) ? Color.accentColor : Color.secondary)
+                fileRowContent(item)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func exitSelecting() {
+        withAnimation(Motion.standard) {
+            isSelecting = false
+            selectedPaths.removeAll()
+        }
+    }
+
+    /// 批量删除：逐条 files/del {forceDelete:true}（抓包确认，非 batch/del）
+    private func batchDelete() async {
+        let targets = filteredItems.filter { selectedPaths.contains($0.path) }
+        guard !targets.isEmpty else { return }
+        isBatchOperating = true
+        defer { isBatchOperating = false }
+        var failed: Int = 0
+        for item in targets {
+            let req = FileDeleteRequest(path: item.path, isDir: item.isDir, forceDelete: true)
+            do {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.filesDel.path, body: req, as: EmptyResponse.self)
+                selectedPaths.remove(item.path)
+            } catch {
+                if APIError.isCancellation(error) { return }
+                failed += 1
+            }
+        }
+        exitSelecting()
+        if failed == 0 {
+            successMessage = L10n.t("已删除")
+        } else {
+            errorMessage = L10n.f("%ld 项删除失败", failed)
+        }
+        await loadDir(currentPath)
     }
 
     /// 长按文件行的操作菜单项（下载/压缩/解压/移动/权限/重命名/删除），

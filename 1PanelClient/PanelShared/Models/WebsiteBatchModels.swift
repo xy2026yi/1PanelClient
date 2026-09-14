@@ -54,6 +54,14 @@ nonisolated struct WebsiteBatchSSLRequest: Encodable {
     static let defaultAlgorithm = "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:!aNULL:!eNULL:!EXPORT:!DSS:!DES:!RC4:!3DES:!MD5:!PSK:!KRB5:!SRP:!CAMELLIA:!SEED"
 }
 
+/// POST /websites/log/operate {id,operate,logType}（清空网站日志，抓包 2026-09-14）
+nonisolated struct WebsiteLogOperateRequest: Encodable {
+    let id: Int
+    let operate: String
+    /// access.log / error.log
+    let logType: String
+}
+
 /// 批量任务（taskID → 任务进度页）
 struct WebsiteBatchTask: Identifiable, Hashable {
     let taskID: String

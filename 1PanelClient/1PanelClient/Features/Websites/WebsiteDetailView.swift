@@ -95,7 +95,7 @@ struct WebsiteDetailView: View {
                     }
                     .buttonStyle(.plain)
                     NavigationLink {
-                        WebsiteLogPage(websiteId: website.id, vm: vm)
+                        WebsiteLogPage(website: website, vm: vm)
                     } label: {
                         Label(L10n.t("日志"), systemImage: "doc.text.magnifyingglass")
                             .foregroundStyle(.primary)

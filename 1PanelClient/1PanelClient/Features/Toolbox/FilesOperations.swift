@@ -34,13 +34,14 @@ struct FileDecompressRequest: Encodable {
 }
 
 /// POST /files/move {oldPaths,newPath,type,...}（type=cut 剪切；
-/// name/allNames/cover/coverPaths 为网页端覆盖交互字段，App 恒空/关闭）
+/// name/cover/coverPaths 为网页端覆盖交互字段，App 恒空/关闭；
+/// allNames 按抓包携带全部所选名称——跳过冲突时 oldPaths 仅含未冲突项）
 struct FileMoveRequest: Encodable {
     let oldPaths: [String]
     let newPath: String
     let type = "cut"
     let name = ""
-    let allNames: [String] = []
+    var allNames: [String] = []
     let isDir: Bool
     let cover = false
     let coverPaths: [String] = []
@@ -546,8 +547,11 @@ struct FileMoveSheet: View {
 
 struct FilePermissionSheet: View {
     let server: ServerConfig
-    let item: FileItem
+    /// 多选批量时传多项；勾选态/属主默认取首项
+    let items: [FileItem]
     let onDone: () -> Void
+
+    private var item: FileItem? { items.first }
 
     @Environment(\.dismiss) private var dismiss
     @State private var users: [FileUserGroupItem] = []
@@ -563,9 +567,9 @@ struct FilePermissionSheet: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, item: FileItem, onDone: @escaping () -> Void) {
+    init(server: ServerConfig, items: [FileItem], onDone: @escaping () -> Void) {
         self.server = server
-        self.item = item
+        self.items = items
         self.onDone = onDone
         self.client = APIClient.shared(for: server)
     }
@@ -576,7 +580,7 @@ struct FilePermissionSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    InfoRow(L10n.t("名称"), value: item.name)
+                    InfoRow(L10n.t("名称"), value: items.count == 1 ? (item?.name ?? "-") : L10n.f("%ld 项", items.count))
                     InfoRow(L10n.t("权限"), value: FileModeMath.octalString(mode))
                         .font(.system(.body, design: .monospaced))
                     permGrid
@@ -654,7 +658,7 @@ struct FilePermissionSheet: View {
 
     private func loadUsers() async {
         // 勾选态按当前 mode 预置（"0755" → rwxr-xr-x）
-        if let m = FileModeMath.decimal(fromOctalString: item.mode) {
+        if let m = FileModeMath.decimal(fromOctalString: item?.mode) {
             let t = FileModeMath.triples(fromMode: m)
             owner = t.owner
             groupPerm = t.group
@@ -666,7 +670,7 @@ struct FilePermissionSheet: View {
             users = resp.users ?? []
             groups = resp.groups ?? []
             // 默认选中文件当前属主/属组（不在候选列表时仍追加，避免 Picker 空 selection）
-            if let current = item.user, !current.isEmpty {
+            if let current = item?.user, !current.isEmpty {
                 if !users.contains(where: { $0.username == current }) {
                     users.insert(FileUserGroupItem(username: current, group: nil), at: 0)
                 }
@@ -674,7 +678,7 @@ struct FilePermissionSheet: View {
             } else {
                 user = users.first?.username ?? ""
             }
-            if let currentGroup = item.group, !currentGroup.isEmpty {
+            if let currentGroup = item?.group, !currentGroup.isEmpty {
                 if !groups.contains(currentGroup) { groups.insert(currentGroup, at: 0) }
                 group = currentGroup
             } else {
@@ -690,7 +694,7 @@ struct FilePermissionSheet: View {
         isSubmitting = true
         defer { isSubmitting = false }
         let req = FileBatchRoleRequest(
-            paths: [item.path], mode: mode, user: user, group: group, sub: sub)
+            paths: items.map(\.path), mode: mode, user: user, group: group, sub: sub)
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.filesBatchRole.path, body: req, as: EmptyResponse.self)
@@ -978,7 +982,7 @@ struct FilesOperationsModifier: ViewModifier {
                 }
             }
             .sheet(item: $permItem) { item in
-                FilePermissionSheet(server: server, item: item) {
+                FilePermissionSheet(server: server, items: [item]) {
                     reload()
                 }
             }
@@ -999,4 +1003,204 @@ struct FilesOperationsModifier: ViewModifier {
                 }
             }
     }
+}
+
+// MARK: - 文件多选批量操作栏
+
+struct FilesBatchBar: View {
+    let selectedCount: Int
+    let totalCount: Int
+    let isOperating: Bool
+    let onSelectAll: () -> Void
+    let onDelete: () -> Void
+    let onMove: () -> Void
+    let onPerm: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button(action: onSelectAll) {
+                Label(
+                    selectedCount >= totalCount ? L10n.t("取消全选") : L10n.t("全选"),
+                    systemImage: selectedCount >= totalCount ? "circle" : "checkmark.circle"
+                )
+                .font(.caption)
+            }
+            .buttonStyle(.bordered)
+            barButton(L10n.t("删除"), icon: "trash", color: .red, action: onDelete)
+            barButton(L10n.t("移动"), icon: "arrow.right.square", color: .orange, action: onMove)
+            barButton(L10n.t("权限"), icon: "lock.shield", color: .teal, action: onPerm)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider() }
+    }
+
+    private func barButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(.caption)
+                .foregroundStyle(color)
+        }
+        .buttonStyle(.bordered)
+        .disabled(selectedCount == 0 || isOperating)
+    }
+}
+
+// MARK: - 多选移动 Sheet（冲突检测 → 跳过/覆盖）
+
+/// 多选移动（logs/文件多选抓包 2026-09-14）：
+/// 1. batch/check 检查目标路径 → 返回同名冲突文件
+/// 2. 无冲突直接 move；有冲突让用户选「跳过」（仅移动不冲突项）或「覆盖」（全部移动）
+///    两个分支的 cover/coverPaths 均按抓包为 false/空
+struct FileBatchMoveSheet: View {
+    let server: ServerConfig
+    let items: [FileItem]
+    let defaultDst: String
+    let onDone: () async -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var dst: String
+    @State private var conflicts: [FileItem]?
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+
+    private let client: APIClient
+
+    init(server: ServerConfig, items: [FileItem], defaultDst: String, onDone: @escaping () async -> Void) {
+        self.server = server
+        self.items = items
+        self.defaultDst = defaultDst
+        _dst = State(initialValue: defaultDst)
+        self.onDone = onDone
+        self.client = APIClient.shared(for: server)
+    }
+
+    /// 目标目录拼接（"/tmp" + "a" → "/tmp/a"）
+    private func join(_ dir: String, _ name: String) -> String {
+        if dir == "/" { return "/" + name }
+        return dir.hasSuffix("/") ? dir + name : dir + "/" + name
+    }
+
+    /// 非冲突源路径（按目标路径排除冲突项）
+    private var nonConflictPaths: [String] {
+        let conflictTargets = Set((conflicts ?? []).map(\.path))
+        return items.filter { !conflictTargets.contains(join(dst, $0.name)) }.map(\.path)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    InfoRow(L10n.t("已选"), value: L10n.f("%ld 项", items.count))
+                    FilePathBrowseRow(title: L10n.t("目标路径"), path: $dst, client: client)
+                } header: {
+                    SectionLabel(title: L10n.t("移动"), systemImage: "arrow.right.square")
+                }
+
+                // 冲突确认：列出同名文件，跳过 / 覆盖
+                if let conflicts, !conflicts.isEmpty {
+                    Section {
+                        ForEach(conflicts) { conflict in
+                            Label(conflict.name, systemImage: "exclamationmark.triangle")
+                                .foregroundStyle(.orange)
+                        }
+                        Button {
+                            Task { await move(paths: nonConflictPaths) }
+                        } label: {
+                            Label(L10n.t("跳过同名文件"), systemImage: "arrow.uturn.right")
+                        }
+                        Button {
+                            Task { await move(paths: items.map(\.path)) }
+                        } label: {
+                            Label(L10n.t("覆盖同名文件"), systemImage: "arrow.triangle.2.circlepath")
+                        }
+                        .tint(.red)
+                    } header: {
+                        SectionLabel(title: L10n.t("目标目录存在同名文件"), systemImage: "exclamationmark.triangle")
+                    } footer: {
+                        Text(L10n.t("跳过仅移动不冲突的文件；覆盖将替换目标目录中的同名文件"))
+                    }
+                }
+            }
+            .navigationTitle(L10n.t("移动"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isSubmitting)
+                }
+                if conflicts == nil {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(L10n.t("移动")) {
+                            Task { await checkAndMove() }
+                        }
+                        .disabled(isSubmitting)
+                    }
+                }
+            }
+            .alert(L10n.t("提示"), isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.medium])
+        .interactiveDismissDisabled(isSubmitting)
+    }
+
+    /// 先查冲突：无冲突直接移动，有冲突展示跳过/覆盖选择
+    private func checkAndMove() async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        do {
+            let targets = items.map { join(dst, $0.name) }
+            let resp: [FileItem] = try await client.send(
+                path: APIEndpoint.filesBatchCheck.path,
+                body: FileBatchCheckRequest(paths: targets),
+                as: [FileItem].self)
+            if resp.isEmpty {
+                try await move(paths: items.map(\.path))
+            } else {
+                conflicts = resp
+            }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    private func move(paths: [String]) async {
+        guard !paths.isEmpty else {
+            errorMessage = L10n.t("没有可移动的文件")
+            showError = true
+            return
+        }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        var req = FileMoveRequest(oldPaths: paths, newPath: dst, isDir: items.first?.isDir ?? false)
+        req.allNames = items.map(\.name)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.filesMove.path, body: req, as: EmptyResponse.self)
+            await onDone()
+            dismiss()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+}
+
+/// 批量 Sheet 的条目包装（sheet(item:) 需 Identifiable；数组路径集合做身份）
+struct FileItemList: Identifiable {
+    let items: [FileItem]
+    var id: String { items.map(\.path).joined(separator: "\n") }
 }

@@ -340,6 +340,17 @@
         }
       }
     },
+    "%ld 个网站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld websites"
+          }
+        }
+      }
+    },
     "%ld 个进程" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -490,6 +501,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld items"
+          }
+        }
+      }
+    },
+    "%ld 项删除失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to delete %ld items"
           }
         }
       }
@@ -11834,6 +11856,17 @@
         }
       }
     },
+    "将永久删除选中的 %ld 项（不进入回收站），该操作无法回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This permanently deletes the %ld selected items (bypassing the recycle bin). This cannot be undone. Continue?"
+          }
+        }
+      }
+    },
     "将清理 %ld 项垃圾文件，释放 %@ 磁盘空间。此操作不可恢复，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12582,6 +12615,17 @@
         }
       }
     },
+    "已清空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleared"
+          }
+        }
+      }
+    },
     "已清空执行记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12721,6 +12765,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connected"
+          }
+        }
+      }
+    },
+    "已选" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected"
           }
         }
       }
@@ -14701,6 +14756,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Batch Stop Websites"
+          }
+        }
+      }
+    },
+    "批量删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batch Delete"
           }
         }
       }
@@ -20403,6 +20469,17 @@
         }
       }
     },
+    "没有可移动的文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No files to move"
+          }
+        }
+      }
+    },
     "没有索引的JOIN量" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22592,6 +22669,17 @@
         }
       }
     },
+    "目标目录存在同名文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conflicting files in destination"
+          }
+        }
+      }
+    },
     "目标端口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23017,6 +23105,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete image \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确定清空「%@」吗？该操作无法回滚。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -26200,6 +26299,17 @@
         }
       }
     },
+    "覆盖同名文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overwrite Conflicts"
+          }
+        }
+      }
+    },
     "覆盖已存在的文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28495,6 +28605,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skip DNS Check"
+          }
+        }
+      }
+    },
+    "跳过仅移动不冲突的文件；覆盖将替换目标目录中的同名文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip moves only non-conflicting files; overwrite replaces same-name files in the destination"
+          }
+        }
+      }
+    },
+    "跳过同名文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip Conflicts"
           }
         }
       }
