@@ -249,11 +249,13 @@ struct ManageTab: View {
             GPUMonitorView(server: server)
         case .panelSettings:
             // 设置 Hub：基础设置 / 告警通知 / 备份账号 / 许可证（对齐网页端面板菜单）
-            ManageHubView(title: L10n.t("设置"), items: [.basicSettings, .alert, .backupAccount, .license])
+            ManageHubView(title: L10n.t("设置"), items: [.basicSettings, .alert, .backupAccount, .snapshot, .license])
         case .basicSettings:
             PanelBasicSettingsView(server: server)
         case .license:
             LicenseView(server: server)
+        case .snapshot:
+            SnapshotListView(server: server)
         case .ai:
             // AI Hub：模型账号 / 智能体 / MCP / Ollama / vLLM / 模型下载
             ManageHubView(title: L10n.t("AI"), items: [.aiAccounts, .aiAgents, .aiMcp, .aiOllama, .aiVllm, .aiDownloader])
@@ -474,6 +476,8 @@ enum ManageItem: String, Identifiable {
     case basicSettings
     /// 许可证（设置 Hub 子页）
     case license
+    /// 快照（设置 Hub 子页：创建/恢复/删除）
+    case snapshot
     /// AI（Hub：模型账号 / 智能体 / MCP / Ollama / vLLM / 模型下载）
     case ai
     /// 模型账号（AI Hub 子页）
@@ -496,7 +500,7 @@ enum ManageItem: String, Identifiable {
     static var hubChildren: [ManageItem] {
         [.websiteList, .certificates, .cronjobList, .scriptLibrary,
          .aiAccounts, .aiAgents, .aiMcp, .aiOllama, .aiVllm, .aiDownloader,
-         .basicSettings, .alert, .backupAccount, .license]
+         .basicSettings, .alert, .backupAccount, .license, .snapshot]
     }
 
     /// 管理页分组（带标题），ManageTab 与「自定义功能」编辑页共用。
@@ -549,6 +553,7 @@ enum ManageItem: String, Identifiable {
         case .panelSettings: return L10n.t("设置")
         case .basicSettings: return L10n.t("基础设置")
         case .license:     return L10n.t("许可证")
+        case .snapshot:    return L10n.t("快照")
         case .ai:          return "AI"
         case .aiAccounts:  return L10n.t("模型账号")
         case .aiAgents:    return L10n.t("智能体")
@@ -593,6 +598,7 @@ enum ManageItem: String, Identifiable {
         case .gpuMonitor:  return L10n.t("利用率 / 显存 / 温度 / 功耗 / 进程")
         case .panelSettings: return L10n.t("告警通知 / 备份账号 / 许可证")
         case .basicSettings: return L10n.t("面板别名 / 超时 / 代理 / 运行环境")
+        case .snapshot:    return L10n.t("创建 / 恢复 / 删除系统快照")
         case .license:     return L10n.t("专业版授权绑定 / 同步")
         case .ai: return {
             // 门禁锁定时不出现 vLLM / 模型下载字样（避免自我暴露隐藏功能）
@@ -646,6 +652,7 @@ enum ManageItem: String, Identifiable {
         case .panelSettings: return "gearshape.fill"
         case .basicSettings: return "slider.horizontal.3"
         case .license:     return "checkmark.seal.fill"
+        case .snapshot:    return "externaldrive.badge.timemachine"
         case .ai:          return "brain"
         case .aiAccounts:  return "key.horizontal"
         case .aiAgents:    return "figure.run"
@@ -690,6 +697,7 @@ enum ManageItem: String, Identifiable {
         case .panelSettings: return .blue
         case .basicSettings: return .teal
         case .license:     return .orange
+        case .snapshot:    return .indigo
         case .ai:          return .indigo
         case .aiAccounts:  return .blue
         case .aiAgents:    return .green

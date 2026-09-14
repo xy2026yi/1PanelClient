@@ -23,6 +23,9 @@ struct CreateCronjobView: View {
     @State private var selectedGroupID = 0
     // 周期（支持多个）
     @State private var schedules: [ScheduleItem] = [ScheduleItem()]
+    /// 周期预览（cronjobs/next 返回的每个周期接下来 5 次执行时间）
+    @State private var isPreviewing = false
+    @State private var previewResults: [(spec: String, times: [String])] = []
     // Shell
     @State private var script = "#!/bin/bash\n"
     @State private var user = ""           // 默认不选（空字符串 = 服务器默认）
@@ -206,6 +209,28 @@ struct CreateCronjobView: View {
                         .foregroundStyle(Color.accentColor)
                 }
                 .disabled(schedules.count >= 10)
+
+                // 周期预览（POST /cronjobs/next {spec}，抓包 2026-09-14）
+                Button {
+                    Task { await previewSchedules() }
+                } label: {
+                    Label(L10n.t("预览执行时间"), systemImage: "clock.badge.questionmark")
+                        .foregroundStyle(Color.accentColor)
+                }
+                if isPreviewing {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                }
+                ForEach(Array(previewResults.enumerated()), id: \.offset) { _, result in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(result.spec)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        ForEach(result.times, id: \.self) { time in
+                            Text(time)
+                                .font(.system(.caption, design: .monospaced))
+                        }
+                    }
+                }
             } header: {
                 Text(L10n.t("执行周期"))
             } footer: {
@@ -483,6 +508,24 @@ struct CreateCronjobView: View {
     private func weekDay(_ w: Int) -> String {
         let names = [L10n.t("周日"), L10n.t("周一"), L10n.t("周二"), L10n.t("周三"), L10n.t("周四"), L10n.t("周五"), L10n.t("周六")]
         return names[w]
+    }
+
+    /// 预览各周期接下来 5 次执行时间（POST /cronjobs/next {spec}，抓包 2026-09-14）
+    private func previewSchedules() async {
+        isPreviewing = true
+        previewResults = []
+        defer { isPreviewing = false }
+        let client = APIClient.shared(for: server)
+        var results: [(spec: String, times: [String])] = []
+        for item in schedules {
+            let spec = item.cronSpec
+            if let times: [String] = try? await client.send(
+                path: APIEndpoint.cronjobsNext.path,
+                body: CronjobNextRequest(spec: spec), as: [String].self) {
+                results.append((spec, times))
+            }
+        }
+        previewResults = results
     }
 
     private func submit() async {

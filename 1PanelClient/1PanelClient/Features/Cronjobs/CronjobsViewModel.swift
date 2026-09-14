@@ -128,6 +128,39 @@ final class CronjobsViewModel: ObservableObject {
         }
     }
 
+    /// 手动结束执行中的任务（POST /cronjobs/stop {id}，抓包 2026-09-14）
+    func stop(job: Cronjob) async {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.cronjobsStop.path,
+                body: CronjobStopRequest(id: job.id),
+                as: EmptyResponse.self
+            )
+            showToast(L10n.f("任务「%@」停止请求已提交", job.name ?? ""))
+        } catch let err as APIError {
+            showAlert(message: L10n.f("停止失败：%@", err.errorDescription ?? L10n.t("未知错误")))
+        } catch {
+            showAlert(message: L10n.f("停止失败：%@", error.localizedDescription))
+        }
+    }
+
+    /// 清空执行记录（POST /cronjobs/records/clean {cronjobID}，抓包 2026-09-14）
+    func cleanRecords(jobId: Int) async {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.cronjobsRecordsClean.path,
+                body: CronjobRecordsCleanRequest(cronjobID: jobId),
+                as: EmptyResponse.self
+            )
+            await loadRecords(jobId: jobId)
+            showToast(L10n.t("已清空执行记录"))
+        } catch let err as APIError {
+            showAlert(message: L10n.f("清空失败：%@", err.errorDescription ?? L10n.t("未知错误")))
+        } catch {
+            showAlert(message: L10n.f("清空失败：%@", error.localizedDescription))
+        }
+    }
+
     /// 启用/停用计划任务（POST /api/v2/cronjobs/status）
     func updateStatus(job: Cronjob, enabled: Bool) async {
         do {

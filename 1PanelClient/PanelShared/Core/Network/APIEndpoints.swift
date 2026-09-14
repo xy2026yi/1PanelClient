@@ -359,6 +359,45 @@ enum APIEndpoint {
     case filesWget               // POST 远程下载 {url,path,name,ignoreCertificate,useProxy} → {key}
     case filesWgetProcessKeys    // GET  进行中下载 key 列表
 
+    // MARK: - 容器资源（网络/存储卷/编排/模板，logs/推荐实现-容器.md 抓包 2026-09-14）
+    case containersNetworkSearch   // POST 网络分页列表 {page,pageSize}
+    case containersNetworkCreate   // POST 创建网络（driver/子网/排除IP/参数/标签）
+    case containersNetworkDelete   // POST 删除网络 {names}
+    case containersVolumeSearch    // POST 存储卷分页列表 {page,pageSize}
+    case containersVolumeCreate    // POST 创建存储卷（NFS 可选）
+    case containersVolumeDelete    // POST 删除存储卷 {names}
+    // containersPrune 复用既有 case（清理容器/镜像/网络/存储卷共用端点，pruneType 区分）
+    case containersComposeSearch   // POST 编排列表 {info,page,pageSize,excludeAppStore}
+    case containersComposeTest     // POST 编排创建前校验（data:true）
+    case containersComposeCreate   // POST 创建编排（test 通过后提交）
+    case containersComposeUpdate   // POST 更新编排（内容/环境变量/强制拉取）
+    case containersComposeOperate  // POST 编排操作 up/stop/restart/rebuild/delete
+    case containersInspect         // POST 查看配置 {id,type,detail}
+    case containersTemplateSearch  // POST 编排模板分页列表
+    case containersTemplateCreate  // POST 创建编排模板 {name,content,description}
+    case containersTemplateUpdate  // POST 编辑编排模板（全字段回传）
+    case containersTemplateDelete  // POST 删除编排模板 {ids}
+
+    // MARK: - 计划任务扩展（logs/推荐实现-计划任务和面板.md 抓包 2026-09-14）
+    case cronjobsStop           // POST 手动结束执行中的任务 {id}
+    case cronjobsNext           // POST 预览周期下 5 次执行时间 {spec}
+    case cronjobsRecordsClean   // POST 清空执行记录 {cronjobID}
+
+    // MARK: - 面板快照（同上抓包）
+    case settingsSnapshotSearch  // POST 快照分页列表（恢复/删除需要 id）
+    case settingsSnapshotLoad    // GET  快照数据树（应用/面板/备份数据 + 开关）
+    case settingsSnapshotCreate  // POST 创建快照（全量字段 + 任务进度）
+    case settingsSnapshotDelete  // POST 删除快照 {ids, deleteWithFile}
+    case settingsSnapshotRecover // POST 恢复快照 {id, taskID, isNew, reDownload, secret}
+
+    // MARK: - 监控设置 / 虚拟内存（同上抓包）
+    case hostsMonitorSettingUpdate  // POST 监控单项设置 {key,value}
+    case hostsMonitorSettingGet     // GET  监控设置读取（字段防御性解码）
+    case hostsMonitorClean          // POST 清空监控记录
+    case monitorIOOptions           // GET  磁盘选项（默认磁盘下拉）
+    case toolboxDeviceBase          // POST 设备基础信息（Swap 统计/明细）
+    case toolboxDeviceUpdateSwap    // POST 调整 Swap {path,size,used,isNew,taskID}（任务进度）
+
     // MARK: - SSH 管理
     case sshOperate              // POST SSH服务操作(start/stop/restart/enable/disable)
     case sshSearch               // POST SSH基础配置查询
@@ -846,6 +885,36 @@ enum APIEndpoint {
         case .filesBatchRole:        return "/api/v2/files/batch/role"
         case .filesWget:             return "/api/v2/files/wget"
         case .filesWgetProcessKeys:  return "/api/v2/files/wget/process/keys"
+        case .containersNetworkSearch:  return "/api/v2/containers/network/search"
+        case .containersNetworkCreate:  return "/api/v2/containers/network"
+        case .containersNetworkDelete:  return "/api/v2/containers/network/del"
+        case .containersVolumeSearch:   return "/api/v2/containers/volume/search"
+        case .containersVolumeCreate:   return "/api/v2/containers/volume"
+        case .containersVolumeDelete:   return "/api/v2/containers/volume/del"
+        case .containersComposeSearch:  return "/api/v2/containers/compose/search"
+        case .containersComposeTest:    return "/api/v2/containers/compose/test"
+        case .containersComposeCreate:  return "/api/v2/containers/compose"
+        case .containersComposeUpdate:  return "/api/v2/containers/compose/update"
+        case .containersComposeOperate: return "/api/v2/containers/compose/operate"
+        case .containersInspect:        return "/api/v2/containers/inspect"
+        case .containersTemplateSearch: return "/api/v2/containers/template/search"
+        case .containersTemplateCreate: return "/api/v2/containers/template"
+        case .containersTemplateUpdate: return "/api/v2/containers/template/update"
+        case .containersTemplateDelete: return "/api/v2/containers/template/del"
+        case .cronjobsStop:          return "/api/v2/cronjobs/stop"
+        case .cronjobsNext:          return "/api/v2/cronjobs/next"
+        case .cronjobsRecordsClean:  return "/api/v2/cronjobs/records/clean"
+        case .settingsSnapshotSearch:  return "/api/v2/settings/snapshot/search"
+        case .settingsSnapshotLoad:    return "/api/v2/settings/snapshot/load"
+        case .settingsSnapshotCreate:  return "/api/v2/settings/snapshot"
+        case .settingsSnapshotDelete:  return "/api/v2/settings/snapshot/del"
+        case .settingsSnapshotRecover: return "/api/v2/settings/snapshot/recover"
+        case .hostsMonitorSettingUpdate: return "/api/v2/hosts/monitor/setting/update"
+        case .hostsMonitorSettingGet:    return "/api/v2/hosts/monitor/setting"
+        case .hostsMonitorClean:         return "/api/v2/hosts/monitor/clean"
+        case .monitorIOOptions:          return "/api/v2/hosts/monitor/iooptions"
+        case .toolboxDeviceBase:         return "/api/v2/toolbox/device/base"
+        case .toolboxDeviceUpdateSwap:   return "/api/v2/toolbox/device/update/swap"
         case .sshOperate:            return "/api/v2/hosts/ssh/operate"
         case .sshSearch:             return "/api/v2/hosts/ssh/search"
         case .sshUpdate:             return "/api/v2/hosts/ssh/update"

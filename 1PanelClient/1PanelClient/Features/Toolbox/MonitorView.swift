@@ -188,6 +188,8 @@ struct MonitorView: View {
     @State private var showCPUChart = false
     /// 内存图表展开状态
     @State private var showMemChart = false
+    /// 监控设置页（开关/保存天数/采集间隔/清空/Swap）
+    @State private var showSettings = false
     /// App 是否处于前台活跃（后台时暂停轮询）
     @Environment(\.scenePhase) private var scenePhase
     @State private var isSceneActive = true
@@ -230,6 +232,19 @@ struct MonitorView: View {
         .environment(\.defaultMinListRowHeight, 32)
         .navigationTitle(L10n.t("监控"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel(L10n.t("监控设置"))
+            }
+        }
+        .navigationDestination(isPresented: $showSettings) {
+            MonitorSettingsView(server: server)
+        }
         // 图表/仪表盘类铺满（与容器监控一致，画布越宽采样点距越大越好读）；
         // 日志/表单类仍限宽——行长与聚焦输入是另一类诉求
         .refreshable { await vm.loadAll() }

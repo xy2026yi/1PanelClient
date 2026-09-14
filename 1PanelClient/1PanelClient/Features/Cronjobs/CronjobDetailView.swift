@@ -92,6 +92,11 @@ struct CronjobDetailView: View {
                 } label: {
                     Label(L10n.t("立即执行"), systemImage: "play.fill")
                 }
+                Button(role: .destructive) {
+                    Task { await vm.stop(job: currentJob) }
+                } label: {
+                    Label(L10n.t("结束任务"), systemImage: "stop.fill")
+                }
                 Button {
                     Task { await vm.updateStatus(job: currentJob, enabled: !currentJob.isEnabled) }
                 } label: {

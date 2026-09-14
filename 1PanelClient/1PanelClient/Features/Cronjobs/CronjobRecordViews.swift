@@ -11,6 +11,7 @@ struct CronjobRecordsView: View {
     let job: Cronjob
     @ObservedObject var vm: CronjobsViewModel
     @State private var selectedRecord: CronjobRecord?
+    @State private var showCleanConfirm = false
 
     var body: some View {
         List {
@@ -38,8 +39,27 @@ struct CronjobRecordsView: View {
         }
         .navigationTitle(L10n.t("执行记录"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCleanConfirm = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .disabled(vm.records.isEmpty)
+                .accessibilityLabel(L10n.t("清空执行记录"))
+            }
+        }
         .task { await vm.loadRecords(jobId: job.id) }
         .refreshable { await vm.loadRecords(jobId: job.id) }
+        .alert(L10n.t("清空执行记录"), isPresented: $showCleanConfirm) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("清空"), role: .destructive) {
+                Task { await vm.cleanRecords(jobId: job.id) }
+            }
+        } message: {
+            Text(L10n.f("将删除「%@」的全部执行记录，是否继续？", job.name ?? ""))
+        }
         .navigationDestination(isPresented: Binding(
             get: { selectedRecord != nil },
             set: { if !$0 { selectedRecord = nil } }
