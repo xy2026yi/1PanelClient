@@ -640,6 +640,10 @@ struct DatabaseSystemView: View {
     @State private var showConnInfo = false
     @State private var showRedisTerminal = false
     @State private var showDatabaseTerminal = false
+    /// MySQL/MariaDB 状态与参数（databases/status + variables）
+    @State private var showMySQLStatus = false
+    /// Redis 状态（databases/redis/status）
+    @State private var showRedisStatus = false
     @State private var showContainerTerminal = false
     @State private var pendingAction: String?
     @State private var pendingDeleteDb: DatabaseItem?
@@ -715,6 +719,12 @@ struct DatabaseSystemView: View {
         }
         .navigationDestination(isPresented: $showConnInfo) {
             DatabaseConnInfoView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showMySQLStatus) {
+            DatabaseMySQLStatusView(system: vm.system)
+        }
+        .navigationDestination(isPresented: $showRedisStatus) {
+            DatabaseRedisStatusView(system: vm.system)
         }
         .navigationDestination(isPresented: $showRedisTerminal) {
             TerminalScreen(
@@ -818,9 +828,10 @@ struct DatabaseSystemView: View {
         }
     }
 
-    /// 抽屉操作：启停/重启/终端 + 连接信息（创建数据库/用户入口在右上角加号菜单）
+    /// 抽屉操作：启停/重启/终端 + 连接信息（创建数据库/用户入口在右上角加号菜单）；
+    /// MySQL/MariaDB 追加「状态」（databases/status + variables）
     private func drawerActions(_ check: AppInstallCheck) -> [ServiceAction] {
-        [
+        var actions: [ServiceAction] = [
             ServiceAction(
                 title: check.isRunning ? L10n.t("停止") : L10n.t("启动"),
                 icon: check.isRunning ? "stop.fill" : "play.fill",
@@ -847,6 +858,17 @@ struct DatabaseSystemView: View {
                 showConnInfo = true
             },
         ]
+        if ["mysql", "mariadb"].contains(vm.system.type.lowercased()) {
+            actions.append(ServiceAction(title: L10n.t("状态"), icon: "speedometer", color: .purple) {
+                showMySQLStatus = true
+            })
+        }
+        if vm.system.type.lowercased() == "redis" {
+            actions.append(ServiceAction(title: L10n.t("状态"), icon: "speedometer", color: .purple) {
+                showRedisStatus = true
+            })
+        }
+        return actions
     }
 
     // MARK: 数据库列表

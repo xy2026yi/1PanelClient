@@ -193,6 +193,10 @@ enum APIEndpoint {
     case databasesChangeAccess    // POST 修改访问权限/远程访问
     case databasesChangePassword  // POST 修改密码
     case databasesRedisCheck      // GET  Redis 状态检查
+    // MySQL 状态/变量（logs/MySQL 状态抓包 2026-09-14）
+    case databasesStatus          // POST 运行状态 {type,name} → SHOW STATUS
+    case databasesVariables       // POST 系统变量 {type,name} → SHOW VARIABLES
+    case databasesRedisStatus     // POST Redis 状态 {type:"redis",name} → INFO 摘要
     case appsInstalledCheck       // POST 已安装应用检查(状态/端口)
     case appsInstalledConnInfo    // POST 已安装应用连接信息
 
@@ -756,6 +760,9 @@ enum APIEndpoint {
         case .databasesChangeAccess: return "/api/v2/databases/change/access"
         case .databasesChangePassword: return "/api/v2/databases/change/password"
         case .databasesRedisCheck:   return "/api/v2/databases/redis/check"
+        case .databasesStatus:       return "/api/v2/databases/status"
+        case .databasesVariables:    return "/api/v2/databases/variables"
+        case .databasesRedisStatus:  return "/api/v2/databases/redis/status"
         case .appsInstalledCheck:    return "/api/v2/apps/installed/check"
         case .appsInstalledConnInfo: return "/api/v2/apps/installed/conninfo"
         case .databasesPgCreate:     return "/api/v2/databases/pg"

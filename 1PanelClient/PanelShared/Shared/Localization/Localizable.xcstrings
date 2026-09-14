@@ -1870,6 +1870,17 @@
         }
       }
     },
+    "Innodb索引命中率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "InnoDB Buffer Hit Rate"
+          }
+        }
+      }
+    },
     "KEY" : {},
     "KEY=VALUE" : {},
     "MB" : {},
@@ -2012,6 +2023,17 @@
       }
     },
     "QQ" : {},
+    "Redis 的内存消耗峰值" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peak Memory Usage"
+          }
+        }
+      }
+    },
     "Redis 终端" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5289,6 +5311,28 @@
         }
       }
     },
+    "内存碎片率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory Fragmentation Ratio"
+          }
+        }
+      }
+    },
+    "内存碎片率过大表示内存碎片较多，可关注内存使用情况" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A high fragmentation ratio indicates memory fragmentation; watch memory usage"
+          }
+        }
+      }
+    },
     "内存要求" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5758,6 +5802,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Creating…"
+          }
+        }
+      }
+    },
+    "创建临时表到磁盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temp Tables on Disk"
           }
         }
       }
@@ -8094,6 +8149,17 @@
         }
       }
     },
+    "发送" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent"
+          }
+        }
+      }
+    },
     "发送信息" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8717,6 +8783,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Run in Background"
+          }
+        }
+      }
+    },
+    "向操作系统申请的内存大小" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory Allocated from OS"
           }
         }
       }
@@ -9729,6 +9806,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Basic Info"
+          }
+        }
+      }
+    },
+    "基础参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basic"
           }
         }
       }
@@ -12285,6 +12373,17 @@
         }
       }
     },
+    "已打开表" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Tables"
+          }
+        }
+      }
+    },
     "已批准配对" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12468,6 +12567,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Expired"
+          }
+        }
+      }
+    },
+    "已运行天数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uptime (days)"
           }
         }
       }
@@ -13253,6 +13363,17 @@
         }
       }
     },
+    "当前 Redis 使用的内存大小" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory Used by Redis"
+          }
+        }
+      }
+    },
     "当前 docker-compose.yml" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13348,6 +13469,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dynamic modules are not supported in this environment; building will fully rebuild the image and restart the container"
+          }
+        }
+      }
+    },
+    "当前监听端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listening Port"
           }
         }
       }
@@ -13594,6 +13726,17 @@
         }
       }
     },
+    "性能参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Performance"
+          }
+        }
+      }
+    },
     "性能参数已保存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13711,6 +13854,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Total Requests"
+          }
+        }
+      }
+    },
+    "总连接数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Connections"
           }
         }
       }
@@ -14903,6 +15057,17 @@
         }
       }
     },
+    "排序后的合并次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort Merge Passes"
+          }
+        }
+      }
+    },
     "排序规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14954,6 +15119,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Endpoint returned no data"
+          }
+        }
+      }
+    },
+    "接收" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Received"
           }
         }
       }
@@ -17895,6 +18071,17 @@
         }
       }
     },
+    "最近一次 fork() 操作耗费的微秒数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest fork() Duration (µs)"
+          }
+        }
+      }
+    },
     "最近更新" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18111,6 +18298,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Server Overview"
+          }
+        }
+      }
+    },
+    "服务器每秒钟执行的命令数量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ops per Second"
           }
         }
       }
@@ -18951,6 +19149,39 @@
         }
       }
     },
+    "查找数据库键命中率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyspace Hit Rate"
+          }
+        }
+      }
+    },
+    "查找数据库键失败的次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyspace Misses"
+          }
+        }
+      }
+    },
+    "查找数据库键成功的次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyspace Hits"
+          }
+        }
+      }
+    },
     "查看 / 编辑 Compose" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19057,6 +19288,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Version check failed: %@"
+          }
+        }
+      }
+    },
+    "查询缓存命中率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Query Cache Hit Rate"
           }
         }
       }
@@ -19897,6 +20139,28 @@
         }
       }
     },
+    "每秒事务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transactions per Second"
+          }
+        }
+      }
+    },
+    "每秒查询" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queries per Second"
+          }
+        }
+      }
+    },
     "每行一个 DNS 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19919,6 +20183,17 @@
         }
       }
     },
+    "没有使用索引的量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Full Join"
+          }
+        }
+      }
+    },
     "没有可清理的镜像" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19926,6 +20201,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No images to prune"
+          }
+        }
+      }
+    },
+    "没有索引的JOIN量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Range Check"
           }
         }
       }
@@ -21422,6 +21708,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Status"
+          }
+        }
+      }
+    },
+    "状态与参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status & Variables"
           }
         }
       }
@@ -23956,6 +24253,17 @@
         }
       }
     },
+    "索引命中率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Index Hit Rate"
+          }
+        }
+      }
+    },
     "线程会话" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23974,6 +24282,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Threads"
+          }
+        }
+      }
+    },
+    "线程缓存命中率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thread Cache Hit Rate"
           }
         }
       }
@@ -28158,6 +28477,28 @@
         }
       }
     },
+    "运行以来执行过的命令的总数量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Commands Processed"
+          }
+        }
+      }
+    },
+    "运行以来连接过的客户端的总数量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Connections Received"
+          }
+        }
+      }
+    },
     "运行区域" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28803,6 +29144,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connection test passed"
+          }
+        }
+      }
+    },
+    "连接的客户端数量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected Clients"
           }
         }
       }
@@ -29804,6 +30156,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DingTalk"
+          }
+        }
+      }
+    },
+    "锁表次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Table Locks Waited"
           }
         }
       }
