@@ -392,6 +392,38 @@ nonisolated struct AIAgentPluginsInstallRequest: Encodable {
     let taskID: String
 }
 
+// MARK: - Hermes 对话会话（/api/v2/ai/agents/hermes/chat/*，logs/会话.md 抓包 2026-09-14）
+
+/// POST hermes/chat/sessions {agentId} 返回的会话
+nonisolated struct AIHermesChatSession: Decodable, Identifiable, Hashable {
+    /// 20260914_090643_dbbadc 形式
+    let id: String
+    let title: String?
+    let model: String?
+    let messageCount: Int?
+    /// 2026-09-14T01:08:32Z
+    let startedAt: String?
+    let lastActive: String?
+
+    var displayTitle: String {
+        if let t = title, !t.isEmpty { return t }
+        return L10n.t("新对话")
+    }
+}
+
+/// POST hermes/chat/sessions/delete {agentId, id}
+nonisolated struct AIHermesChatSessionDeleteRequest: Encodable {
+    let agentId: Int
+    let id: String
+}
+
+/// POST hermes/chat/sessions/rename {agentId, id, title}
+nonisolated struct AIHermesChatSessionRenameRequest: Encodable {
+    let agentId: Int
+    let id: String
+    let title: String
+}
+
 // MARK: - 频道插件（OpenClaw 频道为插件：安装检查 / 版本 / 卸载）
 
 /// POST /api/v2/ai/agents/plugin/check {agentId, type, checkLatest}

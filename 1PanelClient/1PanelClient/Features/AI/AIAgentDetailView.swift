@@ -29,6 +29,7 @@ struct AIAgentDetailView: View {
     @State private var showWebsiteBind = false
     @State private var showRoles = false
     @State private var showPlugins = false
+    @State private var showChat = false
 
     // 删除
     @State private var showDeleteSheet = false
@@ -116,6 +117,13 @@ struct AIAgentDetailView: View {
         }
         .navigationDestination(isPresented: $showPlugins) {
             AIAgentPluginsView(server: server, agentId: agentId)
+        }
+        .navigationDestination(isPresented: $showChat) {
+            AIAgentHermesChatView(
+                server: server,
+                agentId: agentId,
+                agentName: agent?.name ?? "",
+                containerName: agent?.containerName ?? "")
         }
         .navigationDestination(isPresented: $showDeleteProgress) {
             TaskProgressView(taskID: deleteTaskID, title: L10n.f("删除 %@", agent?.name ?? "")) { isDone in
@@ -228,7 +236,11 @@ struct AIAgentDetailView: View {
             }
 
             Section {
+                // 对话为 Hermes 专属（抓包确认：/ai/agents/hermes/chat/*）；
                 // 角色 / 插件为 OpenClaw 专属（抓包确认）；QwenPaw 无频道/技能功能
+                if let a = agent, isHermesAgent(a) {
+                    configLink(L10n.t("对话"), icon: "ellipsis.bubble") { showChat = true }
+                }
                 if let a = agent, isOpenClawAgent(a) {
                     configLink(L10n.t("角色"), icon: "person.2") { showRoles = true }
                     configLink(L10n.t("插件"), icon: "puzzlepiece.extension") { showPlugins = true }
@@ -280,6 +292,11 @@ struct AIAgentDetailView: View {
     /// QwenPaw(copaw) 创建时不绑定模型账号
     private func isCopawAgent(_ a: AIAgent) -> Bool {
         a.agentType == "copaw"
+    }
+
+    /// Hermes 专属：对话（chat/sessions 端点仅 hermes 类型存在）
+    private func isHermesAgent(_ a: AIAgent) -> Bool {
+        a.agentType == "hermes-agent"
     }
 
     private func drawerHeaderRow(_ a: AIAgent) -> some View {

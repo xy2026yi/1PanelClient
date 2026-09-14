@@ -506,6 +506,10 @@ enum APIEndpoint {
     case aiAgentPluginsOperate   // POST 插件启停 {agentId, pluginId, operate, taskID}（带进度）
     case aiAgentPluginsSearch    // POST 插件市场搜索 {agentId, keyword, limit}
     case aiAgentPluginsInstall   // POST 市场插件安装 {agentId, package, version, taskID}（带进度）
+    // Hermes 对话（logs/会话.md 抓包 2026-09-14）
+    case aiAgentHermesSessions  // POST 会话列表 {agentId}
+    case aiAgentHermesSessionDelete  // POST 删除会话 {agentId, id}
+    case aiAgentHermesSessionRename  // POST 重命名会话 {agentId, id, title}
     // MCP
     case aiMcpSearch            // POST 分页查询 MCP Server {page, pageSize, name}
     case aiMcpServerCreate      // POST 创建 MCP Server（带 taskID）
@@ -965,6 +969,9 @@ enum APIEndpoint {
         case .aiAgentPluginsOperate:  return "/api/v2/ai/agents/plugins/operate"
         case .aiAgentPluginsSearch:   return "/api/v2/ai/agents/plugins/search"
         case .aiAgentPluginsInstall:  return "/api/v2/ai/agents/plugins/install"
+        case .aiAgentHermesSessions:  return "/api/v2/ai/agents/hermes/chat/sessions"
+        case .aiAgentHermesSessionDelete: return "/api/v2/ai/agents/hermes/chat/sessions/delete"
+        case .aiAgentHermesSessionRename: return "/api/v2/ai/agents/hermes/chat/sessions/rename"
         case .aiMcpSearch:           return "/api/v2/ai/mcp/search"
         case .aiMcpServerCreate:     return "/api/v2/ai/mcp/server"
         case .aiMcpServerUpdate:     return "/api/v2/ai/mcp/server/update"
