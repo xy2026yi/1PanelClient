@@ -14,7 +14,6 @@ struct WebsiteBatchBar: View {
     let selectedCount: Int
     let totalCount: Int
     let isOperating: Bool
-    let onExit: () -> Void
     let onSelectAll: () -> Void
     let onOperate: (String) -> Void      // start / stop / delete
     let onGroup: () -> Void
@@ -22,14 +21,6 @@ struct WebsiteBatchBar: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // 退出多选（右上角不再常驻多选按钮，出口收在栏内）
-            Button {
-                onExit()
-            } label: {
-                Image(systemName: "xmark.circle")
-            }
-            .accessibilityLabel(L10n.t("退出多选"))
-
             Button {
                 onSelectAll()
             } label: {
@@ -47,7 +38,8 @@ struct WebsiteBatchBar: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            // 操作收进下拉菜单：6 个并排按钮在窄屏显示不全
+            // 操作收进下拉菜单：6 个并排按钮在窄屏显示不全；
+            // 退出按钮在右上角工具栏（与文件页一致）
             Menu {
                 Button { onOperate("start") } label: {
                     Label(L10n.t("启动"), systemImage: "play.fill")

@@ -219,6 +219,8 @@ enum APIEndpoint {
 
     // MARK: - Redis 专用端点
     case databasesRedisPassword   // POST Redis密码修改
+    case databasesRedisConf       // POST Redis性能配置 {type,name}
+    case databasesRedisConfUpdate // POST Redis性能配置保存 {dbType,database,...}
 
     // MARK: - MongoDB 专用端点
     case databasesMongoSearch         // POST 分页查询数据库(MongoDB)
@@ -790,6 +792,8 @@ enum APIEndpoint {
         case .databasesPgDel:        return "/api/v2/databases/pg/del"
         case .databasesPgPrivileges: return "/api/v2/databases/pg/privileges"
         case .databasesRedisPassword: return "/api/v2/databases/redis/password"
+        case .databasesRedisConf: return "/api/v2/databases/redis/conf"
+        case .databasesRedisConfUpdate: return "/api/v2/databases/redis/conf/update"
         case .databasesMongoSearch:       return "/api/v2/databases/mongodb/search"
         case .databasesMongoCreate:       return "/api/v2/databases/mongodb"
         case .databasesMongoRootPassword: return "/api/v2/databases/mongodb/root/password"

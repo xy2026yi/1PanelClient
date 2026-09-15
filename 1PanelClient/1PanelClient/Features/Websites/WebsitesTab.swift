@@ -94,8 +94,8 @@ struct WebsitesTab: View {
                 websiteList
             }
         }
-        // 右上角两键：放大镜（搜索）+ 创建；分组管理入口在筛选条末尾（推页呈现）；
-        // 多选入口在行长按菜单（右上角不再常驻多选按钮）
+        // 右上角两键：放大镜（搜索）+ 创建；多选时为退出按钮（与文件页一致）；
+        // 分组管理入口在筛选条末尾（推页呈现）；多选入口在行长按菜单
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
@@ -103,16 +103,26 @@ struct WebsitesTab: View {
             prompt: L10n.t("搜索域名")
         )
         .toolbar {
-            if !isSearching && !isSelecting {
+            if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showCreate = true
-                    } label: {
-                        Image(systemName: "plus")
+                    if isSelecting {
+                        // 退出多选（批量操作栏不再放退出按钮，与文件页一致）
+                        Button {
+                            exitSelecting()
+                        } label: {
+                            Image(systemName: "xmark.circle")
+                        }
+                        .accessibilityLabel(L10n.t("退出多选"))
+                    } else {
+                        Button {
+                            showCreate = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        // OpenResty 未安装时无法创建网站（环境检查必然失败）
+                        .disabled(vm.openRestyNotInstalled)
+                        .accessibilityLabel(L10n.t("创建网站"))
                     }
-                    // OpenResty 未安装时无法创建网站（环境检查必然失败）
-                    .disabled(vm.openRestyNotInstalled)
-                    .accessibilityLabel(L10n.t("创建网站"))
                 }
             }
         }
@@ -408,19 +418,13 @@ struct WebsitesTab: View {
         .refreshable {
             await vm.refresh(force: true)
         }
-        // 多选模式底部批量操作栏
+        // 多选模式底部批量操作栏（退出在右上角工具栏）
         .safeAreaInset(edge: .bottom) {
             if isSelecting {
                 WebsiteBatchBar(
                     selectedCount: selectedIDs.count,
                     totalCount: vm.websites.count,
                     isOperating: isBatchOperating,
-                    onExit: {
-                        withAnimation(Motion.standard) {
-                            isSelecting = false
-                            selectedIDs.removeAll()
-                        }
-                    },
                     onSelectAll: {
                         if selectedIDs.count >= vm.websites.count {
                             selectedIDs.removeAll()
@@ -682,6 +686,8 @@ struct WebsiteRow: View {
             }
         }
         .padding(.vertical, 4)
+        // 整行可命中长按手势（Spacer 区域默认不响应 hit-test）
+        .contentShape(Rectangle())
     }
 
     /// 域名:端口 组合显示

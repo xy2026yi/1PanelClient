@@ -207,3 +207,48 @@ struct DatabaseMySQLTuneTests {
         #expect(MySQLTunePresets.displayValue(param: "table_open_cache", 128) == "128")
     }
 }
+
+@Suite("Redis 性能调整")
+struct DatabaseRedisConfTests {
+
+    private func encode(_ req: some Encodable) throws -> [String: Any] {
+        try JSONSerialization.jsonObject(with: JSONEncoder().encode(req)) as! [String: Any]
+    }
+
+    @Test("性能配置读取解码（抓包 2026-09-15 样本）")
+    func decodeRedisConf() throws {
+        let json = """
+        {"database":"","name":"redis","port":6379,
+         "containerName":"1Panel-redis-L9u5","timeout":"0",
+         "maxclients":"10000","requirepass":"redis_e2H4RW","maxmemory":"0"}
+        """.data(using: .utf8)!
+        let conf = try JSONDecoder().decode(RedisConf.self, from: json)
+        #expect(conf.timeout == "0")
+        #expect(conf.maxclients == "10000")
+        #expect(conf.maxmemory == "0")
+        #expect(conf.port == 6379)
+    }
+
+    @Test("性能配置保存编码 {dbType,database,...}（读取 type/name 与保存 dbType/database 字段名不同）")
+    func encodeRedisConfUpdate() throws {
+        let obj = try encode(RedisConfUpdateRequest(
+            dbType: "redis", database: "redis",
+            timeout: "0", maxclients: "10000", maxmemory: "0mb"))
+        #expect(obj["dbType"] as? String == "redis")
+        #expect(obj["database"] as? String == "redis")
+        #expect(obj["timeout"] as? String == "0")
+        #expect(obj["maxclients"] as? String == "10000")
+        #expect(obj["maxmemory"] as? String == "0mb")
+    }
+
+    @Test("maxmemory 字节↔MB 换算")
+    func maxmemoryConversion() {
+        #expect(RedisConfUpdateRequest.mb(fromBytesString: "0") == 0)
+        #expect(RedisConfUpdateRequest.mb(fromBytesString: nil) == 0)
+        #expect(RedisConfUpdateRequest.mb(fromBytesString: "abc") == 0)
+        #expect(RedisConfUpdateRequest.mb(fromBytesString: "268435456") == 256)
+        #expect(RedisConfUpdateRequest.mbString(0) == "0mb")
+        #expect(RedisConfUpdateRequest.mbString(512) == "512mb")
+        #expect(RedisConfUpdateRequest.mbString(-3) == "0mb")
+    }
+}

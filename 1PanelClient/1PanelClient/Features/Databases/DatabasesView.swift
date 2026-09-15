@@ -74,8 +74,10 @@ final class DatabasesViewModel: ObservableObject {
 // MARK: - 数据库首页（DB 系统列表）
 
 /// 数据库类型分类（始终展示的 4 类，未安装时显示占位行 + 安装入口）
-enum DBCategory: String, CaseIterable {
+enum DBCategory: String, CaseIterable, Identifiable {
     case mysql, postgresql, redis, mongodb
+
+    var id: String { rawValue }
 
     /// 分组标题
     var title: String {
@@ -120,6 +122,10 @@ enum DBCategory: String, CaseIterable {
 
 struct DatabasesView: View {
     @StateObject private var vm: DatabasesViewModel
+    /// 未安装引导页目标分类（nil = 未推入）。
+    /// 用 item binding 而非静态 NavigationLink：安装完成后由父页置 nil 收回，
+    /// 不依赖子页 dismiss()（多层 push 收栈时 env dismiss 不可靠，会停留在引导页）
+    @State private var notInstalledCategory: DBCategory?
 
     init(server: ServerConfig) {
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.database.storeKey(server: server)) {
@@ -161,6 +167,12 @@ struct DatabasesView: View {
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
             Task { await vm.loadSystems() }
         }
+        // 未安装引导页：binding 收回（含安装完成后由子页回调触发）
+        .navigationDestination(item: $notInstalledCategory) { category in
+            NotInstalledDatabaseView(category: category) {
+                withAnimation { notInstalledCategory = nil }
+            }
+        }
         .overlay {
             if vm.isLoading && vm.systems.isEmpty {
                 LoadingStateView()
@@ -173,10 +185,10 @@ struct DatabasesView: View {
     private func systemGroup(for category: DBCategory) -> some View {
         let items = systems(for: category)
         if items.isEmpty {
-            // 未安装：占位行
+            // 未安装：占位行（推入方式见 notInstalledCategory 注释）
             Section(category.title) {
-                NavigationLink {
-                    NotInstalledDatabaseView(category: category)
+                Button {
+                    notInstalledCategory = category
                 } label: {
                     NotInstalledDatabaseRow(category: category)
                 }
@@ -233,7 +245,8 @@ struct NotInstalledDatabaseRow: View {
 /// 未安装数据库的详情页：提示未安装并提供跳转应用商店安装的入口
 struct NotInstalledDatabaseView: View {
     let category: DBCategory
-    @Environment(\.dismiss) private var dismiss
+    /// 安装完成/检测到已安装时收回本页（父页置 nil binding，比 env dismiss 可靠）
+    var onInstallCompleted: () -> Void = {}
 
     /// 应用商店 ViewModel（详情页 + 安装表单共用）
     @StateObject private var storeVM: AppStoreViewModel = {
@@ -245,8 +258,9 @@ struct NotInstalledDatabaseView: View {
 
     private let client: APIClient
 
-    init(category: DBCategory) {
+    init(category: DBCategory, onInstallCompleted: @escaping () -> Void = {}) {
         self.category = category
+        self.onInstallCompleted = onInstallCompleted
         self.client = APIClient.shared(for: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
     }
 
@@ -292,25 +306,25 @@ struct NotInstalledDatabaseView: View {
         .onChange(of: storeVM.showInstall) { _, isShown in
             if isShown { didEnterInstall = true }
         }
-        // 安装完成通知：仅当确实进入了本页发起的安装流程时才返回，
-        // 避免无关的全局 installCompleted 通知误触发 dismiss（表现为点击安装变返回）
+        // 安装完成通知：仅当确实进入了本页发起的安装流程时才收回本页，
+        // 避免无关的全局 installCompleted 通知误触发（表现为点击安装变返回）；
+        // 收回走父页 binding（onInstallCompleted），不依赖 env dismiss()
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
             guard didEnterInstall else { return }
             storeVM.showInstall = false
-            // 等导航栈稳定后再 dismiss，避免动画冲突
+            // 等导航栈稳定后再收回，避免动画冲突
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                dismiss()
+                onInstallCompleted()
             }
         }
-        // 兜底：回到本页时重查安装状态，已安装则退回列表（列表页已按通知刷新）。
-        // 上面 dismiss 走的是多层 isPresented 收栈，安装进度页自行 pop 的瞬间
-        // 状态竞争可能吞掉本页的 pop，表现为停留在「未安装」引导页不刷新
+        // 兜底：回到本页时重查安装状态，已安装则收回本页（列表页已按通知刷新）。
+        // 覆盖「后台运行」等通知链路未覆盖的返回路径
         .onAppear {
             Task { await dismissIfInstalled() }
         }
     }
 
-    /// 重查该分类是否已有实例：有则退回列表页（列表数据由 installCompleted 通知刷新）
+    /// 重查该分类是否已有实例：有则收回本页（列表数据由 installCompleted 通知刷新）
     private func dismissIfInstalled() async {
         // 安装表单仍在展示时不查（后台运行中途返回的场景查了也是未完成态）
         guard !storeVM.showInstall else { return }
@@ -319,7 +333,7 @@ struct NotInstalledDatabaseView: View {
             method: "GET",
             as: [DatabaseSystem].self) else { return }
         if !list.isEmpty {
-            dismiss()
+            onInstallCompleted()
         }
     }
 }
@@ -686,6 +700,8 @@ struct DatabaseSystemView: View {
     @State private var showMySQLConf = false
     /// Redis 状态（databases/redis/status）
     @State private var showRedisStatus = false
+    /// Redis 性能调整（timeout/maxclients/maxmemory）
+    @State private var showRedisPerformance = false
     @State private var showContainerTerminal = false
     @State private var pendingAction: String?
     @State private var pendingDeleteDb: DatabaseItem?
@@ -776,6 +792,9 @@ struct DatabaseSystemView: View {
         }
         .navigationDestination(isPresented: $showRedisStatus) {
             DatabaseRedisStatusView(system: vm.system)
+        }
+        .navigationDestination(isPresented: $showRedisPerformance) {
+            DatabaseRedisPerformanceView(system: vm.system)
         }
         .navigationDestination(isPresented: $showRedisTerminal) {
             TerminalScreen(
@@ -926,6 +945,9 @@ struct DatabaseSystemView: View {
         if vm.system.type.lowercased() == "redis" {
             actions.append(ServiceAction(title: L10n.t("状态"), icon: "speedometer", color: .purple) {
                 showRedisStatus = true
+            })
+            actions.append(ServiceAction(title: L10n.t("性能调整"), icon: "wand.and.stars", color: .mint) {
+                showRedisPerformance = true
             })
         }
         return actions

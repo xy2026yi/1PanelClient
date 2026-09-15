@@ -326,3 +326,42 @@ nonisolated enum MySQLTunePresets {
         }
     }
 }
+
+// MARK: - Redis 性能调整（抓包 2026-09-15）
+
+/// POST /databases/redis/conf {type,name} 响应
+nonisolated struct RedisConf: Decodable {
+    let database: String?
+    let name: String?
+    let port: Int?
+    let containerName: String?
+    /// 空闲连接超时（秒，字符串数字；0 = 不断开）
+    let timeout: String?
+    let maxclients: String?
+    let requirepass: String?
+    /// 最大内存（字节，字符串数字；0 = 不限制）
+    let maxmemory: String?
+}
+
+/// POST /databases/redis/conf/update {dbType,database,timeout,maxclients,maxmemory}
+/// （读取与保存的字段名不同：读 type/name，写 dbType/database；maxmemory 带 mb 后缀）
+nonisolated struct RedisConfUpdateRequest: Encodable {
+    let dbType: String
+    let database: String
+    let timeout: String
+    let maxclients: String
+    /// 数字 + mb 后缀（抓包 "0mb"）
+    let maxmemory: String
+
+    /// 字节字符串 → MB 整数（解析失败/负数回 0）
+    static func mb(fromBytesString raw: String?) -> Int {
+        guard let bytes = Int(raw ?? "") , bytes > 0 else { return 0 }
+        return Int((Double(bytes) / 1024 / 1024).rounded())
+    }
+
+    /// MB 整数 → "Xmb" 提交格式
+    static func mbString(_ mb: Int) -> String {
+        let value = max(0, mb)
+        return "\(value)mb"
+    }
+}

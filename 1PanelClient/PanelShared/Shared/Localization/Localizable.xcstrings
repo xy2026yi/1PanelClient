@@ -32043,6 +32043,72 @@
           }
         }
       }
+    },
+    "保存后需要重启 %@ 才能生效，期间连接将短暂中断。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart %@ to apply. Connections will be briefly interrupted."
+          }
+        }
+      }
+    },
+    "保存性能配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Performance Configuration"
+          }
+        }
+      }
+    },
+    "已保存，重启后生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved. Takes effect after restart"
+          }
+        }
+      }
+    },
+    "最大内存使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Memory"
+          }
+        }
+      }
+    },
+    "最大连接数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Clients"
+          }
+        }
+      }
+    },
+    "超时时间为空闲连接超时时间，0 表示不断开；最大内存使用 0 表示不做限制。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout is the idle connection timeout; 0 means never disconnect. Max memory 0 means unlimited."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
