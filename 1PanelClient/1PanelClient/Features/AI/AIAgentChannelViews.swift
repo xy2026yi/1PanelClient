@@ -2515,6 +2515,12 @@ struct AIAgentTelegramChannelView: View {
             // 按网页端口径回退 open；其余字段回传服务端原值
             bot.dmPolicy = (c.dmPolicy?.isEmpty == false) ? c.dmPolicy : "open"
             out.dmPolicy = (out.dmPolicy?.isEmpty == false) ? out.dmPolicy : "open"
+            // 服务端 required 校验拒绝空串：groupPolicy/streaming（表单无这两项
+            // 控件，get 未配置返回空）空时按网页端提交值回退 allowlist/partial
+            if (out.groupPolicy ?? "").isEmpty { out.groupPolicy = "allowlist" }
+            if (out.streaming ?? "").isEmpty { out.streaming = "partial" }
+            if (bot.groupPolicy ?? "").isEmpty { bot.groupPolicy = "allowlist" }
+            if (bot.streaming ?? "").isEmpty { bot.streaming = "partial" }
             out.bots = [bot] + extraBots
             // 抓包：update 恒传 defaultAccount（get 未配置返回空串），空时回退
             // 默认 Bot 的账户 ID（Hermes 表单即默认 Bot），再兜底 "default"
@@ -2991,13 +2997,16 @@ struct AIAgentDiscordChannelView: View {
         //（网页核对无 Bot 列表），其余 bots 原样保留
         if isHermes {
             out.enabled = true
-            out.bots = [bot] + extraBots
-            // 抓包：update 恒传 dmPolicy/defaultAccount 具体值（get 未配置返回空串），
-            // 空时回退 open / 默认 Bot 账户 ID（Discord bot 无 dmPolicy 字段，不动 bot）
+            // 抓包：update 恒传 dmPolicy/defaultAccount/groupPolicy 具体值
+            // （get 未配置返回空串，服务端 required 校验拒绝空）；空时回退
+            // open / 默认 Bot 账户 ID / allowlist（Discord bot 无 dmPolicy/
+            // groupPolicy/streaming 字段，不动 bot）
             if (out.dmPolicy ?? "").isEmpty { out.dmPolicy = "open" }
+            if (out.groupPolicy ?? "").isEmpty { out.groupPolicy = "allowlist" }
             if (out.defaultAccount ?? "").isEmpty {
                 out.defaultAccount = bot.accountId ?? "default"
             }
+            out.bots = [bot] + extraBots
         } else {
             out.bots = bots
             // OpenClaw 抓包：defaultAccount 必填（新增 Bot 后直接保存会报参数错误），
