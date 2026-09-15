@@ -378,6 +378,10 @@ struct AIAgentDetailView: View {
         // 网格一行 4 个；其余类型保持三列：操作 + 配置入口（模型/设置/绑定网站）
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8),
                                  count: (isHermesAgent(a) || isOpenClawAgent(a)) ? 4 : 3), spacing: 8) {
+            // Stopped/Exited 下功能入口不可进（Hermes/OpenClaw 核对；
+            // 停止/重启/删除、绑定网站、日志与 QwenPaw 不受影响）
+            let stopped = ["stopped", "exited"].contains((a.status ?? "").lowercased())
+            let featureLocked = stopped && (isHermesAgent(a) || isOpenClawAgent(a))
             CardActionButton(
                 title: a.isRunning ? L10n.t("停止") : L10n.t("启动"),
                 icon: a.isRunning ? "stop.fill" : "play.fill",
@@ -406,7 +410,8 @@ struct AIAgentDetailView: View {
                 Task { await startDelete() }
             }
             // Hermes 专属功能收进抽屉（与停止/重启同区）：终端/对话/频道/技能。
-            // 终端/对话依赖容器名（抓包：containerid=智能体容器名），缺失时置灰
+            // 终端/对话依赖容器名（抓包：containerid=智能体容器名），缺失时置灰；
+            // Stopped 下全部置灰
             if isHermesAgent(a) {
                 let hasContainer = !(a.containerName ?? "").isEmpty
                 CardActionButton(
@@ -414,7 +419,7 @@ struct AIAgentDetailView: View {
                     icon: "terminal",
                     color: .green,
                     busy: false,
-                    disabled: !hasContainer
+                    disabled: !hasContainer || featureLocked
                 ) {
                     showTerminal = true
                 }
@@ -423,7 +428,7 @@ struct AIAgentDetailView: View {
                     icon: "ellipsis.bubble",
                     color: .blue,
                     busy: false,
-                    disabled: !hasContainer
+                    disabled: !hasContainer || featureLocked
                 ) {
                     showChat = true
                 }
@@ -432,7 +437,7 @@ struct AIAgentDetailView: View {
                     icon: "bubble.left.and.bubble.right",
                     color: .teal,
                     busy: false,
-                    disabled: false
+                    disabled: featureLocked
                 ) {
                     showChannels = true
                 }
@@ -441,7 +446,7 @@ struct AIAgentDetailView: View {
                     icon: "wand.and.stars",
                     color: .purple,
                     busy: false,
-                    disabled: false
+                    disabled: featureLocked
                 ) {
                     showSkills = true
                 }
@@ -458,7 +463,7 @@ struct AIAgentDetailView: View {
                     showTerminal = true
                 }
             }
-            // OpenClaw 功能收进抽屉（网页核对）：终端/角色/插件/频道/技能
+            // OpenClaw 功能收进抽屉（网页核对）：终端/角色/插件/频道/技能（Stopped 置灰）
             if isOpenClawAgent(a) {
                 let hasContainer = !(a.containerName ?? "").isEmpty
                 CardActionButton(
@@ -466,7 +471,7 @@ struct AIAgentDetailView: View {
                     icon: "terminal",
                     color: .green,
                     busy: false,
-                    disabled: !hasContainer
+                    disabled: !hasContainer || featureLocked
                 ) {
                     showTerminal = true
                 }
@@ -475,7 +480,7 @@ struct AIAgentDetailView: View {
                     icon: "person.2",
                     color: .orange,
                     busy: false,
-                    disabled: false
+                    disabled: featureLocked
                 ) {
                     showRoles = true
                 }
@@ -484,7 +489,7 @@ struct AIAgentDetailView: View {
                     icon: "puzzlepiece.extension",
                     color: .indigo,
                     busy: false,
-                    disabled: false
+                    disabled: featureLocked
                 ) {
                     showPlugins = true
                 }
@@ -493,7 +498,7 @@ struct AIAgentDetailView: View {
                     icon: "bubble.left.and.bubble.right",
                     color: .teal,
                     busy: false,
-                    disabled: false
+                    disabled: featureLocked
                 ) {
                     showChannels = true
                 }
@@ -502,20 +507,21 @@ struct AIAgentDetailView: View {
                     icon: "wand.and.stars",
                     color: .purple,
                     busy: false,
-                    disabled: false
+                    disabled: featureLocked
                 ) {
                     showSkills = true
                 }
             }
             // QwenPaw(copaw) 不绑定模型账号（创建即无 model/accountId），
-            // 隐藏模型入口——进入会是死页面且触发账号 Picker 无效 selection
+            // 隐藏模型入口——进入会是死页面且触发账号 Picker 无效 selection；
+            // Hermes/OpenClaw 在 Stopped 下置灰
             if !isCopawAgent(a) {
                 CardActionButton(
                     title: L10n.t("模型"),
                     icon: "brain",
                     color: .purple,
                     busy: false,
-                    disabled: false
+                    disabled: featureLocked
                 ) {
                     showModelConfig = true
                 }
@@ -525,7 +531,7 @@ struct AIAgentDetailView: View {
                 icon: "gearshape",
                 color: .teal,
                 busy: false,
-                disabled: false
+                disabled: featureLocked
             ) {
                 showSettings = true
             }
