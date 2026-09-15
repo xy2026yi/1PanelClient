@@ -1,22 +1,35 @@
 //
-//  AIAgentHermesTerminalView.swift
+//  AIAgentContainerTerminalView.swift
 //  1PanelClient
 //
-//  Hermes 容器终端（抓包 2026-09-15 核对）：
+//  智能体容器终端（抽屉入口，抓包 2026-09-15 核对）：
 //  ws /api/v2/hosts/terminal/container?source=container&containerid=<容器名>
-//  &user=<hermes|root>&command=/bin/bash，用户切换在三点菜单内，切换后重开新会话
+//  &user=<...>&command=/bin/bash；用户切换在三点菜单内，切换后重开新会话。
+//  可用用户按智能体类型传入：Hermes hermes/root、QwenPaw node/root
 //
 
 import SwiftUI
 
-struct AIAgentHermesTerminalView: View {
+struct AIAgentContainerTerminalView: View {
     let server: ServerConfig
     let agentName: String
     let containerName: String
-    /// 抓包确认仅两档用户：hermes / root（切换即断开重连新会话）
-    @State private var user: String = "hermes"
+    /// 可登录用户（抓包确认：Hermes hermes/root、QwenPaw node/root）
+    let users: [String]
+    /// 初始用户（取该智能体抓包的默认档）
+    let defaultUser: String
 
-    private let users = ["hermes", "root"]
+    @State private var user: String
+
+    init(server: ServerConfig, agentName: String, containerName: String,
+         users: [String], defaultUser: String) {
+        self.server = server
+        self.agentName = agentName
+        self.containerName = containerName
+        self.users = users
+        self.defaultUser = defaultUser
+        _user = State(initialValue: defaultUser)
+    }
 
     var body: some View {
         TerminalScreen(

@@ -128,10 +128,13 @@ struct AIAgentDetailView: View {
                 containerName: agent?.containerName ?? "")
         }
         .navigationDestination(isPresented: $showTerminal) {
-            AIAgentHermesTerminalView(
+            // 终端用户按智能体类型区分（抓包）：Hermes hermes/root、QwenPaw node/root
+            AIAgentContainerTerminalView(
                 server: server,
                 agentName: agent?.name ?? "",
-                containerName: agent?.containerName ?? "")
+                containerName: agent?.containerName ?? "",
+                users: isCopawAgentType ? ["node", "root"] : ["hermes", "root"],
+                defaultUser: isCopawAgentType ? "node" : "hermes")
         }
         .navigationDestination(isPresented: $showDeleteProgress) {
             TaskProgressView(taskID: deleteTaskID, title: L10n.f("删除 %@", agent?.name ?? "")) { isDone in
@@ -224,12 +227,15 @@ struct AIAgentDetailView: View {
                 if let remark = a.remark, !remark.isEmpty {
                     InfoRow(L10n.t("备注"), value: remark)
                 }
-                InfoRow(L10n.t("模型供应商"), value: a.providerName ?? a.provider ?? "-")
-                InfoRow(L10n.t("模型"), value: a.model ?? "-", monospaced: true)
-                // Hermes：安装目录/容器名称可点击跳转（文件管理 / 容器详情，
+                // QwenPaw 创建时不绑定模型账号（抓包确认），隐藏模型供应商与模型两行
+                if !isCopawAgent(a) {
+                    InfoRow(L10n.t("模型供应商"), value: a.providerName ?? a.provider ?? "-")
+                    InfoRow(L10n.t("模型"), value: a.model ?? "-", monospaced: true)
+                }
+                // Hermes / QwenPaw：安装目录/容器名称可点击跳转（文件管理 / 容器详情，
                 // 与应用详情的「目录」「容器名」同款模式）；其余类型保持纯展示
                 if let container = a.containerName, !container.isEmpty {
-                    if isHermesAgent(a) {
+                    if isHermesAgent(a) || isCopawAgent(a) {
                         NavigationLink {
                             ContainerDetailByNameView(containerName: container, server: server)
                         } label: {
@@ -244,7 +250,7 @@ struct AIAgentDetailView: View {
                     InfoRow("WebUI " + L10n.t("端口"), value: String(port), monospaced: true)
                 }
                 if let path = a.path, !path.isEmpty {
-                    if isHermesAgent(a) {
+                    if isHermesAgent(a) || isCopawAgent(a) {
                         NavigationLink {
                             FilesView(server: server, initialPath: path)
                         } label: {
@@ -264,9 +270,10 @@ struct AIAgentDetailView: View {
             }
 
             Section {
-                // 对话/终端为 Hermes 专属（抓包确认：/ai/agents/hermes/chat/* 与容器终端）；
-                // Hermes 的 对话/终端/频道/技能 收进状态抽屉按钮（与停止/重启同区），
-                // 列表不再重复入口；角色/插件为 OpenClaw 专属；QwenPaw 无频道/技能功能
+                // 对话为 Hermes 专属（抓包确认：/ai/agents/hermes/chat/*）；
+                // Hermes 的 对话/终端/频道/技能 与 QwenPaw 的 终端 收进状态抽屉按钮
+                // （与停止/重启同区），列表不再重复入口；
+                // 角色/插件为 OpenClaw 专属；QwenPaw 无频道/技能功能
                 if let a = agent, isOpenClawAgent(a) {
                     configLink(L10n.t("角色"), icon: "person.2") { showRoles = true }
                     configLink(L10n.t("插件"), icon: "puzzlepiece.extension") { showPlugins = true }
@@ -324,6 +331,9 @@ struct AIAgentDetailView: View {
     private func isHermesAgent(_ a: AIAgent) -> Bool {
         a.agentType == "hermes-agent"
     }
+
+    /// navigationDestination 闭包内无具体 agent 参数时的类型判断
+    private var isCopawAgentType: Bool { agent?.agentType == "copaw" }
 
     private func drawerHeaderRow(_ a: AIAgent) -> some View {
         HStack(spacing: 12) {
@@ -429,6 +439,18 @@ struct AIAgentDetailView: View {
                     disabled: false
                 ) {
                     showSkills = true
+                }
+            }
+            // QwenPaw 仅有终端（抓包：node/root 两档用户）；对话/频道/技能不适用
+            if isCopawAgent(a) {
+                CardActionButton(
+                    title: L10n.t("终端"),
+                    icon: "terminal",
+                    color: .green,
+                    busy: false,
+                    disabled: (a.containerName ?? "").isEmpty
+                ) {
+                    showTerminal = true
                 }
             }
             // QwenPaw(copaw) 不绑定模型账号（创建即无 model/accountId），
