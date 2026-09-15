@@ -27,11 +27,16 @@ struct TerminalScreen: View {
     private let title: String
     /// 终端所在服务器（快速命令按当前服务器拉取）
     private let server: ServerConfig
+    /// 容器终端用户切换（Hermes 的 hermes/root）：显示在三点菜单内；
+    /// 选择由外部处理（重建会话）
+    private let userSwitch: TerminalUserSwitch?
 
-    init(server: ServerConfig, target: TerminalTarget, title: String? = nil, initialCommand: String? = nil) {
+    init(server: ServerConfig, target: TerminalTarget, title: String? = nil,
+         initialCommand: String? = nil, userSwitch: TerminalUserSwitch? = nil) {
         let s = TerminalSession(server: server, target: target, initialCommand: initialCommand)
         _session = StateObject(wrappedValue: s)
         self.server = server
+        self.userSwitch = userSwitch
         switch target {
         case .host:
             self.title = title ?? L10n.t("终端")
@@ -172,6 +177,25 @@ struct TerminalScreen: View {
 
     private var toolbarMenu: some View {
         Menu {
+            // 用户切换（容器终端，如 Hermes 的 hermes/root）：当前用户打勾，
+            // 选择回调由外部处理（重建会话）
+            if let sw = userSwitch {
+                Menu {
+                    ForEach(sw.users, id: \.self) { u in
+                        Button {
+                            sw.onSelect(u)
+                        } label: {
+                            if u == sw.current {
+                                Label(u, systemImage: "checkmark")
+                            } else {
+                                Text(u)
+                            }
+                        }
+                    }
+                } label: {
+                    Label(L10n.t("切换用户"), systemImage: "person.crop.circle")
+                }
+            }
             Button {
                 showQuickCommands = true
             } label: {
@@ -237,6 +261,15 @@ struct TerminalScreen: View {
         guard session.isConnected else { return }
         session.send(data: Data(s.utf8))
     }
+}
+
+// MARK: - 容器终端用户切换（Hermes 抓包：hermes / root）
+
+/// 三点菜单内的用户切换子菜单数据：current 打勾；选择交给外部重建会话
+struct TerminalUserSwitch {
+    let current: String
+    let users: [String]
+    let onSelect: (String) -> Void
 }
 
 // MARK: - 容器终端命令选择器

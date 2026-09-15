@@ -136,7 +136,7 @@ struct AIAgentChannelsView: View {
         case .telegram:
             AIAgentTelegramChannelView(server: server, agentId: agentId, agentType: agentType)
         case .discord:
-            AIAgentDiscordChannelView(server: server, agentId: agentId)
+            AIAgentDiscordChannelView(server: server, agentId: agentId, agentType: agentType)
         }
     }
 
@@ -469,6 +469,9 @@ struct AIAgentWeixinChannelView: View {
 
     private let client: APIClient
 
+    /// Hermes 网页端频道无启用开关（核对隐藏）
+    private var isHermes: Bool { agentType == "hermes-agent" }
+
     init(server: ServerConfig, agentId: Int, initialEnabled: Bool, agentType: String? = nil) {
         self.server = server
         self.agentId = agentId
@@ -491,17 +494,19 @@ struct AIAgentWeixinChannelView: View {
                                      })
             }
 
-            Section {
-                Toggle(L10n.t("启用"), isOn: Binding(
-                    get: { enabled },
-                    set: { newValue in
-                        if !newValue { return } // 微信经扫码对接启用，关闭走删除
-                        enabled = newValue
-                    }
-                ))
-                .disabled(true)
-            } footer: {
-                Text(L10n.t("微信频道通过扫码对接启用，关闭需删除对接"))
+            if !isHermes {
+                Section {
+                    Toggle(L10n.t("启用"), isOn: Binding(
+                        get: { enabled },
+                        set: { newValue in
+                            if !newValue { return } // 微信经扫码对接启用，关闭走删除
+                            enabled = newValue
+                        }
+                    ))
+                    .disabled(true)
+                } footer: {
+                    Text(L10n.t("微信频道通过扫码对接启用，关闭需删除对接"))
+                }
             }
 
             Section {
@@ -700,6 +705,8 @@ struct AIAgentQQChannelView: View {
     private let client: APIClient
 
     private var isOpenClaw: Bool { agentType == "openclaw" }
+    /// Hermes 网页端频道无启用开关（核对隐藏），保存恒传 enabled:true（抓包确认）
+    private var isHermes: Bool { agentType == "hermes-agent" }
 
     init(server: ServerConfig, agentId: Int, agentType: String? = nil) {
         self.server = server
@@ -732,8 +739,11 @@ struct AIAgentQQChannelView: View {
 
             } else {
                 Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    // Hermes 网页端无启用开关（核对隐藏），保存恒传 enabled:true
+                    if !isHermes {
+                        Toggle(L10n.t("启用"), isOn: Binding(
+                            get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    }
                     TextField("App ID", text: Binding(
                         get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
                         .textInputAutocapitalization(.never)
@@ -926,6 +936,8 @@ struct AIAgentQQChannelView: View {
         out.agentId = agentId
         // update 体不含 get 回传的 installed 标记（抓包确认）
         out.installed = nil
+        // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）
+        if isHermes { out.enabled = true }
         if isOpenClaw {
             // OpenClaw 抓包 update 体：{agentId, enabled, bots}（无顶层策略）；
             // Bot 编辑走草稿 + 保存按钮（删除/插件即时保存）
@@ -1071,6 +1083,8 @@ struct AIAgentWecomChannelView: View {
     private let client: APIClient
 
     private var isOpenClaw: Bool { agentType == "openclaw" }
+    /// Hermes 网页端频道无启用开关（核对隐藏），保存恒传 enabled:true（抓包确认）
+    private var isHermes: Bool { agentType == "hermes-agent" }
 
     init(server: ServerConfig, agentId: Int, agentType: String? = nil) {
         self.server = server
@@ -1097,8 +1111,11 @@ struct AIAgentWecomChannelView: View {
                 }
 
                 Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    // Hermes 网页端无启用开关（核对隐藏），保存恒传 enabled:true
+                    if !isHermes {
+                        Toggle(L10n.t("启用"), isOn: Binding(
+                            get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    }
                     TextField(L10n.t("Bot ID"), text: Binding(
                         get: { c.botId ?? "" }, set: { c.botId = $0 }))
                         .textInputAutocapitalization(.never)
@@ -1151,6 +1168,8 @@ struct AIAgentWecomChannelView: View {
                 path: APIEndpoint.aiAgentChannelGet.path.replacingOccurrences(of: ":type", with: "wecom"),
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelWecom.self)
+            // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）
+            if isHermes { c.enabled = true }
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -1209,6 +1228,8 @@ struct AIAgentDingtalkChannelView: View {
     private let client: APIClient
 
     private var isOpenClaw: Bool { agentType == "openclaw" }
+    /// Hermes：未配置频道启用开关默认开；网页核对无 会话设置 与 群组策略
+    private var isHermes: Bool { agentType == "hermes-agent" }
 
     /// OpenClaw 私聊策略无配队码（抓包确认）：白名单 / 开放 / 禁用
     private var dmPolicies: [(value: String, label: String)] {
@@ -1265,8 +1286,11 @@ struct AIAgentDingtalkChannelView: View {
                 openclawBotList
             } else {
                 Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    // Hermes 网页端无启用开关（核对隐藏），保存恒传 enabled:true
+                    if !isHermes {
+                        Toggle(L10n.t("启用"), isOn: Binding(
+                            get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    }
                     TextField("Client ID", text: Binding(
                         get: { bot.clientId ?? "" }, set: { bot.clientId = $0 }))
                         .textInputAutocapitalization(.never)
@@ -1275,11 +1299,16 @@ struct AIAgentDingtalkChannelView: View {
                         .textInputAutocapitalization(.never)
                     ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
                                          value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
-                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
-                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                    // Hermes 网页端无群组策略（核对隐藏，保存仍回传服务端值）
+                    if !isHermes {
+                        ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
+                                             value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                    }
                 }
 
-                basicSessionSection
+                if !isHermes {
+                    basicSessionSection
+                }
 
                 if c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "dingtalk")
@@ -1509,6 +1538,8 @@ struct AIAgentDingtalkChannelView: View {
         out.agentId = agentId
         // update 体不含 get 回传的 installed 标记（抓包确认）
         out.installed = nil
+        // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）
+        if isHermes { out.enabled = true }
         if isOpenClaw {
             out.bots = bots
         } else {
@@ -1635,6 +1666,8 @@ struct AIAgentFeishuChannelView: View {
     private let client: APIClient
 
     private var isOpenClaw: Bool { agentType == "openclaw" }
+    /// Hermes：未配置频道启用开关默认开；网页核对无 会话设置、私聊策略无禁用
+    private var isHermes: Bool { agentType == "hermes-agent" }
 
     /// @机器人三态：需要@ / 无需@ / 按群组配置（抓包取值 true/false/open）
     private let mentionModes: [(value: String, label: String)] = [
@@ -1700,30 +1733,38 @@ struct AIAgentFeishuChannelView: View {
                 openclawBotList
             } else {
                 Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    // Hermes 网页端无启用开关（核对隐藏），保存恒传 enabled:true
+                    if !isHermes {
+                        Toggle(L10n.t("启用"), isOn: Binding(
+                            get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    }
                     TextField("App ID", text: Binding(
                         get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
                         .textInputAutocapitalization(.never)
                     SecureField("App Secret", text: Binding(
                         get: { bot.appSecret ?? "" }, set: { bot.appSecret = $0 }))
                         .textInputAutocapitalization(.never)
-                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
+                    // Hermes 私聊策略无禁用（网页核对）：配队码 / 开放
+                    ChannelPolicyPicker(title: L10n.t("私聊策略"),
+                                         options: isHermes ? AIChannelPolicy.dmPoliciesPairingOpen : AIChannelPolicy.dmPoliciesBasic,
                                          value: Binding(get: { bot.dmPolicy ?? "open" }, set: { bot.dmPolicy = $0 }))
                     ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
                                          value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
                 }
 
-                Section {
-                    Toggle(L10n.t("话题式会话"), isOn: Binding(
-                        get: { c.threadSession ?? false }, set: { c.threadSession = $0 }))
-                    Toggle(L10n.t("流式输出"), isOn: Binding(
-                        get: { c.streaming ?? false }, set: { c.streaming = $0 }))
-                    Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
-                        get: { (c.requireMention ?? "") == "true" },
-                        set: { c.requireMention = $0 ? "true" : "false" }))
-                } header: {
-                    SectionLabel(title: L10n.t("会话设置"), systemImage: "bubble.left.and.bubble.right")
+                // Hermes 网页端无会话设置（核对隐藏，保存仍回传服务端值）
+                if !isHermes {
+                    Section {
+                        Toggle(L10n.t("话题式会话"), isOn: Binding(
+                            get: { c.threadSession ?? false }, set: { c.threadSession = $0 }))
+                        Toggle(L10n.t("流式输出"), isOn: Binding(
+                            get: { c.streaming ?? false }, set: { c.streaming = $0 }))
+                        Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
+                            get: { (c.requireMention ?? "") == "true" },
+                            set: { c.requireMention = $0 ? "true" : "false" }))
+                    } header: {
+                        SectionLabel(title: L10n.t("会话设置"), systemImage: "bubble.left.and.bubble.right")
+                    }
                 }
 
                 if (bot.dmPolicy ?? "") == "pairing" {
@@ -1962,6 +2003,8 @@ struct AIAgentFeishuChannelView: View {
         out.domain = nil
         out.connectionMode = nil
         out.dmPolicy = nil
+        // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）
+        if isHermes { out.enabled = true }
         if isOpenClaw {
             out.bots = bots
         } else {
@@ -2084,6 +2127,9 @@ struct AIAgentTelegramChannelView: View {
     /// 不携带用户未保存的顶层草稿
     @State private var savedC = AIChannelTelegram()
     @State private var bots: [AIChannelTelegramBotItem] = []
+    /// Hermes：单默认 Bot 表单（网页核对仅 Bot Token/私聊策略/群聊需@机器人）
+    @State private var bot = AIChannelTelegramBotItem(accountId: "default", name: "Default", enabled: true, isDefault: true)
+    @State private var extraBots: [AIChannelTelegramBotItem] = []
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
@@ -2105,8 +2151,11 @@ struct AIAgentTelegramChannelView: View {
     private var dmPolicies: [(value: String, label: String)] {
         agentType == "openclaw"
             ? AIChannelPolicy.dmPoliciesFull
-            : AIChannelPolicy.dmPoliciesFull.filter { $0.value == "pairing" || $0.value == "open" }
+            : AIChannelPolicy.dmPoliciesPairingOpen
     }
+
+    /// Hermes：未配置频道启用开关默认开；网页核对无 Bot 列表/群组策略/代理/流式
+    private var isHermes: Bool { agentType == "hermes-agent" }
 
     /// 批准配对携带的账户：defaultAccount 空串（基础版 get）回退默认 Bot；
     /// 基础类型抓包 approve 不携带 accountId，仅 OpenClaw 传
@@ -2128,37 +2177,53 @@ struct AIAgentTelegramChannelView: View {
                 }
             } else {
                 Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
-                    Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
-                        get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
-                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
-                                         value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
-                    if c.dmPolicy == "allowlist" {
-                        WhitelistEditor(title: L10n.t("私聊白名单"), list: Binding(
-                            get: { c.allowFrom ?? [] }, set: { c.allowFrom = $0 }))
+                    // Hermes 网页端无启用开关（核对隐藏），保存恒传 enabled:true
+                    if !isHermes {
+                        Toggle(L10n.t("启用"), isOn: Binding(
+                            get: { c.enabled ?? false }, set: { c.enabled = $0 }))
                     }
-                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
-                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
-                    if c.groupPolicy == "allowlist" {
-                        WhitelistEditor(title: L10n.t("群组白名单"), list: Binding(
-                            get: { c.groupAllowFrom ?? [] }, set: { c.groupAllowFrom = $0 }))
-                    }
-                    TextField(L10n.t("代理服务器"), text: Binding(
-                        get: { c.proxy ?? "" }, set: { c.proxy = $0 }))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                    Picker(L10n.t("流式传输"), selection: Binding(
-                        get: { let v = c.streaming ?? ""; return v.isEmpty ? "partial" : v },
-                        set: { c.streaming = $0 })) {
-                        ForEach(AIChannelStreaming.options, id: \.value) { o in
-                            Text(o.label).tag(o.value)
+                    if isHermes {
+                        // Hermes 网页核对：仅 Bot Token / 私聊策略（配队码、开放）/ 群聊需@机器人
+                        SecureField(L10n.t("Bot Token"), text: Binding(
+                            get: { bot.botToken ?? "" }, set: { bot.botToken = $0 }))
+                            .textInputAutocapitalization(.never)
+                        ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
+                                             value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
+                        Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
+                            get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
+                    } else {
+                        Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
+                            get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
+                        ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
+                                             value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
+                        if c.dmPolicy == "allowlist" {
+                            WhitelistEditor(title: L10n.t("私聊白名单"), list: Binding(
+                                get: { c.allowFrom ?? [] }, set: { c.allowFrom = $0 }))
+                        }
+                        ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
+                                             value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                        if c.groupPolicy == "allowlist" {
+                            WhitelistEditor(title: L10n.t("群组白名单"), list: Binding(
+                                get: { c.groupAllowFrom ?? [] }, set: { c.groupAllowFrom = $0 }))
+                        }
+                        TextField(L10n.t("代理服务器"), text: Binding(
+                            get: { c.proxy ?? "" }, set: { c.proxy = $0 }))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.URL)
+                        Picker(L10n.t("流式传输"), selection: Binding(
+                            get: { let v = c.streaming ?? ""; return v.isEmpty ? "partial" : v },
+                            set: { c.streaming = $0 })) {
+                            ForEach(AIChannelStreaming.options, id: \.value) { o in
+                                Text(o.label).tag(o.value)
+                            }
                         }
                     }
                 }
 
-                botListSection
+                if !isHermes {
+                    botListSection
+                }
 
                 if c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "telegram",
@@ -2338,7 +2403,12 @@ struct AIAgentTelegramChannelView: View {
                 as: AIChannelTelegram.self)
             c = resp
             savedC = resp
-            bots = resp.bots ?? []
+            if isHermes {
+                bot = resp.bots?.first ?? bot
+                extraBots = Array((resp.bots ?? []).dropFirst())
+            } else {
+                bots = resp.bots ?? []
+            }
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -2350,7 +2420,15 @@ struct AIAgentTelegramChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
-        out.bots = bots
+        // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）
+        if isHermes {
+            out.enabled = true
+            // 抓包：顶层与 bots[0] 的 dmPolicy 同值；其余字段回传服务端原值
+            bot.dmPolicy = c.dmPolicy
+            out.bots = [bot] + extraBots
+        } else {
+            out.bots = bots
+        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -2459,12 +2537,17 @@ private struct AITelegramBotFormSheet: View {
 struct AIAgentDiscordChannelView: View {
     let server: ServerConfig
     let agentId: Int
+    /// Hermes：单默认 Bot 表单（网页核对仅 Token/私聊策略/群聊需@机器人）
+    var agentType: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var c = AIChannelDiscord()
     /// 上次已保存的顶层配置快照（滑动操作立即保存的组装基准，不含未保存草稿）
     @State private var savedC = AIChannelDiscord()
     @State private var bots: [AIChannelDiscordBotItem] = []
+    /// Hermes：单默认 Bot 表单
+    @State private var bot = AIChannelDiscordBotItem(accountId: "default", name: "Default", enabled: true, isDefault: true)
+    @State private var extraBots: [AIChannelDiscordBotItem] = []
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var loadError: String?
@@ -2481,8 +2564,11 @@ struct AIAgentDiscordChannelView: View {
 
     /// 私聊策略仅 配队码 / 开放；群组策略 开放 / 禁用（抓包确认，无白名单）
     private var dmPolicies: [(value: String, label: String)] {
-        AIChannelPolicy.dmPoliciesFull.filter { $0.value == "pairing" || $0.value == "open" }
+        AIChannelPolicy.dmPoliciesPairingOpen
     }
+
+    /// Hermes：未配置频道启用开关默认开；网页核对无 Bot 列表/群组策略/代理
+    private var isHermes: Bool { agentType == "hermes-agent" }
 
     /// 批准配对携带的账户：defaultAccount 空串回退默认 Bot
     /// （QwenPaw / OpenClaw 的 Discord approve 抓包均携带 accountId）
@@ -2491,9 +2577,10 @@ struct AIAgentDiscordChannelView: View {
         return bots.first(where: { $0.isDefault == true })?.accountId
     }
 
-    init(server: ServerConfig, agentId: Int) {
+    init(server: ServerConfig, agentId: Int, agentType: String? = nil) {
         self.server = server
         self.agentId = agentId
+        self.agentType = agentType
         self.client = APIClient.shared(for: server)
     }
 
@@ -2509,22 +2596,38 @@ struct AIAgentDiscordChannelView: View {
                 }
             } else {
                 Section {
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false }, set: { c.enabled = $0 }))
-                    Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
-                        get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
-                    ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
-                                         value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
-                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
-                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
-                    TextField(L10n.t("代理服务器"), text: Binding(
-                        get: { c.proxy ?? "" }, set: { c.proxy = $0 }))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
+                    // Hermes 网页端无启用开关（核对隐藏），保存恒传 enabled:true
+                    if !isHermes {
+                        Toggle(L10n.t("启用"), isOn: Binding(
+                            get: { c.enabled ?? false }, set: { c.enabled = $0 }))
+                    }
+                    if isHermes {
+                        // Hermes 网页核对：仅 Token / 私聊策略（配队码、开放）/ 群聊需@机器人
+                        SecureField("Token", text: Binding(
+                            get: { bot.token ?? "" }, set: { bot.token = $0 }))
+                            .textInputAutocapitalization(.never)
+                        ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
+                                             value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
+                        Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
+                            get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
+                    } else {
+                        Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
+                            get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
+                        ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
+                                             value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
+                        ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
+                                             value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                        TextField(L10n.t("代理服务器"), text: Binding(
+                            get: { c.proxy ?? "" }, set: { c.proxy = $0 }))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.URL)
+                    }
                 }
 
-                botListSection
+                if !isHermes {
+                    botListSection
+                }
 
                 if c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "discord",
@@ -2750,7 +2853,12 @@ struct AIAgentDiscordChannelView: View {
                 as: AIChannelDiscord.self)
             c = resp
             savedC = resp
-            bots = resp.bots ?? []
+            if isHermes {
+                bot = resp.bots?.first ?? bot
+                extraBots = Array((resp.bots ?? []).dropFirst())
+            } else {
+                bots = resp.bots ?? []
+            }
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -2762,7 +2870,14 @@ struct AIAgentDiscordChannelView: View {
     private func save() async {
         var out = c
         out.agentId = agentId
-        out.bots = bots
+        // Hermes：无启用开关（保存恒传 enabled:true），单默认 Bot 表单
+        //（网页核对无 Bot 列表），其余 bots 原样保留
+        if isHermes {
+            out.enabled = true
+            out.bots = [bot] + extraBots
+        } else {
+            out.bots = bots
+        }
         isSaving = true
         defer { isSaving = false }
         do {

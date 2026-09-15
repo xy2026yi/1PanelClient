@@ -162,7 +162,7 @@ nonisolated struct AIAgentModelUpdateRequest: Encodable {
 
 nonisolated struct AIAgentSkillSearchRequest: Encodable {
     let agentId: Int
-    /// clawhub-cn / clawhub-global / skillhub（OpenClaw 抓包确认）
+    /// Hermes 抓包确认：official / skills-sh；OpenClaw 抓包确认：clawhub-cn / clawhub-global / skillhub
     let source: String
     let keyword: String
 }
@@ -340,6 +340,12 @@ nonisolated struct AIAgentSkillUpdateRequest: Encodable {
     let agentId: Int
     let name: String
     let enabled: Bool
+}
+
+/// POST /api/v2/ai/agents/skills/uninstall {agentId, name}（Hermes 抓包确认，同步返回）
+nonisolated struct AIAgentSkillUninstallRequest: Encodable {
+    let agentId: Int
+    let name: String
 }
 
 // MARK: - 智能体插件（OpenClaw：plugins/*，与频道插件 plugin/* 是两套端点）
@@ -650,6 +656,10 @@ enum AIChannelPolicy {
     /// 基础私聊策略（QQ / 飞书 / 钉钉 / 企微）：配队码 / 开放 / 禁用
     static var dmPoliciesBasic: [(value: String, label: String)] {
         dmPoliciesFull.filter { $0.value != "allowlist" }
+    }
+    /// 配队码 / 开放（Hermes 抓包核对：私聊策略无白名单与禁用）
+    static var dmPoliciesPairingOpen: [(value: String, label: String)] {
+        dmPoliciesFull.filter { $0.value == "pairing" || $0.value == "open" }
     }
     /// 群组策略全集：开放 / 白名单 / 禁用
     static var groupPoliciesFull: [(value: String, label: String)] {

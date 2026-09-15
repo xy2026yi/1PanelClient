@@ -30,6 +30,7 @@ struct AIAgentDetailView: View {
     @State private var showRoles = false
     @State private var showPlugins = false
     @State private var showChat = false
+    @State private var showTerminal = false
 
     // 删除
     @State private var showDeleteSheet = false
@@ -94,10 +95,11 @@ struct AIAgentDetailView: View {
                                 agentType: agent?.agentType)
         }
         .navigationDestination(isPresented: $showModelConfig) {
-            AIAgentModelConfigView(server: server, agentId: agentId)
+            AIAgentModelConfigView(server: server, agentId: agentId, agentType: agent?.agentType)
         }
         .navigationDestination(isPresented: $showSkills) {
-            AIAgentSkillsView(server: server, agentId: agentId, agentName: agent?.name ?? "")
+            AIAgentSkillsView(server: server, agentId: agentId, agentName: agent?.name ?? "",
+                              agentType: agent?.agentType)
         }
         .navigationDestination(isPresented: $showSettings) {
             AIAgentSettingsView(server: server, agentId: agentId, agentType: agent?.agentType)
@@ -122,6 +124,12 @@ struct AIAgentDetailView: View {
             AIAgentHermesChatView(
                 server: server,
                 agentId: agentId,
+                agentName: agent?.name ?? "",
+                containerName: agent?.containerName ?? "")
+        }
+        .navigationDestination(isPresented: $showTerminal) {
+            AIAgentHermesTerminalView(
+                server: server,
                 agentName: agent?.name ?? "",
                 containerName: agent?.containerName ?? "")
         }
@@ -218,14 +226,34 @@ struct AIAgentDetailView: View {
                 }
                 InfoRow(L10n.t("模型供应商"), value: a.providerName ?? a.provider ?? "-")
                 InfoRow(L10n.t("模型"), value: a.model ?? "-", monospaced: true)
+                // Hermes：安装目录/容器名称可点击跳转（文件管理 / 容器详情，
+                // 与应用详情的「目录」「容器名」同款模式）；其余类型保持纯展示
                 if let container = a.containerName, !container.isEmpty {
-                    InfoRow(L10n.t("容器名称"), value: container, monospaced: true)
+                    if isHermesAgent(a) {
+                        NavigationLink {
+                            ContainerDetailByNameView(containerName: container, server: server)
+                        } label: {
+                            InfoRow(L10n.t("容器名称"), value: container, monospaced: true)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        InfoRow(L10n.t("容器名称"), value: container, monospaced: true)
+                    }
                 }
                 if let port = a.webUIPort, port > 0 {
                     InfoRow("WebUI " + L10n.t("端口"), value: String(port), monospaced: true)
                 }
                 if let path = a.path, !path.isEmpty {
-                    InfoRow(L10n.t("安装目录"), value: path, monospaced: true)
+                    if isHermesAgent(a) {
+                        NavigationLink {
+                            FilesView(server: server, initialPath: path)
+                        } label: {
+                            InfoRow(L10n.t("安装目录"), value: path, monospaced: true)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        InfoRow(L10n.t("安装目录"), value: path, monospaced: true)
+                    }
                 }
                 if let message = a.message, !message.isEmpty {
                     InfoRow(L10n.t("消息"), value: message)
@@ -236,16 +264,14 @@ struct AIAgentDetailView: View {
             }
 
             Section {
-                // 对话为 Hermes 专属（抓包确认：/ai/agents/hermes/chat/*）；
-                // 角色 / 插件为 OpenClaw 专属（抓包确认）；QwenPaw 无频道/技能功能
-                if let a = agent, isHermesAgent(a) {
-                    configLink(L10n.t("对话"), icon: "ellipsis.bubble") { showChat = true }
-                }
+                // 对话/终端为 Hermes 专属（抓包确认：/ai/agents/hermes/chat/* 与容器终端）；
+                // Hermes 的 对话/终端/频道/技能 收进状态抽屉按钮（与停止/重启同区），
+                // 列表不再重复入口；角色/插件为 OpenClaw 专属；QwenPaw 无频道/技能功能
                 if let a = agent, isOpenClawAgent(a) {
                     configLink(L10n.t("角色"), icon: "person.2") { showRoles = true }
                     configLink(L10n.t("插件"), icon: "puzzlepiece.extension") { showPlugins = true }
                 }
-                if let a = agent, !isCopawAgent(a) {
+                if let a = agent, !isCopawAgent(a), !isHermesAgent(a) {
                     configLink(L10n.t("频道"), icon: "bubble.left.and.bubble.right") { showChannels = true }
                     configLink(L10n.t("技能"), icon: "wand.and.stars") { showSkills = true }
                 }
@@ -333,8 +359,10 @@ struct AIAgentDetailView: View {
     }
 
     private func operationsRow(_ a: AIAgent) -> some View {
-        // 三列两行：操作（停止/重启/删除）+ 配置入口（模型/设置/绑定网站）
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+        // Hermes 功能入口多（终端/对话/频道/技能），网格一行 4 个；
+        // 其余类型保持三列：操作（停止/重启/删除）+ 配置入口（模型/设置/绑定网站）
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8),
+                                 count: isHermesAgent(a) ? 4 : 3), spacing: 8) {
             CardActionButton(
                 title: a.isRunning ? L10n.t("停止") : L10n.t("启动"),
                 icon: a.isRunning ? "stop.fill" : "play.fill",
@@ -361,6 +389,47 @@ struct AIAgentDetailView: View {
                 disabled: isOperating
             ) {
                 Task { await startDelete() }
+            }
+            // Hermes 专属功能收进抽屉（与停止/重启同区）：终端/对话/频道/技能。
+            // 终端/对话依赖容器名（抓包：containerid=智能体容器名），缺失时置灰
+            if isHermesAgent(a) {
+                let hasContainer = !(a.containerName ?? "").isEmpty
+                CardActionButton(
+                    title: L10n.t("终端"),
+                    icon: "terminal",
+                    color: .green,
+                    busy: false,
+                    disabled: !hasContainer
+                ) {
+                    showTerminal = true
+                }
+                CardActionButton(
+                    title: L10n.t("对话"),
+                    icon: "ellipsis.bubble",
+                    color: .blue,
+                    busy: false,
+                    disabled: !hasContainer
+                ) {
+                    showChat = true
+                }
+                CardActionButton(
+                    title: L10n.t("频道"),
+                    icon: "bubble.left.and.bubble.right",
+                    color: .teal,
+                    busy: false,
+                    disabled: false
+                ) {
+                    showChannels = true
+                }
+                CardActionButton(
+                    title: L10n.t("技能"),
+                    icon: "wand.and.stars",
+                    color: .purple,
+                    busy: false,
+                    disabled: false
+                ) {
+                    showSkills = true
+                }
             }
             // QwenPaw(copaw) 不绑定模型账号（创建即无 model/accountId），
             // 隐藏模型入口——进入会是死页面且触发账号 Picker 无效 selection

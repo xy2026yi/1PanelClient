@@ -534,6 +534,7 @@ enum APIEndpoint {
     case aiAgentSkillsSearch    // POST 技能市场搜索 {agentId, source, keyword}
     case aiAgentSkillsInstall   // POST 安装技能 {agentId, source, slug, taskID}
     case aiAgentSkillsList      // POST 已安装技能 {agentId}
+    case aiAgentSkillsUninstall // POST 卸载技能 {agentId, name}（Hermes 抓包确认）
     case aiAgentOtherGet        // POST 其他设置（时区/浏览器/NPM 源；OpenClaw 无控制台账号字段）
     case aiAgentOtherUpdate     // POST 保存其他设置
     case aiAgentSecurityGet     // POST 安全设置读取（OpenClaw：allowedOrigins）
@@ -1044,6 +1045,7 @@ enum APIEndpoint {
         case .aiAgentSkillsSearch:   return "/api/v2/ai/agents/skills/search"
         case .aiAgentSkillsInstall:  return "/api/v2/ai/agents/skills/install"
         case .aiAgentSkillsList:     return "/api/v2/ai/agents/skills/list"
+        case .aiAgentSkillsUninstall: return "/api/v2/ai/agents/skills/uninstall"
         case .aiAgentOtherGet:       return "/api/v2/ai/agents/other/get"
         case .aiAgentOtherUpdate:    return "/api/v2/ai/agents/other/update"
         case .aiAgentSecurityGet:    return "/api/v2/ai/agents/security/get"

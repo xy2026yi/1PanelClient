@@ -3,7 +3,10 @@
 //  1PanelClient
 //
 //  智能体 · 技能（/api/v2/ai/agents/skills）：
-//  技能市场（官方 / skills.sh 来源 + 关键词搜索 + 安装进度）/ 已安装列表
+//  技能市场（来源 + 关键词搜索 + 安装进度）/ 已安装列表（分组 + 启停 + 卸载）。
+//  来源与已安装分组按智能体类型区分：
+//  - Hermes：official/skills-sh；已安装按 source 分 builtin 内置 / official 已安装（可卸载）
+//  - OpenClaw：clawhub 中国/全球 + SkillHub 腾讯；已安装按 source 前缀分组
 //
 
 import SwiftUI
@@ -12,22 +15,39 @@ struct AIAgentSkillsView: View {
     let server: ServerConfig
     let agentId: Int
     let agentName: String
+    /// hermes-agent / openclaw / copaw（来源与分组按类型区分）
+    var agentType: String? = nil
 
-    /// 市场来源（OpenClaw 抓包确认：clawhub 中国/全球 + SkillHub 腾讯）
-    enum SkillSource: String, CaseIterable, Identifiable {
+    /// 市场来源：Hermes 抓包确认 official / skills-sh；
+    /// OpenClaw 抓包确认 clawhub 中国/全球 + SkillHub 腾讯
+    enum SkillSource: String, Identifiable {
+        case official
+        case skillsSh = "skills-sh"
         case clawhubCN = "clawhub-cn"
         case clawhubGlobal = "clawhub-global"
-        case skillhub = "skillhub"
+        case skillhub
 
         var id: String { rawValue }
         var displayName: String {
             switch self {
+            case .official: return L10n.t("官方")
+            case .skillsSh: return "skills.sh"
             case .clawhubCN: return "Clawhub（" + L10n.t("中国") + "）"
             case .clawhubGlobal: return "Clawhub（" + L10n.t("全球") + "）"
             case .skillhub: return "SkillHub（" + L10n.t("腾讯") + "）"
             }
         }
+
+        /// 按智能体类型给出可选来源（互不混用）
+        static func sources(for agentType: String?) -> [SkillSource] {
+            agentType == "hermes-agent"
+                ? [.official, .skillsSh]
+                : [.clawhubCN, .clawhubGlobal, .skillhub]
+        }
     }
+
+    /// Hermes 专属（对话/技能来源抓包均按该类型区分）
+    private var isHermes: Bool { agentType == "hermes-agent" }
 
     @State private var mode = 0 // 0 市场 / 1 已安装
 
@@ -48,6 +68,9 @@ struct AIAgentSkillsView: View {
     @State private var installedLoadError: String?
     /// 启停操作中的技能名（行级防抖）
     @State private var updatingSkillNames: Set<String> = []
+    /// 卸载确认弹窗挂起的技能 + 卸载中的技能名（Hermes，uninstallable 才显示）
+    @State private var pendingUninstall: AIAgentSkillInstalled?
+    @State private var uninstallingName: String?
 
     // 安装进度
     @State private var showProgress = false
@@ -58,11 +81,14 @@ struct AIAgentSkillsView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, agentId: Int, agentName: String) {
+    init(server: ServerConfig, agentId: Int, agentName: String, agentType: String? = nil) {
         self.server = server
         self.agentId = agentId
         self.agentName = agentName
+        self.agentType = agentType
         self.client = APIClient.shared(for: server)
+        // Hermes 默认官方来源（抓包默认项），其余保持 clawhub 中国
+        _source = State(initialValue: agentType == "hermes-agent" ? .official : .clawhubCN)
     }
 
     var body: some View {
@@ -101,6 +127,22 @@ struct AIAgentSkillsView: View {
             }
         }
         .toastOverlay(message: $toastMessage)
+        .alert(
+            L10n.t("卸载技能"),
+            isPresented: Binding(
+                get: { pendingUninstall != nil },
+                set: { if !$0 { pendingUninstall = nil } }
+            )
+        ) {
+            Button(L10n.t("取消"), role: .cancel) { pendingUninstall = nil }
+            Button(L10n.t("卸载"), role: .destructive) {
+                guard let skill = pendingUninstall else { return }
+                pendingUninstall = nil
+                Task { await uninstall(skill) }
+            }
+        } message: {
+            Text(L10n.f("确定卸载技能「%@」？", pendingUninstall?.name ?? "-"))
+        }
         .refreshable {
             if mode == 1 {
                 await loadInstalled()
@@ -127,7 +169,7 @@ struct AIAgentSkillsView: View {
     private var marketSection: some View {
         Section {
             Picker(L10n.t("来源"), selection: $source) {
-                ForEach(SkillSource.allCases) { s in
+                ForEach(SkillSource.sources(for: agentType)) { s in
                     Text(s.displayName).tag(s)
                 }
             }
@@ -212,25 +254,40 @@ struct AIAgentSkillsView: View {
 
     // MARK: - 已安装
 
-    /// 按 source 前缀分组（抓包确认）：openclaw-bundled 内置 /
-    /// openclaw-extra 扩展 / openclaw-managed 外部；旧值/未知归其他
+    /// 已安装分组：
+    /// - Hermes（抓包确认）：source=official 已安装（可卸载，显示在前）/
+    ///   builtin 内置（不可卸载）；无启用/停用开关（网页核对）
+    /// - OpenClaw（抓包确认）：按 source 前缀 openclaw-bundled 内置 / extra 扩展 / managed 外部
+    /// - 旧值/未知归其他
     private var groupedInstalled: [(title: String, icon: String, items: [AIAgentSkillInstalled])] {
-        let groups: [(prefix: String, title: String, icon: String)] = [
-            ("openclaw-bundled", L10n.t("内置技能"), "seal.fill"),
-            ("openclaw-extra", L10n.t("扩展技能"), "arrow.down.circle.fill"),
-            ("openclaw-managed", L10n.t("外部技能"), "shippingbox.fill"),
-        ]
+        let groups: [(match: String, byPrefix: Bool, title: String, icon: String)]
+        if isHermes {
+            groups = [
+                ("official", false, L10n.t("已安装"), "arrow.down.circle.fill"),
+                ("builtin", false, L10n.t("内置"), "seal.fill"),
+            ]
+        } else {
+            groups = [
+                ("openclaw-bundled", true, L10n.t("内置技能"), "seal.fill"),
+                ("openclaw-extra", true, L10n.t("扩展技能"), "arrow.down.circle.fill"),
+                ("openclaw-managed", true, L10n.t("外部技能"), "shippingbox.fill"),
+            ]
+        }
         var result: [(String, String, [AIAgentSkillInstalled])] = []
         for group in groups {
-            let items = installed.filter { ($0.source ?? "").hasPrefix(group.prefix) }
+            let items = installed.filter { skill in
+                guard let s = skill.source, !s.isEmpty else { return false }
+                return group.byPrefix ? s.hasPrefix(group.match) : s == group.match
+            }
             if !items.isEmpty {
                 result.append((group.title, group.icon, items))
             }
         }
-        let known = Set(groups.map(\.prefix))
         let others = installed.filter { item in
             guard let s = item.source, !s.isEmpty else { return true }
-            return !known.contains(where: { s.hasPrefix($0) })
+            return !groups.contains { group in
+                group.byPrefix ? s.hasPrefix(group.match) : s == group.match
+            }
         }
         if !others.isEmpty {
             result.append((L10n.t("其他"), "circle.grid.cross", others))
@@ -300,16 +357,35 @@ struct AIAgentSkillsView: View {
             if skill.disabled == true {
                 StatusBadge(text: L10n.t("已禁用"), color: .secondary)
             }
-            // 启用/禁用（skills/update，抓包确认；内置技能同样可禁用）。
-            // 行级防抖：操作中的行禁用，防止并发 update + 交错 reload 导致开关回跳
-            Toggle("", isOn: Binding(
-                get: { skill.disabled != true },
-                set: { on in
-                    Task { await setSkillEnabled(skill, enabled: on) }
+            // 卸载（skills/uninstall，Hermes 抓包确认）：仅 uninstallable 的技能显示
+            if isHermes && skill.uninstallable == true {
+                Button {
+                    pendingUninstall = skill
+                } label: {
+                    if uninstallingName == skill.name {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "trash")
+                            .foregroundStyle(.red)
+                    }
                 }
-            ))
-            .labelsHidden()
-            .disabled(!updatingSkillNames.isEmpty)
+                .buttonStyle(.borderless)
+                .disabled(uninstallingName != nil)
+                .accessibilityLabel(L10n.t("卸载"))
+            }
+            // 启用/禁用（skills/update，抓包确认；内置技能同样可禁用）。
+            // Hermes 网页端无此开关（核对移除）。
+            // 行级防抖：操作中的行禁用，防止并发 update + 交错 reload 导致开关回跳
+            if !isHermes {
+                Toggle("", isOn: Binding(
+                    get: { skill.disabled != true },
+                    set: { on in
+                        Task { await setSkillEnabled(skill, enabled: on) }
+                    }
+                ))
+                .labelsHidden()
+                .disabled(!updatingSkillNames.isEmpty)
+            }
         }
         .padding(.vertical, 3)
     }
@@ -329,6 +405,23 @@ struct AIAgentSkillsView: View {
         } catch {
             guard !APIError.isCancellation(error) else { return }
             toastMessage = L10n.f("操作失败：%@", error.localizedDescription)
+        }
+    }
+
+    /// 卸载技能（skills/uninstall，同步返回；成功后刷新已安装列表）
+    private func uninstall(_ skill: AIAgentSkillInstalled) async {
+        guard let name = skill.name, !name.isEmpty else { return }
+        uninstallingName = name
+        defer { uninstallingName = nil }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentSkillsUninstall.path,
+                body: AIAgentSkillUninstallRequest(agentId: agentId, name: name),
+                as: EmptyResponse.self)
+            await loadInstalled()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            toastMessage = L10n.f("卸载失败：%@", error.localizedDescription)
         }
     }
 

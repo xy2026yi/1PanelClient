@@ -132,7 +132,7 @@ struct AppDetailView: View {
                 }
                 if let container = app.container, !container.isEmpty {
                     NavigationLink {
-                        ContainerDetailFromAppView(app: app, server: server)
+                        ContainerDetailByNameView(app: app, server: server)
                     } label: {
                         InfoRow(L10n.t("容器名"), value: container)
                     }
@@ -384,14 +384,19 @@ struct AppDetailView: View {
 
 // MARK: - 应用详情 → 关联容器详情
 
-/// 拉取容器列表后按容器名匹配，直接展示容器详情页（返回即回应用详情）
-struct ContainerDetailFromAppView: View {
-    let app: AppInstall
+/// 拉取容器列表后按容器名匹配，直接展示容器详情页（返回即回来源页）。
+/// 应用详情传 app.container；智能体详情（Hermes）传智能体容器名
+struct ContainerDetailByNameView: View {
+    let containerName: String
     let server: ServerConfig
     @StateObject private var vm: ContainersViewModel
 
     init(app: AppInstall, server: ServerConfig) {
-        self.app = app
+        self.init(containerName: app.container ?? "", server: server)
+    }
+
+    init(containerName: String, server: ServerConfig) {
+        self.containerName = containerName
         self.server = server
         _vm = StateObject(wrappedValue: ContainersViewModel(server: server))
     }
@@ -400,13 +405,13 @@ struct ContainerDetailFromAppView: View {
         Group {
             if vm.isLoading && vm.containers.isEmpty {
                 LoadingStateView()
-            } else if let container = vm.containers.first(where: { $0.name == app.container }) {
+            } else if let container = vm.containers.first(where: { $0.name == containerName }) {
                 ContainerDetailView(container: container, server: server, vm: vm)
             } else {
                 ContentUnavailableView(
                     L10n.t("未找到容器"),
                     systemImage: "shippingbox",
-                    description: Text(vm.errorMessage ?? L10n.f("未找到名为「%@」的容器，可能已被移除", app.container ?? "—"))
+                    description: Text(vm.errorMessage ?? L10n.f("未找到名为「%@」的容器，可能已被移除", containerName.isEmpty ? "—" : containerName))
                 )
             }
         }

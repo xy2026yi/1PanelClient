@@ -14,6 +14,8 @@ import SwiftUI
 struct AIAgentModelConfigView: View {
     let server: ServerConfig
     let agentId: Int
+    /// Hermes 网页端无备用模型（抓包核对），隐藏该分区；其余类型不受影响
+    var agentType: String? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -34,11 +36,15 @@ struct AIAgentModelConfigView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, agentId: Int) {
+    init(server: ServerConfig, agentId: Int, agentType: String? = nil) {
         self.server = server
         self.agentId = agentId
+        self.agentType = agentType
         self.client = APIClient.shared(for: server)
     }
+
+    /// Hermes 专属判断（与详情页 isHermesAgent 同一取值）
+    private var isHermes: Bool { agentType == "hermes-agent" }
 
     private var selectedAccount: AIAccount? {
         accounts.first { $0.id == selectedAccountId }
@@ -92,50 +98,53 @@ struct AIAgentModelConfigView: View {
                     Text(L10n.t("更换账号后主模型将切换到该账号的模型池"))
                 }
 
-                // 备用模型：主模型不可用时按顺序回退（抓包确认 fallbacks 数组）
-                Section {
-                    if fallbacks.isEmpty {
-                        Text(L10n.t("暂无备用模型"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(Array(fallbacks.enumerated()), id: \.offset) { _, model in
-                            HStack {
-                                Text(model)
-                                    .font(.system(.subheadline, design: .monospaced))
-                                Spacer()
-                                Button {
-                                    fallbacks.removeAll { $0 == model }
-                                } label: {
-                                    Image(systemName: "minus.circle")
-                                        .foregroundStyle(.red)
+                // 备用模型：主模型不可用时按顺序回退（抓包确认 fallbacks 数组）。
+                // Hermes 网页端无备用模型，整个分区隐藏
+                if !isHermes {
+                    Section {
+                        if fallbacks.isEmpty {
+                            Text(L10n.t("暂无备用模型"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(Array(fallbacks.enumerated()), id: \.offset) { _, model in
+                                HStack {
+                                    Text(model)
+                                        .font(.system(.subheadline, design: .monospaced))
+                                    Spacer()
+                                    Button {
+                                        fallbacks.removeAll { $0 == model }
+                                    } label: {
+                                        Image(systemName: "minus.circle")
+                                            .foregroundStyle(.red)
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .accessibilityLabel(L10n.t("删除"))
                                 }
-                                .buttonStyle(.borderless)
-                                .accessibilityLabel(L10n.t("删除"))
                             }
                         }
-                    }
 
-                    if !fallbackCandidates.isEmpty {
-                        Picker(L10n.t("备用模型"), selection: $fallbackCandidate) {
-                            Text(L10n.t("请选择")).tag("")
-                            ForEach(fallbackCandidates, id: \.self) { m in
-                                Text(m).tag(m)
+                        if !fallbackCandidates.isEmpty {
+                            Picker(L10n.t("备用模型"), selection: $fallbackCandidate) {
+                                Text(L10n.t("请选择")).tag("")
+                                ForEach(fallbackCandidates, id: \.self) { m in
+                                    Text(m).tag(m)
+                                }
                             }
+                            Button {
+                                guard !fallbackCandidate.isEmpty else { return }
+                                fallbacks.append(fallbackCandidate)
+                                fallbackCandidate = ""
+                            } label: {
+                                Label(L10n.t("新增备用"), systemImage: "plus.circle")
+                            }
+                            .disabled(fallbackCandidate.isEmpty)
                         }
-                        Button {
-                            guard !fallbackCandidate.isEmpty else { return }
-                            fallbacks.append(fallbackCandidate)
-                            fallbackCandidate = ""
-                        } label: {
-                            Label(L10n.t("新增备用"), systemImage: "plus.circle")
-                        }
-                        .disabled(fallbackCandidate.isEmpty)
+                    } header: {
+                        SectionLabel(title: L10n.t("备用模型"), systemImage: "arrow.triangle.branch")
+                    } footer: {
+                        Text(L10n.t("主模型不可用时按列表顺序使用备用模型"))
                     }
-                } header: {
-                    SectionLabel(title: L10n.t("备用模型"), systemImage: "arrow.triangle.branch")
-                } footer: {
-                    Text(L10n.t("主模型不可用时按列表顺序使用备用模型"))
                 }
             } else {
                 Section {
@@ -239,13 +248,15 @@ struct AIAgentModelConfigView: View {
         isSaving = true
         defer { isSaving = false }
         do {
+            // Hermes 无备用模型：回传服务端原值，防止隐藏状态下本地空数组误清
+            let fallbacksToSend = isHermes ? (config?.fallbacks ?? []) : fallbacks
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentModelUpdate.path,
                 body: AIAgentModelUpdateRequest(
                     agentId: agentId,
                     accountId: accountId,
                     model: selectedModel,
-                    fallbacks: fallbacks),
+                    fallbacks: fallbacksToSend),
                 as: EmptyResponse.self)
             dismiss()
         } catch {
@@ -312,6 +323,8 @@ struct AIAgentSettingsView: View {
     private var isCopaw: Bool { agentType == "copaw" }
     /// OpenClaw 设置页与其他类型不同：无控制台账号，另有「安全」（allowedOrigins）
     private var isOpenClaw: Bool { agentType == "openclaw" }
+    /// Hermes 网页端「其他」无浏览器/NPM 源（核对隐藏），仅保留时区
+    private var isHermes: Bool { agentType == "hermes-agent" }
 
     /// NPM 源预设（抓包下拉项；腾讯源在文档中重复出现，取唯一集）
     private let npmMirrors = [
@@ -340,14 +353,17 @@ struct AIAgentSettingsView: View {
 
                 if !isCopaw {
                     Section {
-                        Toggle(L10n.t("浏览器"), isOn: $browserEnabled)
-                        Picker(L10n.t("NPM 源"), selection: $npmRegistry) {
-                            // 当前值不在预设内时补一个 tag，避免无效 selection 告警
-                            if !npmMirrors.contains(npmRegistry), !npmRegistry.isEmpty {
-                                Text(npmRegistry).tag(npmRegistry)
-                            }
-                            ForEach(npmMirrors, id: \.self) { mirror in
-                                Text(mirror).tag(mirror)
+                        // Hermes 网页端无浏览器/NPM 源（核对隐藏），保存回传服务端原值
+                        if !isHermes {
+                            Toggle(L10n.t("浏览器"), isOn: $browserEnabled)
+                            Picker(L10n.t("NPM 源"), selection: $npmRegistry) {
+                                // 当前值不在预设内时补一个 tag，避免无效 selection 告警
+                                if !npmMirrors.contains(npmRegistry), !npmRegistry.isEmpty {
+                                    Text(npmRegistry).tag(npmRegistry)
+                                }
+                                ForEach(npmMirrors, id: \.self) { mirror in
+                                    Text(mirror).tag(mirror)
+                                }
                             }
                         }
                         Picker(L10n.t("时区"), selection: $timezone) {
@@ -549,12 +565,13 @@ struct AIAgentSettingsView: View {
         isSaving = true
         defer { isSaving = false }
         do {
-            // other/update：OpenClaw 不携带控制台账号字段、QwenPaw 不带时区（抓包确认）
+            // other/update：OpenClaw 不携带控制台账号字段、QwenPaw 不带时区（抓包确认）；
+            // Hermes 隐藏的浏览器/NPM 源回传服务端原值（npmRegistry 状态被折叠过，取 config 原值）
             var otherReq = AIAgentOtherUpdateRequest(
                 agentId: agentId,
                 userTimezone: isCopaw ? nil : timezone,
-                browserEnabled: browserEnabled,
-                npmRegistry: npmRegistry)
+                browserEnabled: isHermes ? (config?.browserEnabled ?? true) : browserEnabled,
+                npmRegistry: isHermes ? (config?.npmRegistry ?? "") : npmRegistry)
             if !isOpenClaw {
                 otherReq.dashboardUsername = username
                 otherReq.dashboardPassword = password
