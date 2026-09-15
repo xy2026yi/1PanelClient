@@ -32,8 +32,10 @@ struct WebsitesTab: View {
     // 长按行菜单：单站启停 / 删除确认
     @State private var pendingRowOperate: (website: Website, operate: String)?
     @State private var pendingRowDelete: Website?
-    /// 长按弹出的半屏操作菜单目标
+    /// 长按行的半屏操作菜单目标
     @State private var actionWebsite: Website?
+    /// 单击行推入的网站详情（tap 手势 + item destination 编程式导航）
+    @State private var pushedWebsite: Website?
     /// 挂起的菜单动作：菜单完全收起（sheet onDismiss）后再执行，
     /// 避免与下一级 alert/多选切换的呈现竞争
     @State private var pendingMenuAction: (() -> Void)?
@@ -135,6 +137,10 @@ struct WebsitesTab: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateWebsiteView(vm: vm)
+        }
+        // 单击行进入详情（pushedWebsite 由行 tap 手势驱动；pop 时自动置 nil）
+        .navigationDestination(item: $pushedWebsite) { w in
+            WebsiteDetailView(website: w, vm: vm)
         }
         .navigationDestination(isPresented: $showGroupManage) {
             GroupManageView(server: server, scope: .website) {
@@ -383,24 +389,24 @@ struct WebsitesTab: View {
                         if isSelecting {
                             selectingRow(w)
                         } else {
-                            // 直接目标 NavigationLink，不用 navigationDestination(for: Website.self)：
-                            // 本页可经「管理-网站列表」与「多机管理-节点-网站」两条路径先后入栈，
-                            // 值类型注册在同栈共存时会触发 duplicate navigationDestination 警告
-                            NavigationLink {
-                                WebsiteDetailView(website: w, vm: vm)
-                            } label: {
-                                WebsiteRow(website: w)
-                            }
-                            // 长按弹半屏操作菜单（多选/启停/删除），与文件页风格一致
-                            .onLongPressGesture(minimumDuration: 0.5) {
-                                Haptic.selection()
-                                actionWebsite = w
-                            }
-                            .onAppear {
-                                if w.id == vm.websites.last?.id {
-                                    Task { await vm.loadMoreWebsites() }
+                            // 单击/长按自处理（与文件页同构）：NavigationLink 的内置点击
+                            // 会与外挂长按手势在整行 contentShape 上竞争（单击失灵），
+                            // 改为 tap 手势 + navigationDestination(item:) 编程式推入
+                            WebsiteRow(website: w)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    pushedWebsite = w
                                 }
-                            }
+                                // 长按弹半屏操作菜单（多选/启停/删除）
+                                .onLongPressGesture(minimumDuration: 0.5) {
+                                    Haptic.selection()
+                                    actionWebsite = w
+                                }
+                                .onAppear {
+                                    if w.id == vm.websites.last?.id {
+                                        Task { await vm.loadMoreWebsites() }
+                                    }
+                                }
                         }
                     }
                     if !isSelecting && (vm.websites.count < vm.total || vm.isLoadingMore) {
