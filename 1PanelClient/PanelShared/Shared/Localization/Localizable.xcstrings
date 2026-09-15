@@ -32208,6 +32208,28 @@
           }
         }
       }
+    },
+    "删除频道" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Channel"
+          }
+        }
+      }
+    },
+    "确定删除该频道的配置吗？删除后需要重新配置才能使用。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this channel's configuration? You will need to reconfigure it to use it again."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

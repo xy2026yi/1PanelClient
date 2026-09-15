@@ -265,6 +265,73 @@ private struct ChannelPolicyPicker: View {
     }
 }
 
+/// Hermes 频道删除（toolbar trash + 确认弹窗 + POST channel/delete {agentId,type}）。
+/// 成功后 dismiss，频道列表 onAppear 会重拉状态对齐徽标（抓包 2026-09-15）
+private struct HermesChannelDeleteModifier: ViewModifier {
+    let client: APIClient
+    let agentId: Int
+    /// 频道类型（qqbot / wecom / dingtalk / feishu / telegram）
+    let type: String
+    /// false 时不显示删除入口（非 Hermes 智能体不挂删除）
+    var isEnabled: Bool = true
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirmDelete = false
+    @State private var isDeleting = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+
+    func body(content: Content) -> some View {
+        content
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if isEnabled {
+                        if isDeleting {
+                            ProgressView()
+                        } else {
+                            Button(role: .destructive) {
+                                confirmDelete = true
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .accessibilityLabel(L10n.t("删除频道"))
+                        }
+                    }
+                }
+            }
+            .alert(L10n.t("删除频道"), isPresented: $confirmDelete) {
+                Button(L10n.t("取消"), role: .cancel) {}
+                Button(L10n.t("删除"), role: .destructive) {
+                    Haptic.warning()
+                    Task { await deleteChannel() }
+                }
+            } message: {
+                Text(L10n.t("确定删除该频道的配置吗？删除后需要重新配置才能使用。"))
+            }
+            .alert(L10n.t("提示"), isPresented: $showError) {
+                Button(L10n.t("好的"), role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "")
+            }
+    }
+
+    private func deleteChannel() async {
+        isDeleting = true
+        defer { isDeleting = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentChannelDelete.path,
+                body: AIAgentChannelDeleteRequest(agentId: agentId, type: type),
+                as: EmptyResponse.self)
+            dismiss()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+}
+
 /// 白名单编辑（策略=白名单时显示，一行一个；设置页 allowedOrigins 复用）
 struct WhitelistEditor: View {
     let title: String
@@ -638,6 +705,15 @@ struct AIAgentWeixinChannelView: View {
         .task {
             enabled = initialEnabled || enabled
         }
+        // 微信无 get 接口：下拉刷新插件安装状态（驱动「删除对接」入口可见性）
+        .refreshable {
+            if let resp: AIAgentPluginStatus = try? await client.send(
+                path: APIEndpoint.aiAgentPluginCheck.path,
+                body: AIAgentPluginCheckRequest(agentId: agentId, type: "weixin", checkLatest: false),
+                as: AIAgentPluginStatus.self) {
+                pluginInstalled = (resp.installed == true)
+            }
+        }
         .onDisappear { isPolling = false }
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
@@ -848,6 +924,9 @@ struct AIAgentQQChannelView: View {
             }
         }
         .task { await load() }
+        .refreshable { await load() }
+        .modifier(HermesChannelDeleteModifier(
+            client: client, agentId: agentId, type: "qqbot", isEnabled: isHermes))
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -986,13 +1065,21 @@ struct AIAgentQQChannelView: View {
                 path: APIEndpoint.aiAgentChannelGet.path.replacingOccurrences(of: ":type", with: "qqbot"),
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelQQBot.self)
-            c = resp
-            savedC = resp
+            var loaded = resp
+            // Hermes：未配置时 dm/groupPolicy 为空串，Picker 折叠首项「配对码」
+            // 会显示与实际不符（网页端默认/提交均为 open）；归一后显示与提交一致
+            if isHermes {
+                loaded.enabled = true
+                if (loaded.dmPolicy ?? "").isEmpty { loaded.dmPolicy = "open" }
+                if (loaded.groupPolicy ?? "").isEmpty { loaded.groupPolicy = "open" }
+            }
+            c = loaded
+            savedC = loaded
             if isOpenClaw {
-                bots = resp.bots ?? []
+                bots = loaded.bots ?? []
             } else {
-                bot = resp.bots?.first ?? bot
-                extraBots = Array((resp.bots ?? []).dropFirst())
+                bot = loaded.bots?.first ?? bot
+                extraBots = Array((loaded.bots ?? []).dropFirst())
             }
             loadError = nil
         } catch {
@@ -1007,8 +1094,13 @@ struct AIAgentQQChannelView: View {
         out.agentId = agentId
         // update 体不含 get 回传的 installed 标记（抓包确认）
         out.installed = nil
-        // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）
-        if isHermes { out.enabled = true }
+        // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）；
+        // 策略空串按网页端提交口径回退 open（服务端 required 校验拒绝空）
+        if isHermes {
+            out.enabled = true
+            if (out.dmPolicy ?? "").isEmpty { out.dmPolicy = "open" }
+            if (out.groupPolicy ?? "").isEmpty { out.groupPolicy = "open" }
+        }
         if isOpenClaw {
             // OpenClaw 抓包 update 体：{agentId, enabled, bots}（无顶层策略）；
             // Bot 编辑走草稿 + 保存按钮（删除/插件即时保存）
@@ -1226,6 +1318,9 @@ struct AIAgentWecomChannelView: View {
             }
         }
         .task { await load() }
+        .refreshable { await load() }
+        .modifier(HermesChannelDeleteModifier(
+            client: client, agentId: agentId, type: "wecom", isEnabled: isHermes))
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -1235,12 +1330,19 @@ struct AIAgentWecomChannelView: View {
 
     private func load() async {
         do {
-            c = try await client.send(
+            var loaded = try await client.send(
                 path: APIEndpoint.aiAgentChannelGet.path.replacingOccurrences(of: ":type", with: "wecom"),
                 body: AIAgentChannelRequest(agentId: agentId),
                 as: AIChannelWecom.self)
-            // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）
-            if isHermes { c.enabled = true }
+            // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）；
+            // 未配置时策略为空串（服务端 required 校验拒绝空），按网页端
+            // 提交口径归一 open，避免 Picker 折叠首项显示与实际不符
+            if isHermes {
+                loaded.enabled = true
+                if (loaded.dmPolicy ?? "").isEmpty { loaded.dmPolicy = "open" }
+                if (loaded.groupPolicy ?? "").isEmpty { loaded.groupPolicy = "open" }
+            }
+            c = loaded
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -1253,6 +1355,13 @@ struct AIAgentWecomChannelView: View {
         var out = c
         out.agentId = agentId
         out.installed = nil
+        // Hermes：策略空串按网页端提交口径回退 open（AgentWecomConfig-UpdateReq
+        // 对 DmPolicy/GroupPolicy required，抓包 update 恒传 open）
+        if isHermes {
+            out.enabled = true
+            if (out.dmPolicy ?? "").isEmpty { out.dmPolicy = "open" }
+            if (out.groupPolicy ?? "").isEmpty { out.groupPolicy = "open" }
+        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -1399,6 +1508,9 @@ struct AIAgentDingtalkChannelView: View {
             }
         }
         .task { await load() }
+        .refreshable { await load() }
+        .modifier(HermesChannelDeleteModifier(
+            client: client, agentId: agentId, type: "dingtalk", isEnabled: isHermes))
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -1582,12 +1694,20 @@ struct AIAgentDingtalkChannelView: View {
                 if (loaded.groupSessionScope ?? "").isEmpty { loaded.groupSessionScope = "group_sender" }
                 // 抓包确认：未配置时私聊白名单保存默认 ["*"]，切换白名单时输入框预填 *
                 if (loaded.allowFrom ?? []).isEmpty { loaded.allowFrom = ["*"] }
-            } else if (loaded.groupSessionScope ?? "").isEmpty {
-                // 未配置（scope 为空，网页端保存必带有效值）时按默认值回显；
-                // 不以 ackText 空串判定——用户主动清空回执保存后重进不应被回填
-                loaded.separateSessionByConversation = true
-                loaded.groupSessionScope = "group_sender"
-                loaded.ackText = L10n.t("任务已接收，处理中...")
+            } else {
+                if isHermes {
+                    // Hermes 未配置时 dmPolicy 为空串（UpdateReq required 拒绝空），
+                    // 表单无群组策略控件但 update 恒传 open（抓包），归一显示与提交一致
+                    loaded.enabled = true
+                    if (loaded.dmPolicy ?? "").isEmpty { loaded.dmPolicy = "open" }
+                }
+                if (loaded.groupSessionScope ?? "").isEmpty {
+                    // 未配置（scope 为空，网页端保存必带有效值）时按默认值回显；
+                    // 不以 ackText 空串判定——用户主动清空回执保存后重进不应被回填
+                    loaded.separateSessionByConversation = true
+                    loaded.groupSessionScope = "group_sender"
+                    loaded.ackText = L10n.t("任务已接收，处理中...")
+                }
             }
             c = loaded
             savedC = loaded
@@ -1611,8 +1731,14 @@ struct AIAgentDingtalkChannelView: View {
         out.agentId = agentId
         // update 体不含 get 回传的 installed 标记（抓包确认）
         out.installed = nil
-        // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）
-        if isHermes { out.enabled = true }
+        // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）；
+        // AgentDingTalkConfig-UpdateReq 对 DmPolicy required，表单无群组策略
+        // 控件但 update 恒传 open（抓包），空串按网页端口径回退
+        if isHermes {
+            out.enabled = true
+            if (out.dmPolicy ?? "").isEmpty { out.dmPolicy = "open" }
+            if (out.groupPolicy ?? "").isEmpty { out.groupPolicy = "open" }
+        }
         if isOpenClaw {
             out.bots = bots
         } else {
@@ -1857,6 +1983,9 @@ struct AIAgentFeishuChannelView: View {
             }
         }
         .task { await load() }
+        .refreshable { await load() }
+        .modifier(HermesChannelDeleteModifier(
+            client: client, agentId: agentId, type: "feishu", isEnabled: isHermes))
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -2049,6 +2178,12 @@ struct AIAgentFeishuChannelView: View {
             // 空值归一（未配置时 replyMode/requireMention 可能为空串，抓包默认 auto/true）
             if (loaded.replyMode ?? "").isEmpty { loaded.replyMode = "auto" }
             if (loaded.requireMention ?? "").isEmpty { loaded.requireMention = "true" }
+            if isHermes {
+                // AgentFeishuConfig-UpdateReq 对顶层 GroupPolicy required（get 未配置
+                // 返回空串）；私聊策略在各 Bot 内，同样空串归一 open（抓包提交口径）
+                loaded.enabled = true
+                if (loaded.groupPolicy ?? "").isEmpty { loaded.groupPolicy = "open" }
+            }
             c = loaded
             savedC = loaded
             if isOpenClaw {
@@ -2056,6 +2191,7 @@ struct AIAgentFeishuChannelView: View {
                 savedBots = bots
             } else {
                 bot = loaded.bots?.first ?? bot
+                if isHermes, (bot.dmPolicy ?? "").isEmpty { bot.dmPolicy = "open" }
                 extraBots = Array((loaded.bots ?? []).dropFirst())
             }
             loadError = nil
@@ -2075,8 +2211,14 @@ struct AIAgentFeishuChannelView: View {
         out.domain = nil
         out.connectionMode = nil
         out.dmPolicy = nil
-        // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）
-        if isHermes { out.enabled = true }
+        // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）；
+        // 顶层 GroupPolicy 与 bots[0] 的 DmPolicy 空串按网页端口径回退 open
+        // （AgentFeishuConfig-UpdateReq required 拒绝空）
+        if isHermes {
+            out.enabled = true
+            if (out.groupPolicy ?? "").isEmpty { out.groupPolicy = "open" }
+            if (bot.dmPolicy ?? "").isEmpty { bot.dmPolicy = "open" }
+        }
         if isOpenClaw {
             out.bots = bots
         } else {
@@ -2327,6 +2469,9 @@ struct AIAgentTelegramChannelView: View {
             }
         }
         .task { await load() }
+        .refreshable { await load() }
+        .modifier(HermesChannelDeleteModifier(
+            client: client, agentId: agentId, type: "telegram", isEnabled: isHermes))
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
