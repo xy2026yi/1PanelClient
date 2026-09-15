@@ -32186,6 +32186,28 @@
           }
         }
       }
+    },
+    "此目录下没有子目录或匹配文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No subdirectories or matching files in this directory"
+          }
+        }
+      }
+    },
+    "路径需选择到 docker-compose.yml 文件；名称默认取文件所在目录名，可修改。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The path must point to a docker-compose.yml file. The name defaults to the file's parent directory and can be edited."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

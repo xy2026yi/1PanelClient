@@ -677,6 +677,8 @@ struct ContainerComposeCreateView: View {
     @State private var from = "edit"
     @State private var dirName = ""
     @State private var pathText = ""
+    /// path 来源：名称是否被手动编辑过（未编辑时随路径自动带出目录名）
+    @State private var nameManuallyEdited = false
     @State private var file = ""
     @State private var envRows: [ContainerKVPair] = []
     @State private var forcePull = false
@@ -695,21 +697,19 @@ struct ContainerComposeCreateView: View {
     }
 
     private var nameValue: String {
-        // path 来源 name=路径所在目录名、dirName 空；其余相反（抓包确认：
-        // name 须符 ^[a-z0-9][a-z0-9_-]{0,255}$，传完整路径会被服务端拒绝）
-        if from == "path" {
-            let dir = (pathText.trimmingCharacters(in: .whitespaces) as NSString).deletingLastPathComponent
-            return dir.split(separator: "/").last.map(String.init) ?? ""
-        }
-        return dirName.trimmingCharacters(in: .whitespaces)
+        // 抓包 2026-09-15：path 来源 name 为独立输入的名称（如 alpine-1）、
+        // dirName 恒空；name 须符 ^[a-z0-9][a-z0-9_-]{0,255}$
+        dirName.trimmingCharacters(in: .whitespaces)
     }
 
     private var canSubmit: Bool {
         switch from {
         case "path":
             let p = pathText.trimmingCharacters(in: .whitespaces)
-            // .yml / .yaml 均合法（docker compose 支持 yaml，服务端不限制后缀）
+            // path 必须是完整 compose 文件路径（抓包：.../xxx/docker-compose.yml）；
+            // .yml / .yaml 均合法；名称必填
             return !p.isEmpty && (p.hasSuffix(".yml") || p.hasSuffix(".yaml"))
+                && !dirName.trimmingCharacters(in: .whitespaces).isEmpty
         case "template":
             return !dirName.trimmingCharacters(in: .whitespaces).isEmpty && selectedTemplate != nil
         default:
@@ -744,17 +744,30 @@ struct ContainerComposeCreateView: View {
                         }
                     }
                     if from == "path" {
-                        // 路径来源接文件浏览器（保留手输，folder 按钮选择服务器路径）
-                        FilePathBrowseRow(title: L10n.t("路径"), path: $pathText, client: client)
-                    } else {
-                        TextField(L10n.t("名称"), text: $dirName)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
+                        // 路径必须选到 compose 文件（抓包：完整 docker-compose.yml 路径）
+                        FilePathBrowseRow(
+                            title: L10n.t("路径"), path: $pathText, client: client,
+                            fileExtensions: ["yml", "yaml"])
                     }
+                    TextField(L10n.t("名称"), text: $dirName)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .onChange(of: dirName) { old, new in
+                            // 区分用户编辑与自动带出：手动改动后不再跟随路径
+                            if !new.isEmpty && new != old { nameManuallyEdited = true }
+                        }
+                        .onChange(of: pathText) { _, newPath in
+                            guard !nameManuallyEdited else { return }
+                            // 未手动命名时随路径自动带出所在目录名（网页端行为）
+                            let dir = (newPath.trimmingCharacters(in: .whitespaces) as NSString).deletingLastPathComponent
+                            dirName = dir.split(separator: "/").last.map(String.init) ?? dirName
+                        }
                 } header: {
                     SectionLabel(title: L10n.t("基本信息"), systemImage: "square.stack.3d.up")
                 } footer: {
-                    if from != "path" {
+                    if from == "path" {
+                        Text(L10n.t("路径需选择到 docker-compose.yml 文件；名称默认取文件所在目录名，可修改。"))
+                    } else {
                         Text(L10n.t("编排文件保存路径：/opt/1panel/docker/compose/名称；若 Docker Compose 中指定了项目名称，则优先使用该名称。"))
                     }
                 }
@@ -826,7 +839,7 @@ struct ContainerComposeCreateView: View {
             template: from == "template" ? selectedTemplate : nil,
             env: KVRowsEditor.joined(envRows),
             forcePull: forcePull)
-        // 抓包：test 请求同样携带 name（path 来源为目录名）
+        // 抓包：test 请求同样携带 name（path 来源为名称输入框的值）
         var testReqNamed = testReq
         testReqNamed.name = nameField
         do {

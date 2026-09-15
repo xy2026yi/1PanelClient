@@ -593,15 +593,19 @@ private struct DiskMountFormSheet: View {
 
 // MARK: - 服务端目录选择器（挂载点浏览；支持新建文件夹）
 
-/// 轻量目录浏览器：仅列子目录，可逐级进入/返回、新建文件夹、选定当前目录。
-/// 数据来自 POST /api/v2/files/search（只取 isDir 项），复用 FileItem / FileCreateSheet。
+/// 轻量路径浏览器：仅列子目录，可逐级进入/返回、新建文件夹、选定当前目录；
+/// 文件模式（fileExtensions 非空）额外列出匹配扩展名的文件，点击文件即选定。
+/// 数据来自 POST /api/v2/files/search（目录取 isDir 项），复用 FileItem / FileCreateSheet。
 struct DirectoryPickerSheet: View {
-    /// 选定目录回调（绝对路径，以 / 开头）
+    /// 选定路径回调（绝对路径，以 / 开头；目录模式=目录路径，文件模式=文件路径）
     let onPick: (String) -> Void
+    /// 文件扩展名过滤：nil = 目录选择模式；非 nil = 文件选择模式（如编排 yml）
+    var fileExtensions: [String]? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var currentPath = "/"
     @State private var dirs: [FileItem] = []
+    @State private var files: [FileItem] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showCreateFolder = false
@@ -609,17 +613,21 @@ struct DirectoryPickerSheet: View {
 
     private let client: APIClient
 
-    init(client: APIClient, onPick: @escaping (String) -> Void) {
+    init(client: APIClient, fileExtensions: [String]? = nil, onPick: @escaping (String) -> Void) {
         self.client = client
+        self.fileExtensions = fileExtensions
         self.onPick = onPick
     }
+
+    /// 文件选择模式（点文件即选定，无「选择此目录」按钮）
+    private var isFileMode: Bool { fileExtensions != nil }
 
     var body: some View {
         NavigationStack {
             Group {
-                if isLoading && dirs.isEmpty {
+                if isLoading && dirs.isEmpty && files.isEmpty {
                     LoadingStateView()
-                } else if let err = errorMessage, !err.isEmpty, dirs.isEmpty {
+                } else if let err = errorMessage, !err.isEmpty, dirs.isEmpty && files.isEmpty {
                     ContentUnavailableView {
                         Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                     } description: {
@@ -628,16 +636,18 @@ struct DirectoryPickerSheet: View {
                         Button(L10n.t("重试")) { Task { await loadDir(currentPath) } }
                             .buttonStyle(.borderedProminent)
                     }
-                } else if dirs.isEmpty {
+                } else if dirs.isEmpty && files.isEmpty {
                     ContentUnavailableView(
-                        L10n.t("此目录下没有子目录"),
+                        isFileMode
+                            ? L10n.t("此目录下没有子目录或匹配文件")
+                            : L10n.t("此目录下没有子目录"),
                         systemImage: "folder"
                     )
                 } else {
                     dirList
                 }
             }
-            .navigationTitle(L10n.t("选择目录"))
+            .navigationTitle(isFileMode ? L10n.t("选择文件") : L10n.t("选择目录"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -651,10 +661,12 @@ struct DirectoryPickerSheet: View {
                     }
                     .accessibilityLabel(L10n.t("新建文件夹"))
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("选择此目录")) {
-                        onPick(currentPath)
-                        dismiss()
+                if !isFileMode {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(L10n.t("选择此目录")) {
+                            onPick(currentPath)
+                            dismiss()
+                        }
                     }
                 }
             }
@@ -696,6 +708,24 @@ struct DirectoryPickerSheet: View {
                 }
                 .buttonStyle(.plain)
             }
+            // 文件选择模式：匹配扩展名的文件行，点击即选定
+            ForEach(files) { item in
+                Button {
+                    onPick(item.path)
+                    dismiss()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "doc.fill")
+                            .foregroundStyle(.blue)
+                        Text(item.name)
+                            .foregroundStyle(.primary)
+                            .font(.system(.subheadline, design: .monospaced))
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
         .listStyle(.insetGrouped)
     }
@@ -713,14 +743,22 @@ struct DirectoryPickerSheet: View {
                 as: FileSearchResponse.self
             )
             guard generation == loadGeneration else { return }
-            dirs = (resp.items ?? [])
-                .filter { $0.isDir }
+            let items = (resp.items ?? [])
                 .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            dirs = items.filter { $0.isDir }
+            files = isFileMode
+                ? items.filter { item in
+                    guard !item.isDir else { return false }
+                    let ext = (item.name as NSString).pathExtension.lowercased()
+                    return fileExtensions!.contains { $0.lowercased() == ext }
+                }
+                : []
             errorMessage = nil
         } catch {
             guard generation == loadGeneration, !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
             dirs = []
+            files = []
         }
     }
 }

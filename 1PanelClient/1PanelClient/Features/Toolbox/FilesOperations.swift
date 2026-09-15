@@ -927,6 +927,8 @@ struct FilePathBrowseRow: View {
     let title: String
     @Binding var path: String
     let client: APIClient
+    /// 非空 = 文件选择模式（仅可选匹配扩展名的文件，如编排 yml）
+    var fileExtensions: [String]? = nil
 
     @State private var showPicker = false
 
@@ -946,10 +948,12 @@ struct FilePathBrowseRow: View {
                 Image(systemName: "folder")
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel(L10n.t("选择目录"))
+            .accessibilityLabel(fileExtensions == nil ? L10n.t("选择目录") : L10n.t("选择文件"))
         }
         .sheet(isPresented: $showPicker) {
-            DirectoryPickerSheet(client: client) { picked in path = picked }
+            DirectoryPickerSheet(client: client, fileExtensions: fileExtensions) { picked in
+                path = picked
+            }
         }
     }
 }
