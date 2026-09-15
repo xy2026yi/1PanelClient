@@ -70,7 +70,7 @@ struct AIAgentChannelsView: View {
     var agentType: String? = nil
 
     @State private var statusMap: [String: AIChannelEnabledStatus] = [:]
-    /// OpenClaw 的 TG/Discord get 无 installed 字段：plugin/check 补齐的插件状态
+    /// OpenClaw 的微信无 get 接口：plugin/check(weixin) 补齐的插件安装状态
     @State private var pluginInstalledMap: [String: Bool] = [:]
     @State private var isLoading = true
     /// 首次加载是否完成（onAppear 返回本页时据此刷新徽标，首次交给 .task）
@@ -127,29 +127,26 @@ struct AIAgentChannelsView: View {
         .refreshable { await loadAllStatus() }
     }
 
-    /// 行尾状态徽标：OpenClaw 频道为插件，按插件 installed 判断并与频道页插件区
-    /// 对齐（get 的 enabled 未安装时也回 true，会误显「已启用」；QQ/企微/钉钉/
-    /// 飞书 get 带 installed，TG/Discord get 无 installed、weixin 无 get——三者按
-    /// plugin/check 结果）；Hermes 无启用开关（保存恒传 enabled:true），固定显示
-    /// 已启用；其余按 enabled
+    /// 行尾状态徽标：OpenClaw 频道为插件，仅显示 未安装 / 已安装 两态
+    /// （QQ/企微/钉钉/飞书 get 带 installed；微信无 get、按 plugin/check(weixin)
+    /// 结果）；Telegram/Discord 为内置连接器、无插件概念（plugin/check 的 Type
+    /// oneof 校验不含这两类，请求会 400），不显示徽标；Hermes 网页端频道列表
+    /// 无状态列，同样不显示；其余（QwenPaw）按 enabled
     @ViewBuilder
     private func channelBadge(_ kind: AIChannelKind) -> some View {
         if agentType == "openclaw" {
-            if let installed = statusMap[kind.rawValue]?.installed ?? pluginInstalledMap[kind.rawValue] {
+            if kind != .telegram, kind != .discord,
+               let installed = statusMap[kind.rawValue]?.installed ?? pluginInstalledMap[kind.rawValue] {
                 StatusBadge(
-                    text: installed ? L10n.t("已启用") : L10n.t("未安装"),
+                    text: installed ? L10n.t("已安装") : L10n.t("未安装"),
                     color: installed ? .statusRunning : .secondary
                 )
             }
-        } else if let st = statusMap[kind.rawValue] {
-            if agentType == "hermes-agent" {
-                StatusBadge(text: L10n.t("已启用"), color: .statusRunning)
-            } else if let enabled = st.enabled {
-                StatusBadge(
-                    text: enabled ? L10n.t("已启用") : L10n.t("未启用"),
-                    color: enabled ? .statusRunning : .secondary
-                )
-            }
+        } else if agentType != "hermes-agent", let enabled = statusMap[kind.rawValue]?.enabled {
+            StatusBadge(
+                text: enabled ? L10n.t("已启用") : L10n.t("未启用"),
+                color: enabled ? .statusRunning : .secondary
+            )
         }
     }
 
@@ -188,8 +185,9 @@ struct AIAgentChannelsView: View {
     }
 
     /// 并行读取频道状态（微信无 get 接口，跳过；单条失败不影响其他）。
-    /// OpenClaw 的 TG/Discord get 无 installed 字段、weixin 无 get——三者再按
-    /// plugin/check 补齐（plugin/check 支持 type:"weixin"，抓包核对）
+    /// OpenClaw 的微信无 get——再按 plugin/check(weixin) 补齐安装态；
+    /// Telegram/Discord 为内置连接器，plugin/check 的 Type oneof 校验不含
+    /// 这两类（2026-09-16 反馈 400 参数错误），不发起请求
     private func loadAllStatus() async {
         await withTaskGroup(of: (String, AIChannelEnabledStatus?).self) { group in
             for kind in AIChannelKind.allCases where kind != .weixin {
@@ -209,13 +207,13 @@ struct AIAgentChannelsView: View {
             }
             for await (key, status) in group {
                 // get 失败（如频道刚被删除）时置 nil 清掉旧徽标，
-                // 不再残留上一次的「已启用」
+                // 不再残留上一次的「已安装」
                 statusMap[key] = status
             }
         }
         if agentType == "openclaw" {
             await withTaskGroup(of: (String, Bool?).self) { group in
-                for kind in [AIChannelKind.telegram, .discord, .weixin] {
+                for kind in [AIChannelKind.weixin] {
                     group.addTask { [client] in
                         do {
                             let resp: AIAgentPluginStatus = try await client.send(
@@ -231,7 +229,7 @@ struct AIAgentChannelsView: View {
                 }
                 for await (key, installed) in group {
                     // check 失败也写入（nil）：与 get 侧同口径清残留，
-                    // 避免下次刷新继续显示上一次的「已启用」
+                    // 避免下次刷新继续显示上一次的「已安装」
                     pluginInstalledMap[key] = installed
                 }
             }
@@ -2641,7 +2639,7 @@ struct AIAgentTelegramChannelView: View {
 
     /// Hermes：未配置频道启用开关默认开；网页核对无 Bot 列表/群组策略/代理/流式
     private var isHermes: Bool { agentType == "hermes-agent" }
-    /// OpenClaw：频道为插件（版本/安装/升级/卸载）；网页核对无群聊需@机器人
+    /// OpenClaw：内置连接器（plugin/check 的 Type oneof 不含本类型，无插件区）；网页核对无群聊需@机器人
     private var isOpenClaw: Bool { agentType == "openclaw" }
 
     /// 批准配对携带的账户：defaultAccount 空串（基础版 get）回退默认 Bot；
@@ -2663,11 +2661,8 @@ struct AIAgentTelegramChannelView: View {
                     }
                 }
             } else {
-                if isOpenClaw {
-                    ChannelPluginSection(client: client, agentId: agentId, type: "telegram") {
-                        Task { await load() }
-                    }
-                }
+                // Telegram 为 OpenClaw 内置连接器：plugin/check 的 Type oneof
+                // 校验不含 telegram（400 参数错误，2026-09-16 反馈），无插件区
 
                 Section {
                     // OpenClaw 顶层插件状态开关：切换即提交；服务端把默认 Bot 的
@@ -3200,7 +3195,7 @@ struct AIAgentDiscordChannelView: View {
 
     /// Hermes：未配置频道启用开关默认开；网页核对无 Bot 列表/群组策略/代理
     private var isHermes: Bool { agentType == "hermes-agent" }
-    /// OpenClaw：频道为插件（版本/安装/升级/卸载）；网页核对无群聊需@机器人
+    /// OpenClaw：内置连接器（plugin/check 的 Type oneof 不含本类型，无插件区）；网页核对无群聊需@机器人
     private var isOpenClaw: Bool { agentType == "openclaw" }
 
     /// 批准配对携带的账户：defaultAccount 空串回退默认 Bot
@@ -3228,11 +3223,8 @@ struct AIAgentDiscordChannelView: View {
                     }
                 }
             } else {
-                if isOpenClaw {
-                    ChannelPluginSection(client: client, agentId: agentId, type: "discord") {
-                        Task { await load() }
-                    }
-                }
+                // Discord 为 OpenClaw 内置连接器：plugin/check 的 Type oneof
+                // 校验不含 discord（400 参数错误，2026-09-16 反馈），无插件区
 
                 Section {
                     // OpenClaw 顶层插件状态开关：切换即提交；服务端把默认 Bot 的
