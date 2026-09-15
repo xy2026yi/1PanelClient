@@ -157,3 +157,42 @@ struct FileOperationsModelsTests {
         #expect(keys.keys == nil)
     }
 }
+
+// MARK: - 批量压缩（多选 · 随机名）
+
+@Suite("文件批量压缩")
+struct FileBatchCompressTests {
+
+    private func encode(_ req: some Encodable) throws -> [String: Any] {
+        try JSONSerialization.jsonObject(with: JSONEncoder().encode(req)) as! [String: Any]
+    }
+
+    @Test("批量压缩编码：多文件 + zip + replace:false + 空 secret（抓包 2026-09-15）")
+    func encodeBatchCompress() throws {
+        let req = FileCompressRequest(
+            files: ["/1G/ftp_test/1/1", "/1G/ftp_test/1/2"],
+            type: "zip", dst: "/1G/ftp_test/1",
+            name: FileCompressRequest.randomName(),
+            replace: false, secret: "", taskID: "c341edf8-5b29-4b0e-a310-bfcf7743d0ff")
+        let obj = try encode(req)
+        #expect(obj["files"] as? [String] == ["/1G/ftp_test/1/1", "/1G/ftp_test/1/2"])
+        #expect(obj["type"] as? String == "zip")
+        #expect(obj["dst"] as? String == "/1G/ftp_test/1")
+        #expect(obj["replace"] as? Bool == false)
+        #expect(obj["secret"] as? String == "")
+        #expect(obj["taskID"] as? String == "c341edf8-5b29-4b0e-a310-bfcf7743d0ff")
+        // 随机名形态：6 位字母数字 + .zip
+        let name = try #require(obj["name"] as? String)
+        #expect(name.range(of: "^[A-Za-z0-9]{6}\\.zip$", options: .regularExpression) != nil)
+    }
+
+    @Test("随机名：两次生成不雷同、形态稳定")
+    func randomNameShape() {
+        let a = FileCompressRequest.randomName()
+        let b = FileCompressRequest.randomName()
+        #expect(a != b)
+        #expect(a.hasSuffix(".zip"))
+        #expect(a.count == 10)
+        #expect(FileCompressRequest.randomName(ext: "tar.gz").hasSuffix(".tar.gz"))
+    }
+}

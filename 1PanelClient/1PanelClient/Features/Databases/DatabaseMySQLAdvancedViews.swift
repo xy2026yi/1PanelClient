@@ -79,7 +79,8 @@ struct DatabaseMySQLPerformanceView: View {
     @State private var variables: [String: String]?
     @State private var isLoading = true
     @State private var loadError: String?
-    @State private var selectedPreset: MySQLTunePreset?
+    /// 选中的优化方案名（下拉选择；nil = 未选）
+    @State private var selectedPresetName: String?
     @State private var isApplying = false
     @State private var showApplyConfirm = false
     @State private var errorMessage: String?
@@ -91,6 +92,10 @@ struct DatabaseMySQLPerformanceView: View {
     init(system: DatabaseSystem) {
         self.system = system
         self.client = APIClient.shared(for: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+    }
+
+    private var selectedPreset: MySQLTunePreset? {
+        MySQLTunePresets.all.first { $0.name == selectedPresetName }
     }
 
     var body: some View {
@@ -143,26 +148,15 @@ struct DatabaseMySQLPerformanceView: View {
         }
     }
 
-    // MARK: 优化方案预设
+    // MARK: 优化方案预设（下拉选择）
 
     private var presetSection: some View {
         Section {
-            ForEach(MySQLTunePresets.all) { preset in
-                Button {
-                    withAnimation(Motion.standard) { selectedPreset = preset }
-                } label: {
-                    HStack {
-                        Text(preset.name)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        if selectedPreset?.name == preset.name {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(Color.accentColor)
-                        }
-                    }
-                    .contentShape(Rectangle())
+            Picker(L10n.t("优化方案"), selection: $selectedPresetName) {
+                Text(L10n.t("请选择")).tag(String?.none)
+                ForEach(MySQLTunePresets.all) { preset in
+                    Text(preset.name).tag(Optional(preset.name))
                 }
-                .buttonStyle(.plain)
             }
         } header: {
             SectionLabel(title: L10n.t("优化方案"), systemImage: "square.grid.2x2")

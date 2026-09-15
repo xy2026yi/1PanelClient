@@ -32,6 +32,11 @@ struct WebsitesTab: View {
     // 长按行菜单：单站启停 / 删除确认
     @State private var pendingRowOperate: (website: Website, operate: String)?
     @State private var pendingRowDelete: Website?
+    /// 长按弹出的半屏操作菜单目标
+    @State private var actionWebsite: Website?
+    /// 挂起的菜单动作：菜单完全收起（sheet onDismiss）后再执行，
+    /// 避免与下一级 alert/多选切换的呈现竞争
+    @State private var pendingMenuAction: (() -> Void)?
     /// OpenResty 未安装时的应用商店 VM（列表安装按钮直达应用详情，安装流程复用应用商店页面）
     @StateObject private var openRestyInstallVM: AppStoreViewModel
     /// 分组管理页所需服务器配置（init 时固定，避免 manager.current 中途切换）
@@ -151,6 +156,18 @@ struct WebsitesTab: View {
         } message: {
             Text(L10n.f("将删除选中的 %ld 个网站及其配置，该操作无法回滚，是否继续？", selectedIDs.count))
         }
+        // 长按行的半屏操作菜单（多选/启停/删除）
+        .sheet(item: $actionWebsite, onDismiss: {
+            runPendingMenuAction()
+        }) { w in
+            ActionBottomSheet(
+                title: w.displayName,
+                items: websiteActions(w),
+                onDismiss: { actionWebsite = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: websiteActions(w).count))])
+            .presentationDragIndicator(.visible)
+        }
         // 长按菜单：单站启停确认
         .alert(
             pendingRowOperate.map { $0.operate == "stop" ? L10n.t("停止") : L10n.t("启用") } ?? "",
@@ -252,6 +269,39 @@ struct WebsitesTab: View {
         ["running", "normal"].contains((w.status ?? "").lowercased())
     }
 
+    /// 长按行的半屏菜单项：多选 / 停止·启用 / 删除
+    /// （动作经 pendingMenuAction 挂起，菜单收起后再触发）
+    private func websiteActions(_ w: Website) -> [ActionMenuItem] {
+        [
+            ActionMenuItem(title: L10n.t("多选"), icon: "checkmark.circle", color: .blue) {
+                pendingMenuAction = {
+                    withAnimation(Motion.standard) {
+                        isSelecting = true
+                        selectedIDs.insert(w.id)
+                    }
+                }
+            },
+            ActionMenuItem(
+                title: isRunning(w) ? L10n.t("停止") : L10n.t("启用"),
+                icon: isRunning(w) ? "stop.fill" : "play.fill",
+                color: isRunning(w) ? .orange : .green
+            ) {
+                pendingMenuAction = {
+                    pendingRowOperate = (w, isRunning(w) ? "stop" : "start")
+                }
+            },
+            ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                pendingMenuAction = { pendingRowDelete = w }
+            },
+        ]
+    }
+
+    private func runPendingMenuAction() {
+        guard let action = pendingMenuAction else { return }
+        pendingMenuAction = nil
+        action()
+    }
+
     /// 批量启停/删除：POST batch/operate（delete 与启停共用端点，抓包确认）
     private func batchOperate(_ operate: String) async {
         let ids = Array(selectedIDs)
@@ -331,29 +381,10 @@ struct WebsitesTab: View {
                             } label: {
                                 WebsiteRow(website: w)
                             }
-                            // 长按菜单：多选 / 启停 / 删除（多选入口从右上角移到这里）
-                            .contextMenu {
-                                Button {
-                                    withAnimation(Motion.standard) {
-                                        isSelecting = true
-                                        selectedIDs.insert(w.id)
-                                    }
-                                } label: {
-                                    Label(L10n.t("多选"), systemImage: "checkmark.circle")
-                                }
-                                Button {
-                                    pendingRowOperate = (w, isRunning(w) ? "stop" : "start")
-                                } label: {
-                                    Label(
-                                        isRunning(w) ? L10n.t("停止") : L10n.t("启用"),
-                                        systemImage: isRunning(w) ? "stop.fill" : "play.fill"
-                                    )
-                                }
-                                Button(role: .destructive) {
-                                    pendingRowDelete = w
-                                } label: {
-                                    Label(L10n.t("删除"), systemImage: "trash")
-                                }
+                            // 长按弹半屏操作菜单（多选/启停/删除），与文件页风格一致
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                Haptic.selection()
+                                actionWebsite = w
                             }
                             .onAppear {
                                 if w.id == vm.websites.last?.id {

@@ -14,6 +14,7 @@ import CryptoKit
 // MARK: - 请求/响应模型
 
 /// POST /files/compress {files,type,dst,name,replace,secret,taskID}
+/// files 单文件（长按压缩，用户命名）或多文件（批量压缩，随机命名）
 struct FileCompressRequest: Encodable {
     let files: [String]
     let type: String
@@ -22,6 +23,13 @@ struct FileCompressRequest: Encodable {
     let replace: Bool
     let secret: String
     let taskID: String
+
+    /// 批量压缩的随机包名（网页端口径：6 位随机字母数字 + 扩展名，如 dcZdkf.zip）
+    static func randomName(ext: String = "zip") -> String {
+        let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        let random = String((0..<6).map { _ in chars.randomElement()! })
+        return random + "." + ext
+    }
 }
 
 /// POST /files/decompress {type,dst,path,secret,taskID}
@@ -1015,35 +1023,50 @@ struct FilesBatchBar: View {
     let onDelete: () -> Void
     let onMove: () -> Void
     let onPerm: () -> Void
+    /// 批量压缩（随机名称 zip，任务进度）
+    let onCompress: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             Button(action: onSelectAll) {
                 Label(
                     selectedCount >= totalCount ? L10n.t("取消全选") : L10n.t("全选"),
                     systemImage: selectedCount >= totalCount ? "circle" : "checkmark.circle"
                 )
-                .font(.caption)
+                .font(.subheadline)
             }
-            .buttonStyle(.bordered)
-            barButton(L10n.t("删除"), icon: "trash", color: .red, action: onDelete)
-            barButton(L10n.t("移动"), icon: "arrow.right.square", color: .orange, action: onMove)
-            barButton(L10n.t("权限"), icon: "lock.shield", color: .teal, action: onPerm)
+            .disabled(totalCount == 0)
+
+            Spacer()
+
+            Text(L10n.f("已选 %ld 项", selectedCount))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            // 操作收进下拉菜单（与网站多选栏一致），退出按钮在工具栏
+            Menu {
+                Button(action: onCompress) {
+                    Label(L10n.t("压缩"), systemImage: "doc.zipper")
+                }
+                Button(action: onMove) {
+                    Label(L10n.t("移动"), systemImage: "arrow.right.square")
+                }
+                Button(action: onPerm) {
+                    Label(L10n.t("权限"), systemImage: "lock.shield")
+                }
+                Button(role: .destructive, action: onDelete) {
+                    Label(L10n.t("删除"), systemImage: "trash")
+                }
+            } label: {
+                Label(L10n.t("批量操作"), systemImage: "ellipsis.circle")
+                    .font(.subheadline.bold())
+            }
+            .disabled(selectedCount == 0 || isOperating)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.bar)
         .overlay(alignment: .top) { Divider() }
-    }
-
-    private func barButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: icon)
-                .font(.caption)
-                .foregroundStyle(color)
-        }
-        .buttonStyle(.bordered)
-        .disabled(selectedCount == 0 || isOperating)
     }
 }
 

@@ -32032,6 +32032,17 @@
           }
         }
       }
+    },
+    "批量压缩" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batch Compress"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

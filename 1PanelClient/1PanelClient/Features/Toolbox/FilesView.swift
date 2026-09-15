@@ -376,6 +376,9 @@ struct FilesView: View {
                     },
                     onPerm: {
                         batchPermItems = filteredItems.filter { selectedPaths.contains($0.path) }
+                    },
+                    onCompress: {
+                        Task { await batchCompress() }
                     })
             }
         }
@@ -816,6 +819,34 @@ struct FilesView: View {
             errorMessage = L10n.f("%ld 项删除失败", failed)
         }
         await loadDir(currentPath)
+    }
+
+    /// 批量压缩：POST /files/compress {files[],type:zip,dst,name,replace:false,
+    /// secret:"",taskID}（抓包 2026-09-15）；名称自动随机（区别于单个压缩的用户命名），
+    /// 目标目录为当前目录，任务进度页轮询 taskID
+    private func batchCompress() async {
+        let targets = filteredItems.filter { selectedPaths.contains($0.path) }
+        guard !targets.isEmpty else { return }
+        isBatchOperating = true
+        defer { isBatchOperating = false }
+        let taskID = UUID().uuidString
+        let req = FileCompressRequest(
+            files: targets.map(\.path),
+            type: "zip",
+            dst: currentPath,
+            name: FileCompressRequest.randomName(),
+            replace: false,
+            secret: "",
+            taskID: taskID)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.filesCompress.path, body: req, as: EmptyResponse.self)
+            exitSelecting()
+            archiveTask = FileArchiveTask(taskID: taskID, title: L10n.t("批量压缩"))
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// 长按文件行的操作菜单项（多选/下载/压缩/解压/移动/权限/重命名/删除），
