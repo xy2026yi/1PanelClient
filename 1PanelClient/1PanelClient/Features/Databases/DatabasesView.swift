@@ -221,6 +221,7 @@ struct DatabasesView: View {
 // MARK: - 未安装占位行
 
 /// 未安装数据库的占位行：灰色品牌图标 + 名称 + 「未安装」标签
+/// （行已改为 Button 推入，补 chevron 保持 NavigationLink 的可点视觉提示）
 struct NotInstalledDatabaseRow: View {
     let category: DBCategory
 
@@ -235,8 +236,12 @@ struct NotInstalledDatabaseRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 2)
+        .contentShape(Rectangle())
     }
 }
 

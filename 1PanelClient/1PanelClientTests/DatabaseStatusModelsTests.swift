@@ -241,12 +241,13 @@ struct DatabaseRedisConfTests {
         #expect(obj["maxmemory"] as? String == "0mb")
     }
 
-    @Test("maxmemory 字节↔MB 换算")
+    @Test("maxmemory 字节↔MB 换算（非数字返回 nil，由调用方原样回传）")
     func maxmemoryConversion() {
-        #expect(RedisConfUpdateRequest.mb(fromBytesString: "0") == 0)
-        #expect(RedisConfUpdateRequest.mb(fromBytesString: nil) == 0)
-        #expect(RedisConfUpdateRequest.mb(fromBytesString: "abc") == 0)
-        #expect(RedisConfUpdateRequest.mb(fromBytesString: "268435456") == 256)
+        #expect(RedisConfUpdateRequest.mbFromBytes("0") == nil)
+        #expect(RedisConfUpdateRequest.mbFromBytes(nil) == nil)
+        #expect(RedisConfUpdateRequest.mbFromBytes("abc") == nil)
+        #expect(RedisConfUpdateRequest.mbFromBytes("268435456") == 256)
+        #expect(RedisConfUpdateRequest.mbFromBytes("1048576") == 1)
         #expect(RedisConfUpdateRequest.mbString(0) == "0mb")
         #expect(RedisConfUpdateRequest.mbString(512) == "512mb")
         #expect(RedisConfUpdateRequest.mbString(-3) == "0mb")

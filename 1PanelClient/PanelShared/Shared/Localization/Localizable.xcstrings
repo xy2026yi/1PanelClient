@@ -18382,17 +18382,6 @@
         }
       }
     },
-    "更新插件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Update Plugin"
-          }
-        }
-      }
-    },
     "更新容器「%@」任务已提交" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32106,6 +32095,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Timeout is the idle connection timeout; 0 means never disconnect. Max memory 0 means unlimited."
+          }
+        }
+      }
+    },
+    "更新插件 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Plugin %@"
           }
         }
       }

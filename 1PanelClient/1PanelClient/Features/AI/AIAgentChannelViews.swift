@@ -128,21 +128,21 @@ struct AIAgentChannelsView: View {
     }
 
     /// 行尾状态徽标：OpenClaw 频道为插件，按插件 installed 判断并与频道页插件区
-    /// 对齐（get 的 enabled 未安装时也回 true，会误显「已启用」；TG/Discord 的
-    /// get 无 installed，用 plugin/check 结果）；Hermes 无启用开关（保存恒传
-    /// enabled:true），固定显示已启用；其余按 enabled
+    /// 对齐（get 的 enabled 未安装时也回 true，会误显「已启用」；QQ/企微/钉钉/
+    /// 飞书 get 带 installed，TG/Discord get 无 installed、weixin 无 get——三者按
+    /// plugin/check 结果）；Hermes 无启用开关（保存恒传 enabled:true），固定显示
+    /// 已启用；其余按 enabled
     @ViewBuilder
     private func channelBadge(_ kind: AIChannelKind) -> some View {
-        if let st = statusMap[kind.rawValue] {
-            if agentType == "openclaw", kind != .weixin {
-                let installed = st.installed ?? pluginInstalledMap[kind.rawValue]
-                if let installed {
-                    StatusBadge(
-                        text: installed ? L10n.t("已启用") : L10n.t("未安装"),
-                        color: installed ? .statusRunning : .secondary
-                    )
-                }
-            } else if agentType == "hermes-agent" {
+        if agentType == "openclaw" {
+            if let installed = statusMap[kind.rawValue]?.installed ?? pluginInstalledMap[kind.rawValue] {
+                StatusBadge(
+                    text: installed ? L10n.t("已启用") : L10n.t("未安装"),
+                    color: installed ? .statusRunning : .secondary
+                )
+            }
+        } else if let st = statusMap[kind.rawValue] {
+            if agentType == "hermes-agent" {
                 StatusBadge(text: L10n.t("已启用"), color: .statusRunning)
             } else if let enabled = st.enabled {
                 StatusBadge(
@@ -188,7 +188,8 @@ struct AIAgentChannelsView: View {
     }
 
     /// 并行读取频道状态（微信无 get 接口，跳过；单条失败不影响其他）。
-    /// OpenClaw 的 TG/Discord get 无 installed 字段，再按 plugin/check 补齐
+    /// OpenClaw 的 TG/Discord get 无 installed 字段、weixin 无 get——三者再按
+    /// plugin/check 补齐（plugin/check 支持 type:"weixin"，抓包核对）
     private func loadAllStatus() async {
         await withTaskGroup(of: (String, AIChannelEnabledStatus?).self) { group in
             for kind in AIChannelKind.allCases where kind != .weixin {
@@ -214,7 +215,7 @@ struct AIAgentChannelsView: View {
         }
         if agentType == "openclaw" {
             await withTaskGroup(of: (String, Bool?).self) { group in
-                for kind in [AIChannelKind.telegram, .discord] {
+                for kind in [AIChannelKind.telegram, .discord, .weixin] {
                     group.addTask { [client] in
                         do {
                             let resp: AIAgentPluginStatus = try await client.send(
@@ -229,7 +230,9 @@ struct AIAgentChannelsView: View {
                     }
                 }
                 for await (key, installed) in group {
-                    if let installed { pluginInstalledMap[key] = installed }
+                    // check 失败也写入（nil）：与 get 侧同口径清残留，
+                    // 避免下次刷新继续显示上一次的「已启用」
+                    pluginInstalledMap[key] = installed
                 }
             }
         }
@@ -2508,9 +2511,16 @@ struct AIAgentTelegramChannelView: View {
         // Hermes 网页端无启用开关：保存恒传 enabled:true（抓包确认）
         if isHermes {
             out.enabled = true
-            // 抓包：顶层与 bots[0] 的 dmPolicy 同值；其余字段回传服务端原值
-            bot.dmPolicy = c.dmPolicy
+            // 抓包：顶层与 bots[0] 的 dmPolicy 同值；未配置（get 返回空串）时
+            // 按网页端口径回退 open；其余字段回传服务端原值
+            bot.dmPolicy = (c.dmPolicy?.isEmpty == false) ? c.dmPolicy : "open"
+            out.dmPolicy = (out.dmPolicy?.isEmpty == false) ? out.dmPolicy : "open"
             out.bots = [bot] + extraBots
+            // 抓包：update 恒传 defaultAccount（get 未配置返回空串），空时回退
+            // 默认 Bot 的账户 ID（Hermes 表单即默认 Bot），再兜底 "default"
+            if (out.defaultAccount ?? "").isEmpty {
+                out.defaultAccount = bot.accountId ?? "default"
+            }
         } else {
             out.bots = bots
             // OpenClaw 抓包：defaultAccount 必填（新增 Bot 后直接保存会报参数错误），
@@ -2982,6 +2992,12 @@ struct AIAgentDiscordChannelView: View {
         if isHermes {
             out.enabled = true
             out.bots = [bot] + extraBots
+            // 抓包：update 恒传 dmPolicy/defaultAccount 具体值（get 未配置返回空串），
+            // 空时回退 open / 默认 Bot 账户 ID（Discord bot 无 dmPolicy 字段，不动 bot）
+            if (out.dmPolicy ?? "").isEmpty { out.dmPolicy = "open" }
+            if (out.defaultAccount ?? "").isEmpty {
+                out.defaultAccount = bot.accountId ?? "default"
+            }
         } else {
             out.bots = bots
             // OpenClaw 抓包：defaultAccount 必填（新增 Bot 后直接保存会报参数错误），

@@ -199,7 +199,14 @@ struct DatabaseRedisPerformanceView: View {
                 as: RedisConf.self)
             timeoutText = resp.timeout ?? "0"
             maxclientsText = resp.maxclients ?? "10000"
-            maxmemoryMBText = String(RedisConfUpdateRequest.mb(fromBytesString: resp.maxmemory))
+            // 纯字节数字 → MB 展示；非数字值原样展示（保存时原样回传，不静默改值）
+            if let mb = RedisConfUpdateRequest.mbFromBytes(resp.maxmemory) {
+                maxmemoryMBText = String(mb)
+            } else if let raw = resp.maxmemory, !raw.isEmpty {
+                maxmemoryMBText = raw
+            } else {
+                maxmemoryMBText = "0"
+            }
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -209,19 +216,28 @@ struct DatabaseRedisPerformanceView: View {
     }
 
     /// 保存：POST /databases/redis/conf/update {dbType,database,timeout,maxclients,maxmemory}
-    /// （maxmemory 转为 "Xmb" 格式，抓包 2026-09-15）
+    /// （maxmemory 转为 "Xmb" 格式，抓包 2026-09-15；输入非数字时原样提交——
+    /// 可能是 load 回显的服务器原始值，不能替用户清零）
     private func save() async {
         isSaving = true
         defer { isSaving = false }
         let timeout = timeoutText.trimmingCharacters(in: .whitespaces)
         let maxclients = maxclientsText.trimmingCharacters(in: .whitespaces)
+        let memoryInput = maxmemoryMBText.trimmingCharacters(in: .whitespaces)
+        let maxmemory: String
+        if let mb = Int(memoryInput) {
+            maxmemory = RedisConfUpdateRequest.mbString(mb)
+        } else if !memoryInput.isEmpty {
+            maxmemory = memoryInput
+        } else {
+            maxmemory = "0mb"
+        }
         let req = RedisConfUpdateRequest(
             dbType: system.type,
             database: system.database,
             timeout: timeout.isEmpty ? "0" : timeout,
             maxclients: maxclients.isEmpty ? "10000" : maxclients,
-            maxmemory: RedisConfUpdateRequest.mbString(
-                Int(maxmemoryMBText.trimmingCharacters(in: .whitespaces)) ?? 0))
+            maxmemory: maxmemory)
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.databasesRedisConfUpdate.path, body: req, as: EmptyResponse.self)
