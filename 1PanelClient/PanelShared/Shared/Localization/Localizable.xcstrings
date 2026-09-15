@@ -1,18 +1,10 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "" : {
-
-    },
-    "-" : {
-
-    },
-    "-----BEGIN OPENSSH PRIVATE KEY-----" : {
-
-    },
-    "—" : {
-
-    },
+    "" : {},
+    "-" : {},
+    "-----BEGIN OPENSSH PRIVATE KEY-----" : {},
+    "—" : {},
     "，内存 %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35,18 +27,10 @@
         }
       }
     },
-    ":%lld" : {
-
-    },
-    ".." : {
-
-    },
-    "·" : {
-
-    },
-    "· %@" : {
-
-    },
+    ":%lld" : {},
+    ".." : {},
+    "·" : {},
+    "· %@" : {},
     "(未命名)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -91,9 +75,7 @@
         }
       }
     },
-    "[%@]" : {
-
-    },
+    "[%@]" : {},
     "「%@」已加入下载队列" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -105,27 +87,13 @@
         }
       }
     },
-    "*" : {
-
-    },
-    "*.log" : {
-
-    },
-    "/" : {
-
-    },
-    "/opt/1panel/ai/models" : {
-
-    },
-    "/opt/1panel/backup" : {
-
-    },
-    "/var/log/auth.log" : {
-
-    },
-    "%@" : {
-
-    },
+    "*" : {},
+    "*.log" : {},
+    "/" : {},
+    "/opt/1panel/ai/models" : {},
+    "/opt/1panel/backup" : {},
+    "/var/log/auth.log" : {},
+    "%@" : {},
     "%@ · %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -727,12 +695,8 @@
         }
       }
     },
-    "%lld" : {
-
-    },
-    "%lld%%" : {
-
-    },
+    "%lld" : {},
+    "%lld%%" : {},
     "%lld%%  %@ / %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -743,12 +707,8 @@
         }
       }
     },
-    "••••••••" : {
-
-    },
-    "0" : {
-
-    },
+    "••••••••" : {},
+    "0" : {},
     "1 CPU，2.0 Ghz+" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -760,15 +720,9 @@
         }
       }
     },
-    "1Panel" : {
-
-    },
-    "1Panel Client" : {
-
-    },
-    "1Panel Server" : {
-
-    },
+    "1Panel" : {},
+    "1Panel Client" : {},
+    "1Panel Server" : {},
     "1Panel 官网" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -824,9 +778,7 @@
         }
       }
     },
-    "2" : {
-
-    },
+    "2" : {},
     "3 GiB+" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -926,9 +878,7 @@
         }
       }
     },
-    "22" : {
-
-    },
+    "22" : {},
     "24小时" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -940,27 +890,13 @@
         }
       }
     },
-    "25" : {
-
-    },
-    "30" : {
-
-    },
-    "100" : {
-
-    },
-    "200" : {
-
-    },
-    "300" : {
-
-    },
-    "301" : {
-
-    },
-    "302" : {
-
-    },
+    "25" : {},
+    "30" : {},
+    "100" : {},
+    "200" : {},
+    "300" : {},
+    "301" : {},
+    "302" : {},
     "360搜索" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -972,9 +908,7 @@
         }
       }
     },
-    "404" : {
-
-    },
+    "404" : {},
     "404 频率限制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -986,30 +920,14 @@
         }
       }
     },
-    "443" : {
-
-    },
-    "500" : {
-
-    },
-    "512" : {
-
-    },
-    "1000" : {
-
-    },
-    "8000" : {
-
-    },
-    "18789" : {
-
-    },
-    "Access Key" : {
-
-    },
-    "Access Key ID" : {
-
-    },
+    "443" : {},
+    "500" : {},
+    "512" : {},
+    "1000" : {},
+    "8000" : {},
+    "18789" : {},
+    "Access Key" : {},
+    "Access Key ID" : {},
     "ACME 服务 URL" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1065,9 +983,7 @@
         }
       }
     },
-    "API Key" : {
-
-    },
+    "API Key" : {},
     "API Key 已失效，长按重新录入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1090,12 +1006,8 @@
         }
       }
     },
-    "API Token" : {
-
-    },
-    "API User" : {
-
-    },
+    "API Token" : {},
+    "API User" : {},
     "API 接口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1129,9 +1041,7 @@
         }
       }
     },
-    "App ID" : {
-
-    },
+    "App ID" : {},
     "App ID / App Secret" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1143,9 +1053,7 @@
         }
       }
     },
-    "App Secret" : {
-
-    },
+    "App Secret" : {},
     "Bark 的推送 Webhook 地址，形如 https://api.day.app/xxxxxx" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1157,9 +1065,7 @@
         }
       }
     },
-    "Base URL" : {
-
-    },
+    "Base URL" : {},
     "Bot ID" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1204,9 +1110,7 @@
         }
       }
     },
-    "CDN" : {
-
-    },
+    "CDN" : {},
     "CDN Headers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1251,9 +1155,7 @@
         }
       }
     },
-    "Client ID" : {
-
-    },
+    "Client ID" : {},
     "Client ID（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1265,9 +1167,7 @@
         }
       }
     },
-    "Client Secret" : {
-
-    },
+    "Client Secret" : {},
     "CloudDNS 凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1312,9 +1212,7 @@
         }
       }
     },
-    "Container" : {
-
-    },
+    "Container" : {},
     "Cookie规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1447,9 +1345,7 @@
         }
       }
     },
-    "Discord" : {
-
-    },
+    "Discord" : {},
     "DNS" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1560,12 +1456,8 @@
         }
       }
     },
-    "docker-compose" : {
-
-    },
-    "docker-compose.yml" : {
-
-    },
+    "docker-compose" : {},
+    "docker-compose.yml" : {},
     "Docker配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1577,12 +1469,8 @@
         }
       }
     },
-    "EAB HmacKey" : {
-
-    },
-    "EAB kid" : {
-
-    },
+    "EAB HmacKey" : {},
+    "EAB kid" : {},
     "EAB 凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1616,9 +1504,7 @@
         }
       }
     },
-    "Endpoint" : {
-
-    },
+    "Endpoint" : {},
     "Endpoint 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1630,24 +1516,12 @@
         }
       }
     },
-    "example.com" : {
-
-    },
-    "ext4" : {
-
-    },
-    "Fail2ban" : {
-
-    },
-    "file.txt" : {
-
-    },
-    "folder_name" : {
-
-    },
-    "FTP" : {
-
-    },
+    "example.com" : {},
+    "ext4" : {},
+    "Fail2ban" : {},
+    "file.txt" : {},
+    "folder_name" : {},
+    "FTP" : {},
     "FTP 账号管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1659,12 +1533,8 @@
         }
       }
     },
-    "GB" : {
-
-    },
-    "GitHub" : {
-
-    },
+    "GB" : {},
+    "GitHub" : {},
     "GPU 推理服务引擎实例管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1698,9 +1568,7 @@
         }
       }
     },
-    "gzip" : {
-
-    },
+    "gzip" : {},
     "Header规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1712,9 +1580,7 @@
         }
       }
     },
-    "hostname" : {
-
-    },
+    "hostname" : {},
     "Hosts" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1726,9 +1592,7 @@
         }
       }
     },
-    "HSTS" : {
-
-    },
+    "HSTS" : {},
     "HSTS 包含子域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1751,9 +1615,7 @@
         }
       }
     },
-    "http" : {
-
-    },
+    "http" : {},
     "HTTP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1875,18 +1737,10 @@
         }
       }
     },
-    "http://" : {
-
-    },
-    "http://10.0.0.1:36130" : {
-
-    },
-    "HTTP/3 (QUIC)" : {
-
-    },
-    "https" : {
-
-    },
+    "http://" : {},
+    "http://10.0.0.1:36130" : {},
+    "HTTP/3 (QUIC)" : {},
+    "https" : {},
     "HTTPS" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1931,18 +1785,10 @@
         }
       }
     },
-    "https://" : {
-
-    },
-    "https://..." : {
-
-    },
-    "https://hf-mirror.com" : {
-
-    },
-    "https://www.modelscope.cn" : {
-
-    },
+    "https://" : {},
+    "https://..." : {},
+    "https://hf-mirror.com" : {},
+    "https://www.modelscope.cn" : {},
     "HTTPS防窜站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1976,9 +1822,7 @@
         }
       }
     },
-    "ID: %lld" : {
-
-    },
+    "ID: %lld" : {},
     "Innodb索引命中率" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2001,9 +1845,7 @@
         }
       }
     },
-    "IP" : {
-
-    },
+    "IP" : {},
     "IP / CIDR，留空=任意" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2158,9 +2000,7 @@
         }
       }
     },
-    "IPv4" : {
-
-    },
+    "IPv4" : {},
     "IPv4 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2194,9 +2034,7 @@
         }
       }
     },
-    "IPv6" : {
-
-    },
+    "IPv6" : {},
     "IPv6 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2219,18 +2057,10 @@
         }
       }
     },
-    "KEY" : {
-
-    },
-    "KEY=VALUE" : {
-
-    },
-    "local" : {
-
-    },
-    "MB" : {
-
-    },
+    "KEY" : {},
+    "KEY=VALUE" : {},
+    "local" : {},
+    "MB" : {},
     "MCP Server 网关管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2286,15 +2116,9 @@
         }
       }
     },
-    "NFS" : {
-
-    },
-    "NFS4" : {
-
-    },
-    "nginx.conf" : {
-
-    },
+    "NFS" : {},
+    "NFS4" : {},
+    "nginx.conf" : {},
     "NPM 源" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2317,12 +2141,8 @@
         }
       }
     },
-    "off" : {
-
-    },
-    "Ollama" : {
-
-    },
+    "off" : {},
+    "Ollama" : {},
     "Ollama 模型拉取与运行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2334,9 +2154,7 @@
         }
       }
     },
-    "on" : {
-
-    },
+    "on" : {},
     "OpenClaw / Hermes Agent / QwenPaw" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2348,9 +2166,7 @@
         }
       }
     },
-    "OpenResty %@" : {
-
-    },
+    "OpenResty %@" : {},
     "OpenResty 未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2373,12 +2189,8 @@
         }
       }
     },
-    "Password" : {
-
-    },
-    "PID %lld" : {
-
-    },
+    "Password" : {},
+    "PID %lld" : {},
     "ping 失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2390,9 +2202,7 @@
         }
       }
     },
-    "pool.ntp.org" : {
-
-    },
+    "pool.ntp.org" : {},
     "QPS / 访客趋势 / 访客地图 / 请求日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2404,9 +2214,7 @@
         }
       }
     },
-    "QQ" : {
-
-    },
+    "QQ" : {},
     "Redis 的内存消耗峰值" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2451,15 +2259,9 @@
         }
       }
     },
-    "Scheduled Task" : {
-
-    },
-    "Secret ID" : {
-
-    },
-    "Secret Key" : {
-
-    },
+    "Scheduled Task" : {},
+    "Secret ID" : {},
+    "Secret Key" : {},
     "Shell 脚本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2636,12 +2438,8 @@
         }
       }
     },
-    "sshd_config" : {
-
-    },
-    "SSL" : {
-
-    },
+    "sshd_config" : {},
+    "SSL" : {},
     "SSL 协议" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2708,9 +2506,7 @@
         }
       }
     },
-    "SWAP" : {
-
-    },
+    "SWAP" : {},
     "Swap 已用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2744,21 +2540,11 @@
         }
       }
     },
-    "Telegram" : {
-
-    },
-    "TLS" : {
-
-    },
-    "TLSv1.2" : {
-
-    },
-    "TLSv1.3" : {
-
-    },
-    "Token" : {
-
-    },
+    "Telegram" : {},
+    "TLS" : {},
+    "TLSv1.2" : {},
+    "TLSv1.3" : {},
+    "Token" : {},
     "Token 由系统自动生成，用于 OpenClaw 控制台接入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2770,12 +2556,8 @@
         }
       }
     },
-    "TTY" : {
-
-    },
-    "URL" : {
-
-    },
+    "TTY" : {},
+    "URL" : {},
     "URL 模式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2798,9 +2580,7 @@
         }
       }
     },
-    "User-Agent" : {
-
-    },
+    "User-Agent" : {},
     "User-Agent规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2812,15 +2592,9 @@
         }
       }
     },
-    "v%@" : {
-
-    },
-    "VALUE" : {
-
-    },
-    "vLLM" : {
-
-    },
+    "v%@" : {},
+    "VALUE" : {},
+    "vLLM" : {},
     "WAF" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2876,12 +2650,8 @@
         }
       }
     },
-    "Website" : {
-
-    },
-    "xfs" : {
-
-    },
+    "Website" : {},
+    "xfs" : {},
     "XSS" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10820,6 +10590,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Multi-Node"
+          }
+        }
+      }
+    },
+    "多选" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Multiple"
           }
         }
       }
@@ -32083,6 +31864,171 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Connection"
+          }
+        }
+      }
+    },
+    "终端 · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminal · %@"
+          }
+        }
+      }
+    },
+    "优化方案" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimization Schemes"
+          }
+        }
+      }
+    },
+    "优化方案已应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimization scheme applied"
+          }
+        }
+      }
+    },
+    "修改保存后需重启数据库才能生效。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart the database for changes to take effect."
+          }
+        }
+      }
+    },
+    "参数对比" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parameter Comparison"
+          }
+        }
+      }
+    },
+    "将删除网站「%@」及其配置，该操作无法回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete website \"%@\" and its configuration? This cannot be undone."
+          }
+        }
+      }
+    },
+    "将应用「%@」优化方案并重启 %@，期间数据库短暂不可用。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply the \"%1$@\" scheme and restart %2$@? The database will be briefly unavailable."
+          }
+        }
+      }
+    },
+    "将用默认配置覆盖编辑区当前内容（未保存的修改会丢失），确认后请手动保存。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This replaces the editor content with the default configuration (unsaved changes will be lost). Review and save manually."
+          }
+        }
+      }
+    },
+    "已填入默认配置，请检查后保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default configuration loaded. Review and save"
+          }
+        }
+      }
+    },
+    "已选 %ld 项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld selected"
+          }
+        }
+      }
+    },
+    "已选「%@」，蓝字为应用后的值" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" selected; blue text shows values after applying"
+          }
+        }
+      }
+    },
+    "应用优化方案" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply Optimization Scheme"
+          }
+        }
+      }
+    },
+    "恢复默认配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Default Configuration"
+          }
+        }
+      }
+    },
+    "按服务器内存选择预设方案；应用后部分参数需重启数据库生效。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a preset based on server memory. Some parameters require a database restart to take effect."
+          }
+        }
+      }
+    },
+    "退出多选" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit Selection"
           }
         }
       }

@@ -29,6 +29,9 @@ struct WebsitesTab: View {
     @State private var pendingBatchDelete = false
     @State private var isBatchOperating = false
     @State private var batchTask: WebsiteBatchTask?
+    // 长按行菜单：单站启停 / 删除确认
+    @State private var pendingRowOperate: (website: Website, operate: String)?
+    @State private var pendingRowDelete: Website?
     /// OpenResty 未安装时的应用商店 VM（列表安装按钮直达应用详情，安装流程复用应用商店页面）
     @StateObject private var openRestyInstallVM: AppStoreViewModel
     /// 分组管理页所需服务器配置（init 时固定，避免 manager.current 中途切换）
@@ -86,7 +89,8 @@ struct WebsitesTab: View {
                 websiteList
             }
         }
-        // 右上角两键：放大镜（搜索）+ 创建；分组管理入口在筛选条末尾（推页呈现）
+        // 右上角两键：放大镜（搜索）+ 创建；分组管理入口在筛选条末尾（推页呈现）；
+        // 多选入口在行长按菜单（右上角不再常驻多选按钮）
         .searchIconMode(
             text: $searchText,
             isSearching: $isSearching,
@@ -94,30 +98,16 @@ struct WebsitesTab: View {
             prompt: L10n.t("搜索域名")
         )
         .toolbar {
-            if !isSearching {
+            if !isSearching && !isSelecting {
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 14) {
-                        // 多选模式开关（批量启停/分组/证书/删除）
-                        Button {
-                            withAnimation(Motion.standard) {
-                                isSelecting.toggle()
-                                if !isSelecting { selectedIDs.removeAll() }
-                            }
-                        } label: {
-                            Image(systemName: isSelecting ? "xmark.circle" : "checkmark.circle")
-                        }
-                        .accessibilityLabel(L10n.t("批量操作"))
-                        if !isSelecting {
-                            Button {
-                                showCreate = true
-                            } label: {
-                                Image(systemName: "plus")
-                            }
-                            // OpenResty 未安装时无法创建网站（环境检查必然失败）
-                            .disabled(vm.openRestyNotInstalled)
-                            .accessibilityLabel(L10n.t("创建网站"))
-                        }
+                    Button {
+                        showCreate = true
+                    } label: {
+                        Image(systemName: "plus")
                     }
+                    // OpenResty 未安装时无法创建网站（环境检查必然失败）
+                    .disabled(vm.openRestyNotInstalled)
+                    .accessibilityLabel(L10n.t("创建网站"))
                 }
             }
         }
@@ -160,6 +150,51 @@ struct WebsitesTab: View {
             }
         } message: {
             Text(L10n.f("将删除选中的 %ld 个网站及其配置，该操作无法回滚，是否继续？", selectedIDs.count))
+        }
+        // 长按菜单：单站启停确认
+        .alert(
+            pendingRowOperate.map { $0.operate == "stop" ? L10n.t("停止") : L10n.t("启用") } ?? "",
+            isPresented: Binding(
+                get: { pendingRowOperate != nil },
+                set: { if !$0 { pendingRowOperate = nil } }
+            )
+        ) {
+            Button(L10n.t("取消"), role: .cancel) { pendingRowOperate = nil }
+            Button(L10n.t("确认")) {
+                guard let target = pendingRowOperate else { return }
+                pendingRowOperate = nil
+                Task {
+                    if await vm.operateWebsite(id: target.website.id, operate: target.operate) {
+                        await vm.refresh(force: true)
+                    }
+                }
+            }
+        } message: {
+            if let target = pendingRowOperate {
+                Text(L10n.f(
+                    "将对网站「%@」进行 %@ 操作，是否继续？",
+                    target.website.displayName,
+                    target.operate == "stop" ? L10n.t("停止") : L10n.t("启用")))
+            }
+        }
+        // 长按菜单：单站删除确认（完整删除选项在网站详情页）
+        .alert(L10n.t("删除网站"), isPresented: Binding(
+            get: { pendingRowDelete != nil },
+            set: { if !$0 { pendingRowDelete = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingRowDelete = nil }
+            Button(L10n.t("删除"), role: .destructive) {
+                guard let w = pendingRowDelete else { return }
+                pendingRowDelete = nil
+                Haptic.warning()
+                Task {
+                    await vm.deleteWebsite(
+                        id: w.id, deleteApp: false, deleteBackup: false,
+                        forceDelete: false, deleteDB: false)
+                }
+            }
+        } message: {
+            Text(L10n.f("将删除网站「%@」及其配置，该操作无法回滚，是否继续？", pendingRowDelete?.displayName ?? ""))
         }
         .sheet(isPresented: $showBatchGroup) {
             WebsiteBatchGroupSheet(server: server, ids: Array(selectedIDs), groups: vm.groups) {
@@ -210,6 +245,11 @@ struct WebsitesTab: View {
             isSelecting = false
             selectedIDs.removeAll()
         }
+    }
+
+    /// 与 Website.statusColor 同口径：running / normal 视为运行中
+    private func isRunning(_ w: Website) -> Bool {
+        ["running", "normal"].contains((w.status ?? "").lowercased())
     }
 
     /// 批量启停/删除：POST batch/operate（delete 与启停共用端点，抓包确认）
@@ -290,6 +330,30 @@ struct WebsitesTab: View {
                                 WebsiteDetailView(website: w, vm: vm)
                             } label: {
                                 WebsiteRow(website: w)
+                            }
+                            // 长按菜单：多选 / 启停 / 删除（多选入口从右上角移到这里）
+                            .contextMenu {
+                                Button {
+                                    withAnimation(Motion.standard) {
+                                        isSelecting = true
+                                        selectedIDs.insert(w.id)
+                                    }
+                                } label: {
+                                    Label(L10n.t("多选"), systemImage: "checkmark.circle")
+                                }
+                                Button {
+                                    pendingRowOperate = (w, isRunning(w) ? "stop" : "start")
+                                } label: {
+                                    Label(
+                                        isRunning(w) ? L10n.t("停止") : L10n.t("启用"),
+                                        systemImage: isRunning(w) ? "stop.fill" : "play.fill"
+                                    )
+                                }
+                                Button(role: .destructive) {
+                                    pendingRowDelete = w
+                                } label: {
+                                    Label(L10n.t("删除"), systemImage: "trash")
+                                }
                             }
                             .onAppear {
                                 if w.id == vm.websites.last?.id {

@@ -202,10 +202,10 @@ struct MonitorSettingsView: View {
     }
 }
 
-// MARK: - 虚拟内存（Swap）区块（面板 → 设置 → 基础设置内嵌）
+// MARK: - 虚拟内存（Swap）设置页（基础设置入口推入）
 
-/// 自包含 Swap 管理区块：加载 device/base、展示统计与明细、提交调整（任务进度）
-struct DeviceSwapSection: View {
+/// 自包含 Swap 管理页：加载 device/base、展示统计与明细、提交调整（任务进度）
+struct DeviceSwapSettingsView: View {
     let server: ServerConfig
 
     @State private var device: DeviceBase?
@@ -222,24 +222,31 @@ struct DeviceSwapSection: View {
     }
 
     var body: some View {
-        Section {
-            if let device {
-                InfoRow(L10n.t("Swap 总数"), value: MonitorSettingsView.fmt(device.swapMemoryTotal ?? 0))
-                InfoRow(L10n.t("Swap 已用"), value: MonitorSettingsView.fmt(device.swapMemoryUsed ?? 0))
-                InfoRow(L10n.t("Swap 空闲"), value: MonitorSettingsView.fmt(device.swapMemoryAvailable ?? 0))
-                ForEach(device.swapDetails ?? []) { detail in
-                    SwapDetailRow(
-                        detail: detail,
-                        maxSizeGB: device.maxSize.map { Double($0) / 1024 / 1024 / 1024 } ?? 8) { path, sizeKB in
-                        Task { await updateSwap(path: path, sizeKB: sizeKB) }
+        Form {
+            Section {
+                if let device {
+                    InfoRow(L10n.t("Swap 总数"), value: MonitorSettingsView.fmt(device.swapMemoryTotal ?? 0))
+                    InfoRow(L10n.t("Swap 已用"), value: MonitorSettingsView.fmt(device.swapMemoryUsed ?? 0))
+                    InfoRow(L10n.t("Swap 空闲"), value: MonitorSettingsView.fmt(device.swapMemoryAvailable ?? 0))
+                    ForEach(device.swapDetails ?? []) { detail in
+                        SwapDetailRow(
+                            detail: detail,
+                            maxSizeGB: device.maxSize.map { Double($0) / 1024 / 1024 / 1024 } ?? 8) { path, sizeKB in
+                            Task { await updateSwap(path: path, sizeKB: sizeKB) }
+                        }
                     }
+                } else {
+                    HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 12)
                 }
+            } header: {
+                SectionLabel(title: L10n.t("虚拟内存"), systemImage: "memorychip")
+            } footer: {
+                Text(L10n.t("调整 Swap 大小需要重建交换分区，期间可能短暂占用磁盘与 CPU"))
             }
-        } header: {
-            SectionLabel(title: L10n.t("虚拟内存"), systemImage: "memorychip")
-        } footer: {
-            Text(L10n.t("调整 Swap 大小需要重建交换分区，期间可能短暂占用磁盘与 CPU"))
         }
+        .navigationTitle(L10n.t("虚拟内存"))
+        .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await loadDevice() }
         .task { await loadDevice() }
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}

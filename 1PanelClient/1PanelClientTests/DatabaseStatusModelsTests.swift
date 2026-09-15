@@ -129,3 +129,81 @@ struct DatabaseStatusModelsTests {
         #expect(RedisStatusMetrics.hitRate(withHits) == "80.00%")
     }
 }
+
+@Suite("MySQL 性能调整与配置修改")
+struct DatabaseMySQLTuneTests {
+
+    private func encode(_ req: some Encodable) throws -> [String: Any] {
+        let data = try JSONEncoder().encode(req)
+        return try JSONSerialization.jsonObject(with: data) as! [String: Any]
+    }
+
+    @Test("优化参数应用编码 {type,database,variables[]}（抓包 2026-09-15）")
+    func encodeVariablesUpdate() throws {
+        let req = DatabaseVariablesUpdateRequest(
+            type: "mysql", database: "mysql",
+            variables: [
+                MySQLVariableItem(param: "key_buffer_size", value: 33554432),
+                MySQLVariableItem(param: "max_connections", value: 100),
+            ])
+        let obj = try encode(req)
+        #expect(obj["type"] as? String == "mysql")
+        #expect(obj["database"] as? String == "mysql")
+        let vars = try #require(obj["variables"] as? [[String: Any]])
+        #expect(vars.count == 2)
+        #expect(vars[0]["param"] as? String == "key_buffer_size")
+        #expect(vars[0]["value"] as? Int == 33554432)
+    }
+
+    @Test("配置文件请求编码（load/<db>-conf · update/conf · 默认配置）")
+    func encodeConfRequests() throws {
+        let load = try encode(DatabaseConfFileRequest(type: "mysql-conf", name: "mysql"))
+        #expect(load["type"] as? String == "mysql-conf")
+        #expect(load["name"] as? String == "mysql")
+
+        let update = try encode(DatabaseConfUpdateRequest(
+            type: "mysql", database: "mysql", file: "[mysqld]\nmax_connections=100\n"))
+        #expect(update["type"] as? String == "mysql")
+        #expect(update["database"] as? String == "mysql")
+        #expect(update["file"] as? String == "[mysqld]\nmax_connections=100\n")
+
+        let def = try encode(AppInstalledConfRequest(type: "mysql", name: "mysql"))
+        #expect(def["type"] as? String == "mysql")
+        #expect(def["name"] as? String == "mysql")
+    }
+
+    @Test("优化预设：5 档 × 13 参数，与网页端数值一致")
+    func tunePresets() throws {
+        #expect(MySQLTunePresets.all.count == 5)
+        #expect(MySQLTunePresets.all.map(\.name) == ["1-2GB", "2-4GB", "4-8GB", "8-16GB", "16-32GB"])
+        for preset in MySQLTunePresets.all {
+            #expect(Set(preset.values.keys) == Set(MySQLTunePresets.paramOrder))
+        }
+        // 1-2GB 档锚定值（网页端口径）
+        let low = MySQLTunePresets.all[0].values
+        #expect(low["key_buffer_size"] == 32 * 1024 * 1024)
+        #expect(low["innodb_buffer_pool_size"] == 64 * 1024 * 1024)
+        #expect(low["join_buffer_size"] == 512 * 1024)
+        #expect(low["binlog_cache_size"] == 64 * 1024)
+        #expect(low["thread_cache_size"] == 64)
+        #expect(low["table_open_cache"] == 128)
+        #expect(low["max_connections"] == 100)
+        // 16-32GB 档锚定值
+        let high = MySQLTunePresets.all[4].values
+        #expect(high["key_buffer_size"] == 1024 * 1024 * 1024)
+        #expect(high["innodb_log_buffer_size"] == 64 * 1024 * 1024)
+        #expect(high["thread_stack"] == 512 * 1024)
+        #expect(high["max_connections"] == 500)
+        // 档间单调性：buffer pool / 连接数随档位递增
+        #expect(low["innodb_buffer_pool_size"]! < MySQLTunePresets.all[4].values["innodb_buffer_pool_size"]!)
+        #expect(low["max_connections"]! < high["max_connections"]!)
+    }
+
+    @Test("预设值展示：字节换算 / 个数原样")
+    func tuneDisplayValue() {
+        #expect(MySQLTunePresets.displayValue(param: "key_buffer_size", 32 * 1024 * 1024) == "32.00 MB")
+        #expect(MySQLTunePresets.displayValue(param: "binlog_cache_size", 64 * 1024) == "64.00 KB")
+        #expect(MySQLTunePresets.displayValue(param: "max_connections", 100) == "100")
+        #expect(MySQLTunePresets.displayValue(param: "table_open_cache", 128) == "128")
+    }
+}

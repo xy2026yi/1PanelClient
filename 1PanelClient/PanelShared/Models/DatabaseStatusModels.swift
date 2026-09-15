@@ -221,3 +221,108 @@ nonisolated enum RedisStatusMetrics {
         ]
     }
 }
+
+// MARK: - MySQL 性能调整 / 配置修改（抓包 2026-09-15）
+
+/// POST /databases/variables/update {type,database,variables[]}
+nonisolated struct DatabaseVariablesUpdateRequest: Encodable {
+    let type: String
+    let database: String
+    let variables: [MySQLVariableItem]
+}
+
+/// 单个参数项（value 为数字：字节数 / 个数，抓包原样）
+nonisolated struct MySQLVariableItem: Encodable {
+    let param: String
+    let value: Int
+}
+
+/// POST /databases/common/load/file {type:"<db>-conf",name}（读取当前配置文件）
+nonisolated struct DatabaseConfFileRequest: Encodable {
+    /// "<数据库类型>-conf"，如 mysql-conf
+    let type: String
+    let name: String
+}
+
+/// POST /databases/common/update/conf {type,database,file}（保存配置文件）
+nonisolated struct DatabaseConfUpdateRequest: Encodable {
+    /// 数据库类型（mysql / mariadb，不带 -conf 后缀）
+    let type: String
+    let database: String
+    let file: String
+}
+
+/// POST /apps/installed/conf {type,name}（默认配置文件）
+nonisolated struct AppInstalledConfRequest: Encodable {
+    let type: String
+    let name: String
+}
+
+/// 内存优化预设方案（1Panel 网页端口径；值为字节，个数为整数）
+nonisolated struct MySQLTunePreset: Identifiable {
+    let name: String
+    let values: [String: Int]
+    var id: String { name }
+}
+
+nonisolated enum MySQLTunePresets {
+    /// 参数展示顺序（与网页端优化方案列表一致）
+    static let paramOrder = [
+        "key_buffer_size", "join_buffer_size", "tmp_table_size",
+        "innodb_buffer_pool_size", "innodb_log_buffer_size",
+        "sort_buffer_size", "read_buffer_size", "read_rnd_buffer_size",
+        "thread_stack", "binlog_cache_size",
+        "thread_cache_size", "table_open_cache", "max_connections",
+    ]
+
+    private static func MB(_ n: Int) -> Int { n * 1024 * 1024 }
+    private static func KB(_ n: Int) -> Int { n * 1024 }
+
+    static let all: [MySQLTunePreset] = [
+        MySQLTunePreset(name: "1-2GB", values: [
+            "key_buffer_size": MB(32), "join_buffer_size": KB(512), "tmp_table_size": MB(32),
+            "innodb_buffer_pool_size": MB(64), "innodb_log_buffer_size": MB(64),
+            "sort_buffer_size": KB(256), "read_buffer_size": KB(256), "read_rnd_buffer_size": KB(256),
+            "thread_stack": KB(256), "binlog_cache_size": KB(64),
+            "thread_cache_size": 64, "table_open_cache": 128, "max_connections": 100,
+        ]),
+        MySQLTunePreset(name: "2-4GB", values: [
+            "key_buffer_size": MB(64), "join_buffer_size": KB(1024), "tmp_table_size": MB(64),
+            "innodb_buffer_pool_size": MB(128), "innodb_log_buffer_size": MB(64),
+            "sort_buffer_size": KB(512), "read_buffer_size": KB(512), "read_rnd_buffer_size": KB(512),
+            "thread_stack": KB(256), "binlog_cache_size": KB(64),
+            "thread_cache_size": 96, "table_open_cache": 192, "max_connections": 200,
+        ]),
+        MySQLTunePreset(name: "4-8GB", values: [
+            "key_buffer_size": MB(128), "join_buffer_size": KB(2048), "tmp_table_size": MB(128),
+            "innodb_buffer_pool_size": MB(256), "innodb_log_buffer_size": MB(64),
+            "sort_buffer_size": KB(1024), "read_buffer_size": KB(1024), "read_rnd_buffer_size": KB(768),
+            "thread_stack": KB(256), "binlog_cache_size": KB(128),
+            "thread_cache_size": 128, "table_open_cache": 384, "max_connections": 300,
+        ]),
+        MySQLTunePreset(name: "8-16GB", values: [
+            "key_buffer_size": MB(256), "join_buffer_size": KB(2048), "tmp_table_size": MB(256),
+            "innodb_buffer_pool_size": MB(512), "innodb_log_buffer_size": MB(64),
+            "sort_buffer_size": KB(1024), "read_buffer_size": KB(2048), "read_rnd_buffer_size": KB(1024),
+            "thread_stack": KB(384), "binlog_cache_size": KB(192),
+            "thread_cache_size": 192, "table_open_cache": 1024, "max_connections": 400,
+        ]),
+        MySQLTunePreset(name: "16-32GB", values: [
+            "key_buffer_size": MB(1024), "join_buffer_size": KB(4096), "tmp_table_size": MB(1024),
+            "innodb_buffer_pool_size": MB(1024), "innodb_log_buffer_size": MB(64),
+            "sort_buffer_size": KB(4096), "read_buffer_size": KB(4096), "read_rnd_buffer_size": KB(2048),
+            "thread_stack": KB(512), "binlog_cache_size": KB(256),
+            "thread_cache_size": 256, "table_open_cache": 2048, "max_connections": 500,
+        ]),
+    ]
+
+    /// 值展示：字节类参数换算 KB/MB，个数类原样
+    static func displayValue(param: String, _ value: Int) -> String {
+        switch param {
+        case "thread_cache_size", "table_open_cache", "max_connections":
+            return "\(value)"
+        default:
+            return MySQLVariablesDisplay.fmtBytes(Double(value))
+        }
+    }
+}

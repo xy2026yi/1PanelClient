@@ -21,7 +21,15 @@ struct WebsiteBatchBar: View {
     let onSSL: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
+            // 退出多选（右上角不再常驻多选按钮，出口收在栏内）
+            Button {
+                onExit()
+            } label: {
+                Image(systemName: "xmark.circle")
+            }
+            .accessibilityLabel(L10n.t("退出多选"))
+
             Button {
                 onSelectAll()
             } label: {
@@ -29,30 +37,43 @@ struct WebsiteBatchBar: View {
                     selectedCount >= totalCount ? L10n.t("取消全选") : L10n.t("全选"),
                     systemImage: selectedCount >= totalCount ? "circle" : "checkmark.circle"
                 )
-                .font(.caption)
+                .font(.subheadline)
             }
-            .buttonStyle(.bordered)
+            .disabled(totalCount == 0)
 
-            batchButton(L10n.t("启动"), icon: "play.fill", color: .green) { onOperate("start") }
-            batchButton(L10n.t("停止"), icon: "stop.fill", color: .orange) { onOperate("stop") }
-            batchButton(L10n.t("分组"), icon: "folder", color: .blue) { onGroup() }
-            batchButton(L10n.t("证书"), icon: "lock.shield", color: .purple) { onSSL() }
-            batchButton(L10n.t("删除"), icon: "trash", color: .red) { onOperate("delete") }
+            Spacer()
+
+            Text(L10n.f("已选 %ld 项", selectedCount))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            // 操作收进下拉菜单：6 个并排按钮在窄屏显示不全
+            Menu {
+                Button { onOperate("start") } label: {
+                    Label(L10n.t("启动"), systemImage: "play.fill")
+                }
+                Button { onOperate("stop") } label: {
+                    Label(L10n.t("停止"), systemImage: "stop.fill")
+                }
+                Button { onGroup() } label: {
+                    Label(L10n.t("分组"), systemImage: "folder")
+                }
+                Button { onSSL() } label: {
+                    Label(L10n.t("证书"), systemImage: "lock.shield")
+                }
+                Button(role: .destructive) { onOperate("delete") } label: {
+                    Label(L10n.t("删除"), systemImage: "trash")
+                }
+            } label: {
+                Label(L10n.t("批量操作"), systemImage: "ellipsis.circle")
+                    .font(.subheadline.bold())
+            }
+            .disabled(selectedCount == 0 || isOperating)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.bar)
         .overlay(alignment: .top) { Divider() }
-    }
-
-    private func batchButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: icon)
-                .font(.caption)
-                .foregroundStyle(color)
-        }
-        .buttonStyle(.bordered)
-        .disabled(selectedCount == 0 || isOperating)
     }
 }
 
@@ -161,7 +182,6 @@ struct WebsiteBatchSSLSheet: View {
     @State private var tls12 = true
     @State private var tls11 = false
     @State private var tls10 = false
-    @State private var httpsPort = "443"
     @State private var isLoading = true
     /// 证书列表加载失败（与「账户下无证书」区分，提供重试）
     @State private var certLoadFailed = false
@@ -250,8 +270,6 @@ struct WebsiteBatchSSLSheet: View {
                     Toggle(L10n.t("启用 HSTS"), isOn: $hsts)
                     Toggle(L10n.t("HSTS 子域"), isOn: $hstsSubDomains)
                     Toggle(L10n.t("启用 HTTP3"), isOn: $http3)
-                    TextField("443", text: $httpsPort)
-                        .keyboardType(.numberPad)
                 } header: {
                     SectionLabel(title: L10n.t("HTTPS 设置"), systemImage: "lock")
                 }
@@ -345,7 +363,8 @@ struct WebsiteBatchSSLSheet: View {
             hstsIncludeSubDomains: hstsSubDomains,
             algorithm: WebsiteBatchSSLRequest.defaultAlgorithm,
             SSLProtocol: sslProtocols,
-            httpsPorts: [Int(httpsPort.isEmpty ? "443" : httpsPort) ?? 443],
+            // 网页端批量表单无端口输入（抓包无此字段展示），固定 443
+            httpsPorts: [443],
             http3: http3,
             taskID: taskID)
         do {

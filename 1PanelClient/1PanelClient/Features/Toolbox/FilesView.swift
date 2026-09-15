@@ -160,16 +160,15 @@ struct FilesView: View {
                             }
                             .accessibilityLabel(L10n.t("下载任务"))
                         }
-                        // 多选模式开关（批量删除/移动/权限）
-                        Button {
-                            withAnimation(Motion.standard) {
-                                isSelecting.toggle()
-                                if !isSelecting { selectedPaths.removeAll() }
+                        // 多选的进入入口在长按菜单「多选」；工具栏仅保留退出按钮
+                        if isSelecting {
+                            Button {
+                                exitSelecting()
+                            } label: {
+                                Image(systemName: "xmark.circle")
                             }
-                        } label: {
-                            Image(systemName: isSelecting ? "xmark.circle" : "checkmark.circle")
+                            .accessibilityLabel(L10n.t("批量操作"))
                         }
-                        .accessibilityLabel(L10n.t("批量操作"))
                         if !isSelecting {
                             Button {
                                 showActionSheet = true
@@ -819,10 +818,19 @@ struct FilesView: View {
         await loadDir(currentPath)
     }
 
-    /// 长按文件行的操作菜单项（下载/压缩/解压/移动/权限/重命名/删除），
+    /// 长按文件行的操作菜单项（多选/下载/压缩/解压/移动/权限/重命名/删除），
     /// 与全站 ActionBottomSheet 风格一致
     private func itemActions(_ item: FileItem) -> [ActionMenuItem] {
         var items: [ActionMenuItem] = []
+        // 多选：从该行进入批量模式（预选中长按项）
+        items.append(ActionMenuItem(title: L10n.t("多选"), icon: "checkmark.circle", color: .blue) {
+            pendingMenuAction = {
+                withAnimation(Motion.standard) {
+                    isSelecting = true
+                    selectedPaths = [item.path]
+                }
+            }
+        })
         if !item.isDir {
             items.append(ActionMenuItem(title: L10n.t("下载"), icon: "arrow.down.circle", color: .green) {
                 pendingMenuAction = { downloadFile(item) }

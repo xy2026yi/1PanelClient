@@ -202,6 +202,11 @@ enum APIEndpoint {
     case databasesStatus          // POST 运行状态 {type,name} → SHOW STATUS
     case databasesVariables       // POST 系统变量 {type,name} → SHOW VARIABLES
     case databasesRedisStatus     // POST Redis 状态 {type:"redis",name} → INFO 摘要
+    // MySQL 性能调整 / 配置修改（抓包 2026-09-15）
+    case databasesVariablesUpdate // POST 应用优化参数 {type,database,variables[]}
+    case databasesCommonLoadFile  // POST 读取配置文件 {type:"<db>-conf",name}
+    case databasesCommonUpdateConf // POST 保存配置文件 {type,database,file}
+    case appsInstalledConf        // POST 默认配置文件 {type,name}
     case appsInstalledCheck       // POST 已安装应用检查(状态/端口)
     case appsInstalledConnInfo    // POST 已安装应用连接信息
 
@@ -773,6 +778,10 @@ enum APIEndpoint {
         case .databasesStatus:       return "/api/v2/databases/status"
         case .databasesVariables:    return "/api/v2/databases/variables"
         case .databasesRedisStatus:  return "/api/v2/databases/redis/status"
+        case .databasesVariablesUpdate: return "/api/v2/databases/variables/update"
+        case .databasesCommonLoadFile: return "/api/v2/databases/common/load/file"
+        case .databasesCommonUpdateConf: return "/api/v2/databases/common/update/conf"
+        case .appsInstalledConf:    return "/api/v2/apps/installed/conf"
         case .appsInstalledCheck:    return "/api/v2/apps/installed/check"
         case .appsInstalledConnInfo: return "/api/v2/apps/installed/conninfo"
         case .databasesPgCreate:     return "/api/v2/databases/pg"

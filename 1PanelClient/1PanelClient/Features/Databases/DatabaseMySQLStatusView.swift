@@ -2,9 +2,9 @@
 //  DatabaseMySQLStatusView.swift
 //  1PanelClient
 //
-//  MySQL/MariaDB 状态与参数（logs/MySQL 状态抓包 2026-09-14）：
-//  databases/status（基础参数 + 性能参数，命中率类客户端计算）
-//  · databases/variables（系统变量，字节类换算展示）
+//  MySQL/MariaDB 运行状态（logs/MySQL 状态抓包 2026-09-14）：
+//  databases/status（基础参数 + 性能参数，命中率类客户端计算）。
+//  系统变量（SHOW VARIABLES）独立成 DatabaseMySQLVariablesView（抽屉「参数」入口）
 //
 
 import SwiftUI
@@ -12,9 +12,7 @@ import SwiftUI
 struct DatabaseMySQLStatusView: View {
     let system: DatabaseSystem
 
-    @State private var segment = 0
     @State private var status: [String: String]?
-    @State private var variables: [String: String]?
     @State private var isLoading = true
     @State private var loadError: String?
 
@@ -35,27 +33,15 @@ struct DatabaseMySQLStatusView: View {
                     Task { await load() }
                 }
                 .listRowBackground(Color.clear)
-            } else if segment == 0 {
-                statusSections
             } else {
-                variablesSection
+                statusSections
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(L10n.t("状态与参数"))
+        .navigationTitle(L10n.t("状态"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Picker("", selection: $segment) {
-                    Text(L10n.t("状态")).tag(0)
-                    Text(L10n.t("参数")).tag(1)
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 120)
-            }
-        }
         .task { await load() }
-        .refreshable { await load(force: true) }
+        .refreshable { await load() }
     }
 
     // MARK: 状态（基础 + 性能）
@@ -79,36 +65,12 @@ struct DatabaseMySQLStatusView: View {
         }
     }
 
-    // MARK: 参数（SHOW VARIABLES）
-
-    private var variablesSection: some View {
-        Group {
-            if let variables {
-                Section {
-                    ForEach(MySQLVariablesDisplay.displayKeys(variables), id: \.self) { key in
-                        InfoRow(key, value: MySQLVariablesDisplay.value(key, variables[key]), monospaced: true)
-                    }
-                } header: {
-                    SectionLabel(title: L10n.t("参数"), systemImage: "slider.horizontal.3")
-                }
-            }
-        }
-    }
-
-    /// force：下拉刷新绕过 nil 缓存守卫强制重查（首载 nil 守卫只用于跳过重复首载）
-    private func load(force: Bool = false) async {
+    private func load() async {
         let req = DatabaseStatusRequest(type: system.type, name: system.database)
         do {
-            if force || status == nil {
-                let resp: [String: String] = try await client.send(
-                    path: APIEndpoint.databasesStatus.path, body: req, as: [String: String].self)
-                status = resp
-            }
-            if force || variables == nil {
-                let resp: [String: String] = try await client.send(
-                    path: APIEndpoint.databasesVariables.path, body: req, as: [String: String].self)
-                variables = resp
-            }
+            let resp: [String: String] = try await client.send(
+                path: APIEndpoint.databasesStatus.path, body: req, as: [String: String].self)
+            status = resp
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }

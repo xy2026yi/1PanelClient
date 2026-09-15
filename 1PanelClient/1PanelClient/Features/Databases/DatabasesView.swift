@@ -97,6 +97,16 @@ enum DBCategory: String, CaseIterable {
         }
     }
 
+    /// db/list 请求的 types 参数（与 DatabasesViewModel.fetchList 同口径）
+    var listTypes: String {
+        switch self {
+        case .mysql:       return "mysql,mariadb,mysql-cluster"
+        case .postgresql:  return "postgresql,postgresql-cluster"
+        case .redis:       return "redis,redis-cluster"
+        case .mongodb:     return "mongodb,mongodb-cluster"
+        }
+    }
+
     /// 品牌图标
     var brand: Brand {
         switch self {
@@ -233,6 +243,13 @@ struct NotInstalledDatabaseView: View {
     /// 是否已进入安装表单（用于区分「自己的安装完成」与无关的全局 installCompleted 通知）
     @State private var didEnterInstall = false
 
+    private let client: APIClient
+
+    init(category: DBCategory) {
+        self.category = category
+        self.client = APIClient.shared(for: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+    }
+
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -284,6 +301,25 @@ struct NotInstalledDatabaseView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 dismiss()
             }
+        }
+        // 兜底：回到本页时重查安装状态，已安装则退回列表（列表页已按通知刷新）。
+        // 上面 dismiss 走的是多层 isPresented 收栈，安装进度页自行 pop 的瞬间
+        // 状态竞争可能吞掉本页的 pop，表现为停留在「未安装」引导页不刷新
+        .onAppear {
+            Task { await dismissIfInstalled() }
+        }
+    }
+
+    /// 重查该分类是否已有实例：有则退回列表页（列表数据由 installCompleted 通知刷新）
+    private func dismissIfInstalled() async {
+        // 安装表单仍在展示时不查（后台运行中途返回的场景查了也是未完成态）
+        guard !storeVM.showInstall else { return }
+        guard let list: [DatabaseSystem] = try? await client.send(
+            path: "/api/v2/databases/db/list/\(category.listTypes)",
+            method: "GET",
+            as: [DatabaseSystem].self) else { return }
+        if !list.isEmpty {
+            dismiss()
         }
     }
 }
@@ -640,8 +676,14 @@ struct DatabaseSystemView: View {
     @State private var showConnInfo = false
     @State private var showRedisTerminal = false
     @State private var showDatabaseTerminal = false
-    /// MySQL/MariaDB 状态与参数（databases/status + variables）
+    /// MySQL/MariaDB 状态（databases/status）
     @State private var showMySQLStatus = false
+    /// MySQL/MariaDB 参数（databases/variables）
+    @State private var showMySQLVariables = false
+    /// MySQL/MariaDB 性能调整（优化方案预设）
+    @State private var showMySQLPerformance = false
+    /// MySQL/MariaDB 配置修改（my.cnf）
+    @State private var showMySQLConf = false
     /// Redis 状态（databases/redis/status）
     @State private var showRedisStatus = false
     @State private var showContainerTerminal = false
@@ -722,6 +764,15 @@ struct DatabaseSystemView: View {
         }
         .navigationDestination(isPresented: $showMySQLStatus) {
             DatabaseMySQLStatusView(system: vm.system)
+        }
+        .navigationDestination(isPresented: $showMySQLVariables) {
+            DatabaseMySQLVariablesView(system: vm.system)
+        }
+        .navigationDestination(isPresented: $showMySQLPerformance) {
+            DatabaseMySQLPerformanceView(system: vm.system)
+        }
+        .navigationDestination(isPresented: $showMySQLConf) {
+            DatabaseMySQLConfView(system: vm.system)
         }
         .navigationDestination(isPresented: $showRedisStatus) {
             DatabaseRedisStatusView(system: vm.system)
@@ -829,7 +880,7 @@ struct DatabaseSystemView: View {
     }
 
     /// 抽屉操作：启停/重启/终端 + 连接信息（创建数据库/用户入口在右上角加号菜单）；
-    /// MySQL/MariaDB 追加「状态」（databases/status + variables）
+    /// MySQL/MariaDB 追加「状态 / 参数 / 性能调整 / 配置修改」四入口
     private func drawerActions(_ check: AppInstallCheck) -> [ServiceAction] {
         var actions: [ServiceAction] = [
             ServiceAction(
@@ -861,6 +912,15 @@ struct DatabaseSystemView: View {
         if ["mysql", "mariadb"].contains(vm.system.type.lowercased()) {
             actions.append(ServiceAction(title: L10n.t("状态"), icon: "speedometer", color: .purple) {
                 showMySQLStatus = true
+            })
+            actions.append(ServiceAction(title: L10n.t("参数"), icon: "slider.horizontal.3", color: .indigo) {
+                showMySQLVariables = true
+            })
+            actions.append(ServiceAction(title: L10n.t("性能调整"), icon: "wand.and.stars", color: .mint) {
+                showMySQLPerformance = true
+            })
+            actions.append(ServiceAction(title: L10n.t("配置修改"), icon: "doc.plaintext", color: .brown) {
+                showMySQLConf = true
             })
         }
         if vm.system.type.lowercased() == "redis" {

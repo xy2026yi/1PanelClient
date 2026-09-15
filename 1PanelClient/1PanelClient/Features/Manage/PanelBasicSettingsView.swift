@@ -165,8 +165,16 @@ struct PanelBasicSettingsView: View {
                 deviceEntrySection
                 ntpSection
                 serverTimeSection
-                // 虚拟内存（Swap）自包含区块：自带数据加载与任务进度
-                DeviceSwapSection(server: server)
+                // 虚拟内存（Swap）：入口行 → 独立页内调整（本页不再内嵌编辑）
+                Section {
+                    NavigationLink {
+                        DeviceSwapSettingsView(server: server)
+                    } label: {
+                        Text(L10n.t("虚拟内存"))
+                    }
+                } header: {
+                    SectionLabel(title: L10n.t("虚拟内存"), systemImage: "memorychip")
+                }
             }
         }
         .navigationTitle(L10n.t("基础设置"))
