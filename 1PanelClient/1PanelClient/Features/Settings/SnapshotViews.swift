@@ -78,8 +78,10 @@ struct SnapshotListView: View {
             Text(errorMessage ?? "")
         }
         .sheet(isPresented: $showCreate) {
-            SnapshotCreateView(server: server) {
-                Task { await load() }
+            // 创建成功的进度跳转由本页（NavigationStack 内）承接：
+            // Sheet 内无导航栈，navigationDestination 不生效会表现为无任何反馈
+            SnapshotCreateView(server: server) { target in
+                progressTask = target
             }
         }
         .sheet(item: $recoveringItem) { snapshot in
@@ -380,7 +382,8 @@ private struct SnapshotLeafRow: View {
 
 struct SnapshotCreateView: View {
     let server: ServerConfig
-    let onCreated: () async -> Void
+    /// 创建请求成功后回传任务目标（父级在 NavigationStack 内 push 进度页）
+    let onTaskStarted: (SnapshotTaskTarget) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var loadData: SnapshotLoadData?
@@ -404,16 +407,15 @@ struct SnapshotCreateView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var showError = false
-    @State private var progressTask: SnapshotTaskTarget?
 
     private let client: APIClient
     private let timeoutUnits: [(value: String, label: String, seconds: Int)] = [
         ("s", L10n.t("秒"), 1), ("m", L10n.t("分钟"), 60), ("h", L10n.t("小时"), 3600),
     ]
 
-    init(server: ServerConfig, onCreated: @escaping () async -> Void) {
+    init(server: ServerConfig, onTaskStarted: @escaping (SnapshotTaskTarget) -> Void) {
         self.server = server
-        self.onCreated = onCreated
+        self.onTaskStarted = onTaskStarted
         self.client = APIClient.shared(for: server)
     }
 
@@ -436,15 +438,6 @@ struct SnapshotCreateView: View {
         .navigationTitle(L10n.t("创建快照"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadAll() }
-        .navigationDestination(item: $progressTask) { target in
-            TaskProgressView(taskID: target.taskID, title: target.title) { isDone in
-                if isDone {
-                    Task { await onCreated() }
-                    Task { try? await Task.sleep(for: .milliseconds(350)); dismiss() }
-                }
-                return false
-            }
-        }
     }
 
     private func createForm(_ data: SnapshotLoadData) -> some View {
@@ -633,8 +626,9 @@ struct SnapshotCreateView: View {
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.settingsSnapshotCreate.path, body: req, as: EmptyResponse.self)
-            progressTask = SnapshotTaskTarget(
-                taskID: taskID, title: L10n.t("创建快照"))
+            // 交给父级 push 进度页后关闭 Sheet（Sheet 内无导航栈，自身无法跳转）
+            onTaskStarted(SnapshotTaskTarget(taskID: taskID, title: L10n.t("创建快照")))
+            dismiss()
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription

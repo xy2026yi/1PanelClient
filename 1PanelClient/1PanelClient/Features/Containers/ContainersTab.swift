@@ -188,7 +188,7 @@ struct DockerStatusCard: View {
                                 onShowImages()
                             }
                         },
-                        ServiceAction(title: L10n.t("容器网络"), icon: "network", color: .cyan) {
+                        ServiceAction(title: L10n.t("网络"), icon: "network", color: .cyan) {
                             onShowNetworks()
                         },
                         ServiceAction(title: L10n.t("存储卷"), icon: "externaldrive.fill.badge.timemachine", color: .indigo) {

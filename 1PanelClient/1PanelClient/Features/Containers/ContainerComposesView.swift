@@ -228,7 +228,6 @@ struct ContainerComposeDetailView: View {
                     .padding(.bottom, 2)
             }
         }
-        .listRowBackground(Color.clear)
     }
 
     /// 抽屉头部：名称 + 运行态 + 展开箭头（与容器详情状态抽屉同构）

@@ -17,6 +17,10 @@ struct ContainerImageView: View {
     @State private var pendingDeleteImage: ContainerImage?
     /// 删除任务进度（taskID 非空时 push TaskProgressView）
     @State private var deleteTaskID: String?
+    /// 搜索框状态（服务端分页过滤，输入防抖后重查第一页）
+    @State private var searchText = ""
+    @State private var isSearching = false
+    @State private var searchDebounce: Task<Void, Never>?
 
     var body: some View {
         Group {
@@ -27,11 +31,15 @@ struct ContainerImageView: View {
                     Task { await vm.loadImages() }
                 }
             } else if vm.images.isEmpty {
-                ContentUnavailableView(
-                    L10n.t("暂无镜像"),
-                    systemImage: "square.stack.3d.up",
-                    description: Text(L10n.t("这台服务器上没有镜像"))
-                )
+                if searchText.isEmpty {
+                    ContentUnavailableView(
+                        L10n.t("暂无镜像"),
+                        systemImage: "square.stack.3d.up",
+                        description: Text(L10n.t("这台服务器上没有镜像"))
+                    )
+                } else {
+                    ContentUnavailableView.search(text: searchText)
+                }
             } else {
                 List {
                     ForEach(vm.images) { img in
@@ -44,6 +52,16 @@ struct ContainerImageView: View {
                                 }
                                 .disabled(img.isUsed == true || (img.tags?.first ?? "").isEmpty)
                             }
+                            .onAppear {
+                                // 滚动到底自动追加下一页
+                                if img.id == vm.images.last?.id {
+                                    Task { await vm.loadMoreImages() }
+                                }
+                            }
+                    }
+                    if vm.images.count < vm.imageTotal || vm.isLoadingMoreImages {
+                        HStack { Spacer(); ProgressView(); Spacer() }
+                            .onAppear { Task { await vm.loadMoreImages() } }
                     }
                 }
                 .listStyle(.insetGrouped)
@@ -51,6 +69,22 @@ struct ContainerImageView: View {
             }
         }
         .navigationTitle(L10n.t("镜像"))
+        .searchIconMode(
+            text: $searchText,
+            isSearching: $isSearching,
+            title: L10n.t("镜像"),
+            prompt: L10n.t("搜索镜像名"))
+        .onChange(of: searchText) { _, text in
+            // 防抖 400ms 后按新过滤词重查第一页
+            searchDebounce?.cancel()
+            searchDebounce = Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
+                guard vm.imageKeyword != text else { return }
+                vm.imageKeyword = text
+                await vm.loadImages()
+            }
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -290,6 +324,9 @@ struct ImagePruneSelectView: View {
     /// false=清理未使用镜像，true=清理未标签镜像（页顶分段切换）
     @State private var isUntaggedMode = false
 
+    /// 候选集自取全量列表（image/all）：列表页已改分页搜索，
+    /// 未翻到的页不应从清理候选中消失
+    @State private var allImages: [ContainerImage] = []
     @State private var selectedIDs: Set<String> = []
     @State private var isDeleting = false
     /// 删除任务进度（taskID 非空时 push TaskProgressView）
@@ -304,9 +341,9 @@ struct ImagePruneSelectView: View {
 
     private var filteredImages: [ContainerImage] {
         if isUntaggedMode {
-            return vm.images.filter { ($0.tags ?? []).isEmpty }
+            return allImages.filter { ($0.tags ?? []).isEmpty }
         } else {
-            return vm.images.filter { $0.isUsed != true }
+            return allImages.filter { $0.isUsed != true }
         }
     }
 
@@ -434,7 +471,7 @@ struct ImagePruneSelectView: View {
             }
         }
         .task {
-            if vm.images.isEmpty { await vm.loadImages() }
+            if allImages.isEmpty { allImages = await vm.fetchAllImages() }
         }
     }
 

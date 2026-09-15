@@ -534,20 +534,79 @@ final class ContainersViewModel: ObservableObject {
         }
     }
 
-    // MARK: - 镜像列表
+    // MARK: - 镜像列表（POST /containers/image/search 分页 + 名称过滤）
+
+    /// 镜像名过滤词（搜索框写入，loadImages/loadMoreImages 统一携带）
+    @Published var imageKeyword = ""
+    @Published private(set) var imageTotal = 0
+    @Published private(set) var isLoadingMoreImages = false
+    private var imagePage = 0
+    /// 重载代数：翻页期间列表被重载时丢弃过期追加
+    private var imageGeneration = 0
+    private static let imagePageSize = 20
 
     func loadImages() async {
         isLoadingImages = true
         defer { isLoadingImages = false }
+        imageGeneration += 1
+        let req = ContainerImageSearchRequest(
+            page: 1, pageSize: Self.imagePageSize,
+            name: imageKeyword, orderBy: "createdAt", order: "null")
         do {
-            self.images = try await client.send(
-                path: APIEndpoint.containersImageAll.path,
-                method: "GET", as: [ContainerImage].self
-            )
+            let resp: PageResponse<ContainerImage> = try await client.send(
+                path: APIEndpoint.containersImageSearch.path,
+                body: req, as: PageResponse<ContainerImage>.self)
+            images = resp.items ?? []
+            imageTotal = resp.total ?? resp.items?.count ?? 0
+            imagePage = 1
             imagesLoadError = nil
         } catch {
-            self.images = []
+            guard !APIError.isCancellation(error) else { return }
+            images = []
+            imageTotal = 0
             imagesLoadError = error.localizedDescription
+        }
+    }
+
+    /// 追加下一页镜像（滚动到底触发；按 id 去重防跨页重复）
+    func loadMoreImages() async {
+        guard images.count < imageTotal, !isLoadingMoreImages, !isLoadingImages else { return }
+        isLoadingMoreImages = true
+        defer { isLoadingMoreImages = false }
+        let next = imagePage + 1
+        let gen = imageGeneration
+        let req = ContainerImageSearchRequest(
+            page: next, pageSize: Self.imagePageSize,
+            name: imageKeyword, orderBy: "createdAt", order: "null")
+        do {
+            let resp: PageResponse<ContainerImage> = try await client.send(
+                path: APIEndpoint.containersImageSearch.path,
+                body: req, as: PageResponse<ContainerImage>.self)
+            // 期间列表已被重载（下拉/搜索/删除触发新代数）：丢弃过期追加
+            guard gen == imageGeneration else { return }
+            let existing = Set(images.map(\.id))
+            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
+            if newItems.isEmpty {
+                // 翻页间隙服务器侧数据变动，去重后零新增：total 收敛为已加载量
+                imageTotal = images.count
+                return
+            }
+            images += newItems
+            imageTotal = resp.total ?? imageTotal
+            imagePage = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
+        }
+    }
+
+    /// 全量镜像（清理镜像的候选集需完整列表，不受列表页分页影响）
+    func fetchAllImages() async -> [ContainerImage] {
+        do {
+            return try await client.send(
+                path: APIEndpoint.containersImageAll.path,
+                method: "GET", as: [ContainerImage].self)
+        } catch {
+            return []
         }
     }
 

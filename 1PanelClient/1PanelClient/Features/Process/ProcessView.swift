@@ -96,7 +96,7 @@ struct ProcessView: View {
             set: { if !$0 { selectedProcess = nil } }
         )) {
             if let proc = selectedProcess {
-                ProcessDetailView(process: proc) {
+                ProcessDetailView(process: proc, monitor: monitor) {
                     stopTarget = proc
                     showStopConfirm = true
                 }
@@ -342,50 +342,110 @@ private struct NetworkRow: View {
 
 // MARK: - 进程详情
 
+/// 列表快照即时展示，进入后拉取 GET /process/:pid 增强为完整详情
+/// （内存明细 / 网络连接 / 环境变量 / 打开文件），接口失败时静默保留快照
 private struct ProcessDetailView: View {
     let process: ProcessItem
+    let monitor: ProcessMonitor
     let onStop: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var detail: ProcessDetail?
 
     var body: some View {
         List {
             Section(L10n.t("基本信息")) {
                 InfoRow(key: "PID", value: "\(process.pid)")
-                InfoRow(key: L10n.t("名称"), value: process.name)
-                InfoRow(key: L10n.t("父进程 PID"), value: "\(process.ppid)")
-                InfoRow(key: L10n.t("用户"), value: process.username)
-                InfoRow(key: L10n.t("状态"), value: process.status)
-            }
-
-            Section(L10n.t("资源使用")) {
-                if let cpu = process.cpuPercent, !cpu.isEmpty {
-                    InfoRow(key: "CPU", value: cpu)
-                }
-                if let mem = process.rss, !mem.isEmpty {
-                    InfoRow(key: L10n.t("内存 (RSS)"), value: mem)
-                }
-                if let threads = process.numThreads {
-                    InfoRow(key: L10n.t("线程数"), value: "\(threads)")
-                }
-                if let conns = process.numConnections {
-                    InfoRow(key: L10n.t("连接数"), value: "\(conns)")
-                }
-                if let dr = process.diskRead, !dr.isEmpty {
-                    InfoRow(key: L10n.t("磁盘读"), value: dr)
-                }
-                if let dw = process.diskWrite, !dw.isEmpty {
-                    InfoRow(key: L10n.t("磁盘写"), value: dw)
-                }
-            }
-
-            if let time = process.startTime, !time.isEmpty {
-                Section(L10n.t("时间")) {
+                InfoRow(key: L10n.t("名称"), value: pick(detail?.name, process.name))
+                InfoRow(key: L10n.t("父进程 PID"), value: "\(detail?.ppid ?? process.ppid)")
+                InfoRow(key: L10n.t("用户"), value: pick(detail?.username, process.username))
+                InfoRow(key: L10n.t("状态"), value: pick(detail?.status, process.status))
+                if let time = pick(detail?.startTime, process.startTime), !time.isEmpty {
                     InfoRow(key: L10n.t("启动时间"), value: time)
                 }
             }
 
-            if let cmd = process.cmdLine, !cmd.isEmpty {
+            Section(L10n.t("资源使用")) {
+                if let cpu = pick(detail?.cpuPercent, process.cpuPercent), !cpu.isEmpty {
+                    InfoRow(key: "CPU", value: cpu)
+                }
+                if let mem = pick(detail?.rss, process.rss), !mem.isEmpty {
+                    InfoRow(key: L10n.t("内存 (RSS)"), value: mem)
+                }
+                if let threads = detail?.numThreads ?? process.numThreads {
+                    InfoRow(key: L10n.t("线程数"), value: "\(threads)")
+                }
+                if let conns = detail?.numConnections ?? process.numConnections {
+                    InfoRow(key: L10n.t("连接数"), value: "\(conns)")
+                }
+                if let dr = pick(detail?.diskRead, process.diskRead), !dr.isEmpty {
+                    InfoRow(key: L10n.t("磁盘读"), value: dr)
+                }
+                if let dw = pick(detail?.diskWrite, process.diskWrite), !dw.isEmpty {
+                    InfoRow(key: L10n.t("磁盘写"), value: dw)
+                }
+            }
+
+            if let mem = detail, hasMemoryDetail(mem) {
+                Section(L10n.t("内存明细")) {
+                    memoryRow(L10n.t("虚拟内存 (VMS)"), mem.vms)
+                    memoryRow(L10n.t("峰值驻留 (HWM)"), mem.hwm)
+                    memoryRow(L10n.t("比例分摊 (PSS)"), mem.pss)
+                    memoryRow(L10n.t("进程独占 (USS)"), mem.uss)
+                    memoryRow(L10n.t("共享内存"), mem.shared)
+                    memoryRow(L10n.t("数据段"), mem.data)
+                    memoryRow(L10n.t("栈"), mem.stack)
+                    memoryRow(L10n.t("代码段"), mem.text)
+                    memoryRow(L10n.t("锁定"), mem.locked)
+                    memoryRow(L10n.t("交换分区"), mem.swap)
+                    memoryRow(L10n.t("脏页"), mem.dirty)
+                }
+            }
+
+            if let connects = detail?.connects, !connects.isEmpty {
+                Section(L10n.t("网络连接")) {
+                    ForEach(NetworkConnection.deduplicated(connects)) { conn in
+                        NetworkRow(connection: conn)
+                    }
+                }
+            }
+
+            if let envs = detail?.envs, !envs.isEmpty {
+                Section(L10n.t("环境变量")) {
+                    ForEach(envs, id: \.self) { env in
+                        Text(env)
+                            .font(.system(.caption, design: .monospaced))
+                            .textSelection(.enabled)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+            }
+
+            if let files = detail?.openFiles, !files.isEmpty {
+                Section {
+                    ForEach(Array(files.enumerated()), id: \.offset) { _, file in
+                        HStack {
+                            Text(file.path ?? "-")
+                                .font(.system(.caption, design: .monospaced))
+                                .lineLimit(1)
+                                .truncationMode(.head)
+                            Spacer()
+                            if let fd = file.fd {
+                                Text("fd \(fd)")
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    SectionLabel(
+                        title: L10n.f("打开文件（%ld）", files.count),
+                        systemImage: "doc.on.doc")
+                }
+            }
+
+            if let cmd = detail?.cmdLine ?? process.cmdLine, !cmd.isEmpty {
                 Section(L10n.t("命令行")) {
                     Text(cmd)
                         .font(.caption.monospaced())
@@ -393,20 +453,44 @@ private struct ProcessDetailView: View {
                 }
             }
 
-            Section {
+        }
+        .navigationTitle(pick(detail?.name, process.name))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(role: .destructive) {
                     onStop()
                     dismiss()
                 } label: {
-                    HStack {
-                        Spacer()
-                        Label(L10n.t("结束进程"), systemImage: "xmark.octagon")
-                        Spacer()
-                    }
+                    Label(L10n.t("结束进程"), systemImage: "xmark.octagon")
                 }
+                .tint(.red)
             }
         }
-        .navigationTitle(process.name)
-        .navigationBarTitleDisplayMode(.inline)
+        .task { detail = await monitor.loadDetail(pid: process.pid) }
+    }
+
+    /// 详情值优先，缺省/为空回退列表快照
+    private func pick(_ detailValue: String?, _ snapshotValue: String) -> String {
+        if let v = detailValue, !v.isEmpty { return v }
+        return snapshotValue
+    }
+
+    private func pick(_ detailValue: String?, _ snapshotValue: String?) -> String? {
+        if let v = detailValue, !v.isEmpty { return v }
+        return snapshotValue
+    }
+
+    private func hasMemoryDetail(_ mem: ProcessDetail) -> Bool {
+        [mem.vms, mem.hwm, mem.pss, mem.uss, mem.shared, mem.data,
+         mem.stack, mem.text, mem.locked, mem.swap, mem.dirty]
+            .contains { !($0 ?? "").isEmpty }
+    }
+
+    @ViewBuilder
+    private func memoryRow(_ key: String, _ value: String?) -> some View {
+        if let v = value, !v.isEmpty {
+            InfoRow(key: key, value: v)
+        }
     }
 }

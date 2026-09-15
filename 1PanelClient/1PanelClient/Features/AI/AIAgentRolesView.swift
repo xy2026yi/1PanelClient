@@ -237,6 +237,9 @@ struct AIAgentRolesView: View {
 
 // MARK: - 绑定行（频道 + 账户 二级联动 + 添加按钮）
 
+/// 整行式 频道 → 账户 ID 二级联动（对齐网页端布局：频道下拉、账户 ID 随频道
+/// 自动带入、多 Bot 频道必选其一后添加；原先两个下拉挤在同一行，窄屏下
+/// 标签被压缩不可读，无法正常选择频道和账户 ID）
 struct RoleBindRow: View {
     let channels: [AIAgentRoleChannel]
     /// 当前角色已有绑定（频道选项标注「已绑定」）
@@ -255,7 +258,10 @@ struct RoleBindRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        if channels.isEmpty {
+            Text(L10n.t("暂无可绑定频道"))
+                .foregroundStyle(.secondary)
+        } else {
             Picker(L10n.t("频道"), selection: $channel) {
                 Text(L10n.t("请选择")).tag("")
                 ForEach(channels) { ch in
@@ -267,6 +273,7 @@ struct RoleBindRow: View {
                 }
             }
             .onChange(of: channel) { _, _ in
+                // 账户 ID 随频道自动带入（网页端口径）；多 Bot 频道可再改选
                 account = accountOptions.first ?? ""
             }
 
@@ -282,11 +289,9 @@ struct RoleBindRow: View {
                 guard !channel.isEmpty, !account.isEmpty else { return }
                 onAdd(channel, account)
             } label: {
-                Image(systemName: "plus.circle.fill")
+                Label(L10n.t("添加绑定"), systemImage: "plus.circle")
             }
-            .buttonStyle(.borderless)
             .disabled(channel.isEmpty || account.isEmpty)
-            .accessibilityLabel(L10n.t("添加"))
         }
     }
 }

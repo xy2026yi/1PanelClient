@@ -234,7 +234,16 @@ nonisolated struct ImageDeleteRequest: Encodable {
     let names: [String]
 }
 
-// MARK: - 镜像（GET /containers/image/all）
+// MARK: - 镜像（GET /containers/image/all · POST /containers/image/search）
+
+/// 镜像分页搜索请求（orderBy/order 为服务端 required oneof 校验，须传合法值）
+nonisolated struct ContainerImageSearchRequest: Encodable {
+    let page: Int
+    let pageSize: Int
+    let name: String
+    let orderBy: String
+    let order: String
+}
 
 nonisolated struct ContainerImage: Decodable, Identifiable {
     let id: String

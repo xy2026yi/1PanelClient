@@ -43,7 +43,8 @@ enum APIEndpoint {
     case containersDockerStatus   // GET  Docker 服务状态（isActive/isExist）
     case containersDockerOperate  // POST Docker 服务操作（start/stop/restart）
     case containersPrune          // POST 清理容器/镜像
-    case containersImageAll       // GET  所有镜像列表
+    case containersImageAll       // GET  所有镜像列表（清理镜像候选等全量场景）
+    case containersImageSearch    // POST 镜像分页搜索 {page, pageSize, name, orderBy, order}
     case containersSearchLog      // GET  容器日志（SSE 流式）
     case containersOperate        // POST 单个容器操作（stop/start/restart/kill）
     case containersUpgrade        // POST 容器升级
@@ -245,6 +246,7 @@ enum APIEndpoint {
     // MARK: - 进程
     case processStop             // POST 结束指定进程
     case processListening        // POST 端口监听进程列表（防火墙规则行显示进程名）
+    case processDetail           // GET  进程详情（:pid 路径参数，含内存明细/连接/环境变量）
 
     // MARK: - Fail2ban
     case fail2banBase            // GET  基础配置
@@ -656,6 +658,7 @@ enum APIEndpoint {
         case .containersDockerOperate:  return "/api/v2/containers/docker/operate"
         case .containersPrune:          return "/api/v2/containers/prune"
         case .containersImageAll:       return "/api/v2/containers/image/all"
+        case .containersImageSearch:    return "/api/v2/containers/image/search"
         case .containersSearchLog:      return "/api/v2/containers/search/log"
         case .containersOperate:        return "/api/v2/containers/operate"
         case .containersUpgrade:        return "/api/v2/containers/upgrade"
@@ -812,6 +815,7 @@ enum APIEndpoint {
         case .databasesGrantsDelete: return "/api/v2/databases/grants/del"
         case .processStop:           return "/api/v2/process/stop"
         case .processListening:      return "/api/v2/process/listening"
+        case .processDetail:         return "/api/v2/process/:pid"
         case .fail2banBase:          return "/api/v2/toolbox/fail2ban/base"
         case .fail2banUpdate:        return "/api/v2/toolbox/fail2ban/update"
         case .fail2banLoadConf:      return "/api/v2/toolbox/fail2ban/load/conf"
@@ -1143,6 +1147,7 @@ enum APIEndpoint {
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
              .containersListStats, .containersStats, .containersDockerStatus, .containersImageAll,
              .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,
+             .processDetail,
              .appsIcon, .databasesRedisCheck,
              .appsServices,
              .logsTaskCount,

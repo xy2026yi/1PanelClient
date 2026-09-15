@@ -93,7 +93,16 @@ struct NetworkConnection: Decodable, Identifiable, Hashable {
         case name
     }
 
-    var id: String { "\(type)-\(pid)-\(localaddr.ip):\(localaddr.port)-\(remoteaddr.ip):\(remoteaddr.port)" }
+    /// 五元组 + 状态 + 进程名共同构成身份：仅按五元组时同进程的
+    /// 多条一致记录（如 UDP 未连接套接字 remoteaddr :0）会撞 ForEach ID
+    var id: String { "\(type)-\(status)-\(pid)-\(name)-\(localaddr.ip):\(localaddr.port)-\(remoteaddr.ip):\(remoteaddr.port)" }
+
+    /// 去掉完全一致的重复记录：内容全同的行视觉无差别，保留会在
+    /// ForEach 中产生重复 ID（Xcode 告警 undefined results）
+    static func deduplicated(_ list: [NetworkConnection]) -> [NetworkConnection] {
+        var seen = Set<NetworkConnection>()
+        return list.filter { seen.insert($0).inserted }
+    }
 
     var typeColor: Color {
         switch type {
@@ -123,6 +132,58 @@ struct StopProcessRequest: Encodable {
     let pid: Int
     enum CodingKeys: String, CodingKey {
         case pid = "PID"
+    }
+}
+
+// MARK: - 进程详情（GET /process/:pid）
+
+/// 打开的文件项（gopsutil OpenFilesStat：path + fd）
+nonisolated struct ProcessOpenFile: Decodable {
+    let path: String?
+    let fd: Int?
+}
+
+/// 进程详情（服务端 PsProcessData）：比列表快照多内存明细 / 连接 / 环境变量 / 打开文件；
+/// 字段全部可缺省，进程已退出等场景接口报错，由调用方回退列表快照展示
+nonisolated struct ProcessDetail: Decodable {
+    let pid: Int
+    let name: String?
+    let ppid: Int?
+    let username: String?
+    let status: String?
+    let startTime: String?
+    let numThreads: Int?
+    let numConnections: Int?
+    let cpuPercent: String?
+    let cpuValue: Double?
+    let diskRead: String?
+    let diskWrite: String?
+    let cmdLine: String?
+    // 内存明细（服务端已格式化的体积字符串）
+    let rss: String?
+    let vms: String?
+    let hwm: String?
+    let data: String?
+    let stack: String?
+    let locked: String?
+    let swap: String?
+    let dirty: String?
+    let pss: String?
+    let uss: String?
+    let shared: String?
+    let text: String?
+    let rssValue: Int?
+    let envs: [String]?
+    let openFiles: [ProcessOpenFile]?
+    let connects: [NetworkConnection]?
+
+    enum CodingKeys: String, CodingKey {
+        case pid = "PID", name, ppid = "PPID", username, status, startTime
+        case numThreads, numConnections, cpuPercent, cpuValue
+        case diskRead, diskWrite, cmdLine
+        case rss, vms, hwm, data, stack, locked, swap, dirty
+        case pss, uss, shared, text, rssValue
+        case envs, openFiles, connects
     }
 }
 
@@ -336,6 +397,19 @@ final class ProcessMonitor: ObservableObject {
         }
     }
 
+    /// 进程详情（GET /process/:pid）；进程已退出/无权限时返回 nil，
+    /// 调用方回退列表快照展示，不打断页面
+    func loadDetail(pid: Int) async -> ProcessDetail? {
+        let path = APIEndpoint.processDetail.path
+            .replacingOccurrences(of: ":pid", with: String(pid))
+        do {
+            return try await apiClient.send(
+                path: path, method: APIEndpoint.processDetail.method, as: ProcessDetail.self)
+        } catch {
+            return nil
+        }
+    }
+
     /// 断开指定 SSH 会话（与结束进程同接口：POST /api/v2/process/stop {"PID":n}）
     func stopSession(pid: Int) async {
         isStopping = true
@@ -396,7 +470,7 @@ final class ProcessMonitor: ObservableObject {
             }
         } else if first["type"] != nil {
             if let decoded = try? JSONDecoder().decode([NetworkConnection].self, from: jsonData) {
-                connections = decoded.sorted { $0.name < $1.name }
+                connections = NetworkConnection.deduplicated(decoded).sorted { $0.name < $1.name }
             }
         } else {
             if let decoded = try? JSONDecoder().decode([ProcessItem].self, from: jsonData) {

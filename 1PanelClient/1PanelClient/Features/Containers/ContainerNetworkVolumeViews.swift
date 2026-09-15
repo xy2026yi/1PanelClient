@@ -382,7 +382,7 @@ struct ContainerNetworksView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(L10n.t("容器网络"))
+        .navigationTitle(L10n.t("网络"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -393,13 +393,14 @@ struct ContainerNetworksView: View {
                 }
                 .accessibilityLabel(L10n.t("创建网络"))
             }
+            // 唯一动作是清理：直接展示清理按钮，不用三点菜单误导有多项操作
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showPruneConfirm = true
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Label(L10n.t("清理"), systemImage: "trash")
                 }
-                .accessibilityLabel(L10n.t("更多操作"))
+                .accessibilityLabel(L10n.t("清理网络"))
             }
         }
         .task { await load() }
@@ -834,13 +835,14 @@ struct ContainerVolumesView: View {
                 }
                 .accessibilityLabel(L10n.t("创建存储卷"))
             }
+            // 唯一动作是清理：直接展示清理按钮，不用三点菜单误导有多项操作
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showPruneConfirm = true
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Label(L10n.t("清理"), systemImage: "trash")
                 }
-                .accessibilityLabel(L10n.t("更多操作"))
+                .accessibilityLabel(L10n.t("清理存储卷"))
             }
         }
         .task { await load() }
