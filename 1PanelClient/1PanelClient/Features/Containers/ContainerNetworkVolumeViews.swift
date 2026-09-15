@@ -20,12 +20,12 @@ struct ContainerInspectTarget: Identifiable, Hashable {
 }
 
 /// POST /containers/inspect {id, type, detail:""} → data 为 JSON 字符串，
-/// 格式化展示（网络/存储卷详情，抓包 2026-09-14 确认）
+/// 结构化分组展示（网络 / 存储卷，抓包 2026-09-14 确认）
 struct ContainerInspectDetailView: View {
     let client: APIClient
     let target: ContainerInspectTarget
 
-    @State private var content: String?
+    @State private var sections: [InspectSectionModel]?
     @State private var isLoading = true
     @State private var loadError: String?
 
@@ -33,14 +33,27 @@ struct ContainerInspectDetailView: View {
         Group {
             if isLoading {
                 LoadingStateView()
-            } else if let content {
-                ScrollView {
-                    Text(content)
-                        .font(.system(.caption, design: .monospaced))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                        .padding()
+            } else if let sections {
+                List {
+                    ForEach(Array(sections.enumerated()), id: \.offset) { _, section in
+                        Section {
+                            ForEach(Array(section.rows.enumerated()), id: \.offset) { _, row in
+                                InfoRow(row.key, value: row.value, monospaced: row.monospaced)
+                            }
+                            ForEach(section.containerRows) { c in
+                                InfoRow(c.name, value: c.ip, monospaced: true)
+                            }
+                            if let raw = section.rawJSON {
+                                Text(raw)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .textSelection(.enabled)
+                            }
+                        } header: {
+                            SectionLabel(title: section.title, systemImage: section.icon)
+                        }
+                    }
                 }
+                .listStyle(.insetGrouped)
             } else {
                 LoadErrorStateView(message: loadError ?? L10n.t("加载失败")) {
                     Task { await load() }
@@ -58,20 +71,201 @@ struct ContainerInspectDetailView: View {
                 path: APIEndpoint.containersInspect.path,
                 body: ContainerInspectRequest(id: target.id, type: target.type, detail: ""),
                 as: String.self)
-            // 服务端返回 JSON 字符串：格式化缩进后展示
-            if let data = raw.data(using: .utf8),
-               let obj = try? JSONSerialization.jsonObject(with: data),
-               let pretty = try? JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys]) {
-                content = String(data: pretty, encoding: .utf8) ?? raw
-            } else {
-                content = raw
+            // 服务端返回 JSON 字符串：解析后按网络/卷结构化分组
+            guard let data = raw.data(using: .utf8),
+                  let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+                throw APIError.invalidResponse
             }
+            sections = InspectSectionsBuilder.build(type: target.type, obj: obj)
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
             loadError = error.localizedDescription
         }
         isLoading = false
+    }
+}
+
+// MARK: - inspect 结构化分组
+
+/// 单个展示分组：键值行 + 容器连接行（网络）+ 原始 JSON 兜底块
+struct InspectSectionModel {
+    let title: String
+    let icon: String
+    var rows: [(key: String, value: String, monospaced: Bool)] = []
+    var containerRows: [InspectContainerRow] = []
+    var rawJSON: String?
+}
+
+/// 网络连接的容器行（名称 → IP）
+struct InspectContainerRow: Identifiable {
+    let name: String
+    let ip: String
+    var id: String { name + ip }
+}
+
+nonisolated enum InspectSectionsBuilder {
+
+    /// 按网络 / 存储卷分别结构化；未覆盖的顶层键收进「其他」
+    static func build(type: String, obj: [String: Any]) -> [InspectSectionModel] {
+        type == "volume" ? volumeSections(obj) : networkSections(obj)
+    }
+
+    // MARK: 网络（docker network inspect）
+
+    private static func networkSections(_ obj: [String: Any]) -> [InspectSectionModel] {
+        var used = Set<String>()
+        var base = InspectSectionModel(title: L10n.t("基本信息"), icon: "info.circle")
+        func kv(_ key: String, _ label: String, monospaced: Bool = false) {
+            used.insert(key)
+            if let v = plainValue(obj[key]), !v.isEmpty {
+                base.rows.append((label, v, monospaced))
+            }
+        }
+        kv("Name", L10n.t("名称"))
+        kv("Id", "ID", monospaced: true)
+        kv("Created", L10n.t("创建时间"))
+        kv("Driver", L10n.t("驱动"))
+        kv("Scope", L10n.t("作用域"))
+        kv("EnableIPv6", L10n.t("启用 IPv6"))
+        kv("Internal", L10n.t("内部网络"))
+        kv("Attachable", L10n.t("可附加"))
+        kv("Ingress", "Ingress")
+        var sections = [base]
+
+        used.insert("IPAM")
+        if let ipam = obj["IPAM"] as? [String: Any] {
+            var s = InspectSectionModel(title: "IPAM", icon: "point.3.connected.trianglepath.dotted")
+            if let driver = plainValue(ipam["Driver"]), !driver.isEmpty {
+                s.rows.append((L10n.t("驱动"), driver, false))
+            }
+            if let configs = ipam["Config"] as? [[String: Any]] {
+                for (idx, cfg) in configs.enumerated() {
+                    let prefix = configs.count > 1 ? "\(idx + 1) · " : ""
+                    if let subnet = plainValue(cfg["Subnet"]), !subnet.isEmpty {
+                        s.rows.append((prefix + L10n.t("子网"), subnet, true))
+                    }
+                    if let gateway = plainValue(cfg["Gateway"]), !gateway.isEmpty {
+                        s.rows.append((prefix + L10n.t("网关"), gateway, true))
+                    }
+                    if let aux = cfg["AuxiliaryAddresses"] as? [String: Any], !aux.isEmpty {
+                        for (k, v) in aux.sorted(by: { $0.key < $1.key }) {
+                            s.rows.append((L10n.t("辅助 IP") + " \(k)", plainValue(v) ?? "", true))
+                        }
+                    }
+                }
+            }
+            if let opts = ipam["Options"] as? [String: Any], !opts.isEmpty {
+                for (k, v) in opts.sorted(by: { $0.key < $1.key }) {
+                    s.rows.append((k, plainValue(v) ?? "", false))
+                }
+            }
+            if !s.rows.isEmpty { sections.append(s) }
+        }
+
+        used.insert("Containers")
+        if let containers = obj["Containers"] as? [String: Any], !containers.isEmpty {
+            var s = InspectSectionModel(title: L10n.t("容器"), icon: "shippingbox")
+            for value in containers.values {
+                guard let c = value as? [String: Any] else { continue }
+                let name = plainValue(c["Name"]) ?? L10n.t("未知")
+                let ip = plainValue(c["IPv4Address"]) ?? plainValue(c["IPv6Address"]) ?? "—"
+                s.containerRows.append(InspectContainerRow(name: name, ip: ip))
+            }
+            if !s.containerRows.isEmpty {
+                s.containerRows.sort { $0.name < $1.name }
+                sections.append(s)
+            }
+        }
+
+        sections.append(contentsOf: dictSection(obj["Labels"], title: L10n.t("标签"), icon: "tag", used: &used, key: "Labels"))
+        sections.append(contentsOf: dictSection(obj["Options"], title: L10n.t("选项"), icon: "slider.horizontal.3", used: &used, key: "Options"))
+        sections.append(contentsOf: remainderSections(obj, used: used))
+        return sections
+    }
+
+    // MARK: 存储卷（docker volume inspect）
+
+    private static func volumeSections(_ obj: [String: Any]) -> [InspectSectionModel] {
+        var used = Set<String>()
+        var base = InspectSectionModel(title: L10n.t("基本信息"), icon: "info.circle")
+        func kv(_ key: String, _ label: String, monospaced: Bool = false) {
+            used.insert(key)
+            if let v = plainValue(obj[key]), !v.isEmpty {
+                base.rows.append((label, v, monospaced))
+            }
+        }
+        kv("Name", L10n.t("名称"))
+        kv("Driver", L10n.t("驱动"))
+        kv("Mountpoint", L10n.t("挂载点"), monospaced: true)
+        kv("CreatedAt", L10n.t("创建时间"))
+        kv("Scope", L10n.t("作用域"))
+        var sections = [base]
+        sections.append(contentsOf: dictSection(obj["Labels"], title: L10n.t("标签"), icon: "tag", used: &used, key: "Labels"))
+        sections.append(contentsOf: dictSection(obj["Options"], title: L10n.t("选项"), icon: "slider.horizontal.3", used: &used, key: "Options"))
+        sections.append(contentsOf: remainderSections(obj, used: used))
+        return sections
+    }
+
+    // MARK: 通用
+
+    /// 字典值分组（Labels / Options 等；空/缺失不生成）
+    private static func dictSection(
+        _ value: Any?, title: String, icon: String, used: inout Set<String>, key: String
+    ) -> [InspectSectionModel] {
+        used.insert(key)
+        guard let dict = value as? [String: Any], !dict.isEmpty else { return [] }
+        var s = InspectSectionModel(title: title, icon: icon)
+        for (k, v) in dict.sorted(by: { $0.key < $1.key }) {
+            s.rows.append((k, plainValue(v) ?? "", false))
+        }
+        return [s]
+    }
+
+    /// 未覆盖的顶层键收进「其他」：字典逐行、标量键值、数组/嵌套 pretty JSON
+    private static func remainderSections(_ obj: [String: Any], used: Set<String>) -> [InspectSectionModel] {
+        let rest = obj.filter { !used.contains($0.key) && !isEmptyValue($0.value) }
+        guard !rest.isEmpty else { return [] }
+        var s = InspectSectionModel(title: L10n.t("其他"), icon: "ellipsis.circle")
+        for (k, v) in rest.sorted(by: { $0.key < $1.key }) {
+            if let dict = v as? [String: Any] {
+                for (dk, dv) in dict.sorted(by: { $0.key < $1.key }) where !isEmptyValue(dv) {
+                    s.rows.append(("\(k).\(dk)", plainValue(dv) ?? "", false))
+                }
+            } else if let arr = v as? [Any], !arr.isEmpty {
+                s.rows.append((k, arr.map { plainValue($0) ?? "" }.joined(separator: ", "), false))
+            } else {
+                s.rows.append((k, plainValue(v) ?? "", false))
+            }
+        }
+        return s.rows.isEmpty ? [] : [s]
+    }
+
+    /// 任意 JSON 值 → 展示字符串（Bool true/false、数字、字符串原样）
+    static func plainValue(_ v: Any?) -> String? {
+        switch v {
+        case nil: return nil
+        case is NSNull: return nil
+        case let b as Bool: return b ? "true" : "false"
+        case let n as NSNumber: return n.stringValue
+        case let s as String: return s.isEmpty ? nil : s
+        case let arr as [Any]:
+            let parts = arr.compactMap { plainValue($0) }
+            return parts.isEmpty ? nil : parts.joined(separator: ", ")
+        default:
+            return nil
+        }
+    }
+
+    private static func isEmptyValue(_ v: Any?) -> Bool {
+        switch v {
+        case nil: return true
+        case is NSNull: return true
+        case let s as String: return s.isEmpty
+        case let dict as [String: Any]: return dict.isEmpty
+        case let arr as [Any]: return arr.isEmpty
+        default: return false
+        }
     }
 }
 

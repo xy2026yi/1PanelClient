@@ -225,3 +225,72 @@ struct ContainerResourceModelsTests {
         #expect(obj["createdAt"] as? String == "2026-09-14T12:01:49.771552337+08:00")
     }
 }
+
+@Suite("inspect 结构化分组")
+struct InspectSectionsTests {
+
+    @Test("网络 inspect：基本信息/IPAM/容器分组与剩余键收「其他」")
+    func networkSections() throws {
+        let json = """
+        {"Name":"1panel-network","Id":"sha256:abc123","Created":"2026-09-14T10:00:00Z",
+         "Scope":"local","Driver":"bridge","EnableIPv6":true,"Internal":false,
+         "Attachable":false,"Ingress":false,
+         "IPAM":{"Driver":"default","Options":null,
+                  "Config":[{"Subnet":"172.20.0.0/16","Gateway":"172.20.0.1"}]},
+         "Containers":{"cid1":{"Name":"web","IPv4Address":"172.20.0.2/16"},
+                       "cid2":{"Name":"db","IPv4Address":"172.20.0.3/16"}},
+         "Options":{},"Labels":{"com.docker.bridge.name":"br-1p"},
+         "ConfigOnly":false}
+        """.data(using: .utf8)!
+        let obj = try JSONSerialization.jsonObject(with: json) as! [String: Any]
+        let sections = InspectSectionsBuilder.build(type: "network", obj: obj)
+        let titles = sections.map(\.title)
+        #expect(titles.contains(L10n.t("基本信息")))
+        #expect(titles.contains("IPAM"))
+        #expect(titles.contains(L10n.t("容器")))
+        #expect(titles.contains(L10n.t("标签")))
+        // 选项为空字典：不生成分组
+        #expect(!titles.contains(L10n.t("选项")))
+        // 未覆盖键（Ingress/ConfigOnly/ConfigFrom）收进「其他」
+        #expect(titles.contains(L10n.t("其他")))
+
+        let base = sections[0]
+        #expect(base.rows.contains { $0.key == L10n.t("启用 IPv6") && $0.value == "true" })
+        #expect(base.rows.contains { $0.key == L10n.t("名称") && $0.value == "1panel-network" })
+
+        let ipam = sections.first { $0.title == "IPAM" }!
+        #expect(ipam.rows.contains { $0.key == L10n.t("子网") && $0.value == "172.20.0.0/16" })
+        #expect(ipam.rows.contains { $0.key == L10n.t("网关") && $0.value == "172.20.0.1" })
+
+        let containers = sections.first { $0.title == L10n.t("容器") }!
+        #expect(containers.containerRows.count == 2)
+        #expect(containers.containerRows.contains { $0.name == "web" && $0.ip == "172.20.0.2/16" })
+    }
+
+    @Test("卷 inspect：基本信息分组 + 空标签不生成")
+    func volumeSections() throws {
+        let json = """
+        {"Name":"vol1","Driver":"local","Scope":"local",
+         "Mountpoint":"/var/lib/docker/volumes/vol1/_data",
+         "CreatedAt":"2026-09-15 10:00:00 +0800 CST","Labels":null,"Options":{}}
+        """.data(using: .utf8)!
+        let obj = try JSONSerialization.jsonObject(with: json) as! [String: Any]
+        let sections = InspectSectionsBuilder.build(type: "volume", obj: obj)
+        #expect(sections.count == 1)
+        let base = sections[0]
+        #expect(base.rows.contains { $0.key == L10n.t("挂载点") && $0.value == "/var/lib/docker/volumes/vol1/_data" })
+        #expect(base.rows.contains { $0.key == L10n.t("创建时间") })
+    }
+
+    @Test("plainValue：Bool/数字/空串/数组/NSNull 归一")
+    func plainValueConversion() {
+        #expect(InspectSectionsBuilder.plainValue(true) == "true")
+        #expect(InspectSectionsBuilder.plainValue(false) == "false")
+        #expect(InspectSectionsBuilder.plainValue(NSNumber(value: 443)) == "443")
+        #expect(InspectSectionsBuilder.plainValue("") == nil)
+        #expect(InspectSectionsBuilder.plainValue(NSNull()) == nil)
+        #expect(InspectSectionsBuilder.plainValue(nil) == nil)
+        #expect(InspectSectionsBuilder.plainValue(["a", "b"]) == "a, b")
+        #expect(InspectSectionsBuilder.plainValue(["x" as Any]) == "x")
+    }
+}

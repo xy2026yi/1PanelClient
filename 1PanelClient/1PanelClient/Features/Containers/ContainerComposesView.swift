@@ -160,9 +160,10 @@ struct ContainerComposeDetailView: View {
     /// 操作抽屉展开状态（与容器详情一致的下拉抽屉）
     @State private var isStatusExpanded = false
     @State private var showLog = false
-    @State private var showConfig = false
     @State private var showEdit = false
     @State private var showBackup = false
+    /// 工作目录跳文件管理的目标路径
+    @State private var workdirTarget: String?
     @State private var showDeleteSheet = false
     @State private var deleteWithFile = false
     @State private var deleteForce = false
@@ -195,7 +196,6 @@ struct ContainerComposeDetailView: View {
             showDeleteSheet: $showDeleteSheet,
             deleteWithFile: $deleteWithFile,
             deleteForce: $deleteForce,
-            showConfig: $showConfig,
             showEdit: $showEdit,
             showLog: $showLog,
             showBackup: $showBackup,
@@ -207,28 +207,25 @@ struct ContainerComposeDetailView: View {
                 onReload()
                 Task { await reloadSelf() }
             }))
+        // 工作目录跳文件管理并打开该路径
+        .navigationDestination(item: $workdirTarget) { path in
+            FilesView(server: server, initialPath: path)
+        }
     }
 
     /// 有容器在运行即视为运行中（决定启停按钮形态）
     private var isRunning: Bool { (compose.runningCount ?? 0) > 0 }
 
+    /// 操作抽屉：头部 + 展开区行式按钮（每行 4 个，与容器详情状态抽屉同构）
     private var operateSection: some View {
         Section {
             operateHeader
             if isStatusExpanded {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                    // 按运行态隐藏无效操作：已启动不再显示「启动」，未启动不显示停止/重启/重建
-                    if !isRunning {
-                        operateButton("up", title: L10n.t("启动"), icon: "play.fill", color: .green)
-                    } else {
-                        operateButton("stop", title: L10n.t("停止"), icon: "stop.fill", color: .orange)
-                        operateButton("restart", title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue)
-                        operateButton("rebuild", title: L10n.t("重建"), icon: "arrow.triangle.2.circlepath.camera", color: .purple)
-                    }
-                    operateButton("delete", title: L10n.t("删除"), icon: "trash", color: .red)
-                }
-                .padding(.top, 4)
-                .padding(.bottom, 2)
+                operationsRow1
+                    .padding(.top, 4)
+                operationsRow2
+                    .padding(.top, 4)
+                    .padding(.bottom, 2)
             }
         }
         .listRowBackground(Color.clear)
@@ -266,6 +263,28 @@ struct ContainerComposeDetailView: View {
         .padding(.vertical, 2)
     }
 
+    /// 第一行：启停 / 重启 / 重建 / 删除（按运行态隐藏无效操作）
+    private var operationsRow1: some View {
+        HStack(spacing: 8) {
+            if !isRunning {
+                operateButton("up", title: L10n.t("启动"), icon: "play.fill", color: .green)
+            } else {
+                operateButton("stop", title: L10n.t("停止"), icon: "stop.fill", color: .orange)
+            }
+            operateButton("restart", title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue)
+            operateButton("rebuild", title: L10n.t("重建"), icon: "arrow.triangle.2.circlepath.camera", color: .purple)
+            operateButton("delete", title: L10n.t("删除"), icon: "trash", color: .red)
+        }
+    }
+
+    /// 第二行：编辑 / 备份（与容器详情「编辑」同款抽屉按钮形态）
+    private var operationsRow2: some View {
+        HStack(spacing: 8) {
+            operateButton("edit", title: L10n.t("编辑"), icon: "pencil", color: .cyan)
+            operateButton("backup", title: L10n.t("备份"), icon: "externaldrive.badge.timemachine", color: .brown)
+        }
+    }
+
     private var infoSection: some View {
         Section {
             InfoRow(L10n.t("名称"), value: compose.name)
@@ -276,7 +295,27 @@ struct ContainerComposeDetailView: View {
                 InfoRow(L10n.t("创建时间"), value: createdAt)
             }
             if let workdir = compose.workdir, !workdir.isEmpty {
-                CopyableInfoRow(L10n.t("工作目录"), value: workdir, monospaced: true)
+                // 点击跳文件管理并打开该路径（复制入口移除）
+                Button {
+                    workdirTarget = workdir
+                } label: {
+                    HStack {
+                        Text(L10n.t("工作目录"))
+                            .foregroundStyle(.secondary)
+                            .fixedSize()
+                        Spacer(minLength: 12)
+                        Text(workdir)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.head)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         } header: {
             SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
@@ -329,14 +368,12 @@ struct ContainerComposeDetailView: View {
         }
     }
 
+    /// 日志入口（配置/编辑/备份已移入或移出：配置查看移除，编辑/备份在状态抽屉）
     private var navSection: some View {
         Section {
-            navLink(L10n.t("配置"), icon: "doc.text.magnifyingglass") { showConfig = true }
-            navLink(L10n.t("编辑"), icon: "pencil.and.outline") { showEdit = true }
             navLink(L10n.t("日志"), icon: "doc.text") { showLog = true }
-            navLink(L10n.t("备份"), icon: "externaldrive.badge.timemachine") { showBackup = true }
         } header: {
-            SectionLabel(title: L10n.t("配置"), systemImage: "slider.horizontal.3")
+            SectionLabel(title: L10n.t("日志"), systemImage: "doc.text")
         }
     }
 
@@ -359,11 +396,16 @@ struct ContainerComposeDetailView: View {
         CardActionButton(
             title: title, icon: icon, color: color,
             busy: isOperating, disabled: isOperating) {
-            if op == "delete" {
+            switch op {
+            case "delete":
                 deleteWithFile = false
                 deleteForce = false
                 showDeleteSheet = true
-            } else {
+            case "edit":
+                showEdit = true
+            case "backup":
+                showBackup = true
+            default:
                 pendingOperate = op
             }
         }
@@ -428,7 +470,6 @@ private struct ComposeDetailDialogsModifier: ViewModifier {
     @Binding var showDeleteSheet: Bool
     @Binding var deleteWithFile: Bool
     @Binding var deleteForce: Bool
-    @Binding var showConfig: Bool
     @Binding var showEdit: Bool
     @Binding var showLog: Bool
     @Binding var showBackup: Bool
@@ -481,9 +522,6 @@ private struct ComposeDetailDialogsModifier: ViewModifier {
                     }
                 )
             }
-            .navigationDestination(isPresented: $showConfig) {
-                ContainerComposeConfigView(client: client, compose: compose)
-            }
             .navigationDestination(isPresented: $showEdit) {
                 ContainerComposeEditView(server: server, compose: compose, onUpdated: onEditSaved)
             }
@@ -497,57 +535,6 @@ private struct ComposeDetailDialogsModifier: ViewModifier {
                 BackupListView(target: BackupTarget(
                     type: "compose", name: compose.name, detailName: ""))
             }
-    }
-}
-
-// MARK: - 编排配置查看
-
-/// POST /containers/inspect {id,type:"compose",detail:path} → YAML 文本
-struct ContainerComposeConfigView: View {
-    let client: APIClient
-    let compose: ContainerCompose
-
-    @State private var content: String?
-    @State private var isLoading = true
-    @State private var loadError: String?
-
-    var body: some View {
-        Group {
-            if isLoading {
-                LoadingStateView()
-            } else if let content {
-                ScrollView {
-                    Text(content)
-                        .font(.system(.caption, design: .monospaced))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                        .padding()
-                }
-            } else {
-                LoadErrorStateView(message: loadError ?? L10n.t("加载失败")) {
-                    Task { await load() }
-                }
-            }
-        }
-        .navigationTitle(L10n.t("配置"))
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
-    }
-
-    private func load() async {
-        do {
-            let content: String = try await client.send(
-                path: APIEndpoint.containersInspect.path,
-                body: ContainerInspectRequest(
-                    id: compose.name, type: "compose", detail: compose.path ?? ""),
-                as: String.self)
-            self.content = content
-            loadError = nil
-        } catch {
-            guard !APIError.isCancellation(error) else { return }
-            loadError = error.localizedDescription
-        }
-        isLoading = false
     }
 }
 
@@ -757,10 +744,8 @@ struct ContainerComposeCreateView: View {
                         }
                     }
                     if from == "path" {
-                        TextField(L10n.t("路径"), text: $pathText)
-                            .font(.system(.footnote, design: .monospaced))
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
+                        // 路径来源接文件浏览器（保留手输，folder 按钮选择服务器路径）
+                        FilePathBrowseRow(title: L10n.t("路径"), path: $pathText, client: client)
                     } else {
                         TextField(L10n.t("名称"), text: $dirName)
                             .autocorrectionDisabled()
