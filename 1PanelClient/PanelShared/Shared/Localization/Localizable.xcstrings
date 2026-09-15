@@ -8437,6 +8437,17 @@
         }
       }
     },
+    "卸载插件 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall Plugin %@"
+          }
+        }
+      }
+    },
     "卸载插件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18590,6 +18601,17 @@
         }
       }
     },
+    "更新插件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Plugin"
+          }
+        }
+      }
+    },
     "更新容器「%@」任务已提交" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23426,6 +23448,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete image \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确定卸载插件「%@」？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to uninstall the plugin \"%@\"?"
           }
         }
       }

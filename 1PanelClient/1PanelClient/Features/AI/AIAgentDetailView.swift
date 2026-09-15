@@ -128,13 +128,14 @@ struct AIAgentDetailView: View {
                 containerName: agent?.containerName ?? "")
         }
         .navigationDestination(isPresented: $showTerminal) {
-            // 终端用户按智能体类型区分（抓包）：Hermes hermes/root、QwenPaw node/root
+            // 终端用户按智能体类型区分（抓包）：Hermes hermes/root、
+            // QwenPaw / OpenClaw node/root
             AIAgentContainerTerminalView(
                 server: server,
                 agentName: agent?.name ?? "",
                 containerName: agent?.containerName ?? "",
-                users: isCopawAgentType ? ["node", "root"] : ["hermes", "root"],
-                defaultUser: isCopawAgentType ? "node" : "hermes")
+                users: terminalUserOptions,
+                defaultUser: terminalDefaultUser)
         }
         .navigationDestination(isPresented: $showDeleteProgress) {
             TaskProgressView(taskID: deleteTaskID, title: L10n.f("删除 %@", agent?.name ?? "")) { isDone in
@@ -211,10 +212,11 @@ struct AIAgentDetailView: View {
             Section {
                 InfoRow(L10n.t("类型"), value: a.agentType ?? "-")
                 InfoRow(L10n.t("应用版本"), value: a.appVersion ?? "-")
-                // 凭证行（可复制）：OpenClaw 为 Token，其余类型为控制台用户名/密码
+                // 凭证行：OpenClaw 为 Token（默认掩码，可切换显示/复制），
+                // 其余类型为控制台用户名/密码
                 if isOpenClawAgent(a) {
                     if let token = a.token, !token.isEmpty {
-                        CopyableInfoRow("Token", value: token, monospaced: true)
+                        PasswordRow(key: "Token", password: token)
                     }
                 } else {
                     if let user = a.dashboardUsername, !user.isEmpty {
@@ -232,10 +234,10 @@ struct AIAgentDetailView: View {
                     InfoRow(L10n.t("模型供应商"), value: a.providerName ?? a.provider ?? "-")
                     InfoRow(L10n.t("模型"), value: a.model ?? "-", monospaced: true)
                 }
-                // Hermes / QwenPaw：安装目录/容器名称可点击跳转（文件管理 / 容器详情，
-                // 与应用详情的「目录」「容器名」同款模式）；其余类型保持纯展示
+                // Hermes / QwenPaw / OpenClaw：安装目录/容器名称可点击跳转
+                // （文件管理 / 容器详情，与应用详情的「目录」「容器名」同款模式）
                 if let container = a.containerName, !container.isEmpty {
-                    if isHermesAgent(a) || isCopawAgent(a) {
+                    if hasDetailNavigation(a) {
                         NavigationLink {
                             ContainerDetailByNameView(containerName: container, server: server)
                         } label: {
@@ -250,7 +252,7 @@ struct AIAgentDetailView: View {
                     InfoRow("WebUI " + L10n.t("端口"), value: String(port), monospaced: true)
                 }
                 if let path = a.path, !path.isEmpty {
-                    if isHermesAgent(a) || isCopawAgent(a) {
+                    if hasDetailNavigation(a) {
                         NavigationLink {
                             FilesView(server: server, initialPath: path)
                         } label: {
@@ -270,18 +272,8 @@ struct AIAgentDetailView: View {
             }
 
             Section {
-                // 对话为 Hermes 专属（抓包确认：/ai/agents/hermes/chat/*）；
-                // Hermes 的 对话/终端/频道/技能 与 QwenPaw 的 终端 收进状态抽屉按钮
-                // （与停止/重启同区），列表不再重复入口；
-                // 角色/插件为 OpenClaw 专属；QwenPaw 无频道/技能功能
-                if let a = agent, isOpenClawAgent(a) {
-                    configLink(L10n.t("角色"), icon: "person.2") { showRoles = true }
-                    configLink(L10n.t("插件"), icon: "puzzlepiece.extension") { showPlugins = true }
-                }
-                if let a = agent, !isCopawAgent(a), !isHermesAgent(a) {
-                    configLink(L10n.t("频道"), icon: "bubble.left.and.bubble.right") { showChannels = true }
-                    configLink(L10n.t("技能"), icon: "wand.and.stars") { showSkills = true }
-                }
+                // 功能入口全部收进各类型状态抽屉按钮（Hermes：对话/终端/频道/技能；
+                // QwenPaw：终端；OpenClaw：终端/角色/插件/频道/技能），列表仅保留日志
                 configLink(L10n.t("日志"), icon: "doc.text.magnifyingglass") { showLog = true }
             } header: {
                 SectionLabel(title: L10n.t("配置"), systemImage: "slider.horizontal.3")
@@ -327,13 +319,26 @@ struct AIAgentDetailView: View {
         a.agentType == "copaw"
     }
 
+    /// Hermes / QwenPaw / OpenClaw：安装目录与容器名称支持点击跳转
+    private func hasDetailNavigation(_ a: AIAgent) -> Bool {
+        isHermesAgent(a) || isCopawAgent(a) || isOpenClawAgent(a)
+    }
+
     /// Hermes 专属：对话（chat/sessions 端点仅 hermes 类型存在）
     private func isHermesAgent(_ a: AIAgent) -> Bool {
         a.agentType == "hermes-agent"
     }
 
-    /// navigationDestination 闭包内无具体 agent 参数时的类型判断
-    private var isCopawAgentType: Bool { agent?.agentType == "copaw" }
+    /// 终端可登录用户（抓包确认）：Hermes hermes/root；
+    /// QwenPaw 与 OpenClaw node/root
+    private var terminalUserOptions: [String] {
+        switch agent?.agentType {
+        case "copaw", "openclaw": return ["node", "root"]
+        default: return ["hermes", "root"]
+        }
+    }
+
+    private var terminalDefaultUser: String { terminalUserOptions.first ?? "root" }
 
     private func drawerHeaderRow(_ a: AIAgent) -> some View {
         HStack(spacing: 12) {
@@ -369,10 +374,10 @@ struct AIAgentDetailView: View {
     }
 
     private func operationsRow(_ a: AIAgent) -> some View {
-        // Hermes 功能入口多（终端/对话/频道/技能），网格一行 4 个；
-        // 其余类型保持三列：操作（停止/重启/删除）+ 配置入口（模型/设置/绑定网站）
+        // Hermes / OpenClaw 功能入口多（终端/对话/频道/技能 或 终端/角色/插件/频道/技能），
+        // 网格一行 4 个；其余类型保持三列：操作 + 配置入口（模型/设置/绑定网站）
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8),
-                                 count: isHermesAgent(a) ? 4 : 3), spacing: 8) {
+                                 count: (isHermesAgent(a) || isOpenClawAgent(a)) ? 4 : 3), spacing: 8) {
             CardActionButton(
                 title: a.isRunning ? L10n.t("停止") : L10n.t("启动"),
                 icon: a.isRunning ? "stop.fill" : "play.fill",
@@ -451,6 +456,55 @@ struct AIAgentDetailView: View {
                     disabled: (a.containerName ?? "").isEmpty
                 ) {
                     showTerminal = true
+                }
+            }
+            // OpenClaw 功能收进抽屉（网页核对）：终端/角色/插件/频道/技能
+            if isOpenClawAgent(a) {
+                let hasContainer = !(a.containerName ?? "").isEmpty
+                CardActionButton(
+                    title: L10n.t("终端"),
+                    icon: "terminal",
+                    color: .green,
+                    busy: false,
+                    disabled: !hasContainer
+                ) {
+                    showTerminal = true
+                }
+                CardActionButton(
+                    title: L10n.t("角色"),
+                    icon: "person.2",
+                    color: .orange,
+                    busy: false,
+                    disabled: false
+                ) {
+                    showRoles = true
+                }
+                CardActionButton(
+                    title: L10n.t("插件"),
+                    icon: "puzzlepiece.extension",
+                    color: .indigo,
+                    busy: false,
+                    disabled: false
+                ) {
+                    showPlugins = true
+                }
+                CardActionButton(
+                    title: L10n.t("频道"),
+                    icon: "bubble.left.and.bubble.right",
+                    color: .teal,
+                    busy: false,
+                    disabled: false
+                ) {
+                    showChannels = true
+                }
+                CardActionButton(
+                    title: L10n.t("技能"),
+                    icon: "wand.and.stars",
+                    color: .purple,
+                    busy: false,
+                    disabled: false
+                ) {
+                    showSkills = true
                 }
             }
             // QwenPaw(copaw) 不绑定模型账号（创建即无 model/accountId），

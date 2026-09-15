@@ -267,10 +267,11 @@ struct AIAgentSkillsView: View {
                 ("builtin", false, L10n.t("内置"), "seal.fill"),
             ]
         } else {
+            // OpenClaw（网页核对）：外部 → 扩展 → 内置 依次展示
             groups = [
-                ("openclaw-bundled", true, L10n.t("内置技能"), "seal.fill"),
-                ("openclaw-extra", true, L10n.t("扩展技能"), "arrow.down.circle.fill"),
                 ("openclaw-managed", true, L10n.t("外部技能"), "shippingbox.fill"),
+                ("openclaw-extra", true, L10n.t("扩展技能"), "arrow.down.circle.fill"),
+                ("openclaw-bundled", true, L10n.t("内置技能"), "seal.fill"),
             ]
         }
         var result: [(String, String, [AIAgentSkillInstalled])] = []

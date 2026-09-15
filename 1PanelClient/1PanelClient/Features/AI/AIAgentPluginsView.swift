@@ -36,6 +36,8 @@ struct AIAgentPluginsView: View {
     @State private var showProgress = false
     /// 操作中的插件 id（行级 spinner，其余行仅禁用）
     @State private var operatingPluginID: String?
+    /// 卸载确认弹窗挂起的插件
+    @State private var pendingUninstall: AIAgentPluginInfo?
 
     @State private var toastMessage: String?
     @State private var errorMessage: String?
@@ -76,6 +78,22 @@ struct AIAgentPluginsView: View {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(errorMessage ?? "")
+        }
+        .alert(
+            L10n.t("卸载插件"),
+            isPresented: Binding(
+                get: { pendingUninstall != nil },
+                set: { if !$0 { pendingUninstall = nil } }
+            )
+        ) {
+            Button(L10n.t("取消"), role: .cancel) { pendingUninstall = nil }
+            Button(L10n.t("卸载"), role: .destructive) {
+                guard let plugin = pendingUninstall else { return }
+                pendingUninstall = nil
+                Task { await operatePlugin(plugin, operate: "uninstall") }
+            }
+        } message: {
+            Text(L10n.f("确定卸载插件「%@」？", pendingUninstall?.name ?? pendingUninstall?.id ?? ""))
         }
         .navigationDestination(isPresented: $showProgress) {
             TaskProgressView(taskID: progressTaskID, title: progressTitle, latest: false, node: "local") { _ in
@@ -143,6 +161,23 @@ struct AIAgentPluginsView: View {
                         }
                     }
                     .padding(.vertical, 3)
+                    // 升级/卸载（plugins/operate，抓包确认）：仅 origin=global 的插件可操作，
+                    // bundled 内置不可卸载/升级
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        if plugin.origin == "global" {
+                            Button(role: .destructive) {
+                                pendingUninstall = plugin
+                            } label: {
+                                Label(L10n.t("卸载"), systemImage: "trash")
+                            }
+                            Button {
+                                Task { await operatePlugin(plugin, operate: "update") }
+                            } label: {
+                                Label(L10n.t("升级"), systemImage: "arrow.up.circle")
+                            }
+                            .tint(.blue)
+                        }
+                    }
                 }
             }
         } header: {
@@ -288,20 +323,35 @@ struct AIAgentPluginsView: View {
 
     /// 启停插件（operate enable/disable，任务进度）
     private func operate(_ plugin: AIAgentPluginInfo, enabled: Bool) async {
+        await operatePlugin(plugin, operate: enabled ? "enable" : "disable",
+                            titleVerb: enabled ? L10n.t("启用") : L10n.t("禁用"))
+    }
+
+    /// 插件操作（plugins/operate：enable/disable/update/uninstall，任务进度）
+    private func operatePlugin(_ plugin: AIAgentPluginInfo, operate: String,
+                               titleVerb: String? = nil) async {
         // 进度页在栈期间不再受理新操作（推送字段会被覆盖、旧进度页轮询错位）
         guard !showProgress, operatingPluginID == nil else { return }
         operatingPluginID = plugin.id
         defer { operatingPluginID = nil }
         let taskID = UUID().uuidString
+        // 标题：启停沿用「启用/禁用插件 x」；升级/卸载用任务日志同款动词
+        let title: String
+        if let titleVerb {
+            title = L10n.f("%@插件 %@", titleVerb, plugin.name ?? plugin.id)
+        } else {
+            title = L10n.f(operate == "update" ? "更新插件 %@" : "卸载插件 %@",
+                           plugin.name ?? plugin.id)
+        }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentPluginsOperate.path,
                 body: AIAgentPluginsOperateRequest(
                     agentId: agentId, pluginId: plugin.id,
-                    operate: enabled ? "enable" : "disable", taskID: taskID),
+                    operate: operate, taskID: taskID),
                 as: EmptyResponse.self)
             progressTaskID = taskID
-            progressTitle = L10n.f("%@插件 %@", enabled ? L10n.t("启用") : L10n.t("禁用"), plugin.name ?? plugin.id)
+            progressTitle = title
             showProgress = true
         } catch {
             guard !APIError.isCancellation(error) else { return }

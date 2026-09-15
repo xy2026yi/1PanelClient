@@ -330,6 +330,7 @@ struct AIAgentSettingsView: View {
     private let npmMirrors = [
         "https://mirrors.cloud.tencent.com/npm/",
         "https://registry.npmjs.org/",
+        "https://registry.npmmirror.com",
         "https://repo.huaweicloud.com/repository/npm/",
     ]
 

@@ -54,9 +54,10 @@ enum AIChannelKind: String, CaseIterable, Identifiable {
     }
 }
 
-/// 频道列表行读取的 enabled 状态（各频道 get 响应首个字段一致）
+/// 频道列表行读取的状态（各频道 get 响应首字段一致；installed 为 OpenClaw 插件标记）
 nonisolated struct AIChannelEnabledStatus: Decodable {
     let enabled: Bool?
+    let installed: Bool?
 }
 
 // MARK: - 频道列表页
@@ -68,7 +69,7 @@ struct AIAgentChannelsView: View {
     /// 智能体类型：Telegram 等频道的策略选项集随类型不同（抓包确认）
     var agentType: String? = nil
 
-    @State private var enabledMap: [String: Bool] = [:]
+    @State private var statusMap: [String: AIChannelEnabledStatus] = [:]
     @State private var isLoading = true
 
     private let client: APIClient
@@ -97,12 +98,7 @@ struct AIAgentChannelsView: View {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            if let enabled = enabledMap[kind.rawValue] {
-                                StatusBadge(
-                                    text: enabled ? L10n.t("已启用") : L10n.t("未启用"),
-                                    color: enabled ? .statusRunning : .secondary
-                                )
-                            }
+                            channelBadge(kind)
                         }
                         .padding(.vertical, 2)
                     }
@@ -119,11 +115,33 @@ struct AIAgentChannelsView: View {
         .refreshable { await loadAllStatus() }
     }
 
+    /// 行尾状态徽标：OpenClaw 频道为插件，按插件 installed 判断
+    /// （get 的 enabled 未安装时也回 true，会误显「已启用」）；其余按 enabled
+    @ViewBuilder
+    private func channelBadge(_ kind: AIChannelKind) -> some View {
+        if let st = statusMap[kind.rawValue] {
+            if agentType == "openclaw", kind != .weixin {
+                if let installed = st.installed {
+                    StatusBadge(
+                        text: installed ? L10n.t("已启用") : L10n.t("未安装"),
+                        color: installed ? .statusRunning : .secondary
+                    )
+                }
+            } else if let enabled = st.enabled {
+                StatusBadge(
+                    text: enabled ? L10n.t("已启用") : L10n.t("未启用"),
+                    color: enabled ? .statusRunning : .secondary
+                )
+            }
+        }
+    }
+
     @ViewBuilder
     private func channelDestination(_ kind: AIChannelKind) -> some View {
         switch kind {
         case .weixin:
-            AIAgentWeixinChannelView(server: server, agentId: agentId, initialEnabled: enabledMap[kind.rawValue] ?? false,
+            AIAgentWeixinChannelView(server: server, agentId: agentId,
+                                     initialEnabled: statusMap[kind.rawValue]?.enabled ?? false,
                                      agentType: agentType)
         case .qqbot:
             AIAgentQQChannelView(server: server, agentId: agentId, agentType: agentType)
@@ -152,9 +170,9 @@ struct AIAgentChannelsView: View {
         }
     }
 
-    /// 并行读取频道 enabled 状态（微信无 get 接口，跳过；单条失败不影响其他）
+    /// 并行读取频道状态（微信无 get 接口，跳过；单条失败不影响其他）
     private func loadAllStatus() async {
-        await withTaskGroup(of: (String, Bool?).self) { group in
+        await withTaskGroup(of: (String, AIChannelEnabledStatus?).self) { group in
             for kind in AIChannelKind.allCases where kind != .weixin {
                 let path = APIEndpoint.aiAgentChannelGet.path
                     .replacingOccurrences(of: ":type", with: kind.rawValue)
@@ -164,16 +182,16 @@ struct AIAgentChannelsView: View {
                             path: path,
                             body: AIAgentChannelRequest(agentId: agentId),
                             as: AIChannelEnabledStatus.self)
-                        return (kind.rawValue, resp.enabled)
+                        return (kind.rawValue, resp)
                     } catch {
                         return (kind.rawValue, nil)
                     }
                 }
             }
-            for await (key, enabled) in group {
+            for await (key, status) in group {
                 // get 失败（如频道刚被删除）时置 nil 清掉旧徽标，
                 // 不再残留上一次的「已启用」
-                enabledMap[key] = enabled
+                statusMap[key] = status
             }
         }
         isLoading = false
@@ -217,7 +235,12 @@ struct WhitelistEditor: View {
                 .foregroundStyle(.secondary)
             TextEditor(text: Binding(
                 get: { list.joined(separator: "\n") },
-                set: { list = $0.split(whereSeparator: \.isNewline).map(String.init) }
+                set: { raw in
+                    let items = raw.split(whereSeparator: \.isNewline).map(String.init)
+                    // 行内容未变（仅键入行尾换行）不回写：回写会触发重读 get，
+                    // 把刚输入的换行吞掉，表现为无法换行输入
+                    if items != list { list = items }
+                }
             ))
             .font(.system(.caption, design: .monospaced))
             .frame(minHeight: 64)
@@ -316,66 +339,70 @@ struct ChannelPluginSection: View {
     @State private var showError = false
 
     var body: some View {
-        if let s = status {
-            Section {
-                if s.installed == true {
-                    LabeledContent(L10n.t("插件版本"), value: s.currentVersion ?? "-")
-                    if let latest = s.latestVersion, !latest.isEmpty, latest != s.currentVersion {
-                        LabeledContent(L10n.t("最新版本"), value: latest)
-                        if s.upgradable == true {
-                            Button {
-                                Task { await upgrade() }
-                            } label: {
-                                Label(L10n.t("升级插件"), systemImage: "arrow.up.circle")
+        Group {
+            if let s = status {
+                Section {
+                    if s.installed == true {
+                        LabeledContent(L10n.t("插件版本"), value: s.currentVersion ?? "-")
+                        if let latest = s.latestVersion, !latest.isEmpty, latest != s.currentVersion {
+                            LabeledContent(L10n.t("最新版本"), value: latest)
+                            if s.upgradable == true {
+                                Button {
+                                    Task { await upgrade() }
+                                } label: {
+                                    Label(L10n.t("升级插件"), systemImage: "arrow.up.circle")
+                                }
                             }
                         }
-                    }
-                    Button(role: .destructive) {
-                        confirmUninstall = true
-                    } label: {
-                        Label(L10n.t("卸载插件"), systemImage: "trash")
-                    }
-                } else {
-                    LabeledContent(L10n.t("插件版本"), value: L10n.t("未安装"))
-                    Button {
-                        Task { await install() }
-                    } label: {
-                        Label(L10n.t("安装插件"), systemImage: "arrow.down.circle")
-                    }
-                }
-            } header: {
-                SectionLabel(title: L10n.t("频道插件"), systemImage: "puzzlepiece")
-            }
-            .alert(L10n.t("卸载插件"), isPresented: $confirmUninstall) {
-                Button(L10n.t("取消"), role: .cancel) {}
-                Button(L10n.t("卸载"), role: .destructive) {
-                    Task { await uninstall() }
-                }
-            } message: {
-                Text(L10n.t("卸载后该频道将不可用，需重新安装插件"))
-            }
-            .alert(L10n.t("提示"), isPresented: $showError) {
-                Button(L10n.t("好的"), role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "")
-            }
-            .navigationDestination(isPresented: $showProgress) {
-                TaskProgressView(taskID: progressTaskID, title: progressTitle, latest: false, node: "local") { _ in
-                    // 完成 or 用户选后台运行都刷新（后台运行后插件状态同样变化）
-                    let wasUninstall = progressIsUninstall
-                    Task {
-                        await load()
-                        await MainActor.run {
-                            // 插件动作完成后：通用刷新；卸载额外回调（get 的 installed 会变化）
-                            onChanged()
-                            if wasUninstall { onUninstalled() }
+                        Button(role: .destructive) {
+                            confirmUninstall = true
+                        } label: {
+                            Label(L10n.t("卸载插件"), systemImage: "trash")
+                        }
+                    } else {
+                        LabeledContent(L10n.t("插件版本"), value: L10n.t("未安装"))
+                        Button {
+                            Task { await install() }
+                        } label: {
+                            Label(L10n.t("安装插件"), systemImage: "arrow.down.circle")
                         }
                     }
-                    return false
+                } header: {
+                    SectionLabel(title: L10n.t("频道插件"), systemImage: "puzzlepiece")
                 }
             }
-            .task { await load() }
         }
+        .alert(L10n.t("卸载插件"), isPresented: $confirmUninstall) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("卸载"), role: .destructive) {
+                Task { await uninstall() }
+            }
+        } message: {
+            Text(L10n.t("卸载后该频道将不可用，需重新安装插件"))
+        }
+        .alert(L10n.t("提示"), isPresented: $showError) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+        .navigationDestination(isPresented: $showProgress) {
+            TaskProgressView(taskID: progressTaskID, title: progressTitle, latest: false, node: "local") { _ in
+                // 完成 or 用户选后台运行都刷新（后台运行后插件状态同样变化）
+                let wasUninstall = progressIsUninstall
+                Task {
+                    await load()
+                    await MainActor.run {
+                        // 插件动作完成后：通用刷新；卸载额外回调（get 的 installed 会变化）
+                        onChanged()
+                        if wasUninstall { onUninstalled() }
+                    }
+                }
+                return false
+            }
+        }
+        // task 必须挂在条件块外：status 初始为 nil，挂在 Section 上时
+        // 视图不存在 → load 永不执行 → 插件区从不显示（含未安装时的安装按钮）
+        .task { await load() }
     }
 
     private func load() async {
@@ -494,7 +521,9 @@ struct AIAgentWeixinChannelView: View {
                                      })
             }
 
-            if !isHermes {
+            // 顶层状态开关仅 QwenPaw 显示；Hermes（网页无开关）与
+            // OpenClaw（网页核对：仅插件区信息，无顶层开关）均隐藏
+            if agentType != "openclaw", !isHermes {
                 Section {
                     Toggle(L10n.t("启用"), isOn: Binding(
                         get: { enabled },
@@ -1509,6 +1538,8 @@ struct AIAgentDingtalkChannelView: View {
             if isOpenClaw {
                 if (loaded.dmPolicy ?? "").isEmpty { loaded.dmPolicy = "open" }
                 if (loaded.groupSessionScope ?? "").isEmpty { loaded.groupSessionScope = "group_sender" }
+                // 抓包确认：未配置时私聊白名单保存默认 ["*"]，切换白名单时输入框预填 *
+                if (loaded.allowFrom ?? []).isEmpty { loaded.allowFrom = ["*"] }
             } else if (loaded.groupSessionScope ?? "").isEmpty {
                 // 未配置（scope 为空，网页端保存必带有效值）时按默认值回显；
                 // 不以 ackText 空串判定——用户主动清空回执保存后重进不应被回填
@@ -1588,11 +1619,13 @@ private struct AIDingtalkBotFormSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("名称"), text: Binding(
-                        get: { bot.name ?? "" }, set: { bot.name = $0 }))
-                        .textInputAutocapitalization(.never)
+                    // 名称不可编辑（网页核对）：创建时自动与账户 ID 一致
                     TextField(L10n.t("账户 ID"), text: Binding(
-                        get: { bot.accountId ?? "" }, set: { bot.accountId = $0 }))
+                        get: { bot.accountId ?? "" },
+                        set: { raw in
+                            bot.accountId = raw
+                            bot.name = raw
+                        }))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     Toggle(L10n.t("启用"), isOn: Binding(
@@ -1705,11 +1738,8 @@ struct AIAgentFeishuChannelView: View {
                         get: { c.threadSession ?? true }, set: { c.threadSession = $0 }))
                     Toggle(L10n.t("流式传输"), isOn: Binding(
                         get: { c.streaming ?? false }, set: { c.streaming = $0 }))
-                    TextField(L10n.t("回复模式"), text: Binding(
-                        get: { c.replyMode ?? "auto" }, set: { c.replyMode = $0 }))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .font(.system(.body, design: .monospaced))
+                    // 回复模式：网页端为带标签展示（值 auto），非自由输入
+                    LabeledContent(L10n.t("回复模式"), value: c.replyMode ?? "auto")
                     Picker(L10n.t("群聊需@机器人"), selection: Binding(
                         get: {
                             let v = c.requireMention ?? ""
@@ -2156,6 +2186,8 @@ struct AIAgentTelegramChannelView: View {
 
     /// Hermes：未配置频道启用开关默认开；网页核对无 Bot 列表/群组策略/代理/流式
     private var isHermes: Bool { agentType == "hermes-agent" }
+    /// OpenClaw：频道为插件（版本/安装/升级/卸载）；网页核对无群聊需@机器人
+    private var isOpenClaw: Bool { agentType == "openclaw" }
 
     /// 批准配对携带的账户：defaultAccount 空串（基础版 get）回退默认 Bot；
     /// 基础类型抓包 approve 不携带 accountId，仅 OpenClaw 传
@@ -2176,6 +2208,12 @@ struct AIAgentTelegramChannelView: View {
                     }
                 }
             } else {
+                if isOpenClaw {
+                    ChannelPluginSection(client: client, agentId: agentId, type: "telegram") {
+                        Task { await load() }
+                    }
+                }
+
                 Section {
                     // Hermes 网页端无启用开关（核对隐藏），保存恒传 enabled:true
                     if !isHermes {
@@ -2192,8 +2230,11 @@ struct AIAgentTelegramChannelView: View {
                         Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
                             get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
                     } else {
-                        Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
-                            get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
+                        // OpenClaw 网页核对无群聊需@机器人（仅 Hermes 有）
+                        if !isOpenClaw {
+                            Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
+                                get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
+                        }
                         ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
                                              value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                         if c.dmPolicy == "allowlist" {
@@ -2351,6 +2392,11 @@ struct AIAgentTelegramChannelView: View {
         if let defaultAccount {
             out.defaultAccount = defaultAccount
         }
+        // defaultAccount 必填：快照里为空串时回退默认 Bot，避免保存报参数错误
+        if (out.defaultAccount ?? "").isEmpty,
+           let first = updated.first(where: { $0.isDefault == true }) ?? updated.first {
+            out.defaultAccount = first.accountId
+        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -2428,6 +2474,12 @@ struct AIAgentTelegramChannelView: View {
             out.bots = [bot] + extraBots
         } else {
             out.bots = bots
+            // OpenClaw 抓包：defaultAccount 必填（新增 Bot 后直接保存会报参数错误），
+            // 空时回退默认 Bot / 首个 Bot 的账户 ID
+            if isOpenClaw, (out.defaultAccount ?? "").isEmpty {
+                out.defaultAccount = bots.first(where: { $0.isDefault == true })?.accountId
+                    ?? bots.first?.accountId ?? ""
+            }
         }
         isSaving = true
         defer { isSaving = false }
@@ -2569,6 +2621,8 @@ struct AIAgentDiscordChannelView: View {
 
     /// Hermes：未配置频道启用开关默认开；网页核对无 Bot 列表/群组策略/代理
     private var isHermes: Bool { agentType == "hermes-agent" }
+    /// OpenClaw：频道为插件（版本/安装/升级/卸载）；网页核对无群聊需@机器人
+    private var isOpenClaw: Bool { agentType == "openclaw" }
 
     /// 批准配对携带的账户：defaultAccount 空串回退默认 Bot
     /// （QwenPaw / OpenClaw 的 Discord approve 抓包均携带 accountId）
@@ -2595,6 +2649,12 @@ struct AIAgentDiscordChannelView: View {
                     }
                 }
             } else {
+                if isOpenClaw {
+                    ChannelPluginSection(client: client, agentId: agentId, type: "discord") {
+                        Task { await load() }
+                    }
+                }
+
                 Section {
                     // Hermes 网页端无启用开关（核对隐藏），保存恒传 enabled:true
                     if !isHermes {
@@ -2611,8 +2671,11 @@ struct AIAgentDiscordChannelView: View {
                         Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
                             get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
                     } else {
-                        Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
-                            get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
+                        // OpenClaw 网页核对无群聊需@机器人（仅 Hermes 有）
+                        if !isOpenClaw {
+                            Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
+                                get: { c.requireMention ?? true }, set: { c.requireMention = $0 }))
+                        }
                         ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
                                              value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                         ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
@@ -2781,6 +2844,11 @@ struct AIAgentDiscordChannelView: View {
         if let defaultAccount {
             out.defaultAccount = defaultAccount
         }
+        // defaultAccount 必填：快照里为空串时回退默认 Bot，避免保存报参数错误
+        if (out.defaultAccount ?? "").isEmpty,
+           let first = updated.first(where: { $0.isDefault == true }) ?? updated.first {
+            out.defaultAccount = first.accountId
+        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -2877,6 +2945,12 @@ struct AIAgentDiscordChannelView: View {
             out.bots = [bot] + extraBots
         } else {
             out.bots = bots
+            // OpenClaw 抓包：defaultAccount 必填（新增 Bot 后直接保存会报参数错误），
+            // 空时回退默认 Bot / 首个 Bot 的账户 ID
+            if isOpenClaw, (out.defaultAccount ?? "").isEmpty {
+                out.defaultAccount = bots.first(where: { $0.isDefault == true })?.accountId
+                    ?? bots.first?.accountId ?? ""
+            }
         }
         isSaving = true
         defer { isSaving = false }
