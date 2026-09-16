@@ -93,7 +93,6 @@ struct CronjobsTab: View {
                     EllipsisMenuButton {
                         withAnimation(Motion.fast) { showTransferMenu.toggle() }
                     }
-                    .disabled(vm.cronjobs.isEmpty && !showTransferMenu)
                     .accessibilityLabel(L10n.t("更多操作"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -109,7 +108,9 @@ struct CronjobsTab: View {
         .overlay(alignment: .topTrailing) {
             if showTransferMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("导出计划任务"), icon: "square.and.arrow.up") {
+                    // 导出依赖已有任务（空列表禁用）；导入不依赖（换机迁移场景）
+                    .action(title: L10n.t("导出计划任务"), icon: "square.and.arrow.up",
+                            isDisabled: vm.cronjobs.isEmpty) {
                         showTransferMenu = false
                         showExport = true
                     },

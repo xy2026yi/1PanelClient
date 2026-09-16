@@ -2565,7 +2565,8 @@ private struct FirewallChainDialogsModifier: ViewModifier {
                     Haptic.warning()
                     if let rule = pendingDeleteChainRule {
                         pendingDeleteChainRule = nil
-                        Task { await vm.deleteChainRule(rule, chain: currentChain) }
+                        // 按规则自带 chain 重载：确认前切方向时避免刷错方向的列表
+                        Task { await vm.deleteChainRule(rule, chain: rule.chain ?? currentChain) }
                     }
                 }
             } message: {

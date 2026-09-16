@@ -459,8 +459,73 @@ nonisolated struct CronjobSnapshotRule: Encodable {
 
 // MARK: - 导入导出（cronjobs/export · import，可选增加-2 抓包 2026-09-16）
 
+/// 字符串形状透传值：接受 null / 字符串 / 字符串数组，编码按解码形状回传。
+/// 导出文件中 apps/websites/dbName 等字段的真实形状未全覆盖抓包（样本均为
+/// null），严格按数组解码会在形状不符时让整份文件解析失败
+nonisolated struct CronjobPassthroughStrings: Codable, Hashable {
+    let stringValue: String?
+    let arrayValue: [String]?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let s = try? c.decode(String.self) {
+            stringValue = s
+            arrayValue = nil
+        } else if let a = try? c.decode([String].self) {
+            stringValue = nil
+            arrayValue = a
+        } else {
+            // null 或未知形状（按 null 透传，不阻断整份文件）
+            stringValue = nil
+            arrayValue = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        if let s = stringValue {
+            try c.encode(s)
+        } else if let a = arrayValue {
+            try c.encode(a)
+        } else {
+            try c.encodeNil()
+        }
+    }
+}
+
+/// 整数形状透传值：接受 null / 整数 / 整数数组（sourceAccounts 用）
+nonisolated struct CronjobPassthroughInts: Codable, Hashable {
+    let intValue: Int?
+    let arrayValue: [Int]?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let v = try? c.decode(Int.self) {
+            intValue = v
+            arrayValue = nil
+        } else if let a = try? c.decode([Int].self) {
+            intValue = nil
+            arrayValue = a
+        } else {
+            intValue = nil
+            arrayValue = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        if let v = intValue {
+            try c.encode(v)
+        } else if let a = arrayValue {
+            try c.encode(a)
+        } else {
+            try c.encodeNil()
+        }
+    }
+}
+
 /// 导出/导入的任务对象：服务端原样序列化的完整字段（导入时整对象回传，
-/// null 字段解码为 nil、编码时省略，不会以 null 提交）
+/// null 字段解码为 nil、编码时省略；形状未定的字段用透传类型防整份解析失败）
 nonisolated struct CronjobTransferItem: Codable, Identifiable, Hashable {
     var name: String
     var type: String
@@ -475,10 +540,10 @@ nonisolated struct CronjobTransferItem: Codable, Identifiable, Hashable {
     var user: String
     var url: String
     var scriptName: String
-    var apps: [String]?
-    var websites: [String]?
+    var apps: CronjobPassthroughStrings?
+    var websites: CronjobPassthroughStrings?
     var dbType: String
-    var dbName: [String]?
+    var dbName: CronjobPassthroughStrings?
     var exclusionRules: String
     var isDir: Bool
     var sourceDir: String
@@ -489,7 +554,7 @@ nonisolated struct CronjobTransferItem: Codable, Identifiable, Hashable {
     var snapshotRule: SnapshotRule?
     var secret: String
     var args: String
-    var sourceAccounts: [Int]?
+    var sourceAccounts: CronjobPassthroughInts?
     var downloadAccount: String
     var alertCount: Int
     var alertTitle: String
