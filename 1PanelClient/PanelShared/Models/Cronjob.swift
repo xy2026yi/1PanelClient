@@ -456,3 +456,60 @@ nonisolated struct CronjobSnapshotRule: Encodable {
     var withImage: Bool = false
     var ignoreAppIDs: [Int] = []
 }
+
+// MARK: - 导入导出（cronjobs/export · import，可选增加-2 抓包 2026-09-16）
+
+/// 导出/导入的任务对象：服务端原样序列化的完整字段（导入时整对象回传，
+/// null 字段解码为 nil、编码时省略，不会以 null 提交）
+nonisolated struct CronjobTransferItem: Codable, Identifiable, Hashable {
+    var name: String
+    var type: String
+    var groupID: Int
+    var specCustom: Bool
+    var spec: String
+    var executor: String
+    var scriptMode: String
+    var script: String
+    var command: String
+    var containerName: String
+    var user: String
+    var url: String
+    var scriptName: String
+    var apps: [String]?
+    var websites: [String]?
+    var dbType: String
+    var dbName: [String]?
+    var exclusionRules: String
+    var isDir: Bool
+    var sourceDir: String
+    var retainCopies: Int
+    var retryTimes: Int
+    var timeout: Int
+    var ignoreErr: Bool
+    var snapshotRule: SnapshotRule?
+    var secret: String
+    var args: String
+    var sourceAccounts: [Int]?
+    var downloadAccount: String
+    var alertCount: Int
+    var alertTitle: String
+    var alertMethod: String
+
+    struct SnapshotRule: Codable, Hashable {
+        var withImage: Bool
+        var ignoreApps: [String]?
+    }
+
+    /// 名称 + 周期组合做行标识（导出对象无服务端 id）
+    var id: String { "\(name)|\(spec)" }
+}
+
+/// 导出请求（cronjobs/export {ids}；响应 data 为任务数组）
+nonisolated struct CronjobExportRequest: Encodable {
+    let ids: [Int]
+}
+
+/// 导入请求（cronjobs/import {cronjobs:[…]}）
+nonisolated struct CronjobImportRequest: Encodable {
+    let cronjobs: [CronjobTransferItem]
+}

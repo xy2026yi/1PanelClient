@@ -162,6 +162,8 @@ enum APIEndpoint {
     case cronjobsBackups          // GET  备份账号列表
     case cronjobsUsers            // GET  系统用户列表
     case cronjobsScripts          // GET  内置脚本列表
+    case cronjobsExport           // POST 导出计划任务 {ids}（返回任务数组）
+    case cronjobsImport           // POST 导入计划任务 {cronjobs:[…]}
     case scriptSearch             // POST 脚本库搜索（core/script/search）
     case scriptSync               // POST 立即同步系统脚本库（异步任务）
     case coreSettingsUpdate       // POST 更新面板设置项（core/settings/update）
@@ -186,6 +188,12 @@ enum APIEndpoint {
     case firewallForward          // POST 端口转发批量操作（add/remove，删除带 forceDelete）
     case firewallIP               // POST 创建 IP 规则
     case firewallUpdateAddr       // POST 修改 IP 规则
+    // iptables 链规则（可选增加-2 抓包 2026-09-16；ufw 后端不支持）
+    case firewallFilterOperate    // POST 链操作（init-advance/bind/unbind）
+    case firewallFilterChainStatus // POST 链状态 {name}
+    case firewallFilterRuleSearch // POST 链规则列表 {type,info,page,pageSize}
+    case firewallFilterRuleOperate // POST 创建链规则
+    case firewallFilterRuleBatch  // POST 删除链规则 {rules:[…]}
     case monitorNetOptions        // GET  网卡列表（端口转发的入站网口选择）
 
     // MARK: - 数据库
@@ -306,6 +314,9 @@ enum APIEndpoint {
 
     // MARK: - 文件
     case filesSearch             // POST 文件浏览 {path, expand, page, pageSize, showHidden}
+    case filesFavorite           // POST 添加文件收藏 {path}
+    case filesFavoriteSearch     // POST 文件收藏列表 {page, pageSize}
+    case filesFavoriteDel        // POST 删除文件收藏 {id}
     case filesUpload             // POST 上传文件（multipart: file+path+overwrite）
     case filesChunkUpload        // POST 分片上传（multipart: filename+path+chunk+chunkIndex+chunkCount，5MB/片）
     case filesDownload           // GET  下载文件（query: operateNode+path，返回二进制流）
@@ -757,6 +768,8 @@ enum APIEndpoint {
         case .cronjobsBackups:       return "/api/v2/backups/options"
         case .cronjobsUsers:         return "/api/v2/toolbox/device/users"
         case .cronjobsScripts:       return "/api/v2/cronjobs/script/options"
+        case .cronjobsExport:        return "/api/v2/cronjobs/export"
+        case .cronjobsImport:        return "/api/v2/cronjobs/import"
         case .scriptSearch:          return "/api/v2/core/script/search"
         case .scriptSync:            return "/api/v2/core/script/sync"
         case .coreSettingsUpdate:    return "/api/v2/core/settings/update"
@@ -769,6 +782,11 @@ enum APIEndpoint {
         case .firewallForward:       return "/api/v2/hosts/firewall/forward"
         case .firewallIP:            return "/api/v2/hosts/firewall/ip"
         case .firewallUpdateAddr:    return "/api/v2/hosts/firewall/update/addr"
+        case .firewallFilterOperate:     return "/api/v2/hosts/firewall/filter/operate"
+        case .firewallFilterChainStatus: return "/api/v2/hosts/firewall/filter/chain/status"
+        case .firewallFilterRuleSearch:  return "/api/v2/hosts/firewall/filter/rule/search"
+        case .firewallFilterRuleOperate: return "/api/v2/hosts/firewall/filter/rule/operate"
+        case .firewallFilterRuleBatch:   return "/api/v2/hosts/firewall/filter/rule/batch"
         case .monitorNetOptions:     return "/api/v2/hosts/monitor/netoptions"
         case .databasesSearch:       return "/api/v2/databases/search"
         case .databasesPgSearch:     return "/api/v2/databases/pg/search"
@@ -852,6 +870,9 @@ enum APIEndpoint {
         case .supervisorConfigSet:   return "/api/v2/hosts/tool/config/set"
         case .supervisorLogRead:     return "/api/v2/files/read/supervisor"
         case .filesSearch:           return "/api/v2/files/search"
+        case .filesFavorite:         return "/api/v2/files/favorite"
+        case .filesFavoriteSearch:   return "/api/v2/files/favorite/search"
+        case .filesFavoriteDel:      return "/api/v2/files/favorite/del"
         case .alertSearch:           return "/api/v2/alert/search"
         case .alertCreate:           return "/api/v2/alert"
         case .alertUpdate:           return "/api/v2/alert/update"

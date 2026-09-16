@@ -61,13 +61,14 @@ final class FirewallViewModel: ObservableObject {
             || (base == nil && rules.isEmpty && forwards.isEmpty && addresses.isEmpty)
         else { return }
         isLoading = true
-        // 首屏四请求（状态卡 + 端口/转发/IP 规则）并行，完成即结束整页加载态；
-        // 空数据页面不再陪跑最慢的辅助请求
+        // 首屏五请求（状态卡 + 端口/转发/IP 规则 + iptables 链可用性）并行，
+        // 完成即结束整页加载态；空数据页面不再陪跑最慢的辅助请求
         async let base: () = loadBase()
         async let rules: () = loadRules()
         async let forwards: () = loadForwards()
         async let addresses: () = loadAddresses()
-        _ = await (base, rules, forwards, addresses)
+        async let filterBase: () = loadFilterBase()
+        _ = await (base, rules, forwards, addresses, filterBase)
         isLoading = false
         // 辅助数据（监听进程名/网口选项）静默补齐，行内稍后出现，失败无感
         async let listening: () = loadListening()
@@ -514,6 +515,165 @@ final class FirewallViewModel: ObservableObject {
             self.errorMessage = error.localizedDescription
         }
     }
+
+    // MARK: - iptables 链规则（filter/*；仅 iptables 后端，已装 ufw 不支持）
+
+    static let inputChain = "1PANEL_INPUT"
+    static let outputChain = "1PANEL_OUTPUT"
+
+    /// name=advance 查询的 iptables 链状态（返回 name=ufw 即后端不支持）
+    @Published var filterBase: FirewallBase?
+    @Published var chainStatus: FirewallChainStatus?
+    @Published var chainRules: [FirewallChainRule] = []
+    @Published private(set) var chainRulesTotal = 0
+    @Published private(set) var isChainRulesLoadingMore = false
+    /// 链规则段加载态（首次/切方向/下拉时整段转圈，与 isOperating 分开）
+    @Published var isChainLoading = false
+    private var chainRulesPage = 1
+    private var chainRulesGeneration = 0
+
+    /// 链规则段整段加载（iptables 基础状态 + 链状态 + 规则第一页）
+    func loadChainPage(chain: String) async {
+        isChainLoading = true
+        async let base: () = loadFilterBase()
+        async let status: () = loadChainStatus(chain: chain)
+        async let rules: () = loadChainRules(chain: chain)
+        _ = await (base, status, rules)
+        isChainLoading = false
+    }
+
+    /// name=advance：iptables 链规则可用性（name=iptables 才有第四段）
+    func loadFilterBase() async {
+        struct AdvanceReq: Encodable { let name: String }
+        do {
+            filterBase = try await client.send(
+                path: APIEndpoint.firewallBase.path,
+                body: AdvanceReq(name: "advance"),
+                as: FirewallBase.self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    func loadChainStatus(chain: String) async {
+        do {
+            chainStatus = try await client.send(
+                path: APIEndpoint.firewallFilterChainStatus.path,
+                body: FirewallChainStatusRequest(name: chain),
+                as: FirewallChainStatus.self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    func loadChainRules(chain: String) async {
+        let req = FirewallChainRuleSearchRequest(type: chain, info: "", page: 1, pageSize: Self.pageSize)
+        do {
+            let resp: PageResponse<FirewallChainRule> = try await client.send(
+                path: APIEndpoint.firewallFilterRuleSearch.path, body: req,
+                as: PageResponse<FirewallChainRule>.self
+            )
+            self.chainRules = resp.items ?? []
+            self.chainRulesTotal = resp.total ?? resp.items?.count ?? 0
+            self.chainRulesPage = 1
+            self.chainRulesGeneration += 1
+            self.errorMessage = nil
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 追加下一页链规则（滚动到底触发；组合键去重 + 代数丢弃过期追加）
+    func loadMoreChainRules(chain: String) async {
+        guard chainRules.count < chainRulesTotal, !isChainRulesLoadingMore, !isChainLoading else { return }
+        isChainRulesLoadingMore = true
+        defer { isChainRulesLoadingMore = false }
+        let next = chainRulesPage + 1
+        let gen = chainRulesGeneration
+        let req = FirewallChainRuleSearchRequest(type: chain, info: "", page: next, pageSize: Self.pageSize)
+        do {
+            let resp: PageResponse<FirewallChainRule> = try await client.send(
+                path: APIEndpoint.firewallFilterRuleSearch.path, body: req,
+                as: PageResponse<FirewallChainRule>.self
+            )
+            guard gen == chainRulesGeneration else { return }
+            let existing = Set(chainRules.map(\.id))
+            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
+            if newItems.isEmpty {
+                chainRulesTotal = chainRules.count
+                return
+            }
+            chainRules += newItems
+            chainRulesTotal = resp.total ?? chainRulesTotal
+            chainRulesPage = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
+        }
+    }
+
+    /// 链操作：init-advance / bind / unbind（成功后重拉链状态；初始化另刷基础态）
+    func operateChain(_ operate: String, chain: String) async {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallFilterOperate.path,
+                body: FirewallFilterOperateRequest(name: chain, operate: operate),
+                as: EmptyResponse.self
+            )
+            await loadChainStatus(chain: chain)
+            if operate == "init-advance" {
+                await loadFilterBase()
+            }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 创建链规则（入站写 srcIP、出站写 dstIP；srcPort 恒 0，端口为目标端口）
+    func addChainRule(chain: String, proto: String, strategy: String, ip: String, dstPort: Int, description: String) async -> Bool {
+        let desc = description.trimmingCharacters(in: .whitespaces)
+        let req = FirewallChainRuleOperateRequest(
+            chain: chain,
+            protocolField: proto,
+            strategy: strategy,
+            srcPort: 0,
+            dstPort: dstPort,
+            dstIP: chain == Self.outputChain ? ip : "",
+            srcIP: chain == Self.inputChain ? ip : "",
+            operation: "add",
+            description: desc.isEmpty ? nil : desc
+        )
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallFilterRuleOperate.path, body: req, as: EmptyResponse.self
+            )
+            await loadChainRules(chain: chain)
+            return true
+        } catch {
+            self.errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// 删除链规则（rule/batch 单条，规则字段全量回传、端口按 Int）
+    func deleteChainRule(_ rule: FirewallChainRule, chain: String) async {
+        let req = FirewallChainRuleBatchRequest(rules: [FirewallChainRuleBatchItem(rule: rule)])
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallFilterRuleBatch.path, body: req, as: EmptyResponse.self
+            )
+            await loadChainRules(chain: chain)
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
 }
 
 // MARK: - 主视图
@@ -540,6 +700,13 @@ struct FirewallView: View {
     @State private var editingAddress: FirewallRule?
     @State private var actionAddress: FirewallRule?
     @State private var pendingDeleteAddress: FirewallRule?
+    // iptables 链规则（第四段，仅 iptables 后端显示）
+    /// 0=入站（1PANEL_INPUT）1=出站（1PANEL_OUTPUT）
+    @State private var chainDirection = 0
+    @State private var showAddChainRule = false
+    @State private var pendingDeleteChainRule: FirewallChainRule?
+    /// 待确认的链操作（init-advance / bind / unbind）
+    @State private var pendingChainOp: String?
     /// 白名单页需要独立建 APIClient（settings 接口与防火墙接口分离）
     private let server: ServerConfig
 
@@ -558,6 +725,10 @@ struct FirewallView: View {
                     Text(L10n.t("端口规则")).tag(0)
                     Text(L10n.t("端口转发")).tag(1)
                     Text(L10n.t("IP 规则")).tag(2)
+                    // 仅 iptables 后端有链规则（已装 ufw 不支持，name=advance 返回 ufw）
+                    if isIPTablesBackend {
+                        Text(L10n.t("链规则")).tag(3)
+                    }
                 }
                 .pickerStyle(.segmented)
                 .segmentedPickerRow()
@@ -567,6 +738,7 @@ struct FirewallView: View {
             switch segment {
             case 0: portRulesSection
             case 1: forwardSection
+            case 3: chainSection
             default: addressSection
             }
         }
@@ -576,8 +748,14 @@ struct FirewallView: View {
             switch segment {
             case 0: await vm.loadRules()
             case 1: await vm.loadForwards()
+            case 3: await vm.loadChainPage(chain: currentChain)
             default: await vm.loadAddresses()
             }
+        }
+        // 链规则段进入/切方向时整段加载（key 变化重跑；其余段 key 固定不触发）
+        .task(id: segment == 3 ? "chain-\(chainDirection)" : "main") {
+            guard segment == 3 else { return }
+            await vm.loadChainPage(chain: currentChain)
         }
         .task {
             // 已有快照（重访）时门控不显示转圈，这里静默刷新即可（5 秒内重访节流）
@@ -607,13 +785,15 @@ struct FirewallView: View {
                     switch segment {
                     case 0: showAdd = true
                     case 1: showAddForward = true
+                    case 3: showAddChainRule = true
                     default: showAddAddress = true
                     }
                 } label: {
                     Image(systemName: "plus")
                 }
-                .disabled(vm.base?.isExist != true)
-                .accessibilityLabel(segment == 1 ? L10n.t("添加端口转发") : segment == 2 ? L10n.t("添加 IP 规则") : L10n.t("添加规则"))
+                .disabled(vm.base?.isExist != true
+                          || (segment == 3 && vm.filterBase?.isInit != true))
+                .accessibilityLabel(segment == 1 ? L10n.t("添加端口转发") : segment == 2 ? L10n.t("添加 IP 规则") : segment == 3 ? L10n.t("添加链规则") : L10n.t("添加规则"))
             }
         }
         .navigationDestination(isPresented: $showAdd) {
@@ -762,6 +942,15 @@ struct FirewallView: View {
                 Text(L10n.f("将对 \"%@\" 进行删除操作，是否继续？", rule.address ?? ""))
             }
         }
+        // iptables 链规则弹窗组（创建跳转 / 删除确认 / 链操作确认）独立成
+        // modifier：主 body 追加过多修饰符会超出类型推断合理时间
+        .modifier(FirewallChainDialogsModifier(
+            vm: vm,
+            currentChain: currentChain,
+            showAddChainRule: $showAddChainRule,
+            pendingDeleteChainRule: $pendingDeleteChainRule,
+            pendingChainOp: $pendingChainOp)
+        )
         .alert(
             pendingUFWOp.map { opTitle($0) } ?? "",
             isPresented: Binding(
@@ -928,6 +1117,114 @@ struct FirewallView: View {
             Spacer()
         }
         .onAppear { action() }
+    }
+
+    /// 是否 iptables 后端（name=advance 查询返回 iptables 才有链规则段）
+    private var isIPTablesBackend: Bool { vm.filterBase?.name == "iptables" }
+
+    /// 当前链名：0=入站 1=出站
+    private var currentChain: String {
+        chainDirection == 0 ? FirewallViewModel.inputChain : FirewallViewModel.outputChain
+    }
+
+    /// 段 3：iptables 链规则（入站/出站两链；未初始化时仅提供初始化入口）
+    @ViewBuilder
+    private var chainSection: some View {
+        Section {
+            Picker(L10n.t("方向"), selection: $chainDirection) {
+                Text(L10n.t("入站")).tag(0)
+                Text(L10n.t("出站")).tag(1)
+            }
+            .pickerStyle(.segmented)
+            .segmentedPickerRow()
+            .listRowSeparator(.hidden)
+        }
+
+        if let fb = vm.filterBase {
+            if fb.isInit == true {
+                Section {
+                    HStack {
+                        Label(L10n.t("链绑定"), systemImage: "link")
+                        Spacer()
+                        if let st = vm.chainStatus {
+                            StatusBadge(
+                                text: (st.isBind == true) ? L10n.t("已绑定") : L10n.t("未绑定"),
+                                color: (st.isBind == true) ? .statusRunning : .secondary
+                            )
+                        }
+                    }
+                    if let s = vm.chainStatus?.defaultStrategy, !s.isEmpty {
+                        LabeledContent(L10n.t("默认策略"), value: s)
+                    }
+                    Button {
+                        pendingChainOp = (vm.chainStatus?.isBind == true) ? "unbind" : "bind"
+                    } label: {
+                        Label(
+                            (vm.chainStatus?.isBind == true) ? L10n.t("解除绑定") : L10n.t("绑定"),
+                            systemImage: (vm.chainStatus?.isBind == true) ? "link.badge.plus" : "link"
+                        )
+                    }
+                    .disabled(vm.isOperating)
+                } footer: {
+                    Text(L10n.t("仅当状态为绑定时链规则才生效；入站对应 1PANEL_INPUT，出站对应 1PANEL_OUTPUT"))
+                }
+            } else {
+                // 未初始化时不支持创建、绑定与删除（抓包说明）
+                Section {
+                    Button {
+                        pendingChainOp = "init-advance"
+                    } label: {
+                        Label(L10n.t("初始化链规则"), systemImage: "wand.and.stars")
+                    }
+                    .disabled(vm.isOperating)
+                } footer: {
+                    Text(L10n.t("iptables 链规则尚未初始化，初始化后才能创建与绑定规则"))
+                }
+            }
+        } else if vm.isChainLoading {
+            Section { HStack { Spacer(); ProgressView(); Spacer() } }
+        }
+
+        if vm.chainRules.isEmpty {
+            if vm.isChainLoading || vm.isLoading {
+                EmptyView()
+            } else if vm.filterBase?.isInit == true {
+                Section {
+                    ContentUnavailableView(
+                        L10n.t("暂无链规则"),
+                        systemImage: "link",
+                        description: Text(L10n.t("点击右上角 + 添加规则"))
+                    )
+                    .listRowBackground(Color.clear)
+                }
+            }
+        } else {
+            Section {
+                ForEach(vm.chainRules) { rule in
+                    FirewallChainRuleRow(rule: rule)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                pendingDeleteChainRule = rule
+                            } label: {
+                                Label(L10n.t("删除"), systemImage: "trash")
+                            }
+                        }
+                        .onAppear {
+                            if rule.id == vm.chainRules.last?.id {
+                                Task { await vm.loadMoreChainRules(chain: currentChain) }
+                            }
+                        }
+                }
+                if vm.chainRules.count < vm.chainRulesTotal || vm.isChainRulesLoadingMore {
+                    loadMoreRow { Task { await vm.loadMoreChainRules(chain: currentChain) } }
+                }
+            } header: {
+                SectionLabel(
+                    title: L10n.f("链规则（%ld）", max(vm.chainRulesTotal, vm.chainRules.count)),
+                    systemImage: "link"
+                )
+            }
+        }
     }
 
     private var statusSection: some View {
@@ -1895,6 +2192,238 @@ struct FirewallAddressFormView: View {
                 strategy = editing.strategy ?? "accept"
                 description = editing.description ?? ""
             }
+        }
+    }
+}
+
+// MARK: - iptables 链规则（行 / 创建表单）
+
+extension FirewallChainRule {
+    /// 删除确认等提示用的概要（协议 + 地址 + 端口）
+    var displaySummary: String {
+        var parts = [(protocolField ?? "all").uppercased()]
+        if let ip = srcIP, !ip.isEmpty {
+            parts.append(ip)
+        } else if let ip = dstIP, !ip.isEmpty {
+            parts.append(ip)
+        }
+        if let p = dstPort, let n = Int(p), n > 0 {
+            parts.append(":\(n)")
+        }
+        return parts.joined(separator: " ")
+    }
+}
+
+/// 链规则行：协议 + 动作徽标 + 地址（入站显示源、出站显示目标）+ 目标端口
+struct FirewallChainRuleRow: View {
+    let rule: FirewallChainRule
+
+    private var addressLine: String? {
+        if let ip = rule.srcIP, !ip.isEmpty { return L10n.t("源") + " " + ip }
+        if let ip = rule.dstIP, !ip.isEmpty { return L10n.t("目标") + " " + ip }
+        return nil
+    }
+
+    private var portText: String {
+        if let p = rule.dstPort, let n = Int(p), n > 0 {
+            return L10n.f("端口 %ld", n)
+        }
+        return L10n.t("任意端口")
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            IconBadge(
+                systemName: "bolt.horizontal",
+                color: (rule.strategy == "accept") ? .green : .red,
+                size: 34,
+                cornerRadius: 8
+            )
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text((rule.protocolField ?? "all").uppercased())
+                        .font(.system(.subheadline, design: .monospaced, weight: .bold))
+                    StatusBadge(
+                        text: (rule.strategy == "accept") ? L10n.t("允许") : L10n.t("拒绝"),
+                        color: (rule.strategy == "accept") ? .green : .red
+                    )
+                    StatusBadge(text: portText, color: .secondary)
+                }
+                if let addr = addressLine {
+                    Text(addr)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if let desc = rule.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+/// 创建 iptables 链规则（可选增加-2 抓包：入站写 srcIP、出站写 dstIP；
+/// srcPort 恒 0，端口为目标端口；协议=全部时端口恒 0 不可改）
+struct FirewallChainRuleFormView: View {
+    let vm: FirewallViewModel
+    let chain: String
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var proto = "tcp"
+    @State private var ip = ""
+    @State private var port = "0"
+    @State private var strategy = "accept"
+    @State private var descriptionText = ""
+    @State private var isSubmitting = false
+
+    private let protocols: [(value: String, label: String)] = [
+        ("all", L10n.t("全部")), ("tcp", "TCP"), ("udp", "UDP"), ("icmp", "ICMP"),
+    ]
+    /// 动作取值抓包：accept 允许 / drop 拒绝
+    private let strategies: [(value: String, label: String)] = [
+        ("accept", L10n.t("允许")), ("drop", L10n.t("拒绝")),
+    ]
+
+    private var isOutput: Bool { chain == FirewallViewModel.outputChain }
+
+    private var canSubmit: Bool {
+        guard !isSubmitting else { return false }
+        // 协议=全部时端口恒 0；其余协议端口需为有效数字（默认 0 = 任意）
+        return proto == "all" || Int(port) != nil
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Picker(L10n.t("协议"), selection: $proto) {
+                    ForEach(protocols, id: \.value) { p in
+                        Text(p.label).tag(p.value)
+                    }
+                }
+                TextField(isOutput ? L10n.t("目标 IP") : L10n.t("源 IP"), text: $ip, prompt: Text("192.168.1.0/24"))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.asciiCapable)
+                TextField(L10n.t("目标端口"), text: $port)
+                    .keyboardType(.numberPad)
+                    .disabled(proto == "all")
+                Picker(L10n.t("动作"), selection: $strategy) {
+                    ForEach(strategies, id: \.value) { s in
+                        Text(s.label).tag(s.value)
+                    }
+                }
+                TextField(L10n.t("描述"), text: $descriptionText)
+            } header: {
+                SectionLabel(title: L10n.t("添加链规则"), systemImage: "link")
+            } footer: {
+                Text(L10n.t("IP 为 CIDR 格式，留空表示所有地址；端口 0 表示任意端口；协议为全部时端口不可用"))
+            }
+        }
+        .navigationTitle(L10n.t("添加链规则"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSubmitting { ProgressView() } else { Text(L10n.t("保存")).bold() }
+                }
+                .disabled(!canSubmit)
+            }
+        }
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        let dstPort = (proto == "all") ? 0 : (Int(port) ?? 0)
+        let ok = await vm.addChainRule(
+            chain: chain,
+            proto: proto,
+            strategy: strategy,
+            ip: ip.trimmingCharacters(in: .whitespaces),
+            dstPort: dstPort,
+            description: descriptionText
+        )
+        if ok { dismiss() }
+    }
+}
+
+// MARK: - 链规则弹窗组
+
+/// iptables 链规则弹窗（创建跳转 / 删除确认 / 链操作确认）。
+/// 独立 ViewModifier：追加到主 body 内联会超出类型推断合理时间
+private struct FirewallChainDialogsModifier: ViewModifier {
+    let vm: FirewallViewModel
+    let currentChain: String
+    @Binding var showAddChainRule: Bool
+    @Binding var pendingDeleteChainRule: FirewallChainRule?
+    /// 待确认的链操作（init-advance / bind / unbind）
+    @Binding var pendingChainOp: String?
+
+    func body(content: Content) -> some View {
+        content
+            .navigationDestination(isPresented: $showAddChainRule) {
+                FirewallChainRuleFormView(vm: vm, chain: currentChain)
+            }
+            .alert(L10n.t("删除链规则"), isPresented: Binding(
+                get: { pendingDeleteChainRule != nil },
+                set: { if !$0 { pendingDeleteChainRule = nil } }
+            )) {
+                Button(L10n.t("取消"), role: .cancel) { pendingDeleteChainRule = nil }
+                Button(L10n.t("删除"), role: .destructive) {
+                    Haptic.warning()
+                    if let rule = pendingDeleteChainRule {
+                        pendingDeleteChainRule = nil
+                        Task { await vm.deleteChainRule(rule, chain: currentChain) }
+                    }
+                }
+            } message: {
+                if let rule = pendingDeleteChainRule {
+                    Text(L10n.f("确定删除链规则「%@」吗？删除后不可恢复。", rule.displaySummary))
+                }
+            }
+            .alert(
+                opTitle(pendingChainOp ?? ""),
+                isPresented: Binding(
+                    get: { pendingChainOp != nil },
+                    set: { if !$0 { pendingChainOp = nil } }
+                )
+            ) {
+                Button(L10n.t("取消"), role: .cancel) { pendingChainOp = nil }
+                Button(L10n.t("确认")) {
+                    let op = pendingChainOp
+                    pendingChainOp = nil
+                    if let op {
+                        Haptic.warning()
+                        Task { await vm.operateChain(op, chain: currentChain) }
+                    }
+                }
+            } message: {
+                Text(opMessage(pendingChainOp ?? ""))
+            }
+    }
+
+    private func opTitle(_ op: String) -> String {
+        switch op {
+        case "init-advance": return L10n.t("初始化链规则")
+        case "bind":         return L10n.t("绑定链")
+        case "unbind":       return L10n.t("解除绑定")
+        default:             return L10n.t("链规则")
+        }
+    }
+
+    /// 确认文案对齐网页端（可选增加-2 抓包）
+    private func opMessage(_ op: String) -> String {
+        switch op {
+        case "init-advance": return L10n.t("将初始化 1PANEL 链规则，是否继续？")
+        case "bind":         return L10n.t("仅当状态为绑定时，防火墙规则才能生效，是否确认？")
+        case "unbind":       return L10n.t("解除绑定时，已添加的所有防火墙规则将失效，请谨慎操作，是否确认？")
+        default:             return ""
         }
     }
 }

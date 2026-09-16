@@ -1,6 +1,479 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "链规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chain Rules"
+          }
+        }
+      }
+    },
+    "方向" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direction"
+          }
+        }
+      }
+    },
+    "入站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inbound"
+          }
+        }
+      }
+    },
+    "出站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outbound"
+          }
+        }
+      }
+    },
+    "链绑定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chain Binding"
+          }
+        }
+      }
+    },
+    "默认策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Policy"
+          }
+        }
+      }
+    },
+    "解除绑定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbind"
+          }
+        }
+      }
+    },
+    "初始化链规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialize Chain Rules"
+          }
+        }
+      }
+    },
+    "链规则（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chain Rules (%ld)"
+          }
+        }
+      }
+    },
+    "暂无链规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No chain rules"
+          }
+        }
+      }
+    },
+    "添加链规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Chain Rule"
+          }
+        }
+      }
+    },
+    "删除链规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Chain Rule"
+          }
+        }
+      }
+    },
+    "确定删除链规则「%@」吗？删除后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to delete chain rule \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "绑定链" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bind Chain"
+          }
+        }
+      }
+    },
+    "将初始化 1PANEL 链规则，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will initialize the 1PANEL chain rules. Continue?"
+          }
+        }
+      }
+    },
+    "仅当状态为绑定时，防火墙规则才能生效，是否确认？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rules only take effect while the chain is bound. Confirm?"
+          }
+        }
+      }
+    },
+    "解除绑定时，已添加的所有防火墙规则将失效，请谨慎操作，是否确认？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbinding will disable all firewall rules added here. Proceed with caution. Confirm?"
+          }
+        }
+      }
+    },
+    "仅当状态为绑定时链规则才生效；入站对应 1PANEL_INPUT，出站对应 1PANEL_OUTPUT" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chain rules only take effect while bound; inbound maps to 1PANEL_INPUT, outbound to 1PANEL_OUTPUT"
+          }
+        }
+      }
+    },
+    "iptables 链规则尚未初始化，初始化后才能创建与绑定规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iptables chain rules are not initialized yet. Initialize them before creating or binding rules."
+          }
+        }
+      }
+    },
+    "源 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source IP"
+          }
+        }
+      }
+    },
+    "动作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Action"
+          }
+        }
+      }
+    },
+    "IP 为 CIDR 格式，留空表示所有地址；端口 0 表示任意端口；协议为全部时端口不可用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP in CIDR format; leave empty for all addresses. Port 0 means any port; unavailable when protocol is All."
+          }
+        }
+      }
+    },
+    "源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Src"
+          }
+        }
+      }
+    },
+    "任意端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Any port"
+          }
+        }
+      }
+    },
+    "端口 %ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port %ld"
+          }
+        }
+      }
+    },
+    "导出计划任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Cronjobs"
+          }
+        }
+      }
+    },
+    "导入计划任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Cronjobs"
+          }
+        }
+      }
+    },
+    "计划任务（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cronjobs (%ld)"
+          }
+        }
+      }
+    },
+    "勾选要导出的任务，导出为 JSON 文件用于迁移或备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select tasks to export as a JSON file for migration or backup"
+          }
+        }
+      }
+    },
+    "分享 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share %@"
+          }
+        }
+      }
+    },
+    "选择 JSON 文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose JSON File"
+          }
+        }
+      }
+    },
+    "选择导出的 1panel-cronjob-*.json 文件，解析后勾选要导入的任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an exported 1panel-cronjob-*.json file, then select tasks to import"
+          }
+        }
+      }
+    },
+    "文件中的任务（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tasks in File (%ld)"
+          }
+        }
+      }
+    },
+    "保留 %ld 份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep %ld copies"
+          }
+        }
+      }
+    },
+    "保留份数与执行周期将按文件内容创建；同名任务不会被跳过，请自行确认" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retention and schedule follow the file; duplicate names are not skipped, please double-check"
+          }
+        }
+      }
+    },
+    "导入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import"
+          }
+        }
+      }
+    },
+    "文件中没有可导入的任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No importable tasks in this file"
+          }
+        }
+      }
+    },
+    "解析失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to parse: %@"
+          }
+        }
+      }
+    },
+    "收藏夹" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorites"
+          }
+        }
+      }
+    },
+    "收藏" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorite"
+          }
+        }
+      }
+    },
+    "取消收藏" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unfavorite"
+          }
+        }
+      }
+    },
+    "暂无收藏" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Favorites"
+          }
+        }
+      }
+    },
+    "长按文件或文件夹添加到收藏" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long-press a file or folder to add it to favorites"
+          }
+        }
+      }
+    },
     "环境变量（%ld）" : {
       "extractionState" : "manual",
       "localizations" : {

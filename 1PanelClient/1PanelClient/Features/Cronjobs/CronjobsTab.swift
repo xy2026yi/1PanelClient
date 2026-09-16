@@ -17,6 +17,10 @@ struct CronjobsTab: View {
     @State private var isSearching = false
     // 分组管理弹窗入口（筛选条末尾「管理」chip）
     @State private var showGroupManage = false
+    // 导入导出入口（右上角菜单）
+    @State private var showTransferMenu = false
+    @State private var showExport = false
+    @State private var showImport = false
     /// 分组管理页所需服务器配置（init 时固定）
     private let server: ServerConfig
 
@@ -82,9 +86,16 @@ struct CronjobsTab: View {
         )
         .navigationTitle(L10n.t("计划任务"))
         .navigationBarTitleDisplayMode(.inline)
-        // 脚本库入口已上移至 管理-计划任务 Hub；右上角留 搜索 + 创建 两键
+        // 脚本库入口已上移至 管理-计划任务 Hub；右上角留 搜索 + 菜单 + 创建 三键
         .toolbar {
             if !isSearching {
+                ToolbarItem(placement: .topBarTrailing) {
+                    EllipsisMenuButton {
+                        withAnimation(Motion.fast) { showTransferMenu.toggle() }
+                    }
+                    .disabled(vm.cronjobs.isEmpty && !showTransferMenu)
+                    .accessibilityLabel(L10n.t("更多操作"))
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showCreate = true
@@ -93,6 +104,30 @@ struct CronjobsTab: View {
                     }
                     .accessibilityLabel(L10n.t("创建计划任务"))
                 }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showTransferMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: L10n.t("导出计划任务"), icon: "square.and.arrow.up") {
+                        showTransferMenu = false
+                        showExport = true
+                    },
+                    .action(title: L10n.t("导入计划任务"), icon: "square.and.arrow.down") {
+                        showTransferMenu = false
+                        showImport = true
+                    },
+                ]) {
+                    withAnimation(Motion.fast) { showTransferMenu = false }
+                }
+            }
+        }
+        .sheet(isPresented: $showExport) {
+            CronjobExportView(server: server, cronjobs: vm.cronjobs)
+        }
+        .sheet(isPresented: $showImport) {
+            CronjobImportView(server: server) {
+                await vm.refresh()
             }
         }
         .onChange(of: vm.selectedGroupID) { _, _ in

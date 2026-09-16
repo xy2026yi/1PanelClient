@@ -226,6 +226,111 @@ nonisolated struct FirewallForwardRequest: Encodable {
     let forceDelete: Bool?
 }
 
+// MARK: - iptables 链规则（/hosts/firewall/filter/*，可选增加-2 抓包 2026-09-16；
+// 已安装 ufw 的后端不支持，name=advance 查询返回 ufw 即不可用）
+
+/// filter/chain/status 响应 {isBind, defaultStrategy}
+nonisolated struct FirewallChainStatus: Decodable, Hashable {
+    let isBind: Bool?
+    let defaultStrategy: String?
+}
+
+/// 链规则（filter/rule/search 返回；服务端 id 恒 0，组合键做行标识；
+/// srcPort/dstPort 为空串或数字字符串，提交时按 Int 回传）
+nonisolated struct FirewallChainRule: Decodable, Identifiable, Hashable {
+    let apiID: Int?
+    let chain: String?
+    let protocolField: String?
+    let srcPort: String?
+    let dstPort: String?
+    let srcIP: String?
+    let dstIP: String?
+    let strategy: String?
+    let description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case apiID = "id"
+        case chain, srcPort, dstPort, srcIP, dstIP, strategy, description
+        case protocolField = "protocol"
+    }
+
+    var ruleID: String {
+        "\(chain ?? "")|\(protocolField ?? "")|\(srcPort ?? "")|\(dstPort ?? "")|\(srcIP ?? "")|\(dstIP ?? "")|\(strategy ?? "")"
+    }
+    var id: String { ruleID }
+}
+
+/// 链规则搜索（filter/rule/search；type 为链名 1PANEL_INPUT / 1PANEL_OUTPUT）
+nonisolated struct FirewallChainRuleSearchRequest: Encodable {
+    let type: String
+    let info: String
+    let page: Int
+    let pageSize: Int
+}
+
+/// 创建链规则（filter/rule/operate；描述为空时省略，对齐网页端提交体）
+nonisolated struct FirewallChainRuleOperateRequest: Encodable {
+    let chain: String
+    let protocolField: String
+    let strategy: String
+    let srcPort: Int
+    let dstPort: Int
+    let dstIP: String
+    let srcIP: String
+    let operation: String   // add
+    var description: String? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case protocolField = "protocol"
+        case chain, strategy, srcPort, dstPort, dstIP, srcIP, operation, description
+    }
+}
+
+/// 删除链规则单条（filter/rule/batch 的 rules 元素；端口按 Int 回传）
+nonisolated struct FirewallChainRuleBatchItem: Encodable {
+    let operation: String   // remove
+    let id: Int
+    let chain: String
+    let srcPort: Int
+    let dstPort: Int
+    let srcIP: String
+    let dstIP: String
+    let protocolField: String
+    let strategy: String
+
+    enum CodingKeys: String, CodingKey {
+        case protocolField = "protocol"
+        case operation, id, chain, srcPort, dstPort, srcIP, dstIP, strategy
+    }
+
+    init(rule: FirewallChainRule) {
+        self.operation = "remove"
+        self.id = rule.apiID ?? 0
+        self.chain = rule.chain ?? ""
+        self.srcPort = Int(rule.srcPort ?? "") ?? 0
+        self.dstPort = Int(rule.dstPort ?? "") ?? 0
+        self.srcIP = rule.srcIP ?? ""
+        self.dstIP = rule.dstIP ?? ""
+        self.protocolField = rule.protocolField ?? ""
+        self.strategy = rule.strategy ?? ""
+    }
+}
+
+nonisolated struct FirewallChainRuleBatchRequest: Encodable {
+    let rules: [FirewallChainRuleBatchItem]
+}
+
+/// 链操作（filter/operate：init-advance / bind / unbind）
+nonisolated struct FirewallFilterOperateRequest: Encodable {
+    let name: String
+    let operate: String
+}
+
+/// 链状态查询（filter/chain/status {name}）
+nonisolated struct FirewallChainStatusRequest: Encodable {
+    let name: String
+}
+
 // MARK: - IP 规则（/firewall/ip · /firewall/update/addr）
 
 /// 创建 IP 规则请求（address 支持逗号分隔多个）

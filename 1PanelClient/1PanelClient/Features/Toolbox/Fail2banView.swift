@@ -70,8 +70,12 @@ struct FileItem: Decodable, Identifiable, Hashable {
     let group: String?
     let mode: String?
     let linkPath: String?
+    /// 文件收藏 ID（files/search 返回；0/缺失 = 未收藏）
+    let favoriteID: Int?
 
     var id: String { path }
+
+    var isFavorite: Bool { (favoriteID ?? 0) > 0 }
 }
 
 // MARK: - ViewModel

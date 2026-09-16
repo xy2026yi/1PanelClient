@@ -44,6 +44,30 @@ struct FolderUploadFile {
     let size: Int64
 }
 
+// MARK: - 收藏（files/favorite/*，可选增加-2 抓包 2026-09-16）
+
+/// 收藏项（favorite/search 返回；favorite 添加响应同构单条）
+struct FileFavorite: Decodable, Identifiable, Hashable {
+    let id: Int
+    let name: String?
+    let path: String?
+    let isDir: Bool?
+    let isTxt: Bool?
+}
+
+struct FileFavoriteAddRequest: Encodable {
+    let path: String
+}
+
+struct FileFavoriteSearchRequest: Encodable {
+    let page: Int
+    let pageSize: Int
+}
+
+struct FileFavoriteDeleteRequest: Encodable {
+    let id: Int
+}
+
 // MARK: - 文件管理视图
 
 struct FilesView: View {
@@ -72,6 +96,8 @@ struct FilesView: View {
     @State private var transferTask: Task<Void, Never>?
     /// 回收站入口
     @State private var showRecycleBin = false
+    /// 收藏夹入口（files/favorite/search）
+    @State private var showFavorites = false
     /// 悬浮 + 号的半屏操作菜单
     @State private var showActionSheet = false
     /// 长按文件行弹出的半屏操作菜单对应的文件
@@ -205,6 +231,9 @@ struct FilesView: View {
                     ActionMenuItem(title: L10n.t("远程下载"), icon: "arrow.down.circle", color: .blue) {
                         pendingMenuAction = { showWget = true }
                     },
+                    ActionMenuItem(title: L10n.t("收藏夹"), icon: "star", color: .yellow) {
+                        pendingMenuAction = { showFavorites = true }
+                    },
                     ActionMenuItem(title: L10n.t("回收站"), icon: "trash", color: .gray) {
                         pendingMenuAction = { showRecycleBin = true }
                     },
@@ -216,7 +245,7 @@ struct FilesView: View {
                         pendingMenuAction = { Task { await loadDir("/") } }
                     }
                 ], onDismiss: { showActionSheet = false })
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 8))])
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 9))])
                 .presentationDragIndicator(.visible)
             }
             .sheet(item: $actionItem, onDismiss: {
@@ -274,6 +303,13 @@ struct FilesView: View {
             }
             .navigationDestination(isPresented: $showRecycleBin) {
                 FileRecycleBinView(server: server)
+            }
+            // 收藏夹：点按回跳对应路径（目录 → 本身；文件 → 父目录，抓包行为）
+            .navigationDestination(isPresented: $showFavorites) {
+                FileFavoriteView(server: server) { target in
+                    showFavorites = false
+                    Task { await loadDir(target) }
+                }
             }
             // 文本预览（仅可预览扩展名会进入）
             .navigationDestination(isPresented: Binding(
@@ -469,6 +505,27 @@ struct FilesView: View {
         }
     }
 
+    /// 收藏 / 取消收藏（已收藏按 favoriteID 删除；成功后刷新当前目录更新星标）
+    private func toggleFavorite(_ item: FileItem) async {
+        do {
+            if item.isFavorite, let fid = item.favoriteID {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.filesFavoriteDel.path,
+                    body: FileFavoriteDeleteRequest(id: fid),
+                    as: EmptyResponse.self)
+            } else {
+                let _: FileFavorite = try await client.send(
+                    path: APIEndpoint.filesFavorite.path,
+                    body: FileFavoriteAddRequest(path: item.path),
+                    as: FileFavorite.self)
+            }
+            Haptic.success()
+            await loadDir(currentPath)
+        } catch {
+            previewToast = error.localizedDescription
+        }
+    }
+
     /// 预览资格：按扩展名；无扩展名的点文件（.bashrc 等）按完整文件名
     private static func isFilePreviewable(_ name: String) -> Bool {
         let lower = name.lowercased()
@@ -491,6 +548,11 @@ struct FilesView: View {
                         Image(systemName: "arrow.up.right.square")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                    }
+                    if item.isFavorite {
+                        Image(systemName: "star.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.yellow)
                     }
                 }
                 HStack(spacing: 8) {
@@ -861,6 +923,14 @@ struct FilesView: View {
                     selectedPaths = [item.path]
                 }
             }
+        })
+        // 收藏 / 取消收藏（files/favorite、favorite/del；星标随目录刷新）
+        items.append(ActionMenuItem(
+            title: item.isFavorite ? L10n.t("取消收藏") : L10n.t("收藏"),
+            icon: item.isFavorite ? "star.slash" : "star",
+            color: .yellow
+        ) {
+            pendingMenuAction = { Task { await toggleFavorite(item) } }
         })
         if !item.isDir {
             items.append(ActionMenuItem(title: L10n.t("下载"), icon: "arrow.down.circle", color: .green) {
@@ -1426,6 +1496,135 @@ struct FileDeleteConfirmSheet: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - 收藏夹（files/favorite/search）
+
+/// 收藏夹列表：点按跳转对应路径（目录 → 本身；文件 → 父目录，网页端行为），
+/// 左滑取消收藏
+struct FileFavoriteView: View {
+    let server: ServerConfig
+    /// 跳转目标（父级 FilesView 负责回退并 loadDir）
+    var onOpen: (String) -> Void
+
+    @State private var favorites: [FileFavorite] = []
+    @State private var isLoading = true
+    @State private var loadError: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, onOpen: @escaping (String) -> Void) {
+        self.server = server
+        self.onOpen = onOpen
+        self.client = APIClient.shared(for: server)
+    }
+
+    var body: some View {
+        List {
+            if isLoading {
+                HStack { Spacer(); LoadingStateView(); Spacer() }
+                    .listRowBackground(Color.clear)
+            } else if let err = loadError {
+                LoadErrorStateView(message: err) {
+                    Task { await load() }
+                }
+                .listRowBackground(Color.clear)
+            } else if favorites.isEmpty {
+                ContentUnavailableView(
+                    L10n.t("暂无收藏"),
+                    systemImage: "star",
+                    description: Text(L10n.t("长按文件或文件夹添加到收藏"))
+                )
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(favorites) { fav in
+                    Button {
+                        openFavorite(fav)
+                    } label: {
+                        favoriteRow(fav)
+                    }
+                    .buttonStyle(.plain)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            Task { await remove(fav) }
+                        } label: {
+                            Label(L10n.t("取消收藏"), systemImage: "star.slash")
+                        }
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(L10n.t("收藏夹"))
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+        .refreshable { await load() }
+    }
+
+    private func favoriteRow(_ fav: FileFavorite) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: (fav.isDir == true) ? "folder.fill" : "doc")
+                .foregroundStyle((fav.isDir == true) ? .blue : .secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(fav.name ?? (fav.path ?? "-"))
+                    .font(.body)
+                    .lineLimit(1)
+                if let path = fav.path, path != "/" {
+                    Text(path)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 3)
+        .contentShape(Rectangle())
+    }
+
+    /// 跳转：目录 → 目录本身；文件 → 父目录（网页端行为：展开所在目录）
+    private func openFavorite(_ fav: FileFavorite) {
+        guard let path = fav.path, !path.isEmpty else { return }
+        Haptic.selection()
+        if fav.isDir == true {
+            onOpen(path)
+        } else {
+            let parent = (path as NSString).deletingLastPathComponent
+            onOpen(parent.isEmpty ? "/" : parent)
+        }
+    }
+
+    private func load() async {
+        do {
+            let resp: PageResponse<FileFavorite> = try await client.send(
+                path: APIEndpoint.filesFavoriteSearch.path,
+                body: FileFavoriteSearchRequest(page: 1, pageSize: 200),
+                as: PageResponse<FileFavorite>.self)
+            favorites = resp.items ?? []
+            loadError = nil
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            loadError = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    private func remove(_ fav: FileFavorite) async {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.filesFavoriteDel.path,
+                body: FileFavoriteDeleteRequest(id: fav.id),
+                as: EmptyResponse.self)
+            favorites.removeAll { $0.id == fav.id }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            loadError = error.localizedDescription
         }
     }
 }
