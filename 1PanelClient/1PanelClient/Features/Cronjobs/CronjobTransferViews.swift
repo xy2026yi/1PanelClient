@@ -136,6 +136,8 @@ struct CronjobExportView: View {
             // 文件名对齐网页端下载：1panel-cronjob-YYYYMMddHHmmss.json
             let stamp = DateFormatter()
             stamp.dateFormat = "yyyyMMddHHmmss"
+            // 先清掉历史导出文件再写新文件（分享用的是本次的 exportedURL）
+            cleanupOldExports()
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("1panel-cronjob-\(stamp.string(from: Date())).json")
             try data.write(to: url)
@@ -145,6 +147,17 @@ struct CronjobExportView: View {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
             showError = true
+        }
+    }
+
+    /// 清理临时目录里历史导出的 cronjob JSON（每次导出只保留最新一份）
+    private func cleanupOldExports() {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(
+            at: fm.temporaryDirectory, includingPropertiesForKeys: nil) else { return }
+        for url in files
+        where url.lastPathComponent.hasPrefix("1panel-cronjob-") && url.pathExtension == "json" {
+            try? fm.removeItem(at: url)
         }
     }
 }

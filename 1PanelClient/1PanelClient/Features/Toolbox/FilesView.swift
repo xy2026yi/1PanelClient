@@ -1512,6 +1512,11 @@ struct FileFavoriteView: View {
     @State private var favorites: [FileFavorite] = []
     @State private var isLoading = true
     @State private var loadError: String?
+    /// 分页：滚动到底自动追加（收藏超过首页 200 条时不再截断）
+    @State private var total = 0
+    @State private var page = 1
+    @State private var isLoadingMore = false
+    private static let pageSize = 200
 
     private let client: APIClient
 
@@ -1553,6 +1558,15 @@ struct FileFavoriteView: View {
                             Label(L10n.t("取消收藏"), systemImage: "star.slash")
                         }
                     }
+                    .onAppear {
+                        if fav.id == favorites.last?.id {
+                            Task { await loadMore() }
+                        }
+                    }
+                }
+                if favorites.count < total || isLoadingMore {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                        .onAppear { Task { await loadMore() } }
                 }
             }
         }
@@ -1604,15 +1618,38 @@ struct FileFavoriteView: View {
         do {
             let resp: PageResponse<FileFavorite> = try await client.send(
                 path: APIEndpoint.filesFavoriteSearch.path,
-                body: FileFavoriteSearchRequest(page: 1, pageSize: 200),
+                body: FileFavoriteSearchRequest(page: 1, pageSize: Self.pageSize),
                 as: PageResponse<FileFavorite>.self)
             favorites = resp.items ?? []
+            total = resp.total ?? favorites.count
+            page = 1
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
             loadError = error.localizedDescription
         }
         isLoading = false
+    }
+
+    /// 追加下一页（滚动到底触发；id 去重防翻页间隙重复）
+    private func loadMore() async {
+        guard favorites.count < total, !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = page + 1
+        do {
+            let resp: PageResponse<FileFavorite> = try await client.send(
+                path: APIEndpoint.filesFavoriteSearch.path,
+                body: FileFavoriteSearchRequest(page: next, pageSize: Self.pageSize),
+                as: PageResponse<FileFavorite>.self)
+            let existing = Set(favorites.map(\.id))
+            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
+            favorites += newItems
+            total = resp.total ?? total
+            page = next
+        } catch {
+            // 追加失败不打断列表，下拉刷新可重试
+        }
     }
 
     private func remove(_ fav: FileFavorite) async {

@@ -72,7 +72,6 @@ struct AIAgentChannelsView: View {
     @State private var statusMap: [String: AIChannelEnabledStatus] = [:]
     /// OpenClaw 的微信无 get 接口：plugin/check(weixin) 补齐的插件安装状态
     @State private var pluginInstalledMap: [String: Bool] = [:]
-    @State private var isLoading = true
     /// 首次加载是否完成（onAppear 返回本页时据此刷新徽标，首次交给 .task）
     @State private var hasLoadedOnce = false
 
@@ -234,7 +233,6 @@ struct AIAgentChannelsView: View {
                 }
             }
         }
-        isLoading = false
     }
 }
 

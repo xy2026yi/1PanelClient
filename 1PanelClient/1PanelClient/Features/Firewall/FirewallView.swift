@@ -61,18 +61,19 @@ final class FirewallViewModel: ObservableObject {
             || (base == nil && rules.isEmpty && forwards.isEmpty && addresses.isEmpty)
         else { return }
         isLoading = true
-        // 首屏五请求（状态卡 + 端口/转发/IP 规则 + iptables 链可用性）并行，
-        // 完成即结束整页加载态；空数据页面不再陪跑最慢的辅助请求
+        // 首屏四请求（状态卡 + 端口/转发/IP 规则）并行，完成即结束整页加载态；
+        // 空数据页面不再陪跑最慢的辅助请求
         async let base: () = loadBase()
         async let rules: () = loadRules()
         async let forwards: () = loadForwards()
         async let addresses: () = loadAddresses()
-        async let filterBase: () = loadFilterBase()
-        _ = await (base, rules, forwards, addresses, filterBase)
-        // iptables 后端：端口转发有独立初始化状态（base name=forward，
-        // 抓包：init-base 不覆盖转发），base 返回后补查
+        _ = await (base, rules, forwards, addresses)
+        // iptables 专属补查（链规则可用性 + 转发独立初始化状态）：
+        // ufw/firewalld 后端不发这两请求（base name=advance/forward 无意义）
         if self.base?.name == "iptables" {
-            await loadForwardBase()
+            async let filterBase: () = loadFilterBase()
+            async let forwardBase: () = loadForwardBase()
+            _ = await (filterBase, forwardBase)
         }
         isLoading = false
         // 辅助数据（监听进程名/网口选项）静默补齐，行内稍后出现，失败无感

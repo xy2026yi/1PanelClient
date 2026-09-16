@@ -2241,17 +2241,6 @@
         }
       }
     },
-    "iptables 链规则尚未初始化，初始化后才能创建与绑定规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iptables chain rules are not initialized yet. Initialize them before creating or binding rules."
-          }
-        }
-      }
-    },
     "IPv4" : {
 
     },
@@ -4006,17 +3995,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rules only take effect while the chain is bound. Confirm?"
-          }
-        }
-      }
-    },
-    "仅当状态为绑定时链规则才生效；入站对应 1PANEL_INPUT，出站对应 1PANEL_OUTPUT" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chain rules only take effect while bound; inbound maps to 1PANEL_INPUT, outbound to 1PANEL_OUTPUT"
           }
         }
       }
@@ -32045,17 +32023,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DingTalk"
-          }
-        }
-      }
-    },
-    "链绑定" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chain Binding"
           }
         }
       }
