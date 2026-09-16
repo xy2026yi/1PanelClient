@@ -304,7 +304,10 @@ private struct NetworkRow: View {
             }
 
             HStack(spacing: 6) {
-                StatusBadge(text: connection.type.uppercased(), color: connection.typeColor)
+                // 服务端 ProcessConnect.Type 恒为空串（源码未赋值）：空值不渲染徽章
+                if !connection.type.isEmpty {
+                    StatusBadge(text: connection.type.uppercased(), color: connection.typeColor)
+                }
 
                 statusBadge
 
@@ -351,6 +354,10 @@ private struct ProcessDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var detail: ProcessDetail?
+
+    /// 环境变量 / 打开文件行数上限：openFiles 可达上万行，超出截断并在
+    /// 区尾提示总数（List 惰性渲染可承受，截断避免极端进程拖垮滚动）
+    private static let detailRowLimit = 200
 
     var body: some View {
         List {
@@ -411,20 +418,27 @@ private struct ProcessDetailView: View {
             }
 
             if let envs = detail?.envs, !envs.isEmpty {
-                Section(L10n.t("环境变量")) {
-                    ForEach(envs, id: \.self) { env in
+                Section {
+                    ForEach(Array(envs.prefix(Self.detailRowLimit)), id: \.self) { env in
                         Text(env)
                             .font(.system(.caption, design: .monospaced))
                             .textSelection(.enabled)
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
+                    if envs.count > Self.detailRowLimit {
+                        Text(L10n.f("共 %ld 项，仅显示前 %ld 项", envs.count, Self.detailRowLimit))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    SectionLabel(title: L10n.f("环境变量（%ld）", envs.count), systemImage: "gearshape")
                 }
             }
 
             if let files = detail?.openFiles, !files.isEmpty {
                 Section {
-                    ForEach(Array(files.enumerated()), id: \.offset) { _, file in
+                    ForEach(Array(files.prefix(Self.detailRowLimit).enumerated()), id: \.offset) { _, file in
                         HStack {
                             Text(file.path ?? "-")
                                 .font(.system(.caption, design: .monospaced))
@@ -437,6 +451,11 @@ private struct ProcessDetailView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                    }
+                    if files.count > Self.detailRowLimit {
+                        Text(L10n.f("共 %ld 项，仅显示前 %ld 项", files.count, Self.detailRowLimit))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 } header: {
                     SectionLabel(

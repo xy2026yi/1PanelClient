@@ -599,15 +599,12 @@ final class ContainersViewModel: ObservableObject {
         }
     }
 
-    /// 全量镜像（清理镜像的候选集需完整列表，不受列表页分页影响）
-    func fetchAllImages() async -> [ContainerImage] {
-        do {
-            return try await client.send(
-                path: APIEndpoint.containersImageAll.path,
-                method: "GET", as: [ContainerImage].self)
-        } catch {
-            return []
-        }
+    /// 全量镜像（清理镜像的候选集需完整列表，不受列表页分页影响）；
+    /// 失败向上抛：清理页以错误态展示，不再误显「暂无未使用镜像」
+    func fetchAllImages() async throws -> [ContainerImage] {
+        try await client.send(
+            path: APIEndpoint.containersImageAll.path,
+            method: "GET", as: [ContainerImage].self)
     }
 
     // MARK: - 清理镜像（POST /containers/prune，withTagAll: false=未标签, true=未使用）

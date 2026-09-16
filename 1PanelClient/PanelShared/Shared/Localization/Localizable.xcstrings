@@ -1,6 +1,28 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "环境变量（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environment variables (%ld)"
+          }
+        }
+      }
+    },
+    "共 %ld 项，仅显示前 %ld 项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total %ld items, showing the first %ld"
+          }
+        }
+      }
+    },
     "点击 Bot 编辑凭证与策略；状态开关与删除将立即保存。默认 Bot 随顶部启用开关联动" : {
       "extractionState" : "manual",
       "localizations" : {

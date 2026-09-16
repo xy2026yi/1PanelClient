@@ -517,9 +517,11 @@ struct SnapshotCreateView: View {
                 Button {
                     Task { await submit() }
                 } label: {
-                    Text(L10n.t("创建"))
-                        .frame(maxWidth: .infinity)
-                        .font(.headline)
+                    HStack {
+                        if isSubmitting { ProgressView() } else { Text(L10n.t("创建")) }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .font(.headline)
                 }
                 .buttonStyle(.borderedProminent)
                 .listRowBackground(Color.clear)

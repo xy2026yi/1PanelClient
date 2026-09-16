@@ -1366,6 +1366,7 @@ struct AIAgentWecomChannelView: View {
                                 c.enabled = on
                                 Task { await toggleTopEnabled(on) }
                             }))
+                            .disabled(isSaving)
                     } else if !isHermes {
                         Toggle(L10n.t("启用"), isOn: Binding(
                             get: { c.enabled ?? false }, set: { c.enabled = $0 }))
@@ -1444,12 +1445,15 @@ struct AIAgentWecomChannelView: View {
     }
 
     /// OpenClaw 企微仅一个顶层插件状态开关（网页核对）：切换即提交，
-    /// 基于已保存快照仅改 enabled；失败回滚 UI
+    /// 基于已保存快照仅改 enabled；失败回滚 UI（保存中防连点并发 update）
     private func toggleTopEnabled(_ on: Bool) async {
+        guard !isSaving else { return }
         var out = savedC
         out.agentId = agentId
         out.installed = nil
         out.enabled = on
+        isSaving = true
+        defer { isSaving = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentChannelUpdate.path.replacingOccurrences(of: ":type", with: "wecom"),

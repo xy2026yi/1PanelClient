@@ -149,8 +149,14 @@ struct ContainerImageView: View {
                 }
             }
         }
-        .task {
-            if vm.images.isEmpty { await vm.loadImages() }
+        .onAppear {
+            // 搜索框每次进页都是空（@State 随视图重建）：VM 残留上次关键词时
+            // 先复位，避免列表仍按旧词过滤而搜索框为空（空结果还会误显「暂无镜像」）；
+            // 从清理/拉取等子页返回同样生效
+            if searchText.isEmpty && !vm.imageKeyword.isEmpty {
+                vm.imageKeyword = ""
+            }
+            if vm.images.isEmpty { Task { await vm.loadImages() } }
         }
     }
 }
@@ -327,6 +333,8 @@ struct ImagePruneSelectView: View {
     /// 候选集自取全量列表（image/all）：列表页已改分页搜索，
     /// 未翻到的页不应从清理候选中消失
     @State private var allImages: [ContainerImage] = []
+    @State private var isLoading = true
+    @State private var loadError: String?
     @State private var selectedIDs: Set<String> = []
     @State private var isDeleting = false
     /// 删除任务进度（taskID 非空时 push TaskProgressView）
@@ -377,7 +385,16 @@ struct ImagePruneSelectView: View {
             .padding(.vertical, 8)
 
             Group {
-                if filteredImages.isEmpty {
+                if isLoading {
+                    LoadingStateView()
+                        .frame(maxHeight: .infinity)
+                } else if let err = loadError {
+                    // 请求失败独立错误态：静默为空会误显「暂无未使用镜像」
+                    LoadErrorStateView(message: err) {
+                        Task { await loadAll() }
+                    }
+                    .frame(maxHeight: .infinity)
+                } else if filteredImages.isEmpty {
                     ContentUnavailableView(
                         isUntaggedMode ? L10n.t("暂无未标签镜像") : L10n.t("暂无未使用镜像"),
                         systemImage: "checkmark.seal.fill",
@@ -471,7 +488,19 @@ struct ImagePruneSelectView: View {
             }
         }
         .task {
-            if allImages.isEmpty { allImages = await vm.fetchAllImages() }
+            await loadAll()
+        }
+    }
+
+    private func loadAll() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            allImages = try await vm.fetchAllImages()
+            loadError = nil
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            loadError = error.localizedDescription
         }
     }
 
