@@ -13,6 +13,9 @@ final class WebsitesViewModel: ObservableObject {
     @Published var websites: [Website] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    /// 详情页加载失败文案（WebsiteDetailView 消费；与列表页 errorMessage 分离，
+    /// 避免详情页报错触发列表页整页错误态）
+    @Published var detailErrorMessage: String?
     /// 分页（C5）：首屏 20/页（对齐面板 Web 端）+ 滚动到底自动追加
     @Published private(set) var total = 0
     @Published private(set) var isLoadingMore = false
@@ -380,16 +383,18 @@ final class WebsitesViewModel: ObservableObject {
         let path = APIEndpoint.websitesDetail.path
             .replacingOccurrences(of: ":id", with: String(id))
         do {
-            return try await client.send(
+            let result = try await client.send(
                 path: path,
                 method: "GET",
                 as: WebsiteFull.self
             )
+            detailErrorMessage = nil
+            return result
         } catch let err as APIError {
-            showAlert(message: L10n.f("加载详情失败：%@", err.errorDescription ?? L10n.t("未知错误")))
+            detailErrorMessage = L10n.f("加载详情失败：%@", err.errorDescription ?? L10n.t("未知错误"))
             return nil
         } catch {
-            showAlert(message: L10n.f("加载详情失败：%@", error.localizedDescription))
+            detailErrorMessage = L10n.f("加载详情失败：%@", error.localizedDescription)
             return nil
         }
     }

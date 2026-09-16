@@ -585,18 +585,7 @@ private struct BackupRecordCard: View {
     }
 
     private func metaBadge(_ key: String, value: String) -> some View {
-        HStack(spacing: 3) {
-            Text(key)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .foregroundStyle(.primary)
-        }
-        .font(.caption2)
-        .lineLimit(1)
-        .truncationMode(.middle)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2)
-        .background(Color.secondary.opacity(0.08), in: Capsule())
+        StatusBadge(text: value, color: .primary, backgroundOpacity: 0.08, label: key)
     }
 
     private func cardButton(

@@ -34,7 +34,7 @@ enum WebsiteLogType {
     var color: Color {
         switch self {
         case .access: return .blue
-        case .error:  return .orange
+        case .error:  return .statusError
         }
     }
 }

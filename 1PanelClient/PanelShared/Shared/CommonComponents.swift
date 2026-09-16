@@ -311,12 +311,19 @@ struct StatusBadge: View {
     var backgroundOpacity: Double = 0.15
     /// 等宽数字/字符（如 CPU 百分比、PID 等数据徽章）
     var monospaced: Bool = false
+    /// 键值两段式胶囊的前置键名（「类型 网站」等元数据行）：键用 secondary、值用主样式。
+    /// 为空即普通单段徽章，既有调用点不受影响
+    var label: String? = nil
 
     var body: some View {
         HStack(spacing: 3) {
             if let icon {
                 Image(systemName: icon)
                     .font(.caption2.bold())
+            }
+            if let label {
+                Text(label)
+                    .foregroundStyle(.secondary)
             }
             Text(text)
                 .lineLimit(1)

@@ -1817,13 +1817,8 @@ struct FirewallPortWhitelistView: View {
                 Section { LoadingStateView(compact: true).padding(.vertical, 24) }
             } else if let errorMessage, entries.isEmpty && originalEntries.isEmpty {
                 Section {
-                    ContentUnavailableView {
-                        Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                    } description: {
-                        Text(errorMessage)
-                    } actions: {
-                        Button(L10n.t("重试")) { Task { await load() } }
-                            .buttonStyle(.borderedProminent)
+                    LoadErrorStateView(message: errorMessage) {
+                        Task { await load() }
                     }
                 }
             } else {

@@ -210,24 +210,10 @@ struct WebsitesTab: View {
                     target.operate == "stop" ? L10n.t("停止") : L10n.t("启用")))
             }
         }
-        // 长按菜单：单站删除确认（完整删除选项在网站详情页）
-        .alert(L10n.t("删除网站"), isPresented: Binding(
-            get: { pendingRowDelete != nil },
-            set: { if !$0 { pendingRowDelete = nil } }
-        )) {
-            Button(L10n.t("取消"), role: .cancel) { pendingRowDelete = nil }
-            Button(L10n.t("删除"), role: .destructive) {
-                guard let w = pendingRowDelete else { return }
-                pendingRowDelete = nil
-                Haptic.warning()
-                Task {
-                    await vm.deleteWebsite(
-                        id: w.id, deleteApp: false, deleteBackup: false,
-                        forceDelete: false, deleteDB: false)
-                }
-            }
-        } message: {
-            Text(L10n.f("将删除网站「%@」及其配置，该操作无法回滚，是否继续？", pendingRowDelete?.displayName ?? ""))
+        // 长按菜单：单站删除确认（R1 输入域名 + 连带删除选项，与详情页同款组件；
+        // 此前为一键 alert，生产站点可被误删，确认强度与详情页相差一个量级）
+        .sheet(item: $pendingRowDelete) { w in
+            WebsiteDeleteConfirmSheet(website: w, vm: vm)
         }
         .sheet(isPresented: $showBatchGroup) {
             WebsiteBatchGroupSheet(server: server, ids: Array(selectedIDs), groups: vm.groups) {

@@ -98,13 +98,8 @@ struct OperationLogView: View {
             if isLoading {
                 LoadingStateView()
             } else if let errorMessage {
-                ContentUnavailableView {
-                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(errorMessage)
-                } actions: {
-                    Button(L10n.t("重试")) { Task { await load() } }
-                        .buttonStyle(.borderedProminent)
+                LoadErrorStateView(message: errorMessage) {
+                    Task { await load() }
                 }
             } else if items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无操作日志"), systemImage: "square.and.pencil")
@@ -253,13 +248,8 @@ struct LoginLogView: View {
             if isLoading {
                 LoadingStateView()
             } else if let errorMessage {
-                ContentUnavailableView {
-                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(errorMessage)
-                } actions: {
-                    Button(L10n.t("重试")) { Task { await load() } }
-                        .buttonStyle(.borderedProminent)
+                LoadErrorStateView(message: errorMessage) {
+                    Task { await load() }
                 }
             } else if items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无访问日志"), systemImage: "person.badge.key")
@@ -412,13 +402,8 @@ struct SystemLogView: View {
             if isLoading && dates.isEmpty {
                 LoadingStateView()
             } else if let errorMessage, dates.isEmpty {
-                ContentUnavailableView {
-                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(errorMessage)
-                } actions: {
-                    Button(L10n.t("重试")) { Task { await loadDates() } }
-                        .buttonStyle(.borderedProminent)
+                LoadErrorStateView(message: errorMessage) {
+                    Task { await loadDates() }
                 }
             } else if dates.isEmpty {
                 ContentUnavailableView(L10n.t("暂无系统日志"), systemImage: "gearshape.2")
@@ -517,13 +502,8 @@ struct SSHLogView: View {
             if isLoading {
                 LoadingStateView()
             } else if let errorMessage {
-                ContentUnavailableView {
-                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(errorMessage)
-                } actions: {
-                    Button(L10n.t("重试")) { Task { await load() } }
-                        .buttonStyle(.borderedProminent)
+                LoadErrorStateView(message: errorMessage) {
+                    Task { await load() }
                 }
             } else if items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无 SSH 登陆日志"), systemImage: "terminal")
@@ -620,13 +600,8 @@ struct WebsiteLogsView: View {
             if isLoading && sites.isEmpty {
                 LoadingStateView()
             } else if let errorMessage, sites.isEmpty {
-                ContentUnavailableView {
-                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(errorMessage)
-                } actions: {
-                    Button(L10n.t("重试")) { Task { await loadSites() } }
-                        .buttonStyle(.borderedProminent)
+                LoadErrorStateView(message: errorMessage) {
+                    Task { await loadSites() }
                 }
             } else if sites.isEmpty {
                 ContentUnavailableView(L10n.t("暂无网站"), systemImage: "globe", description: Text(L10n.t("请先创建网站")))

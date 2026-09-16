@@ -102,6 +102,12 @@ struct WebsiteDetailView: View {
                     }
                     .buttonStyle(.plain)
                 }
+            } else if let err = vm.detailErrorMessage {
+                // 详情加载失败：错误态 + 重试（此前失败后仅回落两行基本信息，
+                // 无恢复入口，与全站详情页惯例不符）
+                LoadErrorStateView(message: err) {
+                    Task { await loadDetail() }
+                }
             } else {
                 Section {
                     InfoRow(L10n.t("主域名"), value: website.primaryDomain ?? "—")
