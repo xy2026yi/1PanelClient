@@ -1,6 +1,17 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "入站对应 当前链 1PANEL_INPUT 的默认策略为 %@\n出站对应 当前链 1PANEL_OUTPUT 的默认策略为 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inbound: the default policy of chain 1PANEL_INPUT is %@\nOutbound: the default policy of chain 1PANEL_OUTPUT is %@"
+          }
+        }
+      }
+    },
     "未初始化" : {
       "extractionState" : "manual",
       "localizations" : {

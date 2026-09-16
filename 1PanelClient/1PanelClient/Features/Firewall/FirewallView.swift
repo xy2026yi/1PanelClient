@@ -568,7 +568,9 @@ final class FirewallViewModel: ObservableObject {
 
     /// name=advance 查询的 iptables 链状态（返回 name=ufw 即后端不支持）
     @Published var filterBase: FirewallBase?
-    @Published var chainStatus: FirewallChainStatus?
+    /// 两条链各自的状态（chain/status，key=链名）：绑定按钮取当前链，
+    /// 默认策略详情同时展示入站/出站两条链
+    @Published var chainStatusMap: [String: FirewallChainStatus] = [:]
     @Published var chainRules: [FirewallChainRule] = []
     @Published private(set) var chainRulesTotal = 0
     @Published private(set) var isChainRulesLoadingMore = false
@@ -581,9 +583,11 @@ final class FirewallViewModel: ObservableObject {
     func loadChainPage(chain: String) async {
         isChainLoading = true
         async let base: () = loadFilterBase()
-        async let status: () = loadChainStatus(chain: chain)
+        // 两条链的状态都取：绑定按钮用当前链，默认策略详情同时展示入站/出站
+        async let inStatus: () = loadChainStatus(chain: Self.inputChain)
+        async let outStatus: () = loadChainStatus(chain: Self.outputChain)
         async let rules: () = loadChainRules(chain: chain)
-        _ = await (base, status, rules)
+        _ = await (base, inStatus, outStatus, rules)
         isChainLoading = false
     }
 
@@ -604,7 +608,7 @@ final class FirewallViewModel: ObservableObject {
 
     func loadChainStatus(chain: String) async {
         do {
-            chainStatus = try await client.send(
+            chainStatusMap[chain] = try await client.send(
                 path: APIEndpoint.firewallFilterChainStatus.path,
                 body: FirewallChainStatusRequest(name: chain),
                 as: FirewallChainStatus.self
@@ -754,6 +758,8 @@ struct FirewallView: View {
     @State private var pendingChainOp: String?
     /// 待确认的 iptables 基础链操作（init-base / init-forward / bind-base / unbind-base）
     @State private var pendingBaseOp: String?
+    /// 链规则默认策略详情（状态抽屉「默认策略」行点击弹出）
+    @State private var showChainStrategy = false
     /// 白名单页需要独立建 APIClient（settings 接口与防火墙接口分离）
     private let server: ServerConfig
 
@@ -1002,7 +1008,8 @@ struct FirewallView: View {
             showAddChainRule: $showAddChainRule,
             pendingDeleteChainRule: $pendingDeleteChainRule,
             pendingChainOp: $pendingChainOp,
-            pendingBaseOp: $pendingBaseOp)
+            pendingBaseOp: $pendingBaseOp,
+            showChainStrategy: $showChainStrategy)
         )
         .alert(
             pendingUFWOp.map { opTitle($0) } ?? "",
@@ -1243,7 +1250,13 @@ struct FirewallView: View {
         chainDirection == 0 ? FirewallViewModel.inputChain : FirewallViewModel.outputChain
     }
 
-    /// 段 3：iptables 链规则（入站/出站两链；未初始化时仅提供初始化入口）
+    /// 当前链是否已绑定（状态抽屉的绑定按钮与段内规则生效判定共用）
+    private var isCurrentChainBound: Bool {
+        vm.chainStatusMap[currentChain]?.isBind == true
+    }
+
+    /// 段 3：iptables 链规则（入站/出站两链；未初始化时仅提供初始化入口；
+    /// 绑定按钮与默认策略在顶部状态抽屉，2026-09-16 网页核对）
     @ViewBuilder
     private var chainSection: some View {
         Section {
@@ -1257,34 +1270,7 @@ struct FirewallView: View {
         }
 
         if let fb = vm.filterBase {
-            if fb.isInit == true {
-                Section {
-                    HStack {
-                        Label(L10n.t("链绑定"), systemImage: "link")
-                        Spacer()
-                        if let st = vm.chainStatus {
-                            StatusBadge(
-                                text: (st.isBind == true) ? L10n.t("已绑定") : L10n.t("未绑定"),
-                                color: (st.isBind == true) ? .statusRunning : .secondary
-                            )
-                        }
-                    }
-                    if let s = vm.chainStatus?.defaultStrategy, !s.isEmpty {
-                        LabeledContent(L10n.t("默认策略"), value: s)
-                    }
-                    Button {
-                        pendingChainOp = (vm.chainStatus?.isBind == true) ? "unbind" : "bind"
-                    } label: {
-                        Label(
-                            (vm.chainStatus?.isBind == true) ? L10n.t("解除绑定") : L10n.t("绑定"),
-                            systemImage: (vm.chainStatus?.isBind == true) ? "link.badge.plus" : "link"
-                        )
-                    }
-                    .disabled(vm.isOperating)
-                } footer: {
-                    Text(L10n.t("仅当状态为绑定时链规则才生效；入站对应 1PANEL_INPUT，出站对应 1PANEL_OUTPUT"))
-                }
-            } else {
+            if fb.isInit != true {
                 // 未初始化时不支持创建、绑定与删除（抓包说明）
                 Section {
                     Button {
@@ -1408,7 +1394,17 @@ struct FirewallView: View {
                                         }
                                     }
                                 case 3:
-                                    EmptyView()
+                                    // 链规则的绑定入口（当前链，2026-09-16 网页核对：
+                                    // 按钮在状态抽屉而非段内；默认策略在状态卡行内）
+                                    if vm.filterBase?.isInit == true {
+                                        firewallActionButton(
+                                            title: isCurrentChainBound ? L10n.t("解除绑定") : L10n.t("绑定"),
+                                            icon: isCurrentChainBound ? "link.badge.plus" : "link",
+                                            color: isCurrentChainBound ? .orange : .green
+                                        ) {
+                                            pendingChainOp = isCurrentChainBound ? "unbind" : "bind"
+                                        }
+                                    }
                                 default:
                                     if base.isInit != true {
                                         firewallActionButton(
@@ -1461,6 +1457,25 @@ struct FirewallView: View {
                         }
                         .padding(.top, 2)
                         .padding(.bottom, 2)
+                    }
+
+                    // 链规则段：默认策略行（点击查看入站/出站两链各自的
+                    // defaultStrategy，2026-09-16 网页核对移入状态抽屉）
+                    if segment == 3, isIPTablesBackend, vm.filterBase?.isInit == true {
+                        Button {
+                            showChainStrategy = true
+                        } label: {
+                            HStack {
+                                Text(L10n.t("默认策略"))
+                                Spacer()
+                                Text(vm.chainStatusMap[currentChain]?.defaultStrategy ?? "-")
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     // 禁 ping
@@ -2532,6 +2547,8 @@ private struct FirewallChainDialogsModifier: ViewModifier {
     @Binding var pendingChainOp: String?
     /// 待确认的 iptables 基础链操作（init-base / init-forward / bind-base / unbind-base）
     @Binding var pendingBaseOp: String?
+    /// 链规则默认策略详情（状态抽屉「默认策略」行点击弹出）
+    @Binding var showChainStrategy: Bool
 
     func body(content: Content) -> some View {
         content
@@ -2594,6 +2611,17 @@ private struct FirewallChainDialogsModifier: ViewModifier {
                 }
             } message: {
                 Text(baseOpMessage(pendingBaseOp ?? ""))
+            }
+            .alert(L10n.t("默认策略"), isPresented: $showChainStrategy) {
+                Button(L10n.t("好的"), role: .cancel) {}
+            } message: {
+                // 两条链各自的 defaultStrategy（chain/status 返回；
+                // name 即链名：入站 1PANEL_INPUT / 出站 1PANEL_OUTPUT）
+                Text(L10n.f(
+                    "入站对应 当前链 1PANEL_INPUT 的默认策略为 %@\n出站对应 当前链 1PANEL_OUTPUT 的默认策略为 %@",
+                    vm.chainStatusMap[FirewallViewModel.inputChain]?.defaultStrategy ?? "-",
+                    vm.chainStatusMap[FirewallViewModel.outputChain]?.defaultStrategy ?? "-"
+                ))
             }
     }
 
