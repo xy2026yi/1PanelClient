@@ -1076,57 +1076,69 @@ struct FirewallView: View {
         }
     }
 
-    /// 段 1：端口转发（iptables 后端有独立初始化状态，抓包：init-forward）
+    /// 段 1：端口转发（iptables 后端有独立初始化状态，抓包：init-forward；
+    /// 未绑定时网页端仍显示初始化按钮，规则列表不可用的口径才是 isInit）
     @ViewBuilder
     private var forwardSection: some View {
         if isForwardUninitialized {
             uninitializedHint
-            Section {
-                Button {
-                    pendingBaseOp = "init-forward"
-                } label: {
-                    Label(L10n.t("初始化端口转发"), systemImage: "wand.and.stars")
-                }
-                .disabled(vm.isOperating)
+            forwardInitSection
+        } else {
+            // 已初始化但未绑定：列表可见，段内保留初始化入口（对齐网页端按钮）
+            if isForwardUnbound {
+                forwardInitSection
             }
-        } else if vm.forwards.isEmpty {
-            if vm.isLoading {
-                EmptyView()
+            if vm.forwards.isEmpty {
+                if vm.isLoading {
+                    EmptyView()
+                } else {
+                    Section {
+                        ContentUnavailableView(
+                            L10n.t("暂无端口转发"),
+                            systemImage: "arrow.uturn.right",
+                            description: Text(L10n.t("点击右上角 + 添加规则"))
+                        )
+                        .listRowBackground(Color.clear)
+                    }
+                }
             } else {
                 Section {
-                    ContentUnavailableView(
-                        L10n.t("暂无端口转发"),
-                        systemImage: "arrow.uturn.right",
-                        description: Text(L10n.t("点击右上角 + 添加规则"))
-                    )
-                    .listRowBackground(Color.clear)
-                }
-            }
-        } else {
-            Section {
-                ForEach(vm.forwards) { rule in
-                    Button {
-                        actionForward = rule
-                    } label: {
-                        FirewallForwardRow(rule: rule)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .onAppear {
-                        if rule.id == vm.forwards.last?.id {
-                            Task { await vm.loadMoreForwards() }
+                    ForEach(vm.forwards) { rule in
+                        Button {
+                            actionForward = rule
+                        } label: {
+                            FirewallForwardRow(rule: rule)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .onAppear {
+                            if rule.id == vm.forwards.last?.id {
+                                Task { await vm.loadMoreForwards() }
+                            }
                         }
                     }
+                    if vm.forwards.count < vm.forwardsTotal || vm.isForwardsLoadingMore {
+                        loadMoreRow { Task { await vm.loadMoreForwards() } }
+                    }
+                } header: {
+                    SectionLabel(
+                        title: L10n.f("端口转发（%ld）", max(vm.forwardsTotal, vm.forwards.count)),
+                        systemImage: "arrow.uturn.right"
+                    )
                 }
-                if vm.forwards.count < vm.forwardsTotal || vm.isForwardsLoadingMore {
-                    loadMoreRow { Task { await vm.loadMoreForwards() } }
-                }
-            } header: {
-                SectionLabel(
-                    title: L10n.f("端口转发（%ld）", max(vm.forwardsTotal, vm.forwards.count)),
-                    systemImage: "arrow.uturn.right"
-                )
             }
+        }
+    }
+
+    /// 端口转发的初始化入口（发 init-forward；抓包：isBind 变 true 后隐藏）
+    private var forwardInitSection: some View {
+        Section {
+            Button {
+                pendingBaseOp = "init-forward"
+            } label: {
+                Label(L10n.t("初始化端口转发"), systemImage: "wand.and.stars")
+            }
+            .disabled(vm.isOperating)
         }
     }
 
@@ -1195,8 +1207,13 @@ struct FirewallView: View {
     /// iptables 端口/IP 规则是否未初始化（共用 init-base，抓包确认）
     private var isBaseUninitialized: Bool { isIPTables && vm.base?.isInit != true }
 
-    /// iptables 端口转发是否未初始化（独立 init-forward，抓包确认）
+    /// iptables 端口转发是否未初始化（整段提示与 + 禁用的口径：isInit）
     private var isForwardUninitialized: Bool { isIPTables && vm.forwardBase?.isInit != true }
+
+    /// iptables 端口转发是否未绑定（初始化按钮的口径）：网页端在
+    /// isInit:true + isBind:false 时仍显示「初始化」按钮，点击 init-forward
+    /// 后 isBind 变 true（2026-09-16 补充抓包）——按钮判定用 isBind 而非 isInit
+    private var isForwardUnbound: Bool { isIPTables && vm.forwardBase?.isBind != true }
 
     /// iptables 未初始化提示（网页端原文；转发段另附独立初始化按钮）
     private var uninitializedHint: some View {
@@ -1359,9 +1376,9 @@ struct FirewallView: View {
                     // 展开后显示：ufw → 关闭/开启 + 重启 + 端口白名单；
                     // iptables 不允许 启停/重启（2026-09-16 反馈确认，两钮隐藏），
                     // 换成 初始化（未初始化）或 1PANEL_BASIC 绑定/解除绑定。
-                    // iptables 未初始化（基础或端口转发）时按钮行常驻显示，
-                    // 不藏进展开态——提示文案指向「顶部状态栏的初始化按钮」
-                    if statusExpanded || isBaseUninitialized || isForwardUninitialized {
+                    // iptables 基础未初始化或转发未绑定时按钮行常驻显示，
+                    // 不藏进展开态——与网页端「顶部状态栏初始化按钮」一致
+                    if statusExpanded || isBaseUninitialized || isForwardUnbound {
                         HStack(spacing: 8) {
                             if isIPTables {
                                 if base.isInit != true {
@@ -1380,9 +1397,9 @@ struct FirewallView: View {
                                     ) {
                                         pendingBaseOp = (base.isBind ?? false) ? "unbind-base" : "bind-base"
                                     }
-                                    // 端口转发独立初始化（init-forward）：基础已初始化
-                                    // 而转发未初始化时在顶部一并给出入口
-                                    if isForwardUninitialized {
+                                    // 端口转发初始化按钮按 isBind 判定（网页端口径，
+                                    // init-forward 后 isBind:true 即隐藏）
+                                    if isForwardUnbound {
                                         firewallActionButton(
                                             title: L10n.t("初始化端口转发"),
                                             icon: "arrow.uturn.right",
