@@ -1223,12 +1223,13 @@ struct FirewallView: View {
     private var isForwardUnbound: Bool { isIPTables && vm.forwardBase?.isBind != true }
 
     /// 当前段的初始化/未绑定状态是否需要常驻显示状态按钮行（不藏进展开态）。
-    /// 网页核对：端口转发无绑定与白名单按钮、链规则无顶部按钮（2026-09-16）
+    /// 网页核对：端口转发无绑定与白名单按钮；链规则的初始化/绑定按钮均在
+    /// 状态抽屉（2026-09-16）
     private var pinsStatusActions: Bool {
         guard isIPTables else { return false }
         switch segment {
         case 1: return isForwardUnbound
-        case 3: return false
+        case 3: return vm.filterBase?.isInit != true
         default: return isBaseUninitialized
         }
     }
@@ -1271,17 +1272,9 @@ struct FirewallView: View {
 
         if let fb = vm.filterBase {
             if fb.isInit != true {
-                // 未初始化时不支持创建、绑定与删除（抓包说明）
-                Section {
-                    Button {
-                        pendingChainOp = "init-advance"
-                    } label: {
-                        Label(L10n.t("初始化链规则"), systemImage: "wand.and.stars")
-                    }
-                    .disabled(vm.isOperating)
-                } footer: {
-                    Text(L10n.t("iptables 链规则尚未初始化，初始化后才能创建与绑定规则"))
-                }
+                // 未初始化时不支持创建、绑定与删除（抓包说明）；
+                // 初始化按钮在顶部状态抽屉（2026-09-16 网页核对）
+                uninitializedHint
             }
         } else if vm.isChainLoading {
             Section { HStack { Spacer(); ProgressView(); Spacer() } }
@@ -1394,8 +1387,8 @@ struct FirewallView: View {
                                         }
                                     }
                                 case 3:
-                                    // 链规则的绑定入口（当前链，2026-09-16 网页核对：
-                                    // 按钮在状态抽屉而非段内；默认策略在状态卡行内）
+                                    // 链规则操作集中在状态抽屉（2026-09-16 网页核对）：
+                                    // 未初始化 → 初始化链规则；已初始化 → 当前链绑定/解除绑定
                                     if vm.filterBase?.isInit == true {
                                         firewallActionButton(
                                             title: isCurrentChainBound ? L10n.t("解除绑定") : L10n.t("绑定"),
@@ -1403,6 +1396,14 @@ struct FirewallView: View {
                                             color: isCurrentChainBound ? .orange : .green
                                         ) {
                                             pendingChainOp = isCurrentChainBound ? "unbind" : "bind"
+                                        }
+                                    } else {
+                                        firewallActionButton(
+                                            title: L10n.t("初始化链规则"),
+                                            icon: "wand.and.stars",
+                                            color: .green
+                                        ) {
+                                            pendingChainOp = "init-advance"
                                         }
                                     }
                                 default:
