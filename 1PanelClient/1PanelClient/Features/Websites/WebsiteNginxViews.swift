@@ -68,7 +68,7 @@ struct WebsiteNginxView: View {
                         .frame(minHeight: 480)
                         .padding(8)
                         .background(Color(.secondarySystemBackground))
-                        .cornerRadius(8)
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.small))
                         .padding(.horizontal)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -78,7 +78,7 @@ struct WebsiteNginxView: View {
                             .textSelection(.enabled)
                     }
                     .background(Color(.secondarySystemBackground))
-                    .cornerRadius(8)
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.small))
                     .padding(.horizontal)
                 }
 
@@ -135,7 +135,7 @@ struct OpenRestyConfigView: View {
                 LoadingStateView()
             } else {
                 TextEditor(text: $configText)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
             }

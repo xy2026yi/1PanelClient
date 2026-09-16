@@ -97,7 +97,7 @@ struct WebsiteLogPage: View {
                         VStack(alignment: .leading, spacing: 2) {
                             ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
                                 Text(line)
-                                    .font(.system(.caption, design: .monospaced))
+                                    .font(.dataMonospacedCaption)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .textSelection(.enabled)
                                     .id(idx)
@@ -282,7 +282,7 @@ struct WebsiteLogView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                                 Text(line)
-                                    .font(.system(.caption, design: .monospaced))
+                                    .font(.dataMonospacedCaption)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .textSelection(.enabled)
                             }

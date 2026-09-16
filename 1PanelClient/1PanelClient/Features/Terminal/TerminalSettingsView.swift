@@ -227,7 +227,7 @@ struct TerminalSSHConnEditView: View {
 
                     if isKeyAuth {
                         TextEditor(text: $privateKey)
-                            .font(.system(.footnote, design: .monospaced))
+                            .font(.dataMonospacedFootnote)
                             .frame(minHeight: 100)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)

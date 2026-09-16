@@ -409,7 +409,7 @@ struct SupervisorView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            IconBadge(systemName: "gearshape.2.fill", color: .blue, size: 72, cornerRadius: 16)
+            IconBadge(systemName: "gearshape.2.fill", color: .blue, size: 72, cornerRadius: Radius.large)
                 .opacity(0.5)
 
             VStack(spacing: 8) {

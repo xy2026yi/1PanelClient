@@ -63,10 +63,11 @@ struct FilePreviewView: View {
             } else if let content, !content.isEmpty {
                 ScrollView {
                     Text(content)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
+                        .contentWidthLimit(860)
                 }
             } else {
                 ContentUnavailableView(

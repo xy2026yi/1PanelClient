@@ -377,7 +377,7 @@ struct FTPView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            IconBadge(systemName: "arrow.up.arrow.down", color: .teal, size: 72, cornerRadius: 16)
+            IconBadge(systemName: "arrow.up.arrow.down", color: .teal, size: 72, cornerRadius: Radius.large)
                 .opacity(0.5)
 
             VStack(spacing: 8) {
@@ -502,11 +502,7 @@ struct FTPView: View {
                 }
 
                 if vm.accounts.count < vm.total || vm.isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
+                    LoadingStateView(compact: true)
                     .onAppear { Task { await vm.loadMoreAccounts() } }
                 }
             }
@@ -777,11 +773,7 @@ struct FTPLogView: View {
                     }
 
                     if logs.count < total || isLoadingMore {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
-                        }
+                        LoadingStateView(compact: true)
                         .onAppear { Task { await loadMore() } }
                     }
                 }
@@ -850,7 +842,7 @@ struct FTPLogRow: View {
                 systemName: isUpload ? "arrow.up.circle.fill" : "arrow.down.circle.fill",
                 color: isUpload ? .orange : .blue,
                 size: 36,
-                cornerRadius: 8
+                cornerRadius: Radius.small
             )
 
             VStack(alignment: .leading, spacing: 4) {

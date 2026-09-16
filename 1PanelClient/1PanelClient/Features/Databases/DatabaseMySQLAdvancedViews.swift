@@ -173,7 +173,7 @@ struct DatabaseMySQLPerformanceView: View {
                 let current = Int(variables[param] ?? "")
                 HStack {
                     Text(param)
-                        .font(.system(.subheadline, design: .monospaced))
+                        .font(.dataMonospaced)
                     Spacer()
                     if let presetValue = selectedPreset?.values[param], presetValue != current {
                         // 当前值 → 预设值（选中方案且值有变化时展示变化方向）
@@ -183,12 +183,12 @@ struct DatabaseMySQLPerformanceView: View {
                                 .strikethrough()
                                 .foregroundStyle(.secondary)
                             Text(MySQLTunePresets.displayValue(param: param, presetValue))
-                                .font(.system(.subheadline, design: .monospaced).bold())
+                                .font(.dataMonospaced.bold())
                                 .foregroundStyle(Color.accentColor)
                         }
                     } else {
                         Text(current.map { MySQLTunePresets.displayValue(param: param, $0) } ?? "—")
-                            .font(.system(.subheadline, design: .monospaced))
+                            .font(.dataMonospaced)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -281,7 +281,7 @@ struct DatabaseMySQLConfView: View {
             } else {
                 Section {
                     TextEditor(text: $content)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .frame(minHeight: 360)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)

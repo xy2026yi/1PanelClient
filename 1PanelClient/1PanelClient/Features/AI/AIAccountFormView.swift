@@ -172,7 +172,7 @@ struct AIAccountFormView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .keyboardType(.URL)
-                .font(.system(.body, design: .monospaced))
+                .font(.dataMonospacedBody)
                 .disabled(!editableBaseURL)
 
             if !isEditing && authModeOptions.count > 1 {
@@ -205,7 +205,7 @@ struct AIAccountFormView: View {
                     TextField("API Key", text: $apiKey)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                 } else {
                     SecureField("API Key", text: $apiKey)
                 }
@@ -285,7 +285,7 @@ struct AIAccountFormView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(model.id)
-                                    .font(.system(.subheadline, design: .monospaced))
+                                    .font(.dataMonospaced)
                                     .foregroundStyle(.primary)
                                     .lineLimit(1)
                                 if let display = model.name, !display.isEmpty, display != model.id {
@@ -323,7 +323,7 @@ struct AIAccountFormView: View {
                 TextField(L10n.t("模型"), text: $manualModelId)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.right")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)

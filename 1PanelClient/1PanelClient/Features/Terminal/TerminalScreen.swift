@@ -300,7 +300,7 @@ struct TerminalCommandPicker: View {
                     TextField(L10n.t("命令路径"), text: $command)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                 }
 
                 Section {

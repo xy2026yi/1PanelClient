@@ -117,6 +117,8 @@ struct AddNodeView: View {
             .navigationTitle(isEditing ? L10n.t("编辑节点") : L10n.t("添加节点"))
             .navigationBarTitleDisplayMode(.inline)
             .formWidthLimit()
+            // 创建节点进行中禁下拉关闭，防异步提交被误中断（与 TextInputConfirmSheet 同款防护）
+            .interactiveDismissDisabled(isSubmitting)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
@@ -198,7 +200,7 @@ struct AddNodeView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     TextEditor(text: $privateKey)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .frame(minHeight: 120)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()

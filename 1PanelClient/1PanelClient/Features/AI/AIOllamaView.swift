@@ -446,7 +446,7 @@ struct AIOllamaView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            IconBadge(systemName: "cpu", color: .purple, size: 72, cornerRadius: 16)
+            IconBadge(systemName: "cpu", color: .purple, size: 72, cornerRadius: Radius.large)
                 .opacity(0.5)
 
             VStack(spacing: 8) {
@@ -592,11 +592,7 @@ struct AIOllamaView: View {
                 }
 
                 if vm.models.count < vm.total || vm.isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
+                    LoadingStateView(compact: true)
                     .onAppear { Task { await vm.loadMoreModels() } }
                 }
             }
@@ -724,7 +720,7 @@ struct AIOllamaAddModelSheet: View {
                     TextField(L10n.t("模型名称"), text: $name)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                 } header: {
                     SectionLabel(title: L10n.t("拉取模型"), systemImage: "arrow.down.circle")
                 } footer: {

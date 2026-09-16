@@ -140,7 +140,7 @@ struct WAFView: View {
 
     private func entryRow(icon: String, color: Color, title: String) -> some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: icon, color: color, size: 34, cornerRadius: 8)
+            IconBadge(systemName: icon, color: color, size: 34, cornerRadius: Radius.small)
             Text(title)
         }
     }

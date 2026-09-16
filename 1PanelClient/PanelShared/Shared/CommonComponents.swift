@@ -177,8 +177,8 @@ struct PasswordRow: View {
             Spacer()
             Text(showPassword ? password : String(repeating: "•", count: min(password.count, 12)))
                 .font(compact
-                      ? .system(.caption, design: .monospaced)
-                      : .system(.subheadline, design: .monospaced))
+                      ? .dataMonospacedCaption
+                      : .dataMonospaced)
                 .foregroundStyle(compact ? .secondary : .primary)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -216,7 +216,7 @@ struct PasswordInputRow: View {
                 TextField(L10n.t("密码"), text: $password)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
             } else {
                 SecureField(L10n.t("密码"), text: $password)
             }
@@ -251,7 +251,7 @@ struct CheckRow: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.system(.body, design: .monospaced))
+                .font(.dataMonospacedBody)
             Spacer()
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
@@ -334,6 +334,55 @@ struct StatusBadge: View {
         .background(color.opacity(backgroundOpacity))
         .foregroundStyle(color)
         .clipShape(Capsule())
+    }
+}
+
+// MARK: - 日志跟随最新浮动按钮
+
+/// 日志流「跟随最新」浮动胶囊：跟随中高亮；点击由调用方触发滚动到底。
+/// Compose 日志 / 应用日志等流式页面共用
+struct FollowLatestButton: View {
+    let isFollowing: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(L10n.t("跟随最新"), systemImage: "arrow.down")
+                .font(.caption)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(isFollowing ? Color.accentColor.opacity(0.15) : Color.clear, in: Capsule())
+                .foregroundStyle(isFollowing ? Color.accentColor : .secondary)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - 图表空数据占位
+
+/// 监控图表卡内的空数据占位：与图表同高，避免空白坐标轴让用户误以为图表坏了。
+/// 页面/Section 级空态仍统一 ContentUnavailableView；本组件只用于图表卡内部。
+struct ChartEmptyPlaceholder: View {
+    var text: String = L10n.t("暂无监控数据")
+    var hint: String? = nil
+    var height: CGFloat = 160
+    /// 矮位小卡（GPU 进程占用条等 64pt 级）：caption 字号 + 三级色
+    var compact: Bool = false
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(text)
+                .font(compact ? .caption : .subheadline)
+                .foregroundStyle(compact ? .tertiary : .secondary)
+            if let hint {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
     }
 }
 

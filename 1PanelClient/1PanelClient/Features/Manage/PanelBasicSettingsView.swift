@@ -446,7 +446,7 @@ struct PanelBasicSettingsView: View {
                 Spacer()
             }
             TextField("pool.ntp.org", text: $ntpInput)
-                .font(.system(.body, design: .monospaced))
+                .font(.dataMonospacedBody)
                 .keyboardType(.asciiCapable)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
@@ -472,7 +472,7 @@ struct PanelBasicSettingsView: View {
         Section {
             HStack {
                 Text(localTime.isEmpty ? "—" : localTime)
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(.dataMonospaced)
                     .lineLimit(2)
                 Spacer()
                 Button(L10n.t("同步")) {

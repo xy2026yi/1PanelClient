@@ -116,7 +116,7 @@ struct AcmeAccountRow: View {
             IconBadge(
                 systemName: "person.badge.key.fill",
                 color: .blue,
-                cornerRadius: 12
+                cornerRadius: Radius.medium
             )
 
             VStack(alignment: .leading, spacing: 3) {
@@ -391,7 +391,7 @@ struct DNSAccountRow: View {
             IconBadge(
                 systemName: "globe.asia.australia.fill",
                 color: .green,
-                cornerRadius: 12
+                cornerRadius: Radius.medium
             )
 
             VStack(alignment: .leading, spacing: 3) {

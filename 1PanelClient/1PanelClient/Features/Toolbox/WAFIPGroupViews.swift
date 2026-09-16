@@ -198,7 +198,7 @@ struct WAFCreateIPGroupView: View {
             if source == "imported" {
                 Section(L10n.t("IP 列表")) {
                     TextEditor(text: $content)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .frame(minHeight: 120)
                 }
             } else {
@@ -278,7 +278,7 @@ struct WAFIPGroupEditView: View {
             }
             Section(L10n.t("IP 列表")) {
                 TextEditor(text: $content)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .frame(minHeight: 200)
             }
         }

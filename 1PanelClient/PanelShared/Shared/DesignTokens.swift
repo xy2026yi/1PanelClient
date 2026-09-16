@@ -10,16 +10,17 @@ import SwiftUI
 // MARK: - 语义色（全部映射系统色，自动适配深色模式）
 
 extension Color {
+    /// nonisolated：PanelShared 的 Codable 模型（后台解码上下文）也会取状态色
     /// 运行中 / 健康
-    static let statusRunning = Color.green
+    nonisolated static let statusRunning = Color.green
     /// 正常停止（不是错误）
-    static let statusStopped = Color.gray
+    nonisolated static let statusStopped = Color.gray
     /// 故障 / 错误 / 删除
-    static let statusError = Color.red
+    nonisolated static let statusError = Color.red
     /// 警告（警告三角、重试横幅、到期预警）
-    static let semanticWarning = Color.orange
+    nonisolated static let semanticWarning = Color.orange
     /// 成功提示
-    static let semanticSuccess = Color.green
+    nonisolated static let semanticSuccess = Color.green
 }
 
 // MARK: - 圆角三档
@@ -40,6 +41,14 @@ extension Font {
     static let dataMonospaced = Font.system(.subheadline, design: .monospaced)
     /// 数据值等宽（紧凑行）
     static let dataMonospacedCaption = Font.system(.caption, design: .monospaced)
+    /// 数据值等宽（正文行：日志正文、终端回显等）
+    static let dataMonospacedBody = Font.system(.body, design: .monospaced)
+    /// 数据值等宽（脚注行）
+    static let dataMonospacedFootnote = Font.system(.footnote, design: .monospaced)
+    /// 数据值等宽（标题行：日志页大标题等，罕用）
+    static let dataMonospacedHeadline = Font.system(.headline, design: .monospaced)
+    /// 数据值等宽（说明行，罕用）
+    static let dataMonospacedCallout = Font.system(.callout, design: .monospaced)
 }
 
 // MARK: - 服务端颜色字符串映射

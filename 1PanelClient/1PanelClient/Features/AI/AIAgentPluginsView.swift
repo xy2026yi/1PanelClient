@@ -261,7 +261,7 @@ struct AIAgentPluginsView: View {
                         StatusBadge(text: L10n.t("官方"), color: .blue)
                     }
                     if let downloads = plugin.downloads, downloads > 0 {
-                        Label(downloads.formatted(.number.notation(.compactName)), systemImage: "arrow.down.circle")
+                        Label(downloads.formatted(.number.notation(.compactName).locale(L10n.locale)), systemImage: "arrow.down.circle")
                     }
                 }
                 .font(.caption2)

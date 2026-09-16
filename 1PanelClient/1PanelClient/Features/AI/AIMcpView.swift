@@ -368,11 +368,7 @@ struct AIMcpView: View {
                 }
 
                 if vm.servers.count < vm.total || vm.isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
+                    LoadingStateView(compact: true)
                     .onAppear { Task { await vm.loadMore(name: searchText) } }
                 }
             } header: {
@@ -515,7 +511,7 @@ struct AIMcpConfigSheet: View {
         NavigationStack {
             ScrollView {
                 Text(configJSON)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
                     .textSelection(.enabled)

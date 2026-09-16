@@ -258,7 +258,7 @@ struct AIVllmCreateView: View {
             TextField(L10n.t("镜像"), text: $image)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .font(.system(.body, design: .monospaced))
+                .font(.dataMonospacedBody)
 
             TextField(L10n.t("端口"), text: $portText)
                 .keyboardType(.numberPad)
@@ -268,7 +268,7 @@ struct AIVllmCreateView: View {
                 TextField(L10n.t("模型目录"), text: $modelDir)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                 Button {
                     showDirPicker = true
                 } label: {
@@ -305,11 +305,11 @@ struct AIVllmCreateView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 TextEditor(text: $command)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .frame(minHeight: 110)
                     .scrollContentBackground(.hidden)
                     .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.small))
             }
         } header: {
             SectionLabel(title: L10n.t("启动命令"), systemImage: "terminal")
@@ -342,7 +342,7 @@ struct AIVllmCreateView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                     .disabled(baseURLType != .custom)
             }
         } header: {
@@ -362,7 +362,7 @@ struct AIVllmCreateView: View {
                 TextField(L10n.t("容器名称"), text: $containerName)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                     .onChange(of: containerName) { _, _ in refreshBaseURL() }
 
                 Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
@@ -371,7 +371,7 @@ struct AIVllmCreateView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.decimalPad)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
 
                 Picker(L10n.t("重启规则"), selection: $restartPolicy) {
                     ForEach(VllmRestartPolicy.allCases) { p in
@@ -606,7 +606,7 @@ private struct ComposeEditorSheet: View {
         NavigationStack {
             VStack(spacing: 0) {
                 TextEditor(text: $compose)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

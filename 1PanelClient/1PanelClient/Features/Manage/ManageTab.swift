@@ -379,7 +379,7 @@ struct ManageEditView: View {
     /// 单个功能的显示/隐藏行（根列表项与 Hub 二级子项共用）
     private func manageEditRow(_ item: ManageItem) -> some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: item.icon, color: item.color, size: 34, cornerRadius: 8)
+            IconBadge(systemName: item.icon, color: item.color, size: 34, cornerRadius: Radius.small)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                 Text(item.subtitle)

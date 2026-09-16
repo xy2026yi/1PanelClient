@@ -18,7 +18,7 @@ struct QRCodeView: View {
     private static let pixelScale: CGFloat = 12
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
+        RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
             .fill(Color.white)
             .frame(width: side, height: side)
             .overlay {

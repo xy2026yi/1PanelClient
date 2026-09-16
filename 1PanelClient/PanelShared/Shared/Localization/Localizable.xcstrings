@@ -1,6 +1,17 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "重启容器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Container"
+          }
+        }
+      }
+    },
     "入站对应 当前链 1PANEL_INPUT 的默认策略为 %@\n出站对应 当前链 1PANEL_OUTPUT 的默认策略为 %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -67,9 +78,7 @@
         }
       }
     },
-    "" : {
-
-    },
+    
     "-" : {
 
     },
@@ -338,17 +347,7 @@
         }
       }
     },
-    "%@，%@，点击切换" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@, %@, tap to switch"
-          }
-        }
-      }
-    },
+    
     "%@: %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -716,17 +715,7 @@
         }
       }
     },
-    "%ld/%ld 在线" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld/%ld online"
-          }
-        }
-      }
-    },
+    
     "%ld/%ld 运行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1123,17 +1112,7 @@
         }
       }
     },
-    "AI 网关增强" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI Gateway"
-          }
-        }
-      }
-    },
+    
     "API Key" : {
 
     },
@@ -4308,7 +4287,7 @@
       }
     },
     "代码段" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5319,17 +5298,7 @@
         }
       }
     },
-    "健康状态未知" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Health status unknown"
-          }
-        }
-      }
-    },
+    
     "允许" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5661,7 +5630,7 @@
       }
     },
     "共享内存" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5936,7 +5905,7 @@
       }
     },
     "内存明细" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6034,17 +6003,7 @@
         }
       }
     },
-    "内置 · 共 %d 个" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Built-in · %d"
-          }
-        }
-      }
-    },
+    
     "内置技能" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7464,17 +7423,7 @@
         }
       }
     },
-    "删除操作不可撤销，请谨慎操作" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deletion cannot be undone — proceed with care"
-          }
-        }
-      }
-    },
+    
     "删除操作无法回滚，请输入 \"%@\" 删除此编排" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7607,28 +7556,8 @@
         }
       }
     },
-    "删除端口规则 %@ ？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete port rule %@?"
-          }
-        }
-      }
-    },
-    "删除端口规则？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete port rule?"
-          }
-        }
-      }
-    },
+    
+    
     "删除端口转发" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7959,17 +7888,7 @@
         }
       }
     },
-    "加载 HTTPS 配置…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading HTTPS config…"
-          }
-        }
-      }
-    },
+    
     "加载 HTTPS 配置失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8003,28 +7922,8 @@
         }
       }
     },
-    "加载仓库…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading registries…"
-          }
-        }
-      }
-    },
-    "加载参数…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading parameters…"
-          }
-        }
-      }
-    },
+    
+    
     "加载参数失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8036,17 +7935,7 @@
         }
       }
     },
-    "加载反向代理…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading proxies…"
-          }
-        }
-      }
-    },
+    
     "加载备份失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8102,17 +7991,7 @@
         }
       }
     },
-    "加载安装参数…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading install parameters…"
-          }
-        }
-      }
-    },
+    
     "加载容器配置…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8201,28 +8080,8 @@
         }
       }
     },
-    "加载监控数据…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading monitor data…"
-          }
-        }
-      }
-    },
-    "加载详情…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading details…"
-          }
-        }
-      }
-    },
+    
+    
     "加载详情失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8245,17 +8104,7 @@
         }
       }
     },
-    "加载配置…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading config…"
-          }
-        }
-      }
-    },
+    
     "加载配置失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8267,28 +8116,8 @@
         }
       }
     },
-    "加载重定向…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading redirects…"
-          }
-        }
-      }
-    },
-    "加载镜像…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading images…"
-          }
-        }
-      }
-    },
+    
+    
     "加载顺序" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8619,17 +8448,7 @@
         }
       }
     },
-    "单击切换服务器，长按编辑，左滑移除；下拉刷新健康状态" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap to switch server, long press to edit, swipe left to remove; pull down to refresh health"
-          }
-        }
-      }
-    },
+    
     "单请求限速" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10588,17 +10407,7 @@
         }
       }
     },
-    "在线：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Online: %@"
-          }
-        }
-      }
-    },
+    
     "在线检查与 CPU / 内存 / 负载概览" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12117,17 +11926,7 @@
         }
       }
     },
-    "密钥与会话" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keys & Sessions"
-          }
-        }
-      }
-    },
+    
     "密钥内容" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12469,17 +12268,7 @@
         }
       }
     },
-    "将删除网站「%@」及其配置，该操作无法回滚，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete website \"%@\" and its configuration? This cannot be undone."
-          }
-        }
-      }
-    },
+    
     "将删除选中的 %ld 个网站及其配置，该操作无法回滚，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12832,28 +12621,8 @@
         }
       }
     },
-    "将移除当前服务器的连接配置与已保存的 API 密钥，此操作不可恢复。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This removes the current server's settings and saved API key. This cannot be undone."
-          }
-        }
-      }
-    },
-    "将移除该服务器的连接配置与已保存的 API 密钥，此操作不可恢复。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This removes the server's connection settings and saved API key. This cannot be undone."
-          }
-        }
-      }
-    },
+    
+    
     "将重新申请证书「%@」，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12887,17 +12656,7 @@
         }
       }
     },
-    "尚未执行过模型拉取任务" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No model pull tasks yet"
-          }
-        }
-      }
-    },
+    
     "尝试其他关键词或来源" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12954,7 +12713,7 @@
       }
     },
     "峰值驻留 (HWM)" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -13151,17 +12910,7 @@
         }
       }
     },
-    "已创建「%@」" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Created \"%@\""
-          }
-        }
-      }
-    },
+    
     "已删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14130,17 +13879,7 @@
         }
       }
     },
-    "应用锁使用 4 位数字密码，支持面容 ID / 触控 ID 优先快捷解锁；打开 App 或从后台恢复时需验证" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App Lock uses a 4-digit passcode, with Face ID / Touch ID quick unlock when available. Verification is required when opening the app or returning from background."
-          }
-        }
-      }
-    },
+    
     "应用锁密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14284,17 +14023,7 @@
         }
       }
     },
-    "开启后拒绝所有 http:// 明文面板地址，防止 API Key 与数据在链路中被窃听；自托管面板若使用 HTTP 明文访问需保持关闭" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When enabled, all plain-text http:// panel addresses are rejected to prevent API keys and data from being intercepted. Keep this off if your self-hosted panel is accessed over plain HTTP."
-          }
-        }
-      }
-    },
+    
     "开启后访问网站需输入账号密码；未创建账号时不可开启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14317,17 +14046,7 @@
         }
       }
     },
-    "开启应用锁后，打开 App 或从后台恢复时需通过面容 ID / 触控 ID 或设备密码验证" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When enabled, opening the app or returning from background requires Face ID / Touch ID or device passcode"
-          }
-        }
-      }
-    },
+    
     "开启自动同步" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15451,7 +15170,7 @@
       }
     },
     "打开文件（%ld）" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -15577,7 +15296,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Run Scheduled Task"
+            "value" : "Run Cronjob"
           }
         }
       }
@@ -16264,17 +15983,7 @@
         }
       }
     },
-    "换行输入，每行一个；保存为全量覆盖。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "One per line; saving overwrites the full list."
-          }
-        }
-      }
-    },
+    
     "换行输入，每行一个；失焦或回车后自动保存（全量覆盖）。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16517,17 +16226,7 @@
         }
       }
     },
-    "提交中…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Submitting…"
-          }
-        }
-      }
-    },
+    
     "提交失败" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16804,7 +16503,7 @@
       }
     },
     "搜索镜像名" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -17222,7 +16921,7 @@
       }
     },
     "数据段" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -19020,7 +18719,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No scheduled tasks"
+            "value" : "No cronjobs"
           }
         }
       }
@@ -19520,17 +19219,7 @@
         }
       }
     },
-    "服务器总览" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Servers"
-          }
-        }
-      }
-    },
+    
     "服务器操作" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20092,17 +19781,7 @@
         }
       }
     },
-    "未获取到可用许可证" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No available license found"
-          }
-        }
-      }
-    },
+    
     "未获取到新版本配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20587,17 +20266,7 @@
         }
       }
     },
-    "查询可用版本…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checking versions…"
-          }
-        }
-      }
-    },
+    
     "查询版本失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20687,7 +20356,7 @@
       }
     },
     "栈" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -21126,28 +20795,8 @@
         }
       }
     },
-    "模型账号 / 智能体 / MCP / 本地模型" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Model accounts / Agents / MCP / Local models"
-          }
-        }
-      }
-    },
-    "模型账号 / 智能体 / MCP / 本地模型 / vLLM / 模型下载" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Model accounts / Agents / MCP / Local models / vLLM / Downloads"
-          }
-        }
-      }
-    },
+    
+    
     "模型配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21247,17 +20896,7 @@
         }
       }
     },
-    "正在检测连接" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Testing connection"
-          }
-        }
-      }
-    },
+    
     "正在生成二维码…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21423,17 +21062,7 @@
         }
       }
     },
-    "此设备未设置密码或生物识别，无法启用应用锁" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This device has no passcode or biometrics set; app lock is unavailable"
-          }
-        }
-      }
-    },
+    
     "每周" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21512,7 +21141,7 @@
       }
     },
     "比例分摊 (PSS)" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -21764,17 +21393,7 @@
         }
       }
     },
-    "浏览器支持" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Browser Support"
-          }
-        }
-      }
-    },
+    
     "浏览峰值 %ld，访客峰值 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22039,17 +21658,7 @@
         }
       }
     },
-    "添加端口规则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add Port Rule"
-          }
-        }
-      }
-    },
+    
     "添加端口转发" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22556,28 +22165,8 @@
         }
       }
     },
-    "点击 Bot 编辑凭证与状态；删除与设为默认将立即保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a bot to edit credentials and status; delete and set-as-default save immediately."
-          }
-        }
-      }
-    },
-    "点击 Bot 编辑凭证与状态；删除将立即保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a bot to edit its credentials and status; deletion saves immediately"
-          }
-        }
-      }
-    },
+    
+    
     "点击 Bot 编辑凭证与状态；批准配对与删除将立即保存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22600,28 +22189,8 @@
         }
       }
     },
-    "点击 Bot 编辑凭证与策略；删除将立即保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a bot to edit credentials and policies; delete saves immediately."
-          }
-        }
-      }
-    },
-    "点击 Bot 编辑凭证与策略；批准配对与删除将立即保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a bot to edit credentials and policies; approve-pairing and delete save immediately."
-          }
-        }
-      }
-    },
+    
+    
     "点击 Bot 编辑凭证与策略；状态开关、删除与设为默认将立即保存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23106,17 +22675,7 @@
         }
       }
     },
-    "点击预置项自动填入，也可自定义输入。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a preset to fill in, or enter your own."
-          }
-        }
-      }
-    },
+    
     "点赞" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24118,17 +23677,7 @@
         }
       }
     },
-    "确定删除任务「%@」吗？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete task \"%@\"?"
-          }
-        }
-      }
-    },
+    
     "确定删除会话「%@」吗？删除后不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24426,39 +23975,9 @@
         }
       }
     },
-    "确定要删除 %@ 吗？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete %@?"
-          }
-        }
-      }
-    },
-    "确定要删除%@ \"%@\" 吗？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete the %@ \"%@\"?"
-          }
-        }
-      }
-    },
-    "确定要删除证书「%@」吗？此操作不可撤销。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete certificate \"%@\"? This cannot be undone."
-          }
-        }
-      }
-    },
+    
+    
+    
     "确定要删除账户「%@」吗？此操作不可撤销。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24965,17 +24484,7 @@
         }
       }
     },
-    "私聊策略支持配队码与开放" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DM policy supports pairing code and open"
-          }
-        }
-      }
-    },
+    
     "私钥" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26032,17 +25541,7 @@
         }
       }
     },
-    "绑定域名后可从外部访问 Ollama 接口" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "After binding a domain, the Ollama API is reachable externally"
-          }
-        }
-      }
-    },
+    
     "绑定域名后可通过该地址访问 Ollama OpenAI 兼容接口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26714,17 +26213,7 @@
         }
       }
     },
-    "网站 / SSL 证书" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Websites / SSL certificates"
-          }
-        }
-      }
-    },
+    
     "网站 / 证书" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26957,7 +26446,7 @@
       }
     },
     "网络连接" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -27067,7 +26556,7 @@
       }
     },
     "脏页" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -27628,7 +27117,7 @@
       }
     },
     "虚拟内存 (VMS)" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -28018,7 +27507,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scheduled Tasks"
+            "value" : "Cronjobs"
           }
         }
       }
@@ -29332,17 +28821,7 @@
         }
       }
     },
-    "请输入 确认" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter Confirm"
-          }
-        }
-      }
-    },
+    
     "请输入 立即重启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29530,17 +29009,7 @@
         }
       }
     },
-    "读取密码访问失败：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to read password access: %@"
-          }
-        }
-      }
-    },
+    
     "读取数据" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30223,17 +29692,7 @@
         }
       }
     },
-    "输入配队码" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter pairing code"
-          }
-        }
-      }
-    },
+    
     "输入镜像名后回车继续添加，支持同时拉取多个镜像。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30278,17 +29737,7 @@
         }
       }
     },
-    "运行 %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Up %@"
-          }
-        }
-      }
-    },
+    
     "运行中" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30575,17 +30024,7 @@
         }
       }
     },
-    "进入应用商店" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open App Store"
-          }
-        }
-      }
-    },
+    
     "进度输出" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30663,17 +30102,7 @@
         }
       }
     },
-    "进程「%@」已重启" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Process \"%@\" restarted"
-          }
-        }
-      }
-    },
+    
     "进程「%@」暂无日志内容" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30708,7 +30137,7 @@
       }
     },
     "进程独占 (USS)" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -30773,28 +30202,8 @@
         }
       }
     },
-    "远程应用同步失败，请稍后在任务日志中查看详情" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remote app sync failed — check the task log later"
-          }
-        }
-      }
-    },
-    "远程应用同步完成" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remote app sync finished"
-          }
-        }
-      }
-    },
+    
+    
     "远程应用同步已发起" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31466,17 +30875,7 @@
         }
       }
     },
-    "速率" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rate"
-          }
-        }
-      }
-    },
+    
     "邮箱" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31763,17 +31162,7 @@
         }
       }
     },
-    "重启操作" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restart"
-          }
-        }
-      }
-    },
+    
     "重启整个服务器，期间将失联 1-2 分钟" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31840,17 +31229,7 @@
         }
       }
     },
-    "重启面板与服务器" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restart Panel & Server"
-          }
-        }
-      }
-    },
+    
     "重命名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31983,17 +31362,7 @@
         }
       }
     },
-    "重试拉取" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retry Pull"
-          }
-        }
-      }
-    },
+    
     "重试次数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32050,7 +31419,7 @@
       }
     },
     "锁定" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -32467,17 +31836,7 @@
         }
       }
     },
-    "面容 ID / 触控 ID 锁定" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Face ID / Touch ID Lock"
-          }
-        }
-      }
-    },
+    
     "面容 ID / 触控 ID：仅用于应用锁解锁（可选功能），不上传任何生物信息。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32533,17 +31892,7 @@
         }
       }
     },
-    "面板/服务器管理" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Panel / server management"
-          }
-        }
-      }
-    },
+    
     "面板主机 SSH 服务与配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32929,17 +32278,7 @@
         }
       }
     },
-    "飞书私聊策略支持配队码与开放" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Feishu DM policy supports pairing code and open"
-          }
-        }
-      }
-    },
+    
     "首页" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33028,17 +32367,7 @@
         }
       }
     },
-    "高危操作，需输入「立即重启」确认" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Danger zone — type \"Restart Now\" to confirm"
-          }
-        }
-      }
-    },
+    
     "高级" : {
       "extractionState" : "manual",
       "localizations" : {

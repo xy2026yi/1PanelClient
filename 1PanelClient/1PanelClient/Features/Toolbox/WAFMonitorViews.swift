@@ -125,7 +125,7 @@ struct WAFOverviewView: View {
         }
         .padding()
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.large))
     }
 
     /// 单项请求独立容错：今日统计或 7 日趋势一项失败不拖垮另一项
@@ -178,8 +178,8 @@ struct WAFDayBarChart: View {
     var body: some View {
         Chart(values, id: \.day) { item in
             BarMark(
-                x: .value("日期", item.day),
-                y: .value("数量", item.value)
+                x: .value(L10n.t("日期"), item.day),
+                y: .value(L10n.t("数量"), item.value)
             )
             .foregroundStyle(color.gradient)
             .cornerRadius(3)
@@ -257,7 +257,7 @@ struct WAFDayBarChart: View {
             .monospacedDigit()
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.small))
             .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
     }
 

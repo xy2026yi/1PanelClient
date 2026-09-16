@@ -71,11 +71,7 @@ struct ClamRecordView: View {
                     }
 
                     if records.count < total || isLoadingMore {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
-                        }
+                        LoadingStateView(compact: true)
                         .onAppear { Task { await loadMore() } }
                     }
                 }
@@ -173,7 +169,7 @@ struct ClamRecordRow: View {
                 systemName: infected > 0 ? "exclamationmark.triangle.fill" : "checkmark.shield.fill",
                 color: infected > 0 ? .red : .green,
                 size: 36,
-                cornerRadius: 8)
+                cornerRadius: Radius.small)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(record.startTime ?? "—")

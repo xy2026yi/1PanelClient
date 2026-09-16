@@ -10,9 +10,11 @@ import Security
 /// 未签名分发（LiveContainer）无 entitlements 时 UserDefaults(suiteName:) 退化为进程内实例，
 /// 小组件读不到数据则显示引导空态。
 enum AppGroup {
-    static let id = "group.com.xy.panelclient"
+    nonisolated static let id = "group.com.xy.panelclient"
 
-    static var defaults: UserDefaults? {
+    /// nonisolated：L10n（nonisolated 单例，小组件进程内也会访问）从默认
+    /// MainActor 隔离外读写语言偏好；UserDefaults 本身线程安全
+    nonisolated static var defaults: UserDefaults? {
         UserDefaults(suiteName: id)
     }
 }

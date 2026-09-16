@@ -390,7 +390,7 @@ struct Fail2banNumberSheet: View {
                 Section(title) {
                     TextField("", text: $input)
                         .keyboardType(.numberPad)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                         .onAppear { input = "\(Int(value))" }
                 }
             }
@@ -551,7 +551,7 @@ struct Fail2banLogPathSheet: View {
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                         .onAppear { inputPath = currentPath }
                 }
                 Section {
@@ -699,7 +699,7 @@ struct Fail2banIPListView: View {
                             .textFieldStyle(.roundedBorder)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.dataMonospacedBody)
                         Button {
                             guard !newIP.trimmingCharacters(in: .whitespaces).isEmpty else { return }
                             let ips = isWhitelist ? vm.whitelist : vm.blacklist
@@ -729,7 +729,7 @@ struct Fail2banIPListView: View {
                             HStack {
                                 Image(systemName: isWhitelist ? "checkmark.shield" : "hand.raised")
                                     .foregroundStyle(isWhitelist ? .green : .red)
-                                Text(ip).font(.system(.body, design: .monospaced))
+                                Text(ip).font(.dataMonospacedBody)
                                 Spacer()
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -803,7 +803,7 @@ struct Fail2banFullConfigView: View {
                     LoadingStateView()
                 } else {
                     TextEditor(text: $configText)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }

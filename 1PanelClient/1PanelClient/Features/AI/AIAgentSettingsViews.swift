@@ -63,7 +63,7 @@ struct AIAgentModelConfigView: View {
     var body: some View {
         Form {
             if isLoading {
-                Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                Section { LoadingStateView(compact: true) }
             } else if let c = config {
                 Section {
                     if accountsLoadFailed {
@@ -110,7 +110,7 @@ struct AIAgentModelConfigView: View {
                             ForEach(Array(fallbacks.enumerated()), id: \.offset) { _, model in
                                 HStack {
                                     Text(model)
-                                        .font(.system(.subheadline, design: .monospaced))
+                                        .font(.dataMonospaced)
                                     Spacer()
                                     Button {
                                         fallbacks.removeAll { $0 == model }
@@ -346,7 +346,7 @@ struct AIAgentSettingsView: View {
     var body: some View {
         Form {
             if isLoading {
-                Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                Section { LoadingStateView(compact: true) }
             } else if config != nil {
                 if isOpenClaw {
                     securitySection
@@ -387,7 +387,7 @@ struct AIAgentSettingsView: View {
                                 TextField(L10n.t("密码"), text: $password)
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(.dataMonospacedBody)
                             } else {
                                 SecureField(L10n.t("密码"), text: $password)
                             }
@@ -472,10 +472,11 @@ struct AIAgentSettingsView: View {
             } else if let content = configFile {
                 ScrollView {
                     Text(content)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
                         .textSelection(.enabled)
+                        .contentWidthLimit(860)
                 }
             } else {
                 ContentUnavailableView {

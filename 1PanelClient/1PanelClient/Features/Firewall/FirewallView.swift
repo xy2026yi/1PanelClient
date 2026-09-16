@@ -824,7 +824,8 @@ struct FirewallView: View {
             if vm.isLoading && vm.base == nil {
                 LoadingStateView()
             } else if let msg = vm.errorMessage, vm.base == nil {
-                ErrorBanner(message: msg) { Task { await vm.refresh() } }
+                // 整页加载失败：统一 LoadErrorStateView（ErrorBanner 仅限首页概览降级场景）
+                LoadErrorStateView(message: msg) { Task { await vm.refresh() } }
             }
         }
         .toolbar {
@@ -1198,11 +1199,7 @@ struct FirewallView: View {
 
     /// 滚动到底的加载更多行（转圈即可，触发靠行 onAppear 与末行 onAppear 双保险）
     private func loadMoreRow(_ action: @escaping () -> Void) -> some View {
-        HStack {
-            Spacer()
-            ProgressView()
-            Spacer()
-        }
+        LoadingStateView(compact: true)
         .onAppear { action() }
     }
 
@@ -1278,7 +1275,7 @@ struct FirewallView: View {
                 uninitializedHint
             }
         } else if vm.isChainLoading {
-            Section { HStack { Spacer(); ProgressView(); Spacer() } }
+            Section { LoadingStateView(compact: true) }
         }
 
         if vm.chainRules.isEmpty {
@@ -1332,7 +1329,7 @@ struct FirewallView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 4) {
                                 Text((base.name ?? "ufw").uppercased())
-                                    .font(.system(.headline, design: .monospaced))
+                                    .font(.dataMonospacedHeadline)
                                 if let v = base.version, !v.isEmpty {
                                     Text("v\(v)")
                                         .font(.caption)
@@ -1590,7 +1587,7 @@ struct FirewallActionSheet: View {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(kind == .address(rule) ? (rule.address ?? "-") : (rule.port ?? "-"))
-                            .font(.system(.headline, design: .monospaced))
+                            .font(.dataMonospacedHeadline)
                         if !subtitle.isEmpty {
                             Text(subtitle)
                                 .font(.caption)
@@ -1650,7 +1647,7 @@ struct FirewallRuleRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Text(rule.port ?? "-")
-                    .font(.system(.body, design: .monospaced).bold())
+                    .font(.dataMonospacedBody.bold())
                 if let proto = rule.protocolField, !proto.isEmpty {
                     StatusBadge(text: proto.uppercased(), color: .blue)
                 }
@@ -1668,7 +1665,7 @@ struct FirewallRuleRow: View {
             // 进程名：listening 全量数据优先；无数据时回落面板返回的 usedStatus
             if let name = processName, !name.isEmpty {
                 Text(name)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .foregroundStyle(.secondary)
             } else if let used = rule.usedStatus, !used.isEmpty {
                 StatusBadge(text: used, color: .green, icon: "checkmark.circle.fill")
@@ -1713,12 +1710,12 @@ struct FirewallForwardRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Text(rule.port ?? "-")
-                    .font(.system(.body, design: .monospaced).bold())
+                    .font(.dataMonospacedBody.bold())
                 Image(systemName: "arrow.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Text(targetText)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                 if let proto = rule.protocolField, !proto.isEmpty {
                     StatusBadge(text: proto.uppercased(), color: .blue)
                 }
@@ -1747,7 +1744,7 @@ struct FirewallAddressRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Text(rule.address ?? "-")
-                    .font(.system(.body, design: .monospaced).bold())
+                    .font(.dataMonospacedBody.bold())
                 Spacer()
                 switch rule.strategy?.lowercased() {
                 case "accept":
@@ -1884,7 +1881,7 @@ struct FirewallPortWhitelistView: View {
     private func displayRow(index: Int) -> some View {
         HStack {
             Text(entries[index])
-                .font(.system(.body, design: .monospaced))
+                .font(.dataMonospacedBody)
             Spacer()
             HStack(spacing: 18) {
                 Button(L10n.t("编辑")) { beginEdit(index: index) }
@@ -1914,7 +1911,7 @@ struct FirewallPortWhitelistView: View {
     private func editRow(isNew: Bool) -> some View {
         HStack(spacing: 10) {
             TextField(L10n.t("端口"), text: $editingText)
-                .font(.system(.body, design: .monospaced))
+                .font(.dataMonospacedBody)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .keyboardType(.asciiCapable)
@@ -2072,6 +2069,7 @@ struct FirewallAddRuleView: View {
         }
         .navigationTitle(L10n.t("创建端口规则"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(L10n.t("创建")) {
@@ -2152,6 +2150,7 @@ struct FirewallEditRuleView: View {
         }
         .navigationTitle(L10n.t("修改端口规则"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(L10n.t("保存")) {
@@ -2415,7 +2414,7 @@ struct FirewallChainRuleRow: View {
                 systemName: "bolt.horizontal",
                 color: (rule.strategy == "accept") ? .green : .red,
                 size: 34,
-                cornerRadius: 8
+                cornerRadius: Radius.small
             )
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
@@ -2503,6 +2502,7 @@ struct FirewallChainRuleFormView: View {
         }
         .navigationTitle(L10n.t("添加链规则"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

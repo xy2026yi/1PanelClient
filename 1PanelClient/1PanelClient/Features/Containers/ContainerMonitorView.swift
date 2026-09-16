@@ -201,11 +201,7 @@ struct ContainerMonitorView: View {
     }
 
     private var chartPlaceholder: some View {
-        Text(L10n.t("暂无数据"))
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity)
-            .frame(height: 120)
+        ChartEmptyPlaceholder(text: L10n.t("暂无数据"), height: 120)
     }
 }
 
@@ -473,7 +469,7 @@ struct ContainerMonitorChart: View {
         .frame(width: 74)
         .padding(.vertical, 4)
         .padding(.horizontal, 5)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.small))
         .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
     }
 
@@ -490,6 +486,7 @@ struct ContainerMonitorChart: View {
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = L10n.locale
         f.dateFormat = "HH:mm:ss"
         return f
     }()

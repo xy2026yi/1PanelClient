@@ -318,11 +318,7 @@ struct AIAgentsView: View {
                 }
 
                 if vm.agents.count < vm.total || vm.isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
+                    LoadingStateView(compact: true)
                     .onAppear { Task { await vm.loadMore() } }
                 }
             } header: {

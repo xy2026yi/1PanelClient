@@ -646,7 +646,7 @@ struct WebsiteVisitorsChart: View {
         .monospacedDigit()
         .padding(.vertical, 4)
         .padding(.horizontal, 6)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.small))
         .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
     }
 

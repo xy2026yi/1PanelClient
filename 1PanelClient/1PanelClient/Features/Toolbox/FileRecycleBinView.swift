@@ -152,11 +152,7 @@ struct FileRecycleBinView: View {
                             }
                     }
                     if items.count < total || isLoadingMore {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
-                        }
+                        LoadingStateView(compact: true)
                         .onAppear { Task { await loadMore() } }
                     }
                 } header: {

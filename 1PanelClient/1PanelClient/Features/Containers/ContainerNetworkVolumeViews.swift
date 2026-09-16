@@ -45,7 +45,7 @@ struct ContainerInspectDetailView: View {
                             }
                             if let raw = section.rawJSON {
                                 Text(raw)
-                                    .font(.system(.caption, design: .monospaced))
+                                    .font(.dataMonospacedCaption)
                                     .textSelection(.enabled)
                             }
                         } header: {
@@ -492,7 +492,7 @@ struct ContainerNetworksView: View {
                         Text("· " + gateway)
                     }
                 }
-                .font(.system(.caption, design: .monospaced))
+                .font(.dataMonospacedCaption)
                 .foregroundStyle(.secondary)
             }
         }
@@ -939,7 +939,7 @@ struct ContainerVolumesView: View {
             }
             if let mountpoint = volume.mountpoint, !mountpoint.isEmpty {
                 Text(mountpoint)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.head)
@@ -1051,7 +1051,7 @@ private struct ContainerVolumeCreateSheet: View {
                         TextField(L10n.t("挂载点"), text: $nfsMount)
                             .autocorrectionDisabled()
                         TextField(L10n.t("可选参数"), text: $nfsOption)
-                            .font(.system(.footnote, design: .monospaced))
+                            .font(.dataMonospacedFootnote)
                             .autocorrectionDisabled()
                     }
                 } header: {

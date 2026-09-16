@@ -127,7 +127,7 @@ struct AIAgentRolesView: View {
                     Image(systemName: "link")
                         .foregroundStyle(.teal)
                     Text("\(binding.channel ?? "-"):\(binding.accountId ?? "-")")
-                        .font(.system(.subheadline, design: .monospaced))
+                        .font(.dataMonospaced)
                     Spacer()
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -338,7 +338,7 @@ private struct AIAgentRoleCreateSheet: View {
                     ForEach(Array(bindings.enumerated()), id: \.offset) { idx, binding in
                         HStack {
                             Text("\(binding.channel ?? "-"):\(binding.accountId ?? "-")")
-                                .font(.system(.subheadline, design: .monospaced))
+                                .font(.dataMonospaced)
                             Spacer()
                             Button {
                                 bindings.remove(at: idx)

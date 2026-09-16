@@ -170,7 +170,7 @@ struct WAFCommonRulesView: View {
     private func ruleLabel(_ item: WAFCommonRuleItem) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(item.rule)
-                .font(.system(.body, design: .monospaced))
+                .font(.dataMonospacedBody)
 
             let showType = item.type != singleType
             if showType || !(item.description ?? "").isEmpty {

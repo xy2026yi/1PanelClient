@@ -115,7 +115,7 @@ struct AIMcpFormView: View {
             }
 
             TextEditor(text: $command)
-                .font(.system(.caption, design: .monospaced))
+                .font(.dataMonospacedCaption)
                 .frame(minHeight: 88)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -134,7 +134,7 @@ struct AIMcpFormView: View {
                     protocolScheme = protocolScheme == "http://" ? "https://" : "http://"
                 } label: {
                     Text(protocolScheme)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .foregroundStyle(Color.accentColor)
                 }
                 .buttonStyle(.borderless)
@@ -144,7 +144,7 @@ struct AIMcpFormView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
             }
 
             Picker(L10n.t("输出类型"), selection: $outputTransport) {
@@ -155,12 +155,12 @@ struct AIMcpFormView: View {
                 TextField(L10n.t("SSE 路径"), text: $pathField)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
             } else {
                 TextField(L10n.t("流式传输路径"), text: $pathField)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                 TextField(L10n.t("协议版本"), text: $protocolVersion)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -173,7 +173,7 @@ struct AIMcpFormView: View {
             TextField(L10n.t("镜像"), text: $gatewayImage)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .font(.system(.caption, design: .monospaced))
+                .font(.dataMonospacedCaption)
         } header: {
             SectionLabel(title: L10n.t("网关配置"), systemImage: "arrow.left.arrow.right.circle")
         } footer: {
@@ -208,10 +208,10 @@ struct AIMcpFormView: View {
             ForEach(environments) { env in
                 HStack {
                     Text(env.key)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                     Spacer()
                     Text(env.value)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -222,14 +222,14 @@ struct AIMcpFormView: View {
                 TextField("KEY", text: $newEnvKey)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.left")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 TextField("VALUE", text: $newEnvValue)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                 Button {
                     addEnv()
                 } label: {
@@ -250,7 +250,7 @@ struct AIMcpFormView: View {
         Section {
             ForEach(volumes, id: \.self) { volume in
                 Text(volume)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
             }
             .onDelete { volumes.remove(atOffsets: $0) }
 
@@ -258,14 +258,14 @@ struct AIMcpFormView: View {
                 TextField(L10n.t("宿主机目录"), text: $newVolumeHost)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.right")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 TextField(L10n.t("容器目录"), text: $newVolumeContainer)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                 Button {
                     addVolume()
                 } label: {

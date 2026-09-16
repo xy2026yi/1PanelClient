@@ -669,11 +669,7 @@ struct AIAgentWebsiteBindView: View {
             } else {
                 Section {
                     if isLoading {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
-                        }
+                        LoadingStateView(compact: true)
                     } else if let err = loadError {
                         LoadErrorStateView(message: err) {
                             Task { await loadWebsites() }

@@ -216,7 +216,7 @@ struct OverviewTab: View {
         }
         .padding()
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.large))
     }
 
     // 回退视图（dashboard/base/all/all 失败时）
@@ -260,7 +260,7 @@ struct OverviewTab: View {
         }
         .padding()
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.large))
     }
 
     private func monitorCards(cur: DashboardCurrent) -> some View {
@@ -335,7 +335,7 @@ struct OverviewTab: View {
         }
         .padding()
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.large))
     }
 
     private func resourceStatsGrid(_ b: DashboardBase) -> some View {
@@ -395,7 +395,7 @@ struct OverviewTab: View {
         }
         .padding()
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.large))
     }
 
     private func osCard(_ os: OsInfo) -> some View {
@@ -420,7 +420,7 @@ struct OverviewTab: View {
         }
         .padding()
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.large))
     }
 
     private func formatBytes(_ bytes: Int64?) -> String {
@@ -439,7 +439,7 @@ struct OverviewTab: View {
 struct ServerSwitchIcon: View {
     var body: some View {
         Image(systemName: "point.bottomleft.forward.to.arrow.triangle.scurvepath")
-            .font(.system(size: 11, weight: .medium))
+            .font(.panelScaled(11, weight: .medium))
             .foregroundStyle(.secondary)
             .frame(width: 13, height: 13)
             .padding(3.5)
@@ -455,7 +455,7 @@ struct ServerSwitchIcon: View {
 struct ServerInfoIcon: View {
     var body: some View {
         Image(systemName: "server.rack")
-            .font(.system(size: 19, weight: .medium))
+            .font(.panelScaled(19, weight: .medium))
             .foregroundStyle(.blue)
             .frame(width: 26, height: 26)
     }
@@ -569,7 +569,7 @@ struct StatCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.large))
     }
 
     /// 自定义图标（docker.svg 鲸鱼）与 SF Symbol 同尺寸展示
@@ -733,7 +733,8 @@ struct PanelUpgradeView: View {
     @State private var isLoading = false
     @State private var isUpgrading = false
     @State private var errorMessage: String?
-    @State private var successMessage: String?
+    /// 升级任务提交成功：轻提示 toast（成功语义走 toast，错误才用 alert）
+    @State private var toastMessage: String?
 
     private let client: APIClient
 
@@ -775,13 +776,14 @@ struct PanelUpgradeView: View {
         .navigationTitle(L10n.t("版本更新日志"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadReleases() }
+        .toastOverlay(message: $toastMessage)
         .alert(L10n.t("提示"), isPresented: Binding(
-            get: { successMessage != nil || errorMessage != nil },
-            set: { _ in successMessage = nil; errorMessage = nil }
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
         )) {
-            Button(L10n.t("好的"), role: .cancel) { successMessage = nil; errorMessage = nil }
+            Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
         } message: {
-            Text(errorMessage ?? successMessage ?? "")
+            Text(errorMessage ?? "")
         }
     }
 
@@ -810,9 +812,9 @@ struct PanelUpgradeView: View {
         }
         .padding()
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.large))
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: Radius.large)
                 .stroke(.blue.opacity(0.3), lineWidth: 1)
         )
     }
@@ -855,7 +857,7 @@ struct PanelUpgradeView: View {
         }
         .padding()
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.large))
     }
 
     private func loadReleases() async {
@@ -890,7 +892,7 @@ struct PanelUpgradeView: View {
         let req = PanelUpgradeRequest(version: version)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.settingsUpgrade.path, body: req, as: EmptyResponse.self)
-            successMessage = L10n.t("更新任务已提交，请稍后查看面板状态")
+            toastMessage = L10n.t("更新任务已提交，请稍后查看面板状态")
         } catch {
             errorMessage = error.localizedDescription
         }

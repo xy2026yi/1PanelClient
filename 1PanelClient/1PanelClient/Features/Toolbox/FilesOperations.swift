@@ -590,7 +590,7 @@ struct FilePermissionSheet: View {
                 Section {
                     InfoRow(L10n.t("名称"), value: items.count == 1 ? (item?.name ?? "-") : L10n.f("%ld 项", items.count))
                     InfoRow(L10n.t("权限"), value: FileModeMath.octalString(mode))
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                     permGrid
                     Picker(L10n.t("用户"), selection: $user) {
                         ForEach(users, id: \.username) { u in
@@ -937,7 +937,7 @@ struct FilePathBrowseRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.caption).foregroundStyle(.secondary)
                 Text(path)
-                    .font(.system(.footnote, design: .monospaced))
+                    .font(.dataMonospacedFootnote)
                     .lineLimit(1)
                     .truncationMode(.head)
             }

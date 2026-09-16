@@ -78,7 +78,7 @@ struct WAFCdnSettingsView: View {
                 Section(L10n.t("CDN Headers")) {
                     ForEach(Self.defaultHeaders, id: \.self) { h in
                         Text(h)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                             .foregroundStyle(.secondary)
                     }
                 }

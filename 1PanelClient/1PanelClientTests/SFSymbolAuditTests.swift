@@ -6,7 +6,8 @@
 //  逐个用 UIImage(systemName:) 断言有效（与 iOS 运行时渲染语义一致，
 //  优于 NSImage 代理法）。无效符号在真机上渲染为空白，此前已发生过
 //  `certificate`、`chevron.up.forward` 两例。
-//  动态拼接名（三元/变量）无法静态提取，仍走人工过目（审计计划 B1 保留项）。
+//  动态拼接名（三元/变量）无法静态提取，以 dynamicSymbolNames 人工清单固化断言
+//  （2026-09-16 P3 落地），新增动态分支时同步补清单。
 //
 
 import Testing
@@ -88,5 +89,39 @@ struct SFSymbolAuditTests {
         #expect(UIImage(systemName: "chevron.up.forward") == nil)
         // 替换后的有效名
         #expect(UIImage(systemName: "checkmark.seal") != nil)
+    }
+
+    /// 动态拼接名（switch/三元计算值）静态扫描抓不到，此清单为人工过目结果的固化
+    /// （2026-09-16 四维审查 P3 落地）。新增动态图标分支时把取值补进本清单：
+    /// 来源 = FilesView.fileIcon / Database.systemIcon / AppLock.biometryIcon /
+    /// WebsiteLogType.icon 及全库三元切换（eye/chevron/pause 等）
+    private static let dynamicSymbolNames = [
+        // fileIcon（文件后缀映射）
+        "doc.text", "doc.text.below.ecg", "curlybraces", "photo", "doc.zipper", "book", "doc",
+        // Database.systemIcon（数据库系统）
+        "cylinder.split.1x2", "cylinder", "server.rack",
+        // AppLock.biometryIcon
+        "faceid", "touchid", "eye.square", "lock.fill",
+        // WebsiteLogType.icon
+        "list.bullet.rectangle", "exclamationmark.triangle.fill",
+        // 三元切换对（眼睛/箭头/播放/星标/拼图等）
+        "eye", "eye.slash", "chevron.up", "chevron.down",
+        "arrow.up.circle.fill", "arrow.down.circle.fill", "arrow.up.circle", "arrow.down.circle",
+        "arrow.uturn.backward.circle.fill", "arrow.uturn.backward.circle", "arrow.down",
+        "checkmark.circle.fill", "circle", "xmark.circle.fill", "xmark.octagon.fill",
+        "checkmark.shield", "hand.raised", "checkmark.seal.fill", "checkmark.shield.fill",
+        "exclamationmark.triangle", "chart.bar", "folder", "folder.fill",
+        "icloud.slash", "icloud.and.arrow.up", "key.fill", "terminal.fill",
+        "link.badge.plus", "link", "minus.circle.fill",
+        "pause.circle", "play.circle", "pause.fill", "play.fill", "stop.fill",
+        "puzzlepiece.extension.fill", "puzzlepiece.extension", "puzzlepiece",
+        "shippingbox.fill", "star", "star.slash", "wand.and.stars", "xmark", "pencil", "tray",
+    ]
+
+    @Test("动态拼接的 SF Symbol 名（人工清单）在 iOS 运行时均有效")
+    func dynamicSymbolNamesAreValid() {
+        let invalid = Set(Self.dynamicSymbolNames).filter { UIImage(systemName: $0) == nil }
+        #expect(invalid.isEmpty,
+                "动态图标清单中的无效 SF Symbol（渲染为空白）：\(invalid.sorted().joined(separator: ", "))")
     }
 }

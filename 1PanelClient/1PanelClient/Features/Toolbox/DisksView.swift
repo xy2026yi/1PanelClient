@@ -719,7 +719,7 @@ struct DirectoryPickerSheet: View {
                             .foregroundStyle(.blue)
                         Text(item.name)
                             .foregroundStyle(.primary)
-                            .font(.system(.subheadline, design: .monospaced))
+                            .font(.dataMonospaced)
                         Spacer()
                     }
                     .contentShape(Rectangle())

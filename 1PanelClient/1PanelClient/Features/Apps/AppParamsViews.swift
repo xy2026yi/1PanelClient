@@ -147,7 +147,7 @@ struct UpdateParamsView: View {
             if editCompose {
                 Section {
                     TextEditor(text: $customCompose)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .frame(minHeight: 200)
                 } footer: {
                     Text(L10n.t("编辑后将使用自定义内容覆盖默认编排文件"))
@@ -427,7 +427,7 @@ struct ComposeEditorView: View {
             Section {
                 if useCustom {
                     TextEditor(text: $editedCompose)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .frame(minHeight: 240)
                         .scrollContentBackground(.hidden)
                         .background(Color(.secondarySystemBackground))
@@ -503,7 +503,7 @@ struct ComposeEditorView: View {
         Group {
             if useCustom {
                 TextEditor(text: $editedCompose)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .scrollContentBackground(.hidden)
                     .background(Color(.secondarySystemBackground))
                     .padding(.horizontal, 8)
@@ -555,6 +555,7 @@ struct DiffOldComposeView: View {
                 }
             }
             .padding(.vertical, 4)
+            .contentWidthLimit(860)
         }
     }
 }
@@ -632,6 +633,7 @@ struct DiffNewComposeView: View {
                 }
             }
             .padding(.vertical, 4)
+            .contentWidthLimit(860)
         }
     }
 
@@ -696,10 +698,11 @@ struct CodePreview: View {
     var body: some View {
         ScrollView {
             Text(text.isEmpty ? L10n.t("(空)") : text)
-                .font(.system(.caption, design: .monospaced))
+                .font(.dataMonospacedCaption)
                 .foregroundStyle(color)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
+                .contentWidthLimit(860)
         }
     }
 }

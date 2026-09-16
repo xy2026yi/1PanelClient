@@ -304,7 +304,7 @@ struct ContainerComposeDetailView: View {
                             .fixedSize()
                         Spacer(minLength: 12)
                         Text(workdir)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .truncationMode(.head)
@@ -359,7 +359,7 @@ struct ContainerComposeDetailView: View {
         if let env = compose.env, !env.isEmpty {
             Section {
                 Text(env)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
                 SectionLabel(title: L10n.t("环境变量"), systemImage: "gearshape.2")
@@ -566,7 +566,7 @@ struct ContainerComposeEditView: View {
         Form {
             Section {
                 TextEditor(text: $content)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .frame(minHeight: 280)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -576,7 +576,7 @@ struct ContainerComposeEditView: View {
             }
             Section {
                 TextEditor(text: $envText)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .frame(minHeight: 100)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -774,7 +774,7 @@ struct ContainerComposeCreateView: View {
                 if from != "path" {
                     Section {
                         TextEditor(text: $file)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                             .frame(minHeight: 240)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
@@ -1056,7 +1056,7 @@ private struct ContainerTemplateEditSheet: View {
                 }
                 Section {
                     TextEditor(text: $content)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .frame(minHeight: 240)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)

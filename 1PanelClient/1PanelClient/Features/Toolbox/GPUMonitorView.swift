@@ -401,14 +401,7 @@ struct GPUMonitorView: View {
     }
 
     private var chartPlaceholder: some View {
-        HStack {
-            Spacer()
-            Text(L10n.t("暂无数据"))
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-            Spacer()
-        }
-        .frame(height: 64)
+        ChartEmptyPlaceholder(text: L10n.t("暂无数据"), height: 64, compact: true)
     }
 
     // MARK: 数据换算
@@ -437,12 +430,14 @@ struct GPUMonitorView: View {
 
     private static let hourFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = L10n.locale
         f.dateFormat = "HH:mm"
         return f
     }()
 
     private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = L10n.locale
         f.dateFormat = "MM-dd"
         return f
     }()

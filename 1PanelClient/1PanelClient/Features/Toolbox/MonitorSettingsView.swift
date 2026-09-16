@@ -307,7 +307,7 @@ private struct SwapDetailRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(detail.path)
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(.dataMonospaced)
                 Spacer()
                 Text(L10n.t("已用") + " " + MonitorSettingsView.fmt(Int64(detail.usedKB) * 1024))
                     .font(.caption)

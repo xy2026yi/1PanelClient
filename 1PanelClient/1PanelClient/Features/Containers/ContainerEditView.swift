@@ -27,7 +27,7 @@ struct ContainerUpgradeView: View {
                 TextField(L10n.t("镜像名:标签"), text: $image)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                 if image.trimmingCharacters(in: .whitespaces).isEmpty {
                     Text(L10n.t("镜像不能为空"))
                         .font(.caption)
@@ -123,14 +123,14 @@ struct ContainerEditView: View {
                             .foregroundStyle(.secondary)
                         Spacer()
                         Text(info.name)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.dataMonospacedBody)
                             .multilineTextAlignment(.trailing)
                     }
                 }
 
                 Section {
                     TextField(L10n.t("镜像名:标签"), text: $image, axis: .horizontal)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     if !vm.imageOptions.isEmpty {
@@ -170,7 +170,7 @@ struct ContainerEditView: View {
                             get: { envs[i] },
                             set: { envs[i] = $0 }
                         ), axis: .vertical)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .lineLimit(1...4)

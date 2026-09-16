@@ -372,7 +372,7 @@ struct ClamView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            IconBadge(systemName: "cross.case.fill", color: .green, size: 72, cornerRadius: 16)
+            IconBadge(systemName: "cross.case.fill", color: .green, size: 72, cornerRadius: Radius.large)
                 .opacity(0.5)
 
             VStack(spacing: 8) {
@@ -422,7 +422,7 @@ struct ClamView: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.medium, style: .continuous))
         .padding(.horizontal, 24)
     }
 
@@ -594,11 +594,7 @@ struct ClamView: View {
                 }
 
                 if vm.rules.count < vm.total || vm.isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
+                    LoadingStateView(compact: true)
                     .onAppear { Task { await vm.loadMoreRules() } }
                 }
             }

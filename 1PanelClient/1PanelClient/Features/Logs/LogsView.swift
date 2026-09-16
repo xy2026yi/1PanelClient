@@ -362,11 +362,7 @@ struct LoginLogView: View {
 
 /// 日志列表滚动到底的加载更多行（操作/访问日志共用）
 private func logLoadMoreRow(_ action: @escaping () -> Void) -> some View {
-    HStack {
-        Spacer()
-        ProgressView()
-        Spacer()
-    }
+    LoadingStateView(compact: true)
     .onAppear { action() }
 }
 
@@ -716,6 +712,7 @@ enum LogUI {
 enum LogDateFormat {
     static let display: DateFormatter = {
         let f = DateFormatter()
+        f.locale = L10n.locale
         f.dateFormat = "MM-dd HH:mm:ss"
         return f
     }()

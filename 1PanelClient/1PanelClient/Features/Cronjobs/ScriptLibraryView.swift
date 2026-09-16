@@ -356,7 +356,7 @@ struct ScriptRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: "terminal", color: .purple, size: 34, cornerRadius: 8)
+            IconBadge(systemName: "terminal", color: .purple, size: 34, cornerRadius: Radius.small)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(script.displayName)
@@ -412,7 +412,7 @@ struct ScriptDetailView: View {
             if let code = script.script, !code.isEmpty {
                 Section(L10n.t("脚本内容")) {
                     Text(code)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .textSelection(.enabled)
                 }
             }

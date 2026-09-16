@@ -497,7 +497,7 @@ struct SnapshotCreateView: View {
             Section {
                 ForEach(ignoreFiles.indices, id: \.self) { idx in
                     TextField("*.log", text: $ignoreFiles[idx])
-                        .font(.system(.footnote, design: .monospaced))
+                        .font(.dataMonospacedFootnote)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }
@@ -528,6 +528,8 @@ struct SnapshotCreateView: View {
                 .disabled(isSubmitting || selectedAccountID == nil)
             }
         }
+        // 创建快照进行中禁下拉关闭，防异步提交被误中断（与 TextInputConfirmSheet 同款防护）
+        .interactiveDismissDisabled(isSubmitting)
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {

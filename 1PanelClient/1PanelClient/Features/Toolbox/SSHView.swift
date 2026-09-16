@@ -376,7 +376,7 @@ struct SSHFullConfigView: View {
                 LoadingStateView()
             } else {
                 TextEditor(text: $configText)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
             }

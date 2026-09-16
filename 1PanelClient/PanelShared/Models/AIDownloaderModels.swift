@@ -250,7 +250,7 @@ nonisolated struct ModelRepoItem: Decodable, Identifiable, Hashable {
     /// "20.7M 下载 · 1597 赞" 用紧凑数字
     var downloadsCompact: String {
         guard let n = downloads, n > 0 else { return "-" }
-        return n.formatted(.number.notation(.compactName))
+        return n.formatted(.number.notation(.compactName).locale(L10n.locale))
     }
 }
 

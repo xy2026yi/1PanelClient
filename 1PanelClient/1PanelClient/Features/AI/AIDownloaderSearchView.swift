@@ -66,7 +66,7 @@ struct AIDownloaderSearchView: View {
                 TextField(L10n.t("仓库 ID，如 Qwen/Qwen3-0.6B"), text: $manualRepoID)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                     .onSubmit { Task { await manualDownload() } }
                 Button {
                     Task { await manualDownload() }
@@ -154,11 +154,7 @@ struct AIDownloaderSearchView: View {
                 }
 
                 if results.count < total || isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
+                    LoadingStateView(compact: true)
                     .onAppear { Task { await search(reset: false) } }
                 }
             }
@@ -356,7 +352,7 @@ struct AIDownloaderRepoDetailView: View {
                                 .foregroundStyle(.secondary)
                                 .font(.caption)
                             Text(file.name)
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.dataMonospacedCaption)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                             Spacer()
@@ -434,7 +430,7 @@ private struct ModelCardSheet: View {
         NavigationStack {
             ScrollView {
                 Text(card)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                     .textSelection(.enabled)

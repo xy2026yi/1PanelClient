@@ -34,13 +34,32 @@ nonisolated final class L10n: @unchecked Sendable {
     static let storageKey = "app.language"
     static let languageDidChangeNotification = Notification.Name("l10n.languageDidChange")
 
+    /// 语言偏好存 App Group：小组件扩展进程的 standard 与主 App 不互通，
+    /// 存共享域后 Widget 语言才能跟随 App 内选择（未签名分发无 entitlements 时
+    /// 退化为 standard，与 ServerManager 同一兜底语义）
+    private var storage: UserDefaults { AppGroup.defaults ?? .standard }
+
     private let lock = NSLock()
     private var _language: Language
     private var _enBundle: Bundle?
 
     private init() {
-        let raw = UserDefaults.standard.string(forKey: Self.storageKey)
-        _language = Language(rawValue: raw ?? "") ?? .system
+        // 一次性迁移：早期版本语言写在进程私有 standard，搬入 App Group 共享域
+        // （与 ServerManager.migrateStandardToGroupIfNeeded 同款语义）。
+        // 全程用局部变量，避免初始化完成前访问 self
+        let store: UserDefaults
+        let std = UserDefaults.standard
+        if let group = AppGroup.defaults, group !== std {
+            if group.string(forKey: Self.storageKey) == nil,
+               let old = std.string(forKey: Self.storageKey) {
+                group.set(old, forKey: Self.storageKey)
+                std.removeObject(forKey: Self.storageKey)
+            }
+            store = group
+        } else {
+            store = std
+        }
+        _language = Language(rawValue: store.string(forKey: Self.storageKey) ?? "") ?? .system
     }
 
     var language: Language {
@@ -53,7 +72,7 @@ nonisolated final class L10n: @unchecked Sendable {
         _language = new
         _enBundle = nil
         lock.unlock()
-        UserDefaults.standard.set(new.rawValue, forKey: Self.storageKey)
+        storage.set(new.rawValue, forKey: Self.storageKey)
         NotificationCenter.default.post(name: Self.languageDidChangeNotification, object: nil)
     }
 

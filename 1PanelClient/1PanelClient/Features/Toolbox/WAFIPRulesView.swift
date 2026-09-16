@@ -52,7 +52,7 @@ struct WAFIPRulesView: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(item.displayValue)
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(.dataMonospacedBody)
                                 HStack(spacing: 8) {
                                     StatusBadge(text: item.typeLabel, color: .blue)
                                     if let desc = item.description, !desc.isEmpty {

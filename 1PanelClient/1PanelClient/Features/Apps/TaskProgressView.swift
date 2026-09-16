@@ -82,7 +82,7 @@ struct TaskProgressView: View {
                     LazyVStack(alignment: .leading, spacing: 4) {
                         ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
                             Text(line)
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.dataMonospacedCaption)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .id(idx)
@@ -99,6 +99,7 @@ struct TaskProgressView: View {
                         }
                     }
                     .padding()
+                    .contentWidthLimit(860)
                 }
                 .onChange(of: lines.count) { _, _ in
                     withAnimation(Motion.standard) {

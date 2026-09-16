@@ -43,7 +43,7 @@ struct SupervisorProcessFormView: View {
                     .autocorrectionDisabled()
                     .disabled(isEditing)
                 TextField(L10n.t("启动命令"), text: $command, axis: .vertical)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                     .lineLimit(1...3)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -94,7 +94,7 @@ struct SupervisorProcessFormView: View {
 
             Section {
                 TextField(L10n.t("环境变量（KEY=value，多个用逗号分隔）"), text: $environment, axis: .vertical)
-                    .font(.system(.footnote, design: .monospaced))
+                    .font(.dataMonospacedFootnote)
                     .lineLimit(1...3)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -201,7 +201,7 @@ struct SupervisorProcessFileView: View {
                 }
             } else {
                 TextEditor(text: $content)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
             }

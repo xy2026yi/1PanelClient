@@ -89,11 +89,7 @@ struct TaskCenterView: View {
                     }
 
                     if hasMore || isLoadingMore {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
-                        }
+                        LoadingStateView(compact: true)
                         .onAppear { Task { await loadMore() } }
                     }
                 }

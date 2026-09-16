@@ -102,12 +102,12 @@ nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
         }
     }
 
-    /// 状态颜色
+    /// 状态颜色（语义令牌：见 DesignTokens.swift）
     var statusColor: Color {
         switch (status ?? "").lowercased() {
-        case "running", "normal": return .green
-        case "stopped":           return .gray
-        case "error", "failed":   return .red
+        case "running", "normal": return .statusRunning
+        case "stopped":           return .statusStopped
+        case "error", "failed":   return .statusError
         default:                  return .secondary
         }
     }

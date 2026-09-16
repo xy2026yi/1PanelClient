@@ -60,7 +60,7 @@ struct SSHAuthKeysView: View {
                             .padding(.top, 8)
                     }
                     TextEditor(text: $keysText)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }

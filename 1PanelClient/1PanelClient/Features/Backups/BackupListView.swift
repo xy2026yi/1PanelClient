@@ -884,7 +884,7 @@ private struct BackupArgsPicker: View {
                                 .padding(.top, 2)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(opt.value)
-                                    .font(.system(.callout, design: .monospaced))
+                                    .font(.dataMonospacedCallout)
                                     .foregroundStyle(.primary)
                                 Text(opt.detail)
                                     .font(.caption)

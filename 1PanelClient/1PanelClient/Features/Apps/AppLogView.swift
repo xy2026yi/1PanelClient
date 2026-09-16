@@ -129,18 +129,10 @@ struct AppLogView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button {
+            FollowLatestButton(isFollowing: isFollowing) {
                 isFollowing = true
                 scrollToBottomTrigger += 1
-            } label: {
-                Label(L10n.t("跟随最新"), systemImage: "arrow.down")
-                    .font(.caption)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(isFollowing ? Color.accentColor.opacity(0.15) : Color.clear, in: Capsule())
-                    .foregroundStyle(isFollowing ? Color.accentColor : .secondary)
             }
-            .buttonStyle(.plain)
         }
     }
 
@@ -162,7 +154,7 @@ struct AppLogView: View {
                     LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(Array(logLines.enumerated()), id: \.offset) { idx, line in
                             Text(line)
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.dataMonospacedCaption)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .id(idx)
                         }

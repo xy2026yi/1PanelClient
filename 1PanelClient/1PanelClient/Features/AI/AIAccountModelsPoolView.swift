@@ -172,7 +172,7 @@ struct AIAccountModelsPoolView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(model.id)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                     .lineLimit(1)
                 if let display = model.name, !display.isEmpty, display != model.id {
                     Text(display)
@@ -287,7 +287,7 @@ struct AIAccountModelFormView: View {
                 TextField(L10n.t("模型 ID"), text: $modelId, prompt: Text(L10n.t("如 deepseek-v4-flash")))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                     .disabled(editing != nil)
                 TextField(L10n.t("名称"), text: $modelName, prompt: Text(L10n.t("显示名称，可与模型 ID 不同")))
                     .textInputAutocapitalization(.never)

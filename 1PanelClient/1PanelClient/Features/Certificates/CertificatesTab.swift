@@ -450,7 +450,7 @@ struct CertificateDetailView: View {
         Section {
             if let content, !content.isEmpty {
                 Text(content)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .textSelection(.enabled)
             } else {
                 LoadingStateView(compact: true)
@@ -476,7 +476,7 @@ struct CertificateDetailView: View {
             } else {
                 ForEach(Array(logLines.enumerated()), id: \.offset) { _, line in
                     Text(line)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .textSelection(.enabled)
                         .listRowSeparator(.hidden)
                 }
@@ -582,14 +582,14 @@ struct UploadCertificateView: View {
             case .paste:
                 Section {
                     TextEditor(text: $privateKey)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .frame(minHeight: 120)
                 } header: { Text(L10n.t("私钥（PRIVATE KEY）")) }
                 footer: { Text(L10n.t("粘贴以 -----BEGIN PRIVATE KEY----- 开头的完整内容")) }
 
                 Section {
                     TextEditor(text: $certificate)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .frame(minHeight: 120)
                 } header: { Text(L10n.t("证书（CERTIFICATE）")) }
                 footer: { Text(L10n.t("粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容")) }

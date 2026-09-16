@@ -67,7 +67,7 @@ struct DeviceDNSSettingsView: View {
             Section {
                 TextField(L10n.t("每行一个 DNS 地址"), text: $dnsInput, axis: .vertical)
                     .lineLimit(6...12)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .keyboardType(.asciiCapable)
@@ -248,7 +248,7 @@ struct DeviceHostsSettingsView: View {
                         HStack(alignment: .firstTextBaseline) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(entry.ip)
-                                    .font(.system(.subheadline, design: .monospaced).bold())
+                                    .font(.dataMonospaced.bold())
                                 Text(entry.host)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -268,12 +268,12 @@ struct DeviceHostsSettingsView: View {
                     if addingHost {
                         VStack(spacing: 8) {
                             TextField(L10n.t("IP 地址"), text: $newHostIP)
-                                .font(.system(.body, design: .monospaced))
+                                .font(.dataMonospacedBody)
                                 .keyboardType(.asciiCapable)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
                             TextField(L10n.t("域名（可多个，空格分隔）"), text: $newHostName)
-                                .font(.system(.body, design: .monospaced))
+                                .font(.dataMonospacedBody)
                                 .keyboardType(.asciiCapable)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
@@ -588,7 +588,7 @@ struct DeviceTimezoneView: View {
                     } label: {
                         HStack {
                             Text(zone.isEmpty ? "UTC" : zone)
-                                .font(.system(.subheadline, design: .monospaced))
+                                .font(.dataMonospaced)
                                 .foregroundStyle(.primary)
                             Spacer()
                             if zone == current {

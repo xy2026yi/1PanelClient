@@ -78,7 +78,7 @@ struct ProcessView: View {
                     if monitor.mode == .processes {
                         Picker(L10n.t("排序"), selection: $sortOption) {
                             ForEach(SortOption.allCases) { opt in
-                                Text(opt.rawValue).tag(opt)
+                                Text(L10n.t(opt.rawValue)).tag(opt)
                             }
                         }
                         Divider()
@@ -128,7 +128,7 @@ struct ProcessView: View {
         Picker("", selection: $monitor.mode) {
             // 仅进程/网络：会话模式（type=ssh）由 SSH 服务管理的会话页专用，不进本页切换器
             ForEach([ProcessMonitor.MonitorMode.processes, .network]) { m in
-                Text(m.rawValue).tag(m)
+                Text(L10n.t(m.rawValue)).tag(m)
             }
         }
         .pickerStyle(.segmented)
@@ -421,7 +421,7 @@ private struct ProcessDetailView: View {
                 Section {
                     ForEach(Array(envs.prefix(Self.detailRowLimit)), id: \.self) { env in
                         Text(env)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                             .textSelection(.enabled)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -441,7 +441,7 @@ private struct ProcessDetailView: View {
                     ForEach(Array(files.prefix(Self.detailRowLimit).enumerated()), id: \.offset) { _, file in
                         HStack {
                             Text(file.path ?? "-")
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.dataMonospacedCaption)
                                 .lineLimit(1)
                                 .truncationMode(.head)
                             Spacer()

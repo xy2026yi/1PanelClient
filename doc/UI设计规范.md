@@ -53,6 +53,11 @@
 | 全屏沉浸场景（终端） | push | 维持现状 |
 | sheet 内表单 toolbar | `cancellationAction`（取消）+ `confirmationAction`（保存/创建/删除） | 禁用 `topBarLeading/topBarTrailing`、`.destructiveAction` 摆确认/取消按钮 |
 
+底部操作弹层两种形态的判据（v1.1 补）：
+
+- **纯菜单**（对某对象/区域列一组操作，无需展示对象信息）：`ActionBottomSheet`（CommonComponents）。全站默认；24+ 调用点。
+- **实体操作面板**（信息头展示实体摘要——名称/地址/规则要点 + 分组操作行，操作行可带副标题）：`FirewallActionSheet` / `ServerActionsSheet` 的解剖结构（NavigationStack + List 信息头 Section + 操作 Section + bottomSheetDetents([.medium])）。新增实体级操作场景复用该结构，不与纯菜单混用。
+
 按钮文案（表单确认位仅 3 种 + 流程特例）：
 
 - 新建 →「创建」；修改现有 →「保存」；删除 →「删除」（destructive）

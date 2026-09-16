@@ -131,7 +131,7 @@ struct CronjobLogView: View {
                 } else {
                     ForEach(Array(vm.logLines.enumerated()), id: \.offset) { _, line in
                         Text(line)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal)
                             .padding(.vertical, 2)
@@ -139,6 +139,7 @@ struct CronjobLogView: View {
                 }
             }
             .padding(.vertical, 8)
+            .contentWidthLimit(860)
         }
         .background(Color(.systemBackground))
         .navigationTitle(L10n.t("执行日志"))

@@ -425,11 +425,7 @@ struct AIDownloaderView: View {
                     }
 
                     if vm.localModels.count < vm.localTotal || vm.isLoadingMoreLocal {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
-                        }
+                        LoadingStateView(compact: true)
                         .onAppear { Task { await vm.loadMoreLocal() } }
                     }
                 }
@@ -489,11 +485,7 @@ struct AIDownloaderView: View {
                     }
 
                     if vm.tasks.count < vm.tasksTotal || vm.isLoadingMoreTasks {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
-                        }
+                        LoadingStateView(compact: true)
                         .onAppear { Task { await vm.loadMoreTasks() } }
                     }
                 }
@@ -664,7 +656,7 @@ struct AIDownloaderSettingsSheet: View {
                     TextField("/opt/1panel/ai/models", text: $modelDir)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                 } header: {
                     SectionLabel(title: L10n.t("模型目录"), systemImage: "internaldrive")
                 } footer: {
@@ -676,7 +668,7 @@ struct AIDownloaderSettingsSheet: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                     SecureField(L10n.t("令牌（可选）"), text: $hfToken)
                 } header: {
                     SectionLabel(title: "HuggingFace", systemImage: "hare")
@@ -689,7 +681,7 @@ struct AIDownloaderSettingsSheet: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                     SecureField(L10n.t("令牌（可选）"), text: $modelScopeToken)
                 } header: {
                     SectionLabel(title: "ModelScope", systemImage: "sparkles.rectangle.stack")

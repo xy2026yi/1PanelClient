@@ -64,7 +64,7 @@ struct WAFBlackWhiteView: View {
                         WAFIPGroupsView(server: server)
                     } label: {
                         HStack(spacing: 12) {
-                            IconBadge(systemName: "rectangle.3.group", color: .indigo, size: 34, cornerRadius: 8)
+                            IconBadge(systemName: "rectangle.3.group", color: .indigo, size: 34, cornerRadius: Radius.small)
                             Text(L10n.t("IP 组"))
                             Spacer()
                         }
@@ -87,7 +87,7 @@ struct WAFBlackWhiteView: View {
 
     private func ruleRow(icon: String, color: Color, title: String, item: WAFRuleItem?, scope: String) -> some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: icon, color: color, size: 34, cornerRadius: 8)
+            IconBadge(systemName: icon, color: color, size: 34, cornerRadius: Radius.small)
             Text(title)
             Spacer()
             Toggle("", isOn: Binding(

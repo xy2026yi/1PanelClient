@@ -167,11 +167,7 @@ struct AppsTab: View {
                     }
                 }
                 if vm.apps.count < vm.total || vm.isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
+                    LoadingStateView(compact: true)
                     .onAppear { Task { await vm.loadMoreApps() } }
                 }
             }
@@ -201,7 +197,7 @@ struct AppRow: View {
                     fallbackText: app.displayName
                 )
                 if isOperating {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
                         .fill(.thinMaterial)
                         .frame(width: 44, height: 44)
                     ProgressView()

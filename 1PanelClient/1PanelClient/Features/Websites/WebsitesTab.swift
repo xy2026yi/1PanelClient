@@ -396,11 +396,7 @@ struct WebsitesTab: View {
                         }
                     }
                     if !isSelecting && (vm.websites.count < vm.total || vm.isLoadingMore) {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
-                        }
+                        LoadingStateView(compact: true)
                         .onAppear { Task { await vm.loadMoreWebsites() } }
                     }
                 }
@@ -700,7 +696,7 @@ struct HTTPSLinkIcon: View {
 
     var body: some View {
         Image(systemName: "key.shield")
-            .font(.system(size: size * 0.85, weight: .medium))
+            .font(.panelScaled(size * 0.85, weight: .medium))
             .foregroundStyle(.blue)
             .frame(width: size, height: size)
     }

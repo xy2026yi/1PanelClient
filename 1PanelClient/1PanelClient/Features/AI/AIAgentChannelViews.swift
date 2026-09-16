@@ -351,11 +351,11 @@ struct WhitelistEditor: View {
                     if items != list { list = items }
                 }
             ))
-            .font(.system(.caption, design: .monospaced))
+            .font(.dataMonospacedCaption)
             .frame(minHeight: 64)
             .scrollContentBackground(.hidden)
             .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.small))
         }
     }
 }
@@ -702,6 +702,7 @@ struct AIAgentWeixinChannelView: View {
         }
         .navigationTitle(L10n.t("微信"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .task {
             enabled = initialEnabled || enabled
         }
@@ -865,7 +866,7 @@ struct AIAgentQQChannelView: View {
     var body: some View {
         Form {
             if isLoading {
-                Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                Section { LoadingStateView(compact: true) }
             } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
@@ -921,6 +922,7 @@ struct AIAgentQQChannelView: View {
         }
         .navigationTitle("QQ")
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -1274,11 +1276,11 @@ private struct AIQQBotFormSheet: View {
                         TextEditor(text: Binding(
                             get: { bot.systemPrompt ?? "" },
                             set: { bot.systemPrompt = $0 }))
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                             .frame(minHeight: 72)
                             .scrollContentBackground(.hidden)
                             .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .clipShape(RoundedRectangle(cornerRadius: Radius.small))
                     }
                 } header: {
                     SectionLabel(title: L10n.t("策略"), systemImage: "slider.horizontal.3")
@@ -1340,7 +1342,7 @@ struct AIAgentWecomChannelView: View {
     var body: some View {
         Form {
             if isLoading {
-                Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                Section { LoadingStateView(compact: true) }
             } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
@@ -1397,6 +1399,7 @@ struct AIAgentWecomChannelView: View {
         }
         .navigationTitle(L10n.t("企业微信"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -1548,7 +1551,7 @@ struct AIAgentDingtalkChannelView: View {
     var body: some View {
         Form {
             if isLoading {
-                Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                Section { LoadingStateView(compact: true) }
             } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
@@ -1620,6 +1623,7 @@ struct AIAgentDingtalkChannelView: View {
         }
         .navigationTitle(L10n.t("钉钉"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -2081,7 +2085,7 @@ struct AIAgentFeishuChannelView: View {
     var body: some View {
         Form {
             if isLoading {
-                Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                Section { LoadingStateView(compact: true) }
             } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
@@ -2173,6 +2177,7 @@ struct AIAgentFeishuChannelView: View {
         }
         .navigationTitle(L10n.t("飞书"))
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -2655,7 +2660,7 @@ struct AIAgentTelegramChannelView: View {
     var body: some View {
         Form {
             if isLoading {
-                Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                Section { LoadingStateView(compact: true) }
             } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
@@ -2736,6 +2741,7 @@ struct AIAgentTelegramChannelView: View {
         }
         .navigationTitle("Telegram")
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -3217,7 +3223,7 @@ struct AIAgentDiscordChannelView: View {
     var body: some View {
         Form {
             if isLoading {
-                Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                Section { LoadingStateView(compact: true) }
             } else if loadError != nil {
                 Section {
                     LoadErrorStateView(message: loadError ?? "") {
@@ -3283,6 +3289,7 @@ struct AIAgentDiscordChannelView: View {
         }
         .navigationTitle("Discord")
         .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

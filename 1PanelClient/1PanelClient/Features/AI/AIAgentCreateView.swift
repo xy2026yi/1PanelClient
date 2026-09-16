@@ -249,7 +249,7 @@ struct AIAgentCreateView: View {
 
             LabeledContent("Base URL") {
                 Text(selectedAccount?.baseUrl ?? "-")
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .foregroundStyle(.secondary)
             }
         } header: {
@@ -277,13 +277,13 @@ struct AIAgentCreateView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
 
                 HStack {
                     Text("Token").foregroundStyle(.secondary)
                     Spacer()
                     Text(token)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -386,7 +386,7 @@ struct AIAgentCreateView: View {
     private var composeSection: some View {
         Section {
             TextEditor(text: $customCompose)
-                .font(.system(.caption, design: .monospaced))
+                .font(.dataMonospacedCaption)
                 .frame(minHeight: 200)
         } header: {
             Text("docker-compose.yml")

@@ -70,6 +70,7 @@ struct LicenseItem: Decodable, Identifiable {
     /// formatter 静态缓存：原先每行渲染新建 DateFormatter，列表长时开销显著
     private static let syncDateFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = L10n.locale
         f.dateFormat = "yyyy-MM-dd HH:mm"
         return f
     }()
@@ -263,11 +264,7 @@ struct LicenseView: View {
                         }
                 }
                 if items.count < total || isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
+                    LoadingStateView(compact: true)
                     .onAppear { Task { await loadMore() } }
                 }
             } header: {
@@ -462,7 +459,7 @@ private struct LicenseRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Text(item.licenseName ?? "—")
-                    .font(.system(.body, design: .monospaced).bold())
+                    .font(.dataMonospacedBody.bold())
                     .lineLimit(1)
                 Spacer()
                 StatusBadge(

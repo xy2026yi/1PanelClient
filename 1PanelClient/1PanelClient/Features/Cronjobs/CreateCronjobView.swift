@@ -225,11 +225,11 @@ struct CreateCronjobView: View {
                 ForEach(Array(previewResults.enumerated()), id: \.offset) { _, result in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(result.spec)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                             .foregroundStyle(.secondary)
                         ForEach(result.times, id: \.self) { time in
                             Text(time)
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.dataMonospacedCaption)
                         }
                     }
                 }
@@ -255,7 +255,7 @@ struct CreateCronjobView: View {
                             .foregroundStyle(Color.accentColor)
                     }
                     TextEditor(text: $script)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .frame(minHeight: 160)
                 } header: { Text(L10n.t("脚本内容")) }
 
@@ -499,7 +499,7 @@ struct CreateCronjobView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text(item.wrappedValue.cronSpec)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -740,7 +740,7 @@ struct BackupParamsPickerView: View {
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(opt.value)
-                                        .font(.system(.callout, design: .monospaced))
+                                        .font(.dataMonospacedCallout)
                                         .foregroundStyle(.primary)
                                     Text(opt.detail)
                                         .font(.caption)

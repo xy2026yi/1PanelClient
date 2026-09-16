@@ -132,7 +132,7 @@ struct CARow: View {
             IconBadge(
                 systemName: "checkmark.seal",
                 color: .purple,
-                cornerRadius: 12
+                cornerRadius: Radius.medium
             )
 
             VStack(alignment: .leading, spacing: 3) {
@@ -254,7 +254,7 @@ struct CADetailView: View {
         Section {
             if let content, !content.isEmpty {
                 Text(content)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .textSelection(.enabled)
             } else {
                 LoadingStateView(compact: true)

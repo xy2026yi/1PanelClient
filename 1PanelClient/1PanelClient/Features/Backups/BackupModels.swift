@@ -75,9 +75,9 @@ nonisolated struct BackupRecord: Decodable, Identifiable, Equatable {
 
     var statusColor: Color {
         switch (status ?? "").lowercased() {
-        case "success": return .green
-        case "failed":  return .red
-        default:        return .orange
+        case "success": return .statusRunning
+        case "failed":  return .statusError
+        default:        return .semanticWarning
         }
     }
 }

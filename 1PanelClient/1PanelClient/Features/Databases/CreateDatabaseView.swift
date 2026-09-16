@@ -405,7 +405,7 @@ struct CreateDatabaseView: View {
                             .lineLimit(2...4)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.dataMonospacedBody)
                     }
                 }
             }
@@ -536,7 +536,7 @@ struct CreateDatabaseUserView: View {
                         .lineLimit(2...4)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                 }
             }
 
@@ -854,7 +854,7 @@ struct DatabaseUserDetailView: View {
                 ForEach(vm.grantedDatabases, id: \.self) { dbName in
                     HStack {
                         Text(dbName)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.dataMonospacedBody)
                         Spacer()
                         Button {
                             Task { await vm.removeGrant(db: dbName) }
@@ -944,7 +944,7 @@ struct EditUserPermissionSheet: View {
                         TextField(L10n.t("IP 地址"), text: $permissionIPs)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
-                            .font(.system(.body, design: .monospaced))
+                            .font(.dataMonospacedBody)
                     }
                 }
                 Section(L10n.t("描述")) {

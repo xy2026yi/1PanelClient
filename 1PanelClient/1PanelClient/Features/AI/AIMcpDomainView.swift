@@ -67,7 +67,7 @@ struct DomainBindFormView: View {
                     .disabled(isBound)
 
                 TextEditor(text: $ipList)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .frame(minHeight: 72)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()

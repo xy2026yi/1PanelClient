@@ -175,7 +175,7 @@ struct OpenRestyPerformanceView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(field.key)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                 Spacer()
@@ -650,7 +650,7 @@ struct OpenRestyBuildSheet: View {
                                 .tag(m)
                         }
                     }
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
 
                     Toggle(L10n.t("忽略缓存重新构建"), isOn: $force)
                 } header: {
@@ -666,7 +666,7 @@ struct OpenRestyBuildSheet: View {
                                 .foregroundStyle(module.isDynamic ? Color.indigo : Color.secondary)
                                 .font(.caption)
                             Text(module.name)
-                                .font(.system(.body, design: .monospaced))
+                                .font(.dataMonospacedBody)
                             Spacer()
                         }
                     }

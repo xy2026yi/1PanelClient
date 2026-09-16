@@ -993,11 +993,7 @@ struct DatabaseSystemView: View {
                 .frame(maxWidth: .infinity)
             }
             if vm.databases.count < vm.dbTotal || vm.isLoadingMore {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
+                LoadingStateView(compact: true)
                 .onAppear { Task { await vm.loadMoreDatabases() } }
             }
         } header: {
@@ -1127,7 +1123,7 @@ struct DatabaseUserRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(user.displayName)
-                    .font(.system(.body, design: .monospaced).bold())
+                    .font(.dataMonospacedBody.bold())
                 if let host = user.host, host == "%" {
                     StatusBadge(text: L10n.t("远程"), color: .blue, icon: "network")
                 } else {
@@ -1166,7 +1162,7 @@ struct DatabaseItemRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(db.name ?? "-")
-                    .font(.system(.body, design: .monospaced).bold())
+                    .font(.dataMonospacedBody.bold())
                 // MongoDB 无 permission 字段，不显示本机/远程徽标
                 if !db.isMongoDB {
                     if let perm = db.permission, perm == "%" || perm.isEmpty {
@@ -1211,7 +1207,7 @@ struct ChangePasswordSheet: View {
                     Section(L10n.t("当前密码")) {
                         HStack {
                             Text(showCurrent ? cur : String(repeating: "•", count: min(cur.count, 12)))
-                                .font(.system(.body, design: .monospaced))
+                                .font(.dataMonospacedBody)
                             Spacer()
                             Button { showCurrent.toggle() } label: {
                                 Image(systemName: showCurrent ? "eye.slash" : "eye")
@@ -1233,7 +1229,7 @@ struct ChangePasswordSheet: View {
                         }
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
 
                         Button { showNew.toggle() } label: {
                             Image(systemName: showNew ? "eye.slash" : "eye")
@@ -1324,7 +1320,7 @@ struct RedisPasswordSheet: View {
                 Section(L10n.t("当前密码")) {
                     HStack {
                         Text(showCurrent ? cur : String(repeating: "•", count: min(cur.count, 12)))
-                            .font(.system(.body, design: .monospaced))
+                            .font(.dataMonospacedBody)
                         Spacer()
                         Button { showCurrent.toggle() } label: {
                             Image(systemName: showCurrent ? "eye.slash" : "eye")
@@ -1340,7 +1336,7 @@ struct RedisPasswordSheet: View {
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.dataMonospacedBody)
                 Button {
                     newPassword = randomPassword()
                 } label: {

@@ -141,7 +141,7 @@ struct AIAgentHermesChatView: View {
                 HStack(spacing: 6) {
                     if let model = session.model, !model.isEmpty {
                         Text(model)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                     }
                     if let count = session.messageCount {
                         Text(L10n.f("%ld 条消息", count))
@@ -267,6 +267,7 @@ private enum SessionTime {
 
     static let display: DateFormatter = {
         let f = DateFormatter()
+        f.locale = L10n.locale
         f.dateFormat = "yyyy-MM-dd HH:mm"
         return f
     }()

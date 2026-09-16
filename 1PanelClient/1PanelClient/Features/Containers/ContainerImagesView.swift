@@ -166,7 +166,7 @@ struct ImageRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: "square.stack.3d.up.fill", color: .teal, size: 34, cornerRadius: 8)
+            IconBadge(systemName: "square.stack.3d.up.fill", color: .teal, size: 34, cornerRadius: Radius.small)
             VStack(alignment: .leading, spacing: 3) {
                 Text(image.displayName)
                     .font(.subheadline.bold())
@@ -236,7 +236,7 @@ struct PullImageView: View {
                         Image(systemName: "square.stack.3d.up")
                             .foregroundStyle(.teal)
                         Text(imageNames[idx])
-                            .font(.system(.subheadline, design: .monospaced))
+                            .font(.dataMonospaced)
                         Spacer()
                         Button {
                             imageNames.remove(at: idx)
@@ -419,11 +419,11 @@ struct ImagePruneSelectView: View {
                                 HStack {
                                     if let tag = img.tags?.first, !tag.isEmpty {
                                         Text(tag)
-                                            .font(.system(.subheadline, design: .monospaced))
+                                            .font(.dataMonospaced)
                                     } else {
                                         // 无 tag 镜像显示 ID 前 12 位（如 8541484afbc9）
                                         Text(img.displayName)
-                                            .font(.system(.subheadline, design: .monospaced))
+                                            .font(.dataMonospaced)
                                     }
                                     Spacer()
                                     Text(img.sizeDisplay)

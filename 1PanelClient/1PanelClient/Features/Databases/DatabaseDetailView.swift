@@ -470,7 +470,7 @@ struct ChangeAccessSheet: View {
                             .lineLimit(2...4)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.dataMonospacedBody)
                         Text(L10n.t("多个 IP 用逗号分隔，如 192.168.1.100, 10.0.0.5"))
                             .font(.caption)
                             .foregroundStyle(.secondary)

@@ -74,7 +74,7 @@ struct ContainerCreateView: View {
                     TextField(L10n.t("如 nginx:latest"), text: $draft.image)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .font(.system(.body, design: .monospaced))
+                        .font(.dataMonospacedBody)
                 }
                 if !vm.imageOptions.isEmpty {
                     Menu {
@@ -180,12 +180,12 @@ struct ContainerCreateView: View {
                 TextField(L10n.t("主机目录"), text: vol.sourceDir)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.left").font(.caption).foregroundStyle(.secondary)
                 TextField(L10n.t("容器目录"), text: vol.containerDir)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
             }
             HStack {
                 Picker(L10n.t("模式"), selection: vol.mode) {
@@ -207,7 +207,7 @@ struct ContainerCreateView: View {
             ForEach(draft.env.indices, id: \.self) { idx in
                 HStack {
                     Text(draft.env[idx])
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.dataMonospacedCaption)
                         .lineLimit(1)
                     Spacer()
                 }
@@ -217,7 +217,7 @@ struct ContainerCreateView: View {
                 TextField("KEY=VALUE", text: $newEnvText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                 Button {
                     let t = newEnvText.trimmingCharacters(in: .whitespaces)
                     guard !t.isEmpty else { return }

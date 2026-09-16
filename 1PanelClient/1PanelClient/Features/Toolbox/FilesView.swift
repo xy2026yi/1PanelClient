@@ -1466,7 +1466,7 @@ struct FileDeleteConfirmSheet: View {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.name)
-                            .font(.system(.headline, design: .monospaced))
+                            .font(.dataMonospacedHeadline)
                             .lineLimit(2)
                         Text(item.isDir ? L10n.t("文件夹") : L10n.t("文件"))
                             .font(.caption)

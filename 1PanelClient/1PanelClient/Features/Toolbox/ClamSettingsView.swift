@@ -96,7 +96,7 @@ struct ClamConfigEditView: View {
                 }
             } else {
                 TextEditor(text: $configText)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
             }

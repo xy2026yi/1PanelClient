@@ -132,7 +132,7 @@ struct QuickCommandRow: View {
                     }
                 }
                 Text(command.command ?? "")
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
@@ -193,7 +193,7 @@ struct QuickCommandEditView: View {
 
                 Section {
                     TextEditor(text: $commandText)
-                        .font(.system(.footnote, design: .monospaced))
+                        .font(.dataMonospacedFootnote)
                         .frame(minHeight: 100)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)

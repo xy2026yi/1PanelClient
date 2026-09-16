@@ -56,7 +56,7 @@ struct CronjobDetailView: View {
                 if let script = currentJob.script, !script.isEmpty {
                     Section {
                         Text(script)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                             .textSelection(.enabled)
                     } header: { Text(L10n.t("脚本内容")) }
                 }

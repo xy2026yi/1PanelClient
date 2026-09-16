@@ -500,7 +500,7 @@ struct BackupAccountRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: typeIcon.name, color: typeIcon.color, cornerRadius: 12)
+            IconBadge(systemName: typeIcon.name, color: typeIcon.color, cornerRadius: Radius.medium)
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {

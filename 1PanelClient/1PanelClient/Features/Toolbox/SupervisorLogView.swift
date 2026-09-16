@@ -227,7 +227,7 @@ struct SupervisorConfigEditView: View {
                 }
             } else {
                 TextEditor(text: $content)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.dataMonospacedCaption)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
             }

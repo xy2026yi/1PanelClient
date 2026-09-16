@@ -381,12 +381,14 @@ struct MonitorView: View {
 
     private static let hourFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = L10n.locale
         f.dateFormat = "HH:mm"
         return f
     }()
 
     private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = L10n.locale
         f.dateFormat = "MM-dd"
         return f
     }()
@@ -400,19 +402,7 @@ struct MonitorView: View {
 
     /// 图表空数据占位：与图表同高，避免空白坐标轴让用户误以为图表坏了
     private func chartPlaceholder(hint: String? = nil) -> some View {
-        VStack(spacing: 6) {
-            Text(L10n.t("暂无监控数据"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            if let hint {
-                Text(hint)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 160)
+        ChartEmptyPlaceholder(hint: hint)
     }
 
     /// 负载列：上方标签、下方数值（不加粗）
@@ -872,11 +862,7 @@ struct MonitorHistoryChart: View {
         let m = Model(points: points, styles: styles,
                       fixedYDomain: fixedYDomain, fixedDecimals: fixedDecimals)
         if m.dates.count < 2 {
-            Text(L10n.t("暂无监控数据"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
-                .frame(height: height)
+            ChartEmptyPlaceholder(height: height)
         } else {
             VStack(spacing: 2) {
                 chart(m)
@@ -1102,7 +1088,7 @@ struct MonitorHistoryChart: View {
         .font(.caption2)
         .padding(.vertical, 4)
         .padding(.horizontal, 6)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.small))
         .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
     }
 

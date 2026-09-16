@@ -245,7 +245,7 @@ struct AlertEditView: View {
     private var whitelistSection: some View {
         Section {
             TextEditor(text: $whitelist)
-                .font(.system(.footnote, design: .monospaced))
+                .font(.dataMonospacedFootnote)
                 .frame(minHeight: 88)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)

@@ -542,7 +542,7 @@ struct ContainerLogView: View {
                     }
                     ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
                         Text(line)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
@@ -557,6 +557,7 @@ struct ContainerLogView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
+                .contentWidthLimit(860)
             }
             .background(Color(.secondarySystemBackground))
             // 进入页面即定位到底部（最新日志），内容增长时保持贴底

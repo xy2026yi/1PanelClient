@@ -212,7 +212,7 @@ struct AppStoreDetailView: View {
                             fallbackIcon: "app.dashed",
                             fallbackColor: .accentColor,
                             size: 56,
-                            cornerRadius: 12
+                            cornerRadius: Radius.medium
                         )
                         VStack(alignment: .leading) {
                             Text(detail.name ?? "")
@@ -330,12 +330,12 @@ struct AppInstallView: View {
     @State private var editCompose = false
     @State private var customCompose = ""
 
-    // 安装结果（进度视图）
+    // 安装结果（进度视图）；成功路径走任务进度页 + installCompleted 通知，
+    // 此 alert 仅承载提交失败
     @State private var showProgress = false
     @State private var installTaskID = ""
     @State private var showResultAlert = false
     @State private var resultMessage = ""
-    @State private var installSuccess = false
 
     private let restartPolicies = ["no", "always", "on-failure", "unless-stopped"]
     private let memoryUnits = ["M", "G"]
@@ -397,11 +397,7 @@ struct AppInstallView: View {
             )
         }
         .alert(L10n.t("提示"), isPresented: $showResultAlert) {
-            Button(L10n.t("好的"), role: .cancel) {
-                if installSuccess {
-                    vm.showInstall = false
-                }
-            }
+            Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(resultMessage)
         }
@@ -545,7 +541,7 @@ struct AppInstallView: View {
                 if editCompose {
                     Section {
                         TextEditor(text: $customCompose)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.dataMonospacedCaption)
                             .frame(minHeight: 200)
                     } header: {
                         Text("docker-compose.yml")
@@ -710,11 +706,9 @@ struct AppInstallView: View {
             installTaskID = taskID
             showProgress = true
         } catch let err as APIError {
-            installSuccess = false
             resultMessage = L10n.f("安装失败：%@", err.errorDescription ?? L10n.t("未知错误"))
             showResultAlert = true
         } catch {
-            installSuccess = false
             resultMessage = L10n.f("安装失败：%@", error.localizedDescription)
             showResultAlert = true
         }

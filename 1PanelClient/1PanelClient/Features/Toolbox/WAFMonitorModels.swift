@@ -104,6 +104,7 @@ enum WAFTime {
     }()
     private static let output: DateFormatter = {
         let f = DateFormatter()
+        f.locale = L10n.locale
         f.dateFormat = "MM-dd HH:mm:ss"
         return f
     }()

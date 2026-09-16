@@ -252,7 +252,7 @@ struct MainTabView: View {
             .padding(.vertical, 11)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 8)
+                    RoundedRectangle(cornerRadius: Radius.small)
                         .fill(Color.accentColor.opacity(0.12))
                 }
             }
@@ -313,7 +313,7 @@ struct MainTabView: View {
                 .frame(width: 40, height: 40)
                 .background {
                     if isSelected {
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: Radius.small)
                             .fill(Color.accentColor.opacity(0.12))
                     }
                 }

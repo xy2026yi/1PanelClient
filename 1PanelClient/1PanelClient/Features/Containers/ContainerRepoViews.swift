@@ -312,7 +312,7 @@ struct RepoRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: "shippingbox.fill", color: .indigo, size: 34, cornerRadius: 8)
+            IconBadge(systemName: "shippingbox.fill", color: .indigo, size: 34, cornerRadius: Radius.small)
             VStack(alignment: .leading, spacing: 3) {
                 Text(repo.name ?? L10n.t("未知"))
                     .font(.subheadline.bold())
