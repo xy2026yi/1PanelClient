@@ -1215,6 +1215,17 @@ struct FirewallView: View {
     /// 后 isBind 变 true（2026-09-16 补充抓包）——按钮判定用 isBind 而非 isInit
     private var isForwardUnbound: Bool { isIPTables && vm.forwardBase?.isBind != true }
 
+    /// 当前段的初始化/未绑定状态是否需要常驻显示状态按钮行（不藏进展开态）。
+    /// 网页核对：端口转发无绑定与白名单按钮、链规则无顶部按钮（2026-09-16）
+    private var pinsStatusActions: Bool {
+        guard isIPTables else { return false }
+        switch segment {
+        case 1: return isForwardUnbound
+        case 3: return false
+        default: return isBaseUninitialized
+        }
+    }
+
     /// iptables 未初始化提示（网页端原文；转发段另附独立初始化按钮）
     private var uninitializedHint: some View {
         Section {
@@ -1373,30 +1384,18 @@ struct FirewallView: View {
                     }
                     .padding(.vertical, 2)
 
-                    // 展开后显示：ufw → 关闭/开启 + 重启 + 端口白名单；
-                    // iptables 不允许 启停/重启（2026-09-16 反馈确认，两钮隐藏），
-                    // 换成 初始化（未初始化）或 1PANEL_BASIC 绑定/解除绑定。
-                    // iptables 基础未初始化或转发未绑定时按钮行常驻显示，
-                    // 不藏进展开态——与网页端「顶部状态栏初始化按钮」一致
-                    if statusExpanded || isBaseUninitialized || isForwardUnbound {
+                    // 展开后显示（按段区分，2026-09-16 网页核对）：
+                    // ufw → 关闭/开启 + 重启 + 端口白名单（各段一致）；
+                    // iptables 端口/IP 规则 → 初始化（未初始化）或 1PANEL_BASIC
+                    //   绑定/解除绑定 + 端口白名单；
+                    // iptables 端口转发 → 仅 初始化端口转发（未绑定时），无绑定与白名单；
+                    // iptables 链规则 → 无顶部按钮（初始化与绑定入口在段内）。
+                    // 未初始化/未绑定时按钮行常驻显示，不藏进展开态
+                    if statusExpanded || pinsStatusActions {
                         HStack(spacing: 8) {
                             if isIPTables {
-                                if base.isInit != true {
-                                    firewallActionButton(
-                                        title: L10n.t("初始化"),
-                                        icon: "wand.and.stars",
-                                        color: .green
-                                    ) {
-                                        pendingBaseOp = "init-base"
-                                    }
-                                } else {
-                                    firewallActionButton(
-                                        title: (base.isBind ?? false) ? L10n.t("解除绑定") : L10n.t("绑定"),
-                                        icon: (base.isBind ?? false) ? "link.badge.plus" : "link",
-                                        color: (base.isBind ?? false) ? .orange : .green
-                                    ) {
-                                        pendingBaseOp = (base.isBind ?? false) ? "unbind-base" : "bind-base"
-                                    }
+                                switch segment {
+                                case 1:
                                     // 端口转发初始化按钮按 isBind 判定（网页端口径，
                                     // init-forward 后 isBind:true 即隐藏）
                                     if isForwardUnbound {
@@ -1407,6 +1406,33 @@ struct FirewallView: View {
                                         ) {
                                             pendingBaseOp = "init-forward"
                                         }
+                                    }
+                                case 3:
+                                    EmptyView()
+                                default:
+                                    if base.isInit != true {
+                                        firewallActionButton(
+                                            title: L10n.t("初始化"),
+                                            icon: "wand.and.stars",
+                                            color: .green
+                                        ) {
+                                            pendingBaseOp = "init-base"
+                                        }
+                                    } else {
+                                        firewallActionButton(
+                                            title: (base.isBind ?? false) ? L10n.t("解除绑定") : L10n.t("绑定"),
+                                            icon: (base.isBind ?? false) ? "link.badge.plus" : "link",
+                                            color: (base.isBind ?? false) ? .orange : .green
+                                        ) {
+                                            pendingBaseOp = (base.isBind ?? false) ? "unbind-base" : "bind-base"
+                                        }
+                                    }
+                                    firewallActionButton(
+                                        title: L10n.t("端口白名单"),
+                                        icon: "checkmark.shield",
+                                        color: .blue
+                                    ) {
+                                        showWhitelist = true
                                     }
                                 }
                             } else {
@@ -1424,13 +1450,13 @@ struct FirewallView: View {
                                 ) {
                                     pendingUFWOp = "restart"
                                 }
-                            }
-                            firewallActionButton(
-                                title: L10n.t("端口白名单"),
-                                icon: "checkmark.shield",
-                                color: .blue
-                            ) {
-                                showWhitelist = true
+                                firewallActionButton(
+                                    title: L10n.t("端口白名单"),
+                                    icon: "checkmark.shield",
+                                    color: .blue
+                                ) {
+                                    showWhitelist = true
+                                }
                             }
                         }
                         .padding(.top, 2)
