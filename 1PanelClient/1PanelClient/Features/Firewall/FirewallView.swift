@@ -794,7 +794,10 @@ struct FirewallView: View {
         .refreshable {
             switch segment {
             case 0: await vm.loadRules()
-            case 1: await vm.loadForwards()
+            case 1:
+                // iptables 转发有独立初始化状态：下拉一并重查（网页端初始化后同步解除门控）
+                if isIPTables { await vm.loadForwardBase() }
+                await vm.loadForwards()
             case 3: await vm.loadChainPage(chain: currentChain)
             default: await vm.loadAddresses()
             }
@@ -1355,8 +1358,10 @@ struct FirewallView: View {
 
                     // 展开后显示：ufw → 关闭/开启 + 重启 + 端口白名单；
                     // iptables 不允许 启停/重启（2026-09-16 反馈确认，两钮隐藏），
-                    // 换成 初始化（未初始化）或 1PANEL_BASIC 绑定/解除绑定
-                    if statusExpanded {
+                    // 换成 初始化（未初始化）或 1PANEL_BASIC 绑定/解除绑定。
+                    // iptables 未初始化（基础或端口转发）时按钮行常驻显示，
+                    // 不藏进展开态——提示文案指向「顶部状态栏的初始化按钮」
+                    if statusExpanded || isBaseUninitialized || isForwardUninitialized {
                         HStack(spacing: 8) {
                             if isIPTables {
                                 if base.isInit != true {
@@ -1374,6 +1379,17 @@ struct FirewallView: View {
                                         color: (base.isBind ?? false) ? .orange : .green
                                     ) {
                                         pendingBaseOp = (base.isBind ?? false) ? "unbind-base" : "bind-base"
+                                    }
+                                    // 端口转发独立初始化（init-forward）：基础已初始化
+                                    // 而转发未初始化时在顶部一并给出入口
+                                    if isForwardUninitialized {
+                                        firewallActionButton(
+                                            title: L10n.t("初始化端口转发"),
+                                            icon: "arrow.uturn.right",
+                                            color: .blue
+                                        ) {
+                                            pendingBaseOp = "init-forward"
+                                        }
                                     }
                                 }
                             } else {
