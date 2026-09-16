@@ -69,6 +69,11 @@ final class FirewallViewModel: ObservableObject {
         async let addresses: () = loadAddresses()
         async let filterBase: () = loadFilterBase()
         _ = await (base, rules, forwards, addresses, filterBase)
+        // iptables 后端：端口转发有独立初始化状态（base name=forward，
+        // 抓包：init-base 不覆盖转发），base 返回后补查
+        if self.base?.name == "iptables" {
+            await loadForwardBase()
+        }
         isLoading = false
         // 辅助数据（监听进程名/网口选项）静默补齐，行内稍后出现，失败无感
         async let listening: () = loadListening()
@@ -88,6 +93,46 @@ final class FirewallViewModel: ObservableObject {
             self.errorMessage = nil
         } catch {
             // 页面退出取消不是失败：保留原状态
+            guard !APIError.isCancellation(error) else { return }
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 端口转发的独立初始化状态（iptables 后端 base {name:"forward"}；ufw 无此概念）
+    @Published var forwardBase: FirewallBase?
+
+    func loadForwardBase() async {
+        struct ForwardReq: Encodable { let name: String }
+        do {
+            forwardBase = try await client.send(
+                path: APIEndpoint.firewallBase.path,
+                body: ForwardReq(name: "forward"),
+                as: FirewallBase.self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// iptables 基础链操作（filter/operate，可选增加-3 抓包）：
+    /// init-base（端口 + IP 共用，抓包：初始化端口规则后 IP 规则无需再初始化）、
+    /// init-forward（端口转发独立）、bind-base / unbind-base（name=1PANEL_BASIC）
+    func operateFilterBase(_ operate: String, name: String = "1PANEL_INPUT") async {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallFilterOperate.path,
+                body: FirewallFilterOperateRequest(name: name, operate: operate),
+                as: EmptyResponse.self
+            )
+            if operate == "init-forward" {
+                await loadForwardBase()
+            } else {
+                await loadBase()
+            }
+        } catch {
             guard !APIError.isCancellation(error) else { return }
             self.errorMessage = error.localizedDescription
         }
@@ -707,6 +752,8 @@ struct FirewallView: View {
     @State private var pendingDeleteChainRule: FirewallChainRule?
     /// 待确认的链操作（init-advance / bind / unbind）
     @State private var pendingChainOp: String?
+    /// 待确认的 iptables 基础链操作（init-base / init-forward / bind-base / unbind-base）
+    @State private var pendingBaseOp: String?
     /// 白名单页需要独立建 APIClient（settings 接口与防火墙接口分离）
     private let server: ServerConfig
 
@@ -792,7 +839,9 @@ struct FirewallView: View {
                     Image(systemName: "plus")
                 }
                 .disabled(vm.base?.isExist != true
-                          || (segment == 3 && vm.filterBase?.isInit != true))
+                          || (segment == 3 && vm.filterBase?.isInit != true)
+                          || (segment == 1 && isForwardUninitialized)
+                          || (segment != 1 && segment != 3 && isBaseUninitialized))
                 .accessibilityLabel(segment == 1 ? L10n.t("添加端口转发") : segment == 2 ? L10n.t("添加 IP 规则") : segment == 3 ? L10n.t("添加链规则") : L10n.t("添加规则"))
             }
         }
@@ -949,7 +998,8 @@ struct FirewallView: View {
             currentChain: currentChain,
             showAddChainRule: $showAddChainRule,
             pendingDeleteChainRule: $pendingDeleteChainRule,
-            pendingChainOp: $pendingChainOp)
+            pendingChainOp: $pendingChainOp,
+            pendingBaseOp: $pendingBaseOp)
         )
         .alert(
             pendingUFWOp.map { opTitle($0) } ?? "",
@@ -974,10 +1024,12 @@ struct FirewallView: View {
 
     // MARK: - 段内容
 
-    /// 段 0：端口规则（原有逻辑）
+    /// 段 0：端口规则（原有逻辑；iptables 未初始化时整段替换为初始化提示）
     @ViewBuilder
     private var portRulesSection: some View {
-        if vm.rules.isEmpty {
+        if isBaseUninitialized {
+            uninitializedHint
+        } else if vm.rules.isEmpty {
             if vm.isLoading {
                 EmptyView()
             } else {
@@ -1021,10 +1073,20 @@ struct FirewallView: View {
         }
     }
 
-    /// 段 1：端口转发
+    /// 段 1：端口转发（iptables 后端有独立初始化状态，抓包：init-forward）
     @ViewBuilder
     private var forwardSection: some View {
-        if vm.forwards.isEmpty {
+        if isForwardUninitialized {
+            uninitializedHint
+            Section {
+                Button {
+                    pendingBaseOp = "init-forward"
+                } label: {
+                    Label(L10n.t("初始化端口转发"), systemImage: "wand.and.stars")
+                }
+                .disabled(vm.isOperating)
+            }
+        } else if vm.forwards.isEmpty {
             if vm.isLoading {
                 EmptyView()
             } else {
@@ -1065,10 +1127,12 @@ struct FirewallView: View {
         }
     }
 
-    /// 段 2：IP 规则
+    /// 段 2：IP 规则（iptables 与端口规则共用 init-base，抓包：初始化端口后无需再初始化）
     @ViewBuilder
     private var addressSection: some View {
-        if vm.addresses.isEmpty {
+        if isBaseUninitialized {
+            uninitializedHint
+        } else if vm.addresses.isEmpty {
             if vm.isLoading {
                 EmptyView()
             } else {
@@ -1121,6 +1185,27 @@ struct FirewallView: View {
 
     /// 是否 iptables 后端（name=advance 查询返回 iptables 才有链规则段）
     private var isIPTablesBackend: Bool { vm.filterBase?.name == "iptables" }
+
+    /// 是否 iptables 后端（base name=base 直接可判；控制启停按钮与初始化门控）
+    private var isIPTables: Bool { vm.base?.name == "iptables" }
+
+    /// iptables 端口/IP 规则是否未初始化（共用 init-base，抓包确认）
+    private var isBaseUninitialized: Bool { isIPTables && vm.base?.isInit != true }
+
+    /// iptables 端口转发是否未初始化（独立 init-forward，抓包确认）
+    private var isForwardUninitialized: Bool { isIPTables && vm.forwardBase?.isInit != true }
+
+    /// iptables 未初始化提示（网页端原文；转发段另附独立初始化按钮）
+    private var uninitializedHint: some View {
+        Section {
+            ContentUnavailableView(
+                L10n.t("未初始化"),
+                systemImage: "exclamationmark.shield",
+                description: Text(L10n.t("检测到 iptables 服务 未初始化，请点击顶部状态栏的初始化按钮进行配置！"))
+            )
+            .listRowBackground(Color.clear)
+        }
+    }
 
     /// 当前链名：0=入站 1=出站
     private var currentChain: String {
@@ -1268,22 +1353,44 @@ struct FirewallView: View {
                     }
                     .padding(.vertical, 2)
 
-                    // 展开后显示：关闭/开启 + 重启 + 端口白名单
+                    // 展开后显示：ufw → 关闭/开启 + 重启 + 端口白名单；
+                    // iptables 不允许 启停/重启（2026-09-16 反馈确认，两钮隐藏），
+                    // 换成 初始化（未初始化）或 1PANEL_BASIC 绑定/解除绑定
                     if statusExpanded {
                         HStack(spacing: 8) {
-                            firewallActionButton(
-                                title: (base.isActive ?? false) ? L10n.t("关闭") : L10n.t("开启"),
-                                icon: (base.isActive ?? false) ? "stop.fill" : "play.fill",
-                                color: (base.isActive ?? false) ? .red : .green
-                            ) {
-                                pendingUFWOp = (base.isActive ?? false) ? "stop" : "start"
-                            }
-                            firewallActionButton(
-                                title: L10n.t("重启"),
-                                icon: "arrow.triangle.2.circlepath",
-                                color: .orange
-                            ) {
-                                pendingUFWOp = "restart"
+                            if isIPTables {
+                                if base.isInit != true {
+                                    firewallActionButton(
+                                        title: L10n.t("初始化"),
+                                        icon: "wand.and.stars",
+                                        color: .green
+                                    ) {
+                                        pendingBaseOp = "init-base"
+                                    }
+                                } else {
+                                    firewallActionButton(
+                                        title: (base.isBind ?? false) ? L10n.t("解除绑定") : L10n.t("绑定"),
+                                        icon: (base.isBind ?? false) ? "link.badge.plus" : "link",
+                                        color: (base.isBind ?? false) ? .orange : .green
+                                    ) {
+                                        pendingBaseOp = (base.isBind ?? false) ? "unbind-base" : "bind-base"
+                                    }
+                                }
+                            } else {
+                                firewallActionButton(
+                                    title: (base.isActive ?? false) ? L10n.t("关闭") : L10n.t("开启"),
+                                    icon: (base.isActive ?? false) ? "stop.fill" : "play.fill",
+                                    color: (base.isActive ?? false) ? .red : .green
+                                ) {
+                                    pendingUFWOp = (base.isActive ?? false) ? "stop" : "start"
+                                }
+                                firewallActionButton(
+                                    title: L10n.t("重启"),
+                                    icon: "arrow.triangle.2.circlepath",
+                                    color: .orange
+                                ) {
+                                    pendingUFWOp = "restart"
+                                }
                             }
                             firewallActionButton(
                                 title: L10n.t("端口白名单"),
@@ -2355,7 +2462,7 @@ struct FirewallChainRuleFormView: View {
 
 // MARK: - 链规则弹窗组
 
-/// iptables 链规则弹窗（创建跳转 / 删除确认 / 链操作确认）。
+/// iptables 链规则与基础链弹窗（创建跳转 / 删除确认 / 链操作确认 / 基础操作确认）。
 /// 独立 ViewModifier：追加到主 body 内联会超出类型推断合理时间
 private struct FirewallChainDialogsModifier: ViewModifier {
     let vm: FirewallViewModel
@@ -2364,6 +2471,8 @@ private struct FirewallChainDialogsModifier: ViewModifier {
     @Binding var pendingDeleteChainRule: FirewallChainRule?
     /// 待确认的链操作（init-advance / bind / unbind）
     @Binding var pendingChainOp: String?
+    /// 待确认的 iptables 基础链操作（init-base / init-forward / bind-base / unbind-base）
+    @Binding var pendingBaseOp: String?
 
     func body(content: Content) -> some View {
         content
@@ -2406,6 +2515,27 @@ private struct FirewallChainDialogsModifier: ViewModifier {
             } message: {
                 Text(opMessage(pendingChainOp ?? ""))
             }
+            .alert(
+                baseOpTitle(pendingBaseOp ?? ""),
+                isPresented: Binding(
+                    get: { pendingBaseOp != nil },
+                    set: { if !$0 { pendingBaseOp = nil } }
+                )
+            ) {
+                Button(L10n.t("取消"), role: .cancel) { pendingBaseOp = nil }
+                Button(L10n.t("确认")) {
+                    let op = pendingBaseOp
+                    pendingBaseOp = nil
+                    if let op {
+                        Haptic.warning()
+                        // bind-base/unbind-base 作用于 1PANEL_BASIC，其余作用于 1PANEL_INPUT
+                        let name = (op == "bind-base" || op == "unbind-base") ? "1PANEL_BASIC" : "1PANEL_INPUT"
+                        Task { await vm.operateFilterBase(op, name: name) }
+                    }
+                }
+            } message: {
+                Text(baseOpMessage(pendingBaseOp ?? ""))
+            }
     }
 
     private func opTitle(_ op: String) -> String {
@@ -2423,6 +2553,27 @@ private struct FirewallChainDialogsModifier: ViewModifier {
         case "init-advance": return L10n.t("将初始化 1PANEL 链规则，是否继续？")
         case "bind":         return L10n.t("仅当状态为绑定时，防火墙规则才能生效，是否确认？")
         case "unbind":       return L10n.t("解除绑定时，已添加的所有防火墙规则将失效，请谨慎操作，是否确认？")
+        default:             return ""
+        }
+    }
+
+    private func baseOpTitle(_ op: String) -> String {
+        switch op {
+        case "init-base":    return L10n.t("初始化")
+        case "init-forward": return L10n.t("初始化端口转发")
+        case "bind-base":    return L10n.t("绑定")
+        case "unbind-base":  return L10n.t("解除绑定")
+        default:             return L10n.t("防火墙")
+        }
+    }
+
+    /// 绑定/解绑确认文案对齐网页端（可选增加-3 抓包）
+    private func baseOpMessage(_ op: String) -> String {
+        switch op {
+        case "init-base":    return L10n.t("将初始化 iptables 端口与 IP 规则，是否继续？")
+        case "init-forward": return L10n.t("将初始化 iptables 端口转发规则，是否继续？")
+        case "bind-base":    return L10n.t("仅当状态为绑定时，防火墙规则才能生效，是否确认？")
+        case "unbind-base":  return L10n.t("解除绑定时，已添加的所有防火墙规则将失效，请谨慎操作，是否确认？")
         default:             return ""
         }
     }
