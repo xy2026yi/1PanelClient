@@ -5,6 +5,14 @@ iOS client for [1Panel](https://1panel.cn) — the open-source Linux server mana
 
 原生 Swift + SwiftUI 构建，通过 1Panel v2 OpenAPI 远程管理服务器：多服务器 / 多节点管理、应用商店、网站与 SSL 证书、数据库、Docker 容器与终端、计划任务、防火墙 / WAF、监控告警等 19 个管理模块，并附带桌面小组件与应用锁。
 
+## 面板版本适配 / Panel Version Compatibility
+
+当前适配的 1Panel 面板版本为 **v2.2.5**。
+
+接口请求与页面显示均基于该版本抓包对齐；面板版本过高或过低时，接口字段口径可能不一致，导致数据显示异常或部分功能不可用。遇到显示 / 功能问题时，请先确认服务端面板版本是否为适配版本。
+
+This client is currently aligned with 1Panel **v2.2.5**. Requests and UI are capture-verified against that version — other panel versions may have schema drift, causing display glitches or broken features. If something looks wrong, first check that your panel version matches.
+
 ## 文档 / Documentation
 
 - 中文文档：[doc/README-CN.md](doc/README-CN.md)
