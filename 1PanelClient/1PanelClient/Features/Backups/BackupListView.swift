@@ -644,7 +644,7 @@ private struct BackupCreateView: View {
         Form {
                 Section {
                     HStack(alignment: .firstTextBaseline) {
-                        FormTextField(label: L10n.t("压缩密码（可选）"), text: $secret,
+                        FormTextField(label: L10n.t("压缩密码"), prompt: L10n.t("可选"), text: $secret,
                                       isSecure: !showSecret)
                         Button {
                             showSecret.toggle()
@@ -654,7 +654,7 @@ private struct BackupCreateView: View {
                         }
                         .buttonStyle(.borderless)
                     }
-                    FormTextField(label: L10n.t("描述（可选）"), text: $description,
+                    FormTextField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $description,
                                   machineValue: false)
                 } header: {
                     Text(L10n.t("备份选项"))
@@ -768,7 +768,7 @@ case hour = "小时"
 
                 Section {
                     HStack(alignment: .firstTextBaseline) {
-                        FormTextField(label: L10n.t("压缩密码（可选）"), text: $secret,
+                        FormTextField(label: L10n.t("压缩密码"), prompt: L10n.t("可选"), text: $secret,
                                       isSecure: !showSecret)
                         Button {
                             showSecret.toggle()

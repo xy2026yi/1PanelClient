@@ -761,9 +761,10 @@ struct DatabaseSystemView: View {
         }
         .searchIconMode(text: $searchText, isSearching: $isSearching, title: vm.system.displayName, prompt: L10n.t("搜索数据库 / 用户"))
         // 右上角加号（菜单）：与其他列表页 toolbar 创建范式一致，按系统能力显示可用项；
-        // 容器停止时创建库/用户不可用，随列表一并隐藏
+        // 无可创建项（Redis 两类均不支持）或容器停止时不显示空 + 号
         .toolbar {
-            if !isSearching && vm.isContainerRunning {
+            if !isSearching && vm.isContainerRunning
+                && (vm.supportsDatabaseList || vm.supportsUserManagement) {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         if vm.supportsDatabaseList {
@@ -1239,9 +1240,9 @@ struct ChangePasswordSheet: View {
                     HStack {
                         Group {
                             if showNew {
-                                FormTextField(label: L10n.t("输入或生成新密码"), text: $newPassword)
+                                TextField(L10n.t("输入或生成新密码"), text: $newPassword)
                             } else {
-                                FormTextField(label: L10n.t("输入或生成新密码"), text: $newPassword, isSecure: true)
+                                SecureField(L10n.t("输入或生成新密码"), text: $newPassword)
                             }
                         }
                         .autocorrectionDisabled()

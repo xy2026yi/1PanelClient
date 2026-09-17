@@ -250,7 +250,7 @@ struct CreateDatabaseView: View {
             }
 
             Section(L10n.t("描述")) {
-                FormTextField(label: L10n.t("可选描述"), text: $description, axis: .vertical, machineValue: false)
+                TextField(L10n.t("可选描述"), text: $description, axis: .vertical)
                     .lineLimit(2...4)
             }
 
@@ -320,7 +320,7 @@ struct CreateDatabaseView: View {
 
     private var mongoUserSection: some View {
         Section(L10n.t("用户")) {
-            FormTextField(label: L10n.t("用户名（默认同名称）"), text: $username)
+            FormTextField(label: L10n.t("用户名"), prompt: L10n.t("默认同名称"), text: $username)
             passwordRow
         }
     }
@@ -936,7 +936,7 @@ struct EditUserPermissionSheet: View {
                     }
                 }
                 Section(L10n.t("描述")) {
-                    FormTextField(label: L10n.t("描述"), text: $description, axis: .vertical, machineValue: false)
+                    TextField(L10n.t("可选描述"), text: $description, axis: .vertical)
                         .lineLimit(2...4)
                 }
             }
