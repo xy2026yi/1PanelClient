@@ -464,9 +464,11 @@ final class DatabaseSystemViewModel: ObservableObject {
         //（daemon: container not running），跳过待启动成功后由 operate 补拉
         await loadCheck()
         guard check?.isRunning == true else { return }
-        // 全并行、各一次：此前 async let 与直接 await 混用，每个请求都实际发出两遍
+        // 全并行、各一次：此前 async let 与直接 await 混用，每个请求都实际发出两遍。
+        // remote 仅 MySQL 系需要（远程访问开关）；其余类型服务端在其容器内
+        // exec 对应可执行文件（MongoDB 镜像无 mongodb 命令）会 500，不发
         async let connInfo: () = loadConnInfo()
-        async let remote: () = loadRemote()
+        async let remote: () = supportsRemoteAccess ? loadRemote() : ()
         async let dbs: () = supportsDatabaseList ? loadDatabases() : ()
         async let users: () = supportsUserManagement ? loadUsers() : ()
         _ = await (connInfo, remote, dbs, users)
@@ -499,8 +501,8 @@ final class DatabaseSystemViewModel: ObservableObject {
             let resp: Bool = try await client.send(path: APIEndpoint.databasesRemote.path, body: req, as: Bool.self)
             remoteAccess = resp
         } catch {
+            // 辅助数据静默降级：仅影响开关回显，不阻塞页面、不打错误提示
             guard !APIError.isCancellation(error) else { return }
-            errorMessage = error.localizedDescription
         }
     }
 
