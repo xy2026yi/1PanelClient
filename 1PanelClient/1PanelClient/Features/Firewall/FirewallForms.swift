@@ -26,9 +26,12 @@ struct FirewallRuleFormView: View {
     @State private var action = "accept"
     @State private var family = "ipv4"
     @State private var descriptionText = ""
+    /// 优先级（编辑态可选；抓包 2026-09-17：rules/update 支持 orderIndex 单改）
+    @State private var priority = ""
     @State private var isSubmitting = false
 
-    private static let protocols = ["tcp", "udp", "tcp/udp", "icmp", "icmpv6"]
+    /// 抓包 2026-09-17：Web 端创建仅 TCP/UDP/TCP-UDP/ALL 四档（ALL 不带端口）
+    private static let protocols = ["tcp", "udp", "tcp/udp", "all"]
     private var isEdit: Bool { editing != nil }
 
     var body: some View {
@@ -37,8 +40,8 @@ struct FirewallRuleFormView: View {
                 Picker(L10n.t("协议"), selection: $proto) {
                     ForEach(Self.protocols, id: \.self) { Text($0.uppercased()).tag($0) }
                 }
-                if proto == "icmp" || proto == "icmpv6" {
-                    // ICMP 无端口概念
+                if proto == "all" {
+                    // ALL 无端口概念（抓包：destinationPort 留空）
                 } else {
                     TextField(L10n.t("源地址"), text: $sourceAddress)
                         .textInputAutocapitalization(.never)
@@ -71,6 +74,10 @@ struct FirewallRuleFormView: View {
                     Text(L10n.t("拒绝")).tag("drop")
                     Text(L10n.t("驳回")).tag("reject")
                 }
+                if isEdit {
+                    TextField(L10n.t("优先级（留空不变）"), text: $priority)
+                        .keyboardType(.numberPad)
+                }
                 TextField(L10n.t("备注"), text: $descriptionText)
             } header: {
                 SectionLabel(title: L10n.t("策略与备注"), systemImage: "slider.horizontal.3")
@@ -101,7 +108,7 @@ struct FirewallRuleFormView: View {
     }
 
     private var canSubmit: Bool {
-        if proto == "icmp" || proto == "icmpv6" { return true }
+        if proto == "all" { return true }
         // 端口规则：目标端口必填；纯 IP 规则：源地址必填
         return !destPort.trimmingCharacters(in: .whitespaces).isEmpty
             || !sourceAddress.trimmingCharacters(in: .whitespaces).isEmpty
@@ -109,7 +116,7 @@ struct FirewallRuleFormView: View {
 
     private func fillIfEditing() {
         guard let rule = editing, sourceAddress.isEmpty, destPort.isEmpty else { return }
-        proto = rule.protocolField == "all" ? "tcp/udp" : (rule.protocolField ?? "tcp")
+        proto = rule.protocolField ?? "tcp"
         sourceAddress = rule.sourceAddress ?? ""
         sourcePort = rule.sourcePort ?? ""
         destAddress = rule.destinationAddress ?? ""
@@ -117,6 +124,9 @@ struct FirewallRuleFormView: View {
         action = rule.action ?? "accept"
         family = rule.scope?.family == "ipv6" ? "ipv6" : (rule.scope?.family == "inet" ? "ipv4" : (rule.scope?.family ?? "ipv4"))
         descriptionText = rule.descriptionText ?? ""
+        if let idx = rule.orderIndex {
+            priority = String(idx)
+        }
     }
 
     private func submit() async {
@@ -124,8 +134,6 @@ struct FirewallRuleFormView: View {
         defer { isSubmitting = false }
 
         var effectiveFamily = family
-        if proto == "icmp" { effectiveFamily = "ipv4" }
-        if proto == "icmpv6" { effectiveFamily = "ipv6" }
         if !sourceAddress.isEmpty, sourceAddress.contains(":") { effectiveFamily = "ipv6" }
         if !destAddress.isEmpty, destAddress.contains(":") { effectiveFamily = "ipv6" }
 
@@ -140,13 +148,15 @@ struct FirewallRuleFormView: View {
         var rule = FirewallRule()
         rule.scope = scope
         rule.nativeKind = editing?.nativeKind ?? "rule"
-        rule.protocolField = (proto == "tcp/udp" && vm.systemStatus?.backend == "ufw") ? "all" : proto
+        rule.protocolField = proto
         rule.sourceAddress = sourceAddress.trimmingCharacters(in: .whitespaces)
         rule.sourcePort = sourcePort.trimmingCharacters(in: .whitespaces)
         rule.destinationAddress = destAddress.trimmingCharacters(in: .whitespaces)
         rule.destinationPort = destPort.trimmingCharacters(in: .whitespaces)
         rule.action = action
         rule.descriptionText = descriptionText
+        let trimmedPriority = priority.trimmingCharacters(in: .whitespaces)
+        rule.orderIndex = isEdit && !trimmedPriority.isEmpty ? Int64(trimmedPriority) : nil
         if isEdit {
             rule.uuid = editing?.uuid ?? editingUUID
         }
@@ -171,6 +181,7 @@ struct FirewallForwardFormView: View {
 
     @State private var port = ""
     @State private var proto = "tcp"
+    @State private var family = "ipv4"
     @State private var targetIP = ""
     @State private var targetPort = ""
     @State private var iface = "*"
@@ -182,7 +193,11 @@ struct FirewallForwardFormView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("端口"), text: $port)
+                Picker(L10n.t("地址族"), selection: $family) {
+                    Text("IPv4").tag("ipv4")
+                    Text("IPv6").tag("ipv6")
+                }
+                TextField(L10n.t("源端口"), text: $port)
                     .keyboardType(.numbersAndPunctuation)
                     .font(.dataMonospaced)
                 Picker(L10n.t("协议"), selection: $proto) {
@@ -240,6 +255,7 @@ struct FirewallForwardFormView: View {
         guard let rule = editing, port.isEmpty else { return }
         port = rule.port ?? ""
         proto = rule.protocolField ?? "tcp"
+        family = rule.family == "ipv6" ? "ipv6" : "ipv4"
         targetIP = rule.targetIP ?? ""
         targetPort = rule.targetPort ?? ""
         iface = (rule.interface?.isEmpty == false) ? (rule.interface ?? "*") : "*"
@@ -250,28 +266,20 @@ struct FirewallForwardFormView: View {
         defer { isSubmitting = false }
 
         var operations: [FirewallForwardOperation] = []
-        // 编辑 = 同请求内先删旧再建新（上游仅支持 add/remove）
+        // 编辑 = 同请求内先删旧（整行回显）再建新（抓包 2026-09-17）
         if let old = editing {
-            operations.append(FirewallForwardOperation(
-                operation: "remove",
-                num: old.num,
-                family: old.family,
-                protocolField: old.protocolField ?? "tcp",
-                interface: old.interface,
-                port: old.port ?? "",
-                targetIP: nil,
-                targetPort: ""
-            ))
+            operations.append(.remove(old))
         }
         operations.append(FirewallForwardOperation(
             operation: "add",
-            num: nil,
-            family: nil,
-            protocolField: proto,
-            interface: iface == "*" ? nil : iface,
+            id: nil, chain: nil, family: family, address: nil,
             port: port.trimmingCharacters(in: .whitespaces),
+            protocolField: proto, strategy: nil, num: nil,
             targetIP: targetIP.isEmpty ? nil : targetIP.trimmingCharacters(in: .whitespaces),
-            targetPort: targetPort.trimmingCharacters(in: .whitespaces)
+            targetPort: targetPort.trimmingCharacters(in: .whitespaces),
+            interface: iface == "*" ? nil : iface,
+            usedStatus: nil, descriptionText: nil,
+            isDesired: nil, isRuntime: nil, syncStatus: nil
         ))
         if await vm.submitForward(operations) {
             dismiss()
@@ -279,27 +287,48 @@ struct FirewallForwardFormView: View {
     }
 }
 
-// MARK: - 面板端口白名单（v2.3.0：settings.portWhiteList 展示 + 任务式更新）
+// MARK: - 面板端口白名单（抓包 2026-09-17：结构化条目编辑，提交 JSON 数组字符串）
 
 struct FirewallWhitelistView: View {
     @ObservedObject var vm: FirewallViewModel
 
     @Environment(\.dismiss) private var dismiss
-    @State private var value = ""
+    @State private var entries: [FirewallPortWhitelistEntry] = []
     @State private var isSubmitting = false
 
     var body: some View {
         Form {
             Section {
-                TextEditor(text: $value)
-                    .font(.dataMonospacedBody)
-                    .frame(minHeight: 180)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
+                ForEach($entries) { $entry in
+                    HStack(spacing: 8) {
+                        Picker("", selection: $entry.family) {
+                            Text("IPv4").tag("ipv4")
+                            Text("IPv6").tag("ipv6")
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 84)
+                        Picker("", selection: $entry.protocolField) {
+                            Text("TCP").tag("tcp")
+                            Text("UDP").tag("udp")
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 76)
+                        TextField(L10n.t("端口/范围"), text: $entry.port)
+                            .keyboardType(.numbersAndPunctuation)
+                            .font(.dataMonospaced)
+                    }
+                }
+                .onDelete { entries.remove(atOffsets: $0) }
+                Button {
+                    entries.append(FirewallPortWhitelistEntry(family: "ipv4",
+                                                              protocolField: "tcp", port: ""))
+                } label: {
+                    Label(L10n.t("添加"), systemImage: "plus.circle")
+                }
             } header: {
                 SectionLabel(title: L10n.t("端口白名单"), systemImage: "checkmark.shield")
             } footer: {
-                Text(L10n.t("每行一个端口，可带协议（如 80/tcp、443/udp）；逗号或换行分隔均可，保存为全量覆盖。"))
+                Text(L10n.t("支持 IPv4/IPv6、TCP/UDP、单端口及 8000-8100 格式的端口范围；保存为全量覆盖。"))
             }
         }
         .navigationTitle(L10n.t("面板端口白名单"))
@@ -324,15 +353,32 @@ struct FirewallWhitelistView: View {
         }
         .interactiveDismissDisabled(isSubmitting)
         .onAppear {
-            if value.isEmpty {
-                value = vm.settings?.portWhiteList ?? ""
+            if entries.isEmpty {
+                // 双格式解析：初始逗号串 / 编辑后的 JSON 数组字符串
+                entries = parseFirewallWhitelistEntries(vm.settings?.portWhiteList)
             }
         }
     }
 
+    private var canSubmit: Bool {
+        entries.allSatisfy { !$0.port.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
     private func submit() async {
+        guard canSubmit else {
+            vm.errorMessage = L10n.t("端口不能为空")
+            return
+        }
         isSubmitting = true
         defer { isSubmitting = false }
+        let value = encodeFirewallWhitelistEntries(
+            entries.map { entry in
+                FirewallPortWhitelistEntry(
+                    family: entry.family,
+                    protocolField: entry.protocolField,
+                    port: entry.port.trimmingCharacters(in: .whitespaces))
+            }
+        )
         if await vm.updatePortWhitelist(value) {
             dismiss()
         }

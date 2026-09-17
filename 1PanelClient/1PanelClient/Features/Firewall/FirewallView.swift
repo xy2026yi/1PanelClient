@@ -133,9 +133,10 @@ final class FirewallViewModel: ObservableObject {
             isRulesLoadingMore = true
         }
         let generation = rulesGeneration
-        var req = FirewallRuleSearchRequest(page: replacing ? 1 : rulesPage + (replacing ? 0 : 0),
+        var req = FirewallRuleSearchRequest(page: replacing ? 1 : rulesPage + 1,
                                             pageSize: Self.rulesPageSize)
-        req.page = replacing ? 1 : rulesPage + 1
+        req.scopes = Self.scopeForSearch(backend: systemStatus?.backend)
+        req.excludeChains = Self.excludeChainsForSearch(backend: systemStatus?.backend)
         req.info = ruleSearchText
         req.states = ruleStateFilter.map { [$0] }
         req.families = ruleFamilyFilter.map { [$0] }
@@ -164,7 +165,8 @@ final class FirewallViewModel: ObservableObject {
 
     /// 建规则（v2.3.0 统一模型：端口/IP 规则都是 FirewallRule）
     func createRule(_ rule: FirewallRule) async -> Bool {
-        await submitRules(FirewallRuleCreateRequest(items: [FirewallRuleCreateItem(rule: rule)]))
+        await submitRules(FirewallRuleCreateRequest(
+            items: [FirewallRuleCreateItem(rule: rule, sourceKind: "user", sourceID: nil)]))
     }
 
     func updateRule(uuid: String, rule: FirewallRule) async -> Bool {
@@ -173,7 +175,8 @@ final class FirewallViewModel: ObservableObject {
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.firewallRulesUpdate.path,
-                body: FirewallRuleUpdateRequest(uuid: uuid, rule: rule, descriptionText: nil),
+                body: FirewallRuleUpdateRequest(uuid: uuid, rule: rule, descriptionText: nil,
+                                                orderIndex: rule.orderIndex),
                 as: EmptyResponse.self
             )
             await loadRules(replacing: true)
@@ -261,17 +264,20 @@ final class FirewallViewModel: ObservableObject {
         if !replacing { isForwardsLoadingMore = false }
     }
 
-    /// 编辑 = 同请求内先 remove 后 add（上游 forward/operate 仅支持 add/remove）
+    /// 编辑 = 同请求内先 remove 后 add（上游 forward/operate 仅支持 add/remove）。
+    /// 响应为任务式 {taskID, queued}（抓包 2026-09-17），进进度页
     func submitForward(_ operations: [FirewallForwardOperation], forceDelete: Bool = false) async -> Bool {
         isOperating = true
         defer { isOperating = false }
         do {
-            let _: EmptyResponse = try await client.send(
+            let resp: FirewallTaskResponse = try await client.send(
                 path: APIEndpoint.firewallForwardOperate.path,
                 body: FirewallForwardOperateRequest(forceDelete: forceDelete, rules: operations),
-                as: EmptyResponse.self
+                as: FirewallTaskResponse.self
             )
-            toastMessage = L10n.t("转发规则已提交")
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("更新转发规则"))
+            }
             await loadForwards(replacing: true)
             await loadForwardStatus()
             return true
@@ -362,14 +368,22 @@ final class FirewallViewModel: ObservableObject {
         isOperating = true
         defer { isOperating = false }
         do {
-            let resp: FirewallTaskResponse = try await client.send(
-                path: APIEndpoint.firewallDockerOperate.path,
-                body: DockerGuardOperateRequest(operation: operation, taskID: nil),
-                as: FirewallTaskResponse.self
-            )
-            if let taskID = resp.taskID, !taskID.isEmpty {
-                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("Docker 端口守护"))
+            // 抓包 2026-09-17：initialize 返回 {taskID,queued}，bind/unbind 返回 null
+            if operation == "initialize" {
+                let resp: FirewallTaskResponse = try await client.send(
+                    path: APIEndpoint.firewallDockerOperate.path,
+                    body: DockerGuardOperateRequest(operation: operation, taskID: nil),
+                    as: FirewallTaskResponse.self
+                )
+                if let taskID = resp.taskID, !taskID.isEmpty {
+                    activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("Docker 端口守护"))
+                }
             } else {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.firewallDockerOperate.path,
+                    body: DockerGuardOperateRequest(operation: operation, taskID: nil),
+                    as: EmptyResponse.self
+                )
                 toastMessage = L10n.t("操作已提交")
             }
             await loadDockerGuard()
@@ -505,6 +519,38 @@ final class FirewallViewModel: ObservableObject {
             )
             netOptions = resp
         } catch { /* 静默 */ }
+    }
+
+    /// 规则清单搜索的管理作用域（抓包 2026-09-17：iptables/nftables 六链；ufw 单链 inet/incoming；
+    /// firewalld inet/public——后者按上游 ManagedInputScopes 源码，抓包未覆盖）
+    nonisolated static func scopeForSearch(backend: String?) -> [FirewallScope]? {
+        switch backend {
+        case "iptables", "nftables":
+            var result: [FirewallScope] = []
+            for family in ["ipv4", "ipv6"] {
+                for chain in ["1PANEL_BASIC_BEFORE", "1PANEL_BASIC", "1PANEL_BASIC_AFTER"] {
+                    result.append(FirewallScope(provider: backend, family: family,
+                                                 table: "filter", chain: chain, direction: "input"))
+                }
+            }
+            return result
+        case "ufw":
+            return [FirewallScope(provider: "ufw", family: "inet", chain: "incoming", direction: "input")]
+        case "firewalld":
+            return [FirewallScope(provider: "firewalld", family: "inet", zone: "public", direction: "input")]
+        default:
+            return nil
+        }
+    }
+
+    /// iptables/nftables 排除守护定位链（只展示 1PANEL_BASIC 主链规则）
+    nonisolated static func excludeChainsForSearch(backend: String?) -> [String]? {
+        switch backend {
+        case "iptables", "nftables":
+            return ["1PANEL_BASIC_BEFORE", "1PANEL_BASIC_AFTER"]
+        default:
+            return []
+        }
     }
 
     /// 规则表单的 scope 构造（对齐 Web 端 buildRule：按后端补 table/zone/chain）
@@ -714,19 +760,7 @@ struct FirewallView: View {
         guard let rule = pendingDeleteForward else { return }
         pendingDeleteForward = nil
         Task {
-            var op = FirewallForwardOperation(
-                operation: "remove",
-                num: rule.num,
-                family: rule.family,
-                protocolField: rule.protocolField ?? "tcp",
-                interface: rule.interface,
-                port: rule.port ?? "",
-                targetIP: rule.targetIP,
-                targetPort: rule.targetPort ?? ""
-            )
-            op.targetIP = nil
-            op.targetPort = ""
-            _ = await vm.submitForward([op], forceDelete: force)
+            _ = await vm.submitForward([.remove(rule)], forceDelete: force)
         }
     }
 
@@ -993,7 +1027,9 @@ struct FirewallView: View {
             if let fs = vm.forwardStatus {
                 Section {
                     HStack(spacing: 10) {
-                        StatusDot(color: (fs.isActive == true) ? .statusRunning : .statusStopped,
+                        // 抓包 2026-09-17：转发子系统 isActive 恒 false（iptables-forward），
+                        // 启用判据用 isInit
+                        StatusDot(color: (fs.isInit == true) ? .statusRunning : .statusStopped,
                                   diameter: 8)
                         Text(fs.backend?.uppercased() ?? "—")
                             .font(.subheadline.bold())
@@ -1163,7 +1199,7 @@ struct FirewallView: View {
                         Text(L10n.t("面板端口白名单"))
                             .foregroundStyle(.primary)
                         Spacer()
-                        Text("\(parseFirewallPortWhitelist(vm.settings?.portWhiteList).count)")
+                        Text("\(parseFirewallWhitelistEntries(vm.settings?.portWhiteList).count)")
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -1433,18 +1469,20 @@ private struct DockerGuardContainerSection: View {
             .buttonStyle(.plain)
 
             if expanded {
-                let groups = container.portGroups ?? []
-                if groups.isEmpty {
+                // 抓包 2026-09-17：实际返回为容器下平铺 endpoints（ipv4/ipv6 各一条）；
+                // portGroups 为 DTO 保留形态，两者并集渲染、按 id 去重
+                let groupEndpoints = (container.portGroups ?? []).compactMap { $0.endpoint }
+                var seen = Set<String>()
+                let endpoints = ((container.endpoints ?? []) + groupEndpoints).filter { seen.insert($0.id).inserted }
+                if endpoints.isEmpty {
                     Text(L10n.t("未发布端口"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(groups) { group in
-                        if let endpoint = group.endpoint {
-                            DockerGuardEndpointRow(endpoint: endpoint) {
-                                if endpoint.readOnly != true, endpoint.policyUUID?.isEmpty == false {
-                                    onDeletePolicy(endpoint)
-                                }
+                    ForEach(endpoints) { endpoint in
+                        DockerGuardEndpointRow(endpoint: endpoint) {
+                            if endpoint.readOnly != true, endpoint.policyUUID?.isEmpty == false {
+                                onDeletePolicy(endpoint)
                             }
                         }
                     }
@@ -1512,14 +1550,4 @@ struct DockerGuardEndpointRow: View {
     }
 }
 
-// MARK: - 端口白名单解析（两种面板格式统一拆行；v2.3.0 settings.portWhiteList）
-
-nonisolated func parseFirewallPortWhitelist(_ raw: String?) -> [String] {
-    guard let raw, !raw.isEmpty else { return [] }
-    // isNewline 而非 == "\n"：CRLF 在 Swift 里是单个 Character（字素簇），
-    // 单独比较 \n 或 \r 都匹配不上 CRLF 整体（FirewallWhitelistTests 抓住的坑）
-    return raw
-        .split(whereSeparator: { $0 == "," || $0.isNewline })
-        .map { $0.trimmingCharacters(in: .whitespaces) }
-        .filter { !$0.isEmpty }
-}
+// 端口白名单解析已上移至 Models/Firewall.swift（PanelShared 自包含，Widget target 可见）

@@ -129,10 +129,22 @@ nonisolated struct FirewallRule: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+/// 原生规则定位信息（observed.locator：链内位置与规范化文本）
+nonisolated struct FirewallLocator: Decodable, Sendable {
+    let provider: String?
+    let scopeKey: String?
+    let nativeId: String?
+    let canonical: String?
+    let position: Int?
+}
+
 /// 观察到的原生规则（inventory item 的 observed 侧）
 nonisolated struct FirewallObservedRule: Decodable, Sendable {
     let rule: FirewallRule?
+    let locator: FirewallLocator?
     let instanceKey: String?
+    /// 1panel-rule:<uuid> 标记（面板纳管标记）
+    let marker: String?
     let parseStatus: String?
     let uncertainFields: [String]?
     let raw: String?
@@ -188,12 +200,17 @@ nonisolated struct FirewallScopeNotice: Decodable, Sendable {
 nonisolated struct FirewallRuleSearchRequest: Encodable, Sendable {
     var page: Int
     var pageSize: Int
+    /// 管理作用域集合（抓包 2026-09-17：iptables/nftables 六链、ufw 单链 inet/incoming；
+    /// 由 FirewallViewModel.scopeForSearch 按后端构造）
+    var scopes: [FirewallScope]?
     /// 空串 = 全部作用域
     var info: String = ""
     var families: [String]?
     var actions: [String]?
     /// managed / adopted / external / drifted / protected
     var states: [String]?
+    /// iptables/nftables 排除守护链本身（BEFORE/AFTER 只作定位不作展示）
+    var excludeChains: [String]?
     var all: Bool?
 }
 
@@ -251,14 +268,16 @@ nonisolated struct FirewallRuleDeleteResponse: Decodable, Sendable {
     let errors: [FirewallRuleDeleteFailure]?
 }
 
-/// 部分更新：rule（整规则替换）或 description 单改（互斥）
+/// 部分更新：rule（整规则替换）/ description / orderIndex（仅改优先级）互斥。
+/// 抓包 2026-09-17：优先级单改走 {"uuid","orderIndex"}，整规则替换时 rule 内也带 orderIndex
 nonisolated struct FirewallRuleUpdateRequest: Encodable, Sendable {
     var uuid: String
     var rule: FirewallRule?
     var descriptionText: String?
+    var orderIndex: Int64?
 
     enum CodingKeys: String, CodingKey {
-        case uuid, rule
+        case uuid, rule, orderIndex
         case descriptionText = "description"
     }
 }
@@ -303,22 +322,46 @@ nonisolated struct FirewallForwardSearchRequest: Encodable, Sendable {
     var strategy: String = ""
 }
 
+/// 转发操作条目：编辑/删除时回显**整行原始字段** + operation（抓包 2026-09-17：
+/// remove 匹配依赖 num 等运行时字段，Web 端做法是把行对象原样回传再叠加操作）
 nonisolated struct FirewallForwardOperation: Encodable, Sendable {
-    /// add / remove
     var operation: String
-    var num: String?
+    var id: Int?
+    var chain: String?
     var family: String?
-    /// tcp / udp / tcp/udp
-    var protocolField: String
-    var interface: String?
-    var port: String
+    var address: String?
+    var port: String?
+    var protocolField: String?
+    var strategy: String?
+    var num: String?
     var targetIP: String?
-    var targetPort: String
+    var targetPort: String?
+    var interface: String?
+    var usedStatus: String?
+    var descriptionText: String?
+    var isDesired: Bool?
+    var isRuntime: Bool?
+    var syncStatus: String?
 
     enum CodingKeys: String, CodingKey {
-        case operation, num, family, interface, port
-        case targetIP, targetPort
+        case operation, id, chain, family, address, port, strategy, num
+        case targetIP, targetPort, interface, usedStatus
+        case isDesired, isRuntime, syncStatus
         case protocolField = "protocol"
+        case descriptionText = "description"
+    }
+
+    /// 由列表行构造 remove 操作（整行回显，运行时字段保真）
+    static func remove(_ rule: FirewallForwardRule) -> FirewallForwardOperation {
+        FirewallForwardOperation(
+            operation: "remove",
+            id: rule.id, chain: rule.chain, family: rule.family, address: rule.address,
+            port: rule.port, protocolField: rule.protocolField, strategy: rule.strategy,
+            num: rule.num, targetIP: rule.targetIP, targetPort: rule.targetPort,
+            interface: rule.interface, usedStatus: rule.usedStatus,
+            descriptionText: rule.descriptionText,
+            isDesired: rule.isDesired, isRuntime: rule.isRuntime, syncStatus: rule.syncStatus
+        )
     }
 }
 
@@ -375,6 +418,66 @@ nonisolated struct FirewallBackendOperationRequest: Encodable, Sendable {
 
 nonisolated struct FirewallPortWhitelistRequest: Encodable, Sendable {
     let value: String
+}
+
+// MARK: - 端口白名单条目（双格式，抓包 2026-09-17）
+
+/// 白名单条目：{family, protocol, port}。
+/// 面板存在两种存储形态：初始为逗号串（"80/tcp,443/tcp"），
+/// 编辑保存后为 JSON 数组字符串（"[{\"family\":…,\"port\":…,\"protocol\":…}]"）。
+/// 读取兼容两种；提交统一用 JSON 数组字符串（Web 端形态）
+nonisolated struct FirewallPortWhitelistEntry: Codable, Equatable, Identifiable, Sendable {
+    var family: String
+    var protocolField: String
+    var port: String
+
+    enum CodingKeys: String, CodingKey {
+        case family, port
+        case protocolField = "protocol"
+    }
+
+    var id: String { "\(family)|\(protocolField)|\(port)" }
+
+    /// 展示文本（80/tcp）
+    var display: String {
+        let proto = protocolField.isEmpty ? "" : "/\(protocolField)"
+        return "\(port)\(proto) (\(family.uppercased()))"
+    }
+}
+
+/// 解析白名单原始串：JSON 数组格式优先，回落逗号/换行分隔（family/protocol 缺省 ipv4/tcp）
+nonisolated func parseFirewallWhitelistEntries(_ raw: String?) -> [FirewallPortWhitelistEntry] {
+    guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+        return []
+    }
+    if raw.hasPrefix("["),
+       let data = raw.data(using: .utf8),
+       let entries = try? JSONDecoder().decode([FirewallPortWhitelistEntry].self, from: data) {
+        return entries
+    }
+    // 旧格式："80/tcp,443/tcp,443/udp"
+    return parseFirewallPortWhitelist(raw).map { item in
+        let parts = item.split(separator: "/", maxSplits: 1).map(String.init)
+        let port = parts.first ?? item
+        let proto = parts.count > 1 ? parts[1] : "tcp"
+        return FirewallPortWhitelistEntry(family: "ipv4", protocolField: proto, port: port)
+    }
+}
+
+/// 旧逗号/换行格式拆行（ isNewline 而非 == "\n"：CRLF 在 Swift 里是单个
+/// Character 字素簇，单独比较 \n 或 \r 都匹配不上 CRLF 整体）
+nonisolated func parseFirewallPortWhitelist(_ raw: String?) -> [String] {
+    guard let raw, !raw.isEmpty else { return [] }
+    return raw
+        .split(whereSeparator: { $0 == "," || $0.isNewline })
+        .map { $0.trimmingCharacters(in: .whitespaces) }
+        .filter { !$0.isEmpty }
+}
+
+/// 白名单条目数组 → 提交串（JSON 数组字符串，Web 端形态）
+nonisolated func encodeFirewallWhitelistEntries(_ entries: [FirewallPortWhitelistEntry]) -> String {
+    guard let data = try? JSONEncoder().encode(entries) else { return "[]" }
+    return String(decoding: data, as: UTF8.self)
 }
 
 // MARK: - Docker 端口守护（/firewall/docker/*）

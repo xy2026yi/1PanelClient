@@ -1,6 +1,50 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "优先级（留空不变）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priority (empty = unchanged)"
+          }
+        }
+      }
+    },
+    "支持 IPv4/IPv6、TCP/UDP、单端口及 8000-8100 格式的端口范围；保存为全量覆盖。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supports IPv4/IPv6, TCP/UDP, single ports and ranges like 8000-8100; saving overwrites all."
+          }
+        }
+      }
+    },
+    "更新转发规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updating Forwarding Rules"
+          }
+        }
+      }
+    },
+    "端口/范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port/Range"
+          }
+        }
+      }
+    },
     "Docker 守护" : {
       "extractionState" : "manual",
       "localizations" : {
