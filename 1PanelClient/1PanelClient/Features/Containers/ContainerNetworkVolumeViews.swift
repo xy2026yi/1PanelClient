@@ -667,28 +667,16 @@ private struct ContainerNetworkCreateSheet: View {
     private var ipv6Section: Bool { true }
 
     @ViewBuilder private var ipv4Fields: some View {
-        TextField(L10n.t("子网"), text: $subnet)
-            .autocorrectionDisabled()
-            .textInputAutocapitalization(.never)
-        TextField(L10n.t("网关（可选）"), text: $gateway)
-            .autocorrectionDisabled()
-            .textInputAutocapitalization(.never)
-        TextField(L10n.t("IP 范围（可选）"), text: $ipRange)
-            .autocorrectionDisabled()
-            .textInputAutocapitalization(.never)
+        FormTextField(label: L10n.t("子网"), text: $subnet)
+        FormTextField(label: L10n.t("网关"), prompt: L10n.t("可选"), text: $gateway)
+        FormTextField(label: L10n.t("IP 范围"), prompt: L10n.t("可选"), text: $ipRange)
         auxRowsEditor($auxRows, title: L10n.t("排除 IP"))
     }
 
     @ViewBuilder private var ipv6Fields: some View {
-        TextField(L10n.t("子网"), text: $subnetV6)
-            .autocorrectionDisabled()
-            .textInputAutocapitalization(.never)
-        TextField(L10n.t("网关（可选）"), text: $gatewayV6)
-            .autocorrectionDisabled()
-            .textInputAutocapitalization(.never)
-        TextField(L10n.t("IP 范围（可选）"), text: $ipRangeV6)
-            .autocorrectionDisabled()
-            .textInputAutocapitalization(.never)
+        FormTextField(label: L10n.t("子网"), text: $subnetV6)
+        FormTextField(label: L10n.t("网关"), prompt: L10n.t("可选"), text: $gatewayV6)
+        FormTextField(label: L10n.t("IP 范围"), prompt: L10n.t("可选"), text: $ipRangeV6)
         auxRowsEditor($auxRowsV6, title: L10n.t("排除 IP"))
     }
 

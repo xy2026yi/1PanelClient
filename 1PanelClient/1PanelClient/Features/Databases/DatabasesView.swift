@@ -311,12 +311,13 @@ struct NotInstalledDatabaseView: View {
         }
         // 安装完成通知：仅当确实进入了本页发起的安装流程时才收回本页，
         // 避免无关的全局 installCompleted 通知误触发（表现为点击安装变返回）；
-        // 收回走父页 binding（onInstallCompleted），不依赖 env dismiss()
+        // 收回走父页 binding（onInstallCompleted），不依赖 env dismiss()。
+        // 安装表单由 AppInstallView 自行收栈（0.35s 延迟 + pop 转场），
+        // 本页须等其彻底结束再收，否则两级 pop 动画竞争、后者被丢弃，
+        // 表现为安装完成后停在应用详情页少返回一层
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
             guard didEnterInstall else { return }
-            storeVM.showInstall = false
-            // 等导航栈稳定后再收回，避免动画冲突
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
                 onInstallCompleted()
             }
         }

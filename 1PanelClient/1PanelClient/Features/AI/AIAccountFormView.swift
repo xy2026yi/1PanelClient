@@ -352,7 +352,7 @@ struct AIAccountFormView: View {
 
     private var remarkSection: some View {
         Section {
-            FormTextField(label: L10n.t("备注"), text: $remark, axis: .vertical, machineValue: false)
+            TextField(L10n.t("备注"), text: $remark, axis: .vertical)
                 .lineLimit(1...3)
         } header: {
             SectionLabel(title: L10n.t("备注"), systemImage: "text.alignleft")

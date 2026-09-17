@@ -161,7 +161,7 @@ struct ContainerEditView: View {
 
                 Section(L10n.t("环境变量")) {
                     ForEach(envs.indices, id: \.self) { i in
-                        FormTextField(label: L10n.t("环境变量"), prompt: "KEY=VALUE", text: Binding(
+                        TextField("KEY=VALUE", text: Binding(
                             get: { envs[i] },
                             set: { envs[i] = $0 }
                         ), axis: .vertical)
