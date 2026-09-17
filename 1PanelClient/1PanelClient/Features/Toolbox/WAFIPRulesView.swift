@@ -259,7 +259,7 @@ struct WAFIPRuleFormView: View {
             switch ipType {
             case "ipv4":
                 Section(L10n.t("IPv4 地址")) {
-                    FormTextField(label: L10n.t("例: 192.168.1.1"), text: $ipv4)
+                    TextField(L10n.t("例: 192.168.1.1"), text: $ipv4)
                         .keyboardType(.decimalPad)
                 }
             case "ipArr":
@@ -271,7 +271,7 @@ struct WAFIPRuleFormView: View {
                 }
             case "ipv6":
                 Section(L10n.t("IPv6 地址")) {
-                    FormTextField(label: L10n.t("例: 2001:db8::1"), text: $ipv6)
+                    TextField(L10n.t("例: 2001:db8::1"), text: $ipv6)
                 }
             case "ipGroup":
                 Section(L10n.t("IP 组")) {
@@ -299,7 +299,7 @@ struct WAFIPRuleFormView: View {
             }
 
             Section(L10n.t("备注")) {
-                FormTextField(label: L10n.t("描述(可选)"), text: $description, machineValue: false)
+                TextField(L10n.t("描述(可选)"), text: $description)
             }
         }
         .navigationTitle(editingItem == nil ? L10n.t("创建 IP 规则") : L10n.t("编辑 IP 规则"))

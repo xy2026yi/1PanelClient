@@ -24,7 +24,9 @@ struct ContainerUpgradeView: View {
     var body: some View {
         Form {
             Section(L10n.t("目标镜像")) {
-                FormTextField(label: L10n.t("镜像"), prompt: "nginx:latest", text: $image)
+                TextField(L10n.t("如 nginx:latest"), text: $image)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
                     .font(.dataMonospacedBody)
                 if image.trimmingCharacters(in: .whitespaces).isEmpty {
                     Text(L10n.t("镜像不能为空"))

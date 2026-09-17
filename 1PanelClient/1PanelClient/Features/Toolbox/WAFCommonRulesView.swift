@@ -269,10 +269,10 @@ struct WAFCommonRuleFormView: View {
     var body: some View {
         Form {
             Section(L10n.t("规则内容")) {
-                FormTextField(label: L10n.t("输入规则"), text: $rule)
+                TextField(L10n.t("输入规则"), text: $rule)
             }
             Section(L10n.t("备注")) {
-                FormTextField(label: L10n.t("描述(可选)"), text: $description, machineValue: false)
+                TextField(L10n.t("描述(可选)"), text: $description)
             }
         }
         .navigationTitle(editingItem == nil ? L10n.t("添加规则") : L10n.t("编辑规则"))
