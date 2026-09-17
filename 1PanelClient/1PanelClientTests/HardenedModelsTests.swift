@@ -182,3 +182,42 @@ struct HardenedLongTailTests {
         #expect(resp.items?.first?.key == "wordpress")
     }
 }
+
+// MARK: - wget 进度模型（抓包 2026-09-17：key/status 字段与完成态判定）
+
+@Suite("wget 下载进度模型")
+struct FileWgetProgressTests {
+
+    @Test("抓包样本解码：Downloading / Canceled 双态")
+    func decodeCaptured() throws {
+        let json = """
+        [{"key":"file-wget-f313a4ec","total":23983183,"written":7490304,
+          "percent":31.23,"name":"PiliPlus_ios_2.1.4+5348.ipa","status":"Downloading"},
+         {"key":"file-wget-a1b2","total":23983183,"written":12369408,
+          "percent":51.57,"name":"app.ipa","status":"Canceled"}]
+        """
+        let items = try JSONDecoder().decode([FileWgetProgress].self, from: Data(json.utf8))
+        #expect(items.count == 2)
+        #expect(items[0].id == "file-wget-f313a4ec")
+        #expect(items[0].isFinished == false)
+        #expect(items[1].status == "Canceled")
+        #expect(items[1].isFinished == true)
+    }
+
+    @Test("key/status 缺失时可解码（旧面板兼容），行键回落 name")
+    func legacyShapeFallback() throws {
+        let items = try JSONDecoder().decode([FileWgetProgress].self,
+                                             from: Data(#"[{"name":"a.zip","percent":50}]"#.utf8))
+        #expect(items[0].id == "a.zip")
+        #expect(items[0].isFinished == false)
+    }
+
+    @Test("停止与清理请求编码")
+    func requestEncoding() throws {
+        let stop = try JSONEncoder().encode(FileWgetStopRequest(key: "file-wget-1"))
+        #expect(String(decoding: stop, as: UTF8.self) == #"{"key":"file-wget-1"}"#)
+        let rm = try JSONEncoder().encode(FileWgetRecordRemoveRequest(keys: ["k1", "k2"]))
+        let obj = try JSONSerialization.jsonObject(with: rm) as? [String: Any]
+        #expect((obj?["keys"] as? [String]) == ["k1", "k2"])
+    }
+}

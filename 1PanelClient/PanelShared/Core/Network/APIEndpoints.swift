@@ -405,6 +405,8 @@ enum APIEndpoint {
     case filesWget               // POST 远程下载 {url,path,name,ignoreCertificate,useProxy} → {key}
     case filesWgetProcess        // WebSocket wget 下载进度（WS；路径曾散在 FilesOperations）
     case filesWgetProcessKeys    // GET  进行中下载 key 列表
+    case filesWgetStop           // POST 停止指定下载 {key}（抓包 2026-09-17）
+    case filesWgetRecordRemove   // POST 清除已完成下载记录 {keys}（Web 端下载弹窗自动保洁）
 
     // MARK: - 容器资源（网络/存储卷/编排/模板，logs/推荐实现-容器.md 抓包 2026-09-14）
     case containersNetworkSearch   // POST 网络分页列表 {page,pageSize}
@@ -975,6 +977,8 @@ enum APIEndpoint {
         case .filesWget:             return "/api/v2/files/wget"
         case .filesWgetProcess:     return "/api/v2/files/wget/process"
         case .filesWgetProcessKeys:  return "/api/v2/files/wget/process/keys"
+        case .filesWgetStop:          return "/api/v2/files/wget/stop"
+        case .filesWgetRecordRemove:  return "/api/v2/files/wget/process/remove"
         case .containersNetworkSearch:  return "/api/v2/containers/network/search"
         case .containersNetworkCreate:  return "/api/v2/containers/network"
         case .containersNetworkDelete:  return "/api/v2/containers/network/del"

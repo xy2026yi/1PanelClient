@@ -83,13 +83,32 @@ struct FileWgetKeysResponse: Decodable {
     let keys: [String]?
 }
 
-/// WS /files/wget/process 收到的单条下载进度
+/// WS /files/wget/process 收到的单条下载进度（抓包 2026-09-17：
+/// status ∈ Downloading / Success / Canceled / Error）
 struct FileWgetProgress: Decodable, Identifiable {
+    let key: String?
     let total: Double?
     let written: Double?
     let percent: Double?
     let name: String?
-    var id: String { name ?? UUID().uuidString }
+    let status: String?
+
+    var id: String { key ?? name ?? UUID().uuidString }
+
+    var isFinished: Bool {
+        let s = status?.lowercased() ?? ""
+        return s == "success" || s == "canceled" || s == "error"
+    }
+}
+
+/// POST /files/wget/stop {key}
+struct FileWgetStopRequest: Encodable {
+    let key: String
+}
+
+/// POST /files/wget/process/remove {keys} → {keys}（实际清除成功的 key）
+struct FileWgetRecordRemoveRequest: Encodable {
+    let keys: [String]
 }
 
 /// POST /files/user/group → {users,groups}（权限修改下拉数据）
@@ -277,6 +296,36 @@ final class FileWgetProcessSession: ObservableObject {
         if let list = try? JSONDecoder().decode([FileWgetProgress].self, from: data) {
             items = list
         }
+    }
+
+    private var client: APIClient { APIClient.shared(for: server) }
+
+    /// 停止指定下载（POST /files/wget/stop；停止后 WS 会推 Canceled 状态）
+    func stopDownload(_ item: FileWgetProgress) async {
+        guard let key = item.key, !item.isFinished else { return }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.filesWgetStop.path,
+                body: FileWgetStopRequest(key: key),
+                as: EmptyResponse.self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 清除已完成记录（对齐 Web 端下载弹窗的自动保洁：Success/Canceled/Error
+    /// 的 key 服务端会留记录，remove 后不再出现在后续查询里）
+    func removeFinishedRecords() async {
+        let finished = items.filter(\.isFinished).compactMap(\.key)
+        guard !finished.isEmpty else { return }
+        struct RmResp: Decodable { let keys: [String]? }
+        _ = try? await client.send(
+            path: APIEndpoint.filesWgetRecordRemove.path,
+            body: FileWgetRecordRemoveRequest(keys: finished),
+            as: RmResp.self
+        )
     }
 }
 
@@ -870,11 +919,22 @@ struct FileWgetProgressView: View {
                 } else {
                     List(session.items) { item in
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(item.name ?? "-")
-                                .font(.body.weight(.medium))
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            ProgressView(value: max(0, min(100, item.percent ?? 0)) / 100)
+                            HStack(spacing: 8) {
+                                Text(item.name ?? "-")
+                                    .font(.body.weight(.medium))
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Spacer()
+                                statusBadge(item)
+                            }
+                            // total==0 且仍在下载：总量未知，走不定态（对齐 Web 端）
+                            if item.isFinished {
+                                ProgressView(value: item.status?.lowercased() == "success" ? 1 : max(0, min(100, item.percent ?? 0)) / 100)
+                            } else if (item.total ?? 0) > 0 {
+                                ProgressView(value: max(0, min(100, item.percent ?? 0)) / 100)
+                            } else {
+                                ProgressView()
+                            }
                             HStack {
                                 Text("\(Int(item.percent ?? 0))%")
                                 if let written = item.written, let total = item.total, total > 0 {
@@ -885,6 +945,16 @@ struct FileWgetProgressView: View {
                             .foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 2)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if !item.isFinished, item.key != nil {
+                                Button(role: .destructive) {
+                                    Haptic.warning()
+                                    Task { await session.stopDownload(item) }
+                                } label: {
+                                    Label(L10n.t("停止"), systemImage: "stop.fill")
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -898,12 +968,30 @@ struct FileWgetProgressView: View {
         }
         .presentationDragIndicator(.visible)
         .task { session.start() }
-        .onDisappear { session.stop() }
+        .onDisappear {
+            session.stop()
+            // 对齐 Web 端：已完成记录随手清理（服务端不留下载历史）
+            Task { await session.removeFinishedRecords() }
+        }
         .onChange(of: session.isAllDone) { _, done in
             if done {
                 Haptic.success()
                 onFinished()
             }
+        }
+    }
+
+    @ViewBuilder
+    private func statusBadge(_ item: FileWgetProgress) -> some View {
+        switch item.status?.lowercased() {
+        case "success":
+            StatusBadge(text: L10n.t("已完成"), color: .statusRunning)
+        case "canceled":
+            StatusBadge(text: L10n.t("已取消"), color: .statusStopped)
+        case "error":
+            StatusBadge(text: L10n.t("失败"), color: .statusError)
+        default:
+            StatusBadge(text: L10n.t("下载中"), color: .blue)
         }
     }
 
