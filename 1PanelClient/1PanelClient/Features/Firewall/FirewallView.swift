@@ -2,49 +2,62 @@
 //  FirewallView.swift
 //  1PanelClient
 //
-//  防火墙（ufw）管理：状态卡片 + 端口规则增删
+//  防火墙 v2.3.0（上游 2026-09 整体重构后的 API，docs/v2.3.0-upstream-diff.md）：
+//  状态卡（系统子系统生命周期 + 基础链初始化/绑定）+ 四段内容——
+//  规则（统一规则清单）/ 转发（forward 子域）/ Docker 端口守护 / 设置（三组后端）。
+//  旧 v2.2.5 端口/IP/链规则三段模型已被上游「rules 统一命名空间 + states 五态」取代。
 //
 
 import SwiftUI
 import Combine
 
+// MARK: - ViewModel
+
 @MainActor
 final class FirewallViewModel: ObservableObject {
-    @Published var base: FirewallBase?
-    @Published var rules: [FirewallRule] = []
-    /// 端口转发规则（search type=forward）
-    @Published var forwards: [FirewallRule] = []
-    /// IP 规则（search type=address）
-    @Published var addresses: [FirewallRule] = []
-    /// 网卡列表（端口转发的入站网口选择；"all" 展示为「所有」）
-    @Published var netOptions: [String] = []
-    /// 端口号 → 监听进程名（逗号拼接多个），来自 process/listening；
-    /// 面板 firewall/search 的 usedStatus 只覆盖部分端口，这里补全
-    @Published var portProcessNames: [String: String] = [:]
+    // MARK: 状态卡
+    @Published var systemStatus: FirewallSubsystemStatus?
+    @Published var forwardStatus: FirewallSubsystemStatus?
+    /// L2 版本门禁：新端点 404 → 旧面板（< v2.3.0）
+    @Published var unsupportedPanel = false
+
+    // MARK: 规则段
+    @Published var inventory: [FirewallInventoryItem] = []
+    @Published private(set) var rulesAllTotal = 0
+    @Published private(set) var rulesManagedTotal = 0
+    @Published private(set) var isRulesLoadingMore = false
+    @Published var ruleStateFilter: String?      // nil = 全部状态
+    @Published var ruleFamilyFilter: String?     // nil = 全部族
+    @Published var ruleSearchText = ""
+    private var rulesPage = 1
+    private var rulesGeneration = 0
+    private static let rulesPageSize = 100
+
+    // MARK: 转发段
+    @Published var forwards: [FirewallForwardRule] = []
+    @Published private(set) var forwardsTotal = 0
+    @Published private(set) var isForwardsLoadingMore = false
+    private var forwardsPage = 1
+    private var forwardsGeneration = 0
+    private static let forwardsPageSize = 100
+
+    // MARK: Docker 守护段
+    @Published var dockerGuard: DockerGuardList?
+
+    // MARK: 设置段
+    @Published var settings: FirewallSettings?
+
+    // MARK: 通用
     @Published var isLoading = false
     @Published var isOperating = false
     @Published var errorMessage: String?
-    /// 三段列表分页（C5）：首屏 200/页 + 滚动到底自动追加；真机 215 条规则场景
-    /// 超出首屏的部分不再被静默截断
-    @Published private(set) var rulesTotal = 0
-    @Published private(set) var forwardsTotal = 0
-    @Published private(set) var addressesTotal = 0
-    /// 追加下一页加载态（三段各自独立：共用一个标记会让非加载段也挂出转圈行，
-    /// 且两段同时触底时后到者被静默吞掉）
-    @Published private(set) var isRulesLoadingMore = false
-    @Published private(set) var isForwardsLoadingMore = false
-    @Published private(set) var isAddressesLoadingMore = false
-    private var rulesPage = 1
-    private var forwardsPage = 1
-    private var addressesPage = 1
-    /// 三段各自的列表代数：对应 load* 替换列表时递增，追加页响应到达时与
-    /// 捕获值比对，期间该段发生过任何重载（下拉/增删规则后重拉）即丢弃过期
-    /// 追加。用代数而非页码比对：页码归 1 后 next==2==page+1 恒成立，
-    /// 首次翻页恰是页码判定的盲区
-    private var rulesGeneration = 0
-    private var forwardsGeneration = 0
-    private var addressesGeneration = 0
-    private static let pageSize = 200
+    @Published var toastMessage: String?
+    /// 任务式操作的进度页目标（init-base / forward enable / 白名单 / Docker 初始化）
+    @Published var activeTask: FirewallTaskTarget?
+    /// 端口号 → 监听进程名（规则行补全；process/listening 端点 v2.3.0 未变）
+    @Published var portProcessNames: [String: String] = [:]
+    /// 网卡列表（转发表单网口选择）
+    @Published var netOptions: [String] = []
 
     private let client: APIClient
 
@@ -52,863 +65,597 @@ final class FirewallViewModel: ObservableObject {
         self.client = APIClient.shared(for: server)
     }
 
+    // MARK: - 加载
+
     func refresh() async {
-        // 进页 .task 与下拉/回调并发时只跑一轮（在途且有快照才跳过）。
-        // 例外：首屏尚无任何内容时不短路——秒退秒进场景下在途刷新被取消、
-        // 页面为空，短路不仅让快照卡空态，还会让 autoRefresh 误记 5 秒节流
-        // 窗口（没刷也算刷过）。与 BackupAccountsViewModel.refresh 同构
         guard !isLoading
-            || (base == nil && rules.isEmpty && forwards.isEmpty && addresses.isEmpty)
+            || (systemStatus == nil && inventory.isEmpty && forwards.isEmpty && dockerGuard == nil)
         else { return }
         isLoading = true
-        // 首屏四请求（状态卡 + 端口/转发/IP 规则）并行，完成即结束整页加载态；
-        // 空数据页面不再陪跑最慢的辅助请求
-        async let base: () = loadBase()
-        async let rules: () = loadRules()
-        async let forwards: () = loadForwards()
-        async let addresses: () = loadAddresses()
-        _ = await (base, rules, forwards, addresses)
-        // iptables 专属补查（链规则可用性 + 转发独立初始化状态）：
-        // ufw/firewalld 后端不发这两请求（base name=advance/forward 无意义）
-        if self.base?.name == "iptables" {
-            async let filterBase: () = loadFilterBase()
-            async let forwardBase: () = loadForwardBase()
-            _ = await (filterBase, forwardBase)
-        }
-        isLoading = false
-        // 辅助数据（监听进程名/网口选项）静默补齐，行内稍后出现，失败无感
+        defer { isLoading = false }
+        await loadSystemStatus()
+        guard !unsupportedPanel else { return }
+        async let rules: () = loadRules(replacing: true)
+        async let forward: () = loadForwardStatus()
+        async let forwards: () = loadForwards(replacing: true)
+        async let docker: () = loadDockerGuard()
+        async let settings: () = loadSettings()
+        _ = await (rules, forward, forwards, docker, settings)
+        // 辅助数据静默补齐（失败无感）
         async let listening: () = loadListening()
         async let nets: () = loadNetOptions()
         _ = await (listening, nets)
     }
 
-    func loadBase() async {
+    func loadSystemStatus() async {
         struct BaseReq: Encodable { let name: String }
         do {
-            let resp: FirewallBase = try await client.send(
+            systemStatus = try await client.send(
                 path: APIEndpoint.firewallBase.path,
                 body: BaseReq(name: "base"),
-                as: FirewallBase.self
+                as: FirewallSubsystemStatus.self
             )
-            self.base = resp
-            self.errorMessage = nil
+            errorMessage = nil
+            unsupportedPanel = false
         } catch {
-            // 页面退出取消不是失败：保留原状态
             guard !APIError.isCancellation(error) else { return }
-            self.errorMessage = error.localizedDescription
+            if case let APIError.httpError(status, _) = error, status == 404 {
+                // L2 门禁：旧面板没有 v2.3.0 的防火墙 API（含 /rules 命名空间）
+                unsupportedPanel = true
+                return
+            }
+            errorMessage = error.localizedDescription
         }
     }
 
-    /// 端口转发的独立初始化状态（iptables 后端 base {name:"forward"}；ufw 无此概念）
-    @Published var forwardBase: FirewallBase?
-
-    func loadForwardBase() async {
-        struct ForwardReq: Encodable { let name: String }
+    func loadForwardStatus() async {
+        guard !unsupportedPanel else { return }
         do {
-            forwardBase = try await client.send(
-                path: APIEndpoint.firewallBase.path,
-                body: ForwardReq(name: "forward"),
-                as: FirewallBase.self
+            forwardStatus = try await client.send(
+                path: APIEndpoint.firewallForwardBase.path,
+                body: EmptyRequest(),
+                as: FirewallSubsystemStatus.self
             )
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            self.errorMessage = error.localizedDescription
+            // 转发子系统状态失败不阻塞页面（部分后端无转发概念）
         }
     }
 
-    /// iptables 基础链操作（filter/operate，可选增加-3 抓包）：
-    /// init-base（端口 + IP 共用，抓包：初始化端口规则后 IP 规则无需再初始化）、
-    /// init-forward（端口转发独立）、bind-base / unbind-base（name=1PANEL_BASIC）
-    func operateFilterBase(_ operate: String, name: String = "1PANEL_INPUT") async {
+    // MARK: 规则段
+
+    func loadRules(replacing: Bool) async {
+        if replacing {
+            rulesGeneration += 1
+            rulesPage = 1
+        } else {
+            guard !isRulesLoadingMore, inventory.count < rulesAllTotal else { return }
+            isRulesLoadingMore = true
+        }
+        let generation = rulesGeneration
+        var req = FirewallRuleSearchRequest(page: replacing ? 1 : rulesPage + (replacing ? 0 : 0),
+                                            pageSize: Self.rulesPageSize)
+        req.page = replacing ? 1 : rulesPage + 1
+        req.info = ruleSearchText
+        req.states = ruleStateFilter.map { [$0] }
+        req.families = ruleFamilyFilter.map { [$0] }
+        do {
+            let resp: FirewallRuleInventoryResponse = try await client.send(
+                path: APIEndpoint.firewallRulesSearch.path, body: req,
+                as: FirewallRuleInventoryResponse.self
+            )
+            guard generation == rulesGeneration else { return }
+            if replacing {
+                inventory = resp.items ?? []
+            } else {
+                inventory += resp.items ?? []
+            }
+            rulesPage = req.page
+            rulesAllTotal = resp.allTotal ?? resp.total ?? inventory.count
+            rulesManagedTotal = resp.managedTotal ?? 0
+            errorMessage = nil
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            guard generation == rulesGeneration else { return }
+            errorMessage = error.localizedDescription
+        }
+        if !replacing { isRulesLoadingMore = false }
+    }
+
+    /// 建规则（v2.3.0 统一模型：端口/IP 规则都是 FirewallRule）
+    func createRule(_ rule: FirewallRule) async -> Bool {
+        await submitRules(FirewallRuleCreateRequest(items: [FirewallRuleCreateItem(rule: rule)]))
+    }
+
+    func updateRule(uuid: String, rule: FirewallRule) async -> Bool {
         isOperating = true
         defer { isOperating = false }
         do {
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallFilterOperate.path,
-                body: FirewallFilterOperateRequest(name: name, operate: operate),
+                path: APIEndpoint.firewallRulesUpdate.path,
+                body: FirewallRuleUpdateRequest(uuid: uuid, rule: rule, descriptionText: nil),
                 as: EmptyResponse.self
             )
-            if operate == "init-forward" {
-                await loadForwardBase()
-            } else {
-                await loadBase()
-            }
+            await loadRules(replacing: true)
+            return true
         } catch {
-            guard !APIError.isCancellation(error) else { return }
-            self.errorMessage = error.localizedDescription
+            guard !APIError.isCancellation(error) else { return false }
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 
-    func loadRules() async {
-        let req = FirewallSearchRequest(type: "port", status: "", strategy: "", page: 1, pageSize: Self.pageSize)
-        do {
-            let resp: PageResponse<FirewallRule> = try await client.send(
-                path: APIEndpoint.firewallSearch.path,
-                body: req,
-                as: PageResponse<FirewallRule>.self
-            )
-            self.rules = resp.items ?? []
-            self.rulesTotal = resp.total ?? resp.items?.count ?? 0
-            self.rulesPage = 1
-            self.rulesGeneration += 1
-            self.errorMessage = nil
-        } catch {
-            // 页面退出取消不是失败：保留原快照
-            guard !APIError.isCancellation(error) else { return }
-            self.errorMessage = error.localizedDescription
-        }
-    }
-
-    /// 追加下一页端口规则（滚动到底触发；组合 id 去重，防翻页期间增删规则跨页重复）
-    func loadMoreRules() async {
-        guard rules.count < rulesTotal, !isRulesLoadingMore, !isLoading else { return }
-        isRulesLoadingMore = true
-        defer { isRulesLoadingMore = false }
-        let next = rulesPage + 1
-        let gen = rulesGeneration
-        let req = FirewallSearchRequest(type: "port", status: "", strategy: "", page: next, pageSize: Self.pageSize)
-        do {
-            let resp: PageResponse<FirewallRule> = try await client.send(
-                path: APIEndpoint.firewallSearch.path,
-                body: req,
-                as: PageResponse<FirewallRule>.self
-            )
-            // 期间本段已重载（下拉/增删规则触发新代数）：丢弃过期追加
-            guard gen == rulesGeneration else { return }
-            let existing = Set(rules.map(\.id))
-            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
-            if newItems.isEmpty {
-                // 翻页间隙服务器侧数据变动，去重后零新增：total 收敛为已加载量，
-                // 防止加载行常驻、每次滚到底都再发一次下一页请求
-                rulesTotal = rules.count
-                return
-            }
-            rules += newItems
-            rulesTotal = resp.total ?? rulesTotal
-            rulesPage = next
-        } catch {
-            // 追加失败不打断列表，下拉刷新可重试
-        }
-    }
-
-    /// 端口监听进程：映射 端口号 → 进程名（多进程监听同端口去重拼接）。
-    /// Protocol 1=tcp / 2=udp，仅用于展示进程名，不区分协议
-    func loadListening() async {
-        struct EmptyPortInfo: Decodable {}
-        struct ListeningItem: Decodable {
-            let name: String?
-            let port: [String: EmptyPortInfo]?
-
-            enum CodingKeys: String, CodingKey {
-                case name = "Name"
-                case port = "Port"
-            }
-        }
-        do {
-            let items: [ListeningItem] = try await client.send(
-                path: APIEndpoint.processListening.path,
-                as: [ListeningItem].self
-            )
-            var map: [String: [String]] = [:]
-            for item in items {
-                guard let name = item.name?.trimmingCharacters(in: .whitespaces),
-                      !name.isEmpty, let ports = item.port else { continue }
-                for port in ports.keys where !port.isEmpty {
-                    if !map[port, default: []].contains(name) {
-                        map[port, default: []].append(name)
-                    }
-                }
-            }
-            self.portProcessNames = map.mapValues { $0.joined(separator: ", ") }
-        } catch {
-            // 进程名只是展示补充，失败静默（规则行仍显示面板返回的 usedStatus）
-        }
-    }
-
-    /// start / stop / restart
-    func operateUFW(_ operation: String, withDockerRestart: Bool) async {
+    private func submitRules(_ request: FirewallRuleCreateRequest) async -> Bool {
         isOperating = true
         defer { isOperating = false }
-        let req = FirewallOperateRequest(operation: operation, withDockerRestart: withDockerRestart)
+        do {
+            let resp: FirewallRuleCreateResponse = try await client.send(
+                path: APIEndpoint.firewallRulesCreate.path, body: request,
+                as: FirewallRuleCreateResponse.self
+            )
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("创建规则"))
+            } else if (resp.failed ?? 0) > 0, let first = resp.errors?.first {
+                errorMessage = first.error ?? L10n.t("部分规则创建失败")
+            } else {
+                toastMessage = L10n.t("规则已提交")
+            }
+            await loadRules(replacing: true)
+            return true
+        } catch {
+            guard !APIError.isCancellation(error) else { return false }
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func deleteRule(_ item: FirewallInventoryItem) async {
+        guard let uuid = item.manageableUUID else { return }
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let _: FirewallRuleDeleteResponse = try await client.send(
+                path: APIEndpoint.firewallRulesDelete.path,
+                body: FirewallRuleDeleteRequest(uuids: [uuid]),
+                as: FirewallRuleDeleteResponse.self
+            )
+            await loadRules(replacing: true)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: 转发段
+
+    func loadForwards(replacing: Bool) async {
+        if replacing {
+            forwardsGeneration += 1
+            forwardsPage = 1
+        } else {
+            guard !isForwardsLoadingMore, forwards.count < forwardsTotal else { return }
+            isForwardsLoadingMore = true
+        }
+        let generation = forwardsGeneration
+        var req = FirewallForwardSearchRequest(
+            page: replacing ? 1 : forwardsPage + 1,
+            pageSize: Self.forwardsPageSize
+        )
+        req.info = ""
+        do {
+            let resp: PageEnvelope<FirewallForwardRule> = try await client.send(
+                path: APIEndpoint.firewallForwardSearch.path, body: req,
+                as: PageEnvelope<FirewallForwardRule>.self
+            )
+            guard generation == forwardsGeneration else { return }
+            if replacing {
+                forwards = resp.items ?? []
+            } else {
+                forwards += resp.items ?? []
+            }
+            forwardsPage = req.page
+            forwardsTotal = resp.total
+        } catch {
+            guard !APIError.isCancellation(error), generation == forwardsGeneration else { return }
+        }
+        if !replacing { isForwardsLoadingMore = false }
+    }
+
+    /// 编辑 = 同请求内先 remove 后 add（上游 forward/operate 仅支持 add/remove）
+    func submitForward(_ operations: [FirewallForwardOperation], forceDelete: Bool = false) async -> Bool {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallForwardOperate.path,
+                body: FirewallForwardOperateRequest(forceDelete: forceDelete, rules: operations),
+                as: EmptyResponse.self
+            )
+            toastMessage = L10n.t("转发规则已提交")
+            await loadForwards(replacing: true)
+            await loadForwardStatus()
+            return true
+        } catch {
+            guard !APIError.isCancellation(error) else { return false }
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// 启用转发子系统（forward/enable，任务式）
+    func enableForwarding() async {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let resp: FirewallTaskResponse = try await client.send(
+                path: APIEndpoint.firewallForwardEnable.path,
+                body: EmptyRequest(),
+                as: FirewallTaskResponse.self
+            )
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("启用端口转发"))
+            }
+            await loadForwardStatus()
+            await loadForwards(replacing: true)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: 生命周期 / 基础链
+
+    /// start / stop / restart / disableBanPing / enableBanPing
+    func operateFirewall(_ operation: String) async {
+        isOperating = true
+        defer { isOperating = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.firewallOperate.path,
-                body: req,
+                body: FirewallOperateRequest(operation: operation, withDockerRestart: false),
                 as: EmptyResponse.self
             )
-            await loadBase()
+            toastMessage = L10n.t("操作已提交")
+            await loadSystemStatus()
         } catch {
-            self.errorMessage = error.localizedDescription
-        }
-    }
-
-    func togglePing(_ block: Bool) async {
-        // v2 后端 oneof=start stop restart disableBanPing enableBanPing；
-        // 旧名 enablePing/disablePing 会触发 oneof 校验失败
-        let op = block ? "enableBanPing" : "disableBanPing"
-        await operateUFW(op, withDockerRestart: false)
-    }
-
-    func addRule(port: String, proto: String, strategy: String, address: String, description: String) async -> Bool {
-        let source = address.isEmpty ? "anyWhere" : address
-        let req = FirewallPortRequest(
-            protocolField: proto, source: source, strategy: strategy,
-            port: port, description: description, operation: "add", address: address
-        )
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallPort.path, body: req, as: EmptyResponse.self
-            )
-            await loadRules()
-            return true
-        } catch {
-            self.errorMessage = error.localizedDescription
-            return false
-        }
-    }
-
-    func deleteRule(_ rule: FirewallRule) async {
-        let br = FirewallBatchRule(
-            operation: "remove",
-            chain: rule.chain ?? "",
-            address: rule.address ?? "",
-            port: rule.port ?? "",
-            source: rule.address ?? "",
-            protocolField: rule.protocolField ?? "",
-            strategy: rule.strategy ?? ""
-        )
-        let req = FirewallBatchRequest(type: "port", rules: [br])
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallBatch.path, body: req, as: EmptyResponse.self
-            )
-            await loadRules()
-        } catch {
-            self.errorMessage = error.localizedDescription
-        }
-    }
-
-    /// 修改端口规则：oldRule(remove) + newRule(add)
-    func updateRule(
-        old: FirewallRule,
-        port: String, proto: String, strategy: String,
-        address: String, description: String
-    ) async -> Bool {
-        let oldFull = FirewallRuleFull(from: old, operation: "remove")
-        let newAddr = address.isEmpty ? "Anywhere" : address
-        let newRule = FirewallRule(
-            address: newAddr,
-            port: port,
-            protocolField: proto,
-            strategy: strategy,
-            usedStatus: old.usedStatus,
-            description: description,
-            family: old.family,
-            chain: old.chain,
-            num: old.num,
-            apiID: old.apiID,
-            targetIP: old.targetIP,
-            targetPort: old.targetPort,
-            interface: old.interface
-        )
-        let newFull = FirewallRuleFull(from: newRule, operation: "add")
-        let req = FirewallUpdatePortRequest(oldRule: oldFull, newRule: newFull)
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallUpdatePort.path, body: req, as: EmptyResponse.self
-            )
-            await loadRules()
-            return true
-        } catch {
-            self.errorMessage = error.localizedDescription
-            return false
-        }
-    }
-
-    // MARK: 端口转发
-
-    func loadForwards() async {
-        let req = FirewallSearchRequest(type: "forward", status: "", strategy: "", page: 1, pageSize: Self.pageSize)
-        do {
-            let resp: PageResponse<FirewallRule> = try await client.send(
-                path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
-            )
-            self.forwards = resp.items ?? []
-            self.forwardsTotal = resp.total ?? resp.items?.count ?? 0
-            self.forwardsPage = 1
-            self.forwardsGeneration += 1
-            self.errorMessage = nil
-        } catch {
-            // 页面退出取消不是失败：保留原快照
             guard !APIError.isCancellation(error) else { return }
-            self.errorMessage = error.localizedDescription
+            errorMessage = error.localizedDescription
         }
     }
 
-    /// 追加下一页端口转发（滚动到底触发；同 loadMoreRules 去重与过期丢弃）
-    func loadMoreForwards() async {
-        guard forwards.count < forwardsTotal, !isForwardsLoadingMore, !isLoading else { return }
-        isForwardsLoadingMore = true
-        defer { isForwardsLoadingMore = false }
-        let next = forwardsPage + 1
-        let gen = forwardsGeneration
-        let req = FirewallSearchRequest(type: "forward", status: "", strategy: "", page: next, pageSize: Self.pageSize)
+    /// 基础链：init-base / bind-base / unbind-base（iptables/nftables）
+    func operateFilterChain(_ operate: String) async {
+        isOperating = true
+        defer { isOperating = false }
         do {
-            let resp: PageResponse<FirewallRule> = try await client.send(
-                path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
+            let resp: FirewallTaskResponse = try await client.send(
+                path: APIEndpoint.firewallFilterOperate.path,
+                body: FirewallFilterOperateRequest(name: "1PANEL_BASIC", operate: operate, taskID: nil),
+                as: FirewallTaskResponse.self
             )
-            guard gen == forwardsGeneration else { return }
-            let existing = Set(forwards.map(\.id))
-            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
-            if newItems.isEmpty {
-                forwardsTotal = forwards.count
-                return
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("防火墙初始化"))
             }
-            forwards += newItems
-            forwardsTotal = resp.total ?? forwardsTotal
-            forwardsPage = next
+            await loadSystemStatus()
         } catch {
-            // 追加失败不打断列表，下拉刷新可重试
-        }
-    }
-
-    func loadNetOptions() async {
-        do {
-            let resp: [String] = try await client.send(
-                path: APIEndpoint.monitorNetOptions.path,
-                method: APIEndpoint.monitorNetOptions.method,
-                as: [String].self
-            )
-            self.netOptions = resp
-        } catch {
-            // 网口列表失败静默：表单回退为只有「所有」
-        }
-    }
-
-    /// 创建端口转发；interface 传空串 = 所有网口（"all" 仅展示用）
-    func createForward(proto: String, port: String, targetIP: String, targetPort: String, interface: String) async -> Bool {
-        let rule = FirewallRule(
-            address: "", port: port, protocolField: proto, strategy: "",
-            usedStatus: "", description: "", family: "", chain: "",
-            num: nil, apiID: nil, targetIP: targetIP, targetPort: targetPort, interface: interface
-        )
-        let req = FirewallForwardRequest(rules: [FirewallRuleFull(fromForward: rule, operation: "add")], forceDelete: nil)
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallForward.path, body: req, as: EmptyResponse.self
-            )
-            await loadForwards()
-            return true
-        } catch {
-            self.errorMessage = error.localizedDescription
-            return false
-        }
-    }
-
-    /// 修改端口转发：old(remove，原值完整回传) + new(add)
-    func updateForward(
-        old: FirewallRule,
-        proto: String, port: String, targetIP: String, targetPort: String, interface: String
-    ) async -> Bool {
-        let oldFull = FirewallRuleFull(fromForward: old, operation: "remove")
-        let newRule = FirewallRule(
-            address: old.address ?? "", port: port, protocolField: proto,
-            strategy: old.strategy ?? "", usedStatus: old.usedStatus ?? "",
-            description: old.description ?? "", family: old.family ?? "", chain: old.chain ?? "",
-            num: old.num, apiID: old.apiID, targetIP: targetIP, targetPort: targetPort, interface: interface
-        )
-        let req = FirewallForwardRequest(rules: [oldFull, FirewallRuleFull(fromForward: newRule, operation: "add")], forceDelete: nil)
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallForward.path, body: req, as: EmptyResponse.self
-            )
-            await loadForwards()
-            return true
-        } catch {
-            self.errorMessage = error.localizedDescription
-            return false
-        }
-    }
-
-    /// 删除端口转发（force：面板校验端口被占用时需强制删除）
-    func deleteForward(_ rule: FirewallRule, force: Bool) async {
-        let req = FirewallForwardRequest(rules: [FirewallRuleFull(fromForward: rule, operation: "remove")], forceDelete: force)
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallForward.path, body: req, as: EmptyResponse.self
-            )
-            await loadForwards()
-        } catch {
-            self.errorMessage = error.localizedDescription
-        }
-    }
-
-    // MARK: IP 规则
-
-    func loadAddresses() async {
-        let req = FirewallSearchRequest(type: "address", status: "", strategy: "", page: 1, pageSize: Self.pageSize)
-        do {
-            let resp: PageResponse<FirewallRule> = try await client.send(
-                path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
-            )
-            self.addresses = resp.items ?? []
-            self.addressesTotal = resp.total ?? resp.items?.count ?? 0
-            self.addressesPage = 1
-            self.addressesGeneration += 1
-            self.errorMessage = nil
-        } catch {
-            // 页面退出取消不是失败：保留原快照
             guard !APIError.isCancellation(error) else { return }
-            self.errorMessage = error.localizedDescription
+            errorMessage = error.localizedDescription
         }
     }
 
-    /// 追加下一页 IP 规则（滚动到底触发；同 loadMoreRules 去重与过期丢弃）
-    func loadMoreAddresses() async {
-        guard addresses.count < addressesTotal, !isAddressesLoadingMore, !isLoading else { return }
-        isAddressesLoadingMore = true
-        defer { isAddressesLoadingMore = false }
-        let next = addressesPage + 1
-        let gen = addressesGeneration
-        let req = FirewallSearchRequest(type: "address", status: "", strategy: "", page: next, pageSize: Self.pageSize)
+    // MARK: Docker 守护
+
+    func loadDockerGuard() async {
+        guard !unsupportedPanel else { return }
         do {
-            let resp: PageResponse<FirewallRule> = try await client.send(
-                path: APIEndpoint.firewallSearch.path, body: req, as: PageResponse<FirewallRule>.self
+            dockerGuard = try await client.send(
+                path: APIEndpoint.firewallDockerPorts.path, method: "GET",
+                as: DockerGuardList.self
             )
-            guard gen == addressesGeneration else { return }
-            let existing = Set(addresses.map(\.id))
-            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
-            if newItems.isEmpty {
-                addressesTotal = addresses.count
-                return
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            // Docker 未安装/守护不可用时该段显示空态，不阻塞页面
+        }
+    }
+
+    func dockerOperate(_ operation: String) async {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let resp: FirewallTaskResponse = try await client.send(
+                path: APIEndpoint.firewallDockerOperate.path,
+                body: DockerGuardOperateRequest(operation: operation, taskID: nil),
+                as: FirewallTaskResponse.self
+            )
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("Docker 端口守护"))
+            } else {
+                toastMessage = L10n.t("操作已提交")
             }
-            addresses += newItems
-            addressesTotal = resp.total ?? addressesTotal
-            addressesPage = next
-        } catch {
-            // 追加失败不打断列表，下拉刷新可重试
-        }
-    }
-
-    /// 创建 IP 规则（address 支持逗号分隔多个）
-    func createAddressRule(address: String, strategy: String, description: String) async -> Bool {
-        let desc = description.trimmingCharacters(in: .whitespaces)
-        let req = FirewallIPRuleRequest(strategy: strategy, address: address, operation: "add", description: desc.isEmpty ? nil : desc)
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallIP.path, body: req, as: EmptyResponse.self
-            )
-            await loadAddresses()
-            return true
-        } catch {
-            self.errorMessage = error.localizedDescription
-            return false
-        }
-    }
-
-    /// 修改 IP 规则（指定 IP 不可改，仅策略/描述）；oldRule/newRule 保留 API 真实 id
-    func updateAddressRule(old: FirewallRule, strategy: String, description: String) async -> Bool {
-        let oldFull = FirewallRuleFull(fromAddressRule: old, operation: "remove")
-        let newFull = FirewallRuleFull(
-            id: oldFull.id,
-            chain: oldFull.chain,
-            family: oldFull.family,
-            address: oldFull.address,
-            port: oldFull.port,
-            protocolField: oldFull.protocolField,
-            strategy: strategy,
-            num: oldFull.num,
-            targetIP: oldFull.targetIP,
-            targetPort: oldFull.targetPort,
-            interface: oldFull.interface,
-            usedStatus: oldFull.usedStatus,
-            description: description,
-            usedPorts: [],
-            source: "",
-            operation: "add"
-        )
-        let req = FirewallUpdateAddrRequest(oldRule: oldFull, newRule: newFull)
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallUpdateAddr.path, body: req, as: EmptyResponse.self
-            )
-            await loadAddresses()
-            return true
-        } catch {
-            self.errorMessage = error.localizedDescription
-            return false
-        }
-    }
-
-    /// 删除 IP 规则（batch type=address，strategy 回传规则当前值）
-    func deleteAddressRule(_ rule: FirewallRule) async {
-        let br = FirewallBatchRule(
-            operation: "remove",
-            chain: rule.chain ?? "",
-            address: rule.address ?? "",
-            port: rule.port ?? "",
-            source: "",
-            protocolField: rule.protocolField ?? "",
-            strategy: rule.strategy ?? ""
-        )
-        let req = FirewallBatchRequest(type: "address", rules: [br])
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallBatch.path, body: req, as: EmptyResponse.self
-            )
-            await loadAddresses()
-        } catch {
-            self.errorMessage = error.localizedDescription
-        }
-    }
-
-    // MARK: - iptables 链规则（filter/*；仅 iptables 后端，已装 ufw 不支持）
-
-    static let inputChain = "1PANEL_INPUT"
-    static let outputChain = "1PANEL_OUTPUT"
-
-    /// name=advance 查询的 iptables 链状态（返回 name=ufw 即后端不支持）
-    @Published var filterBase: FirewallBase?
-    /// 两条链各自的状态（chain/status，key=链名）：绑定按钮取当前链，
-    /// 默认策略详情同时展示入站/出站两条链
-    @Published var chainStatusMap: [String: FirewallChainStatus] = [:]
-    @Published var chainRules: [FirewallChainRule] = []
-    @Published private(set) var chainRulesTotal = 0
-    @Published private(set) var isChainRulesLoadingMore = false
-    /// 链规则段加载态（首次/切方向/下拉时整段转圈，与 isOperating 分开）
-    @Published var isChainLoading = false
-    private var chainRulesPage = 1
-    private var chainRulesGeneration = 0
-
-    /// 链规则段整段加载（iptables 基础状态 + 链状态 + 规则第一页）
-    func loadChainPage(chain: String) async {
-        isChainLoading = true
-        async let base: () = loadFilterBase()
-        // 两条链的状态都取：绑定按钮用当前链，默认策略详情同时展示入站/出站
-        async let inStatus: () = loadChainStatus(chain: Self.inputChain)
-        async let outStatus: () = loadChainStatus(chain: Self.outputChain)
-        async let rules: () = loadChainRules(chain: chain)
-        _ = await (base, inStatus, outStatus, rules)
-        isChainLoading = false
-    }
-
-    /// name=advance：iptables 链规则可用性（name=iptables 才有第四段）
-    func loadFilterBase() async {
-        struct AdvanceReq: Encodable { let name: String }
-        do {
-            filterBase = try await client.send(
-                path: APIEndpoint.firewallBase.path,
-                body: AdvanceReq(name: "advance"),
-                as: FirewallBase.self
-            )
+            await loadDockerGuard()
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            self.errorMessage = error.localizedDescription
+            errorMessage = error.localizedDescription
         }
     }
 
-    func loadChainStatus(chain: String) async {
-        do {
-            chainStatusMap[chain] = try await client.send(
-                path: APIEndpoint.firewallFilterChainStatus.path,
-                body: FirewallChainStatusRequest(name: chain),
-                as: FirewallChainStatus.self
-            )
-        } catch {
-            guard !APIError.isCancellation(error) else { return }
-            self.errorMessage = error.localizedDescription
-        }
-    }
-
-    func loadChainRules(chain: String) async {
-        let req = FirewallChainRuleSearchRequest(type: chain, info: "", page: 1, pageSize: Self.pageSize)
-        do {
-            let resp: PageResponse<FirewallChainRule> = try await client.send(
-                path: APIEndpoint.firewallFilterRuleSearch.path, body: req,
-                as: PageResponse<FirewallChainRule>.self
-            )
-            self.chainRules = resp.items ?? []
-            self.chainRulesTotal = resp.total ?? resp.items?.count ?? 0
-            self.chainRulesPage = 1
-            self.chainRulesGeneration += 1
-            self.errorMessage = nil
-        } catch {
-            guard !APIError.isCancellation(error) else { return }
-            self.errorMessage = error.localizedDescription
-        }
-    }
-
-    /// 追加下一页链规则（滚动到底触发；组合键去重 + 代数丢弃过期追加）
-    func loadMoreChainRules(chain: String) async {
-        guard chainRules.count < chainRulesTotal, !isChainRulesLoadingMore, !isChainLoading else { return }
-        isChainRulesLoadingMore = true
-        defer { isChainRulesLoadingMore = false }
-        let next = chainRulesPage + 1
-        let gen = chainRulesGeneration
-        let req = FirewallChainRuleSearchRequest(type: chain, info: "", page: next, pageSize: Self.pageSize)
-        do {
-            let resp: PageResponse<FirewallChainRule> = try await client.send(
-                path: APIEndpoint.firewallFilterRuleSearch.path, body: req,
-                as: PageResponse<FirewallChainRule>.self
-            )
-            guard gen == chainRulesGeneration else { return }
-            let existing = Set(chainRules.map(\.id))
-            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
-            if newItems.isEmpty {
-                chainRulesTotal = chainRules.count
-                return
-            }
-            chainRules += newItems
-            chainRulesTotal = resp.total ?? chainRulesTotal
-            chainRulesPage = next
-        } catch {
-            // 追加失败不打断列表，下拉刷新可重试
-        }
-    }
-
-    /// 链操作：init-advance / bind / unbind（成功后重拉链状态；初始化另刷基础态）
-    func operateChain(_ operate: String, chain: String) async {
+    func dockerSync() async {
         isOperating = true
         defer { isOperating = false }
         do {
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallFilterOperate.path,
-                body: FirewallFilterOperateRequest(name: chain, operate: operate),
+                path: APIEndpoint.firewallDockerSync.path,
+                body: EmptyRequest(),
                 as: EmptyResponse.self
             )
-            await loadChainStatus(chain: chain)
-            if operate == "init-advance" {
-                await loadFilterBase()
-            }
+            toastMessage = L10n.t("同步已提交")
+            await loadDockerGuard()
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            self.errorMessage = error.localizedDescription
+            errorMessage = error.localizedDescription
         }
     }
 
-    /// 创建链规则（入站写 srcIP、出站写 dstIP；srcPort 恒 0，端口为目标端口）
-    func addChainRule(chain: String, proto: String, strategy: String, ip: String, dstPort: Int, description: String) async -> Bool {
-        let desc = description.trimmingCharacters(in: .whitespaces)
-        let req = FirewallChainRuleOperateRequest(
-            chain: chain,
-            protocolField: proto,
-            strategy: strategy,
-            srcPort: 0,
-            dstPort: dstPort,
-            dstIP: chain == Self.outputChain ? ip : "",
-            srcIP: chain == Self.inputChain ? ip : "",
-            operation: "add",
-            description: desc.isEmpty ? nil : desc
-        )
+    func deleteDockerPolicy(_ endpoint: DockerGuardEndpoint) async {
+        guard let uuid = endpoint.policyUUID, !uuid.isEmpty else { return }
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let _: FirewallTaskResponse = try await client.send(
+                path: APIEndpoint.firewallDockerPolicyDelete.path,
+                body: DockerGuardPolicyDeleteRequest(uuids: [uuid]),
+                as: FirewallTaskResponse.self
+            )
+            await loadDockerGuard()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: 设置段
+
+    func loadSettings() async {
+        guard !unsupportedPanel else { return }
+        do {
+            settings = try await client.send(
+                path: APIEndpoint.firewallSettings.path, method: "GET",
+                as: FirewallSettings.self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+        }
+    }
+
+    /// subsystem = system/forwarding/docker；operation = select/initialize/cleanup
+    func operateBackend(subsystem: String, backend: String, operation: String) async {
+        isOperating = true
+        defer { isOperating = false }
         do {
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallFilterRuleOperate.path, body: req, as: EmptyResponse.self
+                path: APIEndpoint.firewallSettingsOperate.path,
+                body: FirewallBackendOperationRequest(subsystem: subsystem, backend: backend, operation: operation),
+                as: EmptyResponse.self
             )
-            await loadChainRules(chain: chain)
+            toastMessage = L10n.t("操作已提交")
+            // 后端切换影响全部子系统状态，整页重拉
+            await loadSystemStatus()
+            await loadForwardStatus()
+            await loadSettings()
+            await loadRules(replacing: true)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 面板端口白名单（任务式）
+    func updatePortWhitelist(_ value: String) async -> Bool {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let resp: FirewallTaskResponse = try await client.send(
+                path: APIEndpoint.firewallSettingsWhitelist.path,
+                body: FirewallPortWhitelistRequest(value: value),
+                as: FirewallTaskResponse.self
+            )
+            await loadSettings()
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("更新端口白名单"))
+            } else {
+                toastMessage = L10n.t("白名单已提交")
+            }
             return true
         } catch {
-            self.errorMessage = error.localizedDescription
+            guard !APIError.isCancellation(error) else { return false }
+            errorMessage = error.localizedDescription
             return false
         }
     }
 
-    /// 删除链规则（rule/batch 单条，规则字段全量回传、端口按 Int）
-    func deleteChainRule(_ rule: FirewallChainRule, chain: String) async {
-        let req = FirewallChainRuleBatchRequest(rules: [FirewallChainRuleBatchItem(rule: rule)])
+    // MARK: 辅助
+
+    private func loadListening() async {
+        struct ListeningReq: Encodable { let info: String; let page: Int; let pageSize: Int }
+        struct ListeningResp: Decodable { let items: [ListeningItem]? }
+        struct ListeningItem: Decodable {
+            let port: String?
+            let processNames: String?
+        }
         do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallFilterRuleBatch.path, body: req, as: EmptyResponse.self
+            let resp: ListeningResp = try await client.send(
+                path: APIEndpoint.processListening.path,
+                body: ListeningReq(info: "", page: 1, pageSize: 200),
+                as: ListeningResp.self
             )
-            await loadChainRules(chain: chain)
-        } catch {
-            self.errorMessage = error.localizedDescription
+            var map: [String: String] = [:]
+            for item in resp.items ?? [] {
+                guard let port = item.port, !port.isEmpty else { continue }
+                map[port] = item.processNames
+            }
+            portProcessNames = map
+        } catch { /* 静默：行内进程名缺失不影响功能 */ }
+    }
+
+    private func loadNetOptions() async {
+        do {
+            let resp: [String] = try await client.send(
+                path: APIEndpoint.monitorNetOptions.path, method: "GET",
+                as: [String].self
+            )
+            netOptions = resp
+        } catch { /* 静默 */ }
+    }
+
+    /// 规则表单的 scope 构造（对齐 Web 端 buildRule：按后端补 table/zone/chain）
+    static func scopeForCreate(backend: String?, family: String) -> FirewallScope {
+        switch backend {
+        case "iptables", "nftables":
+            return FirewallScope(provider: backend, family: family, table: "filter",
+                                 chain: "1PANEL_BASIC", direction: "input")
+        case "firewalld":
+            return FirewallScope(provider: backend, family: "inet", zone: "public", direction: "input")
+        default: // ufw
+            return FirewallScope(provider: backend ?? "ufw", family: family, chain: "incoming", direction: "input")
         }
     }
+}
+
+/// 任务进度页目标
+struct FirewallTaskTarget: Identifiable, Hashable {
+    let taskID: String
+    let title: String
+    var id: String { taskID }
 }
 
 // MARK: - 主视图
 
 struct FirewallView: View {
     @StateObject private var vm: FirewallViewModel
-    @State private var showAdd = false
-    @State private var pendingUFWOp: String?
-    @State private var pendingDeleteRule: FirewallRule?
-    @State private var editingRule: FirewallRule?
-    @State private var actionRule: FirewallRule?
+    let server: ServerConfig
+
     @State private var statusExpanded = false
-    @State private var showWhitelist = false
-    @State private var showWAF = false
-    /// 内容段：0=端口规则 1=端口转发 2=IP 规则（顶部横条三段切换，同告警页）
+    /// 内容段：0=规则 1=转发 2=Docker 守护 3=设置
     @State private var segment = 0
-    // 端口转发
+    // 规则段交互
+    @State private var showAddRule = false
+    @State private var editingRule: FirewallRule?
+    @State private var editingRuleUUID: String?
+    @State private var pendingDeleteItem: FirewallInventoryItem?
+    @State private var pendingLifeOp: String?
+    // 转发段交互
     @State private var showAddForward = false
-    @State private var editingForward: FirewallRule?
-    @State private var actionForward: FirewallRule?
-    @State private var pendingDeleteForward: FirewallRule?
-    // IP 规则
-    @State private var showAddAddress = false
-    @State private var editingAddress: FirewallRule?
-    @State private var actionAddress: FirewallRule?
-    @State private var pendingDeleteAddress: FirewallRule?
-    // iptables 链规则（第四段，仅 iptables 后端显示）
-    /// 0=入站（1PANEL_INPUT）1=出站（1PANEL_OUTPUT）
-    @State private var chainDirection = 0
-    @State private var showAddChainRule = false
-    @State private var pendingDeleteChainRule: FirewallChainRule?
-    /// 待确认的链操作（init-advance / bind / unbind）
-    @State private var pendingChainOp: String?
-    /// 待确认的 iptables 基础链操作（init-base / init-forward / bind-base / unbind-base）
-    @State private var pendingBaseOp: String?
-    /// 链规则默认策略详情（状态抽屉「默认策略」行点击弹出）
-    @State private var showChainStrategy = false
-    /// 白名单页需要独立建 APIClient（settings 接口与防火墙接口分离）
-    private let server: ServerConfig
+    @State private var editingForward: FirewallForwardRule?
+    @State private var pendingDeleteForward: FirewallForwardRule?
+    @State private var pendingDeleteForwardForce = false
+    // WAF 入口（与防火墙同属主机安全防护，管理列表不单列）
+    @State private var showWAF = false
 
     init(server: ServerConfig) {
         self.server = server
-        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.firewall.storeKey(server: server)) {
-            FirewallViewModel(server: server)
-        })
+        _vm = StateObject(wrappedValue: FirewallViewModel(server: server))
     }
 
     var body: some View {
         List {
-            statusSection
-            Section {
-                Picker(L10n.t("模块"), selection: $segment) {
-                    Text(L10n.t("端口规则")).tag(0)
-                    Text(L10n.t("端口转发")).tag(1)
-                    Text(L10n.t("IP 规则")).tag(2)
-                    // 仅 iptables 后端有链规则（已装 ufw 不支持，name=advance 返回 ufw）
-                    if isIPTablesBackend {
-                        Text(L10n.t("链规则")).tag(3)
-                    }
+            if vm.unsupportedPanel {
+                unsupportedSection
+            } else {
+                statusSection
+                Picker("", selection: $segment) {
+                    Text(L10n.t("规则")).tag(0)
+                    Text(L10n.t("转发")).tag(1)
+                    Text("Docker").tag(2)
+                    Text(L10n.t("设置")).tag(3)
                 }
                 .pickerStyle(.segmented)
                 .segmentedPickerRow()
-                .listRowSeparator(.hidden)
-            }
+                .listRowBackground(Color.clear)
 
-            switch segment {
-            case 0: portRulesSection
-            case 1: forwardSection
-            case 3: chainSection
-            default: addressSection
+                switch segment {
+                case 0: rulesSection
+                case 1: forwardSection
+                case 2: dockerSection
+                default: settingsSection
+                }
             }
         }
         .navigationTitle(L10n.t("防火墙"))
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable {
-            switch segment {
-            case 0: await vm.loadRules()
-            case 1:
-                // iptables 转发有独立初始化状态：下拉一并重查（网页端初始化后同步解除门控）
-                if isIPTables { await vm.loadForwardBase() }
-                await vm.loadForwards()
-            case 3: await vm.loadChainPage(chain: currentChain)
-            default: await vm.loadAddresses()
-            }
-        }
-        // 链规则段进入/切方向时整段加载（key 变化重跑；其余段 key 固定不触发）
-        .task(id: segment == 3 ? "chain-\(chainDirection)" : "main") {
-            guard segment == 3 else { return }
-            await vm.loadChainPage(chain: currentChain)
-        }
-        .task {
-            // 已有快照（重访）时门控不显示转圈，这里静默刷新即可（5 秒内重访节流）
-            await PageVMStore.shared.autoRefresh(vm: vm) {
-                await vm.refresh()
-            }
-        }
-        .overlay {
-            if vm.isLoading && vm.base == nil {
-                LoadingStateView()
-            } else if let msg = vm.errorMessage, vm.base == nil {
-                // 整页加载失败：统一 LoadErrorStateView（ErrorBanner 仅限首页概览降级场景）
-                LoadErrorStateView(message: msg) { Task { await vm.refresh() } }
-            }
-        }
         .toolbar {
-            // WAF 入口在左，+ 在最右（与其余列表页的「其他入口 + 号居右」统一）
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showWAF = true
-                } label: {
-                    Image(systemName: "flame.fill")
-                }
-                .accessibilityLabel(L10n.t("WAF"))
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    switch segment {
-                    case 0: showAdd = true
-                    case 1: showAddForward = true
-                    case 3: showAddChainRule = true
-                    default: showAddAddress = true
+                if !vm.unsupportedPanel {
+                    Menu {
+                        if segment == 0 {
+                            Button { showAddRule = true } label: {
+                                Label(L10n.t("创建规则"), systemImage: "plus")
+                            }
+                        } else if segment == 1 {
+                            Button { showAddForward = true } label: {
+                                Label(L10n.t("创建转发"), systemImage: "plus")
+                            }
+                        }
+                        Button { showWAF = true } label: {
+                            Label("WAF", systemImage: "shield.lefthalf.filled")
+                        }
+                    } label: {
+                        Image(systemName: "plus.circle")
                     }
-                } label: {
-                    Image(systemName: "plus")
+                    .accessibilityLabel(L10n.t("添加"))
                 }
-                .disabled(vm.base?.isExist != true
-                          || (segment == 3 && vm.filterBase?.isInit != true)
-                          || (segment == 1 && isForwardUninitialized)
-                          || (segment != 1 && segment != 3 && isBaseUninitialized))
-                .accessibilityLabel(segment == 1 ? L10n.t("添加端口转发") : segment == 2 ? L10n.t("添加 IP 规则") : segment == 3 ? L10n.t("添加链规则") : L10n.t("添加规则"))
             }
         }
-        .navigationDestination(isPresented: $showAdd) {
-            FirewallAddRuleView(vm: vm)
-        }
-        // WAF 与防火墙同属主机安全防护，入口收进本页右上角（管理列表不单列）
-        .navigationDestination(isPresented: $showWAF) {
-            WAFView(server: server)
-        }
-        .navigationDestination(isPresented: $showWhitelist) {
-            // 白名单保存成功后回调刷新本页（状态/规则/进程名都重拉）
-            FirewallPortWhitelistView(server: server) {
-                Task { await vm.refresh() }
+        .refreshable { await vm.refresh() }
+        .overlay {
+            if vm.isLoading && vm.systemStatus == nil && !vm.unsupportedPanel {
+                LoadingStateView()
+            } else if let err = vm.errorMessage, vm.systemStatus == nil, !vm.unsupportedPanel {
+                // 整页加载失败：统一 LoadErrorStateView（ErrorBanner 仅限首页概览降级场景）
+                LoadErrorStateView(message: err) {
+                    Task { await vm.refresh() }
+                }
             }
+        }
+        .toastOverlay(message: $vm.toastMessage)
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { vm.errorMessage != nil && vm.systemStatus != nil },
+            set: { if !$0 { vm.errorMessage = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { vm.errorMessage = nil }
+        } message: {
+            Text(vm.errorMessage ?? "")
+        }
+        .task { await vm.refresh() }
+        // 规则：创建 / 编辑
+        .navigationDestination(isPresented: $showAddRule) {
+            FirewallRuleFormView(vm: vm, editing: nil, editingUUID: nil)
         }
         .navigationDestination(isPresented: Binding(
             get: { editingRule != nil },
-            set: { if !$0 { editingRule = nil } }
+            set: { if !$0 { editingRule = nil; editingRuleUUID = nil } }
         )) {
             if let rule = editingRule {
-                FirewallEditRuleView(vm: vm, rule: rule)
+                FirewallRuleFormView(vm: vm, editing: rule, editingUUID: editingRuleUUID)
             }
         }
-        .sheet(isPresented: Binding(
-            get: { actionRule != nil },
-            set: { if !$0 { actionRule = nil } }
+        .alert(L10n.t("删除规则"), isPresented: Binding(
+            get: { pendingDeleteItem != nil },
+            set: { if !$0 { pendingDeleteItem = nil } }
         )) {
-            if let rule = actionRule {
-                FirewallActionSheet(kind: .port(rule)) { r in
-                    actionRule = nil
-                    editingRule = r
-                } onDelete: { r in
-                    actionRule = nil
-                    pendingDeleteRule = r
-                }
-            }
-        }
-        .alert(L10n.t("删除端口规则"), isPresented: Binding(
-            get: { pendingDeleteRule != nil },
-            set: { if !$0 { pendingDeleteRule = nil } }
-        )) {
-            Button(L10n.t("取消"), role: .cancel) { pendingDeleteRule = nil }
+            Button(L10n.t("取消"), role: .cancel) { pendingDeleteItem = nil }
             Button(L10n.t("删除"), role: .destructive) {
                 Haptic.warning()
-                if let rule = pendingDeleteRule {
-                    pendingDeleteRule = nil
-                    Task { await vm.deleteRule(rule) }
+                if let item = pendingDeleteItem {
+                    pendingDeleteItem = nil
+                    Task { await vm.deleteRule(item) }
                 }
             }
         } message: {
-            if let rule = pendingDeleteRule {
-                Text(L10n.f("确定删除端口规则「%@」吗？删除后不可恢复。", rule.port ?? ""))
+            if let item = pendingDeleteItem {
+                Text(L10n.f("确定删除规则「%@」吗？删除后不可恢复。", item.rule?.destinationPort ?? item.rule?.sourceAddress ?? ""))
             }
         }
-        // 端口转发：创建 / 编辑
+        // 转发：创建 / 编辑 / 删除
         .navigationDestination(isPresented: $showAddForward) {
             FirewallForwardFormView(vm: vm, editing: nil)
         }
@@ -920,1746 +667,859 @@ struct FirewallView: View {
                 FirewallForwardFormView(vm: vm, editing: rule)
             }
         }
-        .sheet(isPresented: Binding(
-            get: { actionForward != nil },
-            set: { if !$0 { actionForward = nil } }
-        )) {
-            if let rule = actionForward {
-                FirewallActionSheet(kind: .forward(rule)) { r in
-                    actionForward = nil
-                    editingForward = r
-                } onDelete: { r in
-                    actionForward = nil
-                    pendingDeleteForward = r
-                }
-            }
-        }
-        // 删除转发：普通删除 + 强制删除两档（对齐面板 Web 端的可勾选项）
         .alert(L10n.t("删除端口转发"), isPresented: Binding(
-            get: { pendingDeleteForward != nil },
+            get: { pendingDeleteForward != nil && !pendingDeleteForwardForce },
             set: { if !$0 { pendingDeleteForward = nil } }
         )) {
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteForward = nil }
             Button(L10n.t("删除"), role: .destructive) {
                 Haptic.warning()
-                if let rule = pendingDeleteForward {
-                    pendingDeleteForward = nil
-                    Task { await vm.deleteForward(rule, force: false) }
-                }
+                deleteForward(force: false)
             }
             Button(L10n.t("强制删除"), role: .destructive) {
                 Haptic.warning()
-                if let rule = pendingDeleteForward {
-                    pendingDeleteForward = nil
-                    Task { await vm.deleteForward(rule, force: true) }
-                }
+                deleteForward(force: true)
             }
         } message: {
             if let rule = pendingDeleteForward {
                 Text(L10n.f("确定删除端口转发「%@」吗？若端口被占用可选择强制删除。", rule.port ?? ""))
             }
         }
-        // IP 规则：创建 / 编辑
-        .navigationDestination(isPresented: $showAddAddress) {
-            FirewallAddressFormView(vm: vm, editing: nil)
-        }
-        .navigationDestination(isPresented: Binding(
-            get: { editingAddress != nil },
-            set: { if !$0 { editingAddress = nil } }
+        // 生命周期确认（start/stop/restart 大操作保留确认；ping 开关直接执行）
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { pendingLifeOp != nil },
+            set: { if !$0 { pendingLifeOp = nil } }
         )) {
-            if let rule = editingAddress {
-                FirewallAddressFormView(vm: vm, editing: rule)
-            }
-        }
-        .sheet(isPresented: Binding(
-            get: { actionAddress != nil },
-            set: { if !$0 { actionAddress = nil } }
-        )) {
-            if let rule = actionAddress {
-                FirewallActionSheet(kind: .address(rule)) { r in
-                    actionAddress = nil
-                    editingAddress = r
-                } onDelete: { r in
-                    actionAddress = nil
-                    pendingDeleteAddress = r
-                }
-            }
-        }
-        .alert(L10n.t("删除 IP 规则"), isPresented: Binding(
-            get: { pendingDeleteAddress != nil },
-            set: { if !$0 { pendingDeleteAddress = nil } }
-        )) {
-            Button(L10n.t("取消"), role: .cancel) { pendingDeleteAddress = nil }
-            Button(L10n.t("删除"), role: .destructive) {
-                Haptic.warning()
-                if let rule = pendingDeleteAddress {
-                    pendingDeleteAddress = nil
-                    Task { await vm.deleteAddressRule(rule) }
-                }
+            Button(L10n.t("取消"), role: .cancel) { pendingLifeOp = nil }
+            Button(L10n.t("确认"), role: .destructive) {
+                guard let op = pendingLifeOp else { return }
+                pendingLifeOp = nil
+                Task { await vm.operateFirewall(op) }
             }
         } message: {
-            if let rule = pendingDeleteAddress {
-                Text(L10n.f("将对 \"%@\" 进行删除操作，是否继续？", rule.address ?? ""))
-            }
+            Text(L10n.f("将对防火墙执行「%@」，操作期间服务可能短暂中断，是否继续？",
+                        pendingLifeOp.flatMap(Self.lifeOpName) ?? ""))
         }
-        // iptables 链规则弹窗组（创建跳转 / 删除确认 / 链操作确认）独立成
-        // modifier：主 body 追加过多修饰符会超出类型推断合理时间
-        .modifier(FirewallChainDialogsModifier(
-            vm: vm,
-            currentChain: currentChain,
-            showAddChainRule: $showAddChainRule,
-            pendingDeleteChainRule: $pendingDeleteChainRule,
-            pendingChainOp: $pendingChainOp,
-            pendingBaseOp: $pendingBaseOp,
-            showChainStrategy: $showChainStrategy)
-        )
-        .alert(
-            pendingUFWOp.map { opTitle($0) } ?? "",
-            isPresented: Binding(
-                get: { pendingUFWOp != nil },
-                set: { if !$0 { pendingUFWOp = nil } }
-            )
-        ) {
-            Button(L10n.t("立即重启 Docker")) {
-                let op = pendingUFWOp; pendingUFWOp = nil
-                if let op { Task { await vm.operateUFW(op, withDockerRestart: true) } }
-            }
-            Button(L10n.t("稍后手动重启")) {
-                let op = pendingUFWOp; pendingUFWOp = nil
-                if let op { Task { await vm.operateUFW(op, withDockerRestart: false) } }
-            }
-            Button(L10n.t("取消"), role: .cancel) { pendingUFWOp = nil }
-        } message: {
-            Text(L10n.t("启用/停用防火墙可能影响 Docker 网络连通性。是否立即重启 Docker？"))
+        // WAF 与防火墙同属主机安全防护，入口收进本页右上角（管理列表不单列）
+        .navigationDestination(isPresented: $showWAF) {
+            WAFView(server: server)
+        }
+        // 任务式操作进度页（初始化/启用转发/白名单/Docker 操作）
+        .navigationDestination(item: $vm.activeTask) { target in
+            TaskProgressView(taskID: target.taskID, title: target.title) { _ in false }
         }
     }
 
-    // MARK: - 段内容
+    private func deleteForward(force: Bool) {
+        guard let rule = pendingDeleteForward else { return }
+        pendingDeleteForward = nil
+        Task {
+            var op = FirewallForwardOperation(
+                operation: "remove",
+                num: rule.num,
+                family: rule.family,
+                protocolField: rule.protocolField ?? "tcp",
+                interface: rule.interface,
+                port: rule.port ?? "",
+                targetIP: rule.targetIP,
+                targetPort: rule.targetPort ?? ""
+            )
+            op.targetIP = nil
+            op.targetPort = ""
+            _ = await vm.submitForward([op], forceDelete: force)
+        }
+    }
 
-    /// 段 0：端口规则（原有逻辑；iptables 未初始化时整段替换为初始化提示）
-    @ViewBuilder
-    private var portRulesSection: some View {
-        if isBaseUninitialized {
-            uninitializedHint
-        } else if vm.rules.isEmpty {
-            if vm.isLoading {
-                EmptyView()
-            } else {
-                Section {
-                    ContentUnavailableView(
-                        L10n.t("暂无端口规则"),
-                        systemImage: "list.bullet.rectangle",
-                        description: Text(L10n.t("点击右上角 + 添加规则"))
-                    )
-                    .listRowBackground(Color.clear)
-                }
+    private static func lifeOpName(_ op: String) -> String {
+        switch op {
+        case "start": return L10n.t("启动")
+        case "stop": return L10n.t("停止")
+        case "restart": return L10n.t("重启")
+        default: return op
+        }
+    }
+
+    // MARK: 旧面板门禁（L2）
+
+    private var unsupportedSection: some View {
+        Section {
+            ContentUnavailableView {
+                Label(L10n.t("面板版本过低"), systemImage: "exclamationmark.arrow.triangle.2.circlepath")
+            } description: {
+                Text(L10n.t("防火墙新管理界面需要 1Panel v2.3.0 及以上版本。请升级面板后使用；旧版端口/转发管理已随 v2.3.0 重构下线。"))
             }
-        } else {
-            Section {
-                ForEach(vm.rules) { rule in
-                    Button {
-                        actionRule = rule
-                    } label: {
-                        FirewallRuleRow(
-                            rule: rule,
-                            processName: vm.portProcessNames[rule.port ?? ""]
-                        )
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .onAppear {
-                        if rule.id == vm.rules.last?.id {
-                            Task { await vm.loadMoreRules() }
+        }
+    }
+
+    // MARK: 状态卡
+
+    private var statusSection: some View {
+        Section {
+            Button {
+                withAnimation(Motion.standard) { statusExpanded.toggle() }
+            } label: {
+                HStack(spacing: 12) {
+                    IconBadge(systemName: "flame.fill",
+                              color: (vm.systemStatus?.isActive == true) ? .orange : .gray)
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(vm.systemStatus?.backend?.uppercased() ?? "—")
+                                .font(.subheadline.bold())
+                            if let v = vm.systemStatus?.version, !v.isEmpty {
+                                Text("v\(v)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        Text(vm.systemStatus?.isActive == true ? L10n.t("运行中") : L10n.t("已停止"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
+                    Spacer()
+                    if let conflict = vm.systemStatus?.conflictBackend, !conflict.isEmpty {
+                        StatusBadge(text: L10n.t("后端冲突"), color: .semanticWarning)
+                    }
+                    Image(systemName: statusExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
                 }
-                if vm.rules.count < vm.rulesTotal || vm.isRulesLoadingMore {
-                    loadMoreRow { Task { await vm.loadMoreRules() } }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if statusExpanded {
+                if let conflict = vm.systemStatus?.conflictBackend, !conflict.isEmpty {
+                    Label(L10n.f("检测到冲突后端 %@，可能互相干扰规则，建议在设置段清理未用后端。", conflict),
+                          systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(Color.semanticWarning)
                 }
-            } header: {
-                SectionLabel(
-                    title: L10n.f("端口规则（%ld）", max(vm.rulesTotal, vm.rules.count)),
-                    systemImage: "list.bullet.rectangle"
+                badgesRow
+                operationsRow
+                    .padding(.top, 4)
+            }
+        }
+    }
+
+    private var badgesRow: some View {
+        HStack(spacing: 6) {
+            if vm.systemStatus?.isInit == true {
+                StatusBadge(text: L10n.t("已初始化"), color: .statusRunning)
+            } else if vm.systemStatus?.backend == "iptables" || vm.systemStatus?.backend == "nftables" {
+                StatusBadge(text: L10n.t("未初始化"), color: .semanticWarning)
+            }
+            if vm.systemStatus?.isBind == true {
+                StatusBadge(text: L10n.t("已绑定"), color: .blue)
+            }
+            familyBadge("IPv4", vm.systemStatus?.ipv4)
+            familyBadge("IPv6", vm.systemStatus?.ipv6)
+        }
+    }
+
+    private func familyBadge(_ title: String, _ family: FirewallBackendFamilyStatus?) -> some View {
+        Group {
+            if let family {
+                StatusBadge(
+                    text: title,
+                    color: (family.available == true) ? .statusRunning : .secondary
                 )
             }
         }
     }
 
-    /// 段 1：端口转发（iptables 后端有独立初始化状态，抓包：init-forward；
-    /// 未绑定时网页端仍显示初始化按钮，规则列表不可用的口径才是 isInit）
-    @ViewBuilder
+    private var operationsRow: some View {
+        HStack(spacing: 8) {
+            CardActionButton(
+                title: vm.systemStatus?.isActive == true ? L10n.t("停止") : L10n.t("启动"),
+                icon: vm.systemStatus?.isActive == true ? "stop.fill" : "play.fill",
+                color: .blue,
+                busy: vm.isOperating
+            ) {
+                pendingLifeOp = (vm.systemStatus?.isActive == true) ? "stop" : "start"
+            }
+            CardActionButton(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath",
+                             color: .orange, busy: vm.isOperating) {
+                pendingLifeOp = "restart"
+            }
+            CardActionButton(
+                title: vm.systemStatus?.pingBlocked == true ? L10n.t("允许 Ping") : L10n.t("禁 Ping"),
+                icon: "waveform.path.ecg",
+                color: .purple,
+                busy: vm.isOperating
+            ) {
+                Task {
+                    await vm.operateFirewall(vm.systemStatus?.pingBlocked == true ? "enableBanPing" : "disableBanPing")
+                }
+            }
+            // iptables/nftables：基础链初始化 / 绑定 / 解绑
+            if vm.systemStatus?.backend == "iptables" || vm.systemStatus?.backend == "nftables" {
+                if vm.systemStatus?.isInit != true {
+                    CardActionButton(title: L10n.t("初始化"), icon: "wand.and.stars",
+                                     color: .green, busy: vm.isOperating) {
+                        Task { await vm.operateFilterChain("init-base") }
+                    }
+                } else if vm.systemStatus?.isBind == true {
+                    CardActionButton(title: L10n.t("解绑"), icon: "link.badge.plus",
+                                     color: .secondary, busy: vm.isOperating) {
+                        Task { await vm.operateFilterChain("unbind-base") }
+                    }
+                } else {
+                    CardActionButton(title: L10n.t("绑定"), icon: "link",
+                                     color: .green, busy: vm.isOperating) {
+                        Task { await vm.operateFilterChain("bind-base") }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: 规则段
+
+    private var rulesSection: some View {
+        Group {
+            Section {
+                filterBar
+            }
+            if vm.inventory.isEmpty && !vm.isRulesLoadingMore {
+                Section {
+                    ContentUnavailableView(L10n.t("暂无规则"), systemImage: "shield")
+                        .frame(maxWidth: .infinity, minHeight: 120)
+                        .listRowBackground(Color.clear)
+                }
+            } else {
+                Section {
+                    ForEach(vm.inventory) { item in
+                        FirewallRuleRowView(item: item, processName: processName(for: item))
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                guard item.manageableUUID != nil else { return }
+                                if let uuid = item.manageableUUID, let rule = item.rule {
+                                    editingRuleUUID = uuid
+                                    editingRule = rule
+                                }
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if item.manageableUUID != nil {
+                                    Button(role: .destructive) {
+                                        Haptic.warning()
+                                        pendingDeleteItem = item
+                                    } label: {
+                                        Label(L10n.t("删除"), systemImage: "trash")
+                                    }
+                                }
+                            }
+                            .onAppear {
+                                if item.id == vm.inventory.last?.id,
+                                   vm.inventory.count < vm.rulesAllTotal {
+                                    Task { await vm.loadRules(replacing: false) }
+                                }
+                            }
+                    }
+                    if vm.isRulesLoadingMore {
+                        HStack { Spacer(); ProgressView(); Spacer() }
+                    }
+                } header: {
+                    Text(L10n.f("共 %ld 条（面板管理 %ld 条）", vm.rulesAllTotal, vm.rulesManagedTotal))
+                }
+            }
+        }
+    }
+
+    private var filterBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .foregroundStyle(.secondary)
+            Menu {
+                Button(L10n.t("全部状态")) { vm.ruleStateFilter = nil; reloadRules() }
+                ForEach(Self.ruleStates, id: \.0) { state, label in
+                    Button(label) { vm.ruleStateFilter = state; reloadRules() }
+                }
+            } label: {
+                StatusBadge(
+                    text: vm.ruleStateFilter.flatMap { state in
+                        Self.ruleStates.first { $0.0 == state }?.1
+                    } ?? L10n.t("全部状态"),
+                    color: .secondary
+                )
+            }
+            .buttonStyle(.plain)
+            Menu {
+                Button(L10n.t("全部族")) { vm.ruleFamilyFilter = nil; reloadRules() }
+                Button("IPv4") { vm.ruleFamilyFilter = "ipv4"; reloadRules() }
+                Button("IPv6") { vm.ruleFamilyFilter = "ipv6"; reloadRules() }
+            } label: {
+                StatusBadge(text: vm.ruleFamilyFilter?.uppercased() ?? L10n.t("全部族"),
+                            color: .secondary)
+            }
+            .buttonStyle(.plain)
+            Spacer()
+            TextField(L10n.t("搜索端口 / 地址"), text: $vm.ruleSearchText)
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .submitLabel(.search)
+                .onSubmit { reloadRules() }
+            Button {
+                reloadRules()
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .buttonStyle(.borderless)
+        }
+    }
+
+    private func reloadRules() {
+        Task { await vm.loadRules(replacing: true) }
+    }
+
+    private func processName(for item: FirewallInventoryItem) -> String? {
+        guard let port = item.rule?.destinationPort, !port.isEmpty else { return nil }
+        return vm.portProcessNames[port]
+    }
+
+    private static let ruleStates: [(String, String)] = [
+        ("managed", L10n.t("面板管理")),
+        ("adopted", L10n.t("已纳管")),
+        ("external", L10n.t("外部规则")),
+        ("drifted", L10n.t("已漂移")),
+        ("protected", L10n.t("受保护")),
+    ]
+
+    // MARK: 转发段
+
     private var forwardSection: some View {
-        if isForwardUninitialized {
-            uninitializedHint
-            forwardInitSection
-        } else {
-            // 已初始化但未绑定：列表可见，段内保留初始化入口（对齐网页端按钮）
-            if isForwardUnbound {
-                forwardInitSection
+        Group {
+            if let fs = vm.forwardStatus {
+                Section {
+                    HStack(spacing: 10) {
+                        StatusDot(color: (fs.isActive == true) ? .statusRunning : .statusStopped,
+                                  diameter: 8)
+                        Text(fs.backend?.uppercased() ?? "—")
+                            .font(.subheadline.bold())
+                        if let v = fs.version, !v.isEmpty {
+                            Text("v\(v)").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if fs.isInit != true {
+                            Button(L10n.t("启用转发")) {
+                                Task { await vm.enableForwarding() }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .disabled(vm.isOperating)
+                        } else if let err = fs.syncError, !err.isEmpty {
+                            StatusBadge(text: L10n.t("同步异常"), color: .semanticWarning)
+                        }
+                    }
+                } header: {
+                    SectionLabel(title: L10n.t("转发子系统"), systemImage: "arrow.triangle.branch")
+                }
             }
             if vm.forwards.isEmpty {
-                if vm.isLoading {
-                    EmptyView()
-                } else {
-                    Section {
-                        ContentUnavailableView(
-                            L10n.t("暂无端口转发"),
-                            systemImage: "arrow.uturn.right",
-                            description: Text(L10n.t("点击右上角 + 添加规则"))
-                        )
+                Section {
+                    ContentUnavailableView(L10n.t("暂无转发规则"), systemImage: "arrow.triangle.branch")
+                        .frame(maxWidth: .infinity, minHeight: 120)
                         .listRowBackground(Color.clear)
-                    }
                 }
             } else {
                 Section {
                     ForEach(vm.forwards) { rule in
-                        Button {
-                            actionForward = rule
-                        } label: {
-                            FirewallForwardRow(rule: rule)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .onAppear {
-                            if rule.id == vm.forwards.last?.id {
-                                Task { await vm.loadMoreForwards() }
-                            }
-                        }
-                    }
-                    if vm.forwards.count < vm.forwardsTotal || vm.isForwardsLoadingMore {
-                        loadMoreRow { Task { await vm.loadMoreForwards() } }
-                    }
-                } header: {
-                    SectionLabel(
-                        title: L10n.f("端口转发（%ld）", max(vm.forwardsTotal, vm.forwards.count)),
-                        systemImage: "arrow.uturn.right"
-                    )
-                }
-            }
-        }
-    }
-
-    /// 端口转发的初始化入口（发 init-forward；抓包：isBind 变 true 后隐藏）
-    private var forwardInitSection: some View {
-        Section {
-            Button {
-                pendingBaseOp = "init-forward"
-            } label: {
-                Label(L10n.t("初始化端口转发"), systemImage: "wand.and.stars")
-            }
-            .disabled(vm.isOperating)
-        }
-    }
-
-    /// 段 2：IP 规则（iptables 与端口规则共用 init-base，抓包：初始化端口后无需再初始化）
-    @ViewBuilder
-    private var addressSection: some View {
-        if isBaseUninitialized {
-            uninitializedHint
-        } else if vm.addresses.isEmpty {
-            if vm.isLoading {
-                EmptyView()
-            } else {
-                Section {
-                    ContentUnavailableView(
-                        L10n.t("暂无 IP 规则"),
-                        systemImage: "person.crop.circle.badge.xmark",
-                        description: Text(L10n.t("点击右上角 + 添加规则"))
-                    )
-                    .listRowBackground(Color.clear)
-                }
-            }
-        } else {
-            Section {
-                ForEach(vm.addresses) { rule in
-                    Button {
-                        actionAddress = rule
-                    } label: {
-                        FirewallAddressRow(rule: rule)
+                        FirewallForwardRowView(rule: rule)
                             .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .onAppear {
-                        if rule.id == vm.addresses.last?.id {
-                            Task { await vm.loadMoreAddresses() }
-                        }
-                    }
-                }
-                if vm.addresses.count < vm.addressesTotal || vm.isAddressesLoadingMore {
-                    loadMoreRow { Task { await vm.loadMoreAddresses() } }
-                }
-            } header: {
-                SectionLabel(
-                    title: L10n.f("IP 规则（%ld）", max(vm.addressesTotal, vm.addresses.count)),
-                    systemImage: "person.crop.circle.badge.xmark"
-                )
-            }
-        }
-    }
-
-    /// 滚动到底的加载更多行（转圈即可，触发靠行 onAppear 与末行 onAppear 双保险）
-    private func loadMoreRow(_ action: @escaping () -> Void) -> some View {
-        LoadingStateView(compact: true)
-        .onAppear { action() }
-    }
-
-    /// 是否 iptables 后端（name=advance 查询返回 iptables 才有链规则段）
-    private var isIPTablesBackend: Bool { vm.filterBase?.name == "iptables" }
-
-    /// 是否 iptables 后端（base name=base 直接可判；控制启停按钮与初始化门控）
-    private var isIPTables: Bool { vm.base?.name == "iptables" }
-
-    /// iptables 端口/IP 规则是否未初始化（共用 init-base，抓包确认）
-    private var isBaseUninitialized: Bool { isIPTables && vm.base?.isInit != true }
-
-    /// iptables 端口转发是否未初始化（整段提示与 + 禁用的口径：isInit）
-    private var isForwardUninitialized: Bool { isIPTables && vm.forwardBase?.isInit != true }
-
-    /// iptables 端口转发是否未绑定（初始化按钮的口径）：网页端在
-    /// isInit:true + isBind:false 时仍显示「初始化」按钮，点击 init-forward
-    /// 后 isBind 变 true（2026-09-16 补充抓包）——按钮判定用 isBind 而非 isInit
-    private var isForwardUnbound: Bool { isIPTables && vm.forwardBase?.isBind != true }
-
-    /// 当前段的初始化/未绑定状态是否需要常驻显示状态按钮行（不藏进展开态）。
-    /// 网页核对：端口转发无绑定与白名单按钮；链规则的初始化/绑定按钮均在
-    /// 状态抽屉（2026-09-16）
-    private var pinsStatusActions: Bool {
-        guard isIPTables else { return false }
-        switch segment {
-        case 1: return isForwardUnbound
-        case 3: return vm.filterBase?.isInit != true
-        default: return isBaseUninitialized
-        }
-    }
-
-    /// iptables 未初始化提示（网页端原文；转发段另附独立初始化按钮）
-    private var uninitializedHint: some View {
-        Section {
-            ContentUnavailableView(
-                L10n.t("未初始化"),
-                systemImage: "exclamationmark.shield",
-                description: Text(L10n.t("检测到 iptables 服务 未初始化，请点击顶部状态栏的初始化按钮进行配置！"))
-            )
-            .listRowBackground(Color.clear)
-        }
-    }
-
-    /// 当前链名：0=入站 1=出站
-    private var currentChain: String {
-        chainDirection == 0 ? FirewallViewModel.inputChain : FirewallViewModel.outputChain
-    }
-
-    /// 当前链是否已绑定（状态抽屉的绑定按钮与段内规则生效判定共用）
-    private var isCurrentChainBound: Bool {
-        vm.chainStatusMap[currentChain]?.isBind == true
-    }
-
-    /// 段 3：iptables 链规则（入站/出站两链；未初始化时仅提供初始化入口；
-    /// 绑定按钮与默认策略在顶部状态抽屉，2026-09-16 网页核对）
-    @ViewBuilder
-    private var chainSection: some View {
-        Section {
-            Picker(L10n.t("方向"), selection: $chainDirection) {
-                Text(L10n.t("入站")).tag(0)
-                Text(L10n.t("出站")).tag(1)
-            }
-            .pickerStyle(.segmented)
-            .segmentedPickerRow()
-            .listRowSeparator(.hidden)
-        }
-
-        if let fb = vm.filterBase {
-            if fb.isInit != true {
-                // 未初始化时不支持创建、绑定与删除（抓包说明）；
-                // 初始化按钮在顶部状态抽屉（2026-09-16 网页核对）
-                uninitializedHint
-            }
-        } else if vm.isChainLoading {
-            Section { LoadingStateView(compact: true) }
-        }
-
-        if vm.chainRules.isEmpty {
-            if vm.isChainLoading || vm.isLoading {
-                EmptyView()
-            } else if vm.filterBase?.isInit == true {
-                Section {
-                    ContentUnavailableView(
-                        L10n.t("暂无链规则"),
-                        systemImage: "link",
-                        description: Text(L10n.t("点击右上角 + 添加规则"))
-                    )
-                    .listRowBackground(Color.clear)
-                }
-            }
-        } else {
-            Section {
-                ForEach(vm.chainRules) { rule in
-                    FirewallChainRuleRow(rule: rule)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                pendingDeleteChainRule = rule
-                            } label: {
-                                Label(L10n.t("删除"), systemImage: "trash")
-                            }
-                        }
-                        .onAppear {
-                            if rule.id == vm.chainRules.last?.id {
-                                Task { await vm.loadMoreChainRules(chain: currentChain) }
-                            }
-                        }
-                }
-                if vm.chainRules.count < vm.chainRulesTotal || vm.isChainRulesLoadingMore {
-                    loadMoreRow { Task { await vm.loadMoreChainRules(chain: currentChain) } }
-                }
-            } header: {
-                SectionLabel(
-                    title: L10n.f("链规则（%ld）", max(vm.chainRulesTotal, vm.chainRules.count)),
-                    systemImage: "link"
-                )
-            }
-        }
-    }
-
-    private var statusSection: some View {
-        Section {
-            if let base = vm.base {
-                if base.isExist == true {
-                    // 状态行：版本（上）+ 状态（下）+ 展开箭头
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 4) {
-                                Text((base.name ?? "ufw").uppercased())
-                                    .font(.dataMonospacedHeadline)
-                                if let v = base.version, !v.isEmpty {
-                                    Text("v\(v)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                            .onTapGesture { editingForward = rule }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    Haptic.warning()
+                                    pendingDeleteForward = rule
+                                } label: {
+                                    Label(L10n.t("删除"), systemImage: "trash")
                                 }
                             }
-                            HStack(spacing: 4) {
-                                StatusBadge(
-                                    text: (base.isActive ?? false) ? L10n.t("运行中") : L10n.t("已停止"),
-                                    color: (base.isActive ?? false) ? .statusRunning : .statusStopped
-                                )
+                            .onAppear {
+                                if rule.id == vm.forwards.last?.id,
+                                   vm.forwards.count < vm.forwardsTotal {
+                                    Task { await vm.loadForwards(replacing: false) }
+                                }
+                            }
+                    }
+                    if vm.isForwardsLoadingMore {
+                        HStack { Spacer(); ProgressView(); Spacer() }
+                    }
+                } header: {
+                    Text(L10n.f("共 %ld 条", vm.forwardsTotal))
+                }
+            }
+        }
+    }
+
+    // MARK: Docker 守护段
+
+    private var dockerSection: some View {
+        Group {
+            if let guard_ = vm.dockerGuard, let base = guard_.base, base.isExist == true {
+                Section {
+                    HStack(spacing: 10) {
+                        IconBadge(systemName: "shippingbox.fill", color: .blue)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(base.name?.uppercased() ?? "DOCKER")
+                                .font(.subheadline.bold())
+                            if let backend = base.backend, !backend.isEmpty {
+                                Text(backend.uppercased())
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                         Spacer()
-                        Button {
-                            withAnimation(Motion.standard) {
-                                statusExpanded.toggle()
-                            }
-                        } label: {
-                            Image(systemName: statusExpanded ? "chevron.up" : "chevron.down")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.secondary)
-                                // 命中区扩到 44×44（B5 审计实测 11×7 过小；视觉图标不变）
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
+                        if base.initialized != true {
+                            StatusBadge(text: L10n.t("未初始化"), color: .semanticWarning)
+                        } else if base.bound == true {
+                            StatusBadge(text: L10n.t("已绑定"), color: .blue)
                         }
-                        .buttonStyle(.plain)
-                        .disabled(vm.isOperating)
                     }
-                    .padding(.vertical, 2)
-
-                    // 展开后显示（按段区分，2026-09-16 网页核对）：
-                    // ufw → 关闭/开启 + 重启 + 端口白名单（各段一致）；
-                    // iptables 端口/IP 规则 → 初始化（未初始化）或 1PANEL_BASIC
-                    //   绑定/解除绑定 + 端口白名单；
-                    // iptables 端口转发 → 仅 初始化端口转发（未绑定时），无绑定与白名单；
-                    // iptables 链规则 → 无顶部按钮（初始化与绑定入口在段内）。
-                    // 未初始化/未绑定时按钮行常驻显示，不藏进展开态
-                    if statusExpanded || pinsStatusActions {
+                    if base.initialized != true {
+                        CardActionButton(title: L10n.t("初始化守护"), icon: "wand.and.stars",
+                                         color: .green, busy: vm.isOperating) {
+                            Task { await vm.dockerOperate("initialize") }
+                        }
+                    } else {
                         HStack(spacing: 8) {
-                            if isIPTables {
-                                switch segment {
-                                case 1:
-                                    // 端口转发初始化按钮按 isBind 判定（网页端口径，
-                                    // init-forward 后 isBind:true 即隐藏）
-                                    if isForwardUnbound {
-                                        firewallActionButton(
-                                            title: L10n.t("初始化端口转发"),
-                                            icon: "arrow.uturn.right",
-                                            color: .blue
-                                        ) {
-                                            pendingBaseOp = "init-forward"
-                                        }
-                                    }
-                                case 3:
-                                    // 链规则操作集中在状态抽屉（2026-09-16 网页核对）：
-                                    // 未初始化 → 初始化链规则；已初始化 → 当前链绑定/解除绑定
-                                    if vm.filterBase?.isInit == true {
-                                        firewallActionButton(
-                                            title: isCurrentChainBound ? L10n.t("解除绑定") : L10n.t("绑定"),
-                                            icon: isCurrentChainBound ? "link.badge.plus" : "link",
-                                            color: isCurrentChainBound ? .orange : .green
-                                        ) {
-                                            pendingChainOp = isCurrentChainBound ? "unbind" : "bind"
-                                        }
-                                    } else {
-                                        firewallActionButton(
-                                            title: L10n.t("初始化链规则"),
-                                            icon: "wand.and.stars",
-                                            color: .green
-                                        ) {
-                                            pendingChainOp = "init-advance"
-                                        }
-                                    }
-                                default:
-                                    if base.isInit != true {
-                                        firewallActionButton(
-                                            title: L10n.t("初始化"),
-                                            icon: "wand.and.stars",
-                                            color: .green
-                                        ) {
-                                            pendingBaseOp = "init-base"
-                                        }
-                                    } else {
-                                        firewallActionButton(
-                                            title: (base.isBind ?? false) ? L10n.t("解除绑定") : L10n.t("绑定"),
-                                            icon: (base.isBind ?? false) ? "link.badge.plus" : "link",
-                                            color: (base.isBind ?? false) ? .orange : .green
-                                        ) {
-                                            pendingBaseOp = (base.isBind ?? false) ? "unbind-base" : "bind-base"
-                                        }
-                                    }
-                                    firewallActionButton(
-                                        title: L10n.t("端口白名单"),
-                                        icon: "checkmark.shield",
-                                        color: .blue
-                                    ) {
-                                        showWhitelist = true
-                                    }
-                                }
-                            } else {
-                                firewallActionButton(
-                                    title: (base.isActive ?? false) ? L10n.t("关闭") : L10n.t("开启"),
-                                    icon: (base.isActive ?? false) ? "stop.fill" : "play.fill",
-                                    color: (base.isActive ?? false) ? .red : .green
-                                ) {
-                                    pendingUFWOp = (base.isActive ?? false) ? "stop" : "start"
-                                }
-                                firewallActionButton(
-                                    title: L10n.t("重启"),
-                                    icon: "arrow.triangle.2.circlepath",
-                                    color: .orange
-                                ) {
-                                    pendingUFWOp = "restart"
-                                }
-                                firewallActionButton(
-                                    title: L10n.t("端口白名单"),
-                                    icon: "checkmark.shield",
-                                    color: .blue
-                                ) {
-                                    showWhitelist = true
-                                }
+                            CardActionButton(
+                                title: base.bound == true ? L10n.t("解绑") : L10n.t("绑定"),
+                                icon: base.bound == true ? "link.badge.plus" : "link",
+                                color: base.bound == true ? .secondary : .green,
+                                busy: vm.isOperating
+                            ) {
+                                Task { await vm.dockerOperate(base.bound == true ? "unbind" : "bind") }
+                            }
+                            CardActionButton(title: L10n.t("同步规则"), icon: "arrow.triangle.2.circlepath",
+                                             color: .blue, busy: vm.isOperating) {
+                                Task { await vm.dockerSync() }
                             }
                         }
-                        .padding(.top, 2)
-                        .padding(.bottom, 2)
                     }
-
-                    // 链规则段：默认策略行（点击查看入站/出站两链各自的
-                    // defaultStrategy，2026-09-16 网页核对移入状态抽屉）
-                    if segment == 3, isIPTablesBackend, vm.filterBase?.isInit == true {
-                        Button {
-                            showChainStrategy = true
-                        } label: {
-                            HStack {
-                                Text(L10n.t("默认策略"))
-                                Spacer()
-                                Text(vm.chainStatusMap[currentChain]?.defaultStrategy ?? "-")
-                                    .foregroundStyle(.secondary)
-                                Image(systemName: "chevron.right")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    // 禁 ping
-                    Toggle(isOn: Binding(
-                        get: { base.pingBlocked },
-                        set: { block in Task { await vm.togglePing(block) } }
-                    )) {
-                        Label(L10n.t("禁 ping"), systemImage: "antenna.radiowaves.left.and.right.slash")
-                    }
-                    .disabled(vm.isOperating || (base.isActive != true))
-                } else {
-                    VStack(spacing: 10) {
-                        Image(systemName: "exclamationmark.shield")
-                            .font(.panelScaled(36))
-                            .foregroundStyle(.orange)
-                        Text(L10n.t("未检测到防火墙"))
-                            .font(.headline)
-                        Text(L10n.t("请在服务器上安装 ufw / firewalld 后使用。"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                }
-            } else {
-                HStack { Spacer(); ProgressView(); Spacer() }
-                    .padding(.vertical, 8)
-            }
-        }
-    }
-
-    private func opTitle(_ op: String) -> String {
-        switch op {
-        case "start":   return L10n.t("启动防火墙")
-        case "stop":    return L10n.t("停用防火墙")
-        case "restart": return L10n.t("重启防火墙")
-        default:        return L10n.t("操作防火墙")
-        }
-    }
-
-    private func firewallActionButton(
-        title: String,
-        icon: String,
-        color: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        CardActionButton(title: title, icon: icon, color: color, disabled: vm.isOperating, action: action)
-    }
-}
-
-// MARK: - 行操作弹窗
-
-/// 防火墙行操作弹窗（半屏）：对齐服务器页 ServerActionsSheet 的分组表单形态
-/// （信息头 + 修改 + 删除独立分组、图标行），比 ActionBottomSheet 紧凑条
-/// 更大气，端口规则/端口转发/IP 规则三段共用
-struct FirewallActionSheet: View {
-    enum Kind: Equatable {
-        case port(FirewallRule)
-        case forward(FirewallRule)
-        case address(FirewallRule)
-    }
-
-    let kind: Kind
-    var onEdit: (FirewallRule) -> Void
-    var onDelete: (FirewallRule) -> Void
-
-    private var rule: FirewallRule {
-        switch kind {
-        case .port(let r), .forward(let r), .address(let r): return r
-        }
-    }
-
-    /// 信息头副行：按段汇总规则要点
-    private var subtitle: String {
-        switch kind {
-        case .port(let r):
-            var parts: [String] = []
-            if let proto = r.protocolField, !proto.isEmpty { parts.append(proto.uppercased()) }
-            if let addr = r.address, !addr.isEmpty, addr != "Anywhere" {
-                parts.append(L10n.f("来源：%@", addr))
-            }
-            if let desc = r.description, !desc.isEmpty { parts.append(desc) }
-            return parts.joined(separator: " · ")
-        case .forward(let r):
-            var parts: [String] = []
-            let ip = r.targetIP ?? ""
-            let port = r.targetPort ?? ""
-            parts.append("→ " + (ip.isEmpty ? port : "\(ip):\(port)"))
-            if let proto = r.protocolField, !proto.isEmpty { parts.append(proto.uppercased()) }
-            if let i = r.interface, !i.isEmpty, i != "*" {
-                parts.append(L10n.f("网卡：%@", i))
-            }
-            return parts.joined(separator: " · ")
-        case .address(let r):
-            var parts: [String] = []
-            switch r.strategy?.lowercased() {
-            case "accept": parts.append(L10n.t("放行"))
-            case "drop": parts.append(L10n.t("屏蔽"))
-            default: break
-            }
-            if let desc = r.description, !desc.isEmpty { parts.append(desc) }
-            return parts.joined(separator: " · ")
-        }
-    }
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(kind == .address(rule) ? (rule.address ?? "-") : (rule.port ?? "-"))
-                            .font(.dataMonospacedHeadline)
-                        if !subtitle.isEmpty {
-                            Text(subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-
-                Section {
-                    actionRow(title: L10n.t("修改"), icon: "pencil", color: .blue) {
-                        onEdit(rule)
-                    }
-                }
-                Section {
-                    actionRow(title: L10n.t("删除"), icon: "trash", color: .red) {
-                        onDelete(rule)
-                    }
-                }
-            }
-            .navigationTitle(L10n.t("操作"))
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .bottomSheetDetents([.medium])
-        .presentationDragIndicator(.visible)
-    }
-
-    private func actionRow(
-        title: String,
-        icon: String,
-        color: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(color)
-                    .frame(width: 28)
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-            }
-            .padding(.vertical, 2)
-        }
-    }
-}
-
-// MARK: - 规则行
-
-struct FirewallRuleRow: View {
-    let rule: FirewallRule
-    /// 监听进程名（process/listening 补全；nil=无数据回落 usedStatus）
-    var processName: String? = nil
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Text(rule.port ?? "-")
-                    .font(.dataMonospacedBody.bold())
-                if let proto = rule.protocolField, !proto.isEmpty {
-                    StatusBadge(text: proto.uppercased(), color: .blue)
-                }
-                Spacer()
-                strategyBadge(rule.strategy)
-            }
-            if let addr = rule.address, !addr.isEmpty {
-                Text(L10n.f("来源：%@", addr))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if let desc = rule.description, !desc.isEmpty {
-                Text(desc).font(.caption).foregroundStyle(.secondary)
-            }
-            // 进程名：listening 全量数据优先；无数据时回落面板返回的 usedStatus
-            if let name = processName, !name.isEmpty {
-                Text(name)
-                    .font(.dataMonospacedCaption)
-                    .foregroundStyle(.secondary)
-            } else if let used = rule.usedStatus, !used.isEmpty {
-                StatusBadge(text: used, color: .green, icon: "checkmark.circle.fill")
-            }
-        }
-        .padding(.vertical, 4)
-    }
-
-    @ViewBuilder
-    private func strategyBadge(_ s: String?) -> some View {
-        switch s?.lowercased() {
-        case "accept", L10n.t("允许"):
-            StatusBadge(text: L10n.t("允许"), color: .green, icon: "checkmark")
-        case "drop", L10n.t("拒绝"):
-            StatusBadge(text: L10n.t("拒绝"), color: .red, icon: "xmark")
-        default:
-            if let s { StatusBadge(text: s, color: .secondary) }
-        }
-    }
-}
-
-// MARK: - 端口转发规则行
-
-/// 转发行：源端口 → 目标（IP:端口），协议徽章 + 入站网口说明
-struct FirewallForwardRow: View {
-    let rule: FirewallRule
-
-    /// 目标展示："IP:端口" 或仅端口（目标 IP 为空时）
-    private var targetText: String {
-        let ip = rule.targetIP ?? ""
-        let port = rule.targetPort ?? ""
-        return ip.isEmpty ? port : "\(ip):\(port)"
-    }
-
-    /// 入站网口展示："*"/"" → 所有
-    private var interfaceText: String? {
-        guard let i = rule.interface, !i.isEmpty, i != "*" else { return nil }
-        return i
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Text(rule.port ?? "-")
-                    .font(.dataMonospacedBody.bold())
-                Image(systemName: "arrow.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Text(targetText)
-                    .font(.dataMonospacedBody)
-                if let proto = rule.protocolField, !proto.isEmpty {
-                    StatusBadge(text: proto.uppercased(), color: .blue)
-                }
-                Spacer()
-            }
-            if let iface = interfaceText {
-                Text(L10n.f("网卡：%@", iface))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if let desc = rule.description, !desc.isEmpty {
-                Text(desc).font(.caption).foregroundStyle(.secondary)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-// MARK: - IP 规则行
-
-/// IP 规则行：地址 + 放行/屏蔽徽章 + 描述
-struct FirewallAddressRow: View {
-    let rule: FirewallRule
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Text(rule.address ?? "-")
-                    .font(.dataMonospacedBody.bold())
-                Spacer()
-                switch rule.strategy?.lowercased() {
-                case "accept":
-                    StatusBadge(text: L10n.t("放行"), color: .green, icon: "checkmark")
-                case "drop":
-                    StatusBadge(text: L10n.t("屏蔽"), color: .red, icon: "xmark")
-                default:
-                    EmptyView()
-                }
-            }
-            if let desc = rule.description, !desc.isEmpty {
-                Text(desc).font(.caption).foregroundStyle(.secondary)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-// MARK: - 端口白名单
-
-/// 端口白名单原始值拆成一行一个端口：同一面板存在两种格式——
-/// 逗号分隔（"80/tcp,443/tcp,443/udp"，Web 端初始形态）与换行分隔
-/// （"8080\n22\n80\n443"，update 提交后的回显形态），统一兼容并过滤空段。
-nonisolated func parseFirewallPortWhitelist(_ raw: String?) -> [String] {
-    // 注意不能用 ",\r\n，、".contains($0)：Swift 字面量里 "\r\n" 是单个合成字符，
-    // 单独的 "\n" 会匹配失败（换行格式拆不开）
-    (raw ?? "")
-        .split(whereSeparator: { [",", "\n", "\r", "，", "、"].contains($0) })
-        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        .filter { !$0.isEmpty }
-}
-
-/// 端口白名单（面板设置项 FirewallPortWhiteList）：一行一个端口（如 17331 或 80/tcp）。
-/// 对齐面板 Web 端交互：行内的添加/编辑/删除只改本地列表不发请求，
-/// 右上角「确认」才一次性 settings/update 提交（value 为换行拼接），
-/// 成功后返回防火墙页并回调刷新。
-struct FirewallPortWhitelistView: View {
-    let server: ServerConfig
-    /// 提交成功回调（调用方刷新防火墙页）
-    var onSaved: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var entries: [String] = []
-    @State private var originalEntries: [String] = []
-    @State private var isLoading = true
-    @State private var isSubmitting = false
-    @State private var errorMessage: String?
-    /// 正在编辑的行：nil=无；-1=新增行；其余=对应 entries 下标
-    @State private var editingIndex: Int?
-    @State private var editingText = ""
-    @State private var rowError: String?
-
-    private let client: APIClient
-
-    init(server: ServerConfig, onSaved: @escaping () -> Void) {
-        self.server = server
-        self.onSaved = onSaved
-        self.client = APIClient.shared(for: server)
-    }
-
-    private var hasChanges: Bool { entries != originalEntries }
-
-    var body: some View {
-        List {
-            if isLoading {
-                Section { LoadingStateView(compact: true).padding(.vertical, 24) }
-            } else if let errorMessage, entries.isEmpty && originalEntries.isEmpty {
-                Section {
-                    LoadErrorStateView(message: errorMessage) {
-                        Task { await load() }
-                    }
-                }
-            } else {
-                Section {
-                    // 新增行：编辑态置顶
-                    if editingIndex == -1 {
-                        editRow(isNew: true)
-                    }
-                    ForEach(entries.indices, id: \.self) { i in
-                        if editingIndex == i {
-                            editRow(isNew: false)
-                        } else {
-                            displayRow(index: i)
-                        }
-                    }
-                    if entries.isEmpty && editingIndex != -1 {
-                        Text(L10n.t("无数据"))
-                            .foregroundStyle(.secondary)
+                    if let msg = base.message, !msg.isEmpty {
+                        Text(msg).font(.caption).foregroundStyle(.secondary)
                     }
                 } header: {
-                    SectionLabel(
-                        title: L10n.f("端口（%ld）", entries.count),
-                        systemImage: "checkmark.shield"
+                    SectionLabel(title: L10n.t("Docker 端口守护"), systemImage: "shippingbox")
+                }
+
+                ForEach(guard_.containers ?? []) { container in
+                    DockerGuardContainerSection(
+                        container: container,
+                        onDeletePolicy: { endpoint in
+                            Haptic.warning()
+                            Task { await vm.deleteDockerPolicy(endpoint) }
+                        },
+                        isOperating: vm.isOperating
                     )
-                } footer: {
-                    Text(L10n.t("一行一个端口，支持 17331 或 80/tcp 格式；修改后点右上角「确认」提交。"))
+                }
+
+                if let orphans = guard_.orphanPolicies, !orphans.isEmpty {
+                    Section {
+                        ForEach(orphans) { endpoint in
+                            DockerGuardEndpointRow(endpoint: endpoint) {
+                                Haptic.warning()
+                                Task { await vm.deleteDockerPolicy(endpoint) }
+                            }
+                        }
+                    } header: {
+                        SectionLabel(title: L10n.t("孤立策略"), systemImage: "questionmark.circle")
+                    }
+                }
+            } else {
+                Section {
+                    ContentUnavailableView(
+                        L10n.t("Docker 守护不可用"),
+                        systemImage: "shippingbox",
+                        description: Text(L10n.t("未检测到 Docker 或守护链不可用；安装 Docker 后下拉刷新。"))
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 120)
+                    .listRowBackground(Color.clear)
                 }
             }
         }
-        .navigationTitle(L10n.t("端口白名单"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await submit() }
+    }
+
+    // MARK: 设置段
+
+    private var settingsSection: some View {
+        Group {
+            Section {
+                Toggle(L10n.t("禁 Ping"), isOn: Binding(
+                    get: { vm.settings?.pingBlocked ?? vm.systemStatus?.pingBlocked ?? false },
+                    set: { on in
+                        Task {
+                            await vm.operateFirewall(on ? "disableBanPing" : "enableBanPing")
+                        }
+                    }
+                ))
+                .disabled(vm.isOperating)
+                NavigationLink {
+                    FirewallWhitelistView(vm: vm)
                 } label: {
-                    if isSubmitting {
-                        ProgressView()
-                    } else {
-                        Text(L10n.t("确认"))
-                    }
-                }
-                .disabled(!hasChanges || isSubmitting || isLoading || editingIndex != nil)
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    beginAdd()
-                } label: {
-                    Image(systemName: "plus")
-                }
-                // 加载失败时禁用：错误分支不渲染列表，新增行会无处显示
-                .disabled(isLoading || editingIndex != nil || errorMessage != nil)
-                .accessibilityLabel(L10n.t("添加端口"))
-            }
-        }
-        .toastOverlay(message: $rowError, systemImage: "exclamationmark.triangle.fill", iconColor: .orange)
-        .task { await load() }
-    }
-
-    // MARK: 行
-
-    /// 展示态：端口 + 编辑/删除
-    private func displayRow(index: Int) -> some View {
-        HStack {
-            Text(entries[index])
-                .font(.dataMonospacedBody)
-            Spacer()
-            HStack(spacing: 18) {
-                Button(L10n.t("编辑")) { beginEdit(index: index) }
-                    // List 行内多按钮必须 borderless：默认样式会整行联动触发，
-                    // 点删除同时触发编辑，编辑索引悬空后「确认」被永久禁用
-                    .buttonStyle(.borderless)
-                Button(L10n.t("删除")) { removeRow(at: index) }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.red)
-            }
-            .font(.subheadline)
-        }
-        .padding(.vertical, 2)
-    }
-
-    /// 删除本地行：同步维护编辑索引（删正在编辑的行→取消编辑，其后行索引前移）
-    private func removeRow(at index: Int) {
-        if editingIndex == index {
-            cancelEditing()
-        } else if let e = editingIndex, e > index {
-            editingIndex = e - 1
-        }
-        withAnimation(Motion.fast) { entries.remove(atOffsets: IndexSet(integer: index)) }
-    }
-
-    /// 编辑态：输入框 + 保存/取消（不发请求，仅改本地 entries）
-    private func editRow(isNew: Bool) -> some View {
-        HStack(spacing: 10) {
-            TextField(L10n.t("端口"), text: $editingText)
-                .font(.dataMonospacedBody)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .keyboardType(.asciiCapable)
-                .submitLabel(.done)
-                .onSubmit { commitEditing() }
-            Button(L10n.t("保存")) { commitEditing() }
-                .buttonStyle(.borderless)
-                .disabled(editingText.trimmingCharacters(in: .whitespaces).isEmpty)
-            Button(L10n.t("取消")) { cancelEditing() }
-                .buttonStyle(.borderless)
-        }
-        .padding(.vertical, 2)
-    }
-
-    // MARK: 编辑状态机
-
-    private func beginAdd() {
-        editingText = ""
-        editingIndex = -1
-    }
-
-    private func beginEdit(index: Int) {
-        editingText = entries[index]
-        editingIndex = index
-    }
-
-    private func cancelEditing() {
-        editingIndex = nil
-        editingText = ""
-    }
-
-    private func commitEditing() {
-        let value = editingText.trimmingCharacters(in: .whitespaces)
-        guard !value.isEmpty else {
-            rowError = L10n.t("端口不能为空")
-            return
-        }
-        // 重复校验：新增查全部；编辑排除自身行
-        let duplicates = editingIndex == -1
-            ? entries.contains(value)
-            : entries.enumerated().contains { $0.offset != editingIndex && $0.element == value }
-        guard !duplicates else {
-            rowError = L10n.t("该端口已存在")
-            return
-        }
-        withAnimation(Motion.fast) {
-            if editingIndex == -1 {
-                entries.append(value)
-            } else if let i = editingIndex, entries.indices.contains(i) {
-                entries[i] = value
-            }
-        }
-        editingIndex = nil
-        editingText = ""
-    }
-
-    // MARK: 数据
-
-    private func load() async {
-        isLoading = true
-        defer { isLoading = false }
-        struct WhitelistSettings: Decodable {
-            let firewallPortWhiteList: String?
-        }
-        do {
-            let resp: WhitelistSettings = try await client.send(
-                path: APIEndpoint.settingsSearchPanel.path,
-                as: WhitelistSettings.self
-            )
-            entries = parseFirewallPortWhitelist(resp.firewallPortWhiteList)
-            originalEntries = entries
-            errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func submit() async {
-        isSubmitting = true
-        defer { isSubmitting = false }
-        struct WhitelistUpdate: Encodable {
-            let key: String
-            let value: String
-        }
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.settingsUpdate.path,
-                body: WhitelistUpdate(key: "FirewallPortWhiteList", value: entries.joined(separator: "\n")),
-                as: EmptyResponse.self
-            )
-            onSaved()
-            dismiss()
-        } catch {
-            errorMessage = error.localizedDescription
-            rowError = error.localizedDescription
-        }
-    }
-}
-
-// MARK: - 添加规则
-
-struct FirewallAddRuleView: View {
-    @ObservedObject var vm: FirewallViewModel
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var port = ""
-    @State private var proto = "tcp"
-    @State private var strategy = "accept"
-    @State private var address = ""
-    @State private var description = ""
-    @State private var saving = false
-
-    private let protos = ["tcp", "udp"]
-    private let strategies = [("accept", L10n.t("允许")), ("drop", L10n.t("拒绝"))]
-
-    private var isValid: Bool {
-        !port.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                TextField(L10n.t("端口"), text: $port)
-                    .keyboardType(.numbersAndPunctuation)
-                    .autocorrectionDisabled()
-                Text(L10n.t("单个端口如 8080，或范围如 3000-3100。"))
-                    .font(.caption).foregroundStyle(.secondary)
-            } header: { SectionLabel(title: L10n.t("端口"), systemImage: "number") }
-
-            Section {
-                Picker(L10n.t("协议"), selection: $proto) {
-                    ForEach(protos, id: \.self) { Text($0.uppercased()).tag($0) }
-                }
-                .pickerStyle(.segmented)
-            } header: { SectionLabel(title: L10n.t("协议"), systemImage: "network") }
-
-            Section {
-                Picker(L10n.t("策略"), selection: $strategy) {
-                    ForEach(strategies, id: \.0) { Text($1).tag($0) }
-                }
-                .pickerStyle(.segmented)
-            } header: { SectionLabel(title: L10n.t("策略"), systemImage: "hand.raised") }
-
-            Section {
-                TextField(L10n.t("IP / CIDR，留空=任意"), text: $address)
-                    .keyboardType(.numbersAndPunctuation)
-                    .autocorrectionDisabled()
-                Text(L10n.t("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。"))
-                    .font(.caption).foregroundStyle(.secondary)
-            } header: { SectionLabel(title: L10n.t("来源地址"), systemImage: "location") }
-
-            Section {
-                TextField(L10n.t("备注（可选）"), text: $description)
-            } header: { SectionLabel(title: L10n.t("备注"), systemImage: "text.alignleft") }
-        }
-        .navigationTitle(L10n.t("创建端口规则"))
-        .navigationBarTitleDisplayMode(.inline)
-        .formWidthLimit()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(L10n.t("创建")) {
-                    Task {
-                        saving = true
-                        let ok = await vm.addRule(
-                            port: port.trimmingCharacters(in: .whitespaces),
-                            proto: proto, strategy: strategy,
-                            address: address.trimmingCharacters(in: .whitespaces),
-                            description: description
-                        )
-                        saving = false
-                        if ok { dismiss() }
-                    }
-                }
-                .disabled(!isValid || saving)
-            }
-        }
-    }
-}
-
-// MARK: - 修改规则
-
-struct FirewallEditRuleView: View {
-    @ObservedObject var vm: FirewallViewModel
-    let rule: FirewallRule
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var port = ""
-    @State private var proto = "tcp"
-    @State private var strategy = "accept"
-    @State private var address = ""
-    @State private var description = ""
-    @State private var saving = false
-
-    private let protos = ["tcp", "udp"]
-    private let strategies = [("accept", L10n.t("允许")), ("drop", L10n.t("拒绝"))]
-
-    private var isValid: Bool {
-        !port.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                TextField(L10n.t("端口"), text: $port)
-                    .keyboardType(.numbersAndPunctuation)
-                    .autocorrectionDisabled()
-                Text(L10n.t("单个端口如 8080，或范围如 3000-3100。"))
-                    .font(.caption).foregroundStyle(.secondary)
-            } header: { SectionLabel(title: L10n.t("端口"), systemImage: "number") }
-
-            Section {
-                Picker(L10n.t("协议"), selection: $proto) {
-                    ForEach(protos, id: \.self) { Text($0.uppercased()).tag($0) }
-                }
-                .pickerStyle(.segmented)
-            } header: { SectionLabel(title: L10n.t("协议"), systemImage: "network") }
-
-            Section {
-                Picker(L10n.t("策略"), selection: $strategy) {
-                    ForEach(strategies, id: \.0) { Text($1).tag($0) }
-                }
-                .pickerStyle(.segmented)
-            } header: { SectionLabel(title: L10n.t("策略"), systemImage: "hand.raised") }
-
-            Section {
-                TextField(L10n.t("IP / CIDR，留空=任意"), text: $address)
-                    .keyboardType(.numbersAndPunctuation)
-                    .autocorrectionDisabled()
-                Text(L10n.t("例如 192.168.1.10、10.0.0.0/24。留空表示允许所有来源。"))
-                    .font(.caption).foregroundStyle(.secondary)
-            } header: { SectionLabel(title: L10n.t("来源地址"), systemImage: "location") }
-
-            Section {
-                TextField(L10n.t("备注（可选）"), text: $description)
-            } header: { SectionLabel(title: L10n.t("备注"), systemImage: "text.alignleft") }
-        }
-        .navigationTitle(L10n.t("修改端口规则"))
-        .navigationBarTitleDisplayMode(.inline)
-        .formWidthLimit()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(L10n.t("保存")) {
-                    Task {
-                        saving = true
-                        let ok = await vm.updateRule(
-                            old: rule,
-                            port: port.trimmingCharacters(in: .whitespaces),
-                            proto: proto, strategy: strategy,
-                            address: address.trimmingCharacters(in: .whitespaces),
-                            description: description
-                        )
-                        saving = false
-                        if ok { dismiss() }
-                    }
-                }
-                .disabled(!isValid || saving)
-            }
-        }
-        .onAppear {
-            port = rule.port ?? ""
-            proto = rule.protocolField ?? "tcp"
-            strategy = rule.strategy ?? "accept"
-            let addr = rule.address ?? ""
-            address = (addr == "Anywhere") ? "" : addr
-            description = rule.description ?? ""
-        }
-    }
-}
-
-// MARK: - 端口转发表单（创建 / 编辑共用）
-
-/// 协议 tcp / udp / tcp/udp；源端口与目标端口支持范围（8080-8089）；
-/// 目标 IP 可选；入站网口从 monitor/netoptions 拉取（"all" 展示「所有」、提交空串）
-struct FirewallForwardFormView: View {
-    @ObservedObject var vm: FirewallViewModel
-    /// 编辑的原规则（nil=创建）
-    var editing: FirewallRule?
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var proto = "tcp"
-    @State private var port = ""
-    @State private var targetIP = ""
-    @State private var targetPort = ""
-    /// 提交值：空串 = 所有网口
-    @State private var networkInterface = ""
-    @State private var saving = false
-
-    private let protos = ["tcp", "udp", "tcp/udp"]
-
-    private var isValid: Bool {
-        !port.trimmingCharacters(in: .whitespaces).isEmpty
-            && !targetPort.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
-    /// 网口选项：所有（空串）+ netOptions 去掉 "all" 后的具体网卡
-    private var interfaceOptions: [(label: String, value: String)] {
-        [(L10n.t("所有"), "")] + vm.netOptions
-            .filter { $0 != "all" }
-            .map { (label: $0, value: $0) }
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                Picker(L10n.t("协议"), selection: $proto) {
-                    ForEach(protos, id: \.self) { Text($0.uppercased()) }
-                }
-                .pickerStyle(.segmented)
-                .segmentedPickerRow()
-
-                TextField(L10n.t("源端口"), text: $port)
-                    .keyboardType(.numbersAndPunctuation)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-
-                TextField(L10n.t("目标 IP"), text: $targetIP)
-                    .keyboardType(.numbersAndPunctuation)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-
-                TextField(L10n.t("目标端口"), text: $targetPort)
-                    .keyboardType(.numbersAndPunctuation)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-
-                Picker(L10n.t("转发入站网口"), selection: $networkInterface) {
-                    ForEach(interfaceOptions, id: \.value) { opt in
-                        Text(opt.label).tag(opt.value)
+                    HStack {
+                        Text(L10n.t("面板端口白名单"))
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Text("\(parseFirewallPortWhitelist(vm.settings?.portWhiteList).count)")
+                            .foregroundStyle(.secondary)
                     }
                 }
             } header: {
-                Text(L10n.t("端口转发"))
+                SectionLabel(title: L10n.t("基础设置"), systemImage: "gearshape")
             } footer: {
-                Text(L10n.t("源端口与目标端口支持端口范围，如: 8080-8089；目标 IP 可留空。"))
+                Text(L10n.t("禁 Ping 后服务器不再响应 ICMP 探测；端口白名单外的高校验规则见任务日志。"))
             }
-        }
-        .navigationTitle(editing == nil ? L10n.t("添加端口转发") : L10n.t("编辑端口转发"))
-        .navigationBarTitleDisplayMode(.inline)
-        .formWidthLimit()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(L10n.t("保存")) {
-                    Task {
-                        saving = true
-                        let p = port.trimmingCharacters(in: .whitespaces)
-                        let ip = targetIP.trimmingCharacters(in: .whitespaces)
-                        let tp = targetPort.trimmingCharacters(in: .whitespaces)
-                        let ok: Bool
-                        if let editing {
-                            ok = await vm.updateForward(
-                                old: editing, proto: proto, port: p,
-                                targetIP: ip, targetPort: tp, interface: networkInterface
-                            )
-                        } else {
-                            ok = await vm.createForward(
-                                proto: proto, port: p,
-                                targetIP: ip, targetPort: tp, interface: networkInterface
-                            )
-                        }
-                        saving = false
-                        if ok { dismiss() }
-                    }
-                }
-                .disabled(!isValid || saving)
-            }
-        }
-        .onAppear {
-            if let editing {
-                port = editing.port ?? ""
-                proto = editing.protocolField ?? "tcp"
-                targetIP = editing.targetIP ?? ""
-                targetPort = editing.targetPort ?? ""
-                // "*" 与空都视为所有网口
-                if let i = editing.interface, !i.isEmpty, i != "*" {
-                    networkInterface = i
-                }
-            }
+
+            backendGroupSection(title: L10n.t("系统防火墙"), subsystem: "system",
+                                group: vm.settings?.system)
+            backendGroupSection(title: L10n.t("端口转发"), subsystem: "forwarding",
+                                group: vm.settings?.forwarding)
+            backendGroupSection(title: L10n.t("Docker 守护"), subsystem: "docker",
+                                group: vm.settings?.docker)
         }
     }
-}
 
-// MARK: - IP 规则表单（创建 / 编辑共用）
-
-/// 创建：指定 IP（逗号分隔多个）+ 策略（放行/屏蔽）+ 描述；
-/// 编辑：指定 IP 不可更改（update/addr 不支持改地址），仅策略/描述
-struct FirewallAddressFormView: View {
-    @ObservedObject var vm: FirewallViewModel
-    var editing: FirewallRule?
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var address = ""
-    @State private var strategy = "accept"
-    @State private var description = ""
-    @State private var saving = false
-
-    private var isValid: Bool {
-        !address.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                TextField(L10n.t("指定 IP"), text: $address)
-                    .keyboardType(.numbersAndPunctuation)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .disabled(editing != nil)
-                Picker(L10n.t("策略"), selection: $strategy) {
-                    Text(L10n.t("放行")).tag("accept")
-                    Text(L10n.t("屏蔽")).tag("drop")
-                }
-                .pickerStyle(.segmented)
-                .segmentedPickerRow()
-                TextField(L10n.t("描述"), text: $description)
-            } header: {
-                Text(L10n.t("IP 规则"))
-            } footer: {
-                if editing == nil {
-                    Text(L10n.t("多个 IP 用英文逗号分隔，如: 192.168.50.100,192.168.51.100"))
+    private func backendGroupSection(title: String, subsystem: String,
+                                     group: FirewallBackendGroup?) -> some View {
+        Section {
+            if let group {
+                ForEach(group.options ?? []) { option in
+                    backendOptionRow(option: option, group: group, subsystem: subsystem)
                 }
             }
-        }
-        .navigationTitle(editing == nil ? L10n.t("添加 IP 规则") : L10n.t("编辑 IP 规则"))
-        .navigationBarTitleDisplayMode(.inline)
-        .formWidthLimit()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(L10n.t("保存")) {
-                    Task {
-                        saving = true
-                        let ok: Bool
-                        if let editing {
-                            ok = await vm.updateAddressRule(
-                                old: editing,
-                                strategy: strategy,
-                                description: description.trimmingCharacters(in: .whitespaces)
-                            )
-                        } else {
-                            ok = await vm.createAddressRule(
-                                address: address.trimmingCharacters(in: .whitespaces),
-                                strategy: strategy,
-                                description: description.trimmingCharacters(in: .whitespaces)
-                            )
-                        }
-                        saving = false
-                        if ok { dismiss() }
-                    }
-                }
-                .disabled(!isValid || saving)
-            }
-        }
-        .onAppear {
-            if let editing {
-                address = editing.address ?? ""
-                strategy = editing.strategy ?? "accept"
-                description = editing.description ?? ""
-            }
-        }
-    }
-}
-
-// MARK: - iptables 链规则（行 / 创建表单）
-
-extension FirewallChainRule {
-    /// 删除确认等提示用的概要（协议 + 地址 + 端口）
-    var displaySummary: String {
-        var parts = [(protocolField ?? "all").uppercased()]
-        if let ip = srcIP, !ip.isEmpty {
-            parts.append(ip)
-        } else if let ip = dstIP, !ip.isEmpty {
-            parts.append(ip)
-        }
-        if let p = dstPort, let n = Int(p), n > 0 {
-            parts.append(":\(n)")
-        }
-        return parts.joined(separator: " ")
-    }
-}
-
-/// 链规则行：协议 + 动作徽标 + 地址（入站显示源、出站显示目标）+ 目标端口
-struct FirewallChainRuleRow: View {
-    let rule: FirewallChainRule
-
-    private var addressLine: String? {
-        if let ip = rule.srcIP, !ip.isEmpty { return L10n.t("源") + " " + ip }
-        if let ip = rule.dstIP, !ip.isEmpty { return L10n.t("目标") + " " + ip }
-        return nil
-    }
-
-    private var portText: String {
-        if let p = rule.dstPort, let n = Int(p), n > 0 {
-            return L10n.f("端口 %ld", n)
-        }
-        return L10n.t("任意端口")
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            IconBadge(
-                systemName: "bolt.horizontal",
-                color: (rule.strategy == "accept") ? .green : .red,
-                size: 34,
-                cornerRadius: Radius.small
-            )
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text((rule.protocolField ?? "all").uppercased())
-                        .font(.system(.subheadline, design: .monospaced, weight: .bold))
-                    StatusBadge(
-                        text: (rule.strategy == "accept") ? L10n.t("允许") : L10n.t("拒绝"),
-                        color: (rule.strategy == "accept") ? .green : .red
-                    )
-                    StatusBadge(text: portText, color: .secondary)
-                }
-                if let addr = addressLine {
-                    Text(addr)
+        } header: {
+            HStack {
+                SectionLabel(title: title, systemImage: "server.rack")
+                Spacer()
+                if let selected = group?.selected, !selected.isEmpty {
+                    Text(L10n.f("当前：%@", selected))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                if let desc = rule.description, !desc.isEmpty {
-                    Text(desc)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    private func backendOptionRow(option: FirewallBackendOption,
+                                  group: FirewallBackendGroup,
+                                  subsystem: String) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text((option.name ?? "—").uppercased())
+                        .font(.subheadline.bold())
+                    if option.name == group.selected {
+                        StatusBadge(text: L10n.t("已选择"), color: .blue)
+                    }
+                }
+                HStack(spacing: 6) {
+                    if option.installed != true {
+                        StatusBadge(text: L10n.t("未安装"), color: .secondary)
+                    }
+                    if option.installed == true, option.active == true {
+                        StatusBadge(text: L10n.t("已激活"), color: .statusRunning)
+                    }
+                    if option.supported == false {
+                        StatusBadge(text: L10n.t("不支持"), color: .semanticWarning)
+                    }
+                }
+                if let reason = option.supportReason ?? option.message, !reason.isEmpty {
+                    Text(reason)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             Spacer()
+            if option.supported != false, option.installed == true {
+                Menu {
+                    if option.name != group.selected {
+                        Button(L10n.t("选择此后端")) {
+                            Task { await vm.operateBackend(subsystem: subsystem, backend: option.name ?? "", operation: "select") }
+                        }
+                    }
+                    if option.initialized != true, option.name != group.selected {
+                        Button(L10n.t("初始化")) {
+                            Task { await vm.operateBackend(subsystem: subsystem, backend: option.name ?? "", operation: "initialize") }
+                        }
+                    }
+                    if option.bound == true {
+                        Button(L10n.t("清理绑定"), role: .destructive) {
+                            Task { await vm.operateBackend(subsystem: subsystem, backend: option.name ?? "", operation: "cleanup") }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.body)
+                        .frame(width: 32, height: 32)
+                }
+            }
+        }
+    }
+}
+
+// pingBlocked 已上移至 Models/Firewall.swift 的 FirewallSettings（测试与视图共用）
+
+// MARK: - 规则行
+
+struct FirewallRuleRowView: View {
+    let item: FirewallInventoryItem
+    var processName: String?
+
+    private var rule: FirewallRule? { item.rule ?? item.desired?.rule }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 8) {
+                // 端口（端口规则）或 源地址（IP 规则）为主标识
+                Text(mainToken)
+                    .font(.dataMonospacedBody.bold())
+                    .lineLimit(1)
+                if let proto = rule?.protocolField, !proto.isEmpty {
+                    StatusBadge(text: proto.uppercased(), color: .blue)
+                }
+                Spacer()
+                stateBadge
+                actionBadge
+            }
+            if !secondaryLine.isEmpty {
+                Text(secondaryLine)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
         }
         .padding(.vertical, 2)
     }
+
+    private var mainToken: String {
+        if let port = rule?.destinationPort, !port.isEmpty { return port }
+        if let addr = rule?.sourceAddress, !addr.isEmpty { return addr }
+        return "—"
+    }
+
+    private var secondaryLine: String {
+        var parts: [String] = []
+        if let addr = rule?.sourceAddress, !addr.isEmpty,
+           rule?.destinationPort?.isEmpty == false {
+            parts.append(L10n.f("来源：%@", addr))
+        }
+        if let sport = rule?.sourcePort, !sport.isEmpty {
+            parts.append(L10n.f("源端口：%@", sport))
+        }
+        if let dest = rule?.destinationAddress, !dest.isEmpty {
+            parts.append(L10n.f("目标：%@", dest))
+        }
+        if let pn = processName, !pn.isEmpty {
+            parts.append(pn)
+        }
+        if let desc = rule?.descriptionText, !desc.isEmpty {
+            parts.append(desc)
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    @ViewBuilder
+    private var stateBadge: some View {
+        let mapping: [(String, String, Color)] = [
+            ("managed", L10n.t("面板管理"), .statusRunning),
+            ("adopted", L10n.t("已纳管"), .blue),
+            ("external", L10n.t("外部"), .secondary),
+            ("drifted", L10n.t("漂移"), .semanticWarning),
+            ("protected", L10n.t("受保护"), .purple),
+        ]
+        if let state = item.state,
+           let entry = mapping.first(where: { $0.0 == state }) {
+            StatusBadge(text: entry.1, color: entry.2)
+        }
+    }
+
+    @ViewBuilder
+    private var actionBadge: some View {
+        if let action = rule?.action {
+            StatusBadge(
+                text: action == "accept" ? L10n.t("放行") : L10n.t("拒绝"),
+                color: action == "accept" ? .statusRunning : .statusError
+            )
+        }
+    }
 }
 
-/// 创建 iptables 链规则（可选增加-2 抓包：入站写 srcIP、出站写 dstIP；
-/// srcPort 恒 0，端口为目标端口；协议=全部时端口恒 0 不可改）
-struct FirewallChainRuleFormView: View {
-    let vm: FirewallViewModel
-    let chain: String
+// MARK: - 转发行
 
-    @Environment(\.dismiss) private var dismiss
-    @State private var proto = "tcp"
-    @State private var ip = ""
-    @State private var port = "0"
-    @State private var strategy = "accept"
-    @State private var descriptionText = ""
-    @State private var isSubmitting = false
-
-    private let protocols: [(value: String, label: String)] = [
-        ("all", L10n.t("全部")), ("tcp", "TCP"), ("udp", "UDP"), ("icmp", "ICMP"),
-    ]
-    /// 动作取值抓包：accept 允许 / drop 拒绝
-    private let strategies: [(value: String, label: String)] = [
-        ("accept", L10n.t("允许")), ("drop", L10n.t("拒绝")),
-    ]
-
-    private var isOutput: Bool { chain == FirewallViewModel.outputChain }
-
-    private var canSubmit: Bool {
-        guard !isSubmitting else { return false }
-        // 协议=全部时端口恒 0；其余协议端口需为有效数字（默认 0 = 任意）
-        return proto == "all" || Int(port) != nil
-    }
+struct FirewallForwardRowView: View {
+    let rule: FirewallForwardRule
 
     var body: some View {
-        Form {
-            Section {
-                Picker(L10n.t("协议"), selection: $proto) {
-                    ForEach(protocols, id: \.value) { p in
-                        Text(p.label).tag(p.value)
-                    }
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 8) {
+                Text(rule.port ?? "-")
+                    .font(.dataMonospacedBody.bold())
+                if let proto = rule.protocolField, !proto.isEmpty {
+                    StatusBadge(text: proto.uppercased(), color: .blue)
                 }
-                TextField(isOutput ? L10n.t("目标 IP") : L10n.t("源 IP"), text: $ip, prompt: Text("192.168.1.0/24"))
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.asciiCapable)
-                TextField(L10n.t("目标端口"), text: $port)
-                    .keyboardType(.numberPad)
-                    .disabled(proto == "all")
-                Picker(L10n.t("动作"), selection: $strategy) {
-                    ForEach(strategies, id: \.value) { s in
-                        Text(s.label).tag(s.value)
-                    }
+                Image(systemName: "arrow.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(target)
+                    .font(.dataMonospaced)
+                    .lineLimit(1)
+                Spacer()
+                if rule.strategy?.lowercased() == "accept" || rule.strategy == nil {
+                    StatusBadge(text: L10n.t("放行"), color: .statusRunning)
+                } else {
+                    StatusBadge(text: L10n.t("拒绝"), color: .statusError)
                 }
-                TextField(L10n.t("描述"), text: $descriptionText)
-            } header: {
-                SectionLabel(title: L10n.t("添加链规则"), systemImage: "link")
-            } footer: {
-                Text(L10n.t("IP 为 CIDR 格式，留空表示所有地址；端口 0 表示任意端口；协议为全部时端口不可用"))
+            }
+            if !secondaryLine.isEmpty {
+                Text(secondaryLine)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle(L10n.t("添加链规则"))
-        .navigationBarTitleDisplayMode(.inline)
-        .formWidthLimit()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await submit() }
-                } label: {
-                    if isSubmitting { ProgressView() } else { Text(L10n.t("保存")).bold() }
-                }
-                .disabled(!canSubmit)
-            }
-        }
+        .padding(.vertical, 2)
     }
 
-    private func submit() async {
-        isSubmitting = true
-        defer { isSubmitting = false }
-        let dstPort = (proto == "all") ? 0 : (Int(port) ?? 0)
-        let ok = await vm.addChainRule(
-            chain: chain,
-            proto: proto,
-            strategy: strategy,
-            ip: ip.trimmingCharacters(in: .whitespaces),
-            dstPort: dstPort,
-            description: descriptionText
-        )
-        if ok { dismiss() }
+    private var target: String {
+        let ip = rule.targetIP ?? ""
+        let port = rule.targetPort ?? ""
+        if ip.isEmpty { return port }
+        return "\(ip):\(port)"
+    }
+
+    private var secondaryLine: String {
+        var parts: [String] = []
+        if let family = rule.family, !family.isEmpty { parts.append(family.uppercased()) }
+        if let iface = rule.interface, !iface.isEmpty, iface != "*" {
+            parts.append(L10n.f("网卡：%@", iface))
+        }
+        if let used = rule.usedStatus, !used.isEmpty { parts.append(used) }
+        if let desc = rule.descriptionText, !desc.isEmpty { parts.append(desc) }
+        return parts.joined(separator: " · ")
     }
 }
 
-// MARK: - 链规则弹窗组
+// MARK: - Docker 守护子视图
 
-/// iptables 链规则与基础链弹窗（创建跳转 / 删除确认 / 链操作确认 / 基础操作确认）。
-/// 独立 ViewModifier：追加到主 body 内联会超出类型推断合理时间
-private struct FirewallChainDialogsModifier: ViewModifier {
-    let vm: FirewallViewModel
-    let currentChain: String
-    @Binding var showAddChainRule: Bool
-    @Binding var pendingDeleteChainRule: FirewallChainRule?
-    /// 待确认的链操作（init-advance / bind / unbind）
-    @Binding var pendingChainOp: String?
-    /// 待确认的 iptables 基础链操作（init-base / init-forward / bind-base / unbind-base）
-    @Binding var pendingBaseOp: String?
-    /// 链规则默认策略详情（状态抽屉「默认策略」行点击弹出）
-    @Binding var showChainStrategy: Bool
+private struct DockerGuardContainerSection: View {
+    let container: DockerGuardContainer
+    let onDeletePolicy: (DockerGuardEndpoint) -> Void
+    let isOperating: Bool
+    @State private var expanded = true
 
-    func body(content: Content) -> some View {
-        content
-            .navigationDestination(isPresented: $showAddChainRule) {
-                FirewallChainRuleFormView(vm: vm, chain: currentChain)
+    var body: some View {
+        Section {
+            Button {
+                withAnimation(Motion.standard) { expanded.toggle() }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "shippingbox.fill")
+                        .foregroundStyle(.blue)
+                    Text(container.name ?? "—")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.primary)
+                    if let compose = container.compose, !compose.isEmpty {
+                        StatusBadge(text: compose, color: .purple)
+                    }
+                    Spacer()
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
             }
-            .alert(L10n.t("删除链规则"), isPresented: Binding(
-                get: { pendingDeleteChainRule != nil },
-                set: { if !$0 { pendingDeleteChainRule = nil } }
-            )) {
-                Button(L10n.t("取消"), role: .cancel) { pendingDeleteChainRule = nil }
-                Button(L10n.t("删除"), role: .destructive) {
-                    Haptic.warning()
-                    if let rule = pendingDeleteChainRule {
-                        pendingDeleteChainRule = nil
-                        // 按规则自带 chain 重载：确认前切方向时避免刷错方向的列表
-                        Task { await vm.deleteChainRule(rule, chain: rule.chain ?? currentChain) }
+            .buttonStyle(.plain)
+
+            if expanded {
+                let groups = container.portGroups ?? []
+                if groups.isEmpty {
+                    Text(L10n.t("未发布端口"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(groups) { group in
+                        if let endpoint = group.endpoint {
+                            DockerGuardEndpointRow(endpoint: endpoint) {
+                                if endpoint.readOnly != true, endpoint.policyUUID?.isEmpty == false {
+                                    onDeletePolicy(endpoint)
+                                }
+                            }
+                        }
                     }
                 }
-            } message: {
-                if let rule = pendingDeleteChainRule {
-                    Text(L10n.f("确定删除链规则「%@」吗？删除后不可恢复。", rule.displaySummary))
+            }
+        }
+    }
+}
+
+struct DockerGuardEndpointRow: View {
+    let endpoint: DockerGuardEndpoint
+    let onDelete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 8) {
+                Text(hostLabel)
+                    .font(.dataMonospacedBody.bold())
+                if let proto = endpoint.protocolField {
+                    StatusBadge(text: proto.uppercased(), color: .blue)
+                }
+                Image(systemName: "arrow.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(endpoint.containerName ?? "—")
+                    .lineLimit(1)
+                Spacer()
+                modeBadge
+            }
+            if let sources = endpoint.sources, !sources.isEmpty {
+                Text(L10n.f("来源：%@", sources.joined(separator: ", ")))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.vertical, 2)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if endpoint.readOnly != true, endpoint.policyUUID?.isEmpty == false {
+                Button(role: .destructive, action: onDelete) {
+                    Label(L10n.t("删除"), systemImage: "trash")
                 }
             }
-            .alert(
-                opTitle(pendingChainOp ?? ""),
-                isPresented: Binding(
-                    get: { pendingChainOp != nil },
-                    set: { if !$0 { pendingChainOp = nil } }
-                )
-            ) {
-                Button(L10n.t("取消"), role: .cancel) { pendingChainOp = nil }
-                Button(L10n.t("确认")) {
-                    let op = pendingChainOp
-                    pendingChainOp = nil
-                    if let op {
-                        Haptic.warning()
-                        Task { await vm.operateChain(op, chain: currentChain) }
-                    }
-                }
-            } message: {
-                Text(opMessage(pendingChainOp ?? ""))
-            }
-            .alert(
-                baseOpTitle(pendingBaseOp ?? ""),
-                isPresented: Binding(
-                    get: { pendingBaseOp != nil },
-                    set: { if !$0 { pendingBaseOp = nil } }
-                )
-            ) {
-                Button(L10n.t("取消"), role: .cancel) { pendingBaseOp = nil }
-                Button(L10n.t("确认")) {
-                    let op = pendingBaseOp
-                    pendingBaseOp = nil
-                    if let op {
-                        Haptic.warning()
-                        // bind-base/unbind-base 作用于 1PANEL_BASIC，其余作用于 1PANEL_INPUT
-                        let name = (op == "bind-base" || op == "unbind-base") ? "1PANEL_BASIC" : "1PANEL_INPUT"
-                        Task { await vm.operateFilterBase(op, name: name) }
-                    }
-                }
-            } message: {
-                Text(baseOpMessage(pendingBaseOp ?? ""))
-            }
-            .alert(L10n.t("默认策略"), isPresented: $showChainStrategy) {
-                Button(L10n.t("好的"), role: .cancel) {}
-            } message: {
-                // 两条链各自的 defaultStrategy（chain/status 返回；
-                // name 即链名：入站 1PANEL_INPUT / 出站 1PANEL_OUTPUT）
-                Text(L10n.f(
-                    "入站对应 当前链 1PANEL_INPUT 的默认策略为 %@\n出站对应 当前链 1PANEL_OUTPUT 的默认策略为 %@",
-                    vm.chainStatusMap[FirewallViewModel.inputChain]?.defaultStrategy ?? "-",
-                    vm.chainStatusMap[FirewallViewModel.outputChain]?.defaultStrategy ?? "-"
-                ))
-            }
-    }
-
-    private func opTitle(_ op: String) -> String {
-        switch op {
-        case "init-advance": return L10n.t("初始化链规则")
-        case "bind":         return L10n.t("绑定链")
-        case "unbind":       return L10n.t("解除绑定")
-        default:             return L10n.t("链规则")
         }
     }
 
-    /// 确认文案对齐网页端（可选增加-2 抓包）
-    private func opMessage(_ op: String) -> String {
-        switch op {
-        case "init-advance": return L10n.t("将初始化 1PANEL 链规则，是否继续？")
-        case "bind":         return L10n.t("仅当状态为绑定时，防火墙规则才能生效，是否确认？")
-        case "unbind":       return L10n.t("解除绑定时，已添加的所有防火墙规则将失效，请谨慎操作，是否确认？")
-        default:             return ""
-        }
+    private var hostLabel: String {
+        let ip = endpoint.hostIP ?? ""
+        let port = endpoint.hostPort.map(String.init) ?? ""
+        return ip.isEmpty ? port : "\(ip):\(port)"
     }
 
-    private func baseOpTitle(_ op: String) -> String {
-        switch op {
-        case "init-base":    return L10n.t("初始化")
-        case "init-forward": return L10n.t("初始化端口转发")
-        case "bind-base":    return L10n.t("绑定")
-        case "unbind-base":  return L10n.t("解除绑定")
-        default:             return L10n.t("防火墙")
+    @ViewBuilder
+    private var modeBadge: some View {
+        switch endpoint.mode {
+        case "deny_all":
+            StatusBadge(text: L10n.t("全部拒绝"), color: .statusError)
+        case "allow_sources":
+            StatusBadge(text: L10n.t("白名单"), color: .statusRunning)
+        case "deny_sources":
+            StatusBadge(text: L10n.t("黑名单"), color: .semanticWarning)
+        default:
+            StatusBadge(text: L10n.t("未设置"), color: .secondary)
         }
     }
+}
 
-    /// 绑定/解绑确认文案对齐网页端（可选增加-3 抓包）
-    private func baseOpMessage(_ op: String) -> String {
-        switch op {
-        case "init-base":    return L10n.t("将初始化 iptables 端口与 IP 规则，是否继续？")
-        case "init-forward": return L10n.t("将初始化 iptables 端口转发规则，是否继续？")
-        case "bind-base":    return L10n.t("仅当状态为绑定时，防火墙规则才能生效，是否确认？")
-        case "unbind-base":  return L10n.t("解除绑定时，已添加的所有防火墙规则将失效，请谨慎操作，是否确认？")
-        default:             return ""
-        }
-    }
+// MARK: - 端口白名单解析（两种面板格式统一拆行；v2.3.0 settings.portWhiteList）
+
+nonisolated func parseFirewallPortWhitelist(_ raw: String?) -> [String] {
+    guard let raw, !raw.isEmpty else { return [] }
+    // isNewline 而非 == "\n"：CRLF 在 Swift 里是单个 Character（字素簇），
+    // 单独比较 \n 或 \r 都匹配不上 CRLF 整体（FirewallWhitelistTests 抓住的坑）
+    return raw
+        .split(whereSeparator: { $0 == "," || $0.isNewline })
+        .map { $0.trimmingCharacters(in: .whitespaces) }
+        .filter { !$0.isEmpty }
 }

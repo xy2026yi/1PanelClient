@@ -71,31 +71,5 @@ struct CronjobTransferModelsTests {
         #expect(again == items)
     }
 }
-
-@Suite("iptables 链规则模型")
-struct FirewallChainModelsTests {
-
-    @Test("链规则解码（端口为空串/数字字符串）+ 删除体端口转 Int")
-    func decodeChainRuleAndBatchItem() throws {
-        let json = """
-        {"id":0,"chain":"1PANEL_INPUT","protocol":"udp","srcPort":"","dstPort":"53",
-         "srcIP":"192.168.51.0/24","dstIP":"","strategy":"accept","description":""}
-        """
-        let rule = try JSONDecoder().decode(FirewallChainRule.self, from: Data(json.utf8))
-        #expect(rule.apiID == 0)
-        #expect(rule.protocolField == "udp")
-        #expect(rule.dstPort == "53")
-
-        let item = FirewallChainRuleBatchItem(rule: rule)
-        #expect(item.srcPort == 0)
-        #expect(item.dstPort == 53)
-        #expect(item.chain == "1PANEL_INPUT")
-
-        // 删除体编码：protocol 键名映射，无 description 键
-        let data = try JSONEncoder().encode(FirewallChainRuleBatchRequest(rules: [item]))
-        let text = String(decoding: data, as: UTF8.self)
-        #expect(text.contains("\"protocol\":\"udp\""))
-        #expect(text.contains("\"dstPort\":53"))
-        #expect(!text.contains("description"))
-    }
-}
+// 旧「iptables 链规则模型」套件已随 v2.3.0 防火墙重构移除
+// （上游删除 filter/rule 系列端点与链规则模型，见 docs/v2.3.0-upstream-diff.md §2.1）

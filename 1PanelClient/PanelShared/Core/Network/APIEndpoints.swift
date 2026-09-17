@@ -180,21 +180,26 @@ enum APIEndpoint {
     case coreGroupsDelete         // POST 删除计划任务/脚本分组
 
     // MARK: - 防火墙
-    case firewallBase             // POST 防火墙基础状态
-    case firewallOperate          // POST 防火墙操作（start/stop/restart/ping）
-    case firewallSearch           // POST 端口规则列表
-    case firewallPort             // POST 创建端口规则
-    case firewallBatch            // POST 批量删除端口规则
-    case firewallUpdatePort       // POST 修改端口规则
-    case firewallForward          // POST 端口转发批量操作（add/remove，删除带 forceDelete）
-    case firewallIP               // POST 创建 IP 规则
-    case firewallUpdateAddr       // POST 修改 IP 规则
-    // iptables 链规则（可选增加-2 抓包 2026-09-16；ufw 后端不支持）
-    case firewallFilterOperate    // POST 链操作（init-advance/bind/unbind）
-    case firewallFilterChainStatus // POST 链状态 {name}
-    case firewallFilterRuleSearch // POST 链规则列表 {type,info,page,pageSize}
-    case firewallFilterRuleOperate // POST 创建链规则
-    case firewallFilterRuleBatch  // POST 删除链规则 {rules:[…]}
+    // MARK: 防火墙（v2.3.0 重构后 API；对照表见 docs/v2.3.0-upstream-diff.md §2.1）
+    case firewallBase             // POST 子系统状态 {name: base|docker}（v2.2.5 契约已废弃）
+    case firewallOperate          // POST 生命周期（start/stop/restart/disableBanPing/enableBanPing）
+    case firewallFilterOperate    // POST 基础链操作（init-base/bind-base/unbind-base，幸存端点）
+    case firewallRulesSearch      // POST 统一规则清单（scope/families/states 筛选）
+    case firewallRulesCreate      // POST 批量创建规则（items[{rule}]，任务式）
+    case firewallRulesUpdate      // POST 更新规则（uuid + rule/description 互斥）
+    case firewallRulesDelete      // POST 批量删除规则 {uuids}
+    case firewallForwardBase      // POST 转发子系统状态（无请求体）
+    case firewallForwardSearch    // POST 转发规则分页（PageEnvelope 信封）
+    case firewallForwardOperate   // POST 转发批量 add/remove（删除带 forceDelete）
+    case firewallForwardEnable    // POST 启用转发子系统（任务式 {taskID?}）
+    case firewallSettings         // GET  三组后端设置 + ping + 端口白名单
+    case firewallSettingsOperate  // POST 后端操作 {subsystem,backend,operation: select|initialize|cleanup}
+    case firewallSettingsWhitelist // POST 更新面板端口白名单（任务式 {value}）
+    case firewallDockerPorts      // GET  Docker 端口守护总览（base+containers+orphan）
+    case firewallDockerOperate    // POST Docker 守护操作 {operation: initialize|bind|unbind}
+    case firewallDockerSync       // POST 同步 Docker 守护规则（对账）
+    case firewallDockerPolicyBatch // POST 批量 upsert 守护策略
+    case firewallDockerPolicyDelete // POST 批量删除守护策略 {uuids}
     case monitorNetOptions        // GET  网卡列表（端口转发的入站网口选择）
 
     // MARK: - 数据库
@@ -783,18 +788,23 @@ enum APIEndpoint {
         case .coreSettingsUpdate:    return "/api/v2/core/settings/update"
         case .firewallBase:          return "/api/v2/hosts/firewall/base"
         case .firewallOperate:       return "/api/v2/hosts/firewall/operate"
-        case .firewallSearch:        return "/api/v2/hosts/firewall/search"
-        case .firewallPort:          return "/api/v2/hosts/firewall/port"
-        case .firewallBatch:         return "/api/v2/hosts/firewall/batch"
-        case .firewallUpdatePort:    return "/api/v2/hosts/firewall/update/port"
-        case .firewallForward:       return "/api/v2/hosts/firewall/forward"
-        case .firewallIP:            return "/api/v2/hosts/firewall/ip"
-        case .firewallUpdateAddr:    return "/api/v2/hosts/firewall/update/addr"
-        case .firewallFilterOperate:     return "/api/v2/hosts/firewall/filter/operate"
-        case .firewallFilterChainStatus: return "/api/v2/hosts/firewall/filter/chain/status"
-        case .firewallFilterRuleSearch:  return "/api/v2/hosts/firewall/filter/rule/search"
-        case .firewallFilterRuleOperate: return "/api/v2/hosts/firewall/filter/rule/operate"
-        case .firewallFilterRuleBatch:   return "/api/v2/hosts/firewall/filter/rule/batch"
+        case .firewallFilterOperate: return "/api/v2/hosts/firewall/filter/operate"
+        case .firewallRulesSearch:   return "/api/v2/hosts/firewall/rules/search"
+        case .firewallRulesCreate:   return "/api/v2/hosts/firewall/rules"
+        case .firewallRulesUpdate:   return "/api/v2/hosts/firewall/rules/update"
+        case .firewallRulesDelete:   return "/api/v2/hosts/firewall/rules/delete"
+        case .firewallForwardBase:   return "/api/v2/hosts/firewall/forward/base"
+        case .firewallForwardSearch: return "/api/v2/hosts/firewall/forward/search"
+        case .firewallForwardOperate: return "/api/v2/hosts/firewall/forward/operate"
+        case .firewallForwardEnable: return "/api/v2/hosts/firewall/forward/enable"
+        case .firewallSettings:      return "/api/v2/hosts/firewall/settings"
+        case .firewallSettingsOperate: return "/api/v2/hosts/firewall/settings/operate"
+        case .firewallSettingsWhitelist: return "/api/v2/hosts/firewall/settings/whitelist"
+        case .firewallDockerPorts:   return "/api/v2/hosts/firewall/docker/ports"
+        case .firewallDockerOperate: return "/api/v2/hosts/firewall/docker/operate"
+        case .firewallDockerSync:    return "/api/v2/hosts/firewall/docker/sync"
+        case .firewallDockerPolicyBatch: return "/api/v2/hosts/firewall/docker/policies/batch"
+        case .firewallDockerPolicyDelete: return "/api/v2/hosts/firewall/docker/policies/delete/batch"
         case .monitorNetOptions:     return "/api/v2/hosts/monitor/netoptions"
         case .databasesSearch:       return "/api/v2/databases/search"
         case .databasesDbList:       return "/api/v2/databases/db/list/:types"
