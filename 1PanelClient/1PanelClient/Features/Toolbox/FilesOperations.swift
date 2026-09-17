@@ -217,7 +217,7 @@ final class FileWgetProcessSession: ObservableObject {
     private func makeURL() -> URL? {
         guard var comp = URLComponents(string: server.normalizedBaseURL) else { return nil }
         comp.scheme = comp.scheme == "https" ? "wss" : "ws"
-        comp.path = "/api/v2/files/wget/process"
+        comp.path = APIEndpoint.filesWgetProcess.path
         let node = NodeScope.current(for: server.id) ?? "local"
         comp.queryItems = [URLQueryItem(name: "operateNode", value: node)]
         return comp.url

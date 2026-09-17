@@ -59,7 +59,7 @@ final class DatabasesViewModel: ObservableObject {
     }
 
     private func fetchList(types: String) async -> [DatabaseSystem]? {
-        let path = "/api/v2/databases/db/list/\(types)"
+        let path = APIEndpoint.databasesDbList.path.replacingOccurrences(of: ":types", with: types)
         do {
             return try await client.send(path: path, method: "GET", as: [DatabaseSystem].self)
         } catch {
@@ -334,7 +334,7 @@ struct NotInstalledDatabaseView: View {
         // 安装表单仍在展示时不查（后台运行中途返回的场景查了也是未完成态）
         guard !storeVM.showInstall else { return }
         guard let list: [DatabaseSystem] = try? await client.send(
-            path: "/api/v2/databases/db/list/\(category.listTypes)",
+            path: APIEndpoint.databasesDbList.path.replacingOccurrences(of: ":types", with: category.listTypes),
             method: "GET",
             as: [DatabaseSystem].self) else { return }
         if !list.isEmpty {

@@ -346,7 +346,7 @@ final class CronjobsViewModel: ObservableObject {
         if installedApps.isEmpty {
             do {
                 installedApps = try await client.send(
-                    path: "/api/v2/apps/installed/list",
+                    path: APIEndpoint.appsInstalledListOptions.path,
                     method: "GET",
                     as: [InstalledAppOption].self
                 )
@@ -358,7 +358,7 @@ final class CronjobsViewModel: ObservableObject {
         if websiteOptions.isEmpty {
             do {
                 websiteOptions = try await client.send(
-                    path: "/api/v2/websites/options",
+                    path: APIEndpoint.websitesOptions.path,
                     body: EmptyRequest(),
                     as: [WebsiteOptionSimple].self
                 )
@@ -374,7 +374,7 @@ final class CronjobsViewModel: ObservableObject {
         dbItems = []
         do {
             dbItems = try await client.send(
-                path: "/api/v2/databases/db/item/\(dbType)",
+                path: APIEndpoint.databasesDbItem.path.replacingOccurrences(of: ":type", with: dbType),
                 method: "GET",
                 as: [DBItemOption].self
             )

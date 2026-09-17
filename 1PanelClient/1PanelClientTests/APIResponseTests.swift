@@ -54,3 +54,43 @@ struct APIResponseTests {
         #expect(([String: Int].emptyInstance()) == [:])
     }
 }
+
+// MARK: - PageEnvelope 防御解码（M0：total 置 null/缺失不再整页失败）
+
+@Suite("PageEnvelope 防御解码")
+struct PageEnvelopeTests {
+    nonisolated private struct Item: Decodable { let id: Int }
+
+    @Test("total 正常解码")
+    func normalTotal() throws {
+        let page = try JSONDecoder().decode(PageEnvelope<Item>.self,
+                                            from: Data(#"{"total": 42, "items": [{"id":1}]}"#.utf8))
+        #expect(page.total == 42)
+        #expect(page.items?.count == 1)
+    }
+
+    @Test("total 为 null 回退 0（上游 schema 漂移防御）")
+    func nullTotalFallsBackToZero() throws {
+        let page = try JSONDecoder().decode(PageEnvelope<Item>.self,
+                                            from: Data(#"{"total": null, "items": [{"id":1}]}"#.utf8))
+        #expect(page.total == 0)
+        #expect(page.items?.count == 1)
+    }
+
+    @Test("total 缺失 + items 缺失（空页形状）")
+    func missingFieldsDecode() throws {
+        let page = try JSONDecoder().decode(PageEnvelope<Item>.self,
+                                            from: Data(#"{}"#.utf8))
+        #expect(page.total == 0)
+        #expect(page.items == nil)
+    }
+
+    @Test("七个老信封 typealias 走同一防御解码")
+    func typealiasesShareDefense() throws {
+        let json = #"{"items": []}"#
+        let websites = try JSONDecoder().decode(WebsiteListResponse.self, from: Data(json.utf8))
+        let containers = try JSONDecoder().decode(ContainerListResponse.self, from: Data(json.utf8))
+        let cronjobs = try JSONDecoder().decode(CronjobListResponse.self, from: Data(json.utf8))
+        #expect(websites.total == 0 && containers.total == 0 && cronjobs.total == 0)
+    }
+}

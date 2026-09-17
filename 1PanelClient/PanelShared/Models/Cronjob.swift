@@ -83,11 +83,8 @@ nonisolated struct CronjobSearchRequest: Encodable {
     var groupIDs: [Int] = []
 }
 
-/// 计划任务列表响应
-nonisolated struct CronjobListResponse: Decodable {
-    let total: Int
-    let items: [Cronjob]?
-}
+/// 计划任务列表响应（total 缺失回退 0 见 PageEnvelope）
+typealias CronjobListResponse = PageEnvelope<Cronjob>
 
 /// 单个计划任务（response.CronjobDTO，仅取列表/详情展示所需字段）
 nonisolated struct Cronjob: Decodable, Identifiable, Hashable {
@@ -298,10 +295,7 @@ nonisolated struct CronjobRecordSearchRequest: Encodable {
 }
 
 /// 执行记录列表响应
-nonisolated struct CronjobRecordListResponse: Decodable {
-    let total: Int
-    let items: [CronjobRecord]?
-}
+typealias CronjobRecordListResponse = PageEnvelope<CronjobRecord>
 
 /// 单条执行记录
 nonisolated struct CronjobRecord: Decodable, Identifiable, Hashable {

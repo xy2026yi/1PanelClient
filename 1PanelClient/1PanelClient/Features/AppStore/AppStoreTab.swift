@@ -583,7 +583,9 @@ struct AppInstallView: View {
             return
         }
         // type=app 用于安装新应用（通过 doc/1panel_install_new_app.py 验证）
-        let path = "/api/v2/apps/detail/\(detail.id)/\(version)/app"
+        let path = APIEndpoint.appsDetailApp.path
+            .replacingOccurrences(of: ":id", with: String(detail.id))
+            .replacingOccurrences(of: ":version", with: version)
         do {
             let resp: AppDetail = try await vm.client.send(
                 path: path, method: "GET", as: AppDetail.self

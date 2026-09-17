@@ -20,11 +20,8 @@ nonisolated struct WebsiteSearchRequest: Encodable {
     let type: String
 }
 
-/// 网站列表响应（dto.PageResult 包装）
-nonisolated struct WebsiteListResponse: Decodable {
-    let total: Int
-    let items: [Website]?
-}
+/// 网站列表响应（dto.PageResult 包装；total 缺失回退 0 见 PageEnvelope）
+typealias WebsiteListResponse = PageEnvelope<Website>
 
 /// 单个网站（response.WebsiteDTO）
 nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {

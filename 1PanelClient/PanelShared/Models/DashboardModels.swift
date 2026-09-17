@@ -173,24 +173,54 @@ nonisolated struct PanelUpgradeInfo: Decodable {
         return true
     }
 
+    /// 语义化比较：latest > current 才算有更新。原实现为字符串不等判断，
+    /// rc/beta 与同名正式版（2.3.0-rc1 vs 2.3.0）会被误报为有更新
     func hasUpdate(comparedTo currentVersion: String?) -> Bool {
-        guard let latestVersion = normalizedVersion(latestVersion), !latestVersion.isEmpty else {
-            return false
+        PanelVersionTools.compare(latestVersion, currentVersion) == .orderedDescending
+    }
+}
+
+/// 面板版本号解析与比较（v/V 前缀、rc/beta 预发布后缀容忍）。
+/// 上游保持月度发版，客户端适配策略见 docs/1panel-upstream-adaptation-roadmap-2026-09.md
+enum PanelVersionTools {
+    /// 客户端当前适配的面板基线（README 对外承诺同一版本；升级适配流程完成后改此值）。
+    /// nonisolated：nonisolated 模型（PanelUpgradeInfo.hasUpdate）与视图层都会访问
+    nonisolated static let adaptedBaseline = "v2.2.5"
+
+    /// a > b → orderedDescending；任一无法解析视为相同（不提示），
+    /// a 可解析而 b 缺失/无法解析 → orderedDescending（维持旧语义：当前版本未知即提示更新）
+    nonisolated static func compare(_ a: String?, _ b: String?) -> ComparisonResult {
+        guard let pa = parse(a) else { return .orderedSame }
+        guard let pb = parse(b) else { return .orderedDescending }
+        let count = max(pa.nums.count, pb.nums.count)
+        for i in 0..<count {
+            let x = i < pa.nums.count ? pa.nums[i] : 0
+            let y = i < pb.nums.count ? pb.nums[i] : 0
+            if x != y { return x > y ? .orderedDescending : .orderedAscending }
         }
-        guard let currentVersion = normalizedVersion(currentVersion), !currentVersion.isEmpty else {
-            return true
+        // 数字段全等：正式版 > 预发布（rc/beta）
+        switch (pa.pre, pb.pre) {
+        case (nil, nil): return .orderedSame
+        case (nil, _):   return .orderedDescending
+        case (_, nil):   return .orderedAscending
+        case let (l, r): return l! < r! ? .orderedAscending : (l! == r! ? .orderedSame : .orderedDescending)
         }
-        return latestVersion != currentVersion
     }
 
-    private func normalizedVersion(_ version: String?) -> String? {
-        guard var normalizedVersion = version?.trimmingCharacters(in: .whitespacesAndNewlines) else {
-            return nil
+    /// "v2.3.0-rc1" → (nums [2,3,0], pre "rc1")
+    nonisolated private static func parse(_ version: String?) -> (nums: [Int], pre: String?)? {
+        guard var s = version?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else { return nil }
+        if s.hasPrefix("v") || s.hasPrefix("V") { s.removeFirst() }
+        var pre: String? = nil
+        if let dash = s.firstIndex(of: "-") {
+            pre = String(s[s.index(after: dash)...])
+            s = String(s[..<dash])
         }
-        if normalizedVersion.hasPrefix("v") || normalizedVersion.hasPrefix("V") {
-            normalizedVersion.removeFirst()
-        }
-        return normalizedVersion
+        if let plus = s.firstIndex(of: "+") { s = String(s[..<plus]) }
+        let parts = s.split(separator: ".", omittingEmptySubsequences: false)
+        let nums = parts.compactMap { Int($0) }
+        guard !nums.isEmpty, nums.count == parts.count else { return nil }
+        return (nums, pre.flatMap { $0.isEmpty ? nil : $0 })
     }
 }
 

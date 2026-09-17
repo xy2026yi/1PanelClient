@@ -19,10 +19,7 @@ nonisolated struct OperationLogRequest: Encodable {
     var node: String = ""
 }
 
-nonisolated struct OperationLogResponse: Decodable {
-    let total: Int
-    let items: [OperationLogItem]?
-}
+typealias OperationLogResponse = PageEnvelope<OperationLogItem>
 
 nonisolated struct OperationLogItem: Decodable, Identifiable {
     let id: Int
@@ -53,10 +50,7 @@ nonisolated struct LoginLogRequest: Encodable {
     var pageSize: Int = 100
 }
 
-nonisolated struct LoginLogResponse: Decodable {
-    let total: Int
-    let items: [LoginLogItem]?
-}
+typealias LoginLogResponse = PageEnvelope<LoginLogItem>
 
 nonisolated struct LoginLogItem: Decodable, Identifiable {
     let id: Int
@@ -77,10 +71,7 @@ nonisolated struct SSHLogRequest: Encodable {
     var pageSize: Int = 100
 }
 
-nonisolated struct SSHLogResponse: Decodable {
-    let total: Int
-    let items: [SSHLogItem]?
-}
+typealias SSHLogResponse = PageEnvelope<SSHLogItem>
 
 nonisolated struct SSHLogItem: Decodable, Identifiable {
     /// 无 id 字段，用 date+port 组合
@@ -123,10 +114,7 @@ nonisolated struct TaskCenterSearchRequest: Encodable {
     let pageSize: Int
 }
 
-nonisolated struct TaskCenterResponse: Decodable {
-    let total: Int
-    let items: [TaskCenterItem]?
-}
+typealias TaskCenterResponse = PageEnvelope<TaskCenterItem>
 
 nonisolated struct TaskCenterItem: Decodable, Identifiable {
     let id: String

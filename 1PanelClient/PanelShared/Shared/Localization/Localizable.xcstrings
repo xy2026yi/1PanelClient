@@ -1,6 +1,17 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "客户端适配 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client for %@"
+          }
+        }
+      }
+    },
     "重启容器" : {
       "extractionState" : "manual",
       "localizations" : {

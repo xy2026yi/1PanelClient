@@ -16,11 +16,8 @@ nonisolated struct ContainerSearchRequest: Encodable {
     let order: String
 }
 
-/// 容器列表响应
-nonisolated struct ContainerListResponse: Decodable {
-    let total: Int
-    let items: [Container]?
-}
+/// 容器列表响应（total 缺失回退 0 见 PageEnvelope）
+typealias ContainerListResponse = PageEnvelope<Container>
 
 /// GET /api/v2/containers/stats/:id 单容器实时监控快照
 /// （数值单位与 1Panel 网页端一致：内存/缓存 MB，磁盘 I/O MB/s，网络 KB/s）

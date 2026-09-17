@@ -225,10 +225,7 @@ nonisolated struct NodeUpgradeLogSearchRequest: Encodable {
     let nodeID: Int
 }
 
-nonisolated struct NodeUpgradeLogResponse: Decodable {
-    let total: Int
-    let items: [NodeUpgradeLogItem]?
-}
+typealias NodeUpgradeLogResponse = PageEnvelope<NodeUpgradeLogItem>
 
 /// 抓包无记录样本（items=null），字段全部可选、按需展示
 nonisolated struct NodeUpgradeLogItem: Decodable, Identifiable {

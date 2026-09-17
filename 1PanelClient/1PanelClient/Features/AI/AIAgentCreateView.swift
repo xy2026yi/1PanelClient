@@ -463,7 +463,9 @@ struct AIAgentCreateView: View {
         composeLoadedKey = loadKey
         do {
             let detail: AppDetail = try await vm.client.send(
-                path: "/api/v2/apps/detail/\(appStoreId)/\(selectedVersion)/app",
+                path: APIEndpoint.appsDetailApp.path
+                .replacingOccurrences(of: ":id", with: String(appStoreId))
+                .replacingOccurrences(of: ":version", with: selectedVersion),
                 method: "GET",
                 as: AppDetail.self)
             let compose = detail.dockerCompose ?? ""

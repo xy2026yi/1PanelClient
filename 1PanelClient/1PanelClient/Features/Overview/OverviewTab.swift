@@ -173,6 +173,13 @@ struct OverviewTab: View {
         systemCard(base)
     }
     // MARK: - 面板信息卡片（版本号等）
+
+    /// 面板版本 ≠ 客户端适配基线（过高或过低均提示；正式版与 rc/beta 后缀不触发）
+    private var panelVersionMismatch: Bool {
+        guard let v = vm.settingInfo?.systemVersion, !v.isEmpty else { return false }
+        return PanelVersionTools.compare(v, PanelVersionTools.adaptedBaseline) != .orderedSame
+    }
+
     @ViewBuilder
     private var panelInfoCard: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -192,6 +199,10 @@ struct OverviewTab: View {
                     .foregroundStyle(.primary)
                 if vm.upgradeInfo?.hasUpdate(comparedTo: vm.settingInfo?.systemVersion) == true {
                     StatusBadge(text: L10n.t("有更新"), color: .orange)
+                }
+                if panelVersionMismatch {
+                    // L0 版本感知：面板 ≠ 适配基线时温和提示（不阻断），点版本行可看更新日志
+                    StatusBadge(text: L10n.f("客户端适配 %@", PanelVersionTools.adaptedBaseline), color: .secondary)
                 }
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))

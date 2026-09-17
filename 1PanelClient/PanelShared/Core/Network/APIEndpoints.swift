@@ -66,6 +66,7 @@ enum APIEndpoint {
 
     // MARK: - 网站
     case websitesSearch           // POST 分页查询网站
+    case websitesOptions          // POST 网站简表选项（备份任务用；曾散在调用点）
     case websitesCreate           // POST 创建网站（一键部署/反向代理/...）
     case websitesCheck            // POST 创建前环境检查
     case websitesSSLSearch        // POST 获取 SSL 证书列表（用于创建时选择）
@@ -198,6 +199,8 @@ enum APIEndpoint {
 
     // MARK: - 数据库
     case databasesSearch          // POST 分页查询数据库(MySQL)
+    case databasesDbList          // GET  按类型列数据库系统（:types 路径参数；曾散在调用点）
+    case databasesDbItem          // GET  指定类型数据库实例（:type 路径参数；备份任务用）
     case databasesPgSearch        // POST 分页查询数据库(PostgreSQL)
     case databasesFormatOptions   // POST 字符集/排序规则选项
     case databasesCreate          // POST 创建数据库
@@ -218,6 +221,8 @@ enum APIEndpoint {
     case appsInstalledConf        // POST 默认配置文件 {type,name}
     case appsInstalledCheck       // POST 已安装应用检查(状态/端口)
     case appsInstalledConnInfo    // POST 已安装应用连接信息
+    case appsDetailApp            // GET  应用商店详情参数原始形态（:id/:version 路径参数；曾散在调用点）
+    case appsInstalledListOptions // GET  已安装应用简表（备份任务选项用；曾散在调用点）
 
     // MARK: - PostgreSQL 专用端点
     case databasesPgCreate        // POST 创建PG数据库
@@ -254,6 +259,7 @@ enum APIEndpoint {
     // MARK: - 进程
     case processStop             // POST 结束指定进程
     case processListening        // POST 端口监听进程列表（防火墙规则行显示进程名）
+    case processWebSocket        // WebSocket 进程实时监控（WS 路径与 HTTP 同源注册）
     case processDetail           // GET  进程详情（:pid 路径参数，含内存明细/连接/环境变量）
 
     // MARK: - Fail2ban
@@ -386,6 +392,7 @@ enum APIEndpoint {
     case filesMove               // POST 移动/剪切 {oldPaths,newPath,type,...}
     case filesBatchRole          // POST 权限修改 {paths,mode,user,group,sub}
     case filesWget               // POST 远程下载 {url,path,name,ignoreCertificate,useProxy} → {key}
+    case filesWgetProcess        // WebSocket wget 下载进度（WS；路径曾散在 FilesOperations）
     case filesWgetProcessKeys    // GET  进行中下载 key 列表
 
     // MARK: - 容器资源（网络/存储卷/编排/模板，logs/推荐实现-容器.md 抓包 2026-09-14）
@@ -689,6 +696,7 @@ enum APIEndpoint {
         case .containersRepoDelete:     return "/api/v2/containers/repo/del"
         case .containersRepoSync:       return "/api/v2/containers/repo/status"
         case .websitesSearch:        return "/api/v2/websites/search"
+        case .websitesOptions:       return "/api/v2/websites/options"
         case .websitesCreate:        return "/api/v2/websites"
         case .websitesCheck:         return "/api/v2/websites/check"
         case .websitesSSLSearch:     return "/api/v2/websites/ssl/list"
@@ -789,6 +797,8 @@ enum APIEndpoint {
         case .firewallFilterRuleBatch:   return "/api/v2/hosts/firewall/filter/rule/batch"
         case .monitorNetOptions:     return "/api/v2/hosts/monitor/netoptions"
         case .databasesSearch:       return "/api/v2/databases/search"
+        case .databasesDbList:       return "/api/v2/databases/db/list/:types"
+        case .databasesDbItem:       return "/api/v2/databases/db/item/:type"
         case .databasesPgSearch:     return "/api/v2/databases/pg/search"
         case .databasesFormatOptions: return "/api/v2/databases/format/options"
         case .databasesCreate:       return "/api/v2/databases"
@@ -833,6 +843,7 @@ enum APIEndpoint {
         case .databasesGrantsDelete: return "/api/v2/databases/grants/del"
         case .processStop:           return "/api/v2/process/stop"
         case .processListening:      return "/api/v2/process/listening"
+        case .processWebSocket:     return "/api/v2/process/ws"
         case .processDetail:         return "/api/v2/process/:pid"
         case .fail2banBase:          return "/api/v2/toolbox/fail2ban/base"
         case .fail2banUpdate:        return "/api/v2/toolbox/fail2ban/update"
@@ -940,6 +951,7 @@ enum APIEndpoint {
         case .filesMove:             return "/api/v2/files/move"
         case .filesBatchRole:        return "/api/v2/files/batch/role"
         case .filesWget:             return "/api/v2/files/wget"
+        case .filesWgetProcess:     return "/api/v2/files/wget/process"
         case .filesWgetProcessKeys:  return "/api/v2/files/wget/process/keys"
         case .containersNetworkSearch:  return "/api/v2/containers/network/search"
         case .containersNetworkCreate:  return "/api/v2/containers/network"
@@ -1002,6 +1014,8 @@ enum APIEndpoint {
         case .coreGroupsUpdate:      return "/api/v2/core/groups/update"
         case .coreGroupsDelete:      return "/api/v2/core/groups/del"
         case .appsInstalledSearch:   return "/api/v2/apps/installed/search"
+        case .appsDetailApp:         return "/api/v2/apps/detail/:id/:version/app"
+        case .appsInstalledListOptions: return "/api/v2/apps/installed/list"
         case .appsInstalledOperate:  return "/api/v2/apps/installed/op"
         case .appsUpdateVersions:    return "/api/v2/apps/installed/update/versions"
         case .appsInstall:           return "/api/v2/apps/install"
