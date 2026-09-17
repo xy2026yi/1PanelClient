@@ -122,9 +122,6 @@
     "*.log" : {
 
     },
-    "/opt/1panel/ai/models" : {
-
-    },
     "/var/log/auth.log" : {
 
     },
@@ -872,9 +869,6 @@
         }
       }
     },
-    "2" : {
-
-    },
     "3 GiB+" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1043,13 +1037,7 @@
     "1000" : {
 
     },
-    "8000" : {
-
-    },
     "10000" : {
-
-    },
-    "18789" : {
 
     },
     "ACME 服务 URL" : {
@@ -1095,9 +1083,6 @@
           }
         }
       }
-    },
-    "API Key" : {
-
     },
     "API Key 已失效，长按重新录入" : {
       "extractionState" : "manual",
@@ -1154,9 +1139,6 @@
         }
       }
     },
-    "App ID" : {
-
-    },
     "App ID / App Secret" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1167,9 +1149,6 @@
           }
         }
       }
-    },
-    "App Secret" : {
-
     },
     "Bark 的推送 Webhook 地址，形如 https://api.day.app/xxxxxx" : {
       "extractionState" : "manual",
@@ -1276,9 +1255,6 @@
         }
       }
     },
-    "Client ID" : {
-
-    },
     "Client ID（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1289,9 +1265,6 @@
           }
         }
       }
-    },
-    "Client Secret" : {
-
     },
     "CloudDNS 凭证" : {
       "extractionState" : "manual",
@@ -1997,15 +1970,6 @@
     "https://" : {
 
     },
-    "https://..." : {
-
-    },
-    "https://hf-mirror.com" : {
-
-    },
-    "https://www.modelscope.cn" : {
-
-    },
     "HTTPS防窜站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2293,9 +2257,6 @@
         }
       }
     },
-    "KEY" : {
-
-    },
     "KEY=VALUE" : {
 
     },
@@ -2460,9 +2421,6 @@
           }
         }
       }
-    },
-    "pool.ntp.org" : {
-
     },
     "QPS / 访客趋势 / 访客地图 / 请求日志" : {
       "extractionState" : "manual",
@@ -2895,9 +2853,6 @@
       }
     },
     "v%@" : {
-
-    },
-    "VALUE" : {
 
     },
     "vLLM" : {
@@ -7276,6 +7231,17 @@
         }
       }
     },
+    "初始化后将创建 1Panel 基础链并接管规则管理；完成前不可创建规则。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initializing creates the 1Panel basic chains and takes over rule management; rules cannot be created until it completes."
+          }
+        }
+      }
+    },
     "初始化失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7305,6 +7271,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Initialization completed"
+          }
+        }
+      }
+    },
+    "初始化容器端口防护后将接管已发布端口的访问控制；完成前不可配置策略。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initializing container port guard takes over access control of published ports; policies cannot be configured until it completes."
           }
         }
       }
@@ -10396,6 +10373,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enable Forwarding"
+          }
+        }
+      }
+    },
+    "启用端口转发子系统后将创建转发规则链；完成前不可创建转发。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enabling the forwarding subsystem creates its rule chains; forwards cannot be created until it completes."
           }
         }
       }
@@ -34222,39 +34210,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Connection"
-          }
-        }
-      }
-    },
-    "初始化后将创建 1Panel 基础链并接管规则管理；完成前不可创建规则。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Initializing creates the 1Panel basic chains and takes over rule management; rules cannot be created until it completes."
-          }
-        }
-      }
-    },
-    "启用端口转发子系统后将创建转发规则链；完成前不可创建转发。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enabling the forwarding subsystem creates its rule chains; forwards cannot be created until it completes."
-          }
-        }
-      }
-    },
-    "初始化容器端口防护后将接管已发布端口的访问控制；完成前不可配置策略。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Initializing container port guard takes over access control of published ports; policies cannot be configured until it completes."
           }
         }
       }

@@ -448,18 +448,28 @@ final class DatabaseSystemViewModel: ObservableObject {
         self.client = APIClient.shared(for: server)
     }
 
+    /// 容器是否运行中：check 未就绪（加载中/查询失败）时按运行处理，
+    /// 避免进页闪空态；确认停止后据此跳过容器内请求并收敛页面
+    var isContainerRunning: Bool {
+        check?.isRunning ?? true
+    }
+
     func refresh() async {
         // 与 FirewallViewModel 一致：进页 .task 与下拉并发时只跑一轮
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
+        // check 走应用安装层、不依赖容器运行，先行判定状态；容器已停止时
+        // 连接信息/远程开关/库表/用户这些容器内接口必然 500
+        //（daemon: container not running），跳过待启动成功后由 operate 补拉
+        await loadCheck()
+        guard check?.isRunning == true else { return }
         // 全并行、各一次：此前 async let 与直接 await 混用，每个请求都实际发出两遍
-        async let check: () = loadCheck()
         async let connInfo: () = loadConnInfo()
         async let remote: () = loadRemote()
         async let dbs: () = supportsDatabaseList ? loadDatabases() : ()
         async let users: () = supportsUserManagement ? loadUsers() : ()
-        _ = await (check, connInfo, remote, dbs, users)
+        _ = await (connInfo, remote, dbs, users)
     }
 
     func loadCheck() async {
@@ -542,7 +552,9 @@ final class DatabaseSystemViewModel: ObservableObject {
         let req = AppOpRequest(installId: installId, operate: op)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.appsInstalledOperate.path, body: req, as: EmptyResponse.self)
-            await loadCheck()
+            // 启动/重启后补拉容器内数据（refresh 内部会先重查运行状态）；
+            // 停止后 refresh 只重查状态、不再请求容器内接口
+            await refresh()
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -734,17 +746,22 @@ struct DatabaseSystemView: View {
     var body: some View {
         List {
             statusSection
-            if vm.supportsDatabaseList {
-                databaseListSection
-            }
-            if vm.supportsUserManagement {
-                userListSection
+            // 容器已停止：库表/用户等容器内数据不可用（也不再请求），
+            // 仅保留状态卡与启动入口，避免空态误导
+            if vm.isContainerRunning {
+                if vm.supportsDatabaseList {
+                    databaseListSection
+                }
+                if vm.supportsUserManagement {
+                    userListSection
+                }
             }
         }
         .searchIconMode(text: $searchText, isSearching: $isSearching, title: vm.system.displayName, prompt: L10n.t("搜索数据库 / 用户"))
-        // 右上角加号（菜单）：与其他列表页 toolbar 创建范式一致，按系统能力显示可用项
+        // 右上角加号（菜单）：与其他列表页 toolbar 创建范式一致，按系统能力显示可用项；
+        // 容器停止时创建库/用户不可用，随列表一并隐藏
         .toolbar {
-            if !isSearching {
+            if !isSearching && vm.isContainerRunning {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         if vm.supportsDatabaseList {
