@@ -221,3 +221,40 @@ struct FileWgetProgressTests {
         #expect((obj?["keys"] as? [String]) == ["k1", "k2"])
     }
 }
+
+// MARK: - 告警启停与面板会话模型（抓包 2026-09-17 / 上游 DTO）
+
+@Suite("告警启停与面板终端会话")
+struct AlertStatusAndPanelSessionTests {
+
+    @Test("告警启停请求编码（/alert/status 与 /alert/config/status 同形）")
+    func alertStatusEncode() throws {
+        let req = AlertStatusRequest(id: 1, status: "Disable")
+        let data = try JSONEncoder().encode(req)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["id"] as? Int == 1)
+        #expect(obj?["status"] as? String == "Disable")
+    }
+
+    @Test("面板会话解码（ssh 在线 + local 已断开，前端接口形状）")
+    func panelSessionDecode() throws {
+        let json = """
+        [{"id":"s-1","kind":"ssh","title":"root@web-1","hostId":2,
+          "attached":true,"createdAt":"2026-09-17T09:00:00Z","detachedAt":""},
+         {"id":"s-2","kind":"local","title":"local","hostId":0,
+          "attached":false,"createdAt":"2026-09-17T08:00:00Z","detachedAt":"2026-09-17T08:30:00Z"}]
+        """
+        let sessions = try JSONDecoder().decode([PanelTerminalSession].self, from: Data(json.utf8))
+        #expect(sessions.count == 2)
+        #expect(sessions[0].id == "s-1")
+        #expect(sessions[0].attached == true)
+        #expect(sessions[1].kind == "local")
+        #expect(sessions[1].attached == false)
+    }
+
+    @Test("关闭面板会话请求编码")
+    func closeRequestEncode() throws {
+        let data = try JSONEncoder().encode(PanelTerminalSessionCloseRequest(id: "s-1"))
+        #expect(String(decoding: data, as: UTF8.self) == #"{"id":"s-1"}"#)
+    }
+}

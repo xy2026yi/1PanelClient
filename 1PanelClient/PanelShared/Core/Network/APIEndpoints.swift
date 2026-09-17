@@ -328,6 +328,11 @@ enum APIEndpoint {
     case alertConfigTest        // POST 测试发送方式（邮箱）
     case alertConfigUpdate      // POST 创建/更新发送方式与全局配置
     case alertConfigDelete      // POST 删除发送方式 {id}
+    case alertStatus            // POST 告警规则启停 {id,status}（抓包 2026-09-17）
+    case alertConfigStatus      // POST 发送方式启停 {id,status}（v2.3.0 轻端点，替代全量回传）
+    case terminalSessionsSearch // POST 面板保留终端会话列表（v2.3.0 会话保留）
+    case terminalSessionClose   // POST 关闭面板保留会话 {id}
+    case terminalSessionCloseAll // POST 关闭全部面板保留会话
 
     // MARK: - 文件
     case filesSearch             // POST 文件浏览 {path, expand, page, pageSize, showHidden}
@@ -919,6 +924,11 @@ enum APIEndpoint {
         case .alertConfigTest:       return "/api/v2/alert/config/test"
         case .alertConfigUpdate:     return "/api/v2/alert/config/update"
         case .alertConfigDelete:     return "/api/v2/alert/config/del"
+        case .alertStatus:           return "/api/v2/alert/status"
+        case .alertConfigStatus:     return "/api/v2/alert/config/status"
+        case .terminalSessionsSearch: return "/api/v2/hosts/terminal/sessions/search"
+        case .terminalSessionClose:  return "/api/v2/hosts/terminal/sessions/close"
+        case .terminalSessionCloseAll: return "/api/v2/hosts/terminal/sessions/closeAll"
         case .filesUpload:           return "/api/v2/files/upload"
         case .filesChunkUpload:      return "/api/v2/files/chunkupload"
         case .filesDownload:         return "/api/v2/files/download"

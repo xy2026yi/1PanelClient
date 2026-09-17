@@ -425,3 +425,29 @@ final class TerminalSession: ObservableObject {
         }
     }
 }
+
+
+// MARK: - 面板保留终端会话（v2.3.0 会话保留；POST /hosts/terminal/sessions/*）
+
+/// 面板上保活/保留的终端会话（Web 终端创建，断线可恢复；kind = local/ssh/container）
+struct PanelTerminalSession: Decodable, Identifiable, Hashable {
+    let sessionID: String?
+    let kind: String?
+    let title: String?
+    let hostId: Int?
+    let attached: Bool?
+    let createdAt: String?
+    let detachedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case sessionID = "id"
+        case kind, title, hostId, attached, createdAt, detachedAt
+    }
+
+    var id: String { sessionID ?? UUID().uuidString }
+}
+
+/// POST /hosts/terminal/sessions/close {id}
+struct PanelTerminalSessionCloseRequest: Encodable {
+    let id: String
+}

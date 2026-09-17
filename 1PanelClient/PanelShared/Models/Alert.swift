@@ -9,6 +9,13 @@
 import Foundation
 import SwiftUI
 
+// MARK: - 启停请求（/alert/status 与 /alert/config/status 同形：{id, status}）
+
+struct AlertStatusRequest: Encodable {
+    let id: Int
+    let status: String   // Enable / Disable
+}
+
 // MARK: - 告警规则
 
 /// 告警规则（/api/v2/alert/search 返回项）

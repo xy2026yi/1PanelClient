@@ -1,6 +1,127 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "停止告警任务会导致该任务不再发送告警消息。是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopping this alert task will stop it from sending alert messages. Continue?"
+          }
+        }
+      }
+    },
+    "全部关闭" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close All"
+          }
+        }
+      }
+    },
+    "共 %ld 个" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld sessions"
+          }
+        }
+      }
+    },
+    "创建于 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Created %@"
+          }
+        }
+      }
+    },
+    "启用告警任务会让该任务发送告警消息。是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enabling this alert task will make it send alert messages. Continue?"
+          }
+        }
+      }
+    },
+    "将关闭全部面板保留的终端会话（含网页端正在使用的会话），是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This closes all panel-kept terminal sessions, including ones in use by the web terminal. Continue?"
+          }
+        }
+      }
+    },
+    "已全部关闭" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All closed"
+          }
+        }
+      }
+    },
+    "暂无面板会话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Panel Sessions"
+          }
+        }
+      }
+    },
+    "状态修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Status"
+          }
+        }
+      }
+    },
+    "网页终端创建并保留的会话会显示在这里，可远程关闭。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessions created and kept by the web terminal appear here and can be closed remotely."
+          }
+        }
+      }
+    },
+    "面板会话" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Sessions"
+          }
+        }
+      }
+    },
     "下载中" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -26,6 +26,7 @@ struct TerminalHostsView: View {
     // SSH 服务管理相关的三个入口（自 SSH 服务管理页移入）
     @State private var showCerts = false
     @State private var showSessions = false
+    @State private var showPanelSessions = false
     @State private var showServiceManage = false
 
     init(server: ServerConfig, localTitle: String?) {
@@ -63,6 +64,7 @@ struct TerminalHostsView: View {
                 EllipsisMenuPopup(entries: [
                     .action(title: L10n.t("密钥"), icon: "key") { showCerts = true },
                     .action(title: L10n.t("会话"), icon: "person.2") { showSessions = true },
+                    .action(title: L10n.t("面板会话"), icon: "rectangle.on.rectangle") { showPanelSessions = true },
                     .action(title: L10n.t("服务管理"), icon: "gearshape.2") { showServiceManage = true },
                     .action(title: L10n.t("快速命令"), icon: "apple.terminal.on.rectangle") { showQuickCommands = true },
                     .action(title: L10n.t("设置"), icon: "gear") { showSettings = true },
@@ -102,6 +104,9 @@ struct TerminalHostsView: View {
         }
         .navigationDestination(isPresented: $showCerts) {
             SSHCertsView(server: server)
+        }
+        .navigationDestination(isPresented: $showPanelSessions) {
+            PanelTerminalSessionsView(server: server)
         }
         .navigationDestination(isPresented: $showSessions) {
             SSHSessionsView(server: server)
@@ -677,6 +682,161 @@ final class SSHHostsViewModel: ObservableObject {
         toastTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             await MainActor.run { self?.toastMessage = nil }
+        }
+    }
+}
+
+
+// MARK: - 面板保留终端会话（v2.3.0 会话保留：Web 终端创建、断线可恢复的会话）
+
+struct PanelTerminalSessionsView: View {
+    let server: ServerConfig
+
+    @State private var sessions: [PanelTerminalSession] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var toastMessage: String?
+    @State private var pendingCloseAll = false
+
+    private let client: APIClient
+
+    init(server: ServerConfig) {
+        self.server = server
+        self.client = APIClient.shared(for: server)
+    }
+
+    var body: some View {
+        List {
+            if isLoading && sessions.isEmpty {
+                Section { HStack { Spacer(); LoadingStateView(); Spacer() }.padding(.vertical, 24) }
+                    .listRowBackground(Color.clear)
+            } else if let err = errorMessage, sessions.isEmpty {
+                Section {
+                    LoadErrorStateView(message: err) { Task { await load() } }
+                        .listRowBackground(Color.clear)
+                }
+            } else if sessions.isEmpty {
+                Section {
+                    ContentUnavailableView(
+                        L10n.t("暂无面板会话"),
+                        systemImage: "rectangle.on.rectangle",
+                        description: Text(L10n.t("网页终端创建并保留的会话会显示在这里，可远程关闭。"))
+                    )
+                    .padding(.vertical, 24)
+                    .listRowBackground(Color.clear)
+                }
+            } else {
+                Section {
+                    ForEach(sessions) { session in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 8) {
+                                Image(systemName: kindIcon(session.kind))
+                                    .foregroundStyle(.tint)
+                                Text(session.title ?? session.sessionID ?? "—")
+                                    .font(.subheadline.bold())
+                                    .lineLimit(1)
+                                Spacer()
+                                if session.attached == true {
+                                    StatusBadge(text: L10n.t("在线"), color: .statusRunning)
+                                } else {
+                                    StatusBadge(text: L10n.t("已断开"), color: .statusStopped)
+                                }
+                            }
+                            if let created = session.createdAt, !created.isEmpty {
+                                Text(L10n.f("创建于 %@", String(created.prefix(19)).replacingOccurrences(of: "T", with: " ")))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                Haptic.warning()
+                                Task { await close(session) }
+                            } label: {
+                                Label(L10n.t("关闭"), systemImage: "xmark.circle")
+                            }
+                        }
+                    }
+                } header: {
+                    Text(L10n.f("共 %ld 个", sessions.count))
+                }
+            }
+        }
+        .navigationTitle(L10n.t("面板会话"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if !sessions.isEmpty {
+                    Button(L10n.t("全部关闭")) { pendingCloseAll = true }
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .refreshable { await load() }
+        .toastOverlay(message: $toastMessage)
+        .alert(L10n.t("全部关闭"), isPresented: $pendingCloseAll) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("关闭"), role: .destructive) {
+                Task { await closeAll() }
+            }
+        } message: {
+            Text(L10n.t("将关闭全部面板保留的终端会话（含网页端正在使用的会话），是否继续？"))
+        }
+        .task { await load() }
+    }
+
+    private func kindIcon(_ kind: String?) -> String {
+        switch kind {
+        case "ssh": return "personalhotspot"
+        case "container": return "shippingbox"
+        default: return "terminal"
+        }
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            sessions = try await client.send(
+                path: APIEndpoint.terminalSessionsSearch.path,
+                body: EmptyRequest(),
+                as: [PanelTerminalSession].self
+            )
+            errorMessage = nil
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func close(_ session: PanelTerminalSession) async {
+        guard let id = session.sessionID else { return }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.terminalSessionClose.path,
+                body: PanelTerminalSessionCloseRequest(id: id),
+                as: EmptyResponse.self
+            )
+            await load()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            toastMessage = error.localizedDescription
+        }
+    }
+
+    private func closeAll() async {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.terminalSessionCloseAll.path,
+                body: EmptyRequest(),
+                as: EmptyResponse.self
+            )
+            toastMessage = L10n.t("已全部关闭")
+            await load()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            toastMessage = error.localizedDescription
         }
     }
 }

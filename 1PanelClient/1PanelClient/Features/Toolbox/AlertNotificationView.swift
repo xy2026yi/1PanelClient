@@ -89,6 +89,24 @@ struct AlertNotificationView: View {
         } message: {
             Text(L10n.f("确定删除告警「%@」吗？", vm.pendingDeleteRule?.title ?? ""))
         }
+        // 规则启停确认（文案对齐 Web 端「状态修改」弹窗，抓包 2026-09-17）
+        .alert(L10n.t("状态修改"), isPresented: Binding(
+            get: { vm.pendingRuleToggle != nil },
+            set: { if !$0 { vm.pendingRuleToggle = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { vm.pendingRuleToggle = nil }
+            Button(L10n.t("确认")) {
+                guard let rule = vm.pendingRuleToggle else { return }
+                vm.pendingRuleToggle = nil
+                Task { await vm.toggleRule(rule) }
+            }
+        } message: {
+            if let rule = vm.pendingRuleToggle {
+                Text(rule.isEnabled
+                     ? L10n.t("停止告警任务会导致该任务不再发送告警消息。是否继续？")
+                     : L10n.t("启用告警任务会让该任务发送告警消息。是否继续？"))
+            }
+        }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -197,6 +215,14 @@ struct AlertNotificationView: View {
                         } label: {
                             Label(L10n.t("删除"), systemImage: "trash")
                         }
+                        Button {
+                            Haptic.selection()
+                            vm.pendingRuleToggle = rule
+                        } label: {
+                            Label(rule.isEnabled ? L10n.t("停用") : L10n.t("启用"),
+                                  systemImage: rule.isEnabled ? "pause.circle" : "play.circle")
+                        }
+                        .tint(rule.isEnabled ? .orange : .green)
                     }
                 }
             }
@@ -525,6 +551,8 @@ final class AlertViewModel: ObservableObject {
 
     /// 列表删除确认
     @Published var pendingDeleteRule: AlertRule?
+    /// 待确认的规则启停（抓包 2026-09-17：/alert/status，确认文案对齐 Web 端「状态修改」）
+    @Published var pendingRuleToggle: AlertRule?
     @Published var pendingDeleteConfig: AlertConfigItem?
 
     /// 创建告警时的证书 / 网站 / 磁盘下拉选项
@@ -749,18 +777,39 @@ final class AlertViewModel: ObservableObject {
         }
     }
 
-    /// 启用/停用发送方式：原 config 原样回传，仅翻转 status（对齐官方请求）
+    /// 启用/停用发送方式：v2.3.0 轻端点 {id, status}（替代原全量回传）
     func toggleConfig(_ item: AlertConfigItem) async {
-        let req = AlertConfigUpdateRequest(
-            id: item.id,
-            type: item.type ?? "",
-            title: item.title ?? "",
-            status: item.isEnabled ? "Disable" : "Enable",
-            config: item.config ?? "",
-            displayName: item.sendConfig.displayName ?? item.title ?? ""
-        )
-        let name = req.displayName ?? L10n.t("发送方式")
-        await saveConfig(req, successMessage: item.isEnabled ? L10n.f("已停用「%@」", name) : L10n.f("已启用「%@」", name))
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.alertConfigStatus.path,
+                body: AlertStatusRequest(id: item.id, status: item.isEnabled ? "Disable" : "Enable"),
+                as: EmptyResponse.self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
+            return
+        }
+        let name = item.sendConfig.displayName ?? item.title ?? L10n.t("发送方式")
+        showToast(item.isEnabled ? L10n.f("已停用「%@」", name) : L10n.f("已启用「%@」", name))
+        await loadConfigs()
+    }
+
+    /// 启用/停用告警规则（/alert/status；调用方先经确认弹窗）
+    func toggleRule(_ rule: AlertRule) async {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.alertStatus.path,
+                body: AlertStatusRequest(id: rule.id, status: rule.isEnabled ? "Disable" : "Enable"),
+                as: EmptyResponse.self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
+            return
+        }
+        showToast(rule.isEnabled ? L10n.f("已停用「%@」", rule.title ?? "") : L10n.f("已启用「%@」", rule.title ?? ""))
+        await loadRules()
     }
 
     func deleteConfig(_ item: AlertConfigItem) async {
