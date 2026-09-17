@@ -120,11 +120,9 @@ struct ClamRuleFormView: View {
 
     private var basicSection: some View {
         Section {
-            TextField(L10n.t("名称"), text: $name)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("名称"), text: $name)
                 .disabled(isEditing)
-            TextField(L10n.t("可选描述"), text: $desc, axis: .vertical)
+            FormTextField(label: L10n.t("可选描述"), text: $desc, axis: .vertical, machineValue: false)
                 .lineLimit(1...3)
         } header: {
             SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
@@ -140,9 +138,7 @@ struct ClamRuleFormView: View {
     private var scanSection: some View {
         Section {
             HStack {
-                TextField(L10n.t("扫描目录"), text: $path)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("扫描目录"), text: $path, style: .stacked)
                 Button {
                     showDirPicker = true
                 } label: {
@@ -162,9 +158,7 @@ struct ClamRuleFormView: View {
 
             if needsQuarantine {
                 HStack {
-                    TextField(L10n.t("隔离目录"), text: $quarantineDir)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("隔离目录"), text: $quarantineDir, style: .stacked)
                     Button {
                         showQuarantinePicker = true
                     } label: {
@@ -293,8 +287,7 @@ struct ClamRuleFormView: View {
     private var timeoutSection: some View {
         Section {
             HStack {
-                TextField(L10n.t("超时时间"), text: $timeoutText)
-                    .keyboardType(.numberPad)
+                FormTextField(label: L10n.t("超时时间"), text: $timeoutText, keyboardType: .numberPad)
                 Picker("", selection: $timeoutUnit) {
                     Text(L10n.t("小时")).tag("h")
                     Text(L10n.t("分钟")).tag("m")

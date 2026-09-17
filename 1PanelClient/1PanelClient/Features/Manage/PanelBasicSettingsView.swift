@@ -219,9 +219,7 @@ struct PanelBasicSettingsView: View {
     private var panelSection: some View {
         Group {
             Section {
-                TextField(L10n.t("面板别名"), text: $nameInput)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
+                FormTextField(label: L10n.t("面板别名"), text: $nameInput)
                     .focused($focusedField, equals: .name)
                     .onSubmit { commit(.name) }
 
@@ -257,10 +255,8 @@ struct PanelBasicSettingsView: View {
 
     private var accessSection: some View {
         Section {
-            TextField(L10n.t("IP 或域名"), text: $ipInput)
+            FormTextField(label: L10n.t("IP 或域名"), text: $ipInput)
                 .keyboardType(.asciiCapable)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
                 .focused($focusedField, equals: .ip)
                 .onSubmit { commit(.ip) }
         } header: {
@@ -445,11 +441,9 @@ struct PanelBasicSettingsView: View {
                 }
                 Spacer()
             }
-            TextField("pool.ntp.org", text: $ntpInput)
+            FormTextField(label: "pool.ntp.org", text: $ntpInput)
                 .font(.dataMonospacedBody)
                 .keyboardType(.asciiCapable)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
                 .focused($focusedField, equals: .ntp)
                 .onSubmit { commit(.ntp) }
         } header: {
@@ -711,21 +705,16 @@ struct PanelProxyEditView: View {
 
             if !proxyType.isEmpty {
                 Section {
-                    TextField(L10n.t("代理地址"), text: $proxyUrl)
+                    FormTextField(label: L10n.t("代理地址"), text: $proxyUrl, style: .stacked)
                         .keyboardType(.asciiCapable)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                    TextField(L10n.t("代理端口"), text: $proxyPort)
-                        .keyboardType(.numberPad)
+                    FormTextField(label: L10n.t("代理端口"), text: $proxyPort, keyboardType: .numberPad)
                 } header: {
                     Text(L10n.t("连接信息"))
                 }
 
                 Section {
-                    TextField(L10n.t("用户名"), text: $proxyUser)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                    SecureField(L10n.t("密码"), text: $proxyPasswd)
+                    FormTextField(label: L10n.t("用户名"), text: $proxyUser)
+                    FormTextField(label: L10n.t("密码"), text: $proxyPasswd, isSecure: true)
                     Toggle(L10n.t("记住密码"), isOn: $passwdKeep)
                 } header: {
                     Text(L10n.t("认证（可选）"))

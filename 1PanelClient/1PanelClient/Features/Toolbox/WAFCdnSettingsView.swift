@@ -62,9 +62,7 @@ struct WAFCdnSettingsView: View {
 
                 // 从HTTP Header中获取：可填写的 Header 名（其余方式回传当前值）
                 if type == "header" {
-                    TextField(L10n.t("HTTP Header"), text: $header)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("HTTP Header"), text: $header)
                 }
             } footer: {
                 // 对齐面板 Web 端：开关不限制编辑，保存时原样携带当前开关状态

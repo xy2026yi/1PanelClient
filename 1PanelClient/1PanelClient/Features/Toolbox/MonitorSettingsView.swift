@@ -317,7 +317,7 @@ private struct SwapDetailRow: View {
                 Text(L10n.t("大小"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                TextField("2", text: $sizeGBText)
+                FormTextField(label: "2", text: $sizeGBText)
                     .keyboardType(.decimalPad)
                     .frame(width: 80)
                     .multilineTextAlignment(.trailing)

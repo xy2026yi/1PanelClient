@@ -582,9 +582,7 @@ struct FTPAccountFormView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("用户名"), text: $user)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("用户名"), text: $user)
                     .disabled(isEditing)
                 PasswordInputRow(password: $password, showPassword: $showPassword)
             } header: {
@@ -597,9 +595,7 @@ struct FTPAccountFormView: View {
 
             Section {
                 HStack {
-                    TextField(L10n.t("根目录"), text: $path)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("根目录"), text: $path, style: .stacked)
                     Button {
                         showDirPicker = true
                     } label: {
@@ -616,7 +612,7 @@ struct FTPAccountFormView: View {
             }
 
             Section {
-                TextField(L10n.t("可选描述"), text: $desc, axis: .vertical)
+                FormTextField(label: L10n.t("可选描述"), text: $desc, axis: .vertical, machineValue: false)
                     .lineLimit(1...3)
             } header: {
                 SectionLabel(title: L10n.t("描述"), systemImage: "text.alignleft")

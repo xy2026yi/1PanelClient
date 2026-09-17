@@ -519,9 +519,7 @@ private struct NodeRenameSheet: View {
         NavigationStack {
             Form {
                 Section(L10n.t("节点信息")) {
-                    TextField(L10n.t("名称"), text: $name)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("名称"), text: $name)
                     if groups.isEmpty {
                         HStack {
                             Text(L10n.t("分组"))
@@ -536,7 +534,7 @@ private struct NodeRenameSheet: View {
                             }
                         }
                     }
-                    TextField(L10n.t("备注"), text: $descriptionText)
+                    FormTextField(label: L10n.t("备注"), text: $descriptionText, machineValue: false)
                 }
             }
             .navigationTitle(L10n.t("改名称"))

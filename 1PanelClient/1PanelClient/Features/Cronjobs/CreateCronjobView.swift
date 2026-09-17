@@ -171,7 +171,7 @@ struct CreateCronjobView: View {
     var body: some View {
         Form {
             Section(L10n.t("基本信息")) {
-                TextField(L10n.t("任务名称"), text: $name)
+                FormTextField(label: L10n.t("任务名称"), text: $name)
 
                 Picker(L10n.t("任务类型"), selection: $type) {
                     ForEach(CronjobType.allCases) { t in

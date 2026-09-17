@@ -641,12 +641,8 @@ struct SupervisorInitForm: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("主配置文件位置"), text: $configPath)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField(L10n.t("服务名称"), text: $serviceName)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("主配置文件位置"), text: $configPath)
+                FormTextField(label: L10n.t("服务名称"), text: $serviceName)
             } header: {
                 SectionLabel(title: L10n.t("初始化"), systemImage: "wand.and.stars")
             } footer: {

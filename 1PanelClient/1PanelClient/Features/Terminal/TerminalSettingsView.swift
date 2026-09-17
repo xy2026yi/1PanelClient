@@ -205,15 +205,9 @@ struct TerminalSSHConnEditView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("主机地址"), text: $addr)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField(L10n.t("端口"), text: $portText)
-                        .keyboardType(.numberPad)
-                    TextField(L10n.t("用户名"), text: $user)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("主机地址"), text: $addr, style: .stacked, keyboardType: .URL)
+                    FormTextField(label: L10n.t("端口"), text: $portText, keyboardType: .numberPad)
+                    FormTextField(label: L10n.t("用户名"), text: $user)
                 } header: {
                     Text(L10n.t("基本信息"))
                 }
@@ -241,9 +235,9 @@ struct TerminalSSHConnEditView: View {
                                         .allowsHitTesting(false)
                                 }
                             }
-                        SecureField(L10n.t("私钥密码（可选）"), text: $passPhrase)
+                        FormTextField(label: L10n.t("私钥密码（可选）"), text: $passPhrase, isSecure: true)
                     } else {
-                        SecureField(L10n.t("密码"), text: $password)
+                        FormTextField(label: L10n.t("密码"), text: $password, isSecure: true)
                     }
                 } header: {
                     Text(L10n.t("认证"))

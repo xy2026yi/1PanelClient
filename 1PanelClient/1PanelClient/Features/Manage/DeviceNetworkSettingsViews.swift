@@ -65,11 +65,9 @@ struct DeviceDNSSettingsView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("每行一个 DNS 地址"), text: $dnsInput, axis: .vertical)
+                FormTextField(label: L10n.t("每行一个 DNS 地址"), text: $dnsInput, axis: .vertical)
                     .lineLimit(6...12)
                     .font(.dataMonospacedBody)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
                     .keyboardType(.asciiCapable)
                     .focused($focused)
                     .onSubmit { Task { await commit() } }
@@ -267,16 +265,12 @@ struct DeviceHostsSettingsView: View {
 
                     if addingHost {
                         VStack(spacing: 8) {
-                            TextField(L10n.t("IP 地址"), text: $newHostIP)
+                            FormTextField(label: L10n.t("IP 地址"), text: $newHostIP, style: .stacked)
                                 .font(.dataMonospacedBody)
                                 .keyboardType(.asciiCapable)
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
-                            TextField(L10n.t("域名（可多个，空格分隔）"), text: $newHostName)
+                            FormTextField(label: L10n.t("域名（可多个，空格分隔）"), text: $newHostName)
                                 .font(.dataMonospacedBody)
                                 .keyboardType(.asciiCapable)
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
                             HStack {
                                 Button(L10n.t("取消")) {
                                     addingHost = false
@@ -433,9 +427,7 @@ struct DevicePasswordView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("用户"), text: $user)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("用户"), text: $user)
             } header: {
                 SectionLabel(title: L10n.t("用户"), systemImage: "person.crop.circle")
             }
@@ -443,11 +435,9 @@ struct DevicePasswordView: View {
             Section {
                 HStack {
                     if showPasswd {
-                        TextField(L10n.t("新密码"), text: $passwd)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
+                        FormTextField(label: L10n.t("新密码"), text: $passwd)
                     } else {
-                        SecureField(L10n.t("新密码"), text: $passwd)
+                        FormTextField(label: L10n.t("新密码"), text: $passwd, isSecure: true)
                     }
                     Button {
                         showPasswd.toggle()
@@ -460,11 +450,9 @@ struct DevicePasswordView: View {
                 }
                 HStack {
                     if showConfirm {
-                        TextField(L10n.t("确认密码"), text: $confirm)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
+                        FormTextField(label: L10n.t("确认密码"), text: $confirm)
                     } else {
-                        SecureField(L10n.t("确认密码"), text: $confirm)
+                        FormTextField(label: L10n.t("确认密码"), text: $confirm, isSecure: true)
                     }
                     Button {
                         showConfirm.toggle()
@@ -568,9 +556,7 @@ struct DeviceTimezoneView: View {
     var body: some View {
         List {
             Section {
-                TextField(L10n.t("搜索时区"), text: $searchText)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("搜索时区"), text: $searchText)
             }
 
             if isLoading {

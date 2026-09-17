@@ -392,9 +392,7 @@ struct SSHCertCreateView: View {
     var body: some View {
         Form {
             Section(L10n.t("基本信息")) {
-                TextField(L10n.t("名称"), text: $name)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("名称"), text: $name)
 
                 Picker(L10n.t("创建方式"), selection: $mode) {
                     ForEach(SSHCertCreateMode.allCases) { m in
@@ -412,7 +410,7 @@ struct SSHCertCreateView: View {
 
             Section {
                 PasswordInputRow(password: $passPhrase, showPassword: $showPassPhrase)
-                TextField(L10n.t("描述（可选）"), text: $description)
+                FormTextField(label: L10n.t("描述（可选）"), text: $description, machineValue: false)
             } header: {
                 Text(L10n.t("密码与描述"))
             } footer: {
@@ -774,9 +772,7 @@ struct SSHCertEditView: View {
     var body: some View {
         Form {
             Section(L10n.t("基本信息")) {
-                TextField(L10n.t("名称"), text: $name)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("名称"), text: $name)
 
                 Picker(L10n.t("加密方式"), selection: $encryption) {
                     ForEach(SSHCertEncryption.allCases) { e in
@@ -787,7 +783,7 @@ struct SSHCertEditView: View {
 
             Section {
                 PasswordInputRow(password: $passPhrase, showPassword: $showPassPhrase)
-                TextField(L10n.t("描述（可选）"), text: $description)
+                FormTextField(label: L10n.t("描述（可选）"), text: $description, machineValue: false)
             } header: {
                 Text(L10n.t("密码与描述"))
             } footer: {

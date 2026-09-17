@@ -115,30 +115,20 @@ struct AlertSendMethodEditView: View {
 
     private var emailSection: some View {
         Section {
-            TextField(L10n.t("显示名称"), text: $displayName)
-            TextField(L10n.t("发信地址"), text: $sender)
+            FormTextField(label: L10n.t("显示名称"), text: $displayName)
+            FormTextField(label: L10n.t("发信地址"), text: $sender, style: .stacked)
                 .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            TextField(L10n.t("用户名（可选）"), text: $userName)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            SecureField(L10n.t("密码（可选）"), text: $password)
-            TextField(L10n.t("SMTP 服务器"), text: $host)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            TextField(L10n.t("端口号"), text: $portText)
-                .keyboardType(.numberPad)
+            FormTextField(label: L10n.t("用户名（可选）"), text: $userName)
+            FormTextField(label: L10n.t("密码（可选）"), text: $password, isSecure: true)
+            FormTextField(label: L10n.t("SMTP 服务器"), text: $host, keyboardType: .URL)
+            FormTextField(label: L10n.t("端口号"), text: $portText, keyboardType: .numberPad)
             Picker(L10n.t("加密方式"), selection: $encryption) {
                 Text(L10n.t("无")).tag("")
                 Text("SSL").tag("SSL")
                 Text("TLS").tag("TLS")
             }
-            TextField(L10n.t("收件人"), text: $recipient)
+            FormTextField(label: L10n.t("收件人"), text: $recipient)
                 .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
         } header: {
             SectionLabel(title: L10n.t("邮箱通知"), systemImage: "envelope")
         } footer: {
@@ -174,13 +164,8 @@ struct AlertSendMethodEditView: View {
 
     private var barkSection: some View {
         Section {
-            TextField(L10n.t("机器人名称"), text: $displayName)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            TextField(L10n.t("Webhook 地址"), text: $barkURL)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("机器人名称"), text: $displayName)
+            FormTextField(label: L10n.t("Webhook 地址"), text: $barkURL, style: .stacked, keyboardType: .URL)
         } header: {
             SectionLabel(title: "Bark", systemImage: "bell")
         } footer: {

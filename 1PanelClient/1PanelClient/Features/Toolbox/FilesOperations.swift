@@ -374,9 +374,7 @@ struct FileCompressSheet: View {
                     Picker(L10n.t("压缩格式"), selection: $type) {
                         ForEach(fileCompressFormats, id: \.self) { Text($0).tag($0) }
                     }
-                    TextField(L10n.t("压缩名称"), text: $name)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("压缩名称"), text: $name)
                     FilePathBrowseRow(title: L10n.t("压缩路径"), path: $dst, client: client)
                     Toggle(L10n.t("覆盖已存在的文件"), isOn: $replace)
                 } header: {
@@ -799,14 +797,9 @@ struct FileWgetSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("下载地址"), text: $urlText, axis: .vertical)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("下载地址"), text: $urlText, axis: .vertical, keyboardType: .URL)
                         .lineLimit(1...3)
-                    TextField(L10n.t("文件名"), text: $name)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("文件名"), text: $name)
                         .focused($nameFocused)
                     FilePathBrowseRow(title: L10n.t("保存路径"), path: $path, client: client)
                 } header: {

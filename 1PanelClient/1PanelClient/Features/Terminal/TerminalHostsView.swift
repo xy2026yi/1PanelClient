@@ -360,17 +360,11 @@ struct SSHHostEditView: View {
 
     private var basicSection: some View {
         Section {
-            TextField(L10n.t("主机地址"), text: $addr)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            TextField(L10n.t("端口"), text: $portText)
-                .keyboardType(.numberPad)
-            TextField(L10n.t("用户名"), text: $user)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            TextField(L10n.t("标题（可选）"), text: $name)
-            TextField(L10n.t("描述（可选）"), text: $desc)
+            FormTextField(label: L10n.t("主机地址"), text: $addr, style: .stacked, keyboardType: .URL)
+            FormTextField(label: L10n.t("端口"), text: $portText, keyboardType: .numberPad)
+            FormTextField(label: L10n.t("用户名"), text: $user)
+            FormTextField(label: L10n.t("标题（可选）"), text: $name)
+            FormTextField(label: L10n.t("描述（可选）"), text: $desc, machineValue: false)
         } header: {
             Text(L10n.t("基本信息"))
         }
@@ -402,7 +396,7 @@ struct SSHHostEditView: View {
                                 .allowsHitTesting(false)
                         }
                     }
-                SecureField(L10n.t("私钥密码（可选）"), text: $passPhrase)
+                FormTextField(label: L10n.t("私钥密码（可选）"), text: $passPhrase, isSecure: true)
             } else {
                 SecureField(isEditing ? L10n.t("密码（不修改请留空）") : L10n.t("密码"), text: $password)
             }

@@ -1125,7 +1125,7 @@ private struct FilesDialogsModifier: ViewModifier {
                 .presentationDragIndicator(.visible)
             }
             .alert(L10n.t("前往路径"), isPresented: $showPathInput) {
-                TextField(L10n.t("路径"), text: $pathInput)
+                FormTextField(label: L10n.t("路径"), text: $pathInput, style: .stacked)
                 Button(L10n.t("取消"), role: .cancel) { }
                 Button(L10n.t("前往")) {
                     let target = pathInput.trimmingCharacters(in: .whitespaces)
@@ -1403,8 +1403,6 @@ struct FileRenameSheet: View {
                 }
                 Section(L10n.t("新名称")) {
                     TextField(L10n.t("输入新名称"), text: $newName)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
                 }
             }
             .navigationTitle(L10n.t("重命名"))

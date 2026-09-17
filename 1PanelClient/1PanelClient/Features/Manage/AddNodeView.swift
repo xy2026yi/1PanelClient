@@ -174,26 +174,21 @@ struct AddNodeView: View {
 
     private var connectionSection: some View {
         Section(L10n.t("连接信息")) {
-            TextField(L10n.t("主机地址"), text: $addr)
+            FormTextField(label: L10n.t("主机地址"), text: $addr, style: .stacked)
                 .keyboardType(.asciiCapable)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
                 .onChange(of: addr) { _, newValue in
                     if !nameManuallyEdited { name = newValue }
                 }
             TextField(L10n.t("端口"), value: $port, format: .number.grouping(.never))
                 .keyboardType(.numberPad)
-            TextField(L10n.t("用户名"), text: $user)
+            FormTextField(label: L10n.t("用户名"), text: $user)
                 .keyboardType(.asciiCapable)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
             Picker(L10n.t("认证方式"), selection: $authMode) {
                 Text(L10n.t("密码认证")).tag("password")
                 Text(L10n.t("私钥认证")).tag("key")
             }
             if authMode == "password" {
-                SecureField(L10n.t("密码"), text: $password)
-                    .textInputAutocapitalization(.never)
+                FormTextField(label: L10n.t("密码"), text: $password, isSecure: true)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L10n.t("私钥"))
@@ -221,9 +216,7 @@ struct AddNodeView: View {
             ))
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
-            TextField(L10n.t("安装目录"), text: $baseDir)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("安装目录"), text: $baseDir, style: .stacked)
             TextField(L10n.t("节点端口"), value: $nodePort, format: .number.grouping(.never))
                 .keyboardType(.numberPad)
             Picker(L10n.t("版本"), selection: $isPro) {
@@ -256,7 +249,7 @@ struct AddNodeView: View {
                     }
                 }
             }
-            TextField(L10n.t("描述"), text: $descriptionText)
+            FormTextField(label: L10n.t("描述"), text: $descriptionText, machineValue: false)
         }
     }
 

@@ -187,7 +187,7 @@ struct WAFCreateIPGroupView: View {
     var body: some View {
         Form {
             Section(L10n.t("名称")) {
-                TextField(L10n.t("组名称"), text: $name)
+                FormTextField(label: L10n.t("组名称"), text: $name)
             }
             Section(L10n.t("导入方式")) {
                 Picker(L10n.t("方式"), selection: $source) {
@@ -203,10 +203,7 @@ struct WAFCreateIPGroupView: View {
                 }
             } else {
                 Section("URL") {
-                    TextField("https://...", text: $remoteURL)
-                        .keyboardType(.URL)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: "https://...", text: $remoteURL, keyboardType: .URL)
                 }
             }
         }

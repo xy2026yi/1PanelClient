@@ -297,9 +297,7 @@ struct TerminalCommandPicker: View {
                 }
 
                 Section(L10n.t("自定义")) {
-                    TextField(L10n.t("命令路径"), text: $command)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("命令路径"), text: $command, style: .stacked)
                         .font(.dataMonospacedBody)
                 }
 

@@ -38,15 +38,11 @@ struct SupervisorProcessFormView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("名称"), text: $name)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("名称"), text: $name)
                     .disabled(isEditing)
-                TextField(L10n.t("启动命令"), text: $command, axis: .vertical)
+                FormTextField(label: L10n.t("启动命令"), text: $command, axis: .vertical)
                     .font(.dataMonospacedBody)
                     .lineLimit(1...3)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
             } header: {
                 SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
             } footer: {
@@ -57,9 +53,7 @@ struct SupervisorProcessFormView: View {
 
             Section {
                 HStack {
-                    TextField(L10n.t("运行目录"), text: $dir)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("运行目录"), text: $dir, style: .stacked)
                     Button {
                         showDirPicker = true
                     } label: {
@@ -69,9 +63,7 @@ struct SupervisorProcessFormView: View {
                     .buttonStyle(.borderless)
                     .accessibilityLabel(L10n.t("浏览目录"))
                 }
-                TextField(L10n.t("启动用户"), text: $user)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("启动用户"), text: $user)
                 Stepper(value: $numprocs, in: 1...64) {
                     HStack {
                         Text(L10n.t("进程数量"))
@@ -96,8 +88,6 @@ struct SupervisorProcessFormView: View {
                 TextField(L10n.t("环境变量（KEY=value，多个用逗号分隔）"), text: $environment, axis: .vertical)
                     .font(.dataMonospacedFootnote)
                     .lineLimit(1...3)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
             } header: {
                 SectionLabel(title: L10n.t("环境变量"), systemImage: "curlybraces")
             }
