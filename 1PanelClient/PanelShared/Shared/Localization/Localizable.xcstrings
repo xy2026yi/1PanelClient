@@ -34246,6 +34246,17 @@
           }
         }
       }
+    },
+    "IP 范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Range"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
