@@ -309,6 +309,107 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
+    // MARK: 规则同步 / 重置 / Docker 策略（抓包 2026-09-17）
+
+    /// 同步预览：ready>0 才值得执行（existing=已一致，blocked=受阻）
+    func syncPreview(subsystem: String) async -> FirewallRuleSyncPreview? {
+        do {
+            let target = subsystem == "forwarding"
+                ? (forwardStatus?.backend ?? systemStatus?.backend ?? "iptables")
+                : (systemStatus?.backend ?? "iptables")
+            return try await client.send(
+                path: APIEndpoint.firewallRulesSyncPreview.path,
+                body: FirewallRuleSyncRequest(subsystem: subsystem, targetProvider: target,
+                                              resetSource: false, taskID: nil),
+                as: FirewallRuleSyncPreview.self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return nil }
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    /// 执行同步（任务式结果 → 进度页）
+    func executeSync(subsystem: String) async {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let target = subsystem == "forwarding"
+                ? (forwardStatus?.backend ?? systemStatus?.backend ?? "iptables")
+                : (systemStatus?.backend ?? "iptables")
+            let resp: FirewallRuleSyncResult = try await client.send(
+                path: APIEndpoint.firewallRulesSync.path,
+                body: FirewallRuleSyncRequest(subsystem: subsystem, targetProvider: target,
+                                              resetSource: false, taskID: nil),
+                as: FirewallRuleSyncResult.self
+            )
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("同步防火墙规则"))
+            }
+            if subsystem == "forwarding" {
+                await loadForwards(replacing: true)
+            } else {
+                await loadRules(replacing: true)
+            }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 重置运行时规则（R1：调用方需先经输入后端名确认）
+    func resetRules() async {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let resp: FirewallRuleResetResponse = try await client.send(
+                path: APIEndpoint.firewallRulesReset.path,
+                body: FirewallRuleResetRequest(provider: systemStatus?.backend,
+                                               withDockerRestart: false),
+                as: FirewallRuleResetResponse.self
+            )
+            toastMessage = L10n.f("已重置：移除 %ld 条规则", resp.removed ?? 0)
+            await loadSystemStatus()
+            await loadRules(replacing: true)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Docker 端口守护重置（settings/operate cleanup；R1：调用方需先经输入后端名确认）
+    func resetDockerGuard() async {
+        isOperating = true
+        defer { isOperating = false }
+        await operateBackend(subsystem: "docker",
+                             backend: dockerGuard?.base?.backend ?? systemStatus?.backend ?? "iptables",
+                             operation: "cleanup")
+        await loadDockerGuard()
+    }
+
+    /// 设置 Docker 端点防护策略（任务式）
+    func upsertDockerPolicy(_ policy: DockerGuardPolicy) async -> Bool {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let resp: FirewallTaskResponse = try await client.send(
+                path: APIEndpoint.firewallDockerPolicyBatch.path,
+                body: DockerGuardPolicyBatchRequest(policies: [policy]),
+                as: FirewallTaskResponse.self
+            )
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("设置端口防护"))
+            }
+            await loadDockerGuard()
+            return true
+        } catch {
+            guard !APIError.isCancellation(error) else { return false }
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     // MARK: 生命周期 / 基础链
 
     /// start / stop / restart / disableBanPing / enableBanPing
@@ -596,6 +697,12 @@ struct FirewallView: View {
     @State private var pendingDeleteForwardForce = false
     // WAF 入口（与防火墙同属主机安全防护，管理列表不单列）
     @State private var showWAF = false
+    // 同步 / 重置 / Docker 策略（抓包 2026-09-17 补齐）
+    @State private var showSyncPreview = false
+    @State private var syncSubsystem = "system"
+    @State private var showRulesReset = false
+    @State private var showDockerReset = false
+    @State private var editingPolicy: DockerGuardEndpoint?
 
     init(server: ServerConfig) {
         self.server = server
@@ -636,9 +743,24 @@ struct FirewallView: View {
                             Button { showAddRule = true } label: {
                                 Label(L10n.t("创建规则"), systemImage: "plus")
                             }
+                            Button {
+                                syncSubsystem = "system"
+                                showSyncPreview = true
+                            } label: {
+                                Label(L10n.t("同步规则"), systemImage: "arrow.triangle.2.circlepath")
+                            }
+                            Button(role: .destructive) { showRulesReset = true } label: {
+                                Label(L10n.t("重置规则"), systemImage: "trash")
+                            }
                         } else if segment == 1 {
                             Button { showAddForward = true } label: {
                                 Label(L10n.t("创建转发"), systemImage: "plus")
+                            }
+                            Button {
+                                syncSubsystem = "forwarding"
+                                showSyncPreview = true
+                            } label: {
+                                Label(L10n.t("同步转发规则"), systemImage: "arrow.triangle.2.circlepath")
                             }
                         }
                         Button { showWAF = true } label: {
@@ -749,6 +871,42 @@ struct FirewallView: View {
         // WAF 与防火墙同属主机安全防护，入口收进本页右上角（管理列表不单列）
         .navigationDestination(isPresented: $showWAF) {
             WAFView(server: server)
+        }
+        // 同步预览（规则段 / 转发段共用）
+        .sheet(isPresented: $showSyncPreview) {
+            FirewallSyncPreviewView(vm: vm, subsystem: syncSubsystem)
+                .bottomSheetDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        // Docker 端点防护策略表单
+        .sheet(item: $editingPolicy) { endpoint in
+            DockerPolicyFormView(vm: vm, endpoint: endpoint)
+                .bottomSheetDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        // 规则重置（R1：输入后端名确认，对齐 Web 端「请手动输入 iptables」）
+        .sheet(isPresented: $showRulesReset) {
+            TextInputConfirmSheet(
+                title: L10n.t("重置防火墙规则"),
+                message: L10n.f("将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略；重置后需重新初始化或同步。请输入后端名「%@」以确认。", vm.systemStatus?.backend ?? "", vm.systemStatus?.backend ?? ""),
+                expectedText: vm.systemStatus?.backend ?? "",
+                fieldLabel: L10n.t("确认输入"),
+                fieldPlaceholder: vm.systemStatus?.backend
+            ) {
+                Task { await vm.resetRules() }
+            }
+        }
+        // Docker 守护重置（R1：同款输入后端名确认；settings/operate cleanup）
+        .sheet(isPresented: $showDockerReset) {
+            TextInputConfirmSheet(
+                title: L10n.t("重置 Docker 端口防护"),
+                message: L10n.f("将删除 %@ 中的 1Panel Docker 端口防护运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。", vm.dockerGuard?.base?.backend ?? "", vm.dockerGuard?.base?.backend ?? ""),
+                expectedText: vm.dockerGuard?.base?.backend ?? "",
+                fieldLabel: L10n.t("确认输入"),
+                fieldPlaceholder: vm.dockerGuard?.base?.backend
+            ) {
+                Task { await vm.resetDockerGuard() }
+            }
         }
         // 任务式操作进度页（初始化/启用转发/白名单/Docker 操作）
         .navigationDestination(item: $vm.activeTask) { target in
@@ -1132,6 +1290,10 @@ struct FirewallView: View {
                                              color: .blue, busy: vm.isOperating) {
                                 Task { await vm.dockerSync() }
                             }
+                            CardActionButton(title: L10n.t("重置"), icon: "trash",
+                                             color: .statusError, busy: vm.isOperating) {
+                                showDockerReset = true
+                            }
                         }
                     }
                     if let msg = base.message, !msg.isEmpty {
@@ -1147,6 +1309,13 @@ struct FirewallView: View {
                         onDeletePolicy: { endpoint in
                             Haptic.warning()
                             Task { await vm.deleteDockerPolicy(endpoint) }
+                        },
+                        onEditPolicy: { endpoint in
+                            if endpoint.managementTarget == "host_firewall" {
+                                vm.toastMessage = L10n.t("该端点由主机防火墙规则管理，请在规则段调整")
+                            } else {
+                                editingPolicy = endpoint
+                            }
                         },
                         isOperating: vm.isOperating
                     )
@@ -1442,6 +1611,7 @@ struct FirewallForwardRowView: View {
 private struct DockerGuardContainerSection: View {
     let container: DockerGuardContainer
     let onDeletePolicy: (DockerGuardEndpoint) -> Void
+    var onEditPolicy: (DockerGuardEndpoint) -> Void = { _ in }
     let isOperating: Bool
     @State private var expanded = true
 
@@ -1485,6 +1655,8 @@ private struct DockerGuardContainerSection: View {
                                 onDeletePolicy(endpoint)
                             }
                         }
+                        .contentShape(Rectangle())
+                        .onTapGesture { onEditPolicy(endpoint) }
                     }
                 }
             }

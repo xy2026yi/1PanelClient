@@ -333,3 +333,70 @@ struct FirewallV2CaptureRegressionTests {
         #expect(item?.observed?.locator?.position == 1)
     }
 }
+
+// MARK: - 同步/重置/策略编码回归（抓包 2026-09-17）
+
+@Suite("防火墙同步与守护策略回归")
+struct FirewallSyncAndPolicyTests {
+
+    @Test("同步预览真实样本（system/iptables：ready 1 + existing 4）")
+    func syncPreviewCaptured() throws {
+        let json = """
+        {"subsystem":"system","targetProvider":"iptables",
+         "total":5,"ready":1,"existing":4,"removed":0,"blocked":0,
+         "items":[
+          {"sourceUUID":"86a2cdb8","rule":{"uuid":"86a2cdb8",
+             "scope":{"provider":"iptables","family":"ipv4","table":"filter","chain":"1PANEL_BASIC","direction":"input"},
+             "nativeKind":"rule","protocol":"tcp","destinationPort":"8443","action":"accept"},
+           "status":"ready","reason":"target rule differs from database policy"},
+          {"sourceUUID":"601917b0","rule":{"uuid":"601917b0","protocol":"tcp","destinationPort":"80","action":"accept"},
+           "status":"existing","reason":"rule already matches database policy"}]}
+        """
+        let p = try JSONDecoder().decode(FirewallRuleSyncPreview.self, from: Data(json.utf8))
+        #expect(p.ready == 1 && p.existing == 4)
+        #expect(p.items?.count == 2)
+        #expect(p.items?[0].status == "ready")
+        #expect(p.items?[0].displayToken == "8443")
+    }
+
+    @Test("转发同步预览（forwardRule 侧条目）")
+    func forwardSyncPreview() throws {
+        let json = """
+        {"subsystem":"forwarding","targetProvider":"iptables",
+         "total":3,"ready":1,"existing":2,"removed":0,"blocked":0,
+         "items":[
+          {"sourceUUID":"ipv4\\u0000tcp\\u00008080","forwardRule":{"port":"8080","protocol":"tcp",
+             "targetIP":"127.0.0.1","targetPort":"53"},"status":"ready","reasonCode":"missing_in_target"}]}
+        """
+        let p = try JSONDecoder().decode(FirewallRuleSyncPreview.self, from: Data(json.utf8))
+        #expect(p.subsystem == "forwarding")
+        #expect(p.items?.first?.forwardRule?.port == "8080")
+        #expect(p.items?.first?.displayToken == "8080")
+    }
+
+    @Test("Docker 策略编码（deny_sources + 来源列表，抓包提交形态）")
+    func dockerPolicyEncode() throws {
+        let policy = DockerGuardPolicy(
+            family: "ipv4", hostIP: "0.0.0.0", hostPort: 3306,
+            protocolField: "tcp", mode: "deny_sources",
+            sources: ["172.29.0.1", "172.29.0.2"], descriptionText: ""
+        )
+        let data = try JSONEncoder().encode(DockerGuardPolicyBatchRequest(policies: [policy]))
+        // JSONEncoder 键序不稳定（字典哈希序），按结构断言而非子串匹配
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let item = (root?["policies"] as? [[String: Any]])?.first
+        #expect(item?["family"] as? String == "ipv4")
+        #expect(item?["hostPort"] as? Int == 3306)
+        #expect(item?["protocol"] as? String == "tcp")
+        #expect(item?["mode"] as? String == "deny_sources")
+        #expect((item?["sources"] as? [String]) == ["172.29.0.1", "172.29.0.2"])
+        #expect(item?["description"] as? String == "")
+    }
+
+    @Test("重置响应（{removed, disabled}）")
+    func resetResponse() throws {
+        let resp = try JSONDecoder().decode(FirewallRuleResetResponse.self,
+                                            from: Data(#"{"removed":5,"disabled":true}"#.utf8))
+        #expect(resp.removed == 5 && resp.disabled == true)
+    }
+}

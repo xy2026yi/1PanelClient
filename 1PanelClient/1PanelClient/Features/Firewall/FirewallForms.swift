@@ -384,3 +384,213 @@ struct FirewallWhitelistView: View {
         }
     }
 }
+
+// MARK: - 规则同步预览（preview 计数 + ready 清单 → 确认执行；抓包 2026-09-17）
+
+struct FirewallSyncPreviewView: View {
+    @ObservedObject var vm: FirewallViewModel
+    /// system / forwarding
+    let subsystem: String
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var preview: FirewallRuleSyncPreview?
+    @State private var isExecuting = false
+    @State private var loadError: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if let p = preview {
+                    Section {
+                        statRow(L10n.t("可同步"), p.ready ?? 0, color: .statusRunning)
+                        statRow(L10n.t("已一致"), p.existing ?? 0, color: .secondary)
+                        statRow(L10n.t("将移除"), p.removed ?? 0, color: .statusError)
+                        statRow(L10n.t("受阻"), p.blocked ?? 0, color: .semanticWarning)
+                    } header: {
+                        SectionLabel(title: L10n.t("同步预览"), systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    let readyItems = (p.items ?? []).filter { $0.status == "ready" }
+                    if !readyItems.isEmpty {
+                        Section {
+                            ForEach(Array(readyItems.enumerated()), id: \.offset) { _, item in
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(item.displayToken)
+                                        .font(.dataMonospacedBody.bold())
+                                    if let reason = item.reason, !reason.isEmpty {
+                                        Text(reason)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        } header: {
+                            Text(L10n.t("待同步条目"))
+                        }
+                    }
+                } else if let err = loadError {
+                    Section {
+                        LoadErrorStateView(message: err) {
+                            Task { await load() }
+                        }
+                        .listRowBackground(Color.clear)
+                    }
+                } else {
+                    Section { LoadingStateView() }
+                        .listRowBackground(Color.clear)
+                }
+            }
+            .navigationTitle(L10n.t("同步规则"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("同步")) {
+                        Task {
+                            isExecuting = true
+                            await vm.executeSync(subsystem: subsystem)
+                            isExecuting = false
+                            dismiss()
+                        }
+                    }
+                    .disabled((preview?.ready ?? 0) == 0 || isExecuting)
+                }
+            }
+            .interactiveDismissDisabled(isExecuting)
+            .task { await load() }
+        }
+    }
+
+    private func statRow(_ title: String, _ value: Int, color: Color) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            StatusBadge(text: String(value), color: color, monospaced: true)
+        }
+    }
+
+    private func load() async {
+        loadError = nil
+        if let p = await vm.syncPreview(subsystem: subsystem) {
+            preview = p
+        } else {
+            loadError = vm.errorMessage ?? L10n.t("未知错误")
+        }
+    }
+}
+
+// MARK: - Docker 端口防护策略表单（三模式 + 来源；抓包 2026-09-17）
+
+struct DockerPolicyFormView: View {
+    @ObservedObject var vm: FirewallViewModel
+    let endpoint: DockerGuardEndpoint
+
+    @Environment(\.dismiss) private var dismiss
+    /// deny_sources / allow_sources / deny_all
+    @State private var mode = "deny_all"
+    @State private var sources: [String] = []
+    @State private var descriptionText = ""
+    @State private var isSubmitting = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        Text(L10n.t("端点"))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text("\(endpoint.hostIP ?? ""):\(endpoint.hostPort.map(String.init) ?? "")/\(endpoint.protocolField?.uppercased() ?? "")")
+                            .font(.dataMonospaced)
+                    }
+                    Text(endpoint.containerName ?? "—")
+                        .font(.subheadline)
+                } header: {
+                    SectionLabel(title: L10n.t("防护目标"), systemImage: "shippingbox")
+                }
+
+                Section {
+                    Picker(L10n.t("防护模式"), selection: $mode) {
+                        Text(L10n.t("禁止指定来源")).tag("deny_sources")
+                        Text(L10n.t("仅允许指定来源")).tag("allow_sources")
+                        Text(L10n.t("禁止所有访问")).tag("deny_all")
+                    }
+                    if mode != "deny_all" {
+                        ForEach(sources.indices, id: \.self) { idx in
+                            TextField(L10n.t("来源（IP 或 CIDR）"), text: $sources[idx])
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .font(.dataMonospaced)
+                        }
+                        .onDelete { sources.remove(atOffsets: $0) }
+                        Button {
+                            sources.append("")
+                        } label: {
+                            Label(L10n.t("添加"), systemImage: "plus.circle")
+                        }
+                    }
+                    TextField(L10n.t("备注"), text: $descriptionText)
+                } header: {
+                    SectionLabel(title: L10n.t("防护策略"), systemImage: "shield.lefthalf.filled")
+                } footer: {
+                    Text(L10n.t("禁止指定来源：拦截列出的来源；仅允许指定来源：只放行列出的来源；禁止所有访问：拦截全部访问。"))
+                }
+            }
+            .navigationTitle(L10n.t("设置端口防护"))
+            .navigationBarTitleDisplayMode(.inline)
+            .formWidthLimit()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task { await submit() }
+                    } label: {
+                        if isSubmitting {
+                            ProgressView()
+                        } else {
+                            Text(L10n.t("保存"))
+                        }
+                    }
+                    .disabled(!canSubmit || isSubmitting)
+                }
+            }
+            .interactiveDismissDisabled(isSubmitting)
+            .onAppear { fill() }
+        }
+    }
+
+    private var canSubmit: Bool {
+        mode == "deny_all" || sources.contains { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
+    private func fill() {
+        if let m = endpoint.mode, !m.isEmpty {
+            mode = m
+        }
+        sources = (endpoint.sources ?? []).map { $0 }
+        descriptionText = endpoint.descriptionText ?? ""
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        let policy = DockerGuardPolicy(
+            family: endpoint.family ?? "ipv4",
+            hostIP: endpoint.hostIP ?? "0.0.0.0",
+            hostPort: endpoint.hostPort ?? 0,
+            protocolField: endpoint.protocolField ?? "tcp",
+            mode: mode,
+            sources: mode == "deny_all"
+                ? []
+                : sources.map { $0.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty },
+            descriptionText: descriptionText
+        )
+        if await vm.upsertDockerPolicy(policy) {
+            dismiss()
+        }
+    }
+}

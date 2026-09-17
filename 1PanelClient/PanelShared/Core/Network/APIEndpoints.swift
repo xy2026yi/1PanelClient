@@ -188,6 +188,9 @@ enum APIEndpoint {
     case firewallRulesCreate      // POST 批量创建规则（items[{rule}]，任务式）
     case firewallRulesUpdate      // POST 更新规则（uuid + rule/description 互斥）
     case firewallRulesDelete      // POST 批量删除规则 {uuids}
+    case firewallRulesSyncPreview // POST 同步预览 {subsystem,targetProvider,resetSource}
+    case firewallRulesSync         // POST 执行同步（任务式）
+    case firewallRulesReset        // POST 重置运行时规则（需输入后端名确认）
     case firewallForwardBase      // POST 转发子系统状态（无请求体）
     case firewallForwardSearch    // POST 转发规则分页（PageEnvelope 信封）
     case firewallForwardOperate   // POST 转发批量 add/remove（删除带 forceDelete）
@@ -793,6 +796,9 @@ enum APIEndpoint {
         case .firewallRulesCreate:   return "/api/v2/hosts/firewall/rules"
         case .firewallRulesUpdate:   return "/api/v2/hosts/firewall/rules/update"
         case .firewallRulesDelete:   return "/api/v2/hosts/firewall/rules/delete"
+        case .firewallRulesSyncPreview: return "/api/v2/hosts/firewall/rules/sync/preview"
+        case .firewallRulesSync:     return "/api/v2/hosts/firewall/rules/sync"
+        case .firewallRulesReset:    return "/api/v2/hosts/firewall/rules/reset"
         case .firewallForwardBase:   return "/api/v2/hosts/firewall/forward/base"
         case .firewallForwardSearch: return "/api/v2/hosts/firewall/forward/search"
         case .firewallForwardOperate: return "/api/v2/hosts/firewall/forward/operate"

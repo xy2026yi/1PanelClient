@@ -256,6 +256,72 @@ nonisolated struct FirewallRuleDeleteRequest: Encodable, Sendable {
     var uuids: [String]
 }
 
+// MARK: - 规则同步（rules/sync/preview → rules/sync；抓包 2026-09-17）
+
+nonisolated struct FirewallRuleSyncRequest: Encodable, Sendable {
+    /// system / forwarding / docker
+    var subsystem: String
+    var targetProvider: String
+    var resetSource: Bool
+    var taskID: String?
+}
+
+nonisolated struct FirewallRuleSyncItem: Decodable, Sendable {
+    let sourceUUID: String?
+    let rule: FirewallRule?
+    let forwardRule: FirewallForwardRule?
+    let dockerRule: DockerGuardEndpoint?
+    /// ready（可同步）/ existing（已一致）/ remove（将被移除）/ blocked（受阻）
+    let status: String?
+    let reasonCode: String?
+    let reason: String?
+
+    /// 条目展示名（按子系统取对应规则的主标识）
+    var displayToken: String {
+        if let p = rule?.destinationPort, !p.isEmpty { return p }
+        if let a = rule?.sourceAddress, !a.isEmpty { return a }
+        if let fp = forwardRule?.port, !fp.isEmpty { return fp }
+        if let hp = dockerRule?.hostPort { return String(hp) }
+        return sourceUUID?.prefix(8).description ?? "—"
+    }
+}
+
+nonisolated struct FirewallRuleSyncPreview: Decodable, Sendable {
+    let subsystem: String?
+    let sourceProvider: String?
+    let targetProvider: String?
+    let total: Int?
+    let ready: Int?
+    let existing: Int?
+    let removed: Int?
+    let blocked: Int?
+    let items: [FirewallRuleSyncItem]?
+}
+
+nonisolated struct FirewallRuleSyncResult: Decodable, Sendable {
+    let subsystem: String?
+    let targetProvider: String?
+    let total: Int?
+    let succeeded: Int?
+    let skipped: Int?
+    let removed: Int?
+    let failed: Int?
+    let taskID: String?
+    let queued: Bool?
+}
+
+// MARK: - 规则重置（rules/reset；抓包 2026-09-17：{removed, disabled}，需输入后端名确认）
+
+nonisolated struct FirewallRuleResetRequest: Encodable, Sendable {
+    var provider: String?
+    var withDockerRestart: Bool
+}
+
+nonisolated struct FirewallRuleResetResponse: Decodable, Sendable {
+    let removed: Int?
+    let disabled: Bool?
+}
+
 nonisolated struct FirewallRuleDeleteFailure: Decodable, Sendable {
     let index: Int?
     let uuid: String?

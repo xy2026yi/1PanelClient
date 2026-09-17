@@ -1,6 +1,270 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "仅允许指定来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Specified Sources Only"
+          }
+        }
+      }
+    },
+    "受阻" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked"
+          }
+        }
+      }
+    },
+    "可同步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready to Sync"
+          }
+        }
+      }
+    },
+    "同步转发规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Forwarding Rules"
+          }
+        }
+      }
+    },
+    "同步防火墙规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncing Firewall Rules"
+          }
+        }
+      }
+    },
+    "同步预览" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Preview"
+          }
+        }
+      }
+    },
+    "将删除 %@ 中的 1Panel Docker 端口防护运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes 1Panel Docker port guard runtime rules in %@: all related rules and chains are removed, database data is kept. Type the backend name \"%@\" to confirm."
+          }
+        }
+      }
+    },
+    "将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略；重置后需重新初始化或同步。请输入后端名「%@」以确认。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes all 1Panel runtime rules and chains in %@, keeping only database policies; re-initialize or sync afterwards. Type the backend name \"%@\" to confirm."
+          }
+        }
+      }
+    },
+    "将移除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To Remove"
+          }
+        }
+      }
+    },
+    "已一致" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Sync"
+          }
+        }
+      }
+    },
+    "已重置：移除 %ld 条规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset done: %ld rules removed"
+          }
+        }
+      }
+    },
+    "待同步条目" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pending Items"
+          }
+        }
+      }
+    },
+    "来源（IP 或 CIDR）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source (IP or CIDR)"
+          }
+        }
+      }
+    },
+    "禁止所有访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deny All Access"
+          }
+        }
+      }
+    },
+    "禁止指定来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deny Specified Sources"
+          }
+        }
+      }
+    },
+    "禁止指定来源：拦截列出的来源；仅允许指定来源：只放行列出的来源；禁止所有访问：拦截全部访问。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deny Specified Sources blocks the listed sources; Allow Specified Sources Only permits only the listed ones; Deny All Access blocks everything."
+          }
+        }
+      }
+    },
+    "端点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endpoint"
+          }
+        }
+      }
+    },
+    "设置端口防护" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Port Protection"
+          }
+        }
+      }
+    },
+    "该端点由主机防火墙规则管理，请在规则段调整" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This endpoint is managed by host firewall rules; adjust it in the Rules tab"
+          }
+        }
+      }
+    },
+    "重置 Docker 端口防护" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Docker Port Guard"
+          }
+        }
+      }
+    },
+    "重置规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Rules"
+          }
+        }
+      }
+    },
+    "重置防火墙规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Firewall Rules"
+          }
+        }
+      }
+    },
+    "防护目标" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protection Target"
+          }
+        }
+      }
+    },
+    "防护策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protection Policy"
+          }
+        }
+      }
+    },
     "优先级（留空不变）" : {
       "extractionState" : "manual",
       "localizations" : {
