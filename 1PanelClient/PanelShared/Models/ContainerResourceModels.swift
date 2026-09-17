@@ -57,6 +57,23 @@ nonisolated struct ContainerNetwork: Decodable, Identifiable, Hashable {
     let gateway: String?
     let createdAt: String?
     let attachable: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, labels, driver, ipamDriver, subnet, gateway, createdAt, attachable
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(String.self, forKey: .id, "")
+        name = c.decodeDefault(String.self, forKey: .name, "")
+        labels = try c.decodeIfPresent([String].self, forKey: .labels)
+        driver = try c.decodeIfPresent(String.self, forKey: .driver)
+        ipamDriver = try c.decodeIfPresent(String.self, forKey: .ipamDriver)
+        subnet = try c.decodeIfPresent(String.self, forKey: .subnet)
+        gateway = try c.decodeIfPresent(String.self, forKey: .gateway)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        attachable = try c.decodeIfPresent(Bool.self, forKey: .attachable)
+    }
 }
 
 /// POST /containers/network（创建；抓包 2026-09-14 全字段）
@@ -90,6 +107,20 @@ nonisolated struct ContainerVolume: Decodable, Identifiable, Hashable {
     let mountpoint: String?
     let createdAt: String?
     let options: [ContainerKVPair]?
+
+    enum CodingKeys: String, CodingKey {
+        case name, labels, driver, mountpoint, createdAt, options
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = c.decodeDefault(String.self, forKey: .name, "")
+        labels = try c.decodeIfPresent([String].self, forKey: .labels)
+        driver = try c.decodeIfPresent(String.self, forKey: .driver)
+        mountpoint = try c.decodeIfPresent(String.self, forKey: .mountpoint)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        options = try c.decodeIfPresent([ContainerKVPair].self, forKey: .options)
+    }
 
     var id: String { name }
 }
@@ -126,6 +157,27 @@ nonisolated struct ContainerCompose: Decodable, Identifiable, Hashable {
     let containers: [ContainerComposeItem]?
     let env: String?
 
+    enum CodingKeys: String, CodingKey {
+        case name, createdAt, createdBy, containerCount, runningCount, configFile
+        case workdir, composeFileExists, isPinned, path, containers, env
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = c.decodeDefault(String.self, forKey: .name, "")
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        createdBy = try c.decodeIfPresent(String.self, forKey: .createdBy)
+        containerCount = try c.decodeIfPresent(Int.self, forKey: .containerCount)
+        runningCount = try c.decodeIfPresent(Int.self, forKey: .runningCount)
+        configFile = try c.decodeIfPresent(String.self, forKey: .configFile)
+        workdir = try c.decodeIfPresent(String.self, forKey: .workdir)
+        composeFileExists = try c.decodeIfPresent(Bool.self, forKey: .composeFileExists)
+        isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned)
+        path = try c.decodeIfPresent(String.self, forKey: .path)
+        containers = try c.decodeIfPresent([ContainerComposeItem].self, forKey: .containers)
+        env = try c.decodeIfPresent(String.self, forKey: .env)
+    }
+
     var id: String { name }
 }
 
@@ -135,6 +187,17 @@ nonisolated struct ContainerComposeItem: Decodable, Hashable, Identifiable {
     let createTime: String?
     let state: String?
     let ports: [String]?
+
+    enum CodingKeys: String, CodingKey { case containerID, name, createTime, state, ports }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        containerID = c.decodeDefault(String.self, forKey: .containerID, "")
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        createTime = try c.decodeIfPresent(String.self, forKey: .createTime)
+        state = try c.decodeIfPresent(String.self, forKey: .state)
+        ports = try c.decodeIfPresent([String].self, forKey: .ports)
+    }
 
     var id: String { containerID }
 }
@@ -199,6 +262,17 @@ nonisolated struct ContainerTemplate: Decodable, Identifiable, Hashable {
     let name: String?
     let description: String?
     let content: String?
+
+    enum CodingKeys: String, CodingKey { case id, createdAt, name, description, content }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+        content = try c.decodeIfPresent(String.self, forKey: .content)
+    }
 }
 
 /// POST /containers/template（创建）{name,content,description}

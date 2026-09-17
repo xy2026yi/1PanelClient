@@ -231,6 +231,21 @@ enum PanelVersionTools {
 nonisolated struct PanelRelease: Decodable, Identifiable {
     let version: String
     let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case version, createdAt, content, newCount, optimizationCount, fixCount
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = c.decodeDefault(String.self, forKey: .version, "")
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        content = try c.decodeIfPresent(String.self, forKey: .content)
+        newCount = try c.decodeIfPresent(Int.self, forKey: .newCount)
+        optimizationCount = try c.decodeIfPresent(Int.self, forKey: .optimizationCount)
+        fixCount = try c.decodeIfPresent(Int.self, forKey: .fixCount)
+    }
+
     let content: String?
     let newCount: Int?
     let optimizationCount: Int?

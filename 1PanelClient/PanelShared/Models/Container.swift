@@ -33,6 +33,7 @@ nonisolated struct ContainerStatsSnapshot: Decodable {
 }
 
 /// 单个容器（1Panel v2 实际返回的字段，已通过 logs/输出11.log 验证）
+/// L1 加固：containerID/name/state 缺失或类型漂移回退默认值
 nonisolated struct Container: Decodable, Identifiable, Hashable {
     let containerID: String
     let name: String
@@ -56,6 +57,32 @@ nonisolated struct Container: Decodable, Identifiable, Hashable {
     var memoryUsage: Int64?
     var memoryLimit: Int64?
     var memoryPercent: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case containerID, name, imageName, imageID, state, runTime, network, ports
+        case createTime, isFromApp, isFromCompose, appName, appInstallName, websites
+        case isPinned, description
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        containerID = c.decodeDefault(String.self, forKey: .containerID, "")
+        name = c.decodeDefault(String.self, forKey: .name, "")
+        imageName = try c.decodeIfPresent(String.self, forKey: .imageName)
+        imageID = try c.decodeIfPresent(String.self, forKey: .imageID)
+        state = c.decodeDefault(String.self, forKey: .state, "unknown")
+        runTime = try c.decodeIfPresent(String.self, forKey: .runTime)
+        network = try c.decodeIfPresent([String].self, forKey: .network)
+        ports = try c.decodeIfPresent([String].self, forKey: .ports)
+        createTime = try c.decodeIfPresent(String.self, forKey: .createTime)
+        isFromApp = try c.decodeIfPresent(Bool.self, forKey: .isFromApp)
+        isFromCompose = try c.decodeIfPresent(Bool.self, forKey: .isFromCompose)
+        appName = try c.decodeIfPresent(String.self, forKey: .appName)
+        appInstallName = try c.decodeIfPresent(String.self, forKey: .appInstallName)
+        websites = try c.decodeIfPresent([String].self, forKey: .websites)
+        isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned)
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+    }
 
     var id: String { containerID }
 
@@ -172,6 +199,19 @@ nonisolated struct ContainerRepo: Decodable, Identifiable, Hashable {
         case id, name, downloadUrl, username, auth, status, message, createdAt
         case protocolField = "protocol"
     }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        downloadUrl = try c.decodeIfPresent(String.self, forKey: .downloadUrl)
+        protocolField = try c.decodeIfPresent(String.self, forKey: .protocolField)
+        username = try c.decodeIfPresent(String.self, forKey: .username)
+        auth = try c.decodeIfPresent(Bool.self, forKey: .auth)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        message = try c.decodeIfPresent(String.self, forKey: .message)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+    }
 }
 
 // MARK: - 镜像仓库请求体
@@ -251,6 +291,21 @@ nonisolated struct ContainerImage: Decodable, Identifiable {
     let isPinned: Bool?
     let description: String?
 
+    enum CodingKeys: String, CodingKey {
+        case id, createdAt, isUsed, tags, size, isPinned, description
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(String.self, forKey: .id, "")
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        isUsed = try c.decodeIfPresent(Bool.self, forKey: .isUsed)
+        tags = try c.decodeIfPresent([String].self, forKey: .tags)
+        size = try c.decodeIfPresent(Int64.self, forKey: .size)
+        isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned)
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+    }
+
     /// 展示名（取第一个 tag，否则截断 id）
     var displayName: String {
         if let tag = tags?.first, !tag.isEmpty { return tag }
@@ -280,6 +335,23 @@ nonisolated struct ContainerNetworkInfo: Codable {
     var ipv4: String?
     var ipv6: String?
     var macAddr: String?
+
+    enum CodingKeys: String, CodingKey { case network, ipv4, ipv6, macAddr }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        network = c.decodeDefault(String.self, forKey: .network, "bridge")
+        ipv4 = try c.decodeIfPresent(String.self, forKey: .ipv4)
+        ipv6 = try c.decodeIfPresent(String.self, forKey: .ipv6)
+        macAddr = try c.decodeIfPresent(String.self, forKey: .macAddr)
+    }
+
+    init(network: String, ipv4: String? = nil, ipv6: String? = nil, macAddr: String? = nil) {
+        self.network = network
+        self.ipv4 = ipv4
+        self.ipv6 = ipv6
+        self.macAddr = macAddr
+    }
 }
 
 /// 容器端口映射（info.exposedPorts）
@@ -293,6 +365,21 @@ nonisolated struct ContainerPortInfo: Codable {
         case hostIP, hostPort, containerPort
         case protocolField = "protocol"
     }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        hostIP = c.decodeDefault(String.self, forKey: .hostIP, "")
+        hostPort = c.decodeDefault(String.self, forKey: .hostPort, "")
+        containerPort = c.decodeDefault(String.self, forKey: .containerPort, "")
+        protocolField = c.decodeDefault(String.self, forKey: .protocolField, "tcp")
+    }
+
+    init(hostIP: String, hostPort: String, containerPort: String, protocolField: String) {
+        self.hostIP = hostIP
+        self.hostPort = hostPort
+        self.containerPort = containerPort
+        self.protocolField = protocolField
+    }
 }
 
 /// 容器卷映射（info.volumes）
@@ -302,10 +389,32 @@ nonisolated struct ContainerVolumeInfo: Codable {
     var containerDir: String
     var mode: String
     var shared: String
+
+    enum CodingKeys: String, CodingKey { case type, sourceDir, containerDir, mode, shared }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        type = c.decodeDefault(String.self, forKey: .type, "bind")
+        sourceDir = c.decodeDefault(String.self, forKey: .sourceDir, "")
+        containerDir = c.decodeDefault(String.self, forKey: .containerDir, "")
+        mode = c.decodeDefault(String.self, forKey: .mode, "rw")
+        shared = c.decodeDefault(String.self, forKey: .shared, "private")
+    }
+
+    init(type: String, sourceDir: String, containerDir: String, mode: String, shared: String) {
+        self.type = type
+        self.sourceDir = sourceDir
+        self.containerDir = containerDir
+        self.mode = mode
+        self.shared = shared
+    }
 }
 
 /// 容器完整配置（POST /containers/info 返回）
-/// 字段名严格对齐 1Panel v2 返回；多数字段用于回写 update 接口
+/// 字段名严格对齐 1Panel v2 返回；多数字段用于回写 update 接口。
+/// L1 加固：name/image 缺失回退空串。
+/// 注意：update 请求为表单形状（与 Web 端一致），上游新增 info 字段表现为
+/// 功能缺口（月度 SOP 对齐），不做 raw JSON 透传
 nonisolated struct ContainerInfo: Decodable {
     let taskID: String?
     let forcePull: Bool?
@@ -332,12 +441,55 @@ nonisolated struct ContainerInfo: Decodable {
     let labels: [String]?
     let env: [String]?
     let restartPolicy: String?
+
+    enum CodingKeys: String, CodingKey {
+        case taskID, forcePull, name, image, hostname, domainName, dns, networks
+        case publishAllPorts, exposedPorts, tty, openStdin, workingDir, user
+        case cmd, entrypoint, cpuShares, nanoCPUs, memory, privileged, autoRemove
+        case volumes, labels, env, restartPolicy
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        taskID = try c.decodeIfPresent(String.self, forKey: .taskID)
+        forcePull = try c.decodeIfPresent(Bool.self, forKey: .forcePull)
+        name = c.decodeDefault(String.self, forKey: .name, "")
+        image = c.decodeDefault(String.self, forKey: .image, "")
+        hostname = try c.decodeIfPresent(String.self, forKey: .hostname)
+        domainName = try c.decodeIfPresent(String.self, forKey: .domainName)
+        dns = try c.decodeIfPresent([String].self, forKey: .dns)
+        networks = try c.decodeIfPresent([ContainerNetworkInfo].self, forKey: .networks)
+        publishAllPorts = try c.decodeIfPresent(Bool.self, forKey: .publishAllPorts)
+        exposedPorts = try c.decodeIfPresent([ContainerPortInfo].self, forKey: .exposedPorts)
+        tty = try c.decodeIfPresent(Bool.self, forKey: .tty)
+        openStdin = try c.decodeIfPresent(Bool.self, forKey: .openStdin)
+        workingDir = try c.decodeIfPresent(String.self, forKey: .workingDir)
+        user = try c.decodeIfPresent(String.self, forKey: .user)
+        cmd = try c.decodeIfPresent([String].self, forKey: .cmd)
+        entrypoint = try c.decodeIfPresent([String].self, forKey: .entrypoint)
+        cpuShares = try c.decodeIfPresent(Int.self, forKey: .cpuShares)
+        nanoCPUs = try c.decodeIfPresent(Double.self, forKey: .nanoCPUs)
+        memory = try c.decodeIfPresent(Int64.self, forKey: .memory)
+        privileged = try c.decodeIfPresent(Bool.self, forKey: .privileged)
+        autoRemove = try c.decodeIfPresent(Bool.self, forKey: .autoRemove)
+        volumes = try c.decodeIfPresent([ContainerVolumeInfo].self, forKey: .volumes)
+        labels = try c.decodeIfPresent([String].self, forKey: .labels)
+        env = try c.decodeIfPresent([String].self, forKey: .env)
+        restartPolicy = try c.decodeIfPresent(String.self, forKey: .restartPolicy)
+    }
 }
 
 // MARK: - 镜像选项（GET /containers/image 返回 [{option:"..."}]）
 
 nonisolated struct ContainerOption: Decodable {
     let option: String
+
+    enum CodingKeys: String, CodingKey { case option }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        option = c.decodeDefault(String.self, forKey: .option, "")
+    }
 }
 
 // MARK: - CPU/内存上限（GET /containers/limit 返回 {cpu, memory}）

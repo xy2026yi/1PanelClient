@@ -11,6 +11,7 @@ import Foundation
 // MARK: - 数据库系统（已安装实例）
 
 /// GET /api/v2/databases/db/list/<types> 返回的数据库系统
+/// L1 加固：id/type/from/database 缺失或类型漂移回退默认值，不整页失败
 nonisolated struct DatabaseSystem: Decodable, Identifiable, Hashable {
     let id: Int
     let type: String          // "mysql" / "postgresql" / "redis"
@@ -18,6 +19,20 @@ nonisolated struct DatabaseSystem: Decodable, Identifiable, Hashable {
     let database: String      // 服务名 "mysql" / "postgresql" / "redis"
     let version: String?
     let address: String?      // 容器内地址
+
+    enum CodingKeys: String, CodingKey {
+        case id, type, from, database, version, address
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        type = c.decodeDefault(String.self, forKey: .type, "")
+        from = c.decodeDefault(String.self, forKey: .from, "local")
+        database = c.decodeDefault(String.self, forKey: .database, "")
+        version = try c.decodeIfPresent(String.self, forKey: .version)
+        address = try c.decodeIfPresent(String.self, forKey: .address)
+    }
 
     var displayName: String {
         switch type.lowercased() {
@@ -144,6 +159,15 @@ nonisolated struct DatabaseItem: Decodable, Identifiable, Hashable {
 nonisolated struct FormatOption: Decodable, Identifiable, Hashable {
     let format: String
     let collations: [String]
+
+    enum CodingKeys: String, CodingKey { case format, collations }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        format = c.decodeDefault(String.self, forKey: .format, "")
+        collations = c.decodeDefault([String].self, forKey: .collations, [])
+    }
+
     var id: String { format }
 }
 

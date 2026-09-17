@@ -140,6 +140,26 @@ nonisolated struct SnapshotItem: Decodable, Identifiable, Hashable {
     let version: String?
     let lastRecoveredAt: String?
 
+    enum CodingKeys: String, CodingKey {
+        case id, name, description, sourceAccounts, downloadAccount
+        case status, message, createdAt, size, version, lastRecoveredAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+        sourceAccounts = try c.decodeIfPresent([String].self, forKey: .sourceAccounts)
+        downloadAccount = try c.decodeIfPresent(String.self, forKey: .downloadAccount)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        message = try c.decodeIfPresent(String.self, forKey: .message)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        size = try c.decodeIfPresent(Int64.self, forKey: .size)
+        version = try c.decodeIfPresent(String.self, forKey: .version)
+        lastRecoveredAt = try c.decodeIfPresent(String.self, forKey: .lastRecoveredAt)
+    }
+
     var displayName: String { name ?? "#\(id)" }
     var displayCreatedAt: String {
         guard let t = createdAt, !t.isEmpty else { return "—" }
@@ -202,6 +222,17 @@ nonisolated struct SwapDetail: Decodable, Hashable, Identifiable {
     let used: String?
     let isNew: Bool?
     let taskID: String?
+
+    enum CodingKeys: String, CodingKey { case path, size, used, isNew, taskID }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        path = c.decodeDefault(String.self, forKey: .path, "")
+        size = c.decodeDefault(Int.self, forKey: .size, 0)
+        used = try c.decodeIfPresent(String.self, forKey: .used)
+        isNew = try c.decodeIfPresent(Bool.self, forKey: .isNew)
+        taskID = try c.decodeIfPresent(String.self, forKey: .taskID)
+    }
 
     var id: String { path }
     /// KB → GB

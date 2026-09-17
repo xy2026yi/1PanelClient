@@ -99,7 +99,7 @@ final class FirewallViewModel: ObservableObject {
             unsupportedPanel = false
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            if case let APIError.httpError(status, _) = error, status == 404 {
+            if let apiErr = error as? APIError, apiErr.isEndpointMissing {
                 // L2 门禁：旧面板没有 v2.3.0 的防火墙 API（含 /rules 命名空间）
                 unsupportedPanel = true
                 return

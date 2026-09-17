@@ -59,6 +59,13 @@ enum APIError: LocalizedError {
         return false
     }
 
+    /// 端点在当前面板版本不存在（HTTP 404）：调用方可据此降级为
+    /// 「面板版本不支持此功能」而非报错（L2 模块降级，先例：防火墙 v2.3.0 门禁）
+    var isEndpointMissing: Bool {
+        if case .httpError(404, _) = self { return true }
+        return false
+    }
+
     /// 任意错误（含被包装的与未包装的）是否为任务取消
     static func isCancellation(_ error: Error) -> Bool {
         if let apiErr = error as? APIError { return apiErr.isCancellation }
