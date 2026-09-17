@@ -410,6 +410,119 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
+    // MARK: 纳管 / 排序 / 原文 / 导入导出（低频操作）
+
+    /// 纳管 external/drifted 规则（进入面板管理，可编辑删除）
+    func adoptRule(_ item: FirewallInventoryItem) async {
+        guard let key = item.observed?.instanceKey ?? item.rule?.id,
+              let scope = item.rule?.scope else {
+            errorMessage = L10n.t("该规则缺少纳管所需的定位信息")
+            return
+        }
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallRulesAdopt.path,
+                body: FirewallRuleAdoptRequest(scope: scope, instanceKey: key),
+                as: EmptyResponse.self
+            )
+            toastMessage = L10n.t("已纳管")
+            await loadRules(replacing: true)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 链内位置调整（上移/下移一位）
+    func reorderRule(uuid: String, to position: Int64) async {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.firewallRulesReorder.path,
+                body: FirewallRuleReorderRequest(uuid: uuid, targetPosition: position, priority: nil),
+                as: EmptyResponse.self
+            )
+            await loadRules(replacing: true)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 原生对象配置原文（zone_service / ufw_application）；普通规则用 observed.raw
+    func loadNativeDetail(for item: FirewallInventoryItem) async -> String {
+        if let raw = item.observed?.raw, !raw.isEmpty { return raw }
+        guard let rule = item.rule, let name = rule.uuid ?? item.observed?.instanceKey else {
+            return item.observed?.raw ?? ""
+        }
+        do {
+            return try await client.send(
+                path: APIEndpoint.firewallNativeDetail.path,
+                body: FirewallNativeDetailRequest(
+                    provider: rule.scope?.provider ?? systemStatus?.backend ?? "iptables",
+                    nativeKind: rule.nativeKind ?? "rule",
+                    name: name),
+                as: String.self
+            )
+        } catch {
+            return item.observed?.raw ?? (error.localizedDescription)
+        }
+    }
+
+    /// 导入规则（文件解析后的选中项，sourceKind: imported，任务式）
+    func importRules(_ rules: [FirewallRule]) async -> Bool {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let resp: FirewallRuleCreateResponse = try await client.send(
+                path: APIEndpoint.firewallRulesCreate.path,
+                body: FirewallRuleCreateRequest(
+                    items: rules.map { FirewallRuleCreateItem(rule: $0, sourceKind: "imported", sourceID: nil) }),
+                as: FirewallRuleCreateResponse.self
+            )
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("导入规则"))
+            }
+            await loadRules(replacing: true)
+            return true
+        } catch {
+            guard !APIError.isCancellation(error) else { return false }
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// 导出：对齐 Web 端——面板管理且可删除的规则，去除 uuid 后本地组 JSON
+    /// （无服务端端点），写入临时文件供 ShareLink 分享
+    func exportRulesURL() -> URL? {
+        let exportable = inventory.filter { item in
+            guard item.manageableUUID != nil, item.state != "protected" else { return false }
+            return true
+        }
+        guard !exportable.isEmpty else { return nil }
+        let rules = exportable.compactMap { item -> FirewallRule? in
+            guard var rule = item.rule ?? item.desired?.rule else { return nil }
+            rule.uuid = nil
+            return rule
+        }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(rules) else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMddHHmmss"
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("1panel-firewall-rules-\(formatter.string(from: Date())).json")
+        do {
+            try data.write(to: url)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
     // MARK: 生命周期 / 基础链
 
     /// start / stop / restart / disableBanPing / enableBanPing
@@ -703,6 +816,15 @@ struct FirewallView: View {
     @State private var showRulesReset = false
     @State private var showDockerReset = false
     @State private var editingPolicy: DockerGuardEndpoint?
+    // 规则低频操作
+    @State private var showImport = false
+    @State private var rawDetail: RawDetailPayload?
+    @State private var exportedRulesURL: URL?
+    struct RawDetailPayload: Identifiable {
+        let title: String
+        let text: String
+        var id: String { title }
+    }
 
     init(server: ServerConfig) {
         self.server = server
@@ -751,6 +873,19 @@ struct FirewallView: View {
                             }
                             Button(role: .destructive) { showRulesReset = true } label: {
                                 Label(L10n.t("重置规则"), systemImage: "trash")
+                            }
+                            Button { showImport = true } label: {
+                                Label(L10n.t("导入规则"), systemImage: "square.and.arrow.down")
+                            }
+                            Button {
+                                Haptic.selection()
+                                if vm.inventory.filter({ $0.manageableUUID != nil && $0.state != "protected" }).isEmpty {
+                                    vm.toastMessage = L10n.t("暂无可导出的规则")
+                                } else {
+                                    exportedRulesURL = vm.exportRulesURL()
+                                }
+                            } label: {
+                                Label(L10n.t("导出规则"), systemImage: "square.and.arrow.up")
                             }
                         } else if segment == 1 {
                             Button { showAddForward = true } label: {
@@ -883,6 +1018,38 @@ struct FirewallView: View {
             DockerPolicyFormView(vm: vm, endpoint: endpoint)
                 .bottomSheetDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
+        }
+        // 规则导入（文件解析 + 勾选 + sourceKind imported）
+        .sheet(isPresented: $showImport) {
+            FirewallImportView(vm: vm)
+        }
+        // 原文查看（observed.raw 或 native/detail）
+        .sheet(item: $rawDetail) { payload in
+            FirewallRawDetailView(title: payload.title, text: payload.text)
+                .bottomSheetDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        // 导出分享（本地组 JSON，无服务端端点）；无可导出规则时仅提示
+        .sheet(isPresented: Binding(
+            get: { exportedRulesURL != nil },
+            set: { if !$0 { exportedRulesURL = nil } }
+        )) {
+            if let url = exportedRulesURL {
+                VStack(spacing: 16) {
+                    Image(systemName: "doc.badge.arrow.up")
+                        .font(.title)
+                        .foregroundStyle(.tint)
+                    Text(url.lastPathComponent)
+                        .font(.dataMonospaced)
+                    ShareLink(item: url) {
+                        Label(L10n.t("分享"), systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: 240)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(24)
+                .presentationDetents([.height(200)])
+            }
         }
         // 规则重置（R1：输入后端名确认，对齐 Web 端「请手动输入 iptables」）
         .sheet(isPresented: $showRulesReset) {
@@ -1099,6 +1266,50 @@ struct FirewallView: View {
                                     } label: {
                                         Label(L10n.t("删除"), systemImage: "trash")
                                     }
+                                }
+                            }
+                            .contextMenu {
+                                if let uuid = item.manageableUUID, let rule = item.rule {
+                                    Button {
+                                        editingRuleUUID = uuid
+                                        editingRule = rule
+                                    } label: {
+                                        Label(L10n.t("编辑"), systemImage: "pencil")
+                                    }
+                                    Button {
+                                        Haptic.warning()
+                                        pendingDeleteItem = item
+                                    } label: {
+                                        Label(L10n.t("删除"), systemImage: "trash")
+                                    }
+                                    if let position = item.observed?.locator?.position {
+                                        Button {
+                                            Task { await vm.reorderRule(uuid: uuid, to: Int64(max(1, position - 1))) }
+                                        } label: {
+                                            Label(L10n.t("上移"), systemImage: "arrow.up")
+                                        }
+                                        Button {
+                                            Task { await vm.reorderRule(uuid: uuid, to: Int64(position + 1)) }
+                                        } label: {
+                                            Label(L10n.t("下移"), systemImage: "arrow.down")
+                                        }
+                                    }
+                                } else if item.state == "external" || item.state == "drifted" {
+                                    Button {
+                                        Task { await vm.adoptRule(item) }
+                                    } label: {
+                                        Label(L10n.t("纳管"), systemImage: "square.and.arrow.down.on.square")
+                                    }
+                                }
+                                Button {
+                                    Task {
+                                        let text = await vm.loadNativeDetail(for: item)
+                                        rawDetail = RawDetailPayload(
+                                            title: item.rule?.destinationPort ?? item.rule?.sourceAddress ?? "",
+                                            text: text)
+                                    }
+                                } label: {
+                                    Label(L10n.t("查看原文"), systemImage: "doc.text.magnifyingglass")
                                 }
                             }
                             .onAppear {

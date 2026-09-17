@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - 规则表单（创建 / 编辑；v2.3.0 统一模型）
 
@@ -591,6 +592,165 @@ struct DockerPolicyFormView: View {
         )
         if await vm.upsertDockerPolicy(policy) {
             dismiss()
+        }
+    }
+}
+
+// MARK: - 规则导入（文件解析 + 勾选 + sourceKind imported；对齐 Web 端交互）
+
+struct FirewallImportView: View {
+    @ObservedObject var vm: FirewallViewModel
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var showPicker = false
+    @State private var parsed: [FirewallRule] = []
+    @State private var selected: Set<String> = []
+    @State private var parseError: String?
+    @State private var fileName: String?
+    @State private var isImporting = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Button {
+                        showPicker = true
+                    } label: {
+                        Label(fileName ?? L10n.t("选择 JSON 文件"), systemImage: "doc.badge.arrow.up")
+                    }
+                } header: {
+                    SectionLabel(title: L10n.t("导入规则"), systemImage: "square.and.arrow.down")
+                } footer: {
+                    Text(L10n.t("选择导出的 1Panel 防火墙规则 JSON 文件，勾选需要导入的规则。"))
+                }
+                if let err = parseError {
+                    Section { Text(err).foregroundStyle(Color.statusError) }
+                }
+                if !parsed.isEmpty {
+                    Section {
+                        ForEach(parsed) { rule in
+                            Button {
+                                if selected.contains(rule.id) {
+                                    selected.remove(rule.id)
+                                } else {
+                                    selected.insert(rule.id)
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: selected.contains(rule.id)
+                                          ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(selected.contains(rule.id) ? Color.accentColor : .secondary)
+                                    FirewallRuleRowView(
+                                        item: FirewallImportPreview.item(for: rule),
+                                        processName: nil)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } header: {
+                        HStack {
+                            Text(L10n.f("共 %ld 条，已选 %ld 条", parsed.count, selected.count))
+                            Spacer()
+                            Button(selected.count == parsed.count ? L10n.t("全不选") : L10n.t("全选")) {
+                                if selected.count == parsed.count { selected.removeAll() }
+                                else { selected = Set(parsed.map(\.id)) }
+                            }
+                            .font(.caption)
+                        }
+                    }
+                }
+            }
+            .navigationTitle(L10n.t("导入规则"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task { await submit() }
+                    } label: {
+                        if isImporting { ProgressView() } else { Text(L10n.t("导入")) }
+                    }
+                    .disabled(selected.isEmpty || isImporting)
+                }
+            }
+            .interactiveDismissDisabled(isImporting)
+            .fileImporter(isPresented: $showPicker, allowedContentTypes: [.json]) { result in
+                handlePick(result)
+            }
+        }
+    }
+
+    private func handlePick(_ result: Result<URL, Error>) {
+        guard case .success(let url) = result else { return }
+        let secured = url.startAccessingSecurityScopedResource()
+        defer { if secured { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let data = try Data(contentsOf: url)
+            let rules = try JSONDecoder().decode([FirewallRule].self, from: data)
+            guard !rules.isEmpty else {
+                parseError = L10n.t("文件中没有可导入的规则")
+                parsed = []; selected = []
+                return
+            }
+            parsed = rules
+            selected = Set(rules.map(\.id))
+            parseError = nil
+            fileName = url.lastPathComponent
+        } catch {
+            parsed = []; selected = []
+            parseError = L10n.f("解析失败：%@", error.localizedDescription)
+        }
+    }
+
+    private func submit() async {
+        isImporting = true
+        defer { isImporting = false }
+        let chosen = parsed.filter { selected.contains($0.id) }
+        if await vm.importRules(chosen) {
+            dismiss()
+        }
+    }
+}
+
+/// 导入预览用的极简 InventoryItem 包装（状态未知，按 external 呈现中性样式）
+private enum FirewallImportPreview {
+    static func item(for rule: FirewallRule) -> FirewallInventoryItem {
+        FirewallInventoryItem(
+            incompatible: nil, error: nil, rule: rule,
+            observed: nil, desired: nil, state: nil, match: nil)
+    }
+}
+
+// MARK: - 规则原文查看（observed.raw / native detail）
+
+struct FirewallRawDetailView: View {
+    let title: String
+    let text: String
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                Text(text.isEmpty ? "—" : text)
+                    .font(.dataMonospacedCaption)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                    .padding()
+                    .contentWidthLimit(860)
+            }
+            .navigationTitle(L10n.t("规则原文"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        UIPasteboard.general.string = text
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .accessibilityLabel(L10n.t("复制"))
+                }
+            }
         }
     }
 }

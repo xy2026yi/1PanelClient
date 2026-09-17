@@ -54,10 +54,17 @@ struct EllipsisMenuPopup: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            // 近乎透明的全屏点击层：点菜单外任意处关闭
+            // 近乎透明的全屏点击层：点菜单外任意处关闭；Esc 同效（iPad 外接键盘）
             Color.black.opacity(0.01)
                 .ignoresSafeArea()
                 .onTapGesture(perform: onDismiss)
+                .background {
+                    Button("") { onDismiss() }
+                        .keyboardShortcut(.cancelAction)
+                        .opacity(0)
+                        .frame(width: 0, height: 0)
+                        .accessibilityHidden(true)
+                }
 
             VStack(spacing: 0) {
                 ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in

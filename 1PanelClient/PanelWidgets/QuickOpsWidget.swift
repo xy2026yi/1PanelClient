@@ -81,12 +81,22 @@ struct QuickOpsWidget: Widget {
         }
         .configurationDisplayName(L10n.t("容器操作"))
         .description(L10n.t("启动 / 停止 / 重启 / 关闭指定容器"))
-        .supportedFamilies([.systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
 
 struct QuickOpsEntryView: View {
     let entry: QuickOpsEntry
+    @Environment(\.widgetFamily) private var family
+
+    /// 小尺寸 3 行、大尺寸 10 行（中尺寸沿用全部）
+    private var visibleContainers: [ContainerEntity] {
+        switch family {
+        case .systemSmall: return Array(entry.containers.prefix(3))
+        case .systemLarge: return Array(entry.containers.prefix(10))
+        default: return entry.containers
+        }
+    }
 
     var body: some View {
         if !entry.isConfigured {
@@ -121,7 +131,7 @@ struct QuickOpsEntryView: View {
                 Spacer()
                 Text(L10n.t("容器")).font(.caption2).foregroundStyle(.secondary)
             }
-            ForEach(entry.containers, id: \.name) { container in
+            ForEach(visibleContainers, id: \.name) { container in
                 row(container)
             }
         }

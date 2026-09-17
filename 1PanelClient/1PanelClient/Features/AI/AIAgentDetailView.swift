@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct AIAgentDetailView: View {
+    @Environment(\.horizontalSizeClass) private var hSize
     let server: ServerConfig
     let agentId: Int
     @ObservedObject var listVM: AIAgentsViewModel
@@ -376,8 +377,9 @@ struct AIAgentDetailView: View {
     private func operationsRow(_ a: AIAgent) -> some View {
         // Hermes / OpenClaw 功能入口多（终端/对话/频道/技能 或 终端/角色/插件/频道/技能），
         // 网格一行 4 个；其余类型保持三列：操作 + 配置入口（模型/设置/绑定网站）
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8),
-                                 count: (isHermesAgent(a) || isOpenClawAgent(a)) ? 4 : 3), spacing: 8) {
+        LazyVGrid(columns: gridColumns(compact: (isHermesAgent(a) || isOpenClawAgent(a)) ? 4 : 3,
+                                        regular: (isHermesAgent(a) || isOpenClawAgent(a)) ? 4 : 3,
+                                        spacing: 8, horizontal: hSize), spacing: 8) {
             // Stopped/Exited 下功能入口不可进（Hermes/OpenClaw 核对；
             // 停止/重启/删除、绑定网站、日志与 QwenPaw 不受影响）
             let stopped = ["stopped", "exited"].contains((a.status ?? "").lowercased())

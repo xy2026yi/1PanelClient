@@ -191,6 +191,9 @@ enum APIEndpoint {
     case firewallRulesSyncPreview // POST 同步预览 {subsystem,targetProvider,resetSource}
     case firewallRulesSync         // POST 执行同步（任务式）
     case firewallRulesReset        // POST 重置运行时规则（需输入后端名确认）
+    case firewallRulesAdopt        // POST 纳管 external/drifted 规则 {scope,instanceKey}
+    case firewallRulesReorder      // POST 调整链内位置（Web 未用，保留能力）
+    case firewallNativeDetail      // POST 原生对象配置原文（zone_service/ufw_application）
     case firewallForwardBase      // POST 转发子系统状态（无请求体）
     case firewallForwardSearch    // POST 转发规则分页（PageEnvelope 信封）
     case firewallForwardOperate   // POST 转发批量 add/remove（删除带 forceDelete）
@@ -799,6 +802,9 @@ enum APIEndpoint {
         case .firewallRulesSyncPreview: return "/api/v2/hosts/firewall/rules/sync/preview"
         case .firewallRulesSync:     return "/api/v2/hosts/firewall/rules/sync"
         case .firewallRulesReset:    return "/api/v2/hosts/firewall/rules/reset"
+        case .firewallRulesAdopt:    return "/api/v2/hosts/firewall/rules/adopt"
+        case .firewallRulesReorder:  return "/api/v2/hosts/firewall/rules/reorder"
+        case .firewallNativeDetail:  return "/api/v2/hosts/firewall/rules/native/detail"
         case .firewallForwardBase:   return "/api/v2/hosts/firewall/forward/base"
         case .firewallForwardSearch: return "/api/v2/hosts/firewall/forward/search"
         case .firewallForwardOperate: return "/api/v2/hosts/firewall/forward/operate"

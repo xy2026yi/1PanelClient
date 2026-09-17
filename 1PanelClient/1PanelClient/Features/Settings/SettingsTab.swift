@@ -177,14 +177,8 @@ struct AboutSectionView: View {
                 onOpen()
             } label: {
                 HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 1.5)
-                            .frame(width: 34, height: 34)
-                        Image(systemName: "info")
-                            .font(.panelScaled(14, weight: .medium))
-                            .foregroundStyle(Color.accentColor)
-                    }
+                    IconBadge(systemName: "info", color: .accentColor,
+                              size: 34, cornerRadius: Radius.small, backgroundOpacity: 0.08)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(L10n.t("关于APP"))
                             .font(.subheadline.weight(.semibold))

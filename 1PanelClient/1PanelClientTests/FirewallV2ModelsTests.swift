@@ -400,3 +400,56 @@ struct FirewallSyncAndPolicyTests {
         #expect(resp.removed == 5 && resp.disabled == true)
     }
 }
+
+// MARK: - 低频操作回归（纳管/排序/原文/导入导出）
+
+@Suite("防火墙低频操作回归")
+struct FirewallLowFreqTests {
+
+    @Test("纳管请求编码（scope + instanceKey）")
+    func adoptRequestEncode() throws {
+        let req = FirewallRuleAdoptRequest(
+            scope: FirewallScope(provider: "iptables", family: "ipv4", table: "filter",
+                                 chain: "INPUT", direction: "input"),
+            instanceKey: "sha256:abc")
+        let data = try JSONEncoder().encode(req)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["instanceKey"] as? String == "sha256:abc")
+        let scope = obj?["scope"] as? [String: Any]
+        #expect(scope?["provider"] as? String == "iptables")
+        #expect(scope?["chain"] as? String == "INPUT")
+    }
+
+    @Test("排序请求编码（uuid + targetPosition）")
+    func reorderRequestEncode() throws {
+        let req = FirewallRuleReorderRequest(uuid: "u-1", targetPosition: 3, priority: nil)
+        let data = try JSONEncoder().encode(req)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["uuid"] as? String == "u-1")
+        #expect(obj?["targetPosition"] as? Int == 3)
+    }
+
+    @Test("导入解析：导出文件往返（去 uuid 的规则数组可直接解码）")
+    func importRoundTrip() throws {
+        let exported = """
+        [{"scope":{"provider":"iptables","family":"ipv4","table":"filter","chain":"1PANEL_BASIC","direction":"input"},
+          "nativeKind":"rule","protocol":"tcp","sourceAddress":"172.16.0.0/24",
+          "destinationPort":"53,21-22","action":"accept","description":"ALL"}]
+        """
+        let rules = try JSONDecoder().decode([FirewallRule].self, from: Data(exported.utf8))
+        #expect(rules.count == 1)
+        #expect(rules[0].sourceAddress == "172.16.0.0/24")
+        #expect(rules[0].destinationPort == "53,21-22")
+        #expect(rules[0].uuid == nil)
+    }
+
+    @Test("原生详情请求编码（zone_service 形态）")
+    func nativeDetailEncode() throws {
+        let req = FirewallNativeDetailRequest(provider: "firewalld",
+                                              nativeKind: "zone_service", name: "public")
+        let data = try JSONEncoder().encode(req)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["nativeKind"] as? String == "zone_service")
+        #expect(obj?["permanent"] as? Bool == true)
+    }
+}

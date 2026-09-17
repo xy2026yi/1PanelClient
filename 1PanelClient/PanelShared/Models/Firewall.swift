@@ -322,6 +322,31 @@ nonisolated struct FirewallRuleResetResponse: Decodable, Sendable {
     let disabled: Bool?
 }
 
+// MARK: - 纳管 / 排序 / 原文查看（规则清单低频操作）
+
+/// POST /firewall/rules/adopt：把 external/drifted 规则纳入面板管理
+nonisolated struct FirewallRuleAdoptRequest: Encodable, Sendable {
+    var scope: FirewallScope
+    var instanceKey: String
+}
+
+/// POST /firewall/rules/reorder：调整链内位置（Web 端排序走 update.orderIndex，
+/// 本端点为上游保留能力，语义未经抓包验证——失败会以错误 alert 呈现）
+nonisolated struct FirewallRuleReorderRequest: Encodable, Sendable {
+    var uuid: String
+    var targetPosition: Int64?
+    var priority: Int?
+}
+
+/// POST /firewall/rules/native/detail：查看原生对象配置原文
+/// （firewalld zone_service / ufw ufw_application；普通 iptables 规则用 observed.raw）
+nonisolated struct FirewallNativeDetailRequest: Encodable, Sendable {
+    var provider: String
+    var nativeKind: String
+    var name: String
+    var permanent: Bool = true
+}
+
 nonisolated struct FirewallRuleDeleteFailure: Decodable, Sendable {
     let index: Int?
     let uuid: String?
