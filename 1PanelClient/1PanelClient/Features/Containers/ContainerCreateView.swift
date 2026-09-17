@@ -64,14 +64,18 @@ struct ContainerCreateView: View {
         Section(L10n.t("基础信息")) {
             HStack {
                 Text(L10n.t("名称")).foregroundStyle(.secondary)
+                Spacer()
                 TextField(L10n.t("如 nginx-test"), text: $draft.name)
+                    .multilineTextAlignment(.trailing)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(L10n.t("镜像")).foregroundStyle(.secondary)
+                    Spacer()
                     TextField(L10n.t("如 nginx:latest"), text: $draft.image)
+                        .multilineTextAlignment(.trailing)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
@@ -108,7 +112,9 @@ struct ContainerCreateView: View {
             }
             HStack {
                 Text(L10n.t("主机名")).foregroundStyle(.secondary)
+                Spacer()
                 TextField("hostname", text: $draft.hostname)
+                    .multilineTextAlignment(.trailing)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }

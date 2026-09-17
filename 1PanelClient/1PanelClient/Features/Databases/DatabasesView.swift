@@ -301,12 +301,10 @@ struct NotInstalledDatabaseView: View {
         .padding()
         .navigationTitle(category.title)
         .navigationBarTitleDisplayMode(.inline)
-        // 安装表单：详情页点「安装」后 push 安装表单
-        .navigationDestination(isPresented: $storeVM.showInstall) {
-            if let installDetail = storeVM.installDetail {
-                AppInstallView(detail: installDetail, vm: storeVM)
-            }
-        }
+        // 安装表单的 push 由 AppStoreDetailView 上的同名 destination 统一处理
+        //（点「安装」时的栈顶页，注册页=触发页）。此前本页也挂了一份注册，
+        // 数据库入口的栈内出现两层同名 isPresented 注册竞争同一次 push，
+        // 偶发表现为点了安装被弹回/无反应，多试几次才进
         // 跟踪是否进入过安装表单（showInstall true→false 表示用户开始了安装流程）
         .onChange(of: storeVM.showInstall) { _, isShown in
             if isShown { didEnterInstall = true }

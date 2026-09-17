@@ -181,7 +181,9 @@ struct AIAgentCreateView: View {
 
             HStack {
                 Text(L10n.t("名称")).foregroundStyle(.secondary)
+                Spacer()
                 TextField(agentType.displayName, text: $name)
+                    .multilineTextAlignment(.trailing)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
@@ -316,7 +318,9 @@ struct AIAgentCreateView: View {
         Section(L10n.t("容器")) {
             HStack {
                 Text(L10n.t("容器名称")).foregroundStyle(.secondary)
+                Spacer()
                 TextField(L10n.t("留空则自动生成"), text: $containerName)
+                    .multilineTextAlignment(.trailing)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
