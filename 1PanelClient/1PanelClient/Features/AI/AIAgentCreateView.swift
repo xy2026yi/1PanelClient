@@ -268,7 +268,8 @@ struct AIAgentCreateView: View {
             HStack {
                 Text("WebUI " + L10n.t("端口")).foregroundStyle(.secondary)
                 Spacer()
-                FormTextField(label: "18789", text: $webUIPort, keyboardType: .numberPad)
+                TextField("18789", text: $webUIPort)
+                    .keyboardType(.numberPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 120)
             }

@@ -201,7 +201,7 @@ struct AIAgentPluginsView: View {
     private var marketSection: some View {
         Section {
             HStack(spacing: 10) {
-                FormTextField(label: L10n.t("搜索插件，如 mem"), text: $keyword)
+                TextField(L10n.t("搜索插件，如 mem"), text: $keyword)
                     .onSubmit { Task { await search() } }
                 Button {
                     Task { await search() }

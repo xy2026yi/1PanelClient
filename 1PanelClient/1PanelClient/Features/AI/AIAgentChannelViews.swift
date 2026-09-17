@@ -911,7 +911,7 @@ struct AIAgentQQChannelView: View {
                     Text(L10n.t("保存后智能体即可在 QQ 平台对话"))
                 }
 
-                if c.dmPolicy == "pairing" {
+                if (c.dmPolicy ?? "").isEmpty || c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "qqbot")
                 }
             }
@@ -1382,7 +1382,7 @@ struct AIAgentWecomChannelView: View {
                     }
                 }
 
-                if c.dmPolicy == "pairing" {
+                if (c.dmPolicy ?? "").isEmpty || c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "wecom")
                 }
             }
@@ -1604,7 +1604,7 @@ struct AIAgentDingtalkChannelView: View {
                     basicSessionSection
                 }
 
-                if c.dmPolicy == "pairing" {
+                if (c.dmPolicy ?? "").isEmpty || c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "dingtalk")
                 }
             }
@@ -2706,7 +2706,7 @@ struct AIAgentTelegramChannelView: View {
                     botListSection
                 }
 
-                if c.dmPolicy == "pairing" {
+                if (c.dmPolicy ?? "").isEmpty || c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "telegram",
                                           accountId: pairingAccountID)
                 }
@@ -3247,7 +3247,7 @@ struct AIAgentDiscordChannelView: View {
                     botListSection
                 }
 
-                if c.dmPolicy == "pairing" {
+                if (c.dmPolicy ?? "").isEmpty || c.dmPolicy == "pairing" {
                     PairingApproveSection(client: client, agentId: agentId, type: "discord",
                                           accountId: pairingAccountID)
                 }
