@@ -865,48 +865,16 @@ struct FirewallView: View {
                         Image(systemName: "shield.lefthalf.filled")
                     }
                     .accessibilityLabel("WAF")
-                    Menu {
-                        if segment == 0 {
-                            Button { showAddRule = true } label: {
-                                Label(L10n.t("创建规则"), systemImage: "plus")
-                            }
-                            Button {
-                                syncSubsystem = "system"
-                                showSyncPreview = true
-                            } label: {
-                                Label(L10n.t("同步规则"), systemImage: "arrow.triangle.2.circlepath")
-                            }
-                            Button(role: .destructive) { showRulesReset = true } label: {
-                                Label(L10n.t("重置规则"), systemImage: "trash")
-                            }
-                            Button { showImport = true } label: {
-                                Label(L10n.t("导入规则"), systemImage: "square.and.arrow.down")
-                            }
-                            Button {
-                                Haptic.selection()
-                                if vm.inventory.filter({ $0.manageableUUID != nil && $0.state != "protected" }).isEmpty {
-                                    vm.toastMessage = L10n.t("暂无可导出的规则")
-                                } else {
-                                    exportedRulesURL = vm.exportRulesURL()
-                                }
-                            } label: {
-                                Label(L10n.t("导出规则"), systemImage: "square.and.arrow.up")
-                            }
-                        } else if segment == 1 {
-                            Button { showAddForward = true } label: {
-                                Label(L10n.t("创建转发"), systemImage: "plus")
-                            }
-                            Button {
-                                syncSubsystem = "forwarding"
-                                showSyncPreview = true
-                            } label: {
-                                Label(L10n.t("同步转发规则"), systemImage: "arrow.triangle.2.circlepath")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "plus.circle")
+                    // + 菜单按段条件渲染（Docker 段与未初始化段不显示）。
+                    // 若恒挂一个内容随段变化的 Menu，内容出现「非空→空→非空」后
+                    // Menu 弹出快照会失效、点了无反应；.id(segment) 切段重建双保险
+                    if segment == 0 && !needsRulesInit {
+                        addRulesMenu
+                            .id(segment)
+                    } else if segment == 1 && !needsForwardInit {
+                        addForwardMenu
+                            .id(segment)
                     }
-                    .accessibilityLabel(L10n.t("添加"))
                 }
             }
         }
@@ -1095,6 +1063,100 @@ struct FirewallView: View {
         }
     }
 
+    // MARK: 段初始化判定（未初始化：隐藏 + / 列表 / 筛选，仅显示初始化入口）
+
+    /// iptables/nftables 有基础链初始化概念；ufw/firewalld 与状态未加载完成按已初始化处理（防闪烁）
+    private var needsRulesInit: Bool {
+        guard let s = vm.systemStatus else { return false }
+        return (s.backend == "iptables" || s.backend == "nftables") && s.isInit != true
+    }
+
+    private var needsForwardInit: Bool {
+        vm.forwardStatus?.isInit != true && vm.forwardStatus != nil
+    }
+
+    private var needsDockerInit: Bool {
+        guard let base = vm.dockerGuard?.base else { return false }
+        return base.isExist == true && base.initialized != true
+    }
+
+    // MARK: 添加菜单（按段拆分恒非空，避免空内容 Menu 失效）
+
+    private var addRulesMenu: some View {
+        Menu {
+            Button { showAddRule = true } label: {
+                Label(L10n.t("创建规则"), systemImage: "plus")
+            }
+            Button {
+                syncSubsystem = "system"
+                showSyncPreview = true
+            } label: {
+                Label(L10n.t("同步规则"), systemImage: "arrow.triangle.2.circlepath")
+            }
+            Button(role: .destructive) { showRulesReset = true } label: {
+                Label(L10n.t("重置规则"), systemImage: "trash")
+            }
+            Button { showImport = true } label: {
+                Label(L10n.t("导入规则"), systemImage: "square.and.arrow.down")
+            }
+            Button {
+                Haptic.selection()
+                if vm.inventory.filter({ $0.manageableUUID != nil && $0.state != "protected" }).isEmpty {
+                    vm.toastMessage = L10n.t("暂无可导出的规则")
+                } else {
+                    exportedRulesURL = vm.exportRulesURL()
+                }
+            } label: {
+                Label(L10n.t("导出规则"), systemImage: "square.and.arrow.up")
+            }
+        } label: {
+            Image(systemName: "plus.circle")
+        }
+        .accessibilityLabel(L10n.t("添加"))
+    }
+
+    private var addForwardMenu: some View {
+        Menu {
+            Button { showAddForward = true } label: {
+                Label(L10n.t("创建转发"), systemImage: "plus")
+            }
+            Button {
+                syncSubsystem = "forwarding"
+                showSyncPreview = true
+            } label: {
+                Label(L10n.t("同步转发规则"), systemImage: "arrow.triangle.2.circlepath")
+            }
+        } label: {
+            Image(systemName: "plus.circle")
+        }
+        .accessibilityLabel(L10n.t("添加"))
+    }
+
+    /// 段未初始化时的占位：说明 + 初始化按钮（隐藏 +、列表与筛选）
+    private func uninitializedPlaceholder(message: String, buttonTitle: String,
+                                          action: @escaping () -> Void) -> some View {
+        Section {
+            VStack(spacing: 14) {
+                Image(systemName: "wand.and.stars")
+                    .font(.title)
+                    .foregroundStyle(.tint)
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Button(action: action) {
+                    Label(buttonTitle, systemImage: "wand.and.stars")
+                        .frame(minWidth: 160)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(vm.isOperating)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 36)
+            .listRowBackground(Color.clear)
+        }
+    }
+
     private static func lifeOpName(_ op: String) -> String {
         switch op {
         case "start": return L10n.t("启动")
@@ -1212,19 +1274,15 @@ struct FirewallView: View {
                              color: .purple, busy: false) {
                 showSettings = true
             }
-            // iptables/nftables：基础链初始化 / 绑定 / 解绑
+            // iptables/nftables：基础链绑定 / 解绑（初始化入口移至规则段主区，
+            // 未初始化时不提供绑定操作）
             if vm.systemStatus?.backend == "iptables" || vm.systemStatus?.backend == "nftables" {
-                if vm.systemStatus?.isInit != true {
-                    CardActionButton(title: L10n.t("初始化"), icon: "wand.and.stars",
-                                     color: .green, busy: vm.isOperating) {
-                        Task { await vm.operateFilterChain("init-base") }
-                    }
-                } else if vm.systemStatus?.isBind == true {
+                if vm.systemStatus?.isBind == true {
                     CardActionButton(title: L10n.t("解绑"), icon: "link.badge.plus",
                                      color: .secondary, busy: vm.isOperating) {
                         Task { await vm.operateFilterChain("unbind-base") }
                     }
-                } else {
+                } else if vm.systemStatus?.isInit == true {
                     CardActionButton(title: L10n.t("绑定"), icon: "link",
                                      color: .green, busy: vm.isOperating) {
                         Task { await vm.operateFilterChain("bind-base") }
@@ -1237,6 +1295,21 @@ struct FirewallView: View {
     // MARK: 规则段
 
     private var rulesSection: some View {
+        Group {
+            if needsRulesInit {
+                uninitializedPlaceholder(
+                    message: L10n.t("初始化后将创建 1Panel 基础链并接管规则管理；完成前不可创建规则。"),
+                    buttonTitle: L10n.t("初始化")
+                ) {
+                    Task { await vm.operateFilterChain("init-base") }
+                }
+            } else {
+                rulesListContent
+            }
+        }
+    }
+
+    private var rulesListContent: some View {
         Group {
             Section {
                 filterBar
@@ -1394,6 +1467,21 @@ struct FirewallView: View {
 
     private var forwardSection: some View {
         Group {
+            if needsForwardInit {
+                uninitializedPlaceholder(
+                    message: L10n.t("启用端口转发子系统后将创建转发规则链；完成前不可创建转发。"),
+                    buttonTitle: L10n.t("启用转发")
+                ) {
+                    Task { await vm.enableForwarding() }
+                }
+            } else {
+                forwardListContent
+            }
+        }
+    }
+
+    private var forwardListContent: some View {
+        Group {
             if let fs = vm.forwardStatus {
                 Section {
                     HStack(spacing: 10) {
@@ -1407,14 +1495,7 @@ struct FirewallView: View {
                             Text("v\(v)").font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if fs.isInit != true {
-                            Button(L10n.t("启用转发")) {
-                                Task { await vm.enableForwarding() }
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                            .disabled(vm.isOperating)
-                        } else if let err = fs.syncError, !err.isEmpty {
+                        if let err = fs.syncError, !err.isEmpty {
                             StatusBadge(text: L10n.t("同步异常"), color: .semanticWarning)
                         }
                     }
@@ -1464,6 +1545,33 @@ struct FirewallView: View {
     private var dockerSection: some View {
         Group {
             if let guard_ = vm.dockerGuard, let base = guard_.base, base.isExist == true {
+                if needsDockerInit {
+                    uninitializedPlaceholder(
+                        message: L10n.t("初始化容器端口防护后将接管已发布端口的访问控制；完成前不可配置策略。"),
+                        buttonTitle: L10n.t("初始化守护")
+                    ) {
+                        Task { await vm.dockerOperate("initialize") }
+                    }
+                } else {
+                    dockerListContent(guard_, base)
+                }
+            } else {
+                Section {
+                    ContentUnavailableView(
+                        L10n.t("Docker 守护不可用"),
+                        systemImage: "shippingbox",
+                        description: Text(L10n.t("未检测到 Docker 或守护链不可用；安装 Docker 后下拉刷新。"))
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 120)
+                    .listRowBackground(Color.clear)
+                }
+            }
+        }
+    }
+
+    /// Docker 段主内容（已初始化）：状态行 + 操作按钮 + 容器端点列表
+    private func dockerListContent(_ guard_: DockerGuardList, _ base: DockerGuardBase) -> some View {
+        Group {
                 Section {
                     HStack(spacing: 10) {
                         IconBadge(systemName: "shippingbox.fill", color: .blue)
@@ -1477,35 +1585,26 @@ struct FirewallView: View {
                             }
                         }
                         Spacer()
-                        if base.initialized != true {
-                            StatusBadge(text: L10n.t("未初始化"), color: .semanticWarning)
-                        } else if base.bound == true {
+                        if base.bound == true {
                             StatusBadge(text: L10n.t("已绑定"), color: .blue)
                         }
                     }
-                    if base.initialized != true {
-                        CardActionButton(title: L10n.t("初始化守护"), icon: "wand.and.stars",
-                                         color: .green, busy: vm.isOperating) {
-                            Task { await vm.dockerOperate("initialize") }
+                    HStack(spacing: 8) {
+                        CardActionButton(
+                            title: base.bound == true ? L10n.t("解绑") : L10n.t("绑定"),
+                            icon: base.bound == true ? "link.badge.plus" : "link",
+                            color: base.bound == true ? .secondary : .green,
+                            busy: vm.isOperating
+                        ) {
+                            Task { await vm.dockerOperate(base.bound == true ? "unbind" : "bind") }
                         }
-                    } else {
-                        HStack(spacing: 8) {
-                            CardActionButton(
-                                title: base.bound == true ? L10n.t("解绑") : L10n.t("绑定"),
-                                icon: base.bound == true ? "link.badge.plus" : "link",
-                                color: base.bound == true ? .secondary : .green,
-                                busy: vm.isOperating
-                            ) {
-                                Task { await vm.dockerOperate(base.bound == true ? "unbind" : "bind") }
-                            }
-                            CardActionButton(title: L10n.t("同步规则"), icon: "arrow.triangle.2.circlepath",
-                                             color: .blue, busy: vm.isOperating) {
-                                Task { await vm.dockerSync() }
-                            }
-                            CardActionButton(title: L10n.t("重置"), icon: "trash",
-                                             color: .statusError, busy: vm.isOperating) {
-                                showDockerReset = true
-                            }
+                        CardActionButton(title: L10n.t("同步规则"), icon: "arrow.triangle.2.circlepath",
+                                         color: .blue, busy: vm.isOperating) {
+                            Task { await vm.dockerSync() }
+                        }
+                        CardActionButton(title: L10n.t("重置"), icon: "trash",
+                                         color: .statusError, busy: vm.isOperating) {
+                            showDockerReset = true
                         }
                     }
                     if let msg = base.message, !msg.isEmpty {
@@ -1545,17 +1644,6 @@ struct FirewallView: View {
                         SectionLabel(title: L10n.t("孤立策略"), systemImage: "questionmark.circle")
                     }
                 }
-            } else {
-                Section {
-                    ContentUnavailableView(
-                        L10n.t("Docker 守护不可用"),
-                        systemImage: "shippingbox",
-                        description: Text(L10n.t("未检测到 Docker 或守护链不可用；安装 Docker 后下拉刷新。"))
-                    )
-                    .frame(maxWidth: .infinity, minHeight: 120)
-                    .listRowBackground(Color.clear)
-                }
-            }
         }
     }
 }
