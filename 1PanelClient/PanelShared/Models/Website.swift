@@ -47,13 +47,6 @@ nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
     let proxyAddress: String?
     let ssl: Bool?
 
-    enum CodingKeys: String, CodingKey {
-        case id, primaryDomain, type, alias, remark, status, expireDate
-        case protocolStr = "protocol"
-        case runtimeName, runtimeType, appName, appInstallId, siteDir
-        case webSiteGroupId, createdAt, user
-        case appType, port, proxy, proxyAddress, ssl
-    }
 
     /// 显示名（优先主域名，其次 alias）
     var displayName: String {
@@ -114,6 +107,55 @@ nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
         guard let t = createdAt, !t.isEmpty else { return "-" }
         return String(t.prefix(19)).replacingOccurrences(of: "T", with: " ")
     }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case primaryDomain
+        case type
+        case alias
+        case remark
+        case status
+        case expireDate
+        case protocolStr = "protocol"
+        case runtimeName
+        case runtimeType
+        case appName
+        case appInstallId
+        case siteDir
+        case webSiteGroupId
+        case createdAt
+        case user
+        case appType
+        case port
+        case proxy
+        case proxyAddress
+        case ssl
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        primaryDomain = try c.decodeIfPresent(String.self, forKey: .primaryDomain)
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        alias = try c.decodeIfPresent(String.self, forKey: .alias)
+        remark = try c.decodeIfPresent(String.self, forKey: .remark)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        expireDate = try c.decodeIfPresent(String.self, forKey: .expireDate)
+        protocolStr = try c.decodeIfPresent(String.self, forKey: .protocolStr)
+        runtimeName = try c.decodeIfPresent(String.self, forKey: .runtimeName)
+        runtimeType = try c.decodeIfPresent(String.self, forKey: .runtimeType)
+        appName = try c.decodeIfPresent(String.self, forKey: .appName)
+        appInstallId = try c.decodeIfPresent(Int.self, forKey: .appInstallId)
+        siteDir = try c.decodeIfPresent(String.self, forKey: .siteDir)
+        webSiteGroupId = try c.decodeIfPresent(Int.self, forKey: .webSiteGroupId)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        user = try c.decodeIfPresent(String.self, forKey: .user)
+        appType = try c.decodeIfPresent(String.self, forKey: .appType)
+        port = try c.decodeIfPresent(Int.self, forKey: .port)
+        proxy = try c.decodeIfPresent(String.self, forKey: .proxy)
+        proxyAddress = try c.decodeIfPresent(String.self, forKey: .proxyAddress)
+        ssl = try c.decodeIfPresent(Bool.self, forKey: .ssl)
+    }
 }
 
 // MARK: - SSL 证书（创建网站时选择用）
@@ -156,6 +198,35 @@ nonisolated struct WebsiteSSL: Decodable, Identifiable, Hashable, Sendable {
             return false
         }
         return date < Date()
+    }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case primaryDomain
+        case domains
+        case type
+        case provider
+        case organization
+        case autoRenew
+        case expireDate
+        case startDate
+        case status
+        case message
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        primaryDomain = try c.decodeIfPresent(String.self, forKey: .primaryDomain)
+        domains = try c.decodeIfPresent(String.self, forKey: .domains)
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        provider = try c.decodeIfPresent(String.self, forKey: .provider)
+        organization = try c.decodeIfPresent(String.self, forKey: .organization)
+        autoRenew = try c.decodeIfPresent(Bool.self, forKey: .autoRenew)
+        expireDate = try c.decodeIfPresent(String.self, forKey: .expireDate)
+        startDate = try c.decodeIfPresent(String.self, forKey: .startDate)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        message = try c.decodeIfPresent(String.self, forKey: .message)
     }
 }
 
@@ -332,18 +403,6 @@ nonisolated struct WebsiteFull: Decodable {
     let algorithm: String?
     let servers: [String]?
 
-    enum CodingKeys: String, CodingKey {
-        case id, createdAt, updatedAt
-        case protocolStr = "protocol"
-        case primaryDomain, type, alias, remark, status, httpConfig, expireDate
-        case proxy, proxyType, errorLog, accessLog, defaultServer
-        case ipv6 = "IPV6"
-        case rewrite, webSiteGroupId, webSiteSSLId
-        case runtimeID, appInstallId, ftpId, parentWebsiteID
-        case user, group, dbType, dbID, favorite, streamPorts, domains
-        case errorLogPath, accessLogPath, sitePath
-        case appName, runtimeName, runtimeType, siteDir, openBaseDir, algorithm, servers
-    }
 
     /// 状态颜色（与 Website.statusColor 映射保持一致）
     var statusColor: Color {
@@ -358,6 +417,95 @@ nonisolated struct WebsiteFull: Decodable {
     /// 类型中文显示名（与 Website.typeDisplayName 映射保持一致）
     var typeDisplayName: String {
         Website.typeDisplayName(for: type)
+    }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case createdAt
+        case updatedAt
+        case protocolStr = "protocol"
+        case primaryDomain
+        case type
+        case alias
+        case remark
+        case status
+        case httpConfig
+        case expireDate
+        case proxy
+        case proxyType
+        case errorLog
+        case accessLog
+        case defaultServer
+        case ipv6 = "IPV6"
+        case rewrite
+        case webSiteGroupId
+        case webSiteSSLId
+        case runtimeID
+        case appInstallId
+        case ftpId
+        case parentWebsiteID
+        case user
+        case group
+        case dbType
+        case dbID
+        case favorite
+        case streamPorts
+        case domains
+        case errorLogPath
+        case accessLogPath
+        case sitePath
+        case appName
+        case runtimeName
+        case runtimeType
+        case siteDir
+        case openBaseDir
+        case algorithm
+        case servers
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        updatedAt = try c.decodeIfPresent(String.self, forKey: .updatedAt)
+        protocolStr = try c.decodeIfPresent(String.self, forKey: .protocolStr)
+        primaryDomain = try c.decodeIfPresent(String.self, forKey: .primaryDomain)
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        alias = try c.decodeIfPresent(String.self, forKey: .alias)
+        remark = try c.decodeIfPresent(String.self, forKey: .remark)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        httpConfig = try c.decodeIfPresent(String.self, forKey: .httpConfig)
+        expireDate = try c.decodeIfPresent(String.self, forKey: .expireDate)
+        proxy = try c.decodeIfPresent(String.self, forKey: .proxy)
+        proxyType = try c.decodeIfPresent(String.self, forKey: .proxyType)
+        errorLog = try c.decodeIfPresent(Bool.self, forKey: .errorLog)
+        accessLog = try c.decodeIfPresent(Bool.self, forKey: .accessLog)
+        defaultServer = try c.decodeIfPresent(Bool.self, forKey: .defaultServer)
+        ipv6 = try c.decodeIfPresent(Bool.self, forKey: .ipv6)
+        rewrite = try c.decodeIfPresent(String.self, forKey: .rewrite)
+        webSiteGroupId = try c.decodeIfPresent(Int.self, forKey: .webSiteGroupId)
+        webSiteSSLId = try c.decodeIfPresent(Int.self, forKey: .webSiteSSLId)
+        runtimeID = try c.decodeIfPresent(Int.self, forKey: .runtimeID)
+        appInstallId = try c.decodeIfPresent(Int.self, forKey: .appInstallId)
+        ftpId = try c.decodeIfPresent(Int.self, forKey: .ftpId)
+        parentWebsiteID = try c.decodeIfPresent(Int.self, forKey: .parentWebsiteID)
+        user = try c.decodeIfPresent(String.self, forKey: .user)
+        group = try c.decodeIfPresent(String.self, forKey: .group)
+        dbType = try c.decodeIfPresent(String.self, forKey: .dbType)
+        dbID = try c.decodeIfPresent(Int.self, forKey: .dbID)
+        favorite = try c.decodeIfPresent(Bool.self, forKey: .favorite)
+        streamPorts = try c.decodeIfPresent(String.self, forKey: .streamPorts)
+        domains = try c.decodeIfPresent([WebsiteFullDomain].self, forKey: .domains)
+        errorLogPath = try c.decodeIfPresent(String.self, forKey: .errorLogPath)
+        accessLogPath = try c.decodeIfPresent(String.self, forKey: .accessLogPath)
+        sitePath = try c.decodeIfPresent(String.self, forKey: .sitePath)
+        appName = try c.decodeIfPresent(String.self, forKey: .appName)
+        runtimeName = try c.decodeIfPresent(String.self, forKey: .runtimeName)
+        runtimeType = try c.decodeIfPresent(String.self, forKey: .runtimeType)
+        siteDir = try c.decodeIfPresent(String.self, forKey: .siteDir)
+        openBaseDir = try c.decodeIfPresent(Bool.self, forKey: .openBaseDir)
+        algorithm = try c.decodeIfPresent(String.self, forKey: .algorithm)
+        servers = try c.decodeIfPresent([String].self, forKey: .servers)
     }
 }
 

@@ -180,6 +180,67 @@ nonisolated struct Cronjob: Decodable, Identifiable, Hashable {
         let raw = args ?? ""
         return raw.isEmpty ? L10n.t("默认（无）") : raw.replacingOccurrences(of: ",", with: ", ")
     }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case type
+        case groupID
+        case spec
+        case specs
+        case script
+        case scriptMode
+        case user
+        case appID
+        case website
+        case dbType
+        case dbName
+        case args
+        case argItems
+        case url
+        case sourceDir
+        case containerName
+        case inContainer
+        case retainCopies
+        case status
+        case lastRecordStatus
+        case lastExecutionTime
+        case executor
+        case retryTimes
+        case timeout
+        case timeoutUnit
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        groupID = try c.decodeIfPresent(Int.self, forKey: .groupID)
+        spec = try c.decodeIfPresent(String.self, forKey: .spec)
+        specs = try c.decodeIfPresent([String].self, forKey: .specs)
+        script = try c.decodeIfPresent(String.self, forKey: .script)
+        scriptMode = try c.decodeIfPresent(String.self, forKey: .scriptMode)
+        user = try c.decodeIfPresent(String.self, forKey: .user)
+        appID = try c.decodeIfPresent(String.self, forKey: .appID)
+        website = try c.decodeIfPresent(String.self, forKey: .website)
+        dbType = try c.decodeIfPresent(String.self, forKey: .dbType)
+        dbName = try c.decodeIfPresent(String.self, forKey: .dbName)
+        args = try c.decodeIfPresent(String.self, forKey: .args)
+        argItems = try c.decodeIfPresent([String].self, forKey: .argItems)
+        url = try c.decodeIfPresent(String.self, forKey: .url)
+        sourceDir = try c.decodeIfPresent(String.self, forKey: .sourceDir)
+        containerName = try c.decodeIfPresent(String.self, forKey: .containerName)
+        inContainer = try c.decodeIfPresent(Bool.self, forKey: .inContainer)
+        retainCopies = try c.decodeIfPresent(Int.self, forKey: .retainCopies)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        lastRecordStatus = try c.decodeIfPresent(String.self, forKey: .lastRecordStatus)
+        lastExecutionTime = try c.decodeIfPresent(String.self, forKey: .lastExecutionTime)
+        executor = try c.decodeIfPresent(String.self, forKey: .executor)
+        retryTimes = try c.decodeIfPresent(Int.self, forKey: .retryTimes)
+        timeout = try c.decodeIfPresent(Int.self, forKey: .timeout)
+        timeoutUnit = try c.decodeIfPresent(String.self, forKey: .timeoutUnit)
+    }
 }
 
 // MARK: - 加载计划任务详情（编辑用）
@@ -241,6 +302,79 @@ nonisolated struct CronjobInfo: Decodable {
     var backupParamSet: Set<String> {
         Set((args ?? "").split(separator: ",").map { String($0) }.filter { !$0.isEmpty })
     }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case type
+        case groupID
+        case specCustom
+        case spec
+        case executor
+        case scriptMode
+        case script
+        case command
+        case containerName
+        case user
+        case scriptID
+        case appID
+        case website
+        case exclusionRules
+        case dbType
+        case dbName
+        case url
+        case isDir
+        case sourceDir
+        case retainCopies
+        case retryTimes
+        case timeout
+        case ignoreErr
+        case sourceAccounts
+        case downloadAccount
+        case sourceAccountIDs
+        case downloadAccountID
+        case status
+        case secret
+        case args
+        case alertCount
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        groupID = try c.decodeIfPresent(Int.self, forKey: .groupID)
+        specCustom = try c.decodeIfPresent(Bool.self, forKey: .specCustom)
+        spec = try c.decodeIfPresent(String.self, forKey: .spec)
+        executor = try c.decodeIfPresent(String.self, forKey: .executor)
+        scriptMode = try c.decodeIfPresent(String.self, forKey: .scriptMode)
+        script = try c.decodeIfPresent(String.self, forKey: .script)
+        command = try c.decodeIfPresent(String.self, forKey: .command)
+        containerName = try c.decodeIfPresent(String.self, forKey: .containerName)
+        user = try c.decodeIfPresent(String.self, forKey: .user)
+        scriptID = try c.decodeIfPresent(Int.self, forKey: .scriptID)
+        appID = try c.decodeIfPresent(String.self, forKey: .appID)
+        website = try c.decodeIfPresent(String.self, forKey: .website)
+        exclusionRules = try c.decodeIfPresent(String.self, forKey: .exclusionRules)
+        dbType = try c.decodeIfPresent(String.self, forKey: .dbType)
+        dbName = try c.decodeIfPresent(String.self, forKey: .dbName)
+        url = try c.decodeIfPresent(String.self, forKey: .url)
+        isDir = try c.decodeIfPresent(Bool.self, forKey: .isDir)
+        sourceDir = try c.decodeIfPresent(String.self, forKey: .sourceDir)
+        retainCopies = try c.decodeIfPresent(Int.self, forKey: .retainCopies)
+        retryTimes = try c.decodeIfPresent(Int.self, forKey: .retryTimes)
+        timeout = try c.decodeIfPresent(Int.self, forKey: .timeout)
+        ignoreErr = try c.decodeIfPresent(Bool.self, forKey: .ignoreErr)
+        sourceAccounts = try c.decodeIfPresent([String].self, forKey: .sourceAccounts)
+        downloadAccount = try c.decodeIfPresent(String.self, forKey: .downloadAccount)
+        sourceAccountIDs = try c.decodeIfPresent(String.self, forKey: .sourceAccountIDs)
+        downloadAccountID = try c.decodeIfPresent(Int.self, forKey: .downloadAccountID)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        secret = try c.decodeIfPresent(String.self, forKey: .secret)
+        args = try c.decodeIfPresent(String.self, forKey: .args)
+        alertCount = try c.decodeIfPresent(Int.self, forKey: .alertCount)
+    }
 }
 
 // MARK: - 创建/编辑计划任务
@@ -254,6 +388,21 @@ nonisolated struct BackupOption: Decodable, Identifiable, Hashable {
     let name: String?
     let type: String?
     let isPublic: Bool?
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case type
+        case isPublic
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        isPublic = try c.decodeIfPresent(Bool.self, forKey: .isPublic)
+    }
 }
 
 /// 数据库实例项（GET /api/v2/databases/db/item/<type> 返回）
@@ -262,6 +411,21 @@ nonisolated struct DBItemOption: Decodable, Identifiable, Hashable {
     let from: String?
     let database: String?     // 服务名，如 "mysql"
     let name: String?         // 数据库名
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case from
+        case database
+        case name
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        from = try c.decodeIfPresent(String.self, forKey: .from)
+        database = try c.decodeIfPresent(String.self, forKey: .database)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+    }
 }
 
 /// 手动执行计划任务请求

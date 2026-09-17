@@ -51,6 +51,71 @@ nonisolated struct AIAgent: Decodable, Identifiable, Hashable {
         guard let t = createdAt, !t.isEmpty else { return "-" }
         return String(t.prefix(10))
     }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case remark
+        case agentType
+        case provider
+        case providerName
+        case model
+        case apiType
+        case baseUrl
+        case apiKey
+        case token
+        case dashboardUsername
+        case dashboardPassword
+        case status
+        case message
+        case appInstallId
+        case websiteId
+        case websitePrimaryDomain
+        case websiteType
+        case websiteProtocol
+        case accountId
+        case appVersion
+        case containerName
+        case webUIPort
+        case bridgePort
+        case path
+        case configPath
+        case upgradable
+        case createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        name = c.decodeDefault(String.self, forKey: .name, "")
+        remark = try c.decodeIfPresent(String.self, forKey: .remark)
+        agentType = try c.decodeIfPresent(String.self, forKey: .agentType)
+        provider = try c.decodeIfPresent(String.self, forKey: .provider)
+        providerName = try c.decodeIfPresent(String.self, forKey: .providerName)
+        model = try c.decodeIfPresent(String.self, forKey: .model)
+        apiType = try c.decodeIfPresent(String.self, forKey: .apiType)
+        baseUrl = try c.decodeIfPresent(String.self, forKey: .baseUrl)
+        apiKey = try c.decodeIfPresent(String.self, forKey: .apiKey)
+        token = try c.decodeIfPresent(String.self, forKey: .token)
+        dashboardUsername = try c.decodeIfPresent(String.self, forKey: .dashboardUsername)
+        dashboardPassword = try c.decodeIfPresent(String.self, forKey: .dashboardPassword)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        message = try c.decodeIfPresent(String.self, forKey: .message)
+        appInstallId = try c.decodeIfPresent(Int.self, forKey: .appInstallId)
+        websiteId = try c.decodeIfPresent(Int.self, forKey: .websiteId)
+        websitePrimaryDomain = try c.decodeIfPresent(String.self, forKey: .websitePrimaryDomain)
+        websiteType = try c.decodeIfPresent(String.self, forKey: .websiteType)
+        websiteProtocol = try c.decodeIfPresent(String.self, forKey: .websiteProtocol)
+        accountId = try c.decodeIfPresent(Int.self, forKey: .accountId)
+        appVersion = try c.decodeIfPresent(String.self, forKey: .appVersion)
+        containerName = try c.decodeIfPresent(String.self, forKey: .containerName)
+        webUIPort = try c.decodeIfPresent(Int.self, forKey: .webUIPort)
+        bridgePort = try c.decodeIfPresent(Int.self, forKey: .bridgePort)
+        path = try c.decodeIfPresent(String.self, forKey: .path)
+        configPath = try c.decodeIfPresent(String.self, forKey: .configPath)
+        upgradable = try c.decodeIfPresent(Bool.self, forKey: .upgradable)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+    }
 }
 
 /// 智能体类型定义（创建表单用）
@@ -287,6 +352,25 @@ nonisolated struct AIAgentRole: Decodable, Identifiable, Hashable {
     let model: String?
     let agentDir: String?
     let bindings: [AIAgentRoleBinding]?
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case workspace
+        case model
+        case agentDir
+        case bindings
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(String.self, forKey: .id, "")
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        workspace = try c.decodeIfPresent(String.self, forKey: .workspace)
+        model = try c.decodeIfPresent(String.self, forKey: .model)
+        agentDir = try c.decodeIfPresent(String.self, forKey: .agentDir)
+        bindings = try c.decodeIfPresent([AIAgentRoleBinding].self, forKey: .bindings)
+    }
 }
 
 nonisolated struct AIAgentRoleBinding: Codable, Hashable, Identifiable {
@@ -301,6 +385,19 @@ nonisolated struct AIAgentRoleChannel: Decodable, Hashable, Identifiable {
     let bound: Bool?
     let accountIds: [String]?
     var id: String { name }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case name
+        case bound
+        case accountIds
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = c.decodeDefault(String.self, forKey: .name, "")
+        bound = try c.decodeIfPresent(Bool.self, forKey: .bound)
+        accountIds = try c.decodeIfPresent([String].self, forKey: .accountIds)
+    }
 }
 
 /// POST agent/create {agentId, name, model, bindings}
@@ -358,6 +455,23 @@ nonisolated struct AIAgentPluginInfo: Decodable, Identifiable, Hashable {
     /// bundled / global 等
     let origin: String?
     let enabled: Bool?
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case version
+        case origin
+        case enabled
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(String.self, forKey: .id, "")
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        version = try c.decodeIfPresent(String.self, forKey: .version)
+        origin = try c.decodeIfPresent(String.self, forKey: .origin)
+        enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled)
+    }
 }
 
 /// POST plugins/operate {agentId, pluginId, operate, taskID}（启停，带任务进度）
@@ -382,6 +496,35 @@ nonisolated struct AIAgentMarketPlugin: Decodable, Identifiable, Hashable {
     let downloads: Int?
     let score: Int?
     var id: String { package }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case package
+        case pluginId
+        case name
+        case description
+        case version
+        case channel
+        case verificationTier
+        case categories
+        case official
+        case downloads
+        case score
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        package = c.decodeDefault(String.self, forKey: .package, "")
+        pluginId = try c.decodeIfPresent(String.self, forKey: .pluginId)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+        version = try c.decodeIfPresent(String.self, forKey: .version)
+        channel = try c.decodeIfPresent(String.self, forKey: .channel)
+        verificationTier = try c.decodeIfPresent(String.self, forKey: .verificationTier)
+        categories = try c.decodeIfPresent([String].self, forKey: .categories)
+        official = try c.decodeIfPresent(Bool.self, forKey: .official)
+        downloads = try c.decodeIfPresent(Int.self, forKey: .downloads)
+        score = try c.decodeIfPresent(Int.self, forKey: .score)
+    }
 }
 
 nonisolated struct AIAgentPluginsSearchRequest: Encodable {
@@ -414,6 +557,35 @@ nonisolated struct AIHermesChatSession: Decodable, Identifiable, Hashable {
     var displayTitle: String {
         if let t = title, !t.isEmpty { return t }
         return L10n.t("新对话")
+    }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case model
+        case messageCount
+        case startedAt
+        case lastActive
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(String.self, forKey: .id, "")
+        title = try c.decodeIfPresent(String.self, forKey: .title)
+        model = try c.decodeIfPresent(String.self, forKey: .model)
+        messageCount = try c.decodeIfPresent(Int.self, forKey: .messageCount)
+        startedAt = try c.decodeIfPresent(String.self, forKey: .startedAt)
+        lastActive = try c.decodeIfPresent(String.self, forKey: .lastActive)
+    }
+
+    init(id: String, title: String? = nil, model: String? = nil,
+         messageCount: Int? = nil, startedAt: String? = nil, lastActive: String? = nil) {
+        self.id = id
+        self.title = title
+        self.model = model
+        self.messageCount = messageCount
+        self.startedAt = startedAt
+        self.lastActive = lastActive
     }
 }
 

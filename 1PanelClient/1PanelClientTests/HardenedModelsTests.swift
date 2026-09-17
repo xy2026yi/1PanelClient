@@ -131,3 +131,54 @@ struct HardenedModelsTests {
         #expect(page.items?[1].ports == ["80/tcp"])
     }
 }
+
+// MARK: - M2 收尾：长尾结构加固回归
+
+@Suite("M2 长尾加固回归")
+struct HardenedLongTailTests {
+
+    @Test("AIAgent：id/name 缺失回退，可选字段保持")
+    func aiAgentHardened() throws {
+        let agent = try JSONDecoder().decode(AIAgent.self, from: Data("{}".utf8))
+        #expect(agent.id == 0)
+        #expect(agent.name == "")
+        #expect(agent.status == nil)
+    }
+
+    @Test("Cronjob：id 类型漂移回退 0（列表不整页失败）")
+    func cronjobHardened() throws {
+        let job = try JSONDecoder().decode(Cronjob.self, from: Data(#"{"id": "abc", "name": "备份"}"#.utf8))
+        #expect(job.id == 0)
+        #expect(job.name == "备份")
+    }
+
+    @Test("Website/WebsiteSSL/WebsiteFull：id 缺失回退")
+    func websiteIdsHardened() throws {
+        let w = try JSONDecoder().decode(Website.self, from: Data("{}".utf8))
+        #expect(w.id == 0)
+        let ssl = try JSONDecoder().decode(WebsiteSSL.self, from: Data("{}".utf8))
+        #expect(ssl.id == 0)
+        let full = try JSONDecoder().decode(WebsiteFull.self, from: Data("{}".utf8))
+        #expect(full.id == 0)
+    }
+
+    @Test("OpenRestyStatus：七数值字段全缺失回退 0（键映射保持）")
+    func openRestyStatusHardened() throws {
+        let st = try JSONDecoder().decode(OpenRestyStatus.self, from: Data("{}".utf8))
+        #expect(st.active == 0 && st.accepts == 0 && st.handled == 0)
+        #expect(st.requests == 0 && st.reading == 0 && st.writing == 0 && st.waiting == 0)
+        // 自定义键名（protocol/IPV6/ID）不因加固丢失
+        let w = try JSONDecoder().decode(Website.self, from: Data(#"{"protocol":"https"}"#.utf8))
+        #expect(w.protocolStr == "https")
+        let ig = try JSONDecoder().decode(AppIgnoreUpgrade.self, from: Data(#"{"ID":7}"#.utf8))
+        #expect(ig.id == 7)
+    }
+
+    @Test("AppSearchResponse：PageEnvelope 化（total null 回退 0）")
+    func appSearchEnvelope() throws {
+        let json = #"{"items": [{"id": 1, "key": "wordpress"}]}"#
+        let resp = try JSONDecoder().decode(AppSearchResponse.self, from: Data(json.utf8))
+        #expect(resp.total == 0)
+        #expect(resp.items?.first?.key == "wordpress")
+    }
+}

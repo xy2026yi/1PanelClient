@@ -23,10 +23,8 @@ nonisolated struct AppSearchRequest: Encodable {
 }
 
 /// 应用商店搜索响应（response.AppRes）
-nonisolated struct AppSearchResponse: Decodable {
-    let total: Int
-    let items: [AppStoreApp]?
-}
+/// 应用商店搜索响应（total 缺失回退 0 见 PageEnvelope）
+typealias AppSearchResponse = PageEnvelope<AppStoreApp>
 
 /// 应用类别（GET /api/v2/apps/tags；商店与已安装应用的 tags 筛选均传 key，如 "AI"）
 nonisolated struct AppTagInfo: Decodable, Hashable, Sendable, Identifiable {
@@ -84,6 +82,35 @@ nonisolated struct AppStoreApp: Decodable, Identifiable, Hashable, Sendable {
         default: return "app.dashed"
         }
     }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case key
+        case name
+        case type
+        case description
+        case tags
+        case installed
+        case recommend
+        case status
+        case limit
+        case gpuSupport
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        key = try c.decodeIfPresent(String.self, forKey: .key)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+        tags = try c.decodeIfPresent([String].self, forKey: .tags)
+        installed = try c.decodeIfPresent(Bool.self, forKey: .installed)
+        recommend = try c.decodeIfPresent(Int.self, forKey: .recommend)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        limit = try c.decodeIfPresent(Int.self, forKey: .limit)
+        gpuSupport = try c.decodeIfPresent(Bool.self, forKey: .gpuSupport)
+    }
 }
 
 // MARK: - 应用商店详情
@@ -122,6 +149,55 @@ nonisolated struct AppStoreDetail: Decodable, Identifiable, Hashable, Sendable {
     var latestVersion: String? {
         versions?.first
     }
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case key
+        case name
+        case type
+        case description
+        case shortDescZh
+        case shortDescEn
+        case readMe
+        case website
+        case document
+        case github
+        case icon
+        case tags
+        case versions
+        case installed
+        case recommend
+        case resource
+        case crossVersionUpdate
+        case gpuSupport
+        case memoryRequired
+        case requiredPanelVersion
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        key = try c.decodeIfPresent(String.self, forKey: .key)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+        shortDescZh = try c.decodeIfPresent(String.self, forKey: .shortDescZh)
+        shortDescEn = try c.decodeIfPresent(String.self, forKey: .shortDescEn)
+        readMe = try c.decodeIfPresent(String.self, forKey: .readMe)
+        website = try c.decodeIfPresent(String.self, forKey: .website)
+        document = try c.decodeIfPresent(String.self, forKey: .document)
+        github = try c.decodeIfPresent(String.self, forKey: .github)
+        icon = try c.decodeIfPresent(String.self, forKey: .icon)
+        tags = try c.decodeIfPresent([AppTag].self, forKey: .tags)
+        versions = try c.decodeIfPresent([String].self, forKey: .versions)
+        installed = try c.decodeIfPresent(Bool.self, forKey: .installed)
+        recommend = try c.decodeIfPresent(Int.self, forKey: .recommend)
+        resource = try c.decodeIfPresent(String.self, forKey: .resource)
+        crossVersionUpdate = try c.decodeIfPresent(Bool.self, forKey: .crossVersionUpdate)
+        gpuSupport = try c.decodeIfPresent(Bool.self, forKey: .gpuSupport)
+        memoryRequired = try c.decodeIfPresent(Int.self, forKey: .memoryRequired)
+        requiredPanelVersion = try c.decodeIfPresent(Double.self, forKey: .requiredPanelVersion)
+    }
 }
 
 // MARK: - 应用版本详情（含 docker-compose 和参数表单）
@@ -143,6 +219,41 @@ nonisolated struct AppDetail: Decodable, Identifiable, Hashable, Sendable {
     let memoryRequired: Int?
     let image: String?
     let downloadUrl: String?
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case id
+        case appId
+        case version
+        case dockerCompose
+        case params
+        case status
+        case enable
+        case update
+        case lastVersion
+        case hostMode
+        case gpuSupport
+        case memoryRequired
+        case image
+        case downloadUrl
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        appId = try c.decodeIfPresent(Int.self, forKey: .appId)
+        version = try c.decodeIfPresent(String.self, forKey: .version)
+        dockerCompose = try c.decodeIfPresent(String.self, forKey: .dockerCompose)
+        params = try c.decodeIfPresent(AppFormParams.self, forKey: .params)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        enable = try c.decodeIfPresent(Bool.self, forKey: .enable)
+        update = try c.decodeIfPresent(Bool.self, forKey: .update)
+        lastVersion = try c.decodeIfPresent(String.self, forKey: .lastVersion)
+        hostMode = try c.decodeIfPresent(Bool.self, forKey: .hostMode)
+        gpuSupport = try c.decodeIfPresent(Bool.self, forKey: .gpuSupport)
+        memoryRequired = try c.decodeIfPresent(Int.self, forKey: .memoryRequired)
+        image = try c.decodeIfPresent(String.self, forKey: .image)
+        downloadUrl = try c.decodeIfPresent(String.self, forKey: .downloadUrl)
+    }
 }
 
 /// 参数表单定义（AppDetail.params）
@@ -324,10 +435,28 @@ nonisolated struct AppIgnoreUpgrade: Decodable, Identifiable, Sendable {
     let createdAt: String?
     let updatedAt: String?
 
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
     enum CodingKeys: String, CodingKey {
         case id = "ID"
-        case appID, appDetailID, scope, version, name
-        case createdAt, updatedAt
+        case appID
+        case appDetailID
+        case scope
+        case version
+        case name
+        case createdAt
+        case updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.decodeDefault(Int.self, forKey: .id, 0)
+        appID = try c.decodeIfPresent(Int.self, forKey: .appID)
+        appDetailID = try c.decodeIfPresent(Int.self, forKey: .appDetailID)
+        scope = try c.decodeIfPresent(String.self, forKey: .scope)
+        version = try c.decodeIfPresent(String.self, forKey: .version)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        updatedAt = try c.decodeIfPresent(String.self, forKey: .updatedAt)
     }
 }
 

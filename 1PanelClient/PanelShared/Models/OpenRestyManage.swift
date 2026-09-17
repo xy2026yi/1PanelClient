@@ -18,6 +18,27 @@ nonisolated struct OpenRestyStatus: Decodable, Sendable {
     let reading: Int
     let writing: Int
     let waiting: Int
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case active
+        case accepts
+        case handled
+        case requests
+        case reading
+        case writing
+        case waiting
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        active = c.decodeDefault(Int.self, forKey: .active, 0)
+        accepts = c.decodeDefault(Int.self, forKey: .accepts, 0)
+        handled = c.decodeDefault(Int.self, forKey: .handled, 0)
+        requests = c.decodeDefault(Int.self, forKey: .requests, 0)
+        reading = c.decodeDefault(Int.self, forKey: .reading, 0)
+        writing = c.decodeDefault(Int.self, forKey: .writing, 0)
+        waiting = c.decodeDefault(Int.self, forKey: .waiting, 0)
+    }
 }
 
 // MARK: - 性能参数（POST /api/v2/openresty/scope, scope=http-per）
@@ -30,6 +51,17 @@ nonisolated struct OpenRestyScopeRequest: Encodable, Sendable {
 nonisolated struct OpenRestyScopeItem: Decodable, Sendable {
     let name: String
     let params: [String]?
+    // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
+    enum CodingKeys: String, CodingKey {
+        case name
+        case params
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = c.decodeDefault(String.self, forKey: .name, "")
+        params = try c.decodeIfPresent([String].self, forKey: .params)
+    }
 }
 
 /// 性能参数保存（POST /api/v2/openresty/update）
