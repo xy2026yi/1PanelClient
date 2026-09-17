@@ -54,11 +54,15 @@ struct WebsiteDetailView: View {
 
                 // 基本信息
                 Section {
-                    if let alias = d.alias, !alias.isEmpty {
-                        InfoRow(L10n.t("别名"), value: alias)
-                    }
                     if let domain = d.primaryDomain, !domain.isEmpty {
                         InfoRow(L10n.t("主域名"), value: domain)
+                    }
+                    // 其他域名：详情 domains 数组去掉主域名后的部分，按行展示
+                    let otherDomainList = (d.domains ?? [])
+                        .compactMap(\.domain)
+                        .filter { !$0.isEmpty && $0 != d.primaryDomain }
+                    if !otherDomainList.isEmpty {
+                        InfoRow(L10n.t("其他域名"), value: otherDomainList.joined(separator: "\n"))
                     }
                     InfoRow(L10n.t("类型"), value: Website.typeDisplayName(for: d.type ?? website.type))
                     if let p = d.sitePath, !p.isEmpty {
@@ -354,10 +358,8 @@ struct WebsiteEditView: View {
     var body: some View {
         Form {
             Section {
-                TextField("example.com", text: $primaryDomain)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
+                FormTextField(label: L10n.t("主域名"), prompt: "example.com",
+                              text: $primaryDomain, style: .stacked, keyboardType: .URL)
             } header: {
                 Text(L10n.t("主域名"))
             } footer: {
@@ -365,7 +367,7 @@ struct WebsiteEditView: View {
             }
 
             Section {
-                TextField(L10n.t("备注（可选）"), text: $remark)
+                FormTextField(label: L10n.t("备注（可选）"), text: $remark, machineValue: false)
             } header: {
                 Text(L10n.t("备注"))
             }

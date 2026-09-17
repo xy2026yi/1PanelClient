@@ -795,8 +795,9 @@ struct FirewallView: View {
     let server: ServerConfig
 
     @State private var statusExpanded = false
-    /// 内容段：0=规则 1=转发 2=Docker 守护 3=设置
+    /// 内容段：0=规则 1=转发 2=容器端口防护（设置经状态抽屉按钮进入独立页）
     @State private var segment = 0
+    @State private var showSettings = false
     // 规则段交互
     @State private var showAddRule = false
     @State private var editingRule: FirewallRule?
@@ -841,7 +842,6 @@ struct FirewallView: View {
                     Text(L10n.t("规则")).tag(0)
                     Text(L10n.t("转发")).tag(1)
                     Text("Docker").tag(2)
-                    Text(L10n.t("设置")).tag(3)
                 }
                 .pickerStyle(.segmented)
                 .segmentedPickerRow()
@@ -850,16 +850,21 @@ struct FirewallView: View {
                 switch segment {
                 case 0: rulesSection
                 case 1: forwardSection
-                case 2: dockerSection
-                default: settingsSection
+                default: dockerSection
                 }
             }
         }
         .navigationTitle(L10n.t("防火墙"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
                 if !vm.unsupportedPanel {
+                    // WAF 与防火墙同属主机安全防护，入口收进本页右上角（管理列表不单列），
+                    // 与「添加」菜单并排独立成按钮
+                    Button { showWAF = true } label: {
+                        Image(systemName: "shield.lefthalf.filled")
+                    }
+                    .accessibilityLabel("WAF")
                     Menu {
                         if segment == 0 {
                             Button { showAddRule = true } label: {
@@ -897,9 +902,6 @@ struct FirewallView: View {
                             } label: {
                                 Label(L10n.t("同步转发规则"), systemImage: "arrow.triangle.2.circlepath")
                             }
-                        }
-                        Button { showWAF = true } label: {
-                            Label("WAF", systemImage: "shield.lefthalf.filled")
                         }
                     } label: {
                         Image(systemName: "plus.circle")
@@ -1006,6 +1008,10 @@ struct FirewallView: View {
         // WAF 与防火墙同属主机安全防护，入口收进本页右上角（管理列表不单列）
         .navigationDestination(isPresented: $showWAF) {
             WAFView(server: server)
+        }
+        // 设置页（状态抽屉按钮进入）：禁 Ping / 白名单 / 三组防护后端下拉切换
+        .navigationDestination(isPresented: $showSettings) {
+            FirewallSettingsPageView(vm: vm)
         }
         // 同步预览（规则段 / 转发段共用）
         .sheet(isPresented: $showSyncPreview) {
@@ -1201,15 +1207,10 @@ struct FirewallView: View {
                              color: .orange, busy: vm.isOperating) {
                 pendingLifeOp = "restart"
             }
-            CardActionButton(
-                title: vm.systemStatus?.pingBlocked == true ? L10n.t("允许 Ping") : L10n.t("禁 Ping"),
-                icon: "waveform.path.ecg",
-                color: .purple,
-                busy: vm.isOperating
-            ) {
-                Task {
-                    await vm.operateFirewall(vm.systemStatus?.pingBlocked == true ? "enableBanPing" : "disableBanPing")
-                }
+            // 禁 Ping 开关移入设置页；设置入口以按钮形式收进状态抽屉
+            CardActionButton(title: L10n.t("设置"), icon: "gearshape",
+                             color: .purple, busy: false) {
+                showSettings = true
             }
             // iptables/nftables：基础链初始化 / 绑定 / 解绑
             if vm.systemStatus?.backend == "iptables" || vm.systemStatus?.backend == "nftables" {
@@ -1557,11 +1558,26 @@ struct FirewallView: View {
             }
         }
     }
+}
 
-    // MARK: 设置段
+// MARK: - 设置页（状态抽屉按钮进入）
 
-    private var settingsSection: some View {
-        Group {
+/// 防火墙设置：禁 Ping / 面板端口白名单 / 三组防护后端。
+/// 后端（系统防火墙 / 端口转发 / 容器端口防护）用下拉选择，切换需弹窗确认
+private struct FirewallSettingsPageView: View {
+    @ObservedObject var vm: FirewallViewModel
+
+    /// 待确认的后端切换（弹窗确认后才下发 select）
+    @State private var pendingSwitch: BackendSwitch?
+
+    struct BackendSwitch: Identifiable {
+        let subsystem: String
+        let backend: String
+        var id: String { "\(subsystem)/\(backend)" }
+    }
+
+    var body: some View {
+        Form {
             Section {
                 Toggle(L10n.t("禁 Ping"), isOn: Binding(
                     get: { vm.settings?.pingBlocked ?? vm.systemStatus?.pingBlocked ?? false },
@@ -1589,94 +1605,95 @@ struct FirewallView: View {
                 Text(L10n.t("禁 Ping 后服务器不再响应 ICMP 探测；端口白名单外的高校验规则见任务日志。"))
             }
 
-            backendGroupSection(title: L10n.t("系统防火墙"), subsystem: "system",
-                                group: vm.settings?.system)
-            backendGroupSection(title: L10n.t("端口转发"), subsystem: "forwarding",
-                                group: vm.settings?.forwarding)
-            backendGroupSection(title: L10n.t("Docker 守护"), subsystem: "docker",
-                                group: vm.settings?.docker)
+            backendPickerSection(title: L10n.t("系统防火墙"), subsystem: "system",
+                                 group: vm.settings?.system)
+            backendPickerSection(title: L10n.t("端口转发"), subsystem: "forwarding",
+                                 group: vm.settings?.forwarding)
+            backendPickerSection(title: L10n.t("容器端口防护"), subsystem: "docker",
+                                 group: vm.settings?.docker)
+        }
+        .navigationTitle(L10n.t("设置"))
+        .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
+        .toastOverlay(message: $vm.toastMessage)
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { vm.errorMessage != nil },
+            set: { if !$0 { vm.errorMessage = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { vm.errorMessage = nil }
+        } message: {
+            Text(vm.errorMessage ?? "")
+        }
+        // 下拉切换后端：弹窗确认（确认后 select，取消回弹为当前后端）
+        .alert(L10n.t("确认"), isPresented: Binding(
+            get: { pendingSwitch != nil },
+            set: { if !$0 { pendingSwitch = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingSwitch = nil }
+            Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
+                guard let sw = pendingSwitch else { return }
+                pendingSwitch = nil
+                Task {
+                    await vm.operateBackend(subsystem: sw.subsystem, backend: sw.backend,
+                                            operation: "select")
+                }
+            }
+        } message: {
+            Text(L10n.f("确认切换为 %@？", pendingSwitch?.backend ?? ""))
         }
     }
 
-    private func backendGroupSection(title: String, subsystem: String,
-                                     group: FirewallBackendGroup?) -> some View {
+    /// 单组防护后端：下拉选择（未安装 / 不支持的选项不可选）
+    private func backendPickerSection(title: String, subsystem: String,
+                                      group: FirewallBackendGroup?) -> some View {
         Section {
-            if let group {
-                ForEach(group.options ?? []) { option in
-                    backendOptionRow(option: option, group: group, subsystem: subsystem)
+            Picker(title, selection: backendBinding(subsystem: subsystem, group: group)) {
+                ForEach(group?.options ?? []) { option in
+                    Text((option.name ?? "").uppercased())
+                        .tag(option.name ?? "")
+                        .disabled(option.installed != true || option.supported == false)
+                }
+                // 当前后端不在选项列表（数据异常）时兜底，避免 invalid selection
+                if let selected = group?.selected, !selected.isEmpty,
+                   !(group?.options ?? []).contains(where: { $0.name == selected }) {
+                    Text(selected.uppercased()).tag(selected)
                 }
             }
+            .pickerStyle(.menu)
+            .disabled(vm.isOperating)
         } header: {
-            HStack {
-                SectionLabel(title: title, systemImage: "server.rack")
-                Spacer()
-                if let selected = group?.selected, !selected.isEmpty {
-                    Text(L10n.f("当前：%@", selected))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            SectionLabel(title: title, systemImage: "server.rack")
+        } footer: {
+            if let reason = unusableReason(group: group) {
+                Text(reason)
+            } else {
+                Text(L10n.t("切换防护后端将重建对应规则链，期间服务可能短暂中断"))
             }
         }
     }
 
-    private func backendOptionRow(option: FirewallBackendOption,
-                                  group: FirewallBackendGroup,
-                                  subsystem: String) -> some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text((option.name ?? "—").uppercased())
-                        .font(.subheadline.bold())
-                    if option.name == group.selected {
-                        StatusBadge(text: L10n.t("已选择"), color: .blue)
-                    }
-                }
-                HStack(spacing: 6) {
-                    if option.installed != true {
-                        StatusBadge(text: L10n.t("未安装"), color: .secondary)
-                    }
-                    if option.installed == true, option.active == true {
-                        StatusBadge(text: L10n.t("已激活"), color: .statusRunning)
-                    }
-                    if option.supported == false {
-                        StatusBadge(text: L10n.t("不支持"), color: .semanticWarning)
-                    }
-                }
-                if let reason = option.supportReason ?? option.message, !reason.isEmpty {
-                    Text(reason)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+    /// 选择值真源是服务端的 group.selected；用户改选仅触发确认弹窗，不直接落状态
+    private func backendBinding(subsystem: String, group: FirewallBackendGroup?) -> Binding<String> {
+        Binding<String>(
+            get: { group?.selected ?? "" },
+            set: { chosen in
+                guard let group, !chosen.isEmpty, chosen != group.selected else { return }
+                pendingSwitch = BackendSwitch(subsystem: subsystem, backend: chosen)
             }
-            Spacer()
-            if option.supported != false, option.installed == true {
-                Menu {
-                    if option.name != group.selected {
-                        Button(L10n.t("选择此后端")) {
-                            Task { await vm.operateBackend(subsystem: subsystem, backend: option.name ?? "", operation: "select") }
-                        }
-                    }
-                    if option.initialized != true, option.name != group.selected {
-                        Button(L10n.t("初始化")) {
-                            Task { await vm.operateBackend(subsystem: subsystem, backend: option.name ?? "", operation: "initialize") }
-                        }
-                    }
-                    if option.bound == true {
-                        Button(L10n.t("清理绑定"), role: .destructive) {
-                            Task { await vm.operateBackend(subsystem: subsystem, backend: option.name ?? "", operation: "cleanup") }
-                        }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.body)
-                        .frame(width: 32, height: 32)
-                }
-            }
+        )
+    }
+
+    /// 当前选中项不可用时给出原因（如「未安装 / 由发行版管控」）
+    private func unusableReason(group: FirewallBackendGroup?) -> String? {
+        guard let group, let selected = group.selected else { return nil }
+        guard let option = (group.options ?? []).first(where: { $0.name == selected }) else {
+            return nil
         }
+        let reason = option.supportReason ?? option.message ?? ""
+        return reason.isEmpty ? nil : L10n.f("%@：%@", selected.uppercased(), reason)
     }
 }
-
-// pingBlocked 已上移至 Models/Firewall.swift 的 FirewallSettings（测试与视图共用）
 
 // MARK: - 规则行
 

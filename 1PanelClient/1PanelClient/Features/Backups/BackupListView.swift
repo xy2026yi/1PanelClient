@@ -292,7 +292,7 @@ struct BackupSubmitError: Error {
 }
 
 /// 备份/恢复任务进度页状态
-struct BackupProgressState: Equatable {
+struct BackupProgressState: Hashable {
     let taskID: String
     let title: String
     /// 读取方向：网页端创建/恢复备份均 latest=false 从头读（0908 抓包）
@@ -301,15 +301,30 @@ struct BackupProgressState: Equatable {
 
 // MARK: - 备份列表页
 
+/// 备份列表页的 push 路由：创建表单与任务进度共用一条通道。
+/// 创建提交成功后在栈内把表单原位替换为进度页——若先 pop 回列表再
+/// push，用户会看到列表页一闪而过；且转场进行中的 push 会被丢弃
+///（见 pushPendingProgressAfterTransition 注释）
+private enum BackupRoute: Hashable, Identifiable {
+    case create
+    case progress(BackupProgressState)
+
+    var id: String {
+        switch self {
+        case .create:                   return "create"
+        case .progress(let p):          return "progress-\(p.taskID)"
+        }
+    }
+}
+
 struct BackupListView: View {
     @StateObject private var vm: BackupViewModel
 
-    @State private var showCreate = false
+    @State private var route: BackupRoute?
     @State private var recoveringRecord: BackupRecord?
     @State private var deletingRecord: BackupRecord?
-    /// 待跳转的任务进度（表单关闭后再压栈，避免 sheet 与 push 同时动画冲突）
+    /// 恢复 sheet 关闭后待跳转的任务进度（创建走 route 原位替换，无需此中转）
     @State private var pendingProgress: BackupProgressState?
-    @State private var progress: BackupProgressState?
 
     init(target: BackupTarget) {
         _vm = StateObject(wrappedValue: BackupViewModel(
@@ -347,7 +362,7 @@ struct BackupListView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    showCreate = true
+                    route = .create
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -360,16 +375,26 @@ struct BackupListView: View {
         .refreshable {
             await vm.refresh()
         }
-        .navigationDestination(isPresented: $showCreate) {
-            BackupCreateView(target: vm.target) { secret, description, args, stopBefore in
-                switch await vm.createBackup(secret: secret, description: description, args: args, stopBefore: stopBefore) {
-                case .success(let taskID):
-                    pendingProgress = BackupProgressState(
-                        taskID: taskID, title: L10n.f("备份 %@", vm.target.detailName), latest: false
-                    )
-                    return nil
-                case .failure(let error):
-                    return error.message
+        .navigationDestination(item: $route) { route in
+            switch route {
+            case .create:
+                BackupCreateView(target: vm.target) { secret, description, args, stopBefore in
+                    switch await vm.createBackup(secret: secret, description: description, args: args, stopBefore: stopBefore) {
+                    case .success(let taskID):
+                        // 不先 pop：直接把栈顶表单原位替换为进度页
+                        self.route = .progress(BackupProgressState(
+                            taskID: taskID, title: L10n.f("备份 %@", vm.target.detailName), latest: false
+                        ))
+                        return nil
+                    case .failure(let error):
+                        return error.message
+                    }
+                }
+            case .progress(let p):
+                TaskProgressView(taskID: p.taskID, title: p.title, latest: p.latest) { isDone in
+                    // 任务完成或后台运行：回到列表并刷新
+                    Task { await vm.refresh() }
+                    return false
                 }
             }
         }
@@ -385,21 +410,6 @@ struct BackupListView: View {
                     return error.message
                 }
             }
-        }
-        .navigationDestination(isPresented: Binding(
-            get: { progress != nil },
-            set: { if !$0 { progress = nil } }
-        )) {
-            if let p = progress {
-                TaskProgressView(taskID: p.taskID, title: p.title, latest: p.latest) { isDone in
-                    // 任务完成或后台运行：回到列表并刷新
-                    Task { await vm.refresh() }
-                    return false
-                }
-            }
-        }
-        .onChange(of: showCreate) { _, shown in
-            if !shown { pushPendingProgressAfterTransition() }
         }
         .onChange(of: recoveringRecord) { old, new in
             if old != nil && new == nil { pushPendingProgressAfterTransition() }
@@ -442,15 +452,15 @@ struct BackupListView: View {
         }
     }
 
-    /// 表单转场（创建页 pop / 恢复 sheet 消失）进行中直接 push 进度页会被
-    /// NavigationStack 丢弃——binding 已置 true 但转场不发生，进度页永远
-    /// 不出来（提交后看似「什么都没发生」）。延迟到转场结束再压栈
+    /// 恢复 sheet 转场（消失）进行中直接 push 进度页会被 NavigationStack
+    /// 丢弃——binding 已置 true 但转场不发生，进度页永远不出来（提交后看似
+    /// 「什么都没发生」）。延迟到转场结束再压栈（创建表单走 route 原位替换无此问题）
     private func pushPendingProgressAfterTransition() {
         guard let p = pendingProgress else { return }
         pendingProgress = nil
         Task {
             try? await Task.sleep(for: .seconds(0.45))
-            progress = p
+            route = .progress(p)
         }
     }
 
@@ -617,10 +627,9 @@ private struct BackupRecordCard: View {
 /// 新增备份：压缩密码 + 描述（MySQL 系多一个备份参数多选；编排多一个备份前停止开关）
 private struct BackupCreateView: View {
     let target: BackupTarget
-    /// 返回 nil 表示提交成功（表单自行关闭）；返回非 nil 为失败原因（表单内弹提示）
+    /// 返回 nil 表示提交成功（父页原位替换为进度页）；返回非 nil 为失败原因（表单内弹提示）
     let onSubmit: (_ secret: String, _ description: String, _ args: [String], _ stopBefore: Bool) async -> String?
 
-    @Environment(\.dismiss) private var dismiss
     @State private var secret = ""
     @State private var showSecret = false
     @State private var description = ""
@@ -634,14 +643,9 @@ private struct BackupCreateView: View {
     var body: some View {
         Form {
                 Section {
-                    HStack {
-                        if showSecret {
-                            TextField(L10n.t("压缩密码（可选）"), text: $secret)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                        } else {
-                            SecureField(L10n.t("压缩密码（可选）"), text: $secret)
-                        }
+                    HStack(alignment: .firstTextBaseline) {
+                        FormTextField(label: L10n.t("压缩密码（可选）"), text: $secret,
+                                      isSecure: !showSecret)
                         Button {
                             showSecret.toggle()
                         } label: {
@@ -650,7 +654,8 @@ private struct BackupCreateView: View {
                         }
                         .buttonStyle(.borderless)
                     }
-                    TextField(L10n.t("描述（可选）"), text: $description)
+                    FormTextField(label: L10n.t("描述（可选）"), text: $description,
+                                  machineValue: false)
                 } header: {
                     Text(L10n.t("备份选项"))
                 } footer: {
@@ -698,9 +703,8 @@ private struct BackupCreateView: View {
                             isSubmitting = false
                             if let error {
                                 submitError = error
-                            } else {
-                                dismiss()
                             }
+                            // 成功不 dismiss：由父页把栈顶原位替换为任务进度页
                         }
                     }
                     .disabled(isSubmitting)
@@ -763,14 +767,9 @@ case hour = "小时"
                 }
 
                 Section {
-                    HStack {
-                        if showSecret {
-                            TextField(L10n.t("压缩密码（可选）"), text: $secret)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                        } else {
-                            SecureField(L10n.t("压缩密码（可选）"), text: $secret)
-                        }
+                    HStack(alignment: .firstTextBaseline) {
+                        FormTextField(label: L10n.t("压缩密码（可选）"), text: $secret,
+                                      isSecure: !showSecret)
                         Button {
                             showSecret.toggle()
                         } label: {

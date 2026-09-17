@@ -227,9 +227,7 @@ struct CreateDatabaseView: View {
     var body: some View {
         Form {
             Section(L10n.t("基本信息")) {
-                TextField(L10n.t("数据库名称"), text: $name)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("数据库名称"), text: $name)
             }
 
             if vm.isPostgreSQL {
@@ -252,7 +250,7 @@ struct CreateDatabaseView: View {
             }
 
             Section(L10n.t("描述")) {
-                TextField(L10n.t("可选描述"), text: $description, axis: .vertical)
+                FormTextField(label: L10n.t("可选描述"), text: $description, axis: .vertical, machineValue: false)
                     .lineLimit(2...4)
             }
 
@@ -310,9 +308,7 @@ struct CreateDatabaseView: View {
 
     private var pgUserSection: some View {
         Section(L10n.t("用户")) {
-            TextField(L10n.t("用户名"), text: $username)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("用户名"), text: $username)
                 .onChange(of: name) { _, newValue in
                     username = newValue
                 }
@@ -324,9 +320,7 @@ struct CreateDatabaseView: View {
 
     private var mongoUserSection: some View {
         Section(L10n.t("用户")) {
-            TextField(L10n.t("用户名（默认同名称）"), text: $username)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("用户名（默认同名称）"), text: $username)
             passwordRow
         }
     }
@@ -386,9 +380,7 @@ struct CreateDatabaseView: View {
                 }
             case .create:
                 Section(L10n.t("新用户")) {
-                    TextField(L10n.t("用户名"), text: $username)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("用户名"), text: $username)
                     passwordRow
                 }
                 Section(L10n.t("权限")) {
@@ -514,11 +506,9 @@ struct CreateDatabaseUserView: View {
     var body: some View {
         Form {
             Section(L10n.t("用户信息")) {
-                TextField(L10n.t("用户名"), text: $username)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("用户名"), text: $username)
                 passwordRow
-                TextField(L10n.t("描述"), text: $description, axis: .vertical)
+                FormTextField(label: L10n.t("描述"), text: $description, axis: .vertical, machineValue: false)
                     .lineLimit(2...4)
             }
 
@@ -941,14 +931,12 @@ struct EditUserPermissionSheet: View {
                     .pickerStyle(.segmented)
 
                     if permissionMode == .ip {
-                        TextField(L10n.t("IP 地址"), text: $permissionIPs)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
+                        FormTextField(label: L10n.t("IP 地址"), text: $permissionIPs, style: .stacked)
                             .font(.dataMonospacedBody)
                     }
                 }
                 Section(L10n.t("描述")) {
-                    TextField(L10n.t("描述"), text: $description, axis: .vertical)
+                    FormTextField(label: L10n.t("描述"), text: $description, axis: .vertical, machineValue: false)
                         .lineLimit(2...4)
                 }
             }

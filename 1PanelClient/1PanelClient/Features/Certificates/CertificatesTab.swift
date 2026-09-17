@@ -563,7 +563,7 @@ struct UploadCertificateView: View {
                 }
                 .pickerStyle(.segmented)
 
-                TextField(L10n.t("备注（可选）"), text: $description)
+                FormTextField(label: L10n.t("备注（可选）"), text: $description, machineValue: false)
             } header: {
                 if isUpdate {
                     Text(L10n.t("更新证书"))
@@ -596,11 +596,13 @@ struct UploadCertificateView: View {
 
             case .local:
                 Section {
-                    TextField(L10n.t("如 /home/user/privkey.pem"), text: $privateKeyPath)
+                    FormTextField(label: L10n.t("私钥文件路径"), prompt: "/home/user/privkey.pem",
+                                  text: $privateKeyPath, style: .stacked)
                 } header: { Text(L10n.t("私钥文件路径")) }
 
                 Section {
-                    TextField(L10n.t("如 /home/user/fullchain.pem"), text: $certificatePath)
+                    FormTextField(label: L10n.t("证书文件路径"), prompt: "/home/user/fullchain.pem",
+                                  text: $certificatePath, style: .stacked)
                 } header: { Text(L10n.t("证书文件路径")) }
 
             case .phone:

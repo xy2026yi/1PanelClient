@@ -375,8 +375,7 @@ private struct PairingApproveSection: View {
 
     var body: some View {
         Section {
-            TextField(L10n.t("配对码"), text: $pairingCode)
-                .keyboardType(.numberPad)
+            FormTextField(label: L10n.t("配对码"), text: $pairingCode, keyboardType: .numberPad)
             Button {
                 Task { await approve() }
             } label: {
@@ -900,13 +899,10 @@ struct AIAgentQQChannelView: View {
                         Toggle(L10n.t("启用"), isOn: Binding(
                             get: { c.enabled ?? false }, set: { c.enabled = $0 }))
                     }
-                    TextField("App ID", text: Binding(
+                    FormTextField(label: "App ID", text: Binding(
                         get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    SecureField("App Secret", text: Binding(
-                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: "App Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }), isSecure: true)
                     ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
                                          value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                     ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
@@ -1242,20 +1238,15 @@ private struct AIQQBotFormSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("名称"), text: Binding(
+                    FormTextField(label: L10n.t("名称"), text: Binding(
                         get: { bot.name ?? "" }, set: { bot.name = $0 }))
-                        .textInputAutocapitalization(.never)
-                    TextField(L10n.t("账户 ID"), text: Binding(
+                    FormTextField(label: L10n.t("账户 ID"), text: Binding(
                         get: { bot.accountId ?? "" }, set: { bot.accountId = $0 }))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
                         .disabled(lockAccountID)
-                    TextField("App ID", text: Binding(
+                    FormTextField(label: "App ID", text: Binding(
                         get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
-                        .textInputAutocapitalization(.never)
-                    SecureField("App Secret", text: Binding(
-                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: "App Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }), isSecure: true)
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
                 } footer: {
@@ -1371,11 +1362,10 @@ struct AIAgentWecomChannelView: View {
                         Toggle(L10n.t("启用"), isOn: Binding(
                             get: { c.enabled ?? false }, set: { c.enabled = $0 }))
                     }
-                    TextField(L10n.t("Bot ID"), text: Binding(
+                    FormTextField(label: L10n.t("Bot ID"), text: Binding(
                         get: { c.botId ?? "" }, set: { c.botId = $0 }))
-                        .textInputAutocapitalization(.never)
-                    SecureField(L10n.t("密钥"), text: Binding(
-                        get: { c.secret ?? "" }, set: { c.secret = $0 }))
+                    FormTextField(label: L10n.t("密钥"), text: Binding(
+                        get: { c.secret ?? "" }, set: { c.secret = $0 }), isSecure: true)
                     ChannelPolicyPicker(title: L10n.t("私聊策略"),
                                          options: isOpenClaw ? AIChannelPolicy.dmPoliciesFull : AIChannelPolicy.dmPoliciesBasic,
                                          value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
@@ -1597,12 +1587,10 @@ struct AIAgentDingtalkChannelView: View {
                         Toggle(L10n.t("启用"), isOn: Binding(
                             get: { c.enabled ?? false }, set: { c.enabled = $0 }))
                     }
-                    TextField("Client ID", text: Binding(
+                    FormTextField(label: "Client ID", text: Binding(
                         get: { bot.clientId ?? "" }, set: { bot.clientId = $0 }))
-                        .textInputAutocapitalization(.never)
-                    SecureField("Client Secret", text: Binding(
-                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: "Client Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }), isSecure: true)
                     ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
                                          value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                     // Hermes 网页端无群组策略（核对隐藏，保存仍回传服务端值）
@@ -1686,7 +1674,7 @@ struct AIAgentDingtalkChannelView: View {
             Toggle(L10n.t("异步模式"), isOn: Binding(
                 get: { c.asyncMode ?? false }, set: { c.asyncMode = $0 }))
             if c.asyncMode == true {
-                TextField(L10n.t("确认消息"), text: Binding(
+                FormTextField(label: L10n.t("确认消息"), text: Binding(
                     get: { c.ackText ?? "" }, set: { c.ackText = $0 }))
             }
         } header: {
@@ -1709,7 +1697,7 @@ struct AIAgentDingtalkChannelView: View {
                 set: { c.sharedMemoryAcrossConversations = $0 }))
             Toggle(L10n.t("异步模式"), isOn: Binding(
                 get: { c.asyncMode ?? false }, set: { c.asyncMode = $0 }))
-            TextField(L10n.t("异步回执文案"), text: Binding(
+            FormTextField(label: L10n.t("异步回执文案"), text: Binding(
                 get: { c.ackText ?? "" }, set: { c.ackText = $0 }))
         } header: {
             SectionLabel(title: L10n.t("会话设置"), systemImage: "bubble.left.and.bubble.right")
@@ -1988,20 +1976,16 @@ private struct AIDingtalkBotFormSheet: View {
             Form {
                 Section {
                     // 名称不可编辑（网页核对）：创建时自动与账户 ID 一致
-                    TextField(L10n.t("账户 ID"), text: Binding(
+                    FormTextField(label: L10n.t("账户 ID"), text: Binding(
                         get: { bot.accountId ?? "" },
                         set: { raw in
                             bot.accountId = raw
                             bot.name = raw
                         }))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("Client ID", text: Binding(
+                    FormTextField(label: "Client ID", text: Binding(
                         get: { bot.clientId ?? "" }, set: { bot.clientId = $0 }))
-                        .textInputAutocapitalization(.never)
-                    SecureField("Client Secret", text: Binding(
-                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: "Client Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }), isSecure: true)
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
                 } footer: {
@@ -2141,12 +2125,10 @@ struct AIAgentFeishuChannelView: View {
                         Toggle(L10n.t("启用"), isOn: Binding(
                             get: { c.enabled ?? false }, set: { c.enabled = $0 }))
                     }
-                    TextField("App ID", text: Binding(
+                    FormTextField(label: "App ID", text: Binding(
                         get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
-                        .textInputAutocapitalization(.never)
-                    SecureField("App Secret", text: Binding(
-                        get: { bot.appSecret ?? "" }, set: { bot.appSecret = $0 }))
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: "App Secret", text: Binding(
+                        get: { bot.appSecret ?? "" }, set: { bot.appSecret = $0 }), isSecure: true)
                     // Hermes 私聊策略无禁用（网页核对）：配队码 / 开放
                     ChannelPolicyPicker(title: L10n.t("私聊策略"),
                                          options: isHermes ? AIChannelPolicy.dmPoliciesPairingOpen : AIChannelPolicy.dmPoliciesBasic,
@@ -2224,8 +2206,7 @@ struct AIAgentFeishuChannelView: View {
             get: { pairingBot != nil },
             set: { if !$0 { pairingBot = nil } }
         )) {
-            TextField(L10n.t("配对码"), text: $pairingCode)
-                .keyboardType(.numberPad)
+            FormTextField(label: L10n.t("配对码"), text: $pairingCode, keyboardType: .numberPad)
             Button(L10n.t("批准配对")) {
                 // alert 关闭先于 Task 执行：配对码在 action 内捕获，避免发出空串
                 if let bot = pairingBot {
@@ -2547,20 +2528,15 @@ private struct AIFeishuBotFormSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("名称"), text: Binding(
+                    FormTextField(label: L10n.t("名称"), text: Binding(
                         get: { bot.name ?? "" }, set: { bot.name = $0 }))
-                        .textInputAutocapitalization(.never)
-                    TextField(L10n.t("账户 ID"), text: Binding(
+                    FormTextField(label: L10n.t("账户 ID"), text: Binding(
                         get: { bot.accountId ?? "" }, set: { bot.accountId = $0 }))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
                         .disabled(lockAccountID)
-                    TextField("App ID", text: Binding(
+                    FormTextField(label: "App ID", text: Binding(
                         get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
-                        .textInputAutocapitalization(.never)
-                    SecureField("App Secret", text: Binding(
-                        get: { bot.appSecret ?? "" }, set: { bot.appSecret = $0 }))
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: "App Secret", text: Binding(
+                        get: { bot.appSecret ?? "" }, set: { bot.appSecret = $0 }), isSecure: true)
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
                 } footer: {
@@ -2689,9 +2665,8 @@ struct AIAgentTelegramChannelView: View {
                     }
                     if isHermes {
                         // Hermes 网页核对：仅 Bot Token / 私聊策略（配队码、开放）/ 群聊需@机器人
-                        SecureField(L10n.t("Bot Token"), text: Binding(
-                            get: { bot.botToken ?? "" }, set: { bot.botToken = $0 }))
-                            .textInputAutocapitalization(.never)
+                        FormTextField(label: L10n.t("Bot Token"), text: Binding(
+                            get: { bot.botToken ?? "" }, set: { bot.botToken = $0 }), isSecure: true)
                         ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
                                              value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                         Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
@@ -2714,10 +2689,8 @@ struct AIAgentTelegramChannelView: View {
                             WhitelistEditor(title: L10n.t("群组白名单"), list: Binding(
                                 get: { c.groupAllowFrom ?? [] }, set: { c.groupAllowFrom = $0 }))
                         }
-                        TextField(L10n.t("代理服务器"), text: Binding(
+                        FormTextField(label: L10n.t("代理服务器"), text: Binding(
                             get: { c.proxy ?? "" }, set: { c.proxy = $0 }))
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
                             .keyboardType(.URL)
                         Picker(L10n.t("流式传输"), selection: Binding(
                             get: { let v = c.streaming ?? ""; return v.isEmpty ? "partial" : v },
@@ -3107,20 +3080,16 @@ private struct AITelegramBotFormSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("名称"), text: Binding(
+                    FormTextField(label: L10n.t("名称"), text: Binding(
                         get: { bot.name ?? "" }, set: { bot.name = $0 }))
-                        .textInputAutocapitalization(.never)
-                    TextField(L10n.t("账户 ID"), text: Binding(
+                    FormTextField(label: L10n.t("账户 ID"), text: Binding(
                         get: { bot.accountId ?? "" }, set: { bot.accountId = $0 }))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
                     if showEnabledToggle {
                         Toggle(L10n.t("启用"), isOn: Binding(
                             get: { bot.enabled ?? true }, set: { bot.enabled = $0 }))
                     }
-                    SecureField(L10n.t("Bot Token"), text: Binding(
-                        get: { bot.botToken ?? "" }, set: { bot.botToken = $0 }))
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("Bot Token"), text: Binding(
+                        get: { bot.botToken ?? "" }, set: { bot.botToken = $0 }), isSecure: true)
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
                 } footer: {
@@ -3252,9 +3221,8 @@ struct AIAgentDiscordChannelView: View {
                     }
                     if isHermes {
                         // Hermes 网页核对：仅 Token / 私聊策略（配队码、开放）/ 群聊需@机器人
-                        SecureField("Token", text: Binding(
-                            get: { bot.token ?? "" }, set: { bot.token = $0 }))
-                            .textInputAutocapitalization(.never)
+                        FormTextField(label: "Token", text: Binding(
+                            get: { bot.token ?? "" }, set: { bot.token = $0 }), isSecure: true)
                         ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
                                              value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                         Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
@@ -3269,10 +3237,8 @@ struct AIAgentDiscordChannelView: View {
                                              value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                         ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
                                              value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
-                        TextField(L10n.t("代理服务器"), text: Binding(
+                        FormTextField(label: L10n.t("代理服务器"), text: Binding(
                             get: { c.proxy ?? "" }, set: { c.proxy = $0 }))
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
                             .keyboardType(.URL)
                     }
                 }
@@ -3332,8 +3298,7 @@ struct AIAgentDiscordChannelView: View {
             get: { pairingBot != nil },
             set: { if !$0 { pairingBot = nil } }
         )) {
-            TextField(L10n.t("配对码"), text: $pairingCode)
-                .keyboardType(.numberPad)
+            FormTextField(label: L10n.t("配对码"), text: $pairingCode, keyboardType: .numberPad)
             Button(L10n.t("批准配对")) {
                 // alert 关闭先于 Task 执行：配对码在 action 内捕获，避免发出空串
                 if let bot = pairingBot {
@@ -3691,20 +3656,16 @@ private struct AIDiscordBotFormSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("名称"), text: Binding(
+                    FormTextField(label: L10n.t("名称"), text: Binding(
                         get: { bot.name ?? "" }, set: { bot.name = $0 }))
-                        .textInputAutocapitalization(.never)
-                    TextField(L10n.t("账户 ID"), text: Binding(
+                    FormTextField(label: L10n.t("账户 ID"), text: Binding(
                         get: { bot.accountId ?? "" }, set: { bot.accountId = $0 }))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
                     if showEnabledToggle {
                         Toggle(L10n.t("启用"), isOn: Binding(
                             get: { bot.enabled ?? true }, set: { bot.enabled = $0 }))
                     }
-                    SecureField("Token", text: Binding(
-                        get: { bot.token ?? "" }, set: { bot.token = $0 }))
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: "Token", text: Binding(
+                        get: { bot.token ?? "" }, set: { bot.token = $0 }), isSecure: true)
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
                 } footer: {

@@ -655,9 +655,7 @@ struct BackupAccountEditView: View {
 
     private var basicSection: some View {
         Section {
-            TextField(L10n.t("名称"), text: $name)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("名称"), text: $name)
             if isEdit {
                 LabeledContent(L10n.t("类型"), value: isLocal ? "LOCAL" : type.displayName)
             } else {
@@ -680,10 +678,8 @@ struct BackupAccountEditView: View {
     /// MINIO / 阿里云OSS 共用：Access Key 凭证
     private var credentialsSection: some View {
         Section {
-            TextField("Access Key ID", text: $accessKeyID)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            SecureField("Secret Key", text: $secretKey)
+            FormTextField(label: "Access Key ID", text: $accessKeyID)
+            FormTextField(label: "Secret Key", text: $secretKey, isSecure: true)
         } header: {
             Text(L10n.t("认证信息"))
         }
@@ -697,10 +693,8 @@ struct BackupAccountEditView: View {
                 Text("https").tag("https")
             }
             .pickerStyle(.segmented)
-            TextField(L10n.t("Endpoint 地址"), text: $endpointHost)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("Endpoint 地址"), text: $endpointHost,
+                          style: .stacked, keyboardType: .URL)
         } header: {
             Text("Endpoint")
         }
@@ -711,9 +705,7 @@ struct BackupAccountEditView: View {
         Section {
             Toggle(L10n.t("手动输入桶名"), isOn: $bucketManual)
             if bucketManual {
-                TextField(L10n.t("桶名"), text: $bucket)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("桶名"), text: $bucket)
             } else {
                 Picker(L10n.t("桶"), selection: $bucket) {
                     Text(buckets.isEmpty ? L10n.t("未获取") : L10n.t("请选择")).tag("")
@@ -767,14 +759,10 @@ struct BackupAccountEditView: View {
 
     private var webdavSection: some View {
         Section {
-            TextField(L10n.t("地址（含 http(s)://）"), text: $webdavAddress)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            TextField(L10n.t("用户名"), text: $webdavUsername)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            SecureField(L10n.t("密码"), text: $webdavPassword)
+            FormTextField(label: L10n.t("地址（含 http(s)://）"), text: $webdavAddress,
+                          style: .stacked, keyboardType: .URL)
+            FormTextField(label: L10n.t("用户名"), text: $webdavUsername)
+            FormTextField(label: L10n.t("密码"), text: $webdavPassword, isSecure: true)
         } header: {
             Text(L10n.t("连接信息"))
         }
@@ -783,10 +771,8 @@ struct BackupAccountEditView: View {
     @ViewBuilder
     private var sftpSections: some View {
         Section {
-            TextField(L10n.t("地址"), text: $sftpAddress)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("地址"), text: $sftpAddress,
+                          style: .stacked, keyboardType: .URL)
             HStack {
                 Text(L10n.t("端口"))
                 Spacer()
@@ -795,9 +781,7 @@ struct BackupAccountEditView: View {
                     .multilineTextAlignment(.trailing)
                     .frame(width: 72)
             }
-            TextField(L10n.t("用户名"), text: $sftpUsername)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("用户名"), text: $sftpUsername)
         } header: {
             Text(L10n.t("连接信息"))
         }
@@ -811,22 +795,28 @@ struct BackupAccountEditView: View {
             .pickerStyle(.segmented)
 
             if sftpAuthMode == .password {
-                SecureField(L10n.t("密码"), text: $sftpPassword)
+                FormTextField(label: L10n.t("密码"), text: $sftpPassword, isSecure: true)
             } else {
-                TextEditor(text: $sftpPrivateKey)
-                    .font(.caption.monospaced())
-                    .frame(minHeight: 110)
-                    .overlay(alignment: .topLeading) {
-                        if sftpPrivateKey.isEmpty {
-                            Text("-----BEGIN OPENSSH PRIVATE KEY-----")
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.tertiary)
-                                .padding(.top, 8)
-                                .padding(.leading, 4)
-                                .allowsHitTesting(false)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L10n.t("私钥"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextEditor(text: $sftpPrivateKey)
+                        .font(.caption.monospaced())
+                        .frame(minHeight: 110)
+                        .overlay(alignment: .topLeading) {
+                            if sftpPrivateKey.isEmpty {
+                                Text("-----BEGIN OPENSSH PRIVATE KEY-----")
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.top, 8)
+                                    .padding(.leading, 4)
+                                    .allowsHitTesting(false)
+                            }
                         }
-                    }
-                SecureField(L10n.t("私钥密码（可选）"), text: $sftpPassPhrase)
+                }
+                FormTextField(label: L10n.t("私钥密码（可选）"), text: $sftpPassPhrase,
+                              isSecure: true)
             }
         } header: {
             Text(L10n.t("认证方式"))
@@ -836,9 +826,8 @@ struct BackupAccountEditView: View {
     /// LOCAL 内置账号：仅可改名称与备份目录（保存后服务器会移动现有备份）
     private var localPathSection: some View {
         Section {
-            TextField(L10n.t("备份目录"), text: $backupPath, prompt: Text("/opt/1panel/backup"))
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("备份目录"), prompt: "/opt/1panel/backup",
+                          text: $backupPath, style: .stacked)
         } header: {
             Text(L10n.t("备份目录"))
         } footer: {
@@ -849,10 +838,8 @@ struct BackupAccountEditView: View {
     private var otherSection: some View {
         Section {
             Toggle(L10n.t("记住认证信息"), isOn: $rememberAuth)
-            TextField(L10n.t("备份目录"), text: $backupPath, prompt: Text("/"))
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("备份目录"), prompt: "/",
+                          text: $backupPath, style: .stacked, keyboardType: .URL)
         } header: {
             Text(L10n.t("认证与目录"))
         } footer: {

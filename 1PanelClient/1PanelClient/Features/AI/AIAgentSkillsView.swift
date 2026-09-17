@@ -179,9 +179,7 @@ struct AIAgentSkillsView: View {
                 }
             }
 
-            TextField(L10n.t("输入关键词搜索"), text: $keyword)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("输入关键词搜索"), text: $keyword)
                 .onSubmit { Task { await search() } }
         } header: {
             SectionLabel(title: L10n.t("技能市场"), systemImage: "storefront")

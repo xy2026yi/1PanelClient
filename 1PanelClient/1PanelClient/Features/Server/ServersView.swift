@@ -105,11 +105,14 @@ struct ServersView: View {
         }
         .navigationTitle(L10n.t("服务器"))
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(isPresented: $showAdd) {
-            ServerEditView(manager: manager, presentedAsSheet: false)
+        // 添加/编辑用 sheet 而非 push：移除最后一台服务器时根视图会切到欢迎页，
+        // 本页随导航栈一起销毁，navigationDestination 修饰符在销毁瞬间会被拿到
+        // NavigationStack 之外求值，产生 "misplaced modifier" 运行时警告
+        .sheet(isPresented: $showAdd) {
+            ServerEditView(manager: manager)
         }
-        .navigationDestination(item: $editingServer) { server in
-            ServerEditView(manager: manager, editing: server, presentedAsSheet: false)
+        .sheet(item: $editingServer) { server in
+            ServerEditView(manager: manager, editing: server)
         }
         .sheet(item: $actionServer) { server in
             ServerActionsSheet(server: server) { action in

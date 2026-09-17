@@ -132,9 +132,7 @@ struct AIAccountFormView: View {
 
     private var baseInfoSection: some View {
         Section {
-            TextField(L10n.t("名称"), text: $name)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("名称"), text: $name)
 
             if isEditing {
                 LabeledContent(L10n.t("模型供应商"), value: editing?.providerName ?? editing?.provider ?? "")
@@ -168,10 +166,7 @@ struct AIAccountFormView: View {
                 }
             }
 
-            TextField("Base URL", text: $baseURL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.URL)
+            FormTextField(label: "Base URL", text: $baseURL, style: .stacked, keyboardType: .URL)
                 .font(.dataMonospacedBody)
                 .disabled(!editableBaseURL)
 
@@ -202,12 +197,10 @@ struct AIAccountFormView: View {
         Section {
             HStack {
                 if showApiKey {
-                    TextField("API Key", text: $apiKey)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: "API Key", text: $apiKey)
                         .font(.dataMonospacedBody)
                 } else {
-                    SecureField("API Key", text: $apiKey)
+                    FormTextField(label: "API Key", text: $apiKey, isSecure: true)
                 }
                 Button {
                     showApiKey.toggle()
@@ -320,16 +313,12 @@ struct AIAccountFormView: View {
             }
 
             HStack(spacing: 8) {
-                TextField(L10n.t("模型"), text: $manualModelId)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("模型"), text: $manualModelId)
                     .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.right")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                TextField(L10n.t("名称"), text: $manualModelName)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("名称"), text: $manualModelName)
                 Button {
                     addManualModel()
                 } label: {
@@ -363,7 +352,7 @@ struct AIAccountFormView: View {
 
     private var remarkSection: some View {
         Section {
-            TextField(L10n.t("备注"), text: $remark, axis: .vertical)
+            FormTextField(label: L10n.t("备注"), text: $remark, axis: .vertical, machineValue: false)
                 .lineLimit(1...3)
         } header: {
             SectionLabel(title: L10n.t("备注"), systemImage: "text.alignleft")

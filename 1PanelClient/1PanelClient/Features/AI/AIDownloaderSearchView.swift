@@ -63,9 +63,7 @@ struct AIDownloaderSearchView: View {
     private var manualSection: some View {
         Section {
             HStack(spacing: 10) {
-                TextField(L10n.t("仓库 ID，如 Qwen/Qwen3-0.6B"), text: $manualRepoID)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("仓库 ID，如 Qwen/Qwen3-0.6B"), text: $manualRepoID)
                     .font(.dataMonospacedBody)
                     .onSubmit { Task { await manualDownload() } }
                 Button {
@@ -102,9 +100,7 @@ struct AIDownloaderSearchView: View {
     private var searchSection: some View {
         Section {
             HStack(spacing: 10) {
-                TextField(L10n.t("搜索模型，如 Qwen"), text: $query)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("搜索模型，如 Qwen"), text: $query)
                     .onSubmit { Task { await search(reset: true) } }
                 Picker("", selection: $sort) {
                     ForEach(ModelRepoSort.allCases) { s in

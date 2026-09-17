@@ -402,28 +402,27 @@ struct WebsiteRedirectView: View {
     private var list: some View {
         List {
             ForEach(redirects) { r in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        // 首行：名称
                         Text(r.displayName)
                             .font(.body.bold())
-                        Spacer()
-                        if r.enable == true {
-                            StatusBadge(text: L10n.t("已启用"), color: .statusRunning)
-                        } else {
-                            StatusBadge(text: L10n.t("已停用"), color: .statusStopped)
-                        }
-                    }
-                    HStack {
-                        Label(subtitle(r), systemImage: "arrow.uturn.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
+                            .lineLimit(1)
+                        // 次行：目标 URL 地址
                         Text(r.target ?? "—")
                             .font(.caption.monospaced())
                             .foregroundStyle(.blue)
                             .lineLimit(1)
                     }
+                    Spacer(minLength: 12)
+                    // 状态徽标在两行高度上垂直居中
+                    if r.enable == true {
+                        StatusBadge(text: L10n.t("已启用"), color: .statusRunning)
+                    } else {
+                        StatusBadge(text: L10n.t("已停用"), color: .statusStopped)
+                    }
                 }
+                .padding(.vertical, 2)
                 .contentShape(Rectangle())
                 .onTapGesture {
                     actionRedirect = r
@@ -440,18 +439,6 @@ struct WebsiteRedirectView: View {
         .refreshable {
             await load()
         }
-    }
-
-    private func subtitle(_ r: WebsiteRedirect) -> String {
-        var parts = [r.typeDisplayName, r.redirect ?? "301"]
-        if r.redirectRoot == true {
-            parts.append(L10n.t("重定向到首页"))
-        } else if r.type == "path" {
-            parts.append(r.path ?? "")
-        } else if let d = r.domains?.first, !d.isEmpty {
-            parts.append(d)
-        }
-        return parts.joined(separator: " · ")
     }
 
     private func load() async {
@@ -529,10 +516,7 @@ struct WebsiteRedirectEditView: View {
     var body: some View {
         Form {
             Section(L10n.t("基本信息")) {
-                TextField(L10n.t("名称"), text: $name)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .disabled(is404 || isEdit)
+                FormTextField(label: L10n.t("名称"), text: $name, disabled: is404 || isEdit)
                 Picker(L10n.t("类型"), selection: $type) {
                     Text(L10n.t("域名")).tag("domain")
                     Text(L10n.t("路径")).tag("path")
@@ -556,19 +540,15 @@ struct WebsiteRedirectEditView: View {
                         }
                     }
                 } else if type == "path" {
-                    TextField(L10n.t("路径 (例如 /ai)"), text: $path)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("路径"), prompt: "/ai", text: $path,
+                                  style: .stacked, keyboardType: .URL)
                 } else {
                     Toggle(L10n.t("重定向到首页"), isOn: $redirectRoot)
                 }
 
                 if !(is404 && redirectRoot) {
-                    TextField(L10n.t("目标URL地址 (http://…)"), text: $target)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("目标URL地址"), prompt: "http://…",
+                                  text: $target, style: .stacked, keyboardType: .URL)
                 }
 
                 if !is404 {
@@ -823,9 +803,15 @@ struct WebsiteAuthsView: View {
                     } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(item.username ?? "—")
-                                    .font(.body.bold().monospaced())
-                                    .foregroundStyle(.primary)
+                                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                    // 「用户名」灰标让账号值可自解释（与反代/重定向列表一致）
+                                    Text(L10n.t("用户名"))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text(item.username ?? "—")
+                                        .font(.body.bold().monospaced())
+                                        .foregroundStyle(.primary)
+                                }
                                 if let remark = item.remark, !remark.isEmpty {
                                     Text(remark)
                                         .font(.caption)
@@ -908,12 +894,9 @@ struct WebsiteAuthEditView: View {
     var body: some View {
         Form {
             Section(L10n.t("账号")) {
-                TextField(L10n.t("用户名"), text: $username)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .disabled(isEdit)
-                HStack {
-                    SecureField(L10n.t("密码"), text: $password)
+                FormTextField(label: L10n.t("用户名"), text: $username, disabled: isEdit)
+                HStack(alignment: .firstTextBaseline) {
+                    FormTextField(label: L10n.t("密码"), text: $password, isSecure: true)
                     Button {
                         password = Self.randomPassword()
                     } label: {
@@ -921,7 +904,7 @@ struct WebsiteAuthEditView: View {
                     }
                     .buttonStyle(.borderless)
                 }
-                TextField(L10n.t("备注"), text: $remark)
+                FormTextField(label: L10n.t("备注（可选）"), text: $remark, machineValue: false)
             }
         }
         .navigationTitle(isEdit ? L10n.t("编辑账号") : L10n.t("创建账号"))

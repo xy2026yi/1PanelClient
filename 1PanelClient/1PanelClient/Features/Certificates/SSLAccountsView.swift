@@ -158,10 +158,8 @@ struct CreateAcmeAccountView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("邮箱"), text: $email)
+                FormTextField(label: L10n.t("邮箱"), text: $email)
                     .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
             } header: {
                 Text(L10n.t("邮箱"))
             }
@@ -186,12 +184,8 @@ struct CreateAcmeAccountView: View {
 
             if type == .googlecloud {
                 Section {
-                    TextField("EAB kid", text: $eabKid)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("EAB HmacKey", text: $eabHmacKey)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: "EAB kid", text: $eabKid)
+                    FormTextField(label: "EAB HmacKey", text: $eabHmacKey)
                 } header: {
                     Text(L10n.t("EAB 凭证"))
                 }
@@ -199,10 +193,7 @@ struct CreateAcmeAccountView: View {
 
             if type == .custom {
                 Section {
-                    TextField(L10n.t("ACME 服务 URL"), text: $caDirURL)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("ACME 服务 URL"), text: $caDirURL, style: .stacked, keyboardType: .URL)
                     Toggle(L10n.t("使用 EAB 认证"), isOn: $useEAB.animation())
                 } header: {
                     Text(L10n.t("自定义服务"))
@@ -210,12 +201,8 @@ struct CreateAcmeAccountView: View {
 
                 if useEAB {
                     Section {
-                        TextField("EAB kid", text: $eabKid)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        TextField("EAB HmacKey", text: $eabHmacKey)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
+                        FormTextField(label: "EAB kid", text: $eabKid)
+                        FormTextField(label: "EAB HmacKey", text: $eabHmacKey)
                     } header: {
                         Text(L10n.t("EAB 凭证"))
                     }
@@ -443,9 +430,7 @@ struct CreateDNSAccountView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("名称"), text: $name)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("名称"), text: $name)
             } header: {
                 Text(L10n.t("名称"))
             }
@@ -509,81 +494,59 @@ struct CreateDNSAccountView: View {
         switch type {
         case .AliYun:
             Section {
-                TextField("Access Key", text: $accessKey)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                SecureField("Secret Key", text: $secretKey)
+                FormTextField(label: "Access Key", text: $accessKey)
+                FormTextField(label: "Secret Key", text: $secretKey, isSecure: true)
             } header: {
                 Text(L10n.t("阿里云凭证"))
             }
 
         case .CloudFlare:
             Section {
-                TextField(L10n.t("EMAIL（可选）"), text: $email)
+                FormTextField(label: L10n.t("EMAIL（可选）"), text: $email)
                     .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField("API Token", text: $apiKey)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: "API Token", text: $apiKey)
             } header: {
                 Text(L10n.t("Cloudflare 凭证"))
             }
 
         case .TencentCloud:
             Section {
-                TextField("Secret ID", text: $secretID)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                SecureField("Secret Key", text: $secretKey)
+                FormTextField(label: "Secret ID", text: $secretID)
+                FormTextField(label: "Secret Key", text: $secretKey, isSecure: true)
             } header: {
                 Text(L10n.t("腾讯云凭证"))
             }
 
         case .HuaweiCloud:
             Section {
-                TextField("Access Key", text: $accessKey)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                SecureField("Secret Key", text: $secretKey)
-                TextField(L10n.t("Region（可选）"), text: $region)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: "Access Key", text: $accessKey)
+                FormTextField(label: "Secret Key", text: $secretKey, isSecure: true)
+                FormTextField(label: L10n.t("Region（可选）"), text: $region)
             } header: {
                 Text(L10n.t("华为云凭证"))
             }
 
         case .CloudDns:
             Section {
-                TextField(L10n.t("Client ID（可选）"), text: $clientID)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField(L10n.t("Email（可选）"), text: $email)
+                FormTextField(label: L10n.t("Client ID（可选）"), text: $clientID)
+                FormTextField(label: L10n.t("Email（可选）"), text: $email)
                     .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                SecureField("Password", text: $password)
+                FormTextField(label: "Password", text: $password, isSecure: true)
             } header: {
                 Text(L10n.t("CloudDNS 凭证"))
             }
 
         case .NameSilo:
             Section {
-                TextField("API Key", text: $apiKey)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: "API Key", text: $apiKey)
             } header: {
                 Text(L10n.t("NameSilo 凭证"))
             }
 
         case .NameCheap:
             Section {
-                TextField("API Key", text: $apiKey)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField("API User", text: $apiUser)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: "API Key", text: $apiKey)
+                FormTextField(label: "API User", text: $apiUser)
             } header: {
                 Text(L10n.t("NameCheap 凭证"))
             }

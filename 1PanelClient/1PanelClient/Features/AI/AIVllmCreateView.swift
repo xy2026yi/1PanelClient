@@ -213,7 +213,7 @@ struct AIVllmCreateView: View {
 
     private var basicSection: some View {
         Section {
-            TextField(L10n.t("名称"), text: $name)
+            FormTextField(label: L10n.t("名称"), text: $name)
                 .disabled(isEdit)
 
             if isEdit {
@@ -255,19 +255,14 @@ struct AIVllmCreateView: View {
                 }
             }
 
-            TextField(L10n.t("镜像"), text: $image)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("镜像"), text: $image)
                 .font(.dataMonospacedBody)
 
-            TextField(L10n.t("端口"), text: $portText)
-                .keyboardType(.numberPad)
+            FormTextField(label: L10n.t("端口"), text: $portText, keyboardType: .numberPad)
                 .onChange(of: portText) { _, _ in refreshBaseURL() }
 
             HStack(spacing: 10) {
-                TextField(L10n.t("模型目录"), text: $modelDir)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("模型目录"), text: $modelDir, style: .stacked)
                     .font(.dataMonospacedBody)
                 Button {
                     showDirPicker = true
@@ -338,10 +333,7 @@ struct AIVllmCreateView: View {
                     }
                 }
 
-                TextField("Base URL", text: $baseURL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
+                FormTextField(label: "Base URL", text: $baseURL, style: .stacked, keyboardType: .URL)
                     .font(.dataMonospacedBody)
                     .disabled(baseURLType != .custom)
             }
@@ -359,17 +351,13 @@ struct AIVllmCreateView: View {
             Toggle(L10n.t("高级设置"), isOn: $advanced)
 
             if advanced {
-                TextField(L10n.t("容器名称"), text: $containerName)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("容器名称"), text: $containerName)
                     .font(.dataMonospacedBody)
                     .onChange(of: containerName) { _, _ in refreshBaseURL() }
 
                 Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
 
-                TextField(L10n.t("绑定主机 IP"), text: $specifyIP)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("绑定主机 IP"), text: $specifyIP)
                     .keyboardType(.decimalPad)
                     .font(.dataMonospacedBody)
 
@@ -380,7 +368,7 @@ struct AIVllmCreateView: View {
                 }
 
                 HStack {
-                    TextField(L10n.t("CPU 限制"), text: $cpuQuotaText)
+                    FormTextField(label: L10n.t("CPU 限制"), text: $cpuQuotaText)
                         .keyboardType(.decimalPad)
                     Text(L10n.t("核心"))
                         .font(.caption)
@@ -388,7 +376,7 @@ struct AIVllmCreateView: View {
                 }
 
                 HStack {
-                    TextField(L10n.t("内存限制"), text: $memoryLimitText)
+                    FormTextField(label: L10n.t("内存限制"), text: $memoryLimitText)
                         .keyboardType(.decimalPad)
                     Picker("", selection: $memoryUnit) {
                         Text("MB").tag("M")

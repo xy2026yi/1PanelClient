@@ -81,8 +81,6 @@ struct ApplyCertificateView: View {
         Form {
             Section {
                 TextField(L10n.t("主域名"), text: $primaryDomain)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
             } header: {
                 Text(L10n.t("域名"))
             }
@@ -90,8 +88,6 @@ struct ApplyCertificateView: View {
             Section {
                 TextField(L10n.t("其他域名（一行一个）"), text: $otherDomains, axis: .vertical)
                     .lineLimit(3, reservesSpace: true)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
             } header: {
                 Text(L10n.t("其他域名"))
             }
@@ -116,14 +112,10 @@ struct ApplyCertificateView: View {
     private var acmeForm: some View {
         Form {
             Section(L10n.t("域名")) {
-                TextField(L10n.t("主域名（必填）"), text: $primaryDomain)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("主域名（必填）"), text: $primaryDomain)
                 TextField(L10n.t("其他域名（可选，一行一个）"), text: $otherDomains, axis: .vertical)
                     .lineLimit(3, reservesSpace: true)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField(L10n.t("备注（可选）"), text: $description_)
+                FormTextField(label: L10n.t("备注（可选）"), text: $description_, machineValue: false)
             }
 
             Section(L10n.t("申请配置")) {
@@ -158,11 +150,7 @@ struct ApplyCertificateView: View {
                 Toggle(L10n.t("禁用 CNAME"), isOn: $disableCNAME)
                 Toggle(L10n.t("跳过 DNS 校验"), isOn: $skipDNS)
                 TextField(L10n.t("DNS 服务器 1（可选）"), text: $nameserver1)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
                 TextField(L10n.t("DNS 服务器 2（可选）"), text: $nameserver2)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
             } header: {
                 Text(L10n.t("高级设置"))
             } footer: {
@@ -172,16 +160,12 @@ struct ApplyCertificateView: View {
             Section {
                 Toggle(L10n.t("推送证书到本地"), isOn: $pushDir)
                 if pushDir {
-                    TextField(L10n.t("推送路径（如 /tmp）"), text: $dir)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("推送路径（如 /tmp）"), text: $dir, style: .stacked)
                 }
                 Toggle(L10n.t("申请证书之后执行脚本"), isOn: $execShell)
                 if execShell {
-                    TextField(L10n.t("脚本内容"), text: $shell, axis: .vertical)
+                    FormTextField(label: L10n.t("脚本内容"), text: $shell, axis: .vertical)
                         .lineLimit(5, reservesSpace: true)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
                 }
             } header: {
                 Text(L10n.t("其他选项"))

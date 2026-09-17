@@ -107,6 +107,9 @@ struct AppLogView: View {
                     Text("1000").tag(1000)
                 }
                 .pickerStyle(.menu)
+                .onChange(of: tail) { _, _ in
+                    Task { await startStreaming() }
+                }
             }
         }
     }
@@ -209,33 +212,82 @@ struct AppLogView: View {
             URLQueryItem(name: "operateNode", value: "local")
         ]
 
+        // 控制最大缓存行数，避免内存爆炸
+        let maxLines = max(tail * 5, 1000)
+        // 逐行写 @State 会在 SSE 高频到达时同一帧内多次触发
+        // onChange(of: count) 滚动（"multiple times per frame" 警告）。
+        // 消费任务只进缓冲，冲刷循环每 150ms 把缓冲一次性并入 @State
+        let buffer = SSELineBuffer()
         streamTask = Task {
-            do {
-                let stream = vm.client.streamSSELines(
-                    path: "/api/v2/containers/search/log",
-                    queryItems: queryItems
-                )
-                // 控制最大缓存行数，避免内存爆炸
-                let maxLines = max(tail * 5, 1000)
-                for try await line in stream {
-                    if Task.isCancelled { break }
+            let consume = Task {
+                do {
+                    for try await line in vm.client.streamSSELines(
+                        path: "/api/v2/containers/search/log",
+                        queryItems: queryItems
+                    ) {
+                        if Task.isCancelled { break }
+                        buffer.append(line)
+                    }
+                    buffer.finish(error: nil)
+                } catch {
+                    buffer.finish(error: error)
+                }
+            }
+            defer { consume.cancel() }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(150))
+                let (chunk, finished, streamError) = buffer.drain()
+                if !chunk.isEmpty {
                     await MainActor.run {
-                        if logLines.count >= maxLines {
-                            logLines.removeFirst(logLines.count - maxLines + 1)
+                        let overflow = logLines.count + chunk.count - maxLines
+                        if overflow > 0 {
+                            logLines.removeFirst(min(overflow, logLines.count))
                         }
-                        logLines.append(line)
+                        logLines.append(contentsOf: chunk)
                     }
                 }
-                await MainActor.run { isLoading = false }
-            } catch {
-                await MainActor.run {
-                    isLoading = false
-                    if logLines.isEmpty {
-                        errorMessage = error.localizedDescription
+                if finished {
+                    await MainActor.run {
+                        isLoading = false
+                        if logLines.isEmpty, let streamError {
+                            errorMessage = streamError.localizedDescription
+                        }
                     }
+                    break
                 }
             }
         }
+    }
+}
+
+/// SSE 行缓冲：消费任务写入、冲刷循环读出（锁保护跨任务访问）
+private final class SSELineBuffer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var lines: [String] = []
+    private var finished = false
+    private var streamError: Error?
+
+    func append(_ line: String) {
+        lock.lock()
+        lines.append(line)
+        lock.unlock()
+    }
+
+    /// 流结束（error=nil 正常结束）；取消中断不调用
+    func finish(error: Error?) {
+        lock.lock()
+        streamError = error
+        finished = true
+        lock.unlock()
+    }
+
+    /// 取出全部积压行与结束状态
+    func drain() -> (lines: [String], finished: Bool, error: Error?) {
+        lock.lock()
+        defer { lock.unlock() }
+        let result = (lines, finished, streamError)
+        lines = []
+        return result
     }
 }
 

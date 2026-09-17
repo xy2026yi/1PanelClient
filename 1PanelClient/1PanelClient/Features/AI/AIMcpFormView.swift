@@ -105,9 +105,7 @@ struct AIMcpFormView: View {
 
     private var baseSection: some View {
         Section {
-            TextField(L10n.t("名称"), text: $name)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("名称"), text: $name)
                 .disabled(isEditing)
 
             Picker(L10n.t("类型"), selection: $type) {
@@ -128,23 +126,21 @@ struct AIMcpFormView: View {
 
     private var transportSection: some View {
         Section {
-            // 协议前缀与地址同行，点击前缀切换 http/https
-            HStack(spacing: 8) {
-                Button {
-                    protocolScheme = protocolScheme == "http://" ? "https://" : "http://"
-                } label: {
-                    Text(protocolScheme)
-                        .font(.dataMonospacedCaption)
-                        .foregroundStyle(Color.accentColor)
+            // 行内左标签：外部访问地址 = 协议下拉 + 地址输入
+            HStack {
+                Text(L10n.t("外部访问地址"))
+                Spacer(minLength: 12)
+                Picker("", selection: $protocolScheme) {
+                    Text("http://").tag("http://")
+                    Text("https://").tag("https://")
                 }
-                .buttonStyle(.borderless)
-                .accessibilityLabel(L10n.t("切换协议"))
-
-                TextField(L10n.t("外部访问地址"), text: $urlHost)
+                .pickerStyle(.menu)
+                .labelsHidden()
+                TextField("", text: $urlHost)
+                    .keyboardType(.URL)
+                    .multilineTextAlignment(.trailing)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                    .font(.dataMonospacedCaption)
             }
 
             Picker(L10n.t("输出类型"), selection: $outputTransport) {
@@ -152,27 +148,17 @@ struct AIMcpFormView: View {
             }
 
             if outputTransport == "sse" {
-                TextField(L10n.t("SSE 路径"), text: $pathField)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("SSE 路径"), text: $pathField, style: .stacked)
                     .font(.dataMonospacedCaption)
             } else {
-                TextField(L10n.t("流式传输路径"), text: $pathField)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("流式传输路径"), text: $pathField, style: .stacked)
                     .font(.dataMonospacedCaption)
-                TextField(L10n.t("协议版本"), text: $protocolVersion)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("协议版本"), text: $protocolVersion)
             }
 
-            TextField(L10n.t("参数"), text: $gatewayArgs)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("参数"), text: $gatewayArgs)
 
-            TextField(L10n.t("镜像"), text: $gatewayImage)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("镜像"), text: $gatewayImage)
                 .font(.dataMonospacedCaption)
         } header: {
             SectionLabel(title: L10n.t("网关配置"), systemImage: "arrow.left.arrow.right.circle")
@@ -183,14 +169,11 @@ struct AIMcpFormView: View {
 
     private var containerSection: some View {
         Section {
-            TextField(L10n.t("容器名称"), text: $containerName)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("容器名称"), text: $containerName)
             HStack {
                 Text(L10n.t("端口")).foregroundStyle(.secondary)
                 Spacer()
-                TextField("8000", text: $portField)
-                    .keyboardType(.numberPad)
+                FormTextField(label: "8000", text: $portField, keyboardType: .numberPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
             }
@@ -219,16 +202,12 @@ struct AIMcpFormView: View {
             .onDelete { environments.remove(atOffsets: $0) }
 
             HStack(spacing: 8) {
-                TextField("KEY", text: $newEnvKey)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: "KEY", text: $newEnvKey)
                     .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.left")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                TextField("VALUE", text: $newEnvValue)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: "VALUE", text: $newEnvValue)
                     .font(.dataMonospacedCaption)
                 Button {
                     addEnv()
@@ -255,16 +234,12 @@ struct AIMcpFormView: View {
             .onDelete { volumes.remove(atOffsets: $0) }
 
             HStack(spacing: 8) {
-                TextField(L10n.t("宿主机目录"), text: $newVolumeHost)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("宿主机目录"), text: $newVolumeHost, style: .stacked)
                     .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.right")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                TextField(L10n.t("容器目录"), text: $newVolumeContainer)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("容器目录"), text: $newVolumeContainer, style: .stacked)
                     .font(.dataMonospacedCaption)
                 Button {
                     addVolume()

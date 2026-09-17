@@ -284,12 +284,12 @@ struct AIAccountModelFormView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("模型 ID"), text: $modelId, prompt: Text(L10n.t("如 deepseek-v4-flash")))
+                FormTextField(label: L10n.t("模型 ID"), prompt: L10n.t("如 deepseek-v4-flash"), text: $modelId)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .font(.dataMonospacedBody)
                     .disabled(editing != nil)
-                TextField(L10n.t("名称"), text: $modelName, prompt: Text(L10n.t("显示名称，可与模型 ID 不同")))
+                FormTextField(label: L10n.t("名称"), prompt: L10n.t("显示名称，可与模型 ID 不同"), text: $modelName)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {

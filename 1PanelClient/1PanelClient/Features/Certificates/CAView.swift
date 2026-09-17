@@ -301,37 +301,23 @@ struct CreateCAView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("机构名称"), text: $name)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("机构名称"), text: $name, machineValue: false)
             } header: {
                 Text(L10n.t("基本信息"))
             }
 
             Section {
-                TextField(L10n.t("证书主体名称(CN)"), text: $commonName)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField(L10n.t("公司/组织"), text: $organization)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField(L10n.t("部门（可选）"), text: $organizationUint)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("证书主体名称(CN)"), text: $commonName)
+                FormTextField(label: L10n.t("公司/组织"), text: $organization, machineValue: false)
+                FormTextField(label: L10n.t("部门（可选）"), text: $organizationUint, machineValue: false)
             } header: {
                 Text(L10n.t("组织信息"))
             }
 
             Section {
-                TextField(L10n.t("国家代号"), text: $country)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField(L10n.t("省份（可选）"), text: $province)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField(L10n.t("城市（可选）"), text: $city)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("国家代号"), text: $country)
+                FormTextField(label: L10n.t("省份（可选）"), text: $province, machineValue: false)
+                FormTextField(label: L10n.t("城市（可选）"), text: $city, machineValue: false)
             } header: {
                 Text(L10n.t("地区信息"))
             }
@@ -446,13 +432,9 @@ struct IssueCertificateView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("域名（一行一个）"), text: $domains, axis: .vertical)
+                FormTextField(label: L10n.t("域名（一行一个）"), text: $domains, axis: .vertical)
                     .lineLimit(3, reservesSpace: true)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField(L10n.t("备注（可选）"), text: $description_)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("备注（可选）"), text: $description_, machineValue: false)
             } header: {
                 Text(L10n.t("基本信息"))
             } footer: {
@@ -483,19 +465,15 @@ struct IssueCertificateView: View {
             Section {
                 Toggle(L10n.t("推送证书到本地目录"), isOn: $pushDir.animation())
                 if pushDir {
-                    TextField(L10n.t("目录路径"), text: $dir)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("目录路径"), text: $dir, style: .stacked)
                 }
             }
 
             Section {
                 Toggle(L10n.t("申请证书之后执行脚本"), isOn: $execShell.animation())
                 if execShell {
-                    TextField(L10n.t("脚本内容"), text: $shell, axis: .vertical)
+                    FormTextField(label: L10n.t("脚本内容"), text: $shell, axis: .vertical)
                         .lineLimit(5, reservesSpace: true)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
                 }
             }
         }

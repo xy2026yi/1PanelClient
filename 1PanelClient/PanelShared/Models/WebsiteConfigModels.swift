@@ -168,12 +168,22 @@ nonisolated struct WebsiteProxy: Decodable, Identifiable, Hashable {
     let modifier: String?
     let content: String?
     let filePath: String?
+    let proxyHost: String?
+    let sni: Bool?
+    let proxySSLName: String?
+    let sslVerify: Bool?
 
     var id: String { name ?? UUID().uuidString }
 
     var displayName: String { name ?? L10n.t("(未命名)") }
     var displayMatch: String { match ?? "—" }
     var displayProxyPass: String { proxyPass ?? "—" }
+
+    /// 「修饰符 + 路径」合并展示（如 "^~ /"），无修饰符时仅路径
+    var displayModifierMatch: String {
+        let m = modifier ?? ""
+        return m.isEmpty ? displayMatch : "\(m) \(displayMatch)"
+    }
 }
 
 /// 反向代理操作类型
@@ -204,6 +214,7 @@ nonisolated struct WebsiteProxyUpdateRequest: Encodable {
     var replaces: [String: String]? = nil
     var sni: Bool = false
     var proxySSLName: String = "$proxy_host"
+    var sslVerify: Bool = false
     var cors: Bool = false
     var allowOrigins: String = ""
     var allowMethods: String = ""

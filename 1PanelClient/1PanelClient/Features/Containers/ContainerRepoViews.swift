@@ -190,9 +190,7 @@ struct RepoFormView: View {
                         .font(.subheadline)
                 }
                 Section(L10n.t("确认")) {
-                    TextField(L10n.t("立即重启"), text: $restartConfirm)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("立即重启"), text: $restartConfirm)
                 }
             } else {
                 formSection
@@ -221,21 +219,17 @@ struct RepoFormView: View {
 
     private var formSection: some View {
         Section {
-            TextField(L10n.t("名称"), text: $name)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("名称"), text: $name)
             Toggle(L10n.t("认证"), isOn: $useAuth)
             if useAuth {
-                TextField(L10n.t("用户名"), text: $username)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("用户名"), text: $username)
                 if !isEditing {
                     HStack {
                         Group {
                             if showPassword {
-                                TextField(L10n.t("密码"), text: $password)
+                                FormTextField(label: L10n.t("密码"), text: $password)
                             } else {
-                                SecureField(L10n.t("密码"), text: $password)
+                                FormTextField(label: L10n.t("密码"), text: $password, isSecure: true)
                             }
                         }
                         .textInputAutocapitalization(.never)
@@ -247,10 +241,7 @@ struct RepoFormView: View {
                     }
                 }
             }
-            TextField(L10n.t("下载地址"), text: $downloadUrl)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.URL)
+            FormTextField(label: L10n.t("下载地址"), text: $downloadUrl, style: .stacked, keyboardType: .URL)
             Picker(L10n.t("协议"), selection: $useHTTPS) {
                 Text("https").tag(true)
                 Text("http").tag(false)

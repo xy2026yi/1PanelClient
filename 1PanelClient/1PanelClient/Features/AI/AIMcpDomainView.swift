@@ -60,10 +60,7 @@ struct DomainBindFormView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L10n.t("域名"), text: $domain)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
+                FormTextField(label: L10n.t("域名"), text: $domain, keyboardType: .URL)
                     .disabled(isBound)
 
                 TextEditor(text: $ipList)

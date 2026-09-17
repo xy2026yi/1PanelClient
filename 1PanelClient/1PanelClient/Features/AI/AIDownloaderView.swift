@@ -653,9 +653,7 @@ struct AIDownloaderSettingsSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("/opt/1panel/ai/models", text: $modelDir)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: "/opt/1panel/ai/models", text: $modelDir)
                         .font(.dataMonospacedBody)
                 } header: {
                     SectionLabel(title: L10n.t("模型目录"), systemImage: "internaldrive")
@@ -664,12 +662,9 @@ struct AIDownloaderSettingsSheet: View {
                 }
 
                 Section {
-                    TextField("https://hf-mirror.com", text: $hfEndpoint)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
+                    FormTextField(label: "https://hf-mirror.com", text: $hfEndpoint, keyboardType: .URL)
                         .font(.dataMonospacedBody)
-                    SecureField(L10n.t("令牌（可选）"), text: $hfToken)
+                    FormTextField(label: L10n.t("令牌（可选）"), text: $hfToken, isSecure: true)
                 } header: {
                     SectionLabel(title: "HuggingFace", systemImage: "hare")
                 } footer: {
@@ -677,12 +672,9 @@ struct AIDownloaderSettingsSheet: View {
                 }
 
                 Section {
-                    TextField("https://www.modelscope.cn", text: $modelScopeEndpoint)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
+                    FormTextField(label: "https://www.modelscope.cn", text: $modelScopeEndpoint, keyboardType: .URL)
                         .font(.dataMonospacedBody)
-                    SecureField(L10n.t("令牌（可选）"), text: $modelScopeToken)
+                    FormTextField(label: L10n.t("令牌（可选）"), text: $modelScopeToken, isSecure: true)
                 } header: {
                     SectionLabel(title: "ModelScope", systemImage: "sparkles.rectangle.stack")
                 }

@@ -74,7 +74,6 @@ struct ContainerCreateView: View {
                     TextField(L10n.t("如 nginx:latest"), text: $draft.image)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .font(.dataMonospacedBody)
                 }
                 if !vm.imageOptions.isEmpty {
                     Menu {
@@ -177,14 +176,10 @@ struct ContainerCreateView: View {
     private func volumeRow(_ vol: Binding<CreateVolumeRow>) -> some View {
         VStack(spacing: 6) {
             HStack {
-                TextField(L10n.t("主机目录"), text: vol.sourceDir)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("主机目录"), text: vol.sourceDir, style: .stacked)
                     .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.left").font(.caption).foregroundStyle(.secondary)
-                TextField(L10n.t("容器目录"), text: vol.containerDir)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("容器目录"), text: vol.containerDir, style: .stacked)
                     .font(.dataMonospacedCaption)
             }
             HStack {

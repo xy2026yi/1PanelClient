@@ -15,6 +15,13 @@ struct CreateWebsiteView: View {
     @State private var primaryDomain = ""
     @State private var port: Int = 80
     @State private var remark = ""
+    // 代号：主域名填入后自动带入（去端口），可手动修改
+    @State private var alias = ""
+    @State private var lastAutoAlias = ""
+    // 其他域名：换行输入，提交时并入 domains 数组
+    @State private var otherDomains = ""
+    // 监听 IPv6
+    @State private var enableIPv6 = false
 
     // 一键部署专用
     @State private var selectedAppInstallId: Int? = nil
@@ -51,19 +58,29 @@ struct CreateWebsiteView: View {
                 }
 
                 Section {
-                    TextField(L10n.t("主域名"), text: $primaryDomain)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    HStack {
-                        Text(L10n.t("端口"))
-                        Spacer()
-                        TextField(L10n.t("端口"), value: $port, format: .number)
-                            .keyboardType(.numberPad)
-                            .frame(width: 80)
-                            .multilineTextAlignment(.trailing)
+                    FormTextField(label: L10n.t("主域名"), text: $primaryDomain, keyboardType: .URL)
+                    FormTextField(label: L10n.t("代号"), text: $alias)
+                    FormTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
+                    Toggle(L10n.t("监听 IPv6"), isOn: $enableIPv6)
+                    FormTextField(label: L10n.t("备注（可选）"), text: $remark, machineValue: false)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L10n.t("其他域名（可选，每行一个）"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextEditor(text: $otherDomains)
+                            .font(.subheadline)
+                            .frame(minHeight: 72)
+                            .overlay(alignment: .topLeading) {
+                                if otherDomains.isEmpty {
+                                    Text(L10n.t(" abc.test.com\n abc1.test.com:8080"))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.tertiary)
+                                        .padding(.top, 8)
+                                        .padding(.leading, 5)
+                                        .allowsHitTesting(false)
+                                }
+                            }
                     }
-                    TextField(L10n.t("备注（可选）"), text: $remark)
 
                     // 分组（未加载到分组数据时仅展示默认分组占位）
                     if vm.groups.isEmpty {
@@ -86,6 +103,9 @@ struct CreateWebsiteView: View {
                 } header: {
                     Text(L10n.t("域名"))
                 } footer: {
+                    Text(L10n.t("其他域名每行一个，可带 :端口（如 abc.test.com:8080），未带端口时沿用上方端口"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     if !primaryDomain.isEmpty {
                         Text(L10n.f("预览：%@:%ld", primaryDomain, port))
                             .font(.caption.monospaced())
@@ -149,6 +169,14 @@ struct CreateWebsiteView: View {
                 await vm.loadCreateData(type: selectedType)
                 if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
             }
+            .onChange(of: primaryDomain) { _, newDomain in
+                // 主域名填入后自动带入代号（去端口/路径）；用户手动改过则不再跟随
+                let derived = newDomain.split(separator: ":").first.map(String.init) ?? newDomain
+                if alias.isEmpty || alias == lastAutoAlias {
+                    alias = derived
+                }
+                lastAutoAlias = derived
+            }
             .onChange(of: selectedType) { _, newType in
                 Task { await vm.loadCreateData(type: newType) }
             }
@@ -195,7 +223,7 @@ struct CreateWebsiteView: View {
         }
     }
 
-    /// 反向代理目标
+    /// 反向代理后端
     @ViewBuilder
     private var proxySection: some View {
         Section {
@@ -203,15 +231,13 @@ struct CreateWebsiteView: View {
                 Text("http://").tag("http://")
                 Text("https://").tag("https://")
             }
-            TextField(L10n.t("目标地址"), text: $proxyAddress)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            FormTextField(label: L10n.t("后端代理地址"), prompt: "host:port",
+                          text: $proxyAddress, style: .stacked, keyboardType: .URL)
         } header: {
-            Text(L10n.t("代理目标"))
+            Text(L10n.t("后端代理"))
         } footer: {
             if !proxyAddress.isEmpty {
-                Text(L10n.f("代理地址：%@%@", proxyProtocol, proxyAddress))
+                Text(L10n.f("后端代理地址：%@%@", proxyProtocol, proxyAddress))
                     .font(.caption.monospaced())
                     .foregroundStyle(.blue)
             }
@@ -231,13 +257,24 @@ struct CreateWebsiteView: View {
         }
     }
 
+    /// 端口 String ↔ Int 双向绑定（FormTextField 只接收 String；非法输入回落 0，由 canSubmit 拦截）
+    private var portBinding: Binding<String> {
+        Binding<String>(
+            get: { String(port) },
+            set: { port = Int($0) ?? 0 }
+        )
+    }
+
     private func performCreate() async {
         var req = WebsiteCreateRequest()
         req.type = selectedType.rawValue
-        // alias 从主域名生成（去掉端口/路径）
-        req.alias = primaryDomain.split(separator: ":").first.map(String.init) ?? primaryDomain
+        // 代号：默认由主域名带入，允许手改；为空时回落主域名（去端口）
+        req.alias = alias.isEmpty
+            ? (primaryDomain.split(separator: ":").first.map(String.init) ?? primaryDomain)
+            : alias
         req.primaryDomain = ""
         req.remark = remark
+        req.IPV6 = enableIPv6
         // 分组（0 = 未选中，回落默认分组）
         req.webSiteGroupId = selectedGroupID != 0 ? selectedGroupID : vm.defaultGroupID
         req.enableSSL = enableSSL
@@ -245,13 +282,28 @@ struct CreateWebsiteView: View {
         req.taskID = UUID().uuidString
         // 端口：HTTPS 启用时端口字段常被设为 443/自定义；未启用时默认 80
         req.port = port
-        // domains 数组必须包含 {domain, host, port, ssl} —— 关键字段
-        req.domains = [WebsiteDomainBody(
+        // domains 数组必须包含 {domain, host, port, ssl} —— 关键字段。
+        // 其他域名按行并入（与网页端一致，otherDomains 字段本身留空），
+        // 每行可带 :端口，未带时沿用主域名端口
+        var domainBodies = [WebsiteDomainBody(
             domain: primaryDomain,
             host: primaryDomain,
             port: port,
             ssl: enableSSL
         )]
+        for rawLine in otherDomains.split(whereSeparator: \.isNewline) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            guard !line.isEmpty else { continue }
+            var host = line
+            var linePort = port
+            if let colon = line.lastIndex(of: ":"), let parsed = Int(line[line.index(after: colon)...]),
+               parsed > 0, parsed < 65536 {
+                host = String(line[..<colon])
+                linePort = parsed
+            }
+            domainBodies.append(WebsiteDomainBody(domain: host, host: host, port: linePort, ssl: enableSSL))
+        }
+        req.domains = domainBodies
 
         switch selectedType {
         case .deployment:

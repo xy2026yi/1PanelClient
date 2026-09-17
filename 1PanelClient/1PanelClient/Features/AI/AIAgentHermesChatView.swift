@@ -296,8 +296,7 @@ private struct AIHermesRenameSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("会话名称"), text: $title)
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("会话名称"), text: $title)
                 } header: {
                     SectionLabel(title: L10n.t("重命名"), systemImage: "pencil")
                 }

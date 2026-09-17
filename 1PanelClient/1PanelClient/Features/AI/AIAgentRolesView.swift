@@ -322,8 +322,7 @@ private struct AIAgentRoleCreateSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("名称"), text: $name)
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("名称"), text: $name)
                     Picker(L10n.t("模型"), selection: $model) {
                         Text(L10n.t("请选择")).tag("")
                         ForEach(modelOptions, id: \.self) { m in

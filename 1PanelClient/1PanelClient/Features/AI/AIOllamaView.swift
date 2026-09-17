@@ -717,9 +717,7 @@ struct AIOllamaAddModelSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("模型名称"), text: $name)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("模型名称"), text: $name)
                         .font(.dataMonospacedBody)
                 } header: {
                     SectionLabel(title: L10n.t("拉取模型"), systemImage: "arrow.down.circle")

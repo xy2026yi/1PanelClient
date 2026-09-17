@@ -627,9 +627,7 @@ struct ContainerRenameSheet: View {
                     Text(currentName).foregroundStyle(.secondary)
                 }
                 Section(L10n.t("新名称")) {
-                    TextField(L10n.t("输入新名称"), text: $newName)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("输入新名称"), text: $newName)
                 }
             }
             .navigationTitle(L10n.t("重命名"))

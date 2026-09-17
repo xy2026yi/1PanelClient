@@ -280,12 +280,8 @@ struct KVRowsEditor: View {
         Section {
             ForEach($rows) { $row in
                 HStack(spacing: 8) {
-                    TextField(L10n.t("标签"), text: $row.key)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                    TextField(L10n.t("值"), text: $row.value)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("标签"), text: $row.key)
+                    FormTextField(label: L10n.t("值"), text: $row.value)
                     Button {
                         rows.removeAll { $0.id == row.id }
                     } label: {
@@ -605,9 +601,7 @@ private struct ContainerNetworkCreateSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("网络名"), text: $name)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("网络名"), text: $name)
                     Picker(L10n.t("模式"), selection: $driver) {
                         ForEach(drivers, id: \.self) { Text($0).tag($0) }
                     }
@@ -1027,9 +1021,7 @@ private struct ContainerVolumeCreateSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("名称"), text: $name)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("名称"), text: $name)
                     Picker(L10n.t("模式"), selection: .constant("local")) {
                         Text("local").tag("local")
                     }
@@ -1040,7 +1032,7 @@ private struct ContainerVolumeCreateSheet: View {
                 Section {
                     Toggle(L10n.t("启用 NFS 存储"), isOn: $nfsEnabled)
                     if nfsEnabled {
-                        TextField(L10n.t("地址"), text: $nfsAddress)
+                        FormTextField(label: L10n.t("地址"), text: $nfsAddress, style: .stacked)
                             // NFS 地址可为域名（含字母），不用 decimalPad
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
@@ -1048,11 +1040,9 @@ private struct ContainerVolumeCreateSheet: View {
                             Text("NFS").tag("v3")
                             Text("NFS4").tag("v4")
                         }
-                        TextField(L10n.t("挂载点"), text: $nfsMount)
-                            .autocorrectionDisabled()
-                        TextField(L10n.t("可选参数"), text: $nfsOption)
+                        FormTextField(label: L10n.t("挂载点"), text: $nfsMount)
+                        FormTextField(label: L10n.t("可选参数"), text: $nfsOption)
                             .font(.dataMonospacedFootnote)
-                            .autocorrectionDisabled()
                     }
                 } header: {
                     SectionLabel(title: "NFS", systemImage: "externaldrive.badge.icloud")

@@ -748,9 +748,7 @@ struct ContainerComposeCreateView: View {
                             title: L10n.t("路径"), path: $pathText, client: client,
                             fileExtensions: ["yml", "yaml"])
                     }
-                    TextField(L10n.t("名称"), text: $dirName)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("名称"), text: $dirName)
                         .onChange(of: dirName) { old, new in
                             // 区分用户编辑与自动带出：手动改动后不再跟随路径
                             if !new.isEmpty && new != old { nameManuallyEdited = true }
@@ -1045,12 +1043,9 @@ private struct ContainerTemplateEditSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(L10n.t("名称"), text: $name)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    FormTextField(label: L10n.t("名称"), text: $name)
                         .disabled(template != nil)
-                    TextField(L10n.t("描述"), text: $descriptionText)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("描述"), text: $descriptionText, machineValue: false)
                 } header: {
                     SectionLabel(title: L10n.t("基本信息"), systemImage: "doc.on.doc")
                 }

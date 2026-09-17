@@ -1222,9 +1222,9 @@ struct ChangePasswordSheet: View {
                     HStack {
                         Group {
                             if showNew {
-                                TextField(L10n.t("输入或生成新密码"), text: $newPassword)
+                                FormTextField(label: L10n.t("输入或生成新密码"), text: $newPassword)
                             } else {
-                                SecureField(L10n.t("输入或生成新密码"), text: $newPassword)
+                                FormTextField(label: L10n.t("输入或生成新密码"), text: $newPassword, isSecure: true)
                             }
                         }
                         .autocorrectionDisabled()
@@ -1356,9 +1356,7 @@ struct RedisPasswordSheet: View {
                     .foregroundStyle(.secondary)
             }
             Section(L10n.t("确认重启")) {
-                TextField(L10n.t("请输入「立即重启」"), text: $restartConfirm)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
+                FormTextField(label: L10n.t("请输入「立即重启」"), text: $restartConfirm)
             }
         }
     }

@@ -336,9 +336,6 @@ struct FirewallWhitelistView: View {
         .navigationBarTitleDisplayMode(.inline)
         .formWidthLimit()
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button(L10n.t("取消")) { dismiss() }
-            }
             ToolbarItem(placement: .confirmationAction) {
                 Button {
                     Task { await submit() }

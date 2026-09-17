@@ -128,27 +128,27 @@ struct WebsiteProxiesView: View {
     private var list: some View {
         List {
             ForEach(proxies) { p in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(p.displayName)
-                            .font(.body.bold())
-                        Spacer()
-                        if p.enable == true {
-                            StatusBadge(text: L10n.t("已启用"), color: .statusRunning)
-                        } else {
-                            StatusBadge(text: L10n.t("已停用"), color: .statusStopped)
-                        }
-                    }
-                    HStack {
-                        Label(p.displayMatch, systemImage: "arrow.triangle.branch")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        // 首行：匹配规则 + 前端请求路径（如 "^~ /"，无匹配规则时仅路径）
+                        Text(p.displayModifierMatch)
+                            .font(.dataMonospacedBody.bold())
+                            .lineLimit(1)
+                        // 次行：后端地址
                         Text(p.displayProxyPass)
                             .font(.caption.monospaced())
                             .foregroundStyle(.blue)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 12)
+                    // 状态徽标在两行高度上垂直居中
+                    if p.enable == true {
+                        StatusBadge(text: L10n.t("已启用"), color: .statusRunning)
+                    } else {
+                        StatusBadge(text: L10n.t("已停用"), color: .statusStopped)
                     }
                 }
+                .padding(.vertical, 2)
                 .contentShape(Rectangle())
                 .onTapGesture {
                     actionProxy = p
@@ -184,10 +184,15 @@ struct WebsiteProxiesView: View {
             operate: WebsiteProxyOperate.delete.rawValue,
             enable: p.enable ?? true,
             name: p.name ?? "",
+            modifier: p.modifier ?? "",
             match: p.match ?? "",
             proxyPass: p.proxyPass ?? "",
+            proxyHost: p.proxyHost ?? "$host",
             content: p.content ?? "",
             filePath: p.filePath ?? "",
+            sni: p.sni ?? false,
+            proxySSLName: p.proxySSLName ?? "$proxy_host",
+            sslVerify: p.sslVerify ?? false,
             proxyProtocol: "http://",
             proxyAddress: p.proxyPass ?? ""
         )
@@ -220,22 +225,44 @@ struct WebsiteProxyEditView: View {
 
     @State private var name = ""
     @State private var match = "/"
+    @State private var modifier = ""
     @State private var proxyProtocol = "http://"
     @State private var proxyAddress = ""
+    @State private var proxyHost = "$host"
     @State private var enable = true
+    // SNI（仅 HTTPS 后端）
+    @State private var sni = false
+    @State private var proxySSLName = "$proxy_host"
+    @State private var sslVerify = false
     @State private var isSaving = false
 
     private var isEdit: Bool { proxy != nil }
 
+    /// 匹配规则选项（对应 nginx location 修饰符）
+    private let modifierOptions: [(value: String, label: String)] = [
+        ("",    L10n.t("无（前缀匹配）")),
+        ("=",   L10n.t("= 精确匹配")),
+        ("^~",  L10n.t("^~ 匹配路径开头")),
+        ("~",   L10n.t("~ 正则匹配（区分大小写）")),
+        ("~*",  L10n.t("~* 正则匹配（不区分大小写）")),
+    ]
+
     var body: some View {
         Form {
-            Section(L10n.t("路由")) {
-                TextField(L10n.t("名称"), text: $name)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField(L10n.t("路径 (例如 /api)"), text: $match)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+            Section {
+                FormTextField(label: L10n.t("名称"), text: $name,
+                              disabled: isEdit)
+                Picker(L10n.t("匹配规则"), selection: $modifier) {
+                    ForEach(modifierOptions, id: \.value) { opt in
+                        Text(opt.label).tag(opt.value)
+                    }
+                }
+                FormTextField(label: L10n.t("前端请求路径"), prompt: "/api",
+                              text: $match)
+            } header: {
+                Text(L10n.t("路由"))
+            } footer: {
+                Text(L10n.t("匹配规则对应 nginx location 修饰符：= 精确匹配，~ 正则匹配，^~ 匹配路径开头等"))
             }
 
             Section {
@@ -243,17 +270,33 @@ struct WebsiteProxyEditView: View {
                     Text("http://").tag("http://")
                     Text("https://").tag("https://")
                 }
-                TextField(L10n.t("目标地址 (host:port)"), text: $proxyAddress)
-                    .keyboardType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("后端代理地址"), prompt: "host:port",
+                              text: $proxyAddress, style: .stacked, keyboardType: .URL)
+                FormTextField(label: L10n.t("后端域名"), text: $proxyHost)
             } header: {
-                Text(L10n.t("代理目标"))
+                Text(L10n.t("后端代理"))
             } footer: {
-                if !proxyAddress.isEmpty {
-                    Text(L10n.f("完整地址：%@%@", proxyProtocol, proxyAddress))
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.blue)
+                VStack(alignment: .leading, spacing: 4) {
+                    if !proxyAddress.isEmpty {
+                        Text(L10n.f("完整地址：%@%@", proxyProtocol, proxyAddress))
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.blue)
+                    }
+                    Text(L10n.t("后端域名回填 proxy_set_header Host，默认 $host 表示沿用客户端请求的主机名"))
+                }
+            }
+
+            if proxyProtocol == "https://" {
+                Section {
+                    Toggle(L10n.t("回源 SNI"), isOn: $sni)
+                    if sni {
+                        FormTextField(label: L10n.t("代理 SNI 名称"), text: $proxySSLName)
+                    }
+                    Toggle(L10n.t("校验后端 SSL 证书"), isOn: $sslVerify)
+                } header: {
+                    Text(L10n.t("SNI 设置"))
+                } footer: {
+                    Text(L10n.t("HTTPS 后端启用回源 SNI 后将在握手时携带 SNI（proxy_ssl_server_name on），代理 SNI 名称默认 $proxy_host"))
                 }
             }
 
@@ -282,7 +325,12 @@ struct WebsiteProxyEditView: View {
         guard let p = proxy else { return }
         name = p.name ?? ""
         match = p.match ?? "/"
+        modifier = p.modifier ?? ""
         enable = p.enable ?? true
+        proxyHost = p.proxyHost ?? "$host"
+        sni = p.sni ?? false
+        proxySSLName = (p.proxySSLName?.isEmpty == false) ? p.proxySSLName! : "$proxy_host"
+        sslVerify = p.sslVerify ?? false
         let pass = p.proxyPass ?? ""
         if pass.hasPrefix("https://") {
             proxyProtocol = "https://"
@@ -304,8 +352,13 @@ struct WebsiteProxyEditView: View {
             operate: operate.rawValue,
             enable: enable,
             name: name,
+            modifier: modifier,
             match: match,
             proxyPass: "\(proxyProtocol)\(proxyAddress)",
+            proxyHost: proxyHost.isEmpty ? "$host" : proxyHost,
+            sni: sni,
+            proxySSLName: proxySSLName.isEmpty ? "$proxy_host" : proxySSLName,
+            sslVerify: sslVerify,
             proxyProtocol: proxyProtocol,
             proxyAddress: proxyAddress
         )

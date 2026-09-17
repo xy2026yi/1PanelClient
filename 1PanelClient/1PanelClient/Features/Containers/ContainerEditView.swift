@@ -24,9 +24,7 @@ struct ContainerUpgradeView: View {
     var body: some View {
         Form {
             Section(L10n.t("目标镜像")) {
-                TextField(L10n.t("镜像名:标签"), text: $image)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                FormTextField(label: L10n.t("镜像"), prompt: "nginx:latest", text: $image)
                     .font(.dataMonospacedBody)
                 if image.trimmingCharacters(in: .whitespaces).isEmpty {
                     Text(L10n.t("镜像不能为空"))
@@ -129,10 +127,7 @@ struct ContainerEditView: View {
                 }
 
                 Section {
-                    TextField(L10n.t("镜像名:标签"), text: $image, axis: .horizontal)
-                        .font(.dataMonospacedBody)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    FormTextField(label: L10n.t("镜像"), prompt: "nginx:latest", text: $image)
                     if !vm.imageOptions.isEmpty {
                         Menu {
                             ForEach(vm.imageOptions, id: \.self) { opt in
@@ -166,7 +161,7 @@ struct ContainerEditView: View {
 
                 Section(L10n.t("环境变量")) {
                     ForEach(envs.indices, id: \.self) { i in
-                        TextField("KEY=VALUE", text: Binding(
+                        FormTextField(label: L10n.t("环境变量"), prompt: "KEY=VALUE", text: Binding(
                             get: { envs[i] },
                             set: { envs[i] = $0 }
                         ), axis: .vertical)

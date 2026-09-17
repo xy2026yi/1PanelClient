@@ -108,7 +108,7 @@ struct WebsiteHTTPSView: View {
         .task {
             await load()
             await vm.loadSSLCerts()
-            // 证书列表加载完成后选中当前证书
+            // 默认显示当前使用证书；不在可选列表时由选择器的「当前证书」兜底行接住
             selectedSSLId = originalSSLId
         }
         .refreshable { await load() }
@@ -124,20 +124,27 @@ struct WebsiteHTTPSView: View {
                             Text(v.1).tag(v.0)
                         }
                     }
-                    HStack {
-                        Text(L10n.t("HTTPS 端口"))
-                        Spacer()
-                        TextField(L10n.t("端口"), text: $httpsPort)
-                            .keyboardType(.numberPad)
-                            .frame(width: 80)
-                            .multilineTextAlignment(.trailing)
-                    }
+                    FormTextField(label: L10n.t("HTTPS 端口"), prompt: "443",
+                                  text: $httpsPort, keyboardType: .numberPad)
                 }
             }
 
             if enable {
                 Section(L10n.t("SSL 证书")) {
                     Picker(L10n.t("选择证书"), selection: $selectedSSLId) {
+                        // tag(0) 兜底：未配置证书/证书列表为空时 selection 停在 0，
+                        // 缺少对应 tag 会触发 Picker invalid selection 运行时警告
+                        Text(L10n.t("未选择")).tag(0)
+                        // 当前证书不在可选列表（列表加载中/证书已删除）时兜底，
+                        // 避免 selection 无对应 tag 的警告；列表就绪后自动并回真实选项
+                        if selectedSSLId != 0,
+                           !vm.availableSSLs.contains(where: { $0.id == selectedSSLId }) {
+                            if let domain = config?.ssl?.primaryDomain, !domain.isEmpty {
+                                Text(L10n.f("当前证书：%@", domain)).tag(selectedSSLId)
+                            } else {
+                                Text(L10n.f("当前证书（ID %ld）", selectedSSLId)).tag(selectedSSLId)
+                            }
+                        }
                         ForEach(vm.availableSSLs) { ssl in
                             VStack(alignment: .leading) {
                                 Text(ssl.displayName)
@@ -171,7 +178,10 @@ struct WebsiteHTTPSView: View {
         guard let c = await vm.loadHTTPSConfig(id: websiteId) else { return }
         config = c
         enable = c.enable ?? false
-        httpConfig = c.httpConfig ?? "HTTPToHTTPS"
+        // 服务端对未开启过 HTTPS 的站点会返回空串 httpConfig，
+        // 不在选项内会让 Picker 报 invalid selection，回落默认值
+        let rawHttpConfig = c.httpConfig ?? ""
+        httpConfig = availableHttpConfigs.map(\.0).contains(rawHttpConfig) ? rawHttpConfig : "HTTPToHTTPS"
         hsts = c.hsts ?? false
         hstsIncludeSubDomains = c.hstsIncludeSubDomains ?? true
         http3 = c.http3 ?? false
