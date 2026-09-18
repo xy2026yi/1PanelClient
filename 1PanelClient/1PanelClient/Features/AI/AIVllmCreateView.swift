@@ -213,7 +213,7 @@ struct AIVllmCreateView: View {
 
     private var basicSection: some View {
         Section {
-            FormTextField(label: L10n.t("名称"), text: $name)
+            OutlinedTextField(label: L10n.t("名称"), text: $name)
                 .disabled(isEdit)
 
             if isEdit {
@@ -255,14 +255,14 @@ struct AIVllmCreateView: View {
                 }
             }
 
-            FormTextField(label: L10n.t("镜像"), text: $image)
+            OutlinedTextField(label: L10n.t("镜像"), text: $image)
                 .font(.dataMonospacedBody)
 
-            FormTextField(label: L10n.t("端口"), text: $portText, keyboardType: .numberPad)
+            OutlinedTextField(label: L10n.t("端口"), text: $portText, keyboardType: .numberPad)
                 .onChange(of: portText) { _, _ in refreshBaseURL() }
 
             HStack(spacing: 10) {
-                FormTextField(label: L10n.t("模型目录"), text: $modelDir, style: .stacked)
+                OutlinedTextField(label: L10n.t("模型目录"), text: $modelDir)
                     .font(.dataMonospacedBody)
                 Button {
                     showDirPicker = true
@@ -351,13 +351,13 @@ struct AIVllmCreateView: View {
             Toggle(L10n.t("高级设置"), isOn: $advanced)
 
             if advanced {
-                FormTextField(label: L10n.t("容器名称"), text: $containerName)
+                OutlinedTextField(label: L10n.t("容器名称"), text: $containerName)
                     .font(.dataMonospacedBody)
                     .onChange(of: containerName) { _, _ in refreshBaseURL() }
 
                 Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
 
-                FormTextField(label: L10n.t("绑定主机 IP"), text: $specifyIP)
+                OutlinedTextField(label: L10n.t("绑定主机 IP"), text: $specifyIP)
                     .keyboardType(.decimalPad)
                     .font(.dataMonospacedBody)
 
@@ -368,7 +368,7 @@ struct AIVllmCreateView: View {
                 }
 
                 HStack {
-                    FormTextField(label: L10n.t("CPU 限制"), text: $cpuQuotaText)
+                    OutlinedTextField(label: L10n.t("CPU 限制"), text: $cpuQuotaText)
                         .keyboardType(.decimalPad)
                     Text(L10n.t("核心"))
                         .font(.caption)
@@ -376,7 +376,7 @@ struct AIVllmCreateView: View {
                 }
 
                 HStack {
-                    FormTextField(label: L10n.t("内存限制"), text: $memoryLimitText)
+                    OutlinedTextField(label: L10n.t("内存限制"), text: $memoryLimitText)
                         .keyboardType(.decimalPad)
                     Picker("", selection: $memoryUnit) {
                         Text("MB").tag("M")

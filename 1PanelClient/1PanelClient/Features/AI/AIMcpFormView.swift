@@ -105,7 +105,7 @@ struct AIMcpFormView: View {
 
     private var baseSection: some View {
         Section {
-            FormTextField(label: L10n.t("名称"), text: $name)
+            OutlinedTextField(label: L10n.t("名称"), text: $name)
                 .disabled(isEditing)
 
             Picker(L10n.t("类型"), selection: $type) {
@@ -148,17 +148,17 @@ struct AIMcpFormView: View {
             }
 
             if outputTransport == "sse" {
-                FormTextField(label: L10n.t("SSE 路径"), text: $pathField, style: .stacked)
+                OutlinedTextField(label: L10n.t("SSE 路径"), text: $pathField)
                     .font(.dataMonospacedCaption)
             } else {
-                FormTextField(label: L10n.t("流式传输路径"), text: $pathField, style: .stacked)
+                OutlinedTextField(label: L10n.t("流式传输路径"), text: $pathField)
                     .font(.dataMonospacedCaption)
-                FormTextField(label: L10n.t("协议版本"), text: $protocolVersion)
+                OutlinedTextField(label: L10n.t("协议版本"), text: $protocolVersion)
             }
 
-            FormTextField(label: L10n.t("参数"), text: $gatewayArgs)
+            OutlinedTextField(label: L10n.t("参数"), text: $gatewayArgs)
 
-            FormTextField(label: L10n.t("镜像"), text: $gatewayImage)
+            OutlinedTextField(label: L10n.t("镜像"), text: $gatewayImage)
                 .font(.dataMonospacedCaption)
         } header: {
             SectionLabel(title: L10n.t("网关配置"), systemImage: "arrow.left.arrow.right.circle")
@@ -169,11 +169,11 @@ struct AIMcpFormView: View {
 
     private var containerSection: some View {
         Section {
-            FormTextField(label: L10n.t("容器名称"), text: $containerName)
+            OutlinedTextField(label: L10n.t("容器名称"), text: $containerName)
             HStack {
                 Text(L10n.t("端口")).foregroundStyle(.secondary)
                 Spacer()
-                FormTextField(label: "8000", text: $portField, keyboardType: .numberPad)
+                OutlinedTextField(label: "8000", text: $portField, keyboardType: .numberPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
             }
@@ -202,12 +202,12 @@ struct AIMcpFormView: View {
             .onDelete { environments.remove(atOffsets: $0) }
 
             HStack(spacing: 8) {
-                FormTextField(label: "KEY", text: $newEnvKey)
+                OutlinedTextField(label: "KEY", text: $newEnvKey)
                     .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.left")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                FormTextField(label: "VALUE", text: $newEnvValue)
+                OutlinedTextField(label: "VALUE", text: $newEnvValue)
                     .font(.dataMonospacedCaption)
                 Button {
                     addEnv()
@@ -234,12 +234,12 @@ struct AIMcpFormView: View {
             .onDelete { volumes.remove(atOffsets: $0) }
 
             HStack(spacing: 8) {
-                FormTextField(label: L10n.t("宿主机目录"), text: $newVolumeHost, style: .stacked)
+                OutlinedTextField(label: L10n.t("宿主机目录"), text: $newVolumeHost)
                     .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.right")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                FormTextField(label: L10n.t("容器目录"), text: $newVolumeContainer, style: .stacked)
+                OutlinedTextField(label: L10n.t("容器目录"), text: $newVolumeContainer)
                     .font(.dataMonospacedCaption)
                 Button {
                     addVolume()

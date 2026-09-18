@@ -379,13 +379,13 @@ struct AIAgentSettingsView: View {
 
                 if !isOpenClaw {
                     Section {
-                        FormTextField(label: L10n.t("用户名"), text: $username)
+                        OutlinedTextField(label: L10n.t("用户名"), text: $username)
                         HStack {
                             if showPassword {
-                                FormTextField(label: L10n.t("密码"), text: $password)
+                                OutlinedTextField(label: L10n.t("密码"), text: $password)
                                     .font(.dataMonospacedBody)
                             } else {
-                                FormTextField(label: L10n.t("密码"), text: $password, isSecure: true)
+                                OutlinedTextField(label: L10n.t("密码"), text: $password, isSecure: true)
                             }
                             Button {
                                 showPassword.toggle()

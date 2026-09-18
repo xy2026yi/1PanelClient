@@ -40,12 +40,8 @@ struct AIDownloaderSearchView: View {
     var body: some View {
         List {
             Section {
-                Picker(L10n.t("来源"), selection: $source) {
-                    ForEach(ModelRepoSource.allCases) { s in
-                        Text(s.displayName).tag(s)
-                    }
-                }
-                .pickerStyle(.segmented)
+                OutlinedPicker(label: L10n.t("来源"), options: ModelRepoSource.allCases,
+                               selection: $source) { $0.displayName }
             } header: {
                 SectionLabel(title: L10n.t("模型仓库"), systemImage: "globe")
             }
@@ -63,7 +59,7 @@ struct AIDownloaderSearchView: View {
     private var manualSection: some View {
         Section {
             HStack(spacing: 10) {
-                FormTextField(label: L10n.t("仓库 ID，如 Qwen/Qwen3-0.6B"), text: $manualRepoID)
+                OutlinedTextField(label: L10n.t("仓库 ID，如 Qwen/Qwen3-0.6B"), text: $manualRepoID)
                     .font(.dataMonospacedBody)
                     .onSubmit { Task { await manualDownload() } }
                 Button {
@@ -100,7 +96,7 @@ struct AIDownloaderSearchView: View {
     private var searchSection: some View {
         Section {
             HStack(spacing: 10) {
-                FormTextField(label: L10n.t("搜索模型，如 Qwen"), text: $query)
+                OutlinedTextField(label: L10n.t("搜索模型，如 Qwen"), text: $query)
                     .onSubmit { Task { await search(reset: true) } }
                 Picker("", selection: $sort) {
                     ForEach(ModelRepoSort.allCases) { s in

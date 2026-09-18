@@ -653,7 +653,7 @@ struct AIDownloaderSettingsSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    FormTextField(label: "/opt/1panel/ai/models", text: $modelDir)
+                    OutlinedTextField(label: "/opt/1panel/ai/models", text: $modelDir)
                         .font(.dataMonospacedBody)
                 } header: {
                     SectionLabel(title: L10n.t("模型目录"), systemImage: "internaldrive")
@@ -662,9 +662,9 @@ struct AIDownloaderSettingsSheet: View {
                 }
 
                 Section {
-                    FormTextField(label: "https://hf-mirror.com", text: $hfEndpoint, keyboardType: .URL)
+                    OutlinedTextField(label: "https://hf-mirror.com", text: $hfEndpoint, keyboardType: .URL)
                         .font(.dataMonospacedBody)
-                    FormTextField(label: L10n.t("令牌（可选）"), text: $hfToken, isSecure: true)
+                    OutlinedTextField(label: L10n.t("令牌（可选）"), text: $hfToken, isSecure: true)
                 } header: {
                     SectionLabel(title: "HuggingFace", systemImage: "hare")
                 } footer: {
@@ -672,9 +672,9 @@ struct AIDownloaderSettingsSheet: View {
                 }
 
                 Section {
-                    FormTextField(label: "https://www.modelscope.cn", text: $modelScopeEndpoint, keyboardType: .URL)
+                    OutlinedTextField(label: "https://www.modelscope.cn", text: $modelScopeEndpoint, keyboardType: .URL)
                         .font(.dataMonospacedBody)
-                    FormTextField(label: L10n.t("令牌（可选）"), text: $modelScopeToken, isSecure: true)
+                    OutlinedTextField(label: L10n.t("令牌（可选）"), text: $modelScopeToken, isSecure: true)
                 } header: {
                     SectionLabel(title: "ModelScope", systemImage: "sparkles.rectangle.stack")
                 }

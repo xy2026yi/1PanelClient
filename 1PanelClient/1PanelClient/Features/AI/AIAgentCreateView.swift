@@ -64,7 +64,13 @@ struct AIAgentCreateView: View {
     @State private var composeLoadedKey = ""
 
     private let restartPolicies = ["no", "always", "on-failure", "unless-stopped"]
-    private let memoryUnits = ["M", "G"]
+    /// CPU/内存 String ↔ Int（描边框接收 String；非法输入回落 0，0 = 不限制）
+    private var cpuQuotaText: Binding<String> {
+        Binding<String>(get: { String(cpuQuota) }, set: { cpuQuota = Int($0) ?? 0 })
+    }
+    private var memoryLimitText: Binding<String> {
+        Binding<String>(get: { String(memoryLimit) }, set: { memoryLimit = Int($0) ?? 0 })
+    }
 
     private var agentType: AIAgentType {
         AIAgentType.all.first { $0.key == selectedTypeKey } ?? AIAgentType.all[0]
@@ -202,7 +208,7 @@ struct AIAgentCreateView: View {
                 }
             }
 
-            FormTextField(label: L10n.t("备注"), text: $remark, machineValue: false)
+            OutlinedTextField(label: L10n.t("备注"), text: $remark, machineValue: false)
         } header: {
             SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
         } footer: {
@@ -297,7 +303,7 @@ struct AIAgentCreateView: View {
                     .accessibilityLabel(L10n.t("复制"))
                 }
             } else {
-                FormTextField(label: L10n.t("用户名"), text: $username)
+                OutlinedTextField(label: L10n.t("用户名"), text: $username)
                 PasswordInputRow(password: $password, showPassword: $showPassword)
             }
         } header: {
@@ -344,30 +350,10 @@ struct AIAgentCreateView: View {
 
     private var advancedResourceSection: some View {
         Section {
-            HStack {
-                Text(L10n.t("CPU 核心")).foregroundStyle(.secondary)
-                Spacer()
-                TextField("0", value: $cpuQuota, format: .number)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
-                Text(L10n.t("核"))
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
-            }
-            HStack {
-                Text(L10n.t("内存限制")).foregroundStyle(.secondary)
-                Spacer()
-                TextField("0", value: $memoryLimit, format: .number)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
-                Picker("", selection: $memoryUnit) {
-                    ForEach(memoryUnits, id: \.self) { Text($0).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 80)
-            }
+            OutlinedUnitField(label: L10n.t("CPU核心数"), unit: L10n.t("核"),
+                              text: cpuQuotaText)
+            OutlinedUnitField(label: L10n.t("内存"), unit: "MB",
+                              text: memoryLimitText)
         } header: {
             Text(L10n.t("资源限制"))
         } footer: {
@@ -503,7 +489,8 @@ struct AIAgentCreateView: View {
             restartPolicy: restartPolicy,
             cpuQuota: cpuQuota,
             memoryLimit: memoryLimit,
-            memoryUnit: memoryUnit,
+            // UI 单位固定 MB（无 M/G 切换），按 MB 语义提交 M
+            memoryUnit: "M",
             pullImage: pullImage,
             editCompose: editCompose,
             dockerCompose: editCompose ? customCompose : ""

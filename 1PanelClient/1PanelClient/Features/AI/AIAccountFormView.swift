@@ -132,7 +132,7 @@ struct AIAccountFormView: View {
 
     private var baseInfoSection: some View {
         Section {
-            FormTextField(label: L10n.t("名称"), text: $name)
+            OutlinedTextField(label: L10n.t("名称"), text: $name)
 
             if isEditing {
                 LabeledContent(L10n.t("模型供应商"), value: editing?.providerName ?? editing?.provider ?? "")
@@ -197,10 +197,10 @@ struct AIAccountFormView: View {
         Section {
             HStack {
                 if showApiKey {
-                    FormTextField(label: "API Key", text: $apiKey)
+                    OutlinedTextField(label: "API Key", text: $apiKey)
                         .font(.dataMonospacedBody)
                 } else {
-                    FormTextField(label: "API Key", text: $apiKey, isSecure: true)
+                    OutlinedTextField(label: "API Key", text: $apiKey, isSecure: true)
                 }
                 Button {
                     showApiKey.toggle()
@@ -313,12 +313,12 @@ struct AIAccountFormView: View {
             }
 
             HStack(spacing: 8) {
-                FormTextField(label: L10n.t("模型"), text: $manualModelId)
+                OutlinedTextField(label: L10n.t("模型"), text: $manualModelId)
                     .font(.dataMonospacedCaption)
                 Image(systemName: "arrow.right")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                FormTextField(label: L10n.t("名称"), text: $manualModelName)
+                OutlinedTextField(label: L10n.t("名称"), text: $manualModelName)
                 Button {
                     addManualModel()
                 } label: {
