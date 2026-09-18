@@ -91,6 +91,7 @@ struct OutlinedTextField: View {
     var keyboardType: UIKeyboardType = .default
     /// 机器值：禁用首字母自动大写与纠错（默认开）
     var machineValue = true
+    var disabled = false
 
     @FocusState private var isFocused: Bool
 
@@ -100,6 +101,7 @@ struct OutlinedTextField: View {
             fieldBody
                 .keyboardType(keyboardType)
                 .focused($isFocused)
+                .disabled(disabled)
                 .modifier(OutlinedMachineValue(enabled: machineValue))
             if isFocused, text.isEmpty, let prompt {
                 Text(prompt)

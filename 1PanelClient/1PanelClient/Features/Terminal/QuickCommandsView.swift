@@ -172,7 +172,7 @@ struct QuickCommandEditView: View {
         NavigationStack {
             Form {
                 Section {
-                    FormTextField(label: L10n.t("名称"), text: $name)
+                    OutlinedTextField(label: L10n.t("名称"), text: $name)
                 } header: {
                     Text(L10n.t("基本信息"))
                 }

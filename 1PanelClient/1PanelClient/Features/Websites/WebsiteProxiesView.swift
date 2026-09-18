@@ -252,11 +252,11 @@ struct WebsiteProxyEditView: View {
             Section {
                 FormTextField(label: L10n.t("名称"), text: $name,
                               disabled: isEdit)
-                Picker(L10n.t("匹配规则"), selection: $modifier) {
-                    ForEach(modifierOptions, id: \.value) { opt in
-                        Text(opt.label).tag(opt.value)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("匹配规则"),
+                               options: modifierOptions.map(\.value),
+                               selection: $modifier,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   modifierOptions.map { ($0.value, $0.label) }))
                 FormTextField(label: L10n.t("前端请求路径"), prompt: "/api",
                               text: $match)
             } header: {
@@ -266,13 +266,11 @@ struct WebsiteProxyEditView: View {
             }
 
             Section {
-                Picker(L10n.t("协议"), selection: $proxyProtocol) {
-                    Text("http://").tag("http://")
-                    Text("https://").tag("https://")
-                }
-                FormTextField(label: L10n.t("后端代理地址"), prompt: "host:port",
-                              text: $proxyAddress, style: .stacked, keyboardType: .URL)
-                FormTextField(label: L10n.t("后端域名"), text: $proxyHost)
+                OutlinedPicker(label: L10n.t("协议"), options: ["http://", "https://"],
+                               selection: $proxyProtocol)
+                OutlinedTextField(label: L10n.t("后端代理地址"), prompt: "host:port",
+                                  text: $proxyAddress, keyboardType: .URL)
+                OutlinedTextField(label: L10n.t("后端域名"), text: $proxyHost)
             } header: {
                 Text(L10n.t("后端代理"))
             } footer: {
@@ -290,7 +288,7 @@ struct WebsiteProxyEditView: View {
                 Section {
                     Toggle(L10n.t("回源 SNI"), isOn: $sni)
                     if sni {
-                        FormTextField(label: L10n.t("代理 SNI 名称"), text: $proxySSLName)
+                        OutlinedTextField(label: L10n.t("代理 SNI 名称"), text: $proxySSLName)
                     }
                     Toggle(L10n.t("校验后端 SSL 证书"), isOn: $sslVerify)
                 } header: {

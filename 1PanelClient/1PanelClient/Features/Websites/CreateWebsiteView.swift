@@ -58,29 +58,14 @@ struct CreateWebsiteView: View {
                 }
 
                 Section {
-                    FormTextField(label: L10n.t("主域名"), text: $primaryDomain, keyboardType: .URL)
-                    FormTextField(label: L10n.t("代号"), text: $alias)
-                    FormTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
+                    OutlinedTextField(label: L10n.t("主域名"), text: $primaryDomain, keyboardType: .URL)
+                    OutlinedTextField(label: L10n.t("代号"), text: $alias)
+                    OutlinedTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
                     Toggle(L10n.t("监听 IPv6"), isOn: $enableIPv6)
-                    FormTextField(label: L10n.t("备注（可选）"), text: $remark, machineValue: false)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(L10n.t("其他域名（可选，每行一个）"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        TextEditor(text: $otherDomains)
-                            .font(.subheadline)
-                            .frame(minHeight: 72)
-                            .overlay(alignment: .topLeading) {
-                                if otherDomains.isEmpty {
-                                    Text(L10n.t(" abc.test.com\n abc1.test.com:8080"))
-                                        .font(.subheadline)
-                                        .foregroundStyle(.tertiary)
-                                        .padding(.top, 8)
-                                        .padding(.leading, 5)
-                                        .allowsHitTesting(false)
-                                }
-                            }
-                    }
+                    OutlinedTextField(label: L10n.t("备注（可选）"), text: $remark, machineValue: false)
+                    OutlinedMultiLineField(label: L10n.t("其他域名"),
+                                           prompt: "abc.test.com, abc1.test.com:8080",
+                                           text: $otherDomains)
 
                     // 分组（未加载到分组数据时仅展示默认分组占位）
                     if vm.groups.isEmpty {
@@ -227,12 +212,10 @@ struct CreateWebsiteView: View {
     @ViewBuilder
     private var proxySection: some View {
         Section {
-            Picker(L10n.t("协议"), selection: $proxyProtocol) {
-                Text("http://").tag("http://")
-                Text("https://").tag("https://")
-            }
-            FormTextField(label: L10n.t("后端代理地址"), prompt: "host:port",
-                          text: $proxyAddress, style: .stacked, keyboardType: .URL)
+            OutlinedPicker(label: L10n.t("协议"), options: ["http://", "https://"],
+                           selection: $proxyProtocol)
+            OutlinedTextField(label: L10n.t("后端代理地址"), prompt: "host:port",
+                              text: $proxyAddress, keyboardType: .URL)
         } header: {
             Text(L10n.t("后端代理"))
         } footer: {

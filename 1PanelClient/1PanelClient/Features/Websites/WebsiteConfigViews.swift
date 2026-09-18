@@ -516,19 +516,16 @@ struct WebsiteRedirectEditView: View {
     var body: some View {
         Form {
             Section(L10n.t("基本信息")) {
-                FormTextField(label: L10n.t("名称"), text: $name, disabled: is404 || isEdit)
-                Picker(L10n.t("类型"), selection: $type) {
-                    Text(L10n.t("域名")).tag("domain")
-                    Text(L10n.t("路径")).tag("path")
-                    Text("404").tag("404")
-                }
-                .pickerStyle(.segmented)
-                .disabled(isEdit)
-                Picker(L10n.t("方式"), selection: $method) {
-                    Text("301").tag("301")
-                    Text("302").tag("302")
-                }
-                .pickerStyle(.segmented)
+                OutlinedTextField(label: L10n.t("名称"), text: $name, disabled: is404 || isEdit)
+                OutlinedPicker(label: L10n.t("类型"),
+                               options: ["domain", "path", "404"],
+                               selection: $type,
+                               optionLabels: ["domain": L10n.t("域名"),
+                                              "path": L10n.t("路径"),
+                                              "404": "404"])
+                    .disabled(isEdit)
+                OutlinedPicker(label: L10n.t("方式"), options: ["301", "302"],
+                               selection: $method)
             }
 
             Section(L10n.t("规则")) {
@@ -894,9 +891,9 @@ struct WebsiteAuthEditView: View {
     var body: some View {
         Form {
             Section(L10n.t("账号")) {
-                FormTextField(label: L10n.t("用户名"), text: $username, disabled: isEdit)
+                OutlinedTextField(label: L10n.t("用户名"), text: $username, disabled: isEdit)
                 HStack(alignment: .firstTextBaseline) {
-                    FormTextField(label: L10n.t("密码"), text: $password, isSecure: true)
+                    OutlinedTextField(label: L10n.t("密码"), text: $password, isSecure: true)
                     Button {
                         password = Self.randomPassword()
                     } label: {
@@ -904,7 +901,7 @@ struct WebsiteAuthEditView: View {
                     }
                     .buttonStyle(.borderless)
                 }
-                FormTextField(label: L10n.t("备注（可选）"), text: $remark, machineValue: false)
+                OutlinedTextField(label: L10n.t("备注（可选）"), text: $remark, machineValue: false)
             }
         }
         .navigationTitle(isEdit ? L10n.t("编辑账号") : L10n.t("创建账号"))

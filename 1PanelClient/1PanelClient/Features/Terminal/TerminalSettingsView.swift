@@ -206,18 +206,17 @@ struct TerminalSSHConnEditView: View {
             Form {
                 Section {
                     FormTextField(label: L10n.t("主机地址"), text: $addr, style: .stacked, keyboardType: .URL)
-                    FormTextField(label: L10n.t("端口"), text: $portText, keyboardType: .numberPad)
-                    FormTextField(label: L10n.t("用户名"), text: $user)
+                    OutlinedTextField(label: L10n.t("端口"), text: $portText, keyboardType: .numberPad)
+                    OutlinedTextField(label: L10n.t("用户名"), text: $user)
                 } header: {
                     Text(L10n.t("基本信息"))
                 }
 
                 Section {
-                    Picker(L10n.t("认证方式"), selection: $authMode) {
-                        Text(L10n.t("密码认证")).tag("password")
-                        Text(L10n.t("私钥认证")).tag("key")
-                    }
-                    .pickerStyle(.segmented)
+                    OutlinedPicker(label: L10n.t("认证方式"), options: ["password", "key"],
+                                   selection: $authMode,
+                                   optionLabels: ["password": L10n.t("密码认证"),
+                                                  "key": L10n.t("私钥认证")])
 
                     if isKeyAuth {
                         TextEditor(text: $privateKey)
@@ -235,9 +234,9 @@ struct TerminalSSHConnEditView: View {
                                         .allowsHitTesting(false)
                                 }
                             }
-                        FormTextField(label: L10n.t("私钥密码（可选）"), text: $passPhrase, isSecure: true)
+                        OutlinedTextField(label: L10n.t("私钥密码（可选）"), text: $passPhrase, isSecure: true)
                     } else {
-                        FormTextField(label: L10n.t("密码"), text: $password, isSecure: true)
+                        OutlinedTextField(label: L10n.t("密码"), text: $password, isSecure: true)
                     }
                 } header: {
                     Text(L10n.t("认证"))

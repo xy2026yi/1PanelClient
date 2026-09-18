@@ -255,7 +255,7 @@ private struct SnapshotRecoverSheet: View {
                     InfoRow(L10n.t("快照"), value: snapshot.displayName)
                 }
                 Section {
-                    FormTextField(label: L10n.t("压缩密码（可选）"), text: $secret, isSecure: true)
+                    OutlinedTextField(label: L10n.t("压缩密码（可选）"), text: $secret, isSecure: true)
                 } header: {
                     SectionLabel(title: L10n.t("恢复选项"), systemImage: "key")
                 }
@@ -446,7 +446,7 @@ struct SnapshotCreateView: View {
                         Text(account.name ?? "#\(account.id)").tag(Optional(account.id))
                     }
                 }
-                FormTextField(label: L10n.t("压缩密码（可选）"), text: $secret)
+                OutlinedTextField(label: L10n.t("压缩密码（可选）"), text: $secret)
                 HStack {
                     Stepper(value: $timeoutValue, in: 1...8760) {
                         Text(L10n.t("超时时间"))
@@ -461,7 +461,7 @@ struct SnapshotCreateView: View {
                     .labelsHidden()
                     .frame(width: 74)
                 }
-                FormTextField(label: L10n.t("描述（可选）"), text: $descriptionText, machineValue: false)
+                OutlinedTextField(label: L10n.t("描述（可选）"), text: $descriptionText, machineValue: false)
             } header: {
                 SectionLabel(title: L10n.t("基础数据"), systemImage: "externaldrive")
             }
