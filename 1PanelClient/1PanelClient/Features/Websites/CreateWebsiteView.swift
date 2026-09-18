@@ -222,22 +222,19 @@ struct CreateWebsiteView: View {
             }
 
             OutlinedTextField(label: L10n.t("主域名"),
-                              prompt: L10n.t("例: example.com 或 example.com:8080"),
-                              text: $primaryDomain, keyboardType: .URL)
+                              text: $primaryDomain, keyboardType: .URL,
+                              hint: L10n.t("例: example.com 或 example.com:8080"))
             OutlinedMultiLineField(label: L10n.t("其他域名"),
                                    prompt: "abc.test.com\nabc1.test.com:8080",
                                    text: $otherDomains)
             OutlinedTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
             Toggle(L10n.t("监听 IPv6"), isOn: $enableIPv6)
             OutlinedTextField(label: L10n.t("代号"),
-                              prompt: L10n.t("对应主目录: /opt/1panel/apps/openresty/openresty/www/sites"),
-                              text: $alias)
+                              text: $alias,
+                              hint: L10n.t("对应主目录: /opt/1panel/apps/openresty/openresty/www/sites"))
         } header: {
             Text(L10n.t("域名"))
         } footer: {
-            Text(L10n.t("默认 5 行，到达第 5 行末尾继续输入自动增加一行"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
             if !primaryDomain.isEmpty {
                 Text(L10n.f("预览：%@:%ld", primaryDomain, port))
                     .font(.caption.monospaced())

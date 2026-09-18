@@ -92,12 +92,19 @@ struct OutlinedTextField: View {
     /// 机器值：禁用首字母自动大写与纠错（默认开）
     var machineValue = true
     var disabled = false
+    /// 框下方常驻提示（如格式示例/路径说明），始终显示
+    var hint: String? = nil
 
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
-                      trailing: { EmptyView() }) {
+        fieldWithHint
+    }
+
+    private var fieldWithHint: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
+                          trailing: { EmptyView() }) {
             fieldBody
                 .keyboardType(keyboardType)
                 .focused($isFocused)
@@ -109,6 +116,13 @@ struct OutlinedTextField: View {
                     .foregroundStyle(.tertiary)
                     .allowsHitTesting(false)
             }
+        }
+        if let hint {
+            Text(hint)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 14)
+        }
         }
     }
 
