@@ -115,19 +115,17 @@ struct AlertSendMethodEditView: View {
 
     private var emailSection: some View {
         Section {
-            FormTextField(label: L10n.t("显示名称"), text: $displayName)
-            FormTextField(label: L10n.t("发信地址"), text: $sender, style: .stacked)
+            OutlinedTextField(label: L10n.t("显示名称"), text: $displayName)
+            OutlinedTextField(label: L10n.t("发信地址"), text: $sender)
                 .keyboardType(.emailAddress)
-            FormTextField(label: L10n.t("用户名（可选）"), text: $userName)
-            FormTextField(label: L10n.t("密码（可选）"), text: $password, isSecure: true)
-            FormTextField(label: L10n.t("SMTP 服务器"), text: $host, keyboardType: .URL)
-            FormTextField(label: L10n.t("端口号"), text: $portText, keyboardType: .numberPad)
-            Picker(L10n.t("加密方式"), selection: $encryption) {
-                Text(L10n.t("无")).tag("")
-                Text("SSL").tag("SSL")
-                Text("TLS").tag("TLS")
-            }
-            FormTextField(label: L10n.t("收件人"), text: $recipient)
+            OutlinedTextField(label: L10n.t("用户名（可选）"), text: $userName)
+            OutlinedTextField(label: L10n.t("密码（可选）"), text: $password, isSecure: true)
+            OutlinedTextField(label: L10n.t("SMTP 服务器"), text: $host, keyboardType: .URL)
+            OutlinedTextField(label: L10n.t("端口号"), text: $portText, keyboardType: .numberPad)
+            OutlinedPicker(label: L10n.t("加密方式"),
+                           options: ["", "SSL", "TLS"], selection: $encryption,
+                           optionLabels: ["": L10n.t("无")])
+            OutlinedTextField(label: L10n.t("收件人"), text: $recipient)
                 .keyboardType(.emailAddress)
         } header: {
             SectionLabel(title: L10n.t("邮箱通知"), systemImage: "envelope")
@@ -164,7 +162,7 @@ struct AlertSendMethodEditView: View {
 
     private var barkSection: some View {
         Section {
-            FormTextField(label: L10n.t("机器人名称"), text: $displayName)
+            OutlinedTextField(label: L10n.t("机器人名称"), text: $displayName)
             FormTextField(label: L10n.t("Webhook 地址"), text: $barkURL, style: .stacked, keyboardType: .URL)
         } header: {
             SectionLabel(title: "Bark", systemImage: "bell")

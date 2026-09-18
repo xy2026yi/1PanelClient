@@ -158,34 +158,26 @@ struct CreateAcmeAccountView: View {
     var body: some View {
         Form {
             Section {
-                FormTextField(label: L10n.t("邮箱"), text: $email)
+                OutlinedTextField(label: L10n.t("邮箱"), text: $email)
                     .keyboardType(.emailAddress)
             } header: {
                 Text(L10n.t("邮箱"))
             }
 
             Section {
-                Picker(L10n.t("账户类型"), selection: $type) {
-                    ForEach(AcmeType.allCases) { t in
-                        Text(t.displayName).tag(t)
-                    }
-                }
-                .pickerStyle(.menu)
+                OutlinedPicker(label: L10n.t("账户类型"), options: AcmeType.allCases,
+                               selection: $type) { $0.displayName }
 
-                Picker(L10n.t("密钥算法"), selection: $keyType) {
-                    ForEach(SSLKeyType.allCases) { k in
-                        Text(k.displayName).tag(k)
-                    }
-                }
-                .pickerStyle(.menu)
+                OutlinedPicker(label: L10n.t("密钥算法"), options: SSLKeyType.allCases,
+                               selection: $keyType) { $0.displayName }
             } header: {
                 Text(L10n.t("账户配置"))
             }
 
             if type == .googlecloud {
                 Section {
-                    FormTextField(label: "EAB kid", text: $eabKid)
-                    FormTextField(label: "EAB HmacKey", text: $eabHmacKey)
+                    OutlinedTextField(label: "EAB kid", text: $eabKid)
+                    OutlinedTextField(label: "EAB HmacKey", text: $eabHmacKey)
                 } header: {
                     Text(L10n.t("EAB 凭证"))
                 }
@@ -201,8 +193,8 @@ struct CreateAcmeAccountView: View {
 
                 if useEAB {
                     Section {
-                        FormTextField(label: "EAB kid", text: $eabKid)
-                        FormTextField(label: "EAB HmacKey", text: $eabHmacKey)
+                        OutlinedTextField(label: "EAB kid", text: $eabKid)
+                        OutlinedTextField(label: "EAB HmacKey", text: $eabHmacKey)
                     } header: {
                         Text(L10n.t("EAB 凭证"))
                     }
@@ -430,18 +422,14 @@ struct CreateDNSAccountView: View {
     var body: some View {
         Form {
             Section {
-                FormTextField(label: L10n.t("名称"), text: $name)
+                OutlinedTextField(label: L10n.t("名称"), text: $name)
             } header: {
                 Text(L10n.t("名称"))
             }
 
             Section {
-                Picker(L10n.t("类型"), selection: $type) {
-                    ForEach(DnsType.allCases) { t in
-                        Text(t.displayName).tag(t)
-                    }
-                }
-                .pickerStyle(.menu)
+                OutlinedPicker(label: L10n.t("类型"), options: DnsType.allCases,
+                               selection: $type) { $0.displayName }
             } header: {
                 Text(L10n.t("类型"))
             }
@@ -494,59 +482,59 @@ struct CreateDNSAccountView: View {
         switch type {
         case .AliYun:
             Section {
-                FormTextField(label: "Access Key", text: $accessKey)
-                FormTextField(label: "Secret Key", text: $secretKey, isSecure: true)
+                OutlinedTextField(label: "Access Key", text: $accessKey)
+                OutlinedTextField(label: "Secret Key", text: $secretKey, isSecure: true)
             } header: {
                 Text(L10n.t("阿里云凭证"))
             }
 
         case .CloudFlare:
             Section {
-                FormTextField(label: L10n.t("EMAIL（可选）"), text: $email)
+                OutlinedTextField(label: L10n.t("EMAIL（可选）"), text: $email)
                     .keyboardType(.emailAddress)
-                FormTextField(label: "API Token", text: $apiKey)
+                OutlinedTextField(label: "API Token", text: $apiKey)
             } header: {
                 Text(L10n.t("Cloudflare 凭证"))
             }
 
         case .TencentCloud:
             Section {
-                FormTextField(label: "Secret ID", text: $secretID)
-                FormTextField(label: "Secret Key", text: $secretKey, isSecure: true)
+                OutlinedTextField(label: "Secret ID", text: $secretID)
+                OutlinedTextField(label: "Secret Key", text: $secretKey, isSecure: true)
             } header: {
                 Text(L10n.t("腾讯云凭证"))
             }
 
         case .HuaweiCloud:
             Section {
-                FormTextField(label: "Access Key", text: $accessKey)
-                FormTextField(label: "Secret Key", text: $secretKey, isSecure: true)
-                FormTextField(label: L10n.t("Region（可选）"), text: $region)
+                OutlinedTextField(label: "Access Key", text: $accessKey)
+                OutlinedTextField(label: "Secret Key", text: $secretKey, isSecure: true)
+                OutlinedTextField(label: L10n.t("Region（可选）"), text: $region)
             } header: {
                 Text(L10n.t("华为云凭证"))
             }
 
         case .CloudDns:
             Section {
-                FormTextField(label: L10n.t("Client ID（可选）"), text: $clientID)
-                FormTextField(label: L10n.t("Email（可选）"), text: $email)
+                OutlinedTextField(label: L10n.t("Client ID（可选）"), text: $clientID)
+                OutlinedTextField(label: L10n.t("Email（可选）"), text: $email)
                     .keyboardType(.emailAddress)
-                FormTextField(label: "Password", text: $password, isSecure: true)
+                OutlinedTextField(label: "Password", text: $password, isSecure: true)
             } header: {
                 Text(L10n.t("CloudDNS 凭证"))
             }
 
         case .NameSilo:
             Section {
-                FormTextField(label: "API Key", text: $apiKey)
+                OutlinedTextField(label: "API Key", text: $apiKey)
             } header: {
                 Text(L10n.t("NameSilo 凭证"))
             }
 
         case .NameCheap:
             Section {
-                FormTextField(label: "API Key", text: $apiKey)
-                FormTextField(label: "API User", text: $apiUser)
+                OutlinedTextField(label: "API Key", text: $apiKey)
+                OutlinedTextField(label: "API User", text: $apiUser)
             } header: {
                 Text(L10n.t("NameCheap 凭证"))
             }

@@ -22,9 +22,15 @@ struct OutlinedShape<Content: View, Trailing: View>: View {
     @ViewBuilder let trailing: Trailing
     @ViewBuilder let content: Content
 
+    // 动态字体联动：字号/跨线偏移/缓冲区/框高随系统字号缩放，
+    // 否则大字号下标签与描边线错位（相对 caption2/body 各自基准）
+    @ScaledMetric(relativeTo: .caption2) private var floatFontSize: CGFloat = 11
+    @ScaledMetric(relativeTo: .body) private var bodyFontSize: CGFloat = 16
+    @ScaledMetric(relativeTo: .caption2) private var floatLift: CGFloat = 7
+    @ScaledMetric(relativeTo: .caption2) private var floatArea: CGFloat = 13
+    @ScaledMetric(relativeTo: .body) private var boxHeight: CGFloat = 52
+
     private var isFloating: Bool { isFocused || hasValue }
-    /// 顶部缓冲区高度（≈ 半个浮动标签高，供标签压线时上半出框）
-    private let floatArea: CGFloat = 13
 
     private var borderColor: Color {
         if isFocused { return .accentColor }
@@ -39,7 +45,7 @@ struct OutlinedShape<Content: View, Trailing: View>: View {
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(borderColor, lineWidth: isFocused ? 1.5 : 1)
-                    .frame(height: 52)
+                    .frame(height: boxHeight)
 
                 HStack {
                     content
@@ -47,24 +53,24 @@ struct OutlinedShape<Content: View, Trailing: View>: View {
                     trailing
                 }
                 .padding(.horizontal, 14)
-                .frame(height: 52, alignment: .center)
+                .frame(height: boxHeight, alignment: .center)
 
                 // 空态标签：正文字号贴左、垂直居中（即占位），浮动态隐藏
                 Text(label)
-                    .font(.system(size: 16))
+                    .font(.system(size: bodyFontSize))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 14)
-                    .frame(height: 52, alignment: .center)
+                    .frame(height: boxHeight, alignment: .center)
                     .opacity(isFloating ? 0 : 1)
                     .accessibilityHidden(isFloating)
 
                 // 浮动标签：小字横跨框顶线（背景截断边框线），左缩进嵌线
                 Text(label)
-                    .font(.system(size: 11, weight: isFocused ? .semibold : .regular))
+                    .font(.system(size: floatFontSize, weight: isFocused ? .semibold : .regular))
                     .foregroundStyle(isFocused ? Color.accentColor : .secondary)
                     .padding(.horizontal, 5)
                     .background(Color(.systemGroupedBackground))
-                    .offset(x: 10, y: -7)
+                    .offset(x: 10, y: -floatLift)
                     .opacity(isFloating ? 1 : 0)
                     .accessibilityHidden(!isFloating)
             }
@@ -152,6 +158,13 @@ struct OutlinedMultiLineField: View {
 
     @FocusState private var isFocused: Bool
 
+    // 动态字体联动（默认 5 行 ≈ 行高 22 × 5 + 上下内边距，随 body 缩放）
+    @ScaledMetric(relativeTo: .caption2) private var floatFontSize: CGFloat = 11
+    @ScaledMetric(relativeTo: .body) private var bodyFontSize: CGFloat = 16
+    @ScaledMetric(relativeTo: .caption2) private var floatLift: CGFloat = 7
+    @ScaledMetric(relativeTo: .caption2) private var floatArea: CGFloat = 13
+    @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 134
+
     private var isFloating: Bool { isFocused || !text.isEmpty }
 
     private var borderColor: Color {
@@ -162,27 +175,26 @@ struct OutlinedMultiLineField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Color.clear.frame(height: 13)
+            Color.clear.frame(height: floatArea)
 
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(borderColor, lineWidth: isFocused ? 1.5 : 1)
-                    // 默认 5 行（行高约 22）+ 上下内边距
-                    .frame(minHeight: 134)
+                    .frame(minHeight: minHeight)
 
                 TextEditor(text: $text)
-                    .font(.system(size: 16))
+                    .font(.system(size: bodyFontSize))
                     .scrollContentBackground(.hidden)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 12)
-                    .frame(minHeight: 134, alignment: .topLeading)
+                    .frame(minHeight: minHeight, alignment: .topLeading)
                     .focused($isFocused)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
 
                 // 空态标签：首行贴左（与多行输入起点一致），浮动态隐藏
                 Text(label)
-                    .font(.system(size: 16))
+                    .font(.system(size: bodyFontSize))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 14)
                     .padding(.top, 14)
@@ -201,11 +213,11 @@ struct OutlinedMultiLineField: View {
 
                 // 浮动标签：横跨框顶线（与单行框同视觉）
                 Text(label)
-                    .font(.system(size: 11, weight: isFocused ? .semibold : .regular))
+                    .font(.system(size: floatFontSize, weight: isFocused ? .semibold : .regular))
                     .foregroundStyle(isFocused ? Color.accentColor : .secondary)
                     .padding(.horizontal, 5)
                     .background(Color(.systemGroupedBackground))
-                    .offset(x: 10, y: -7)
+                    .offset(x: 10, y: -floatLift)
                     .opacity(isFloating ? 1 : 0)
                     .accessibilityHidden(!isFloating)
                     .allowsHitTesting(false)
@@ -224,6 +236,7 @@ struct OutlinedTimeField: View {
     @Binding var date: Date
 
     @State private var showPicker = false
+    @ScaledMetric(relativeTo: .body) private var bodyFontSize: CGFloat = 16
 
     var body: some View {
         Button {
@@ -236,7 +249,7 @@ struct OutlinedTimeField: View {
                     .foregroundStyle(.secondary)
             }) {
                 Text(Self.format(date))
-                    .font(.system(size: 16, design: .monospaced))
+                    .font(.system(size: bodyFontSize, design: .monospaced))
                     .foregroundStyle(.primary)
             }
         }
@@ -279,6 +292,34 @@ struct OutlinedPicker: View {
 
     private func display(_ option: String) -> String {
         optionLabels[option] ?? option
+    }
+
+    /// 值/显示名分离版（自定义 init 会隐藏 memberwise，显式补回）
+    init(label: String, options: [String], selection: Binding<String>,
+         optionLabels: [String: String] = [:]) {
+        self.label = label
+        self.options = options
+        self._selection = selection
+        self.optionLabels = optionLabels
+    }
+
+    /// 枚举便利初始化：String-rawValue 枚举直接传入，display 提供显示名
+    init<T: RawRepresentable>(label: String, options: [T],
+                              selection: Binding<T>, display: @escaping (T) -> String)
+    where T.RawValue == String {
+        self.label = label
+        self.options = options.map(\.rawValue)
+        self._selection = Binding(
+            get: { selection.wrappedValue.rawValue },
+            set: { newValue in
+                if let matched = options.first(where: { $0.rawValue == newValue }) {
+                    selection.wrappedValue = matched
+                }
+            }
+        )
+        self.optionLabels = Dictionary(uniqueKeysWithValues: options.map {
+            ($0.rawValue, display($0))
+        })
     }
 
     var body: some View {

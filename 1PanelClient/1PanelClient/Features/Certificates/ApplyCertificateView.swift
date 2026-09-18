@@ -80,20 +80,20 @@ struct ApplyCertificateView: View {
     private var selfSignedForm: some View {
         Form {
             Section {
-                TextField(L10n.t("主域名"), text: $primaryDomain)
+                OutlinedTextField(label: L10n.t("主域名"), text: $primaryDomain)
             } header: {
                 Text(L10n.t("域名"))
             }
 
             Section {
-                TextField(L10n.t("其他域名（一行一个）"), text: $otherDomains, axis: .vertical)
+                OutlinedMultiLineField(label: L10n.t("其他域名（一行一个）"), text: $otherDomains)
                     .lineLimit(3, reservesSpace: true)
             } header: {
                 Text(L10n.t("其他域名"))
             }
 
             Section {
-                TextField(L10n.t("备注"), text: $description_)
+                OutlinedTextField(label: L10n.t("备注"), text: $description_)
             } header: {
                 Text(L10n.t("备注"))
             }
@@ -112,10 +112,10 @@ struct ApplyCertificateView: View {
     private var acmeForm: some View {
         Form {
             Section(L10n.t("域名")) {
-                FormTextField(label: L10n.t("主域名（必填）"), text: $primaryDomain)
-                TextField(L10n.t("其他域名（可选，一行一个）"), text: $otherDomains, axis: .vertical)
+                OutlinedTextField(label: L10n.t("主域名（必填）"), text: $primaryDomain)
+                OutlinedMultiLineField(label: L10n.t("其他域名（可选，一行一个）"), text: $otherDomains)
                     .lineLimit(3, reservesSpace: true)
-                FormTextField(label: L10n.t("备注（可选）"), text: $description_, machineValue: false)
+                OutlinedTextField(label: L10n.t("备注（可选）"), text: $description_, machineValue: false)
             }
 
             Section(L10n.t("申请配置")) {
@@ -126,9 +126,8 @@ struct ApplyCertificateView: View {
                     }
                 }
 
-                Picker(L10n.t("密匙算法"), selection: $selectedKeyType) {
-                    ForEach(SSLKeyType.allCases) { Text($0.displayName).tag($0) }
-                }
+                OutlinedPicker(label: L10n.t("密匙算法"), options: SSLKeyType.allCases,
+                               selection: $selectedKeyType) { $0.displayName }
 
                 Picker(L10n.t("验证方式"), selection: $selectedProvider) {
                     ForEach(SSLProvider.allCases) { Text($0.displayName).tag($0) }
@@ -149,8 +148,8 @@ struct ApplyCertificateView: View {
             Section {
                 Toggle(L10n.t("禁用 CNAME"), isOn: $disableCNAME)
                 Toggle(L10n.t("跳过 DNS 校验"), isOn: $skipDNS)
-                TextField(L10n.t("DNS 服务器 1（可选）"), text: $nameserver1)
-                TextField(L10n.t("DNS 服务器 2（可选）"), text: $nameserver2)
+                OutlinedTextField(label: L10n.t("DNS 服务器 1（可选）"), text: $nameserver1)
+                OutlinedTextField(label: L10n.t("DNS 服务器 2（可选）"), text: $nameserver2)
             } header: {
                 Text(L10n.t("高级设置"))
             } footer: {
@@ -160,11 +159,11 @@ struct ApplyCertificateView: View {
             Section {
                 Toggle(L10n.t("推送证书到本地"), isOn: $pushDir)
                 if pushDir {
-                    FormTextField(label: L10n.t("推送路径（如 /tmp）"), text: $dir, style: .stacked)
+                    OutlinedTextField(label: L10n.t("推送路径（如 /tmp）"), text: $dir)
                 }
                 Toggle(L10n.t("申请证书之后执行脚本"), isOn: $execShell)
                 if execShell {
-                    FormTextField(label: L10n.t("脚本内容"), text: $shell, axis: .vertical)
+                    OutlinedMultiLineField(label: L10n.t("脚本内容"), text: $shell)
                         .lineLimit(5, reservesSpace: true)
                 }
             } header: {

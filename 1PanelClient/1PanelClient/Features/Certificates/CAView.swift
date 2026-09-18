@@ -301,34 +301,30 @@ struct CreateCAView: View {
     var body: some View {
         Form {
             Section {
-                FormTextField(label: L10n.t("机构名称"), text: $name, machineValue: false)
+                OutlinedTextField(label: L10n.t("机构名称"), text: $name, machineValue: false)
             } header: {
                 Text(L10n.t("基本信息"))
             }
 
             Section {
-                FormTextField(label: L10n.t("证书主体名称(CN)"), text: $commonName)
-                FormTextField(label: L10n.t("公司/组织"), text: $organization, machineValue: false)
-                FormTextField(label: L10n.t("部门（可选）"), text: $organizationUint, machineValue: false)
+                OutlinedTextField(label: L10n.t("证书主体名称(CN)"), text: $commonName)
+                OutlinedTextField(label: L10n.t("公司/组织"), text: $organization, machineValue: false)
+                OutlinedTextField(label: L10n.t("部门（可选）"), text: $organizationUint, machineValue: false)
             } header: {
                 Text(L10n.t("组织信息"))
             }
 
             Section {
-                FormTextField(label: L10n.t("国家代号"), text: $country)
-                FormTextField(label: L10n.t("省份（可选）"), text: $province, machineValue: false)
-                FormTextField(label: L10n.t("城市（可选）"), text: $city, machineValue: false)
+                OutlinedTextField(label: L10n.t("国家代号"), text: $country)
+                OutlinedTextField(label: L10n.t("省份（可选）"), text: $province, machineValue: false)
+                OutlinedTextField(label: L10n.t("城市（可选）"), text: $city, machineValue: false)
             } header: {
                 Text(L10n.t("地区信息"))
             }
 
             Section {
-                Picker(L10n.t("密钥算法"), selection: $keyType) {
-                    ForEach(SSLKeyType.allCases) { k in
-                        Text(k.displayName).tag(k)
-                    }
-                }
-                .pickerStyle(.menu)
+                OutlinedPicker(label: L10n.t("密钥算法"), options: SSLKeyType.allCases,
+                               selection: $keyType) { $0.displayName }
             } header: {
                 Text(L10n.t("私钥"))
             }
@@ -425,9 +421,9 @@ struct IssueCertificateView: View {
     var body: some View {
         Form {
             Section {
-                FormTextField(label: L10n.t("域名（一行一个）"), text: $domains, axis: .vertical)
+                OutlinedMultiLineField(label: L10n.t("域名（一行一个）"), text: $domains)
                     .lineLimit(3, reservesSpace: true)
-                FormTextField(label: L10n.t("备注（可选）"), text: $description_, machineValue: false)
+                OutlinedTextField(label: L10n.t("备注（可选）"), text: $description_, machineValue: false)
             } header: {
                 Text(L10n.t("基本信息"))
             } footer: {
@@ -435,12 +431,8 @@ struct IssueCertificateView: View {
             }
 
             Section {
-                Picker(L10n.t("密钥算法"), selection: $keyType) {
-                    ForEach(SSLKeyType.allCases) { k in
-                        Text(k.displayName).tag(k)
-                    }
-                }
-                .pickerStyle(.menu)
+                OutlinedPicker(label: L10n.t("密钥算法"), options: SSLKeyType.allCases,
+                               selection: $keyType) { $0.displayName }
 
                 OutlinedUnitField(label: L10n.t("有效期"), unit: L10n.t("天"),
                                   text: expireDaysText)
@@ -453,14 +445,14 @@ struct IssueCertificateView: View {
             Section {
                 Toggle(L10n.t("推送证书到本地目录"), isOn: $pushDir.animation())
                 if pushDir {
-                    FormTextField(label: L10n.t("目录路径"), text: $dir, style: .stacked)
+                    OutlinedTextField(label: L10n.t("目录路径"), text: $dir)
                 }
             }
 
             Section {
                 Toggle(L10n.t("申请证书之后执行脚本"), isOn: $execShell.animation())
                 if execShell {
-                    FormTextField(label: L10n.t("脚本内容"), text: $shell, axis: .vertical)
+                    OutlinedMultiLineField(label: L10n.t("脚本内容"), text: $shell)
                         .lineLimit(5, reservesSpace: true)
                 }
             }
