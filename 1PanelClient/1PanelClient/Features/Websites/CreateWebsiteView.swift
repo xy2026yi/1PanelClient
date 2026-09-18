@@ -15,7 +15,15 @@ struct CreateWebsiteView: View {
     let initialType: WebsiteType
     @State private var selectedType: WebsiteType = .deployment
     @State private var primaryDomain = ""
-    @State private var port: Int = 80
+    /// 端口从主域名解析：a.a.a:8080 → 8080；无后缀按 HTTPS 启用与否取 443/80
+    private var port: Int {
+        if let idx = primaryDomain.lastIndex(of: ":"),
+           let parsed = Int(primaryDomain[primaryDomain.index(after: idx)...]),
+           parsed > 0, parsed < 65536 {
+            return parsed
+        }
+        return enableSSL ? 443 : 80
+    }
     @State private var remark = ""
     // 代号：主域名填入后自动带入（去端口），可手动修改
     @State private var alias = ""
@@ -227,7 +235,6 @@ struct CreateWebsiteView: View {
             OutlinedMultiLineField(label: L10n.t("其他域名"),
                                    prompt: "abc.test.com\nabc1.test.com:8080",
                                    text: $otherDomains)
-            OutlinedTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
             Toggle(L10n.t("监听 IPv6"), isOn: $enableIPv6)
             OutlinedTextField(label: L10n.t("代号"),
                               text: $alias,
@@ -235,23 +242,24 @@ struct CreateWebsiteView: View {
         } header: {
             Text(L10n.t("域名"))
         } footer: {
-            if !primaryDomain.isEmpty {
-                Text(L10n.f("预览：%@:%ld", primaryDomain, port))
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.blue)
-            }
         }
     }
 
     /// 第 0 页（基础）必填：主域名非空无空格 + 端口合法；类型特定字段在第 2 页校验
     private var basicPageReady: Bool {
-        !primaryDomain.isEmpty && !primaryDomain.contains(" ")
-            && port > 0 && port < 65536
+        guard !primaryDomain.isEmpty, !primaryDomain.contains(" ") else { return false }
+        // 显式端口后缀（:8080）须为合法端口；无后缀恒通过（回落 80/443）
+        if let idx = primaryDomain.lastIndex(of: ":") {
+            let suffix = primaryDomain[primaryDomain.index(after: idx)...]
+            if let parsed = Int(suffix) {
+                return parsed > 0 && parsed < 65536
+            }
+        }
+        return true
     }
 
     private var canSubmit: Bool {
-        guard !primaryDomain.contains(" "), !primaryDomain.isEmpty,
-              port > 0, port < 65536 else { return false }
+        guard basicPageReady else { return false }
         switch selectedType {
         case .deployment:
             return selectedAppInstallId != nil
@@ -260,14 +268,6 @@ struct CreateWebsiteView: View {
         case .staticSite:
             return true
         }
-    }
-
-    /// 端口 String ↔ Int 双向绑定（FormTextField 只接收 String；非法输入回落 0，由 canSubmit 拦截）
-    private var portBinding: Binding<String> {
-        Binding<String>(
-            get: { String(port) },
-            set: { port = Int($0) ?? 0 }
-        )
     }
 
     private func performCreate() async {
