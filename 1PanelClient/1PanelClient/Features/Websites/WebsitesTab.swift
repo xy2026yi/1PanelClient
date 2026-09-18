@@ -13,6 +13,9 @@ struct WebsitesTab: View {
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var showCreate = false
+    /// 类型选择半屏弹窗（+ 号入口）：选中后经 pendingCreateType 进入对应向导
+    @State private var showCreateTypeSheet = false
+    @State private var pendingCreateType: WebsiteType?
     @State private var showOpenRestyConfig = false
     // OpenResty 管理增强页入口
     @State private var showOpenRestyStatus = false
@@ -117,7 +120,7 @@ struct WebsitesTab: View {
                         .accessibilityLabel(L10n.t("退出多选"))
                     } else {
                         Button {
-                            showCreate = true
+                            showCreateTypeSheet = true
                         } label: {
                             Image(systemName: "plus")
                         }
@@ -136,7 +139,26 @@ struct WebsitesTab: View {
             Task { await vm.search(query: searchText) }
         }
         .navigationDestination(isPresented: $showCreate) {
-            CreateWebsiteView(vm: vm)
+            // 类型由 + 号的半屏弹窗预选，向导内不再切换类型
+            CreateWebsiteView(vm: vm, initialType: pendingCreateType ?? .deployment)
+        }
+        .sheet(isPresented: $showCreateTypeSheet) {
+            CreateWebsiteTypeSheet { type in
+                pendingCreateType = type
+            }
+            .bottomSheetDetents([.height(280)])
+            .presentationDragIndicator(.visible)
+        }
+        // sheet 关闭转场后再 push 向导，避免并发动画被丢弃
+        .onChange(of: showCreateTypeSheet) { _, shown in
+            if !shown, pendingCreateType != nil {
+                let type = pendingCreateType
+                pendingCreateType = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    showCreate = true
+                    _ = type
+                }
+            }
         }
         // 单击行进入详情（pushedWebsite 由行 tap 手势驱动；pop 时自动置 nil）
         .navigationDestination(item: $pushedWebsite) { w in

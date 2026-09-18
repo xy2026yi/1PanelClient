@@ -11,6 +11,8 @@ struct CreateWebsiteView: View {
     @ObservedObject var vm: WebsitesViewModel
     @Environment(\.dismiss) private var dismiss
 
+    /// 由 + 号弹窗预选的类型（向导内不再切换）
+    let initialType: WebsiteType
     @State private var selectedType: WebsiteType = .deployment
     @State private var primaryDomain = ""
     @State private var port: Int = 80
@@ -42,6 +44,12 @@ struct CreateWebsiteView: View {
     @State private var localAlertMessage: String?
     @State private var didCreateSucceed = false
 
+    init(vm: WebsitesViewModel, initialType: WebsiteType = .deployment) {
+        self.vm = vm
+        self.initialType = initialType
+        _selectedType = State(initialValue: initialType)
+    }
+
     /// 向导分页：0 基础（类型/域名） 1 配置（类型特定 + HTTPS）
     @State private var wizardPage = 0
     private let wizardPageNames = [L10n.t("基础"), L10n.t("配置")]
@@ -53,19 +61,6 @@ struct CreateWebsiteView: View {
                 Group {
                     switch wizardPage {
                     case 0:
-                        Section(L10n.t("类型")) {
-                            Picker(L10n.t("网站类型"), selection: $selectedType) {
-                                ForEach(WebsiteType.allCases) { t in
-                                    Label(t.displayName, systemImage: t.icon).tag(t)
-                                }
-                            }
-                            .pickerStyle(.navigationLink)
-
-                            Text(selectedType.description)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
                         domainSection
                     default:
                         // 类型特定字段
@@ -97,6 +92,11 @@ struct CreateWebsiteView: View {
                             }
                         } header: {
                             Text("HTTPS")
+                        }
+
+                        Section {
+                            OutlinedTextField(label: L10n.t("备注"), prompt: L10n.t("可选"),
+                                              text: $remark, machineValue: false)
                         }
                     }
                 }
@@ -206,11 +206,9 @@ struct CreateWebsiteView: View {
             OutlinedMultiLineField(label: L10n.t("其他域名"),
                                    prompt: "abc.test.com\nabc1.test.com:8080",
                                    text: $otherDomains)
-            OutlinedTextField(label: L10n.t("代号"), text: $alias)
             OutlinedTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
             Toggle(L10n.t("监听 IPv6"), isOn: $enableIPv6)
-            OutlinedTextField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $remark,
-                              machineValue: false)
+            OutlinedTextField(label: L10n.t("代号"), text: $alias)
 
             // 分组（未加载到分组数据时仅展示默认分组占位）
             if vm.groups.isEmpty {
