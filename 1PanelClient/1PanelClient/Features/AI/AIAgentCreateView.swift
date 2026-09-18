@@ -105,36 +105,56 @@ struct AIAgentCreateView: View {
         }
     }
 
+    /// 向导分页：0 基础（类型/名称/模型） 1 配置（WebUI/访问） 2 高级（默认收起）
+    @State private var wizardPage = 0
+    private let wizardPageNames = [L10n.t("基础"), L10n.t("配置"), L10n.t("高级")]
+
     var body: some View {
-        Form {
-            typeSection
-            if agentType.needsModel {
-                modelSection
-            }
-            webUISection
-            advancedToggleSection
-            if advancedEnabled {
-                advancedContainerSection
-                advancedResourceSection
-                advancedImageSection
-                if editCompose {
-                    composeSection
+        VStack(spacing: 0) {
+            WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+            Form {
+                Group {
+                    switch wizardPage {
+                    case 0:
+                        typeSection
+                        if agentType.needsModel {
+                            modelSection
+                        }
+                    case 1:
+                        webUISection
+                    default:
+                        advancedToggleSection
+                        if advancedEnabled {
+                            advancedContainerSection
+                            advancedResourceSection
+                            advancedImageSection
+                            if editCompose {
+                                composeSection
+                            }
+                        }
+                    }
                 }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
             }
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WizardBottomBar(
+                page: wizardPage,
+                totalPages: wizardPageNames.count,
+                primaryTitle: L10n.t("创建"),
+                isBusy: vm.isSubmitting,
+                primaryDisabled: !canSubmit,
+                onBack: { withAnimation { wizardPage -= 1 } },
+                onNext: { withAnimation { wizardPage += 1 } },
+                onPrimary: { Task { await submit() } }
+            )
+        }
+        .animation(.easeInOut(duration: 0.22), value: wizardPage)
         .navigationTitle(L10n.t("创建智能体"))
         .navigationBarTitleDisplayMode(.inline)
         .formWidthLimit()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await submit() }
-                } label: {
-                    if vm.isSubmitting { ProgressView() } else { Text(L10n.t("创建")).bold() }
-                }
-                .disabled(!canSubmit)
-            }
-        }
         .task { await load() }
         .onChange(of: selectedTypeKey) { _, newValue in
             Task {

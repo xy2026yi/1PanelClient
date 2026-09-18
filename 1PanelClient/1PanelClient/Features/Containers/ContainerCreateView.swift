@@ -19,38 +19,64 @@ struct ContainerCreateView: View {
     private let volumeModes = ["rw", "ro"]
     private let shareModes = ["private", "shared"]
 
+    /// 向导分页：0 基础（名称/镜像/网络） 1 端口与存储 2 高级（默认收起）
+    @State private var wizardPage = 0
+    @State private var advancedEnabled = false
+    private let wizardPageNames = [L10n.t("基础"), L10n.t("端口存储"), L10n.t("高级")]
+
     var body: some View {
-        Form {
-            basicsSection
-            networkSection
-            portsSection
-            volumesSection
-            envSection
-            restartSection
-            resourceSection
-            advancedSection
+        VStack(spacing: 0) {
+            WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+            Form {
+                Group {
+                    switch wizardPage {
+                    case 0:
+                        basicsSection
+                        networkSection
+                    case 1:
+                        portsSection
+                        volumesSection
+                        envSection
+                    default:
+                        Section {
+                            Toggle(L10n.t("高级设置"), isOn: $advancedEnabled)
+                        } footer: {
+                            Text(L10n.t("重启策略、资源限制等进阶项"))
+                        }
+                        if advancedEnabled {
+                            restartSection
+                            resourceSection
+                            advancedSection
+                        }
+                    }
+                }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
+            }
         }
-        .navigationTitle(L10n.t("创建容器"))
-        .navigationBarTitleDisplayMode(.inline)
-        .formWidthLimit()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WizardBottomBar(
+                page: wizardPage,
+                totalPages: wizardPageNames.count,
+                primaryTitle: L10n.t("创建"),
+                isBusy: vm.containerOperating,
+                primaryDisabled: draft.name.isEmpty || draft.image.isEmpty,
+                onBack: { withAnimation { wizardPage -= 1 } },
+                onNext: { withAnimation { wizardPage += 1 } },
+                onPrimary: {
                     Task {
                         if await vm.createContainer(draft: draft) {
                             dismiss()
                         }
                     }
-                } label: {
-                    if vm.containerOperating {
-                        ProgressView()
-                    } else {
-                        Text(L10n.t("创建")).bold()
-                    }
                 }
-                .disabled(vm.containerOperating || draft.name.isEmpty || draft.image.isEmpty)
-            }
+            )
         }
+        .animation(.easeInOut(duration: 0.22), value: wizardPage)
+        .navigationTitle(L10n.t("创建容器"))
+        .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
         .task { await vm.loadCreateOptions() }
         .toastOverlay(message: $vm.toastMessage)
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {

@@ -42,135 +42,106 @@ struct CreateWebsiteView: View {
     @State private var localAlertMessage: String?
     @State private var didCreateSucceed = false
 
+    /// 向导分页：0 基础（类型/域名） 1 配置（类型特定 + HTTPS）
+    @State private var wizardPage = 0
+    private let wizardPageNames = [L10n.t("基础"), L10n.t("配置")]
+
     var body: some View {
-        Form {
-            Section(L10n.t("类型")) {
-                Picker(L10n.t("网站类型"), selection: $selectedType) {
-                    ForEach(WebsiteType.allCases) { t in
-                            Label(t.displayName, systemImage: t.icon).tag(t)
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
+        VStack(spacing: 0) {
+            WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+            Form {
+                Group {
+                    switch wizardPage {
+                    case 0:
+                        Section(L10n.t("类型")) {
+                            Picker(L10n.t("网站类型"), selection: $selectedType) {
+                                ForEach(WebsiteType.allCases) { t in
+                                    Label(t.displayName, systemImage: t.icon).tag(t)
+                                }
+                            }
+                            .pickerStyle(.navigationLink)
 
-                    Text(selectedType.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section {
-                    OutlinedTextField(label: L10n.t("主域名"), text: $primaryDomain, keyboardType: .URL)
-                    OutlinedTextField(label: L10n.t("代号"), text: $alias)
-                    OutlinedTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
-                    Toggle(L10n.t("监听 IPv6"), isOn: $enableIPv6)
-                    OutlinedTextField(label: L10n.t("备注（可选）"), text: $remark, machineValue: false)
-                    OutlinedMultiLineField(label: L10n.t("其他域名"),
-                                           prompt: "abc.test.com, abc1.test.com:8080",
-                                           text: $otherDomains)
-
-                    // 分组（未加载到分组数据时仅展示默认分组占位）
-                    if vm.groups.isEmpty {
-                        HStack {
-                            Text(L10n.t("分组"))
-                            Spacer()
-                            Text(L10n.t("默认分组"))
+                            Text(selectedType.description)
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                    } else {
-                        Picker(L10n.t("分组"), selection: $selectedGroupID) {
-                            // tag(0) 兜底：分组数据先于初值就绪的一帧内 selection 仍为 0，
-                            // 缺少对应 tag 会触发 Picker invalid selection 运行时警告
-                            Text(L10n.t("默认分组")).tag(0)
-                            ForEach(vm.groups) { group in
-                                Text(group.displayName).tag(group.id)
-                            }
+
+                        domainSection
+                    default:
+                        // 类型特定字段
+                        switch selectedType {
+                        case .deployment:
+                            deploymentSection
+                        case .proxy:
+                            proxySection
+                        case .staticSite:
+                            EmptyView()
                         }
-                    }
-                } header: {
-                    Text(L10n.t("域名"))
-                } footer: {
-                    Text(L10n.t("其他域名每行一个，可带 :端口（如 abc.test.com:8080），未带端口时沿用上方端口"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if !primaryDomain.isEmpty {
-                        Text(L10n.f("预览：%@:%ld", primaryDomain, port))
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.blue)
-                    }
-                }
 
-                // 类型特定字段
-                switch selectedType {
-                case .deployment:
-                    deploymentSection
-                case .proxy:
-                    proxySection
-                case .staticSite:
-                    EmptyView()
-                }
-
-                // SSL
-                Section {
-                    Toggle(L10n.t("启用 HTTPS"), isOn: $enableSSL)
-                    if enableSSL {
-                        Picker(L10n.t("SSL 证书"), selection: $selectedSSLId) {
-                            Text(L10n.t("请选择证书")).tag(nil as Int?)
-                            ForEach(vm.availableSSLs) { ssl in
-                                VStack(alignment: .leading) {
-                                    Text(ssl.displayName)
-                                    Text(L10n.f("有效期至 %@", ssl.displayExpireDate))
-                                        .font(.caption2)
-                                        .foregroundStyle(ssl.isExpired ? .red : .secondary)
+                        // SSL
+                        Section {
+                            Toggle(L10n.t("启用 HTTPS"), isOn: $enableSSL)
+                            if enableSSL {
+                                Picker(L10n.t("SSL 证书"), selection: $selectedSSLId) {
+                                    Text(L10n.t("请选择证书")).tag(nil as Int?)
+                                    ForEach(vm.availableSSLs) { ssl in
+                                        VStack(alignment: .leading) {
+                                            Text(ssl.displayName)
+                                            Text(L10n.f("有效期至 %@", ssl.displayExpireDate))
+                                                .font(.caption2)
+                                                .foregroundStyle(ssl.isExpired ? .red : .secondary)
+                                        }
+                                        .tag(ssl.id as Int?)
+                                    }
                                 }
-                                .tag(ssl.id as Int?)
                             }
-                        }
-                    }
-                } header: {
-                    Text("HTTPS")
-                }
-
-                // 创建进度
-                if vm.isCreating {
-                    Section {
-                        HStack {
-                            ProgressView()
-                            Text(L10n.t("创建中…"))
+                        } header: {
+                            Text("HTTPS")
                         }
                     }
                 }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
             }
-            .navigationTitle(L10n.t("创建网站"))
-            .navigationBarTitleDisplayMode(.inline)
-            .formWidthLimit()
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(L10n.t("创建")) {
-                        Task { await performCreate() }
-                    }
-                    .disabled(!canSubmit || vm.isCreating)
-                }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WizardBottomBar(
+                page: wizardPage,
+                totalPages: wizardPageNames.count,
+                primaryTitle: L10n.t("创建"),
+                isBusy: vm.isCreating,
+                primaryDisabled: !canSubmit,
+                onBack: { withAnimation { wizardPage -= 1 } },
+                onNext: { withAnimation { wizardPage += 1 } },
+                onPrimary: { Task { await performCreate() } }
+            )
+        }
+        .animation(.easeInOut(duration: 0.22), value: wizardPage)
+        .navigationTitle(L10n.t("创建网站"))
+        .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
+        .task {
+            await vm.loadCreateData(type: selectedType)
+            if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
+        }
+        .onChange(of: primaryDomain) { _, newDomain in
+            // 主域名填入后自动带入代号（去端口/路径）；用户手动改过则不再跟随
+            let derived = newDomain.split(separator: ":").first.map(String.init) ?? newDomain
+            if alias.isEmpty || alias == lastAutoAlias {
+                alias = derived
             }
-            .task {
-                await vm.loadCreateData(type: selectedType)
-                if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
+            lastAutoAlias = derived
+        }
+        .onChange(of: selectedType) { _, newType in
+            Task { await vm.loadCreateData(type: newType) }
+        }
+        .onChange(of: vm.groups) { _, _ in
+            // 分组数据晚于表单出现时回落默认分组（重命名默认组后 tag 找回）
+            if selectedGroupID == 0 || !vm.groups.contains(where: { $0.id == selectedGroupID }) {
+                selectedGroupID = vm.defaultGroupID
             }
-            .onChange(of: primaryDomain) { _, newDomain in
-                // 主域名填入后自动带入代号（去端口/路径）；用户手动改过则不再跟随
-                let derived = newDomain.split(separator: ":").first.map(String.init) ?? newDomain
-                if alias.isEmpty || alias == lastAutoAlias {
-                    alias = derived
-                }
-                lastAutoAlias = derived
-            }
-            .onChange(of: selectedType) { _, newType in
-                Task { await vm.loadCreateData(type: newType) }
-            }
-            .onChange(of: vm.groups) { _, _ in
-                // 分组数据晚于表单出现时回落默认分组（重命名默认组后 tag 找回）
-                if selectedGroupID == 0 || !vm.groups.contains(where: { $0.id == selectedGroupID }) {
-                    selectedGroupID = vm.defaultGroupID
-                }
-            }
+        }
             .alert(L10n.t("提示"), isPresented: $showLocalAlert) {
                 Button(L10n.t("好的"), role: .cancel) {
                     if didCreateSucceed {
@@ -221,6 +192,52 @@ struct CreateWebsiteView: View {
         } footer: {
             if !proxyAddress.isEmpty {
                 Text(L10n.f("后端代理地址：%@%@", proxyProtocol, proxyAddress))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.blue)
+            }
+        }
+    }
+
+    // MARK: - 域名区（向导第 1 页）
+
+    private var domainSection: some View {
+        Section {
+            OutlinedTextField(label: L10n.t("主域名"), text: $primaryDomain, keyboardType: .URL)
+            OutlinedTextField(label: L10n.t("代号"), text: $alias)
+            OutlinedTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
+            Toggle(L10n.t("监听 IPv6"), isOn: $enableIPv6)
+            OutlinedTextField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $remark,
+                              machineValue: false)
+            OutlinedMultiLineField(label: L10n.t("其他域名"),
+                                   prompt: "abc.test.com, abc1.test.com:8080",
+                                   text: $otherDomains)
+
+            // 分组（未加载到分组数据时仅展示默认分组占位）
+            if vm.groups.isEmpty {
+                HStack {
+                    Text(L10n.t("分组"))
+                    Spacer()
+                    Text(L10n.t("默认分组"))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Picker(L10n.t("分组"), selection: $selectedGroupID) {
+                    // tag(0) 兜底：分组数据先于初值就绪的一帧内 selection 仍为 0，
+                    // 缺少对应 tag 会触发 Picker invalid selection 运行时警告
+                    Text(L10n.t("默认分组")).tag(0)
+                    ForEach(vm.groups) { group in
+                        Text(group.displayName).tag(group.id)
+                    }
+                }
+            }
+        } header: {
+            Text(L10n.t("域名"))
+        } footer: {
+            Text(L10n.t("其他域名每行一个，可带 :端口（如 abc.test.com:8080），未带端口时沿用上方端口"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            if !primaryDomain.isEmpty {
+                Text(L10n.f("预览：%@:%ld", primaryDomain, port))
                     .font(.caption.monospaced())
                     .foregroundStyle(.blue)
             }

@@ -168,258 +168,287 @@ struct CreateCronjobView: View {
         }
     }
 
+    /// 向导分页：0 基础（信息/周期） 1 内容（类型特定） 2 高级（超时重试）
+    @State private var wizardPage = 0
+    private let wizardPageNames = [L10n.t("基础"), L10n.t("内容"), L10n.t("高级")]
+
     var body: some View {
-        Form {
-            Section(L10n.t("基本信息")) {
-                FormTextField(label: L10n.t("任务名称"), text: $name)
-
-                Picker(L10n.t("任务类型"), selection: $type) {
-                    ForEach(CronjobType.allCases) { t in
-                        Label(t.displayName, systemImage: t.icon).tag(t)
+        VStack(spacing: 0) {
+            WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+            Form {
+                Group {
+                    switch wizardPage {
+                    case 0:
+                        basicInfoSection
+                        scheduleSection
+                    case 1:
+                        contentSections
+                    default:
+                        timeoutSection
                     }
                 }
-
-                // 分组（未加载到分组数据时仅展示默认分组占位）
-                if vm.groups.isEmpty {
-                    HStack {
-                        Text(L10n.t("分组"))
-                        Spacer()
-                        Text(L10n.t("默认分组"))
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Picker(L10n.t("分组"), selection: $selectedGroupID) {
-                        // tag(0) 兜底：分组数据先于初值就绪的一帧内 selection 仍为 0，
-                        // 缺少对应 tag 会触发 Picker invalid selection 运行时警告
-                        Text(L10n.t("默认分组")).tag(0)
-                        ForEach(vm.groups) { group in
-                            Text(group.displayName).tag(group.id)
-                        }
-                    }
-                }
-            }
-
-            Section {
-                ForEach($schedules) { $item in
-                    scheduleRow(for: $item)
-                }
-
-                Button {
-                    schedules.append(ScheduleItem())
-                } label: {
-                    Label(L10n.t("添加周期"), systemImage: "plus.circle")
-                        .foregroundStyle(Color.accentColor)
-                }
-                .disabled(schedules.count >= 10)
-
-                // 周期预览（POST /cronjobs/next {spec}，抓包 2026-09-14）
-                Button {
-                    Task { await previewSchedules() }
-                } label: {
-                    Label(L10n.t("预览执行时间"), systemImage: "clock.badge.questionmark")
-                        .foregroundStyle(Color.accentColor)
-                }
-                if isPreviewing {
-                    HStack { Spacer(); ProgressView(); Spacer() }
-                }
-                ForEach(Array(previewResults.enumerated()), id: \.offset) { _, result in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(result.spec)
-                            .font(.dataMonospacedCaption)
-                            .foregroundStyle(.secondary)
-                        ForEach(result.times, id: \.self) { time in
-                            Text(time)
-                                .font(.dataMonospacedCaption)
-                        }
-                    }
-                }
-                if previewFailedCount > 0 {
-                    Label(L10n.f("%ld 个周期预览失败", previewFailedCount),
-                          systemImage: "exclamationmark.triangle")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-            } header: {
-                Text(L10n.t("执行周期"))
-            } footer: {
-                Text(schedules.count > 1 ? L10n.f("已添加 %ld 个周期，将按各周期分别执行。", schedules.count) : L10n.t("支持添加多个周期，任务将在每个设定的时间点执行。"))
-            }
-
-            switch type {
-            case .shell:
-                Section {
-                    Button {
-                        showScriptPicker = true
-                    } label: {
-                        Label(L10n.t("从脚本库选择"), systemImage: "books.vertical")
-                            .foregroundStyle(Color.accentColor)
-                    }
-                    TextEditor(text: $script)
-                        .font(.dataMonospacedCaption)
-                        .frame(minHeight: 160)
-                } header: { Text(L10n.t("脚本内容")) }
-
-                Section {
-                    Picker(L10n.t("执行用户"), selection: $user) {
-                        Text(L10n.t("默认（不指定）")).tag("")
-                        ForEach(vm.systemUsers, id: \.self) { u in
-                            Text(u).tag(u)
-                        }
-                    }
-                } header: {
-                    Text(L10n.t("执行设置"))
-                } footer: {
-                    Text(L10n.t("不指定用户时，服务器将以默认用户执行脚本。"))
-                }
-
-            case .app:
-                Section(L10n.t("备份应用")) {
-                    Picker(L10n.t("范围"), selection: $appSelection) {
-                        Text(L10n.t("全部应用")).tag("all")
-                        ForEach(vm.installedApps, id: \.id) { app in
-                            Text(app.name ?? "—").tag(app.key ?? "")
-                        }
-                    }
-                }
-                backupSection
-
-            case .website:
-                Section(L10n.t("备份网站")) {
-                    Picker(L10n.t("范围"), selection: $websiteSelection) {
-                        Text(L10n.t("全部网站")).tag("all")
-                        ForEach(vm.websiteOptions, id: \.id) { site in
-                            Text(site.alias ?? site.primaryDomain ?? "—").tag(String(site.id))
-                        }
-                    }
-                }
-                backupSection
-
-            case .database:
-                Section(L10n.t("备份数据库")) {
-                    Picker(L10n.t("数据库类型"), selection: $dbType) {
-                        ForEach(DBBackupType.allCases) { t in
-                            Text(t.displayName).tag(t)
-                        }
-                    }
-                    .onChange(of: dbType) { _, newType in
-                        dbSelection = "all"
-                        dbBackupParams.removeAll()
-                        Task { await vm.loadDBItems(dbType: newType.rawValue) }
-                    }
-
-                    Picker(L10n.t("范围"), selection: $dbSelection) {
-                        Text(L10n.t("全部数据库")).tag("all")
-                        ForEach(vm.dbItems, id: \.id) { item in
-                            Text(item.name ?? "—").tag(String(item.id))
-                        }
-                    }
-                }
-
-                if dbType.supportsBackupParams {
-                    Section {
-                        Button {
-                            showBackupParamsPicker = true
-                        } label: {
-                            HStack {
-                                Text(L10n.t("备份参数"))
-                                Spacer()
-                                Text(backupParamsSummary)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.trailing)
-                                Image(systemName: "chevron.right")
-                                    .foregroundStyle(.secondary)
-                                    .font(.caption)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    } header: {
-                        Text(L10n.t("备份参数"))
-                    } footer: {
-                        Text(L10n.t("可选的 mysqldump 参数，支持多选，用于优化大数据量或特殊场景的备份。"))
-                    }
-                }
-
-                backupSection
-
-            case .snapshot:
-                backupSection
-
-            case .clean, .ntp, .syncIpGroup:
-                // 这三种类型无备份账号、无类型特定配置，仅需保留份数
-                Section(L10n.t("任务设置")) {
-                    Stepper(L10n.f("保留份数：%ld 份", retainCopies), value: $retainCopies, in: 1...100)
-                }
-            }
-
-            // 超时与重试（所有任务类型通用，放在各类型设置之后）
-            Section(L10n.t("超时与重试")) {
-                Stepper(L10n.f("失败重试次数：%ld 次", retryTimes), value: $retryTimes, in: 0...10)
-                Picker(L10n.t("超时单位"), selection: $timeoutUnit) {
-                    ForEach(TimeoutUnit.allCases) { u in
-                        Text(L10n.t(u.rawValue)).tag(u)
-                    }
-                }
-                .onChange(of: timeoutUnit) { oldUnit, newUnit in
-                    // 切换单位时尽量保持总时长不变：按新单位取整
-                    let totalSeconds = timeoutValue * oldUnit.multiplier
-                    let newValue = max(1, totalSeconds / newUnit.multiplier)
-                    timeoutValue = newValue
-                }
-                Stepper(L10n.f("超时时间：%ld %@", timeoutValue, L10n.t(timeoutUnit.rawValue)), value: $timeoutValue, in: 1...9999)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
             }
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WizardBottomBar(
+                page: wizardPage,
+                totalPages: wizardPageNames.count,
+                primaryTitle: isEditing ? L10n.t("保存") : L10n.t("创建"),
+                isBusy: vm.isCreating,
+                primaryDisabled: name.trimmingCharacters(in: .whitespaces).isEmpty,
+                onBack: { withAnimation { wizardPage -= 1 } },
+                onNext: { withAnimation { wizardPage += 1 } },
+                onPrimary: { Task { await submit() } }
+            )
+        }
+        .animation(.easeInOut(duration: 0.22), value: wizardPage)
         .navigationTitle(isEditing ? L10n.t("编辑计划任务") : L10n.t("创建计划任务"))
         .navigationBarTitleDisplayMode(.inline)
         .formWidthLimit()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await submit() }
-                } label: {
-                    if vm.isCreating {
-                        ProgressView()
-                    } else {
-                        Text(isEditing ? L10n.t("保存") : L10n.t("创建")).bold()
-                    }
-                }
-                .disabled(name.isEmpty || vm.isCreating)
-            }
-        }
         .task {
-            await vm.loadCreateOptions()
-            if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
-            if let info = editingJob, !hasPrefilled {
-                prefill(from: info)
-                hasPrefilled = true
-            }
-            await vm.loadDBItems(dbType: dbType.rawValue)
+        await vm.loadCreateOptions()
+        if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
+        if let info = editingJob, !hasPrefilled {
+            prefill(from: info)
+            hasPrefilled = true
+        }
+        await vm.loadDBItems(dbType: dbType.rawValue)
         }
         .onChange(of: vm.groups) { _, _ in
-            // 分组数据晚于表单出现时回落默认分组（选中项被删时找回）
-            if selectedGroupID == 0 || !vm.groups.contains(where: { $0.id == selectedGroupID }) {
-                selectedGroupID = vm.defaultGroupID
-            }
+        // 分组数据晚于表单出现时回落默认分组（选中项被删时找回）
+        if selectedGroupID == 0 || !vm.groups.contains(where: { $0.id == selectedGroupID }) {
+            selectedGroupID = vm.defaultGroupID
+        }
         }
         .sheet(isPresented: $showScriptPicker) {
-            NavigationStack {
-                ScriptLibraryView(server: server) { picked in
-                    if let code = picked.script, !code.isEmpty {
-                        script = code
-                    }
-                    showScriptPicker = false
+        NavigationStack {
+            ScriptLibraryView(server: server) { picked in
+                if let code = picked.script, !code.isEmpty {
+                    script = code
                 }
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button(L10n.t("取消")) { showScriptPicker = false }
+                showScriptPicker = false
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { showScriptPicker = false }
+                }
+            }
+        }
+    }    }
+
+    // MARK: - 向导分页成员（自单页表单拆出）
+
+    private var basicInfoSection: some View {
+        Section(L10n.t("基本信息")) {
+            FormTextField(label: L10n.t("任务名称"), text: $name)
+
+            Picker(L10n.t("任务类型"), selection: $type) {
+                ForEach(CronjobType.allCases) { t in
+                    Label(t.displayName, systemImage: t.icon).tag(t)
+                }
+            }
+
+            // 分组（未加载到分组数据时仅展示默认分组占位）
+            if vm.groups.isEmpty {
+                HStack {
+                    Text(L10n.t("分组"))
+                    Spacer()
+                    Text(L10n.t("默认分组"))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Picker(L10n.t("分组"), selection: $selectedGroupID) {
+                    // tag(0) 兜底：分组数据先于初值就绪的一帧内 selection 仍为 0，
+                    // 缺少对应 tag 会触发 Picker invalid selection 运行时警告
+                    Text(L10n.t("默认分组")).tag(0)
+                    ForEach(vm.groups) { group in
+                        Text(group.displayName).tag(group.id)
                     }
                 }
             }
         }
-        .sheet(isPresented: $showBackupParamsPicker) {
-            BackupParamsPickerView(selection: $dbBackupParams, dbType: dbType)
+    }
+
+    private var scheduleSection: some View {
+        Section {
+            ForEach($schedules) { $item in
+                scheduleRow(for: $item)
+            }
+
+            Button {
+                schedules.append(ScheduleItem())
+            } label: {
+                Label(L10n.t("添加周期"), systemImage: "plus.circle")
+                    .foregroundStyle(Color.accentColor)
+            }
+            .disabled(schedules.count >= 10)
+
+            // 周期预览（POST /cronjobs/next {spec}，抓包 2026-09-14）
+            Button {
+                Task { await previewSchedules() }
+            } label: {
+                Label(L10n.t("预览执行时间"), systemImage: "clock.badge.questionmark")
+                    .foregroundStyle(Color.accentColor)
+            }
+            if isPreviewing {
+                HStack { Spacer(); ProgressView(); Spacer() }
+            }
+            ForEach(Array(previewResults.enumerated()), id: \.offset) { _, result in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.spec)
+                        .font(.dataMonospacedCaption)
+                        .foregroundStyle(.secondary)
+                    ForEach(result.times, id: \.self) { time in
+                        Text(time)
+                            .font(.dataMonospacedCaption)
+                    }
+                }
+            }
+            if previewFailedCount > 0 {
+                Label(L10n.f("%ld 个周期预览失败", previewFailedCount),
+                      systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        } header: {
+            Text(L10n.t("执行周期"))
+        } footer: {
+            Text(schedules.count > 1 ? L10n.f("已添加 %ld 个周期，将按各周期分别执行。", schedules.count) : L10n.t("支持添加多个周期，任务将在每个设定的时间点执行。"))
         }
     }
+
+    @ViewBuilder
+    private var contentSections: some View {
+        switch type {
+        case .shell:
+            Section {
+                Button {
+                    showScriptPicker = true
+                } label: {
+                    Label(L10n.t("从脚本库选择"), systemImage: "books.vertical")
+                        .foregroundStyle(Color.accentColor)
+                }
+                TextEditor(text: $script)
+                    .font(.dataMonospacedCaption)
+                    .frame(minHeight: 160)
+            } header: { Text(L10n.t("脚本内容")) }
+
+            Section {
+                Picker(L10n.t("执行用户"), selection: $user) {
+                    Text(L10n.t("默认（不指定）")).tag("")
+                    ForEach(vm.systemUsers, id: \.self) { u in
+                        Text(u).tag(u)
+                    }
+                }
+            } header: {
+                Text(L10n.t("执行设置"))
+            } footer: {
+                Text(L10n.t("不指定用户时，服务器将以默认用户执行脚本。"))
+            }
+
+        case .app:
+            Section(L10n.t("备份应用")) {
+                Picker(L10n.t("范围"), selection: $appSelection) {
+                    Text(L10n.t("全部应用")).tag("all")
+                    ForEach(vm.installedApps, id: \.id) { app in
+                        Text(app.name ?? "—").tag(app.key ?? "")
+                    }
+                }
+            }
+            backupSection
+
+        case .website:
+            Section(L10n.t("备份网站")) {
+                Picker(L10n.t("范围"), selection: $websiteSelection) {
+                    Text(L10n.t("全部网站")).tag("all")
+                    ForEach(vm.websiteOptions, id: \.id) { site in
+                        Text(site.alias ?? site.primaryDomain ?? "—").tag(String(site.id))
+                    }
+                }
+            }
+            backupSection
+
+        case .database:
+            Section(L10n.t("备份数据库")) {
+                Picker(L10n.t("数据库类型"), selection: $dbType) {
+                    ForEach(DBBackupType.allCases) { t in
+                        Text(t.displayName).tag(t)
+                    }
+                }
+                .onChange(of: dbType) { _, newType in
+                    dbSelection = "all"
+                    dbBackupParams.removeAll()
+                    Task { await vm.loadDBItems(dbType: newType.rawValue) }
+                }
+
+                Picker(L10n.t("范围"), selection: $dbSelection) {
+                    Text(L10n.t("全部数据库")).tag("all")
+                    ForEach(vm.dbItems, id: \.id) { item in
+                        Text(item.name ?? "—").tag(String(item.id))
+                    }
+                }
+            }
+
+            if dbType.supportsBackupParams {
+                Section {
+                    Button {
+                        showBackupParamsPicker = true
+                    } label: {
+                        HStack {
+                            Text(L10n.t("备份参数"))
+                            Spacer()
+                            Text(backupParamsSummary)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.trailing)
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                } header: {
+                    Text(L10n.t("备份参数"))
+                } footer: {
+                    Text(L10n.t("可选的 mysqldump 参数，支持多选，用于优化大数据量或特殊场景的备份。"))
+                }
+            }
+
+            backupSection
+
+        case .snapshot:
+            backupSection
+
+        case .clean, .ntp, .syncIpGroup:
+            // 这三种类型无备份账号、无类型特定配置，仅需保留份数
+            Section(L10n.t("任务设置")) {
+                Stepper(L10n.f("保留份数：%ld 份", retainCopies), value: $retainCopies, in: 1...100)
+            }
+        }
+    }
+
+    private var timeoutSection: some View {
+        // 超时与重试（所有任务类型通用，放在各类型设置之后）
+        Section(L10n.t("超时与重试")) {
+            Stepper(L10n.f("失败重试次数：%ld 次", retryTimes), value: $retryTimes, in: 0...10)
+            Picker(L10n.t("超时单位"), selection: $timeoutUnit) {
+                ForEach(TimeoutUnit.allCases) { u in
+                    Text(L10n.t(u.rawValue)).tag(u)
+                }
+            }
+            .onChange(of: timeoutUnit) { oldUnit, newUnit in
+                // 切换单位时尽量保持总时长不变：按新单位取整
+                let totalSeconds = timeoutValue * oldUnit.multiplier
+                let newValue = max(1, totalSeconds / newUnit.multiplier)
+                timeoutValue = newValue
+            }
+            Stepper(L10n.f("超时时间：%ld %@", timeoutValue, L10n.t(timeoutUnit.rawValue)), value: $timeoutValue, in: 1...9999)
+        }
+    }
+
 
     /// 备份参数摘要（用于创建表单的右侧预览文本）
     private var backupParamsSummary: String {

@@ -60,27 +60,46 @@ struct AIMcpFormView: View {
             && !pathField.isEmpty && !gatewayImage.isEmpty && portValue > 0 && !isSaving
     }
 
+    /// 向导分页：0 基础（名称/网关） 1 容器（容器/环境变量/挂载）
+    @State private var wizardPage = 0
+    private let wizardPageNames = [L10n.t("基础"), L10n.t("容器")]
+
     var body: some View {
-        Form {
-            baseSection
-            transportSection
-            containerSection
-            envSection
-            volumeSection
+        VStack(spacing: 0) {
+            WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+            Form {
+                Group {
+                    switch wizardPage {
+                    case 0:
+                        baseSection
+                        transportSection
+                    default:
+                        containerSection
+                        envSection
+                        volumeSection
+                    }
+                }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
+            }
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WizardBottomBar(
+                page: wizardPage,
+                totalPages: wizardPageNames.count,
+                primaryTitle: isEditing ? L10n.t("保存") : L10n.t("创建"),
+                isBusy: isSaving,
+                primaryDisabled: !canSubmit,
+                onBack: { withAnimation { wizardPage -= 1 } },
+                onNext: { withAnimation { wizardPage += 1 } },
+                onPrimary: { Task { await save() } }
+            )
+        }
+        .animation(.easeInOut(duration: 0.22), value: wizardPage)
         .navigationTitle(isEditing ? L10n.t("编辑 MCP") : L10n.t("创建 MCP"))
         .navigationBarTitleDisplayMode(.inline)
         .formWidthLimit()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await save() }
-                } label: {
-                    if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
-                }
-                .disabled(!canSubmit)
-            }
-        }
         .task { fillIfEditing() }
         .onChange(of: name) { _, newValue in
             if !isEditing {

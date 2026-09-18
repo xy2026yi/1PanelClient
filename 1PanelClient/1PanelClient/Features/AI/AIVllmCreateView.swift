@@ -143,33 +143,65 @@ struct AIVllmCreateView: View {
 
     // MARK: 视图
 
+    /// 向导分页：0 基础（类型/版本/模型） 1 配置（命令/账号） 2 高级（默认收起）
+    @State private var wizardPage = 0
+    @State private var advancedEnabled = false
+    private let wizardPageNames = [L10n.t("基础"), L10n.t("配置"), L10n.t("高级")]
+
     var body: some View {
         NavigationStack {
-            Form {
-                basicSection
-                commandSection
-                accountSection
-                advancedSection
-                if let msg = validationMessage {
-                    Section {
-                        Text(msg)
-                            .foregroundStyle(.red)
-                            .font(.footnote)
+            VStack(spacing: 0) {
+                WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+                Form {
+                    Group {
+                        switch wizardPage {
+                        case 0:
+                            basicSection
+                        case 1:
+                            commandSection
+                            accountSection
+                        default:
+                            Section {
+                                Toggle(L10n.t("高级设置"), isOn: $advancedEnabled)
+                            } footer: {
+                                Text(L10n.t("资源限制、编排覆盖等进阶项"))
+                            }
+                            if advancedEnabled {
+                                advancedSection
+                            }
+                        }
+                    }
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)))
+                    if let msg = validationMessage {
+                        Section {
+                            Text(msg)
+                                .foregroundStyle(.red)
+                                .font(.footnote)
+                        }
                     }
                 }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                WizardBottomBar(
+                    page: wizardPage,
+                    totalPages: wizardPageNames.count,
+                    primaryTitle: isEdit ? L10n.t("保存") : L10n.t("创建"),
+                    isBusy: isSubmitting,
+                    primaryDisabled: false,
+                    onBack: { withAnimation { wizardPage -= 1 } },
+                    onNext: { withAnimation { wizardPage += 1 } },
+                    onPrimary: { Task { await submit() } }
+                )
+            }
+            .animation(.easeInOut(duration: 0.22), value: wizardPage)
             .navigationTitle(isEdit ? L10n.t("编辑实例") : L10n.t("创建实例"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
                         .disabled(isSubmitting)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(isEdit ? L10n.t("保存") : L10n.t("创建")) {
-                        Task { await submit() }
-                    }
-                    .disabled(isSubmitting)
                 }
             }
         }
