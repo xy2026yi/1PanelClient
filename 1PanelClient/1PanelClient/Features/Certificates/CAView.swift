@@ -435,7 +435,7 @@ struct IssueCertificateView: View {
                                selection: $keyType) { $0.displayName }
 
                 OutlinedUnitField(label: L10n.t("有效期"), unit: L10n.t("天"),
-                                  text: expireDaysText)
+                                  text: expireDaysText, range: 1...9999)
 
                 Toggle(L10n.t("自动续签"), isOn: $autoRenew)
             } header: {

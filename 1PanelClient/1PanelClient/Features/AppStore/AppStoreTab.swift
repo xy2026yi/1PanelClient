@@ -423,6 +423,7 @@ struct AppInstallView: View {
             .padding(.top, 8)
             .padding(.bottom, 6)
             .animation(.easeInOut(duration: 0.22), value: installPage)
+        .modifier(WizardDiscardGuard(page: installPage))
 
             Form {
                 Group {
@@ -537,9 +538,9 @@ struct AppInstallView: View {
 
                 Section {
                     OutlinedUnitField(label: L10n.t("CPU核心数"), unit: L10n.t("核"),
-                                      text: cpuQuotaText)
+                                      text: cpuQuotaText, range: 0...1024)
                     OutlinedUnitField(label: L10n.t("内存"), unit: "MB",
-                                      text: memoryLimitText)
+                                      text: memoryLimitText, range: 0...9_999_999)
                 } footer: {
                     Text(L10n.t("填 0 表示不限制"))
                 }

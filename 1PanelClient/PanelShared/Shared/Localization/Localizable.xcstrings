@@ -34268,6 +34268,116 @@
           }
         }
       }
+    },
+    "有效期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Validity Period"
+          }
+        }
+      }
+    },
+    "多个IP以逗号分隔，例: 172.16.10.111,172.16.10.112" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Separate multiple IPs with commas, e.g. 172.16.10.111,172.16.10.112"
+          }
+        }
+      }
+    },
+    "该应用无可配置参数，可直接进入下一步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app has no configurable parameters; continue to the next step"
+          }
+        }
+      }
+    },
+    "容器名、资源限制、重启规则等进阶项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced items such as container name, resource limits and restart policy"
+          }
+        }
+      }
+    },
+    "重启策略、资源限制等进阶项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced items such as restart policy and resource limits"
+          }
+        }
+      }
+    },
+    "资源限制、编排覆盖等进阶项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced items such as resource limits and compose overrides"
+          }
+        }
+      }
+    },
+    "放弃编辑？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard changes?"
+          }
+        }
+      }
+    },
+    "继续编辑" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Editing"
+          }
+        }
+      }
+    },
+    "放弃" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard"
+          }
+        }
+      }
+    },
+    "已填写的多页内容将丢失" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filled-in content across pages will be lost"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

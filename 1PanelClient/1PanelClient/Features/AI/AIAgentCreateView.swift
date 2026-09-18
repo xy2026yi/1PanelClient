@@ -49,7 +49,6 @@ struct AIAgentCreateView: View {
     @State private var restartPolicy = "unless-stopped"
     @State private var cpuQuota = 0
     @State private var memoryLimit = 0
-    @State private var memoryUnit = "M"
     @State private var pullImage = true
     @State private var editCompose = false
     @State private var customCompose = ""
@@ -371,9 +370,9 @@ struct AIAgentCreateView: View {
     private var advancedResourceSection: some View {
         Section {
             OutlinedUnitField(label: L10n.t("CPU核心数"), unit: L10n.t("核"),
-                              text: cpuQuotaText)
+                              text: cpuQuotaText, range: 0...1024)
             OutlinedUnitField(label: L10n.t("内存"), unit: "MB",
-                              text: memoryLimitText)
+                              text: memoryLimitText, range: 0...9_999_999)
         } header: {
             Text(L10n.t("资源限制"))
         } footer: {

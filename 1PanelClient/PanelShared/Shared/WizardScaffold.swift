@@ -88,3 +88,36 @@ struct WizardBottomBar: View {
         .overlay(alignment: .top) { Divider() }
     }
 }
+
+// MARK: - 中途返回丢弃守卫
+
+/// 向导翻页后（page > 0）拦截系统返回：弹「放弃编辑」确认，
+/// 防止多页输入被返回手势静默丢弃；第 0 页保持系统返回行为
+struct WizardDiscardGuard: ViewModifier {
+    let page: Int
+    @Environment(\.dismiss) private var dismiss
+    @State private var showConfirm = false
+
+    func body(content: Content) -> some View {
+        content
+            .navigationBarBackButtonHidden(page > 0)
+            .toolbar {
+                if page > 0 {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            showConfirm = true
+                        } label: {
+                            Image(systemName: "chevron.left")
+                        }
+                        .accessibilityLabel(L10n.t("返回"))
+                    }
+                }
+            }
+            .alert(L10n.t("放弃编辑？"), isPresented: $showConfirm) {
+                Button(L10n.t("继续编辑"), role: .cancel) {}
+                Button(L10n.t("放弃"), role: .destructive) { dismiss() }
+            } message: {
+                Text(L10n.t("已填写的多页内容将丢失"))
+            }
+    }
+}

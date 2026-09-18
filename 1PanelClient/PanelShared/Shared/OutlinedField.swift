@@ -124,11 +124,13 @@ struct OutlinedTextField: View {
 
 // MARK: - 描边数值+单位输入
 
-/// 描边包裹式数值输入：框内值居左、固定单位贴右（如「核」「MB」）
+/// 描边包裹式数值输入：框内值居左、固定单位贴右（如「核」「MB」）。
+/// range 传入时输入即时钳制到范围（如原 Stepper 的 1...9999）
 struct OutlinedUnitField: View {
     let label: String
     let unit: String
     @Binding var text: String
+    var range: ClosedRange<Int>? = nil
 
     @FocusState private var isFocused: Bool
 
@@ -139,12 +141,23 @@ struct OutlinedUnitField: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }) {
-            TextField("", text: $text)
+            TextField("", text: clampedText)
                 .keyboardType(.numberPad)
                 .focused($isFocused)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
         }
+    }
+
+    /// 输入即时钳制：非法输入保持原值，超出范围收敛到边界
+    private var clampedText: Binding<String> {
+        Binding<String>(
+            get: { text },
+            set: { newValue in
+                guard let parsed = Int(newValue) else { return }
+                text = String(range.map { min(max(parsed, $0.lowerBound), $0.upperBound) } ?? parsed)
+            }
+        )
     }
 }
 
@@ -274,10 +287,14 @@ struct OutlinedTimeField: View {
         }
     }
 
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
     private static func format(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
+        formatter.string(from: date)
     }
 }
 
