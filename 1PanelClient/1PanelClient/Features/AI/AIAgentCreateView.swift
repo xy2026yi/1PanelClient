@@ -90,6 +90,25 @@ struct AIAgentCreateView: View {
 
     private var portValue: Int { Int(webUIPort) ?? 0 }
 
+    /// 分页校验：当前页必填满足才可下一步/提交（后续页字段不卡当前页）
+    private var currentPageReady: Bool {
+        switch wizardPage {
+        case 0:
+            // 基础页：名称/版本（+ 需模型类型的账号与模型）
+            guard !name.isEmpty, !selectedVersion.isEmpty else { return false }
+            if agentType.needsModel {
+                let hasBaseURL = selectedAccount?.baseUrl?.isEmpty == false
+                return hasBaseURL && !selectedModel.isEmpty
+            }
+            return true
+        case 1:
+            // 配置页：WebUI 端口
+            return portValue > 0
+        default:
+            return canSubmit
+        }
+    }
+
     private var canSubmit: Bool {
         guard !name.isEmpty, !selectedVersion.isEmpty, portValue > 0, !vm.isSubmitting else { return false }
         // QwenPaw(copaw) 创建不绑定模型账号
@@ -144,7 +163,7 @@ struct AIAgentCreateView: View {
                 totalPages: wizardPageNames.count,
                 primaryTitle: L10n.t("创建"),
                 isBusy: vm.isSubmitting,
-                primaryDisabled: !canSubmit,
+                primaryDisabled: !currentPageReady,
                 onBack: { withAnimation { wizardPage -= 1 } },
                 onNext: { withAnimation { wizardPage += 1 } },
                 onPrimary: { Task { await submit() } }

@@ -80,6 +80,8 @@ struct WizardBottomBar: View {
                 }
             }
             .buttonStyle(.borderedProminent)
+            // primaryDisabled 由调用方按当前页计算：非最后页传「当前页必填
+            // 未满足」，最后页传完整提交校验——后续页字段不卡当前页下一步
             .disabled(primaryDisabled || isBusy)
         }
         .padding(.horizontal)

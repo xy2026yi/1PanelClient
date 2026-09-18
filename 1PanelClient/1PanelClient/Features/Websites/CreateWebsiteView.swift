@@ -111,7 +111,7 @@ struct CreateWebsiteView: View {
                 totalPages: wizardPageNames.count,
                 primaryTitle: L10n.t("创建"),
                 isBusy: vm.isCreating,
-                primaryDisabled: !canSubmit,
+                primaryDisabled: wizardPage == 0 ? !basicPageReady : !canSubmit,
                 onBack: { withAnimation { wizardPage -= 1 } },
                 onNext: { withAnimation { wizardPage += 1 } },
                 onPrimary: { Task { await performCreate() } }
@@ -242,6 +242,12 @@ struct CreateWebsiteView: View {
                     .foregroundStyle(.blue)
             }
         }
+    }
+
+    /// 第 0 页（基础）必填：主域名非空无空格 + 端口合法；类型特定字段在第 2 页校验
+    private var basicPageReady: Bool {
+        !primaryDomain.isEmpty && !primaryDomain.contains(" ")
+            && port > 0 && port < 65536
     }
 
     private var canSubmit: Bool {
