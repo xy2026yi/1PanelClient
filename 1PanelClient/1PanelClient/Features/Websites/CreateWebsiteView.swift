@@ -95,8 +95,8 @@ struct CreateWebsiteView: View {
                         }
 
                         Section {
-                            OutlinedTextField(label: L10n.t("备注"), prompt: L10n.t("可选"),
-                                              text: $remark, machineValue: false)
+                            OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"),
+                                                   text: $remark)
                         }
                     }
                 }
