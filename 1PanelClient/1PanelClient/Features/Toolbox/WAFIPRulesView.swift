@@ -302,8 +302,8 @@ struct WAFIPRuleFormView: View {
             }
 
             Section(L10n.t("备注")) {
-                OutlinedTextField(label: L10n.t("描述"), prompt: L10n.t("可选"),
-                                  text: $description)
+                OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"),
+                                       text: $description)
             }
         }
         .navigationTitle(editingItem == nil ? L10n.t("创建 IP 规则") : L10n.t("编辑 IP 规则"))

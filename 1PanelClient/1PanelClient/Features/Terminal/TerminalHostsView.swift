@@ -364,7 +364,7 @@ struct SSHHostEditView: View {
             OutlinedTextField(label: L10n.t("端口"), text: $portText, keyboardType: .numberPad)
             OutlinedTextField(label: L10n.t("用户名"), text: $user)
             OutlinedTextField(label: L10n.t("标题（可选）"), text: $name)
-            OutlinedTextField(label: L10n.t("描述（可选）"), text: $desc, machineValue: false)
+            OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $desc)
         } header: {
             Text(L10n.t("基本信息"))
         }

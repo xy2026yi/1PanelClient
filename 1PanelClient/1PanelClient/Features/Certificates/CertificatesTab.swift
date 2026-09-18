@@ -563,7 +563,7 @@ struct UploadCertificateView: View {
                 }
                 .pickerStyle(.segmented)
 
-                OutlinedTextField(label: L10n.t("备注（可选）"), text: $description, machineValue: false)
+                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $description)
             } header: {
                 if isUpdate {
                     Text(L10n.t("更新证书"))

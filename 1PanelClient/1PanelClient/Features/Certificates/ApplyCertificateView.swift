@@ -93,7 +93,7 @@ struct ApplyCertificateView: View {
             }
 
             Section {
-                OutlinedTextField(label: L10n.t("备注"), text: $description_)
+                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $description_)
             } header: {
                 Text(L10n.t("备注"))
             }
@@ -115,7 +115,7 @@ struct ApplyCertificateView: View {
                 OutlinedTextField(label: L10n.t("主域名（必填）"), text: $primaryDomain)
                 OutlinedMultiLineField(label: L10n.t("其他域名（可选，一行一个）"), text: $otherDomains)
                     .lineLimit(3, reservesSpace: true)
-                OutlinedTextField(label: L10n.t("备注（可选）"), text: $description_, machineValue: false)
+                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $description_)
             }
 
             Section(L10n.t("申请配置")) {

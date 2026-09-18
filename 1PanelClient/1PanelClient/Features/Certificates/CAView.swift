@@ -423,7 +423,7 @@ struct IssueCertificateView: View {
             Section {
                 OutlinedMultiLineField(label: L10n.t("域名（一行一个）"), text: $domains)
                     .lineLimit(3, reservesSpace: true)
-                OutlinedTextField(label: L10n.t("备注（可选）"), text: $description_, machineValue: false)
+                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $description_)
             } header: {
                 Text(L10n.t("基本信息"))
             } footer: {

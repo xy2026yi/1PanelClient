@@ -901,7 +901,7 @@ struct WebsiteAuthEditView: View {
                     }
                     .buttonStyle(.borderless)
                 }
-                OutlinedTextField(label: L10n.t("备注（可选）"), text: $remark, machineValue: false)
+                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $remark)
             }
         }
         .navigationTitle(isEdit ? L10n.t("编辑账号") : L10n.t("创建账号"))

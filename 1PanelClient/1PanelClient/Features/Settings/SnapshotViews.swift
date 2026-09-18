@@ -461,7 +461,7 @@ struct SnapshotCreateView: View {
                     .labelsHidden()
                     .frame(width: 74)
                 }
-                OutlinedTextField(label: L10n.t("描述（可选）"), text: $descriptionText, machineValue: false)
+                OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $descriptionText)
             } header: {
                 SectionLabel(title: L10n.t("基础数据"), systemImage: "externaldrive")
             }

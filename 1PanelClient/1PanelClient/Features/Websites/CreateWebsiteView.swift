@@ -202,15 +202,7 @@ struct CreateWebsiteView: View {
 
     private var domainSection: some View {
         Section {
-            OutlinedTextField(label: L10n.t("主域名"), text: $primaryDomain, keyboardType: .URL)
-            OutlinedMultiLineField(label: L10n.t("其他域名"),
-                                   prompt: "abc.test.com\nabc1.test.com:8080",
-                                   text: $otherDomains)
-            OutlinedTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
-            Toggle(L10n.t("监听 IPv6"), isOn: $enableIPv6)
-            OutlinedTextField(label: L10n.t("代号"), text: $alias)
-
-            // 分组（未加载到分组数据时仅展示默认分组占位）
+            // 分组置顶（未加载到分组数据时仅展示默认分组占位）
             if vm.groups.isEmpty {
                 HStack {
                     Text(L10n.t("分组"))
@@ -228,6 +220,18 @@ struct CreateWebsiteView: View {
                     }
                 }
             }
+
+            OutlinedTextField(label: L10n.t("主域名"),
+                              prompt: L10n.t("例: example.com 或 example.com:8080"),
+                              text: $primaryDomain, keyboardType: .URL)
+            OutlinedMultiLineField(label: L10n.t("其他域名"),
+                                   prompt: "abc.test.com\nabc1.test.com:8080",
+                                   text: $otherDomains)
+            OutlinedTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
+            Toggle(L10n.t("监听 IPv6"), isOn: $enableIPv6)
+            OutlinedTextField(label: L10n.t("代号"),
+                              prompt: L10n.t("对应主目录: /opt/1panel/apps/openresty/openresty/www/sites"),
+                              text: $alias)
         } header: {
             Text(L10n.t("域名"))
         } footer: {

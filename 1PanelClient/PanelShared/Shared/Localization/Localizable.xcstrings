@@ -34389,6 +34389,28 @@
           }
         }
       }
+    },
+    "例: example.com 或 example.com:8080" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. example.com or example.com:8080"
+          }
+        }
+      }
+    },
+    "对应主目录: /opt/1panel/apps/openresty/openresty/www/sites" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Site root: /opt/1panel/apps/openresty/openresty/www/sites"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

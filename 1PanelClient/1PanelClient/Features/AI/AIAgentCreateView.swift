@@ -246,7 +246,7 @@ struct AIAgentCreateView: View {
                 }
             }
 
-            OutlinedTextField(label: L10n.t("备注"), text: $remark, machineValue: false)
+            OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $remark)
         } header: {
             SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
         } footer: {
