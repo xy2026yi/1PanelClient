@@ -186,27 +186,23 @@ struct WAFCreateIPGroupView: View {
 
     var body: some View {
         Form {
-            Section(L10n.t("名称")) {
-                TextField(L10n.t("组名称"), text: $name)
+            Section {
+                OutlinedTextField(label: L10n.t("组名称"), text: $name)
             }
             Section(L10n.t("导入方式")) {
-                Picker(L10n.t("方式"), selection: $source) {
-                    Text(L10n.t("手动创建")).tag("imported")
-                    Text(L10n.t("远程下载")).tag("remoteFile")
-                }
+                OutlinedPicker(label: L10n.t("方式"), options: ["imported", "remoteFile"],
+                               selection: $source,
+                               optionLabels: ["imported": L10n.t("手动创建"),
+                                              "remoteFile": L10n.t("远程下载")])
             }
             if source == "imported" {
-                Section(L10n.t("IP 列表")) {
-                    TextEditor(text: $content)
-                        .font(.dataMonospacedCaption)
-                        .frame(minHeight: 120)
+                Section {
+                    OutlinedMultiLineField(label: L10n.t("IP 列表"), text: $content)
                 }
             } else {
-                Section("URL") {
-                    TextField("https://...", text: $remoteURL)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                Section {
+                    OutlinedTextField(label: "URL", prompt: "https://...",
+                                      text: $remoteURL, keyboardType: .URL)
                 }
             }
         }

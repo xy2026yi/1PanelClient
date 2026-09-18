@@ -235,7 +235,7 @@ struct CreateDatabaseView: View {
     var body: some View {
         Form {
             Section(L10n.t("基本信息")) {
-                FormTextField(label: L10n.t("数据库名称"), text: $name)
+                OutlinedTextField(label: L10n.t("数据库名称"), text: $name)
             }
 
             if vm.isPostgreSQL {
@@ -246,11 +246,8 @@ struct CreateDatabaseView: View {
             } else if vm.isMongoDB {
                 mongoUserSection
                 Section(L10n.t("权限")) {
-                    Picker(L10n.t("角色"), selection: $mongoPermission) {
-                        ForEach(MongoPermission.allCases) { perm in
-                            Text(perm.displayName).tag(perm)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("角色"), options: MongoPermission.allCases,
+                                   selection: $mongoPermission) { $0.displayName }
                 }
             } else if vm.isMySQL {
                 mysqlCharsetSection
@@ -258,8 +255,8 @@ struct CreateDatabaseView: View {
             }
 
             Section(L10n.t("描述")) {
-                TextField(L10n.t("可选描述"), text: $description, axis: .vertical)
-                    .lineLimit(2...4)
+                OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"),
+                                       text: $description)
             }
 
             if let msg = vm.errorMessage {
@@ -316,7 +313,7 @@ struct CreateDatabaseView: View {
 
     private var pgUserSection: some View {
         Section(L10n.t("用户")) {
-            FormTextField(label: L10n.t("用户名"), text: $username)
+            OutlinedTextField(label: L10n.t("用户名"), text: $username)
                 .onChange(of: name) { _, newValue in
                     username = newValue
                 }
@@ -328,7 +325,7 @@ struct CreateDatabaseView: View {
 
     private var mongoUserSection: some View {
         Section(L10n.t("用户")) {
-            FormTextField(label: L10n.t("用户名"), prompt: L10n.t("默认同名称"), text: $username)
+            OutlinedTextField(label: L10n.t("用户名"), prompt: L10n.t("默认同名称"), text: $username)
             passwordRow
         }
     }
@@ -337,21 +334,16 @@ struct CreateDatabaseView: View {
 
     private var mysqlCharsetSection: some View {
         Section(L10n.t("字符集与排序规则")) {
-            Picker(L10n.t("字符集"), selection: $selectedFormat) {
-                ForEach(vm.formats) { fmt in
-                    Text(fmt.format).tag(fmt.format)
-                }
-            }
+            OutlinedPicker(label: L10n.t("字符集"), options: vm.formats.map(\.format),
+                           selection: $selectedFormat)
             .onChange(of: selectedFormat) { _, _ in
                 selectedCollation = ""
             }
 
-            Picker(L10n.t("排序规则"), selection: $selectedCollation) {
-                Text(L10n.t("默认")).tag("")
-                ForEach(availableCollations, id: \.self) { col in
-                    Text(col).tag(col)
-                }
-            }
+            OutlinedPicker(label: L10n.t("排序规则"),
+                           options: [""] + availableCollations,
+                           selection: $selectedCollation,
+                           optionLabels: ["": L10n.t("默认")])
         }
     }
 
@@ -360,12 +352,8 @@ struct CreateDatabaseView: View {
     private var mysqlUserGrantSection: some View {
         Group {
             Section(L10n.t("用户授权")) {
-                Picker(L10n.t("授权方式"), selection: $userGrantMode) {
-                    ForEach(UserGrantMode.allCases) { mode in
-                        Text(L10n.t(mode.rawValue)).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
+                OutlinedPicker(label: L10n.t("授权方式"), options: UserGrantMode.allCases,
+                               selection: $userGrantMode) { L10n.t($0.rawValue) }
             }
 
             switch userGrantMode {
@@ -388,7 +376,7 @@ struct CreateDatabaseView: View {
                 }
             case .create:
                 Section(L10n.t("新用户")) {
-                    FormTextField(label: L10n.t("用户名"), text: $username)
+                    OutlinedTextField(label: L10n.t("用户名"), text: $username)
                     passwordRow
                 }
                 Section {
@@ -513,27 +501,19 @@ struct CreateDatabaseUserView: View {
     var body: some View {
         Form {
             Section(L10n.t("用户信息")) {
-                FormTextField(label: L10n.t("用户名"), text: $username)
+                OutlinedTextField(label: L10n.t("用户名"), text: $username)
                 passwordRow
-                FormTextField(label: L10n.t("描述"), text: $description, axis: .vertical, machineValue: false)
+                OutlinedMultiLineField(label: L10n.t("描述"), text: $description)
                     .lineLimit(2...4)
             }
 
             Section(L10n.t("权限")) {
-                Picker(L10n.t("访问权限"), selection: $permissionMode) {
-                    ForEach(UserPermissionMode.allCases) { mode in
-                        Text(L10n.t(mode.rawValue)).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-
+                OutlinedPicker(label: L10n.t("访问权限"), options: UserPermissionMode.allCases,
+                               selection: $permissionMode) { L10n.t($0.rawValue) }
                 if permissionMode == .ip {
-                    TextField(L10n.t("IP 地址（逗号分隔）"), text: $permissionIPs, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .lineLimit(2...4)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .font(.dataMonospacedBody)
+                    OutlinedMultiLineField(label: L10n.t("IP"),
+                                           prompt: "172.16.10.111,172.16.10.112",
+                                           text: $permissionIPs)
                 }
             }
 
@@ -938,15 +918,15 @@ struct EditUserPermissionSheet: View {
         NavigationStack {
             Form {
                 Section(L10n.t("权限")) {
-                    Picker(L10n.t("访问权限"), selection: $permissionMode) {
-                        ForEach(PermissionMode.allCases) { mode in
-                            Text(L10n.t(mode.rawValue)).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    OutlinedPicker(label: L10n.t("访问权限"),
+                                   options: PermissionMode.allCases.map(\.rawValue),
+                                   selection: permissionModeBinding,
+                                   optionLabels: PermissionMode.allCases.reduce(into: [:]) {
+                                       $0[$1.rawValue] = L10n.t($1.rawValue)
+                                   })
 
                     if permissionMode == .ip {
-                        FormTextField(label: L10n.t("IP 地址"), text: $permissionIPs, style: .stacked)
+                        OutlinedTextField(label: L10n.t("IP 地址"), text: $permissionIPs)
                             .font(.dataMonospacedBody)
                     }
                 }

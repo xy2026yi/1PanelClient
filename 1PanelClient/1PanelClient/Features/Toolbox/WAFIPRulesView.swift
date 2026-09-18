@@ -248,9 +248,11 @@ struct WAFIPRuleFormView: View {
     var body: some View {
         Form {
             Section(L10n.t("类型")) {
-                Picker(L10n.t("IP 类型"), selection: $ipType) {
-                    ForEach(typeOptions, id: \.value) { Text($0.label).tag($0.value) }
-                }
+                OutlinedPicker(label: L10n.t("IP 类型"),
+                               options: typeOptions.map(\.value),
+                               selection: $ipType,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   typeOptions.map { ($0.value, $0.label) }))
                 .onChange(of: ipType) { _, _ in
                     if ipType == "ipGroup" { Task { await loadGroups() } }
                 }
@@ -259,19 +261,20 @@ struct WAFIPRuleFormView: View {
             switch ipType {
             case "ipv4":
                 Section(L10n.t("IPv4 地址")) {
-                    TextField(L10n.t("例: 192.168.1.1"), text: $ipv4)
-                        .keyboardType(.decimalPad)
+                    OutlinedTextField(label: L10n.t("IPv4 地址"), prompt: "192.168.1.1",
+                                      text: $ipv4, keyboardType: .decimalPad)
                 }
             case "ipArr":
                 Section(L10n.t("IPv4 范围")) {
-                    FormTextField(label: L10n.t("起始 IP"), text: $ipStart)
+                    OutlinedTextField(label: L10n.t("起始 IP"), text: $ipStart)
                         .keyboardType(.decimalPad)
-                    FormTextField(label: L10n.t("结束 IP"), text: $ipEnd)
+                    OutlinedTextField(label: L10n.t("结束 IP"), text: $ipEnd)
                         .keyboardType(.decimalPad)
                 }
             case "ipv6":
                 Section(L10n.t("IPv6 地址")) {
-                    TextField(L10n.t("例: 2001:db8::1"), text: $ipv6)
+                    OutlinedTextField(label: L10n.t("IPv6 地址"), prompt: "2001:db8::1",
+                                      text: $ipv6)
                 }
             case "ipGroup":
                 Section(L10n.t("IP 组")) {
@@ -299,7 +302,8 @@ struct WAFIPRuleFormView: View {
             }
 
             Section(L10n.t("备注")) {
-                TextField(L10n.t("描述(可选)"), text: $description)
+                OutlinedTextField(label: L10n.t("描述"), prompt: L10n.t("可选"),
+                                  text: $description)
             }
         }
         .navigationTitle(editingItem == nil ? L10n.t("创建 IP 规则") : L10n.t("编辑 IP 规则"))

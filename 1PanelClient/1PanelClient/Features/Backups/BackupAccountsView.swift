@@ -655,16 +655,12 @@ struct BackupAccountEditView: View {
 
     private var basicSection: some View {
         Section {
-            FormTextField(label: L10n.t("名称"), text: $name)
+            OutlinedTextField(label: L10n.t("名称"), text: $name)
             if isEdit {
                 LabeledContent(L10n.t("类型"), value: isLocal ? "LOCAL" : type.displayName)
             } else {
-                Picker(L10n.t("类型"), selection: $type) {
-                    ForEach(BackupAccountType.allCases) { t in
-                        Text(t.displayName).tag(t)
-                    }
-                }
-                .pickerStyle(.menu)
+                OutlinedPicker(label: L10n.t("类型"), options: BackupAccountType.allCases,
+                               selection: $type) { $0.displayName }
             }
         } header: {
             Text(L10n.t("基本信息"))
@@ -678,8 +674,8 @@ struct BackupAccountEditView: View {
     /// MINIO / 阿里云OSS 共用：Access Key 凭证
     private var credentialsSection: some View {
         Section {
-            FormTextField(label: "Access Key ID", text: $accessKeyID)
-            FormTextField(label: "Secret Key", text: $secretKey, isSecure: true)
+            OutlinedTextField(label: "Access Key ID", text: $accessKeyID)
+            OutlinedTextField(label: "Secret Key", text: $secretKey, isSecure: true)
         } header: {
             Text(L10n.t("认证信息"))
         }
@@ -688,13 +684,10 @@ struct BackupAccountEditView: View {
     /// MINIO / 阿里云OSS 共用：协议 + Endpoint 地址
     private var endpointSection: some View {
         Section {
-            Picker(L10n.t("协议"), selection: $endpointProto) {
-                Text("http").tag("http")
-                Text("https").tag("https")
-            }
-            .pickerStyle(.segmented)
-            FormTextField(label: L10n.t("Endpoint 地址"), text: $endpointHost,
-                          style: .stacked, keyboardType: .URL)
+            OutlinedPicker(label: L10n.t("协议"), options: ["http", "https"],
+                           selection: $endpointProto)
+            OutlinedTextField(label: L10n.t("Endpoint 地址"), text: $endpointHost,
+                              keyboardType: .URL)
         } header: {
             Text("Endpoint")
         }
@@ -705,7 +698,7 @@ struct BackupAccountEditView: View {
         Section {
             Toggle(L10n.t("手动输入桶名"), isOn: $bucketManual)
             if bucketManual {
-                FormTextField(label: L10n.t("桶名"), text: $bucket)
+                OutlinedTextField(label: L10n.t("桶名"), text: $bucket)
             } else {
                 Picker(L10n.t("桶"), selection: $bucket) {
                     Text(buckets.isEmpty ? L10n.t("未获取") : L10n.t("请选择")).tag("")
@@ -744,11 +737,8 @@ struct BackupAccountEditView: View {
         credentialsSection
         endpointSection
         Section {
-            Picker(L10n.t("存储类型"), selection: $ossScType) {
-                ForEach(OSSStorageType.allCases) { t in
-                    Text(t.displayName).tag(t)
-                }
-            }
+            OutlinedPicker(label: L10n.t("存储类型"), options: OSSStorageType.allCases,
+                           selection: $ossScType) { $0.displayName }
         } header: {
             Text(L10n.t("存储类型"))
         } footer: {
@@ -761,8 +751,8 @@ struct BackupAccountEditView: View {
         Section {
             FormTextField(label: L10n.t("地址（含 http(s)://）"), text: $webdavAddress,
                           style: .stacked, keyboardType: .URL)
-            FormTextField(label: L10n.t("用户名"), text: $webdavUsername)
-            FormTextField(label: L10n.t("密码"), text: $webdavPassword, isSecure: true)
+            OutlinedTextField(label: L10n.t("用户名"), text: $webdavUsername)
+            OutlinedTextField(label: L10n.t("密码"), text: $webdavPassword, isSecure: true)
         } header: {
             Text(L10n.t("连接信息"))
         }
@@ -781,7 +771,7 @@ struct BackupAccountEditView: View {
                     .multilineTextAlignment(.trailing)
                     .frame(width: 72)
             }
-            FormTextField(label: L10n.t("用户名"), text: $sftpUsername)
+            OutlinedTextField(label: L10n.t("用户名"), text: $sftpUsername)
         } header: {
             Text(L10n.t("连接信息"))
         }
@@ -795,7 +785,7 @@ struct BackupAccountEditView: View {
             .pickerStyle(.segmented)
 
             if sftpAuthMode == .password {
-                FormTextField(label: L10n.t("密码"), text: $sftpPassword, isSecure: true)
+                OutlinedTextField(label: L10n.t("密码"), text: $sftpPassword, isSecure: true)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L10n.t("私钥"))

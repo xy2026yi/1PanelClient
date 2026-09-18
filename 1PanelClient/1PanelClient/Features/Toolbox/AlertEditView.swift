@@ -187,37 +187,49 @@ struct AlertEditView: View {
 
     // MARK: - 触发条件
 
+    /// Stepper → 描边数字+单位：Int ↔ String（输入钳制在原 Stepper 范围内）
+    private func unitText(_ value: Binding<Int>, range: ClosedRange<Int>) -> Binding<String> {
+        Binding<String>(
+            get: { String(value.wrappedValue) },
+            set: { text in
+                let parsed = Int(text) ?? value.wrappedValue
+                value.wrappedValue = min(max(parsed, range.lowerBound), range.upperBound)
+            }
+        )
+    }
+
+    /// 磁盘监测类型 Int ↔ String（OutlinedPicker 用 String）
+    private var diskMonitorKindBinding: Binding<String> {
+        Binding<String>(
+            get: { String(diskMonitorKind) },
+            set: { diskMonitorKind = Int($0) ?? 1 }
+        )
+    }
+
     private var conditionSection: some View {
         Section {
             if type.isLoginType {
-                Stepper(value: $cycle, in: 1...1440) {
-                    LabeledContent(L10n.t("时间窗口"), value: L10n.f("%ld 分钟", cycle))
-                }
-                Stepper(value: $failCount, in: 1...999) {
-                    LabeledContent(L10n.t("失败次数"), value: L10n.f("%ld 次", failCount))
-                }
+                OutlinedUnitField(label: L10n.t("时间窗口"), unit: L10n.t("分钟"),
+                                  text: unitText($cycle, range: 1...1440))
+                OutlinedUnitField(label: L10n.t("失败次数"), unit: L10n.t("次"),
+                                  text: unitText($failCount, range: 1...999))
             } else if type.isPercentType {
                 LabeledContent(L10n.t("指定时间"), value: L10n.t("5 分钟"))
-                Stepper(value: $threshold, in: 1...100) {
-                    LabeledContent(L10n.t("平均使用率超过"), value: "\(threshold)%")
-                }
+                OutlinedUnitField(label: L10n.t("平均使用率超过"), unit: "%",
+                                  text: unitText($threshold, range: 1...100))
             } else if type.isDisk {
-                Picker(L10n.t("监测类型"), selection: $diskMonitorKind) {
-                    Text(L10n.t("占用磁盘")).tag(1)
-                    Text(L10n.t("占用百分比")).tag(2)
-                }
-                .pickerStyle(.segmented)
-                Stepper(value: $threshold, in: 1...100) {
-                    LabeledContent(L10n.t("使用超过"), value: "\(threshold)%")
-                }
+                OutlinedPicker(label: L10n.t("监测类型"), options: ["1", "2"],
+                               selection: diskMonitorKindBinding,
+                               optionLabels: ["1": L10n.t("占用磁盘"),
+                                              "2": L10n.t("占用百分比")])
+                OutlinedUnitField(label: L10n.t("使用超过"), unit: "%",
+                                  text: unitText($threshold, range: 1...100))
             } else if !type.isSimpleNotice {
-                Stepper(value: $cycle, in: 1...90) {
-                    LabeledContent(L10n.t("剩余天数"), value: L10n.f("%ld 天", cycle))
-                }
+                OutlinedUnitField(label: L10n.t("剩余天数"), unit: L10n.t("天"),
+                                  text: unitText($cycle, range: 1...90))
             }
-            Stepper(value: $sendCount, in: 1...99) {
-                LabeledContent(L10n.t("告警次数"), value: L10n.f("%ld 次", sendCount))
-            }
+            OutlinedUnitField(label: L10n.t("告警次数"), unit: L10n.t("次"),
+                              text: unitText($sendCount, range: 1...99))
         } header: {
             Text(L10n.t("触发条件"))
         } footer: {
