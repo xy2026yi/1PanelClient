@@ -34378,6 +34378,17 @@
           }
         }
       }
+    },
+    "默认 5 行，到达第 5 行末尾继续输入自动增加一行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5 lines by default; typing past the end of line 5 grows the field automatically"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -203,14 +203,14 @@ struct CreateWebsiteView: View {
     private var domainSection: some View {
         Section {
             OutlinedTextField(label: L10n.t("主域名"), text: $primaryDomain, keyboardType: .URL)
+            OutlinedMultiLineField(label: L10n.t("其他域名"),
+                                   prompt: "abc.test.com\nabc1.test.com:8080",
+                                   text: $otherDomains)
             OutlinedTextField(label: L10n.t("代号"), text: $alias)
             OutlinedTextField(label: L10n.t("端口"), text: portBinding, keyboardType: .numberPad)
             Toggle(L10n.t("监听 IPv6"), isOn: $enableIPv6)
             OutlinedTextField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $remark,
                               machineValue: false)
-            OutlinedMultiLineField(label: L10n.t("其他域名"),
-                                   prompt: "abc.test.com, abc1.test.com:8080",
-                                   text: $otherDomains)
 
             // 分组（未加载到分组数据时仅展示默认分组占位）
             if vm.groups.isEmpty {
@@ -233,7 +233,7 @@ struct CreateWebsiteView: View {
         } header: {
             Text(L10n.t("域名"))
         } footer: {
-            Text(L10n.t("其他域名每行一个，可带 :端口（如 abc.test.com:8080），未带端口时沿用上方端口"))
+            Text(L10n.t("默认 5 行，到达第 5 行末尾继续输入自动增加一行"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if !primaryDomain.isEmpty {
