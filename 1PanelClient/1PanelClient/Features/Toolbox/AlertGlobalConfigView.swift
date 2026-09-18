@@ -32,8 +32,8 @@ struct AlertGlobalConfigView: View {
     var body: some View {
         Form {
             Section {
-                DatePicker(L10n.t("开始时间"), selection: $noticeStart, displayedComponents: .hourAndMinute)
-                DatePicker(L10n.t("结束时间"), selection: $noticeEnd, displayedComponents: .hourAndMinute)
+                OutlinedTimeField(label: L10n.t("开始时间"), date: $noticeStart)
+                OutlinedTimeField(label: L10n.t("结束时间"), date: $noticeEnd)
             } header: {
                 Text(L10n.t("通知告警"))
             } footer: {
@@ -41,8 +41,8 @@ struct AlertGlobalConfigView: View {
             }
 
             Section {
-                DatePicker(L10n.t("开始时间"), selection: $resourceStart, displayedComponents: .hourAndMinute)
-                DatePicker(L10n.t("结束时间"), selection: $resourceEnd, displayedComponents: .hourAndMinute)
+                OutlinedTimeField(label: L10n.t("开始时间"), date: $resourceStart)
+                OutlinedTimeField(label: L10n.t("结束时间"), date: $resourceEnd)
             } header: {
                 Text(L10n.t("资源告警"))
             } footer: {

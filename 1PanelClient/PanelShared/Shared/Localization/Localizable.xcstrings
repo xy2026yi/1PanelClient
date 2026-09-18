@@ -34257,6 +34257,17 @@
           }
         }
       }
+    },
+    "CPU核心数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU Cores"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

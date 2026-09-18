@@ -192,6 +192,14 @@ struct CreateDatabaseView: View {
         var id: String { rawValue }
     }
 
+    /// 权限枚举 ↔ 字符串（OutlinedPicker 用 String；rawValue 即显示名）
+    private var permissionModeBinding: Binding<String> {
+        Binding<String>(
+            get: { permissionMode.rawValue },
+            set: { permissionMode = PermissionMode(rawValue: $0) ?? .all }
+        )
+    }
+
     enum UserGrantMode: String, CaseIterable, Identifiable {
         case none = "不授权"
         case select = "选择"
@@ -383,21 +391,20 @@ struct CreateDatabaseView: View {
                     FormTextField(label: L10n.t("用户名"), text: $username)
                     passwordRow
                 }
-                Section(L10n.t("权限")) {
-                    Picker(L10n.t("权限"), selection: $permissionMode) {
-                        ForEach(PermissionMode.allCases) { mode in
-                            Text(L10n.t(mode.rawValue)).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-
+                Section {
+                    OutlinedPicker(label: L10n.t("权限"),
+                                   options: PermissionMode.allCases.map(\.rawValue),
+                                   selection: permissionModeBinding)
                     if permissionMode == .ip {
-                        TextField(L10n.t("IP 地址（逗号分隔）"), text: $permissionIPs, axis: .vertical)
-                            .textFieldStyle(.roundedBorder)
-                            .lineLimit(2...4)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .font(.dataMonospacedBody)
+                        OutlinedMultiLineField(label: L10n.t("IP"),
+                                               prompt: "172.16.10.111,172.16.10.112",
+                                               text: $permissionIPs)
+                    }
+                } header: {
+                    Text(L10n.t("权限"))
+                } footer: {
+                    if permissionMode == .ip {
+                        Text(L10n.t("多个IP以逗号分隔，例: 172.16.10.111,172.16.10.112"))
                     }
                 }
             }
@@ -896,6 +903,14 @@ struct EditUserPermissionSheet: View {
         case all = "所有人(%)"
         case ip = "指定IP"
         var id: String { rawValue }
+    }
+
+    /// 权限枚举 ↔ 字符串（OutlinedPicker 用 String；rawValue 即显示名）
+    private var permissionModeBinding: Binding<String> {
+        Binding<String>(
+            get: { permissionMode.rawValue },
+            set: { permissionMode = PermissionMode(rawValue: $0) ?? .all }
+        )
     }
 
     init(user: DatabaseUser, onConfirm: @escaping (_ newHost: String, _ description: String) -> Void) {

@@ -316,16 +316,19 @@ struct AppInstallView: View {
     @State private var appDetail: AppDetail?
     @State private var isLoadingDetail = true
     @State private var paramValues: [String: String] = [:]
+    /// 向导分页：0 基础（名称/版本）1 应用参数 2 高级设置（默认收起）
+    @State private var installPage = 0
+    private let installPageNames = [L10n.t("基础"), L10n.t("参数"), L10n.t("高级")]
+    private let installTotalPages = 3
 
-    // 高级设置（默认值参考抓包日志）
-    @State private var advancedEnabled = true
+    // 高级设置（默认值参考抓包日志；向导第 3 页默认收起）
+    @State private var advancedEnabled = false
     @State private var containerName = ""
     @State private var allowPort = true
     @State private var specifyIP = ""
     @State private var restartPolicy = "always"
     @State private var cpuQuota = 0
     @State private var memoryLimit = 0
-    @State private var memoryUnit = "M"
     @State private var pullImage = true
     @State private var editCompose = false
     @State private var customCompose = ""
@@ -338,7 +341,16 @@ struct AppInstallView: View {
     @State private var resultMessage = ""
 
     private let restartPolicies = ["no", "always", "on-failure", "unless-stopped"]
-    private let memoryUnits = ["M", "G"]
+
+    /// CPU 核心数 String ↔ Int（描边框接收 String；非法输入回落 0，0 = 不限制）
+    private var cpuQuotaText: Binding<String> {
+        Binding<String>(get: { String(cpuQuota) }, set: { cpuQuota = Int($0) ?? 0 })
+    }
+
+    /// 内存限制 String ↔ Int（单位固定 MB 提交，非法输入回落 0，0 = 不限制）
+    private var memoryLimitText: Binding<String> {
+        Binding<String>(get: { String(memoryLimit) }, set: { memoryLimit = Int($0) ?? 0 })
+    }
 
     var body: some View {
         Group {
@@ -360,20 +372,6 @@ struct AppInstallView: View {
         }
         .navigationTitle(L10n.f("安装 %@", detail.name ?? ""))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await performInstall() }
-                } label: {
-                    if vm.isInstalling {
-                        ProgressView()
-                    } else {
-                        Text(L10n.t("安装")).bold()
-                    }
-                }
-                .disabled(installName.isEmpty || vm.isInstalling)
-            }
-        }
         .task { await loadDetail() }
         .navigationDestination(isPresented: $showProgress) {
             TaskProgressView(
@@ -405,36 +403,81 @@ struct AppInstallView: View {
 
     @ViewBuilder
     private func installForm(_ appDetail: AppDetail) -> some View {
-        List {
-            // MARK: 基础配置
-            Section {
-                HStack {
-                    Text(L10n.t("名称")).foregroundStyle(.secondary)
-                    Spacer()
-                    TextField(detail.key ?? "app", text: $installName)
-                        .multilineTextAlignment(.trailing)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+        VStack(spacing: 0) {
+            // 步骤指示：标题下方横贯（段线 + 页名居中）
+            HStack(spacing: 10) {
+                ForEach(0..<installTotalPages, id: \.self) { i in
+                    VStack(spacing: 5) {
+                        Capsule()
+                            .fill(i <= installPage ? Color.accentColor : Color.secondary.opacity(0.25))
+                            .frame(height: 4)
+                            .frame(maxWidth: .infinity)
+                        Text(installPageNames[i])
+                            .font(.caption2.weight(i == installPage ? .bold : .regular))
+                            .foregroundStyle(i <= installPage ? Color.accentColor : .secondary)
+                            .frame(maxWidth: .infinity)
+                    }
                 }
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .padding(.bottom, 6)
+            .animation(.easeInOut(duration: 0.22), value: installPage)
 
-                if let versions = detail.versions, !versions.isEmpty {
-                    Picker(L10n.t("版本"), selection: $selectedVersion) {
-                        ForEach(versions, id: \.self) { v in
-                            Text(v).tag(v)
-                        }
-                    }
-                    .onChange(of: selectedVersion) { _, newValue in
-                        Task { await loadDetailForVersion(newValue) }
+            Form {
+                Group {
+                    switch installPage {
+                    case 0: basicPage(appDetail)
+                    case 1: paramsPage(appDetail)
+                    default: advancedPage(appDetail)
                     }
                 }
-            } header: {
-                Text(L10n.t("基础配置"))
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
+            }
+        }
+        // 底部固定导航：不随内容滚动
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            installBottomBar
+        }
+        .animation(.easeInOut(duration: 0.22), value: installPage)
+    }
+
+    // MARK: 第 1 页 基础：名称 / 版本
+
+    private func basicPage(_ appDetail: AppDetail) -> some View {
+        Group {
+            Section {
+                OutlinedTextField(label: L10n.t("名称"), prompt: detail.key ?? "app",
+                                  text: $installName)
             } footer: {
                 Text(L10n.t("名称只能包含小写字母、数字和连字符"))
             }
+            if let versions = detail.versions, !versions.isEmpty {
+                Section {
+                    OutlinedPicker(label: L10n.t("版本"), options: versions,
+                                   selection: $selectedVersion)
+                        .onChange(of: selectedVersion) { _, newValue in
+                            Task { await loadDetailForVersion(newValue) }
+                        }
+                }
+            }
+        }
+    }
 
-            // MARK: 应用参数（动态表单）
-            if let fields = appDetail.params?.formFields, !fields.isEmpty {
+    // MARK: 第 2 页 参数：动态表单
+
+    private func paramsPage(_ appDetail: AppDetail) -> some View {
+        let fields = appDetail.params?.formFields ?? []
+        return Group {
+            if fields.isEmpty {
+                Section {
+                    Text(L10n.t("该应用无可配置参数，可直接进入下一步"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
                 Section {
                     ForEach(Array(fields.enumerated()), id: \.offset) { _, field in
                         if let envKey = field.envKey {
@@ -464,70 +507,39 @@ struct AppInstallView: View {
                             }
                         }
                     }
-                } header: {
-                    Text(L10n.t("应用参数"))
                 }
             }
+        }
+    }
 
-            // MARK: 高级设置开关
+    // MARK: 第 3 页 高级设置（默认收起）
+
+    private func advancedPage(_ appDetail: AppDetail) -> some View {
+        Group {
             Section {
                 Toggle(L10n.t("高级设置"), isOn: $advancedEnabled)
+            } footer: {
+                Text(L10n.t("容器名、资源限制、重启规则等进阶项"))
             }
 
-            // MARK: 高级设置详情
             if advancedEnabled {
                 Section(L10n.t("容器")) {
-                    HStack {
-                        Text(L10n.t("容器名称")).foregroundStyle(.secondary)
-                        Spacer()
-                        TextField(L10n.t("留空则自动生成"), text: $containerName)
-                            .multilineTextAlignment(.trailing)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                    }
+                    OutlinedTextField(label: L10n.t("容器名称"), prompt: L10n.t("留空则自动生成"),
+                                      text: $containerName)
                     Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
                     if allowPort {
-                        HStack {
-                            Text(L10n.t("绑定主机 IP")).foregroundStyle(.secondary)
-                            Spacer()
-                            TextField(L10n.t("留空则全部 IP"), text: $specifyIP)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 140)
-                        }
+                        OutlinedTextField(label: L10n.t("绑定主机 IP"), prompt: L10n.t("留空则全部 IP"),
+                                          text: $specifyIP, keyboardType: .decimalPad)
                     }
-                    Picker(L10n.t("重启规则"), selection: $restartPolicy) {
-                        ForEach(restartPolicies, id: \.self) { Text($0).tag($0) }
-                    }
+                    OutlinedPicker(label: L10n.t("重启规则"), options: restartPolicies,
+                                   selection: $restartPolicy)
                 }
 
                 Section {
-                    HStack {
-                        Text(L10n.t("CPU 核心")).foregroundStyle(.secondary)
-                        Spacer()
-                        TextField("0", value: $cpuQuota, format: .number)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Text(L10n.t("核"))
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
-                    }
-                    HStack {
-                        Text(L10n.t("内存限制")).foregroundStyle(.secondary)
-                        Spacer()
-                        TextField("0", value: $memoryLimit, format: .number)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Picker("", selection: $memoryUnit) {
-                            ForEach(memoryUnits, id: \.self) { Text($0).tag($0) }
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(width: 80)
-                    }
-                } header: {
-                    Text(L10n.t("资源限制"))
+                    OutlinedUnitField(label: L10n.t("CPU核心数"), unit: L10n.t("核"),
+                                      text: cpuQuotaText)
+                    OutlinedUnitField(label: L10n.t("内存"), unit: "MB",
+                                      text: memoryLimitText)
                 } footer: {
                     Text(L10n.t("填 0 表示不限制"))
                 }
@@ -554,17 +566,50 @@ struct AppInstallView: View {
                     }
                 }
             }
+        }
+    }
 
-            // MARK: 安装进度
-            if vm.isInstalling {
-                Section {
-                    HStack {
-                        ProgressView()
-                        Text(L10n.t("正在安装…"))
-                    }
+    // MARK: 底部固定导航
+
+    private var installBottomBar: some View {
+        let isLast = installPage == installTotalPages - 1
+        return HStack(spacing: 12) {
+            if installPage > 0 {
+                Button(L10n.t("返回")) {
+                    withAnimation { installPage -= 1 }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(Color.secondary.opacity(0.4))
+                )
+            }
+            Button {
+                if isLast {
+                    Task { await performInstall() }
+                } else {
+                    withAnimation { installPage += 1 }
+                }
+            } label: {
+                if vm.isInstalling {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                } else {
+                    Text(isLast ? L10n.t("安装") : L10n.t("下一步"))
+                        .bold()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
                 }
             }
+            .buttonStyle(.borderedProminent)
+            .disabled(installName.isEmpty || vm.isInstalling)
         }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider() }
     }
 
     private func loadDetail() async {
@@ -681,7 +726,8 @@ struct AppInstallView: View {
             advanced: advancedEnabled,
             cpuQuota: cpuQuota,
             memoryLimit: memoryLimit,
-            memoryUnit: memoryUnit,
+            // UI 单位固定 MB（无 M/G 切换），按 MB 语义提交 M
+            memoryUnit: "M",
             containerName: containerName,
             allowPort: allowPort,
             editCompose: editCompose,
@@ -727,50 +773,34 @@ struct AppInstallView: View {
     }
 }
 
-// MARK: - 参数表单字段行
+// MARK: - 参数表单字段行（描边包裹式）
 
+/// 应用安装参数行：文本/数字/密码/选择统一为描边包裹样式（见 OutlinedField）
 struct ParamFieldRow: View {
     let field: AppFormField
     @Binding var value: String
 
+    /// 选项值 → 显示名（select/apps 的显示名与值分离；服务端数据可能重复，后者覆盖）
+    private var optionLabels: [String: String] {
+        (field.values ?? []).reduce(into: [:]) { map, item in
+            map[item.actualValue] = item.displayLabel
+        }
+    }
+
     var body: some View {
         switch field.type ?? "text" {
         case "number":
-            HStack {
-                Text(field.displayLabel)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                TextField("", text: $value)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
-            }
+            OutlinedTextField(label: field.displayLabel, text: $value,
+                              keyboardType: .numberPad)
         case "password":
-            HStack {
-                Text(field.displayLabel)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                SecureField("", text: $value)
-                    .multilineTextAlignment(.trailing)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-            }
+            OutlinedTextField(label: field.displayLabel, text: $value, isSecure: true)
         case "select", "apps":
-            Picker(field.displayLabel, selection: $value) {
-                ForEach(field.values ?? [], id: \.actualValue) { item in
-                    Text(item.displayLabel).tag(item.actualValue)
-                }
-            }
+            OutlinedPicker(label: field.displayLabel,
+                           options: (field.values ?? []).map(\.actualValue),
+                           selection: $value,
+                           optionLabels: optionLabels)
         default:
-            HStack {
-                Text(field.displayLabel)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                TextField("", text: $value)
-                    .multilineTextAlignment(.trailing)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-            }
+            OutlinedTextField(label: field.displayLabel, text: $value)
         }
     }
 }

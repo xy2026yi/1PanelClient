@@ -405,8 +405,8 @@ struct IssueCertificateView: View {
     @State private var domains = ""
     @State private var description_ = ""
     @State private var keyType: SSLKeyType = .EC256
-    @State private var time: Int = 10
-    @State private var unit: ExpireUnit = .year
+    /// 有效期（天，原 10 年默认 → 3650；年/天切换已取消）
+    @State private var expireDays = 3650
     @State private var autoRenew = true
     @State private var pushDir = false
     @State private var dir = ""
@@ -417,16 +417,9 @@ struct IssueCertificateView: View {
     @State private var showValidationAlert = false
     @State private var validationMessage = ""
 
-    enum ExpireUnit: String, CaseIterable, Identifiable {
-        case year = "year"
-        case day = "day"
-        var id: String { rawValue }
-        var displayName: String {
-            switch self {
-            case .year: return L10n.t("年")
-            case .day:  return L10n.t("天")
-            }
-        }
+    /// 有效期 String ↔ Int（描边框接收 String；非法输入回落 1 天下限由提交侧校验）
+    private var expireDaysText: Binding<String> {
+        Binding<String>(get: { String(expireDays) }, set: { expireDays = Int($0) ?? expireDays })
     }
 
     var body: some View {
@@ -449,13 +442,8 @@ struct IssueCertificateView: View {
                 }
                 .pickerStyle(.menu)
 
-                Stepper(L10n.f("有效期：%ld %@", time, unit.displayName), value: $time, in: 1...9999)
-                Picker(L10n.t("单位"), selection: $unit) {
-                    ForEach(ExpireUnit.allCases) { u in
-                        Text(u.displayName).tag(u)
-                    }
-                }
-                .pickerStyle(.segmented)
+                OutlinedUnitField(label: L10n.t("有效期"), unit: L10n.t("天"),
+                                  text: expireDaysText)
 
                 Toggle(L10n.t("自动续签"), isOn: $autoRenew)
             } header: {
@@ -520,8 +508,8 @@ struct IssueCertificateView: View {
             keyType: keyType.rawValue,
             domains: trimmedDomains,
             id: ca.id,
-            time: time,
-            unit: unit.rawValue,
+            time: expireDays,
+            unit: "day",
             pushDir: pushDir,
             dir: pushDir ? dir.trimmingCharacters(in: .whitespacesAndNewlines) : "",
             autoRenew: autoRenew,
