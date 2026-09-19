@@ -150,6 +150,8 @@ struct AIAgentCreateView: View {
                                 composeSection
                             }
                         }
+                        // 备注统一置底
+                        remarkSection
                     }
                 }
                 .transition(.asymmetric(
@@ -215,6 +217,13 @@ struct AIAgentCreateView: View {
 
     // MARK: - Sections
 
+    /// 备注（统一置底，最后一页末尾）
+    private var remarkSection: some View {
+        Section {
+            OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $remark)
+        }
+    }
+
     private var typeSection: some View {
         Section {
             OutlinedPicker(label: L10n.t("智能体类型"),
@@ -236,8 +245,6 @@ struct AIAgentCreateView: View {
                 OutlinedPicker(label: L10n.t("应用版本"), options: versions,
                                selection: $selectedVersion)
             }
-
-            OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $remark)
         } header: {
             SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
         } footer: {
@@ -282,10 +289,16 @@ struct AIAgentCreateView: View {
                 }
             }
 
-            LabeledContent("Base URL") {
-                Text(selectedAccount?.baseUrl ?? "-")
-                    .font(.dataMonospacedCaption)
-                    .foregroundStyle(.secondary)
+            // Base URL 只读展示：仅 OpenClaw / Hermes-Agent（模型账号派生，不可改）
+            if showsAccountBaseURL {
+                OutlinedShape(label: "Base URL", isFocused: false,
+                              hasValue: !(selectedAccount?.baseUrl ?? "").isEmpty,
+                              trailing: { EmptyView() }) {
+                    Text(selectedAccount?.baseUrl ?? "—")
+                        .font(.dataMonospacedCaption)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
             }
         } header: {
             SectionLabel(title: L10n.t("模型配置"), systemImage: "brain")
@@ -296,32 +309,38 @@ struct AIAgentCreateView: View {
         }
     }
 
+    /// Base URL 行仅 OpenClaw / Hermes-Agent 展示（其余类型无模型账号派生地址）
+    private var showsAccountBaseURL: Bool {
+        agentType.key == "openclaw" || agentType.key == "hermes-agent"
+    }
+
     private var webUISection: some View {
         Section {
             OutlinedTextField(label: "WebUI " + L10n.t("端口"), prompt: "18789",
                               text: $webUIPort, keyboardType: .numberPad)
 
             if agentType.usesToken {
-                FormTextField(label: L10n.t("访问地址"), text: $allowedOrigin, style: .stacked, keyboardType: .URL)
-                    .font(.dataMonospacedCaption)
+                OutlinedTextField(label: L10n.t("访问地址"), prompt: "http://127.0.0.1:18789",
+                                  text: $allowedOrigin, keyboardType: .URL)
 
-                HStack {
-                    Text("Token").foregroundStyle(.secondary)
-                    Spacer()
-                    Text(token)
-                        .font(.dataMonospacedCaption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                // Token 由系统生成：描边框只读展示 + 右侧复制按钮
+                OutlinedShape(label: "Token", isFocused: false,
+                              hasValue: !token.isEmpty,
+                              trailing: {
                     Button {
                         UIPasteboard.general.string = token
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.accentColor)
                     }
                     .buttonStyle(.borderless)
                     .accessibilityLabel(L10n.t("复制"))
+                }) {
+                    Text(token)
+                        .font(.dataMonospacedCaption)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
             } else {
                 OutlinedTextField(label: L10n.t("用户名"), text: $username)

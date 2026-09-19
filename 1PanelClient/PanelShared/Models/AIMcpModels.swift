@@ -41,9 +41,40 @@ nonisolated struct McpServer: Decodable, Identifiable, Hashable {
     let protocolVersion: String?
     let gatewayArgs: String?
     let environments: [AIKeyValueItem]?
-    let volumes: [String]?
+    let volumes: [McpVolumeItem]?
 
     var isRunning: Bool { (status ?? "").lowercased() == "running" }
+}
+
+// MARK: - 挂载
+
+/// MCP 挂载条目：POST 为 {source, target, mode} 对象（抓包 2026-09-19）。
+/// 解码兼容旧 "host:container" 字符串形态（视为 rw）
+nonisolated struct McpVolumeItem: Codable, Hashable {
+    var source: String
+    var target: String
+    /// rw / ro
+    var mode: String
+
+    init(source: String, target: String, mode: String) {
+        self.source = source
+        self.target = target
+        self.mode = mode
+    }
+
+    init(from decoder: Decoder) throws {
+        if let s = try? decoder.singleValueContainer().decode(String.self) {
+            let parts = s.split(separator: ":", maxSplits: 1)
+            source = parts.first.map(String.init) ?? ""
+            target = parts.count > 1 ? String(parts[1]) : ""
+            mode = "rw"
+        } else {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            source = c.decodeDefault(String.self, forKey: .source, "")
+            target = c.decodeDefault(String.self, forKey: .target, "")
+            mode = c.decodeDefault(String.self, forKey: .mode, "rw")
+        }
+    }
 }
 
 // MARK: - 创建 / 编辑
@@ -75,7 +106,7 @@ nonisolated struct McpServerUpsertRequest: Encodable {
     var protocolVersion: String
     var gatewayArgs: String
     var environments: [AIKeyValueItem]
-    var volumes: [String]
+    var volumes: [McpVolumeItem]
     var protocolScheme: String
     var urlHost: String
     var taskID: String

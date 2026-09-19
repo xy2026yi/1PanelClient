@@ -38,9 +38,7 @@ struct AIMcpFormView: View {
     /// 环境变量多行原文（每行一条 KEY=VALUE，形态 7.1；提交拆为 environments）
     @State private var envText = ""
 
-    @State private var volumes: [String] = []
-    @State private var newVolumeHost = ""
-    @State private var newVolumeContainer = ""
+    @State private var volumes: [McpVolumeItem] = []
 
     @State private var isSaving = false
     @State private var showProgress = false
@@ -157,7 +155,8 @@ struct AIMcpFormView: View {
                 OutlinedTextField(label: L10n.t("协议版本"), text: $protocolVersion)
             }
 
-            OutlinedTextField(label: L10n.t("参数"), text: $gatewayArgs)
+            OutlinedMultiLineField(label: L10n.t("参数"), prompt: "--stdio",
+                                   lines: 1, text: $gatewayArgs)
 
             OutlinedTextField(label: L10n.t("镜像"), text: $gatewayImage)
                 .font(.dataMonospacedCaption)
@@ -191,35 +190,22 @@ struct AIMcpFormView: View {
         }
     }
 
-    /// 挂载：宿主目录 → 容器目录（"host:container" 串提交）
+    /// 挂载入口行（未设置 / N 条）→ 子编辑页增删（与创建容器端口/挂载一致）
     private var volumeSection: some View {
         Section {
-            ForEach(volumes, id: \.self) { volume in
-                Text(volume)
-                    .font(.dataMonospacedCaption)
-            }
-            .onDelete { volumes.remove(atOffsets: $0) }
-
-            HStack(spacing: 8) {
-                OutlinedTextField(label: L10n.t("宿主机目录"), text: $newVolumeHost)
-                    .font(.dataMonospacedCaption)
-                Image(systemName: "arrow.right")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                OutlinedTextField(label: L10n.t("容器目录"), text: $newVolumeContainer)
-                    .font(.dataMonospacedCaption)
-                Button {
-                    addVolume()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(newVolumeHost.isEmpty ? Color.secondary : Color.accentColor)
+            NavigationLink {
+                McpVolumesEditorView(volumes: $volumes)
+            } label: {
+                HStack {
+                    Text(L10n.t("挂载"))
+                    Spacer()
+                    if volumes.isEmpty {
+                        Text(L10n.t("未设置")).foregroundStyle(.secondary)
+                    } else {
+                        Text(L10n.f("%ld 条", volumes.count)).foregroundStyle(.secondary)
+                    }
                 }
-                .buttonStyle(.borderless)
-                .disabled(newVolumeHost.isEmpty)
-                .accessibilityLabel(L10n.t("添加"))
             }
-        } header: {
-            SectionLabel(title: L10n.t("挂载"), systemImage: "externaldrive")
         }
     }
 
@@ -253,17 +239,6 @@ struct AIMcpFormView: View {
             protocolScheme = "http://"
             urlHost = base.hasPrefix("http://") ? String(base.dropFirst("http://".count)) : base
         }
-    }
-
-    private func addVolume() {
-        let host = newVolumeHost.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !host.isEmpty else { return }
-        let container = newVolumeContainer.trimmingCharacters(in: .whitespacesAndNewlines)
-        let entry = container.isEmpty ? host : "\(host):\(container)"
-        guard !volumes.contains(entry) else { return }
-        volumes.append(entry)
-        newVolumeHost = ""
-        newVolumeContainer = ""
     }
 
     /// 环境变量多行原文 → KEY=VALUE 数组（首个 = 分隔；无 = 视为仅有键）
@@ -337,5 +312,67 @@ struct AIMcpFormView: View {
             vm.alertMessage = L10n.f("保存失败：%@", error.localizedDescription)
             vm.showAlert = true
         }
+    }
+}
+
+// MARK: - 挂载编辑页（入口行 → 行编辑，与容器端口/挂载编辑页同模式）
+
+/// MCP 挂载：每行 = 宿主机目录 + 容器目录 + 模式（rw 读写 / ro 只读，形态 3），
+/// 行右侧删除、底部添加；提交为 {source, target, mode} 对象数组
+struct McpVolumesEditorView: View {
+    @Binding var volumes: [McpVolumeItem]
+
+    private let modeLabels = ["rw": L10n.t("读写"), "ro": L10n.t("只读")]
+
+    var body: some View {
+        Form {
+            ForEach(Array(volumes.enumerated()), id: \.offset) { idx, _ in
+                Section {
+                    HStack(alignment: .center) {
+                        OutlinedTextField(label: L10n.t("宿主机目录"), prompt: "/data/1",
+                                          text: fieldBinding(idx, \.source), keyboardType: .URL)
+                        Button {
+                            volumes.remove(at: idx)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(.red)
+                        }
+                        // 与描边框内容行垂直居中（顶部 13pt 浮动标签区）
+                        .padding(.top, 13)
+                        .accessibilityLabel(L10n.t("删除"))
+                    }
+                    OutlinedTextField(label: L10n.t("容器目录"), prompt: "/data1",
+                                      text: fieldBinding(idx, \.target))
+                    OutlinedPicker(label: L10n.t("模式"), options: ["rw", "ro"],
+                                   selection: fieldBinding(idx, \.mode),
+                                   optionLabels: modeLabels)
+                }
+            }
+            Section {
+                Button {
+                    volumes.append(McpVolumeItem(source: "", target: "", mode: "rw"))
+                } label: {
+                    Label(L10n.t("添加"), systemImage: "plus.circle")
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+        }
+        .navigationTitle(L10n.t("挂载"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// 按下标 + keyPath 重建条目的字段绑定（结构体字段经整行回写）
+    private func fieldBinding(_ idx: Int, _ keyPath: WritableKeyPath<McpVolumeItem, String>) -> Binding<String> {
+        Binding(
+            get: {
+                guard volumes.indices.contains(idx) else { return "" }
+                return volumes[idx][keyPath: keyPath]
+            },
+            set: { newValue in
+                guard volumes.indices.contains(idx) else { return }
+                volumes[idx][keyPath: keyPath] = newValue
+            }
+        )
     }
 }
