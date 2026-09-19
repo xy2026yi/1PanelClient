@@ -777,12 +777,8 @@ struct BackupAccountEditView: View {
         }
 
         Section {
-            Picker(L10n.t("认证方式"), selection: $sftpAuthMode) {
-                ForEach(SFTPAuthMode.allCases) { m in
-                    Text(m.displayName).tag(m)
-                }
-            }
-            .pickerStyle(.segmented)
+            OutlinedPicker(label: L10n.t("认证方式"), options: SFTPAuthMode.allCases,
+                           selection: $sftpAuthMode) { $0.displayName }
 
             if sftpAuthMode == .password {
                 OutlinedTextField(label: L10n.t("密码"), text: $sftpPassword, isSecure: true)

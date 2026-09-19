@@ -71,13 +71,9 @@ struct WebsiteDomainsView: View {
 
     private func row(_ d: WebsiteDomainItem) -> some View {
         HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(d.domain ?? "—")
-                    .font(.body.bold().monospaced())
-                Text(":\(d.port ?? 80)")
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-            }
+            // 域名+端口同行（example.com:8080）
+            Text("\(d.domain ?? "—"):\(d.port ?? 80)")
+                .font(.body.bold().monospaced())
             Spacer()
             if d.id == switchingID {
                 ProgressView().controlSize(.small)
@@ -102,12 +98,8 @@ struct WebsiteDomainsView: View {
 
     private func load() async {
         isLoading = domains.isEmpty
-        do {
-            domains = try await vm.loadWebsiteDomains(websiteId: websiteId)
-            loadError = nil
-        } catch {
-            loadError = error.localizedDescription
-        }
+        // loadWebsiteDomains 内部消化错误（失败弹 alert、返回空数组），无需 do/catch
+        domains = await vm.loadWebsiteDomains(websiteId: websiteId)
         isLoading = false
     }
 
@@ -124,6 +116,286 @@ struct WebsiteDomainsView: View {
         guard let domainID = d.id else { return }
         if await vm.deleteDomain(id: domainID) {
             await load()
+        }
+    }
+}
+
+// MARK: - 分组选择（创建网站 / 其他 共用）
+
+/// 表单级分组菜单（形态 2 描边菜单）；分组数据未加载时回落「默认分组」占位行。
+/// 选中值不在列表（分组被删）时回落 0（默认分组）
+struct WebsiteGroupPicker: View {
+    @Binding var selection: Int
+    let groups: [PanelGroup]
+
+    var body: some View {
+        if groups.isEmpty {
+            HStack {
+                Text(L10n.t("分组")).foregroundStyle(.secondary)
+                Spacer()
+                Text(L10n.t("默认分组")).foregroundStyle(.secondary)
+            }
+        } else {
+            OutlinedPicker(label: L10n.t("分组"),
+                           options: optionKeys,
+                           selection: selectionText,
+                           optionLabels: optionLabels)
+        }
+    }
+
+    private var optionKeys: [String] {
+        ["0"] + groups.map { String($0.id) }
+    }
+
+    private var optionLabels: [String: String] {
+        var labels = ["0": L10n.t("默认分组")]
+        for g in groups { labels[String(g.id)] = g.displayName }
+        return labels
+    }
+
+    private var selectionText: Binding<String> {
+        Binding<String>(
+            get: {
+                selection != 0 && groups.contains(where: { $0.id == selection })
+                    ? String(selection) : "0"
+            },
+            set: { selection = Int($0) ?? 0 }
+        )
+    }
+}
+
+// MARK: - PHP 运行环境（三点菜单子页）
+
+/// 静态网站 ↔ PHP 运行环境切换（POST /websites/php/version）；
+/// 切换成功后回调父页重载详情（详情 sections 随 type 变化）
+struct WebsitePHPView: View {
+    let website: Website
+    @ObservedObject var vm: WebsitesViewModel
+    var onChanged: () -> Void
+
+    @State private var currentType = ""
+    @State private var currentRuntimeID = 0
+    @State private var phpRuntimes: [RuntimeItem] = []
+    @State private var isSwitching = false
+    // 防跨站攻击（open_basedir，仅运行环境类型；随 PHP 走）
+    @State private var openBaseDir = false
+    @State private var isTogglingCrosssite = false
+
+    var body: some View {
+        Form {
+            Section {
+                if isSwitching {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                } else {
+                    OutlinedPicker(label: L10n.t("PHP"),
+                                   options: optionKeys,
+                                   selection: outlinedBinding,
+                                   optionLabels: optionLabels)
+                }
+            } footer: {
+                Text(L10n.t("切换为运行环境后网站由 PHP 运行环境接管；切回「静态网站」脱离运行环境"))
+            }
+
+            if currentType == "runtime" {
+                Section {
+                    Toggle(L10n.t("防跨站攻击"), isOn: Binding(
+                        get: { openBaseDir },
+                        set: { on in Task { await toggleCrosssite(on) } }
+                    ))
+                    .disabled(isTogglingCrosssite)
+                } footer: {
+                    Text(L10n.t("open_basedir 限制 PHP 只能访问站点目录，防止跨站读写"))
+                }
+            }
+        }
+        .navigationTitle("PHP")
+        .navigationBarTitleDisplayMode(.inline)
+        .toastOverlay(message: $vm.toastMessage)
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: { Text(vm.alertMessage) }
+        .task { await load() }
+    }
+
+    /// 选项键：0=静态网站；rt-{id}=运行环境（前缀避免与静态键/缺省 id 撞车，重复键去重）
+    private var optionKeys: [String] {
+        var keys = ["0"]
+        var seen: Set<String> = ["0"]
+        for r in phpRuntimes {
+            let key = "rt-\(r.id ?? 0)"
+            if seen.insert(key).inserted { keys.append(key) }
+        }
+        return keys
+    }
+
+    private var optionLabels: [String: String] {
+        var labels = ["0": L10n.t("静态网站")]
+        for r in phpRuntimes { labels["rt-\(r.id ?? 0)"] = r.displayName }
+        return labels
+    }
+
+    private var outlinedBinding: Binding<String> {
+        Binding<String>(
+            get: { currentType == "runtime" ? "rt-\(currentRuntimeID)" : "0" },
+            set: { newValue in
+                let idString = newValue.hasPrefix("rt-") ? String(newValue.dropFirst(3)) : newValue
+                Task { await switchPHP(to: Int(idString) ?? 0) }
+            }
+        )
+    }
+
+    private func load() async {
+        if let d = await vm.loadDetail(id: website.id) {
+            currentType = d.type ?? "static"
+            currentRuntimeID = d.runtimeID ?? 0
+            openBaseDir = d.openBaseDir ?? false
+        }
+        // 运行环境列表（type=php）
+        let req = RuntimeSearchRequest(page: 1, pageSize: 200, type: "php")
+        if let resp: RuntimeSearchResponse = try? await vm.client.send(
+            path: APIEndpoint.runtimesSearch.path, body: req,
+            as: RuntimeSearchResponse.self) {
+            phpRuntimes = resp.items ?? []
+        }
+    }
+
+    /// 防跨站攻击开关（open_basedir Enable/Disable）
+    private func toggleCrosssite(_ on: Bool) async {
+        isTogglingCrosssite = true
+        defer { isTogglingCrosssite = false }
+        let req = WebsiteCrosssiteRequest(websiteID: website.id, operation: on ? "Enable" : "Disable")
+        do {
+            let _: EmptyResponse = try await vm.client.send(
+                path: APIEndpoint.websitesCrosssite.path, body: req,
+                as: EmptyResponse.self)
+            vm.toastMessage = L10n.t("防跨站攻击已更新")
+            openBaseDir = on
+        } catch {
+            vm.alertMessage = L10n.f("操作失败：%@", error.localizedDescription)
+            vm.showAlert = true
+        }
+    }
+
+    private func switchPHP(to newID: Int) async {
+        isSwitching = true
+        defer { isSwitching = false }
+        let req = WebsitePhpVersionRequest(websiteID: website.id, runtimeID: newID)
+        do {
+            let _: EmptyResponse = try await vm.client.send(
+                path: APIEndpoint.websitesPhpVersion.path, body: req,
+                as: EmptyResponse.self)
+            vm.toastMessage = newID == 0 ? L10n.t("已切回静态网站") : L10n.t("运行环境已切换")
+            if let d = await vm.loadDetail(id: website.id) {
+                currentType = d.type ?? "static"
+                currentRuntimeID = d.runtimeID ?? 0
+                openBaseDir = d.openBaseDir ?? false
+            }
+            onChanged()
+        } catch {
+            vm.alertMessage = L10n.f("切换失败：%@", error.localizedDescription)
+            vm.showAlert = true
+        }
+    }
+}
+
+// MARK: - 资源（关联数据库，三点菜单子页）
+
+/// 网站关联数据库切换（POST /websites/databases）；切换成功后回调父页重载详情
+struct WebsiteResourceView: View {
+    let website: Website
+    @ObservedObject var vm: WebsitesViewModel
+    var onChanged: () -> Void
+
+    @State private var dbID = 0
+    @State private var databaseOptions: [WebsiteDatabaseOption] = []
+    @State private var isSwitching = false
+
+    var body: some View {
+        Form {
+            Section {
+                if isSwitching {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                } else {
+                    OutlinedPicker(label: L10n.t("关联数据库"),
+                                   options: optionKeys,
+                                   selection: outlinedBinding,
+                                   optionLabels: optionLabels)
+                }
+            } footer: {
+                Text(L10n.t("网站关联数据库后便于备份与迁移时一并处理"))
+            }
+        }
+        .navigationTitle(L10n.t("资源"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toastOverlay(message: $vm.toastMessage)
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: { Text(vm.alertMessage) }
+        .task { await load() }
+    }
+
+    /// 选项键：0=不关联；customID（id+实例名）复合键——不同类型实例 id 可能重复
+    /// （如 mysql/mariadb 各有 id=1），复合键保证唯一
+    private var optionKeys: [String] {
+        var keys = ["0"]
+        var seen: Set<String> = ["0"]
+        for db in databaseOptions {
+            if seen.insert(db.customID).inserted { keys.append(db.customID) }
+        }
+        return keys
+    }
+
+    private var optionLabels: [String: String] {
+        var labels = ["0": L10n.t("不关联数据库")]
+        for db in databaseOptions { labels[db.customID] = db.displayName }
+        return labels
+    }
+
+    private var outlinedBinding: Binding<String> {
+        Binding<String>(
+            get: {
+                guard dbID != 0,
+                      let match = databaseOptions.first(where: { $0.id == dbID })
+                else { return "0" }
+                return match.customID
+            },
+            set: { key in
+                let newID = databaseOptions.first { $0.customID == key }?.id ?? 0
+                Task { await switchDatabase(to: newID) }
+            }
+        )
+    }
+
+    private func load() async {
+        if let d = await vm.loadDetail(id: website.id) {
+            dbID = d.dbID ?? 0
+        }
+        if let list: [WebsiteDatabaseOption] = try? await vm.client.send(
+            path: APIEndpoint.websitesDatabases.path, method: "GET",
+            as: [WebsiteDatabaseOption].self) {
+            databaseOptions = list
+        }
+    }
+
+    private func switchDatabase(to newID: Int) async {
+        isSwitching = true
+        defer { isSwitching = false }
+        let option = databaseOptions.first { ($0.id ?? 0) == newID }
+        let req = WebsiteDatabaseSwitchRequest(
+            websiteID: website.id,
+            databaseID: newID,
+            databaseType: option?.type ?? "",
+            db: newID == 0 ? "0" : (option.map { "\(($0.id ?? 0))\($0.name ?? "")" } ?? ""))
+        do {
+            let _: EmptyResponse = try await vm.client.send(
+                path: APIEndpoint.websitesDatabases.path, method: "POST", body: req,
+                as: EmptyResponse.self)
+            vm.toastMessage = L10n.t("关联数据库已更新")
+            dbID = newID
+            onChanged()
+        } catch {
+            vm.alertMessage = L10n.f("切换失败：%@", error.localizedDescription)
+            vm.showAlert = true
         }
     }
 }
@@ -275,6 +547,12 @@ struct WebsiteRewriteView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {
+                        Task { await save() }
+                    } label: {
+                        Label(L10n.t("保存并重载"), systemImage: "arrow.clockwise")
+                    }
+                    .disabled(isSaving || content == originalContent)
+                    Button {
                         showTemplateSheet = true
                     } label: {
                         Label(L10n.t("另存为模版"), systemImage: "square.and.arrow.down")
@@ -329,19 +607,6 @@ struct WebsiteRewriteView: View {
                 }
             } footer: {
                 Text(L10n.t("若设置伪静态后网站无法正常访问，请尝试设置回 default"))
-            }
-
-            Section {
-                Button {
-                    Task { await save() }
-                } label: {
-                    if isSaving {
-                        ProgressView()
-                    } else {
-                        Label(L10n.t("保存并重载"), systemImage: "arrow.clockwise")
-                    }
-                }
-                .disabled(isSaving || content == originalContent)
             }
 
             Section {
@@ -436,6 +701,8 @@ struct WebsiteRealIPView: View {
     private func load() async {
         do {
             config = try await vm.loadRealIP(websiteId: websiteId)
+            // 未配置时预填本机回环（与网页端默认一致）
+            if config.ipFrom.isEmpty { config.ipFrom = "127.0.0.1" }
             loadError = nil
         } catch {
             loadError = error.localizedDescription
@@ -496,7 +763,7 @@ struct WebsiteCorsView: View {
                     OutlinedTextField(label: L10n.t("允许的请求方式"), text: $config.allowMethods)
                     OutlinedTextField(label: L10n.t("允许的请求头"), text: $config.allowHeaders)
                     Toggle(L10n.t("允许携带 cookies"), isOn: $config.allowCredentials)
-                    Toggle(L10n.t("遇见请求快速响应"), isOn: $config.preflight)
+                    Toggle(L10n.t("预检请求快速响应"), isOn: $config.preflight)
                 }
             }
         }
@@ -505,6 +772,11 @@ struct WebsiteCorsView: View {
     private func load() async {
         do {
             config = try await vm.loadCors(websiteId: websiteId)
+            // 服务端未配置时返回空串：预填默认值（与网页端一致）
+            if config.allowOrigins.isEmpty { config.allowOrigins = "*" }
+            if config.allowMethods.isEmpty {
+                config.allowMethods = "GET,POST,OPTIONS,PUT,DELETE"
+            }
             loadError = nil
         } catch {
             loadError = error.localizedDescription
@@ -571,21 +843,7 @@ struct WebsiteOtherView: View {
     private var form: some View {
         Form {
             Section {
-                if vm.groups.isEmpty {
-                    HStack {
-                        Text(L10n.t("分组"))
-                        Spacer()
-                        Text(L10n.t("默认分组"))
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Picker(L10n.t("分组"), selection: $selectedGroupID) {
-                        Text(L10n.t("默认分组")).tag(0)
-                        ForEach(vm.groups) { group in
-                            Text(group.displayName).tag(group.id)
-                        }
-                    }
-                }
+                WebsiteGroupPicker(selection: $selectedGroupID, groups: vm.groups)
                 OutlinedTextField(label: L10n.t("名称"), text: $primaryDomain,
                                   keyboardType: .URL)
                 // 代号由服务端生成（主目录名），不可修改

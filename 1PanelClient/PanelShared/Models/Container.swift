@@ -504,6 +504,7 @@ nonisolated struct ContainerLimit: Decodable {
 /// 端口映射可编辑行
 nonisolated struct CreatePortRow: Identifiable {
     let id = UUID()
+    var hostIP = ""
     var host = ""
     var containerPort = ""
     var protocolField = "tcp"
@@ -519,7 +520,7 @@ nonisolated struct CreateVolumeRow: Identifiable {
     var shared = "private"
 }
 
-/// 创建容器草稿（表单编辑态，提交时转 ContainerUpdateRequest 发送）
+/// 创建容器草稿（表单编辑态，创建与编辑共用：编辑由 ContainerInfo 回填，提交时转 ContainerUpdateRequest）
 nonisolated struct ContainerCreateDraft {
     var name = ""
     var image = ""
@@ -529,14 +530,45 @@ nonisolated struct ContainerCreateDraft {
     var publishAllPorts = false
     var ports: [CreatePortRow] = []
     var volumes: [CreateVolumeRow] = []
-    var env: [String] = []
+    /// 环境变量多行原文（每行一条 KEY=VALUE，提交拆为 env 数组）
+    var envText = ""
+    /// 标签多行原文（每行一条 KEY=VALUE，提交拆为 labels 数组）
+    var labelsText = ""
+    /// 命令原文（如 "echo ."，提交按空白拆为 cmd 数组并原样带 cmdStr）
+    var cmdStr = ""
+    /// 端点原文（如 "docker.sh"，提交按空白拆为 entrypoint 数组并原样带 entrypointStr）
+    var entrypointStr = ""
+    var workingDir = ""
+    var user = ""
     var restartPolicy = "always"
     var cpuShares = 1024
+    /// CPU 核心数（0=不限，提交换算 nanoCPUs = cores × 1e9）
+    var cpuCores: Double = 0
     var memoryMB = 0
+    /// 1panel-network 指定 IP（其他网络忽略）
+    var networkIPv4 = ""
+    var networkIPv6 = ""
     var privileged = false
     var autoRemove = false
     var tty = false
     var openStdin = false
+
+    var env: [String] { Self.splitLines(envText) }
+    var labels: [String] { Self.splitLines(labelsText) }
+    var cmd: [String] { Self.splitArgs(cmdStr) }
+    var entrypoint: [String] { Self.splitArgs(entrypointStr) }
+
+    /// 多行原文 → 非空行数组（环境变量/标签共用）
+    static func splitLines(_ text: String) -> [String] {
+        text.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    /// 命令/端点原文按空白拆为参数数组（"echo ." → ["echo", "."]）
+    static func splitArgs(_ text: String) -> [String] {
+        text.split(whereSeparator: \.isWhitespace).map(String.init)
+    }
 }
 
 // MARK: - 更新端口（update.exposedPorts 比 info 多 host 字段）

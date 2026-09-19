@@ -239,30 +239,30 @@ struct WebsiteProxyEditView: View {
     private var isEdit: Bool { proxy != nil }
 
     /// 匹配规则选项（对应 nginx location 修饰符）
-    private let modifierOptions: [(value: String, label: String)] = [
-        ("",    L10n.t("无（前缀匹配）")),
-        ("=",   L10n.t("= 精确匹配")),
-        ("^~",  L10n.t("^~ 匹配路径开头")),
-        ("~",   L10n.t("~ 正则匹配（区分大小写）")),
-        ("~*",  L10n.t("~* 正则匹配（不区分大小写）")),
-    ]
-
     var body: some View {
         Form {
             Section {
-                FormTextField(label: L10n.t("名称"), text: $name,
-                              disabled: isEdit)
-                OutlinedPicker(label: L10n.t("匹配规则"),
-                               options: modifierOptions.map(\.value),
-                               selection: $modifier,
-                               optionLabels: Dictionary(uniqueKeysWithValues:
-                                   modifierOptions.map { ($0.value, $0.label) }))
-                FormTextField(label: L10n.t("前端请求路径"), prompt: "/api",
-                              text: $match)
+                if isEdit {
+                    // 编辑时名称不可修改：只读展示（服务端以名称定位 proxy 配置文件）
+                    HStack {
+                        Text(L10n.t("名称"))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(name)
+                            .font(.body.monospaced())
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+                } else {
+                    OutlinedTextField(label: L10n.t("名称"), text: $name)
+                }
+                OutlinedTextField(label: L10n.t("匹配规则"), prompt: "^~",
+                                  text: $modifier,
+                                  hint: L10n.t("例: = 精确匹配，~ 正则匹配，^~ 匹配路径开头"))
+                OutlinedTextField(label: L10n.t("前端请求路径"), prompt: "/api",
+                                  text: $match)
             } header: {
                 Text(L10n.t("路由"))
-            } footer: {
-                Text(L10n.t("匹配规则对应 nginx location 修饰符：= 精确匹配，~ 正则匹配，^~ 匹配路径开头等"))
             }
 
             Section {
@@ -274,14 +274,7 @@ struct WebsiteProxyEditView: View {
             } header: {
                 Text(L10n.t("后端代理"))
             } footer: {
-                VStack(alignment: .leading, spacing: 4) {
-                    if !proxyAddress.isEmpty {
-                        Text(L10n.f("完整地址：%@%@", proxyProtocol, proxyAddress))
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.blue)
-                    }
-                    Text(L10n.t("后端域名回填 proxy_set_header Host，默认 $host 表示沿用客户端请求的主机名"))
-                }
+                Text(L10n.t("后端域名回填 proxy_set_header Host，默认 $host 表示沿用客户端请求的主机名"))
             }
 
             if proxyProtocol == "https://" {

@@ -273,9 +273,8 @@ struct WAFIPGroupEditView: View {
                 }
             }
             Section(L10n.t("IP 列表")) {
-                TextEditor(text: $content)
-                    .font(.dataMonospacedCaption)
-                    .frame(minHeight: 200)
+                // 形态 7.1：默认 5 行、自动增高（每行一个 IP/CIDR）
+                OutlinedMultiLineField(label: L10n.t("IP 列表"), text: $content)
             }
         }
         .navigationTitle(L10n.t("编辑 IP 组"))

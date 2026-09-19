@@ -84,120 +84,43 @@ struct ContainerUpgradeView: View {
 
 // MARK: - 容器编辑页
 
+/// 与创建一致的向导表单（ContainerWizardForm 共用三页），加载 /containers/info
+/// 回填草稿后即可编辑全部字段；名称不可改（接口按原名称重建容器）
 struct ContainerEditView: View {
     let container: Container
     @ObservedObject var vm: ContainersViewModel
     @Environment(\.dismiss) private var dismiss
 
     @State private var info: ContainerInfo?
-    @State private var image: String = ""
-    @State private var forcePull = false
-    @State private var publishAllPorts = false
-    @State private var envs: [String] = []
     @State private var isLoading = false
     @State private var loadError: String?
 
+    @State private var draft = ContainerCreateDraft()
+    @State private var wizardPage = 0
+    @State private var advancedEnabled = false
+
     var body: some View {
-        Form {
+        Group {
             if isLoading {
-                Section {
-                    HStack(spacing: 10) {
-                        ProgressView()
-                        Text(L10n.t("加载容器配置…"))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-                }
-            } else if let loadError {
-                Section {
-                    Text(loadError)
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                }
-            } else if let info {
-                Section(L10n.t("基础")) {
-                    HStack {
-                        Text(L10n.t("名称"))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text(info.name)
-                            .font(.dataMonospacedBody)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-
-                Section {
-                    FormTextField(label: L10n.t("镜像"), prompt: "nginx:latest", text: $image)
-                    if !vm.imageOptions.isEmpty {
-                        Menu {
-                            ForEach(vm.imageOptions, id: \.self) { opt in
-                                Button(opt) { image = opt }
-                            }
-                        } label: {
-                            HStack {
-                                Image(systemName: "square.stack.3d.up")
-                                Text(image.isEmpty ? L10n.t("选择镜像") : L10n.t("选择镜像"))
-                                Spacer()
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                } header: {
-                    Text(L10n.t("镜像"))
-                } footer: {
-                    if image.trimmingCharacters(in: .whitespaces).isEmpty {
-                        Text(L10n.t("镜像不能为空"))
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-                }
-
-                Section {
-                    Toggle(L10n.t("强制拉取镜像"), isOn: $forcePull)
-                    Toggle(L10n.t("暴露所有端口"), isOn: $publishAllPorts)
-                }
-
-                Section(L10n.t("环境变量")) {
-                    ForEach(envs.indices, id: \.self) { i in
-                        TextField("KEY=VALUE", text: Binding(
-                            get: { envs[i] },
-                            set: { envs[i] = $0 }
-                        ), axis: .vertical)
-                        .font(.dataMonospacedBody)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .lineLimit(1...4)
-                    }
-                    .onDelete { envs.remove(atOffsets: $0) }
-
-                    Button {
-                        envs.append("")
-                    } label: {
-                        Label(L10n.t("添加环境变量"), systemImage: "plus")
-                    }
-                }
+                loadingForm
+            } else if loadError != nil {
+                loadErrorForm
+            } else {
+                ContainerWizardForm(
+                    draft: $draft,
+                    vm: vm,
+                    wizardPage: $wizardPage,
+                    advancedEnabled: $advancedEnabled,
+                    nameEditable: false,
+                    primaryTitle: L10n.t("保存"),
+                    isBusy: vm.containerOperating,
+                    primaryDisabled: draft.image.isEmpty,
+                    onPrimary: { Task { await submit() } })
             }
         }
         .navigationTitle(L10n.t("编辑容器"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    if let info { Task { await submit(info: info) } }
-                } label: {
-                    if vm.containerOperating {
-                        ProgressView()
-                    } else {
-                        Text(L10n.t("保存")).fontWeight(.medium)
-                    }
-                }
-                .disabled(info == nil || image.trimmingCharacters(in: .whitespaces).isEmpty || vm.containerOperating)
-            }
-        }
+        .formWidthLimit()
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -209,30 +132,90 @@ struct ContainerEditView: View {
         }
     }
 
+    private var loadingForm: some View {
+        Form {
+            Section {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text(L10n.t("加载容器配置…"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+            }
+        }
+    }
+
+    private var loadErrorForm: some View {
+        Form {
+            Section {
+                Text(loadError ?? "")
+                    .font(.subheadline)
+                    .foregroundStyle(.red)
+                Button(L10n.t("重试")) {
+                    Task { await load() }
+                }
+            }
+        }
+    }
+
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        if vm.imageOptions.isEmpty { await vm.loadImageOptions() }
+        // 向导表单依赖的选项：网络/挂载卷/镜像下拉
+        await vm.loadCreateOptions()
         guard let i = await vm.loadContainerInfo(name: container.name) else {
             loadError = vm.alertMessage.isEmpty ? L10n.t("获取容器配置失败") : vm.alertMessage
             return
         }
         info = i
-        image = i.image
-        forcePull = i.forcePull ?? false
-        publishAllPorts = i.publishAllPorts ?? false
-        envs = i.env ?? []
+        draft = Self.draft(from: i)
     }
 
-    private func submit(info: ContainerInfo) async {
-        let ok = await vm.updateContainer(
-            info: info,
-            image: image.trimmingCharacters(in: .whitespaces),
-            forcePull: forcePull,
-            publishAllPorts: publishAllPorts,
-            env: envs.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        )
-        if ok { dismiss() }
+    /// ContainerInfo → 编辑草稿：cmd/entrypoint 数组拼回空格分隔原文，
+    /// env/labels 数组拼回换行原文，内存字节换算 MB
+    private static func draft(from i: ContainerInfo) -> ContainerCreateDraft {
+        var d = ContainerCreateDraft()
+        d.name = i.name
+        d.image = i.image
+        d.forcePull = i.forcePull ?? false
+        let net = i.networks?.first
+        d.network = net?.network ?? "bridge"
+        d.networkIPv4 = net?.ipv4 ?? ""
+        d.networkIPv6 = net?.ipv6 ?? ""
+        d.hostname = i.hostname ?? ""
+        d.publishAllPorts = i.publishAllPorts ?? false
+        d.ports = (i.exposedPorts ?? []).map {
+            CreatePortRow(hostIP: $0.hostIP, host: $0.hostPort,
+                          containerPort: $0.containerPort, protocolField: $0.protocolField)
+        }
+        d.volumes = (i.volumes ?? []).map {
+            CreateVolumeRow(type: $0.type, sourceDir: $0.sourceDir,
+                            containerDir: $0.containerDir, mode: $0.mode, shared: $0.shared)
+        }
+        d.envText = (i.env ?? []).joined(separator: "\n")
+        d.labelsText = (i.labels ?? []).joined(separator: "\n")
+        d.cmdStr = (i.cmd ?? []).joined(separator: " ")
+        d.entrypointStr = (i.entrypoint ?? []).joined(separator: " ")
+        d.workingDir = i.workingDir ?? ""
+        d.user = i.user ?? ""
+        d.restartPolicy = i.restartPolicy ?? "always"
+        d.cpuShares = i.cpuShares ?? 1024
+        d.cpuCores = (i.nanoCPUs ?? 0) / 1_000_000_000
+        d.memoryMB = Int((i.memory ?? 0) / 1024 / 1024)
+        d.privileged = i.privileged ?? false
+        d.autoRemove = i.autoRemove ?? false
+        d.tty = i.tty ?? false
+        d.openStdin = i.openStdin ?? false
+        return d
+    }
+
+    private func submit() async {
+        guard let info else { return }
+        if await vm.updateContainer(info: info, draft: draft) {
+            dismiss()
+        }
     }
 }
 

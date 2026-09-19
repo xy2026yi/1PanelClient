@@ -130,16 +130,8 @@ struct OpenRestyPerformanceView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text("gzip")
-                                Spacer()
-                                Picker("", selection: $gzipOn) {
-                                    Text("on").tag(true)
-                                    Text("off").tag(false)
-                                }
-                                .pickerStyle(.segmented)
-                                .frame(width: 120)
-                            }
+                            // 二值设置用系统 Toggle（形态 4），替代原 on/off segmented
+                            Toggle("gzip", isOn: $gzipOn)
                             Text(L10n.t("是否开启压缩传输"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

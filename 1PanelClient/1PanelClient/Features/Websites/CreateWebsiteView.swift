@@ -91,16 +91,22 @@ struct CreateWebsiteView: View {
                                 Toggle(L10n.t("创建 FTP"), isOn: $enableFtp)
                                 if enableFtp {
                                     OutlinedTextField(label: L10n.t("FTP 账号"), text: $ftpUser)
-                                    HStack(alignment: .firstTextBaseline) {
-                                        OutlinedTextField(label: L10n.t("FTP 密码"),
-                                                          text: $ftpPassword, isSecure: true)
+                                    // 随机按钮内嵌描边框右侧（与密码访问一致）
+                                    OutlinedShape(label: L10n.t("FTP 密码"), isFocused: false,
+                                                  hasValue: !ftpPassword.isEmpty,
+                                                  trailing: {
                                         Button {
                                             ftpPassword = Self.randomFTPPassword()
                                         } label: {
                                             Image(systemName: "dice")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
                                         }
                                         .buttonStyle(.borderless)
-                                        .padding(.top, 13)
+                                    }) {
+                                        SecureField("", text: $ftpPassword)
+                                            .textInputAutocapitalization(.never)
+                                            .autocorrectionDisabled()
                                     }
                                 }
                             } footer: {
@@ -110,20 +116,11 @@ struct CreateWebsiteView: View {
 
                         // SSL
                         Section {
-                            Toggle(L10n.t("启用 HTTPS"), isOn: $enableSSL)
+                            Toggle(L10n.t("启用"), isOn: $enableSSL)
                             if enableSSL {
-                                Picker(L10n.t("SSL 证书"), selection: $selectedSSLId) {
-                                    Text(L10n.t("请选择证书")).tag(nil as Int?)
-                                    ForEach(vm.availableSSLs) { ssl in
-                                        VStack(alignment: .leading) {
-                                            Text(ssl.displayName)
-                                            Text(L10n.f("有效期至 %@", ssl.displayExpireDate))
-                                                .font(.caption2)
-                                                .foregroundStyle(ssl.isExpired ? .red : .secondary)
-                                        }
-                                        .tag(ssl.id as Int?)
-                                    }
-                                }
+                                OutlinedPicker(label: L10n.t("SSL 证书"),
+                                               options: sslOptionKeys, selection: sslText,
+                                               optionLabels: sslOptionLabels)
                             }
                         } header: {
                             Text("HTTPS")
@@ -199,19 +196,36 @@ struct CreateWebsiteView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                Picker(L10n.t("选择应用"), selection: $selectedAppInstallId) {
-                    Text(L10n.t("请选择")).tag(nil as Int?)
-                    ForEach(vm.availableApps) { app in
-                        Text("\(app.appName ?? app.name ?? "") (v\(app.version ?? ""))")
-                            .tag(app.id as Int?)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("选择应用"),
+                               options: appOptionKeys, selection: appText,
+                               optionLabels: appOptionLabels)
             }
         } header: {
             Text(L10n.t("应用"))
         } footer: {
             Text(L10n.t("仅显示类型为「网站」且未被使用的已安装应用"))
         }
+    }
+
+    // MARK: - 部署应用选项（OutlinedPicker 用 String 键；0=请选择）
+
+    private var appOptionKeys: [String] {
+        ["0"] + vm.availableApps.map { String($0.id) }
+    }
+
+    private var appOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("请选择")]
+        for app in vm.availableApps {
+            labels[String(app.id)] = "\(app.appName ?? app.name ?? "") (v\(app.version ?? ""))"
+        }
+        return labels
+    }
+
+    private var appText: Binding<String> {
+        Binding<String>(
+            get: { selectedAppInstallId.map(String.init) ?? "0" },
+            set: { selectedAppInstallId = $0 == "0" ? nil : Int($0) }
+        )
     }
 
     /// 反向代理后端
@@ -238,23 +252,7 @@ struct CreateWebsiteView: View {
     private var domainSection: some View {
         Section {
             // 分组置顶（未加载到分组数据时仅展示默认分组占位）
-            if vm.groups.isEmpty {
-                HStack {
-                    Text(L10n.t("分组"))
-                    Spacer()
-                    Text(L10n.t("默认分组"))
-                        .foregroundStyle(.secondary)
-                }
-            } else {
-                Picker(L10n.t("分组"), selection: $selectedGroupID) {
-                    // tag(0) 兜底：分组数据先于初值就绪的一帧内 selection 仍为 0，
-                    // 缺少对应 tag 会触发 Picker invalid selection 运行时警告
-                    Text(L10n.t("默认分组")).tag(0)
-                    ForEach(vm.groups) { group in
-                        Text(group.displayName).tag(group.id)
-                    }
-                }
-            }
+            WebsiteGroupPicker(selection: $selectedGroupID, groups: vm.groups)
 
             OutlinedTextField(label: L10n.t("主域名"),
                               text: $primaryDomain, keyboardType: .URL,
@@ -270,6 +268,27 @@ struct CreateWebsiteView: View {
             Text(L10n.t("域名"))
         } footer: {
         }
+    }
+
+    // MARK: - SSL 证书选项（OutlinedPicker 用 String 键；0=请选择证书）
+
+    private var sslOptionKeys: [String] {
+        ["0"] + vm.availableSSLs.map { String($0.id) }
+    }
+
+    private var sslOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("请选择证书")]
+        for ssl in vm.availableSSLs {
+            labels[String(ssl.id)] = "\(ssl.displayName)（有效期至 \(ssl.displayExpireDate)）"
+        }
+        return labels
+    }
+
+    private var sslText: Binding<String> {
+        Binding<String>(
+            get: { selectedSSLId.map(String.init) ?? "0" },
+            set: { selectedSSLId = $0 == "0" ? nil : Int($0) }
+        )
     }
 
     /// 第 0 页（基础）必填：主域名非空无空格 + 端口合法；类型特定字段在第 2 页校验

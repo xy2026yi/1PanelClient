@@ -211,25 +211,34 @@ struct PasswordInputRow: View {
     @Binding var showPassword: Bool
 
     var body: some View {
-        HStack {
-            if showPassword {
-                TextField(L10n.t("密码"), text: $password)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.dataMonospacedBody)
-            } else {
-                SecureField(L10n.t("密码"), text: $password)
+        // 描边包裹式：眼睛 + 骰子内嵌框右侧（与全站密码框一致）
+        OutlinedShape(label: L10n.t("密码"), isFocused: false,
+                      hasValue: !password.isEmpty,
+                      trailing: {
+            HStack(spacing: 10) {
+                Button { showPassword.toggle() } label: {
+                    Image(systemName: showPassword ? "eye.slash" : "eye")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }.accessibilityLabel(showPassword ? L10n.t("隐藏密码") : L10n.t("显示密码"))
+                Button {
+                    password = Self.randomPassword()
+                } label: {
+                    Image(systemName: "dice")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }.accessibilityLabel(L10n.t("生成随机密码"))
             }
-            Button { showPassword.toggle() } label: {
-                Image(systemName: showPassword ? "eye.slash" : "eye")
-                    .foregroundStyle(.secondary)
+        }) {
+            Group {
+                if showPassword {
+                    TextField("", text: $password)
+                } else {
+                    SecureField("", text: $password)
+                }
             }
-            Button {
-                password = Self.randomPassword()
-            } label: {
-                Image(systemName: "shuffle")
-                    .foregroundStyle(.secondary)
-            }
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
         }
     }
 

@@ -35,6 +35,9 @@ struct WebsiteDetailView: View {
     @State private var showRewrite = false
     @State private var showLeech = false
     @State private var showOther = false
+    // PHP / 资源入口（三点菜单子页，位于重定向与其他之间）
+    @State private var showPHP = false
+    @State private var showResource = false
     /// 浏览器打开网站链接（toolbar 打开按钮用）
     @Environment(\.openURL) private var openURL
 
@@ -143,6 +146,8 @@ struct WebsiteDetailView: View {
                     .action(title: L10n.t("伪静态")) { showRewrite = true },
                     .action(title: L10n.t("防盗链")) { showLeech = true },
                     .action(title: L10n.t("重定向")) { showRedirects = true },
+                    .action(title: L10n.t("PHP")) { showPHP = true },
+                    .action(title: L10n.t("资源")) { showResource = true },
                     .action(title: L10n.t("其他")) { showOther = true },
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
@@ -184,6 +189,16 @@ struct WebsiteDetailView: View {
         }
         .navigationDestination(isPresented: $showRedirects) {
             WebsiteRedirectView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showPHP) {
+            WebsitePHPView(website: website, vm: vm) {
+                Task { await loadDetail() }
+            }
+        }
+        .navigationDestination(isPresented: $showResource) {
+            WebsiteResourceView(website: website, vm: vm) {
+                Task { await loadDetail() }
+            }
         }
         // 新增功能入口（依据 logs/网站修改与增加-1.md）
         .navigationDestination(isPresented: $showDomains) {
@@ -330,6 +345,10 @@ struct WebsiteDetailView: View {
     ) -> some View {
         CardActionButton(title: title, icon: icon, color: color, busy: busy, disabled: isOperating, action: action)
     }
+
+    // MARK: - PHP 运行环境 / 防跨站攻击 / 关联数据库
+
+    // 均已移至三点菜单子页（WebsitePHPView / WebsiteResourceView）
 
     /// 网站备份目标（type=website；后端按 website.alias 查库，备份记录也以 alias 存
     /// 储，与网页端一致优先传 alias，主域名仅作兜底）

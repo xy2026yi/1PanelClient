@@ -349,6 +349,20 @@ struct CreateDatabaseView: View {
 
     // MARK: MySQL 用户授权
 
+    /// 授权用户选项（空串=请选择；id 去重防重复键）
+    private var existingUserKeys: [String] {
+        var keys = [""]
+        var seen: Set<String> = [""]
+        for u in vm.users where seen.insert(u.id).inserted { keys.append(u.id) }
+        return keys
+    }
+
+    private var existingUserOptions: [String: String] {
+        var labels = ["": L10n.t("请选择...")]
+        for u in vm.users { labels[u.id] = u.displayName }
+        return labels
+    }
+
     private var mysqlUserGrantSection: some View {
         Group {
             Section(L10n.t("用户授权")) {
@@ -366,12 +380,10 @@ struct CreateDatabaseView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        Picker(L10n.t("授权用户"), selection: $selectedExistingUser) {
-                            Text(L10n.t("请选择...")).tag("")
-                            ForEach(vm.users) { user in
-                                Text(user.displayName).tag(user.id)
-                            }
-                        }
+                        OutlinedPicker(label: L10n.t("授权用户"),
+                                       options: existingUserKeys,
+                                       selection: $selectedExistingUser,
+                                       optionLabels: existingUserOptions)
                     }
                 }
             case .create:
@@ -926,13 +938,14 @@ struct EditUserPermissionSheet: View {
                                    })
 
                     if permissionMode == .ip {
-                        OutlinedTextField(label: L10n.t("IP 地址"), text: $permissionIPs)
-                            .font(.dataMonospacedBody)
+                        OutlinedMultiLineField(label: L10n.t("IP"),
+                                               prompt: "192.168.1.100, 10.0.0.5",
+                                               text: $permissionIPs)
                     }
                 }
                 Section(L10n.t("描述")) {
-                    TextField(L10n.t("可选描述"), text: $description, axis: .vertical)
-                        .lineLimit(2...4)
+                    OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"),
+                                           text: $description)
                 }
             }
             .navigationTitle(L10n.t("修改权限"))

@@ -89,11 +89,8 @@ struct AlertEditView: View {
             if isEditing {
                 LabeledContent(L10n.t("告警类型"), value: editing?.alertType.displayName ?? (editing?.type ?? L10n.t("未知")))
             } else {
-                Picker(L10n.t("告警类型"), selection: $type) {
-                    ForEach(AlertType.creatable) { t in
-                        Text(t.displayName).tag(t)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("告警类型"), options: AlertType.creatable,
+                               selection: $type) { $0.displayName }
             }
         } header: {
             Text(L10n.t("基本信息"))
@@ -104,11 +101,9 @@ struct AlertEditView: View {
 
     private var projectSection: some View {
         Section {
-            Picker(type == .ssl ? L10n.t("证书") : L10n.t("网站"), selection: $projectAll) {
-                Text(L10n.t("所有")).tag(true)
-                Text(L10n.t("指定")).tag(false)
-            }
-            .pickerStyle(.segmented)
+            OutlinedPicker(label: type == .ssl ? L10n.t("证书") : L10n.t("网站"),
+                           options: ["all", "custom"], selection: projectAllText,
+                           optionLabels: ["all": L10n.t("所有"), "custom": L10n.t("指定")])
 
             if !projectAll {
                 if vm.isLoadingOptions {
@@ -118,12 +113,9 @@ struct AlertEditView: View {
                         Spacer()
                     }
                 } else {
-                    Picker(L10n.t("选择对象"), selection: $selectedProjectID) {
-                        Text(L10n.t("请选择")).tag(Int?.none)
-                        ForEach(type == .ssl ? vm.sslOptions.map(\.id) : vm.websiteOptions.map(\.id), id: \.self) { id in
-                            Text(projectName(id: id)).tag(Int?.some(id))
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("选择对象"),
+                                   options: objectOptionKeys, selection: objectText,
+                                   optionLabels: objectOptionLabels)
                 }
             }
         } header: {
@@ -147,11 +139,9 @@ struct AlertEditView: View {
 
     private var diskSection: some View {
         Section {
-            Picker(L10n.t("磁盘"), selection: $projectAll) {
-                Text(L10n.t("所有")).tag(true)
-                Text(L10n.t("指定")).tag(false)
-            }
-            .pickerStyle(.segmented)
+            OutlinedPicker(label: L10n.t("磁盘"),
+                           options: ["all", "custom"], selection: projectAllText,
+                           optionLabels: ["all": L10n.t("所有"), "custom": L10n.t("指定")])
 
             if !projectAll {
                 if vm.isLoadingOptions {
@@ -161,12 +151,9 @@ struct AlertEditView: View {
                         Spacer()
                     }
                 } else {
-                    Picker(L10n.t("选择磁盘"), selection: $selectedDiskPath) {
-                        Text(L10n.t("请选择")).tag(String?.none)
-                        ForEach(vm.diskOptions) { disk in
-                            Text(diskLabel(disk)).tag(String?.some(disk.path))
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("选择磁盘"),
+                                   options: diskOptionKeys, selection: diskText,
+                                   optionLabels: diskOptionLabels)
                 }
             }
         } header: {
@@ -203,6 +190,79 @@ struct AlertEditView: View {
         Binding<String>(
             get: { String(diskMonitorKind) },
             set: { diskMonitorKind = Int($0) ?? 1 }
+        )
+    }
+
+    /// 所有/指定 Bool ↔ String（OutlinedPicker 用；证书/网站与磁盘共用 projectAll）
+    private var projectAllText: Binding<String> {
+        Binding<String>(
+            get: { projectAll ? "all" : "custom" },
+            set: { projectAll = $0 == "all" }
+        )
+    }
+
+    private var sendMethodAllText: Binding<String> {
+        Binding<String>(
+            get: { sendMethodAll ? "all" : "custom" },
+            set: { sendMethodAll = $0 == "all" }
+        )
+    }
+
+    /// 选择对象选项（0=请选择；证书/网站按告警类型二选一）
+    private var objectOptionKeys: [String] {
+        let ids = type == .ssl ? vm.sslOptions.map(\.id) : vm.websiteOptions.map(\.id)
+        return ["0"] + ids.map(String.init)
+    }
+
+    private var objectOptionLabels: [String: String] {
+        let ids = type == .ssl ? vm.sslOptions.map(\.id) : vm.websiteOptions.map(\.id)
+        var labels = ["0": L10n.t("请选择")]
+        for id in ids { labels[String(id)] = projectName(id: id) }
+        return labels
+    }
+
+    private var objectText: Binding<String> {
+        Binding<String>(
+            get: { selectedProjectID.map(String.init) ?? "0" },
+            set: { selectedProjectID = $0 == "0" ? nil : Int($0) }
+        )
+    }
+
+    /// 选择磁盘选项（空串=请选择，键为挂载路径）
+    private var diskOptionKeys: [String] {
+        [""] + vm.diskOptions.map(\.path)
+    }
+
+    private var diskOptionLabels: [String: String] {
+        var labels = ["": L10n.t("请选择")]
+        for disk in vm.diskOptions { labels[disk.path] = diskLabel(disk) }
+        return labels
+    }
+
+    private var diskText: Binding<String> {
+        Binding<String>(
+            get: { selectedDiskPath ?? "" },
+            set: { selectedDiskPath = $0.isEmpty ? nil : $0 }
+        )
+    }
+
+    /// 发送方式选项（0=请选择）
+    private var sendConfigOptionKeys: [String] {
+        ["0"] + availableConfigs.map { String($0.id) }
+    }
+
+    private var sendConfigOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("请选择")]
+        for config in availableConfigs {
+            labels[String(config.id)] = config.sendConfig.displayName ?? (config.type ?? L10n.t("未知"))
+        }
+        return labels
+    }
+
+    private var sendConfigText: Binding<String> {
+        Binding<String>(
+            get: { selectedConfigID.map(String.init) ?? "0" },
+            set: { selectedConfigID = $0 == "0" ? nil : Int($0) }
         )
     }
 
@@ -256,11 +316,8 @@ struct AlertEditView: View {
 
     private var whitelistSection: some View {
         Section {
-            TextEditor(text: $whitelist)
-                .font(.dataMonospacedFootnote)
-                .frame(minHeight: 88)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+            OutlinedMultiLineField(label: L10n.t("IP 白名单"), prompt: "1.2.3.4",
+                                   text: $whitelist)
         } header: {
             SectionLabel(title: L10n.t("IP 白名单"), systemImage: "checkmark.shield")
         } footer: {
@@ -276,19 +333,14 @@ struct AlertEditView: View {
                 Label(L10n.t("请先在「设置」中配置发送方式"), systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             } else {
-                Picker(L10n.t("发送至"), selection: $sendMethodAll) {
-                    Text(L10n.t("所有")).tag(true)
-                    Text(L10n.t("指定")).tag(false)
-                }
-                .pickerStyle(.segmented)
+                OutlinedPicker(label: L10n.t("发送至"),
+                               options: ["all", "custom"], selection: sendMethodAllText,
+                               optionLabels: ["all": L10n.t("所有"), "custom": L10n.t("指定")])
 
                 if !sendMethodAll {
-                    Picker(L10n.t("发送方式"), selection: $selectedConfigID) {
-                        Text(L10n.t("请选择")).tag(Int?.none)
-                        ForEach(availableConfigs) { config in
-                            Text(config.sendConfig.displayName ?? (config.type ?? L10n.t("未知"))).tag(Int?.some(config.id))
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("发送方式"),
+                                   options: sendConfigOptionKeys, selection: sendConfigText,
+                                   optionLabels: sendConfigOptionLabels)
                 }
             }
         } header: {

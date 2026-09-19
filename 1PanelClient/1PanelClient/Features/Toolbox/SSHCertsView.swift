@@ -394,18 +394,11 @@ struct SSHCertCreateView: View {
             Section(L10n.t("基本信息")) {
                 FormTextField(label: L10n.t("名称"), text: $name)
 
-                Picker(L10n.t("创建方式"), selection: $mode) {
-                    ForEach(SSHCertCreateMode.allCases) { m in
-                        Text(m.displayName).tag(m)
-                    }
-                }
-                .pickerStyle(.segmented)
+                OutlinedPicker(label: L10n.t("创建方式"), options: SSHCertCreateMode.allCases,
+                               selection: $mode) { $0.displayName }
 
-                Picker(L10n.t("加密方式"), selection: $encryption) {
-                    ForEach(SSHCertEncryption.allCases) { e in
-                        Text(e.displayName).tag(e)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("加密方式"), options: SSHCertEncryption.allCases,
+                               selection: $encryption) { $0.displayName }
             }
 
             Section {
@@ -774,11 +767,8 @@ struct SSHCertEditView: View {
             Section(L10n.t("基本信息")) {
                 FormTextField(label: L10n.t("名称"), text: $name)
 
-                Picker(L10n.t("加密方式"), selection: $encryption) {
-                    ForEach(SSHCertEncryption.allCases) { e in
-                        Text(e.displayName).tag(e)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("加密方式"), options: SSHCertEncryption.allCases,
+                               selection: $encryption) { $0.displayName }
             }
 
             Section {

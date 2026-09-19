@@ -115,36 +115,12 @@ struct DatabaseRedisPerformanceView: View {
                 }
             } else {
                 Section {
-                    HStack {
-                        Text(L10n.t("超时时间"))
-                        Spacer()
-                        TextField("0", text: $timeoutText)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 110)
-                        Text(L10n.t("秒"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    HStack {
-                        Text(L10n.t("最大连接数"))
-                        Spacer()
-                        TextField("10000", text: $maxclientsText)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 110)
-                    }
-                    HStack {
-                        Text(L10n.t("最大内存使用"))
-                        Spacer()
-                        TextField("0", text: $maxmemoryMBText)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 110)
-                        Text("MB")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    OutlinedUnitField(label: L10n.t("超时时间"), unit: L10n.t("秒"),
+                                      text: $timeoutText, range: 0...999999)
+                    OutlinedUnitField(label: L10n.t("最大连接数"), unit: "", prompt: L10n.t("可选"),
+                                      text: $maxclientsText, range: 0...999999)
+                    OutlinedUnitField(label: L10n.t("最大内存使用"), unit: "MB",
+                                      text: $maxmemoryMBText, range: 0...9_999_999)
                 } header: {
                     SectionLabel(title: L10n.t("性能调整"), systemImage: "speedometer")
                 } footer: {

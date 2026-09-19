@@ -18,8 +18,9 @@ struct _PanelClientApp: App {
     var body: some Scene {
         WindowGroup {
             // DEBUG 直达调试页（Release 无此分支）：
-            //   -chartDemo  图表示例页
-            //   -wafDemo    WAF 监控页（指向本机 mock 面板，复现封锁记录空数据等问题）
+            //   -chartDemo        图表示例页
+            //   -wafDemo          WAF 监控页（指向本机 mock 面板，复现封锁记录空数据等问题）
+            //   -installFormDemo  安装表单交互原型（浮动标签输入框 + 三页向导）
             rootContent
                 .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
                 // 注入呈现方尺寸类：sheet 内环境恒为 compact，bottomSheetDetents
@@ -59,6 +60,10 @@ struct _PanelClientApp: App {
                 baseURL: "http://127.0.0.1:18899",
                 apiKey: "mock-key"
             ))
+        } else if CommandLine.arguments.contains("-installFormDemo") {
+            NavigationStack { DebugInstallFormView() }
+        } else if CommandLine.arguments.contains("-pendingFormsDemo") {
+            NavigationStack { DebugPendingFormsView() }
         } else {
             ContentView()
         }

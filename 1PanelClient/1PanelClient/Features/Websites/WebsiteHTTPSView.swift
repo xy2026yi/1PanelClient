@@ -84,6 +84,51 @@ struct WebsiteHTTPSView: View {
         ("HTTPSOnly",   L10n.t("仅 HTTPS")),
     ]
 
+    /// 证书选项键（OutlinedPicker 用 String）：0=未选择；当前证书不在列表时 cur-{id} 兜底，
+    /// 列表就绪后自动并回真实选项
+    private var certOptionKeys: [String] {
+        var keys = ["0"]
+        if selectedSSLId != 0, !vm.availableSSLs.contains(where: { $0.id == selectedSSLId }) {
+            keys.append("cur-\(selectedSSLId)")
+        }
+        keys += vm.availableSSLs.map { String($0.id) }
+        return keys
+    }
+
+    private var certOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("未选择")]
+        if selectedSSLId != 0, !vm.availableSSLs.contains(where: { $0.id == selectedSSLId }) {
+            if let domain = config?.ssl?.primaryDomain, !domain.isEmpty {
+                labels["cur-\(selectedSSLId)"] = L10n.f("当前证书：%@", domain)
+            } else {
+                labels["cur-\(selectedSSLId)"] = L10n.f("当前证书（ID %ld）", selectedSSLId)
+            }
+        }
+        for ssl in vm.availableSSLs {
+            labels[String(ssl.id)] = "\(ssl.displayName)（有效期至 \(ssl.displayExpireDate)）"
+        }
+        return labels
+    }
+
+    private var certOutlinedBinding: Binding<String> {
+        Binding<String>(
+            get: {
+                if selectedSSLId == 0 { return "0" }
+                return vm.availableSSLs.contains(where: { $0.id == selectedSSLId })
+                    ? String(selectedSSLId) : "cur-\(selectedSSLId)"
+            },
+            set: { key in
+                if key == "0" {
+                    selectedSSLId = 0
+                } else if key.hasPrefix("cur-") {
+                    selectedSSLId = Int(key.dropFirst(4)) ?? selectedSSLId
+                } else {
+                    selectedSSLId = Int(key) ?? selectedSSLId
+                }
+            }
+        )
+    }
+
     var body: some View {
         Group {
             if isLoading {
@@ -117,13 +162,13 @@ struct WebsiteHTTPSView: View {
     private var editor: some View {
         Form {
             Section(L10n.t("基本")) {
-                Toggle(L10n.t("启用 HTTPS"), isOn: $enable)
+                Toggle(L10n.t("启用"), isOn: $enable)
                 if enable {
-                    Picker(L10n.t("HTTP 配置"), selection: $httpConfig) {
-                        ForEach(availableHttpConfigs, id: \.0) { v in
-                            Text(v.1).tag(v.0)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("HTTP 配置"),
+                                   options: availableHttpConfigs.map(\.0),
+                                   selection: $httpConfig,
+                                   optionLabels: Dictionary(uniqueKeysWithValues:
+                                       availableHttpConfigs.map { ($0.0, $0.1) }))
                     FormTextField(label: L10n.t("HTTPS 端口"), prompt: "443",
                                   text: $httpsPort, keyboardType: .numberPad)
                 }
@@ -131,30 +176,10 @@ struct WebsiteHTTPSView: View {
 
             if enable {
                 Section(L10n.t("SSL 证书")) {
-                    Picker(L10n.t("选择证书"), selection: $selectedSSLId) {
-                        // tag(0) 兜底：未配置证书/证书列表为空时 selection 停在 0，
-                        // 缺少对应 tag 会触发 Picker invalid selection 运行时警告
-                        Text(L10n.t("未选择")).tag(0)
-                        // 当前证书不在可选列表（列表加载中/证书已删除）时兜底，
-                        // 避免 selection 无对应 tag 的警告；列表就绪后自动并回真实选项
-                        if selectedSSLId != 0,
-                           !vm.availableSSLs.contains(where: { $0.id == selectedSSLId }) {
-                            if let domain = config?.ssl?.primaryDomain, !domain.isEmpty {
-                                Text(L10n.f("当前证书：%@", domain)).tag(selectedSSLId)
-                            } else {
-                                Text(L10n.f("当前证书（ID %ld）", selectedSSLId)).tag(selectedSSLId)
-                            }
-                        }
-                        ForEach(vm.availableSSLs) { ssl in
-                            VStack(alignment: .leading) {
-                                Text(ssl.displayName)
-                                Text(L10n.f("有效期至 %@", ssl.displayExpireDate))
-                                    .font(.caption2)
-                                    .foregroundStyle(ssl.isExpired ? .red : .secondary)
-                            }
-                            .tag(ssl.id)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("证书"),
+                                   options: certOptionKeys,
+                                   selection: certOutlinedBinding,
+                                   optionLabels: certOptionLabels)
                 }
 
                 Section(L10n.t("支持的协议版本")) {

@@ -720,12 +720,12 @@ struct ContainerComposeCreateView: View {
         NavigationStack {
             Form {
                 Section {
-                    Picker(L10n.t("来源"), selection: $from) {
-                        Text(L10n.t("编辑")).tag("edit")
-                        Text(L10n.t("路径")).tag("path")
-                        Text(L10n.t("编排模板")).tag("template")
-                    }
-                    .pickerStyle(.segmented)
+                    OutlinedPicker(label: L10n.t("来源"),
+                                   options: ["edit", "path", "template"],
+                                   selection: $from,
+                                   optionLabels: ["edit": L10n.t("编辑"),
+                                                  "path": L10n.t("路径"),
+                                                  "template": L10n.t("编排模板")])
 
                     if from == "template" {
                         Picker(L10n.t("模板"), selection: $selectedTemplate) {

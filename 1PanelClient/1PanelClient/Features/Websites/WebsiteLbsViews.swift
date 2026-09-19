@@ -238,7 +238,6 @@ struct WebsiteLbsEditView: View {
             ForEach($servers) { $s in
                 nodeSection($s)
             }
-            .onDelete { servers.remove(atOffsets: $0) }
 
             Section {
                 Button {
@@ -266,7 +265,7 @@ struct WebsiteLbsEditView: View {
         Section {
             OutlinedTextField(label: L10n.t("地址"), prompt: "127.0.0.1:8080",
                               text: s.server, keyboardType: .URL)
-            OutlinedUnitField(label: L10n.t("权重"), unit: L10n.t("可选"),
+            OutlinedUnitField(label: L10n.t("权重"), unit: "", prompt: L10n.t("可选"),
                               text: intBinding(s.weight), range: 0...256)
             OutlinedPicker(label: L10n.t("策略"), options: ["", "down", "backup"],
                            selection: s.flag,
@@ -277,10 +276,23 @@ struct WebsiteLbsEditView: View {
                               text: intBinding(s.maxFails), range: 0...9999)
             OutlinedUnitField(label: L10n.t("故障超时"), unit: L10n.t("秒"),
                               text: intBinding(s.failTimeout), range: 0...9999)
-            OutlinedUnitField(label: L10n.t("最大连接数"), unit: L10n.t("可选"),
+            OutlinedUnitField(label: L10n.t("最大连接数"), unit: "", prompt: L10n.t("可选"),
                               text: intBinding(s.maxConns), range: 0...99999)
         } header: {
-            Text(L10n.f("节点-%ld", index(of: s.id) + 1))
+            HStack {
+                Text(L10n.f("节点-%ld", index(of: s.id) + 1))
+                Spacer()
+                // 删除以「整个节点」为单位，仅剩一个节点时不可删
+                if servers.count > 1 {
+                    Button {
+                        servers.removeAll { $0.id == s.id }
+                    } label: {
+                        Label(L10n.t("删除节点"), systemImage: "trash")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
         }
     }
 

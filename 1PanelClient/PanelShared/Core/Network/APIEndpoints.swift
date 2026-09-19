@@ -107,6 +107,10 @@ enum APIEndpoint {
     case websitesLbsUpdate        // POST 更新负载均衡
     case websitesLbsFile          // POST 保存负载均衡源文（{name, websiteID, content}）
     case websitesLbsDelete        // POST 删除负载均衡（{websiteID, name}）
+    case websitesPhpVersion       // POST 切换 PHP 运行环境/静态（{websiteID, runtimeID}，0=静态）
+    case websitesCrosssite        // POST 防跨站攻击开关（{websiteID, operation: Enable/Disable}）
+    case websitesDatabases        // GET 查询可关联数据库 / POST 切换关联数据库
+    case runtimesSearch           // POST 查询运行环境列表（{page,pageSize,type}）
 
     // MARK: - SSL 证书（独立管理）
     case websitesSSLList          // POST 分页查询证书
@@ -762,6 +766,10 @@ enum APIEndpoint {
         case .websitesLbsUpdate:     return "/api/v2/websites/lbs/update"
         case .websitesLbsFile:       return "/api/v2/websites/lbs/file"
         case .websitesLbsDelete:     return "/api/v2/websites/lbs/del"
+        case .websitesPhpVersion:    return "/api/v2/websites/php/version"
+        case .websitesCrosssite:     return "/api/v2/websites/crosssite"
+        case .websitesDatabases:     return "/api/v2/websites/databases"
+        case .runtimesSearch:        return "/api/v2/runtimes/search"
         case .websitesNginxConfig:   return "/api/v2/websites/:id/config/openresty"
         case .websitesNginxUpdate:   return "/api/v2/websites/nginx/update"
         case .websitesLogRead:       return "/api/v2/files/read/website?operateNode=local"

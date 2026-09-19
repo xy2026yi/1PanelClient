@@ -22,12 +22,20 @@ struct UpdateParamsView: View {
     @State private var restartPolicy = "always"
     @State private var cpuQuota = 0
     @State private var memoryLimit = 0
-    @State private var memoryUnit = "MB"
     @State private var editCompose = false
     @State private var customCompose = ""
 
     private let restartPolicies = ["no", "always", "on-failure", "unless-stopped"]
-    private let memoryUnits = ["MB", "GB"]
+
+    /// CPU 核心数 String ↔ Int（描边框接收 String；非法输入回落 0，0 = 不限制）
+    private var cpuQuotaText: Binding<String> {
+        Binding<String>(get: { String(cpuQuota) }, set: { cpuQuota = Int($0) ?? 0 })
+    }
+
+    /// 内存限制 String ↔ Int（UI 单位固定 MB，与安装表单一致）
+    private var memoryLimitText: Binding<String> {
+        Binding<String>(get: { String(memoryLimit) }, set: { memoryLimit = Int($0) ?? 0 })
+    }
 
     private var hasLoaded: Bool { paramsResp != nil }
 
@@ -86,46 +94,23 @@ struct UpdateParamsView: View {
                 }
             }
 
-            // 容器配置
+            // 容器配置（描边组件，与安装表单一致）
             Section {
-                HStack {
-                    Text(L10n.t("容器名")).foregroundStyle(.secondary)
-                    Spacer()
-                    TextField("", text: $containerName)
-                        .multilineTextAlignment(.trailing)
-                }
+                OutlinedTextField(label: L10n.t("容器名称"), prompt: L10n.t("留空则自动生成"),
+                                  text: $containerName)
                 Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
-                Picker(L10n.t("重启规则"), selection: $restartPolicy) {
-                    ForEach(restartPolicies, id: \.self) { Text($0).tag($0) }
-                }
+                OutlinedPicker(label: L10n.t("重启规则"), options: restartPolicies,
+                               selection: $restartPolicy)
             } header: {
                 Text(L10n.t("容器配置"))
             }
 
-            // 资源限制
+            // 资源限制（单位固定 MB，与安装表单一致）
             Section {
-                HStack {
-                    Text(L10n.t("CPU 核心")).foregroundStyle(.secondary)
-                    Spacer()
-                    TextField("0", value: $cpuQuota, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                    Text(L10n.t("核")).foregroundStyle(.secondary).font(.caption)
-                }
-                HStack {
-                    Text(L10n.t("内存限制")).foregroundStyle(.secondary)
-                    Spacer()
-                    TextField("0", value: $memoryLimit, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                    Picker("", selection: $memoryUnit) {
-                        ForEach(memoryUnits, id: \.self) { Text($0).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 80)
-                }
+                OutlinedUnitField(label: L10n.t("CPU核心数"), unit: L10n.t("核"),
+                                  text: cpuQuotaText, range: 0...1024)
+                OutlinedUnitField(label: L10n.t("内存"), unit: "MB",
+                                  text: memoryLimitText, range: 0...9_999_999)
             } header: {
                 Text(L10n.t("资源限制"))
             } footer: {
@@ -151,16 +136,6 @@ struct UpdateParamsView: View {
                         .frame(minHeight: 200)
                 } footer: {
                     Text(L10n.t("编辑后将使用自定义内容覆盖默认编排文件"))
-                }
-            }
-
-            // 当前 compose 预览（只读）
-            if !editCompose, let raw = resp.rawCompose, !raw.isEmpty {
-                Section {
-                    CodePreview(text: raw, color: .secondary)
-                        .frame(minHeight: 140)
-                } header: {
-                    Text(L10n.t("当前 docker-compose.yml"))
                 }
             }
 
@@ -204,8 +179,11 @@ struct UpdateParamsView: View {
         allowPort = resp.allowPort ?? false
         restartPolicy = resp.restartPolicy ?? "always"
         cpuQuota = resp.cpuQuota ?? 0
+        // UI 单位固定 MB（与安装表单一致）：服务端为 GB 时换算回 MB 展示
         memoryLimit = resp.memoryLimit ?? 0
-        memoryUnit = resp.memoryUnit ?? "MB"
+        if (resp.memoryUnit ?? "").uppercased() == "GB" {
+            memoryLimit *= 1024
+        }
         customCompose = resp.dockerCompose ?? resp.rawCompose ?? ""
         isLoading = false
     }
@@ -228,7 +206,8 @@ struct UpdateParamsView: View {
             advanced: true,
             memoryLimit: memoryLimit,
             cpuQuota: cpuQuota,
-            memoryUnit: memoryUnit,
+            // UI 单位固定 MB，按 MB 语义提交 M（与安装请求一致）
+            memoryUnit: "M",
             allowPort: allowPort,
             containerName: containerName,
             editCompose: editCompose,
@@ -239,7 +218,7 @@ struct UpdateParamsView: View {
     }
 }
 
-/// 已安装参数 - 可编辑行
+/// 已安装参数 - 可编辑行（描边包裹式，与安装表单 ParamFieldRow 同形态）
 struct InstalledParamEditRow: View {
     let field: InstalledParamField
     @Binding var value: String
@@ -247,41 +226,35 @@ struct InstalledParamEditRow: View {
     var body: some View {
         switch field.type ?? "text" {
         case "number":
-            HStack {
-                Text(field.displayLabel).foregroundStyle(.secondary)
-                Spacer()
-                TextField("", text: $value)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
-            }
-        case "select":
-            Picker(field.displayLabel, selection: $value) {
-                ForEach(field.values ?? [], id: \.self) { v in
-                    Text(v).tag(v)
-                }
-            }
+            OutlinedTextField(label: field.displayLabel, text: $value,
+                              keyboardType: .numberPad)
+        case "password":
+            OutlinedTextField(label: field.displayLabel, text: $value, isSecure: true)
+        case "select", "apps":
+            OutlinedPicker(label: field.displayLabel,
+                           options: field.values ?? [],
+                           selection: $value)
         default:
-            HStack {
-                Text(field.displayLabel).foregroundStyle(.secondary)
-                Spacer()
-                TextField("", text: $value)
-                    .multilineTextAlignment(.trailing)
-            }
+            OutlinedTextField(label: field.displayLabel, text: $value)
         }
     }
 }
 
-/// 已安装参数 - 只读行（edit=false）
+/// 已安装参数 - 只读行（edit=false，描边框展示当前值，不可编辑；
+/// Root密码/端口等服务端固定项走此形态，与可编辑行视觉统一）
 struct InstalledParamReadRow: View {
     let field: InstalledParamField
 
     var body: some View {
-        HStack {
-            Text(field.displayLabel).foregroundStyle(.secondary)
-            Spacer()
+        OutlinedShape(label: field.displayLabel, isFocused: false,
+                      hasValue: true, trailing: {
+            Image(systemName: "lock.fill")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }) {
             Text(field.value?.stringValue ?? "—")
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
     }
 }

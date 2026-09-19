@@ -556,14 +556,8 @@ struct UploadCertificateView: View {
     var body: some View {
         Form {
             Section {
-                Picker(L10n.t("上传方式"), selection: $mode) {
-                    ForEach(UploadMode.allCases) { m in
-                        Text(L10n.t(m.rawValue)).tag(m)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $description)
+                OutlinedPicker(label: L10n.t("上传方式"), options: UploadMode.allCases,
+                               selection: $mode) { L10n.t($0.rawValue) }
             } header: {
                 if isUpdate {
                     Text(L10n.t("更新证书"))
@@ -623,6 +617,11 @@ struct UploadCertificateView: View {
                 } footer: {
                     Text(L10n.t("从手机选择 .pem / .key / .crt 等文本格式的证书文件，读取内容后提交。"))
                 }
+            }
+
+            // 备注统一置底
+            Section {
+                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $description)
             }
         }
         .navigationTitle(isUpdate ? L10n.t("更新证书") : L10n.t("上传证书"))

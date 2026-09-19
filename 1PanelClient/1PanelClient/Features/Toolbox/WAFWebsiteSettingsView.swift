@@ -145,37 +145,33 @@ struct WAFWebsiteSettingsView: View {
             ))
             .disabled(isOperating)
 
-            Picker(L10n.t("执行策略"), selection: Binding(
-                get: { selected?.wafMode == "observation" ? "observation" : "protection" },
-                set: { mode in
-                    if mode == "observation" {
-                        pendingObservation = true
-                    } else {
-                        Task { await setWebsiteState(scope: "Waf", state: "on", mode: "protection") }
-                    }
-                }
-            )) {
-                Text(L10n.t("防护模式")).tag("protection")
-                Text(L10n.t("观察模式")).tag("observation")
-            }
-            .pickerStyle(.segmented)
-            .segmentedPickerRow()
-            .disabled(isOperating || !wafOn)
+            OutlinedPicker(label: L10n.t("执行策略"),
+                           options: ["protection", "observation"],
+                           selection: Binding(
+                               get: { selected?.wafMode == "observation" ? "observation" : "protection" },
+                               set: { mode in
+                                   if mode == "observation" {
+                                       pendingObservation = true
+                                   } else {
+                                       Task { await setWebsiteState(scope: "Waf", state: "on", mode: "protection") }
+                                   }
+                               }),
+                           optionLabels: ["protection": L10n.t("防护模式"),
+                                          "observation": L10n.t("观察模式")])
+                .disabled(isOperating || !wafOn)
 
-            Picker(L10n.t("检测强度"), selection: Binding(
-                get: { selected?.strictState == "on" ? "strict" : "standard" },
-                set: { newValue in
-                    let state = newValue == "strict" ? "on" : "off"
-                    Task { await setWebsiteState(scope: "Strict", state: state) }
-                }
-            )) {
-                Text(L10n.t("标准模式")).tag("standard")
-                Text(L10n.t("严格模式")).tag("strict")
-            }
-            .pickerStyle(.segmented)
-            .segmentedPickerRow()
-            // 全局 strict 未开启时严格模式不可选
-            .disabled(isOperating || !wafOn || !globalStrictOn)
+            OutlinedPicker(label: L10n.t("检测强度"),
+                           options: ["standard", "strict"],
+                           selection: Binding(
+                               get: { selected?.strictState == "on" ? "strict" : "standard" },
+                               set: { newValue in
+                                   let state = newValue == "strict" ? "on" : "off"
+                                   Task { await setWebsiteState(scope: "Strict", state: state) }
+                               }),
+                           optionLabels: ["standard": L10n.t("标准模式"),
+                                          "strict": L10n.t("严格模式")])
+                // 全局 strict 未开启时严格模式不可选
+                .disabled(isOperating || !wafOn || !globalStrictOn)
         } header: {
             Text(L10n.t("防护"))
         } footer: {

@@ -143,6 +143,14 @@ struct WebsiteLimitConnView: View {
         .task { await load() }
     }
 
+    /// 方案索引 Int ↔ String（OutlinedPicker 用 String）
+    private var schemeIndexBinding: Binding<String> {
+        Binding<String>(
+            get: { String(schemeIndex) },
+            set: { schemeIndex = Int($0) ?? 0 }
+        )
+    }
+
     private var form: some View {
         Form {
             Section {
@@ -152,44 +160,26 @@ struct WebsiteLimitConnView: View {
                 ))
                 .disabled(isToggling)
 
-                Picker(L10n.t("限制方案"), selection: $schemeIndex) {
-                    ForEach(Self.schemes.indices, id: \.self) { i in
-                        Text(Self.schemes[i].name).tag(i)
+                OutlinedPicker(label: L10n.t("限制方案"),
+                               options: Self.schemes.indices.map(String.init),
+                               selection: schemeIndexBinding,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   Self.schemes.enumerated().map { (String($0.offset), $0.element.name) }))
+                    .onChange(of: schemeIndex) { _, newIndex in
+                        // 「当前」保持现有值，其余方案带入内置参数
+                        guard newIndex > 0 else { return }
+                        let s = Self.schemes[newIndex]
+                        perserver = String(s.perserver)
+                        perip = String(s.perip)
+                        rate = String(s.rate)
                     }
-                }
-                .onChange(of: schemeIndex) { _, newIndex in
-                    // 「当前」保持现有值，其余方案带入内置参数
-                    guard newIndex > 0 else { return }
-                    let s = Self.schemes[newIndex]
-                    perserver = String(s.perserver)
-                    perip = String(s.perip)
-                    rate = String(s.rate)
-                }
 
-                HStack {
-                    Text(L10n.t("并发限制"))
-                    Spacer()
-                    TextField("300", text: $perserver)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 96)
-                }
-                HStack {
-                    Text(L10n.t("单IP限制"))
-                    Spacer()
-                    TextField("25", text: $perip)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 96)
-                }
-                HStack {
-                    Text(L10n.t("单请求限速"))
-                    Spacer()
-                    TextField("512", text: $rate)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 96)
-                }
+                OutlinedUnitField(label: L10n.t("并发限制"), unit: "", prompt: L10n.t("可选"),
+                                  text: $perserver, range: 0...999999)
+                OutlinedUnitField(label: L10n.t("单IP限制"), unit: "", prompt: L10n.t("可选"),
+                                  text: $perip, range: 0...999999)
+                OutlinedUnitField(label: L10n.t("单请求限速"), unit: "KB/s",
+                                  text: $rate, range: 0...999999)
             } header: {
                 Text(L10n.t("流量限制"))
             } footer: {
@@ -530,12 +520,11 @@ struct WebsiteRedirectEditView: View {
 
             Section(L10n.t("规则")) {
                 if type == "domain" {
-                    Picker(L10n.t("域名"), selection: $selectedDomain) {
-                        Text(domains.isEmpty ? L10n.t("未获取") : L10n.t("请选择")).tag("")
-                        ForEach(domains) { d in
-                            Text(d.domain ?? "").tag(d.domain ?? "")
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("域名"),
+                                   options: [""] + domains.compactMap(\.domain),
+                                   selection: $selectedDomain,
+                                   optionLabels: ["": domains.isEmpty
+                                        ? L10n.t("未获取") : L10n.t("请选择")])
                 } else if type == "path" {
                     FormTextField(label: L10n.t("路径"), prompt: "/ai", text: $path,
                                   style: .stacked, keyboardType: .URL)
@@ -892,14 +881,22 @@ struct WebsiteAuthEditView: View {
         Form {
             Section(L10n.t("账号")) {
                 OutlinedTextField(label: L10n.t("用户名"), text: $username, disabled: isEdit)
-                HStack(alignment: .firstTextBaseline) {
-                    OutlinedTextField(label: L10n.t("密码"), text: $password, isSecure: true)
+                // 随机按钮内嵌描边框右侧（与单位/箭头同位）
+                OutlinedShape(label: L10n.t("密码"), isFocused: false,
+                              hasValue: !password.isEmpty,
+                              trailing: {
                     Button {
                         password = Self.randomPassword()
                     } label: {
                         Image(systemName: "dice")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
+                }) {
+                    SecureField("", text: $password)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                 }
                 OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $remark)
             }

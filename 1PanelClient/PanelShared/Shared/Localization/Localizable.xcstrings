@@ -52,6 +52,9 @@
     ".." : {
 
     },
+    "…" : {
+
+    },
     "·" : {
 
     },
@@ -155,26 +158,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ · %d"
-          }
-        }
-      }
-    },
-    "%@ (%@)" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ (%2$@)"
-          }
-        }
-      }
-    },
-    "%@ (v%@)" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ (v%2$@)"
           }
         }
       }
@@ -640,6 +623,17 @@
         }
       }
     },
+    "%ld 节点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld servers"
+          }
+        }
+      }
+    },
     "%ld 项" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -790,9 +784,6 @@
           }
         }
       }
-    },
-    "0" : {
-
     },
     "1 CPU，2.0 Ghz+" : {
       "extractionState" : "manual",
@@ -985,9 +976,6 @@
         }
       }
     },
-    "25" : {
-
-    },
     "30" : {
 
     },
@@ -995,9 +983,6 @@
 
     },
     "200" : {
-
-    },
-    "300" : {
 
     },
     "360搜索" : {
@@ -1025,13 +1010,7 @@
     "500" : {
 
     },
-    "512" : {
-
-    },
     "1000" : {
-
-    },
-    "10000" : {
 
     },
     "18789" : {
@@ -1684,6 +1663,28 @@
     "FTP" : {
 
     },
+    "FTP 密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FTP Password"
+          }
+        }
+      }
+    },
+    "FTP 账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FTP Account"
+          }
+        }
+      }
+    },
     "FTP 账号管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1748,9 +1749,6 @@
         }
       }
     },
-    "hostname" : {
-
-    },
     "Hosts" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1786,9 +1784,6 @@
           }
         }
       }
-    },
-    "http" : {
-
     },
     "HTTP" : {
       "extractionState" : "manual",
@@ -1915,9 +1910,6 @@
 
     },
     "HTTP/3 (QUIC)" : {
-
-    },
-    "https" : {
 
     },
     "HTTPS" : {
@@ -2050,6 +2042,17 @@
         }
       }
     },
+    "IP Header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Header"
+          }
+        }
+      }
+    },
     "IP 为 CIDR 格式，留空表示所有地址；端口 0 表示任意端口；协议为全部时端口不可用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2068,6 +2071,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "IP List"
+          }
+        }
+      }
+    },
+    "IP 哈希" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Hash"
           }
         }
       }
@@ -2123,6 +2137,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "IP or domain"
+          }
+        }
+      }
+    },
+    "IP 来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Sources"
           }
         }
       }
@@ -2276,9 +2301,6 @@
         }
       }
     },
-    "KEY=VALUE" : {
-
-    },
     "local" : {
 
     },
@@ -2371,9 +2393,6 @@
         }
       }
     },
-    "off" : {
-
-    },
     "Ollama" : {
 
     },
@@ -2387,9 +2406,6 @@
           }
         }
       }
-    },
-    "on" : {
-
     },
     "OpenClaw / Hermes Agent / QwenPaw" : {
       "extractionState" : "manual",
@@ -2426,6 +2442,9 @@
           }
         }
       }
+    },
+    "PHP" : {
+
     },
     "PID %lld" : {
 
@@ -2495,6 +2514,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "root user"
+          }
+        }
+      }
+    },
+    "Root密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Root Password"
           }
         }
       }
@@ -4659,6 +4689,28 @@
         }
       }
     },
+    "伪静态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL Rewrite"
+          }
+        }
+      }
+    },
+    "伪静态已保存并重载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL rewrite saved and reloaded"
+          }
+        }
+      }
+    },
     "低频存储" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4974,6 +5026,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Save failed: %@"
+          }
+        }
+      }
+    },
+    "保存并重载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save & Reload"
           }
         }
       }
@@ -5418,6 +5481,17 @@
         }
       }
     },
+    "允许 Referer 为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Empty Referer"
+          }
+        }
+      }
+    },
     "允许 SSH 登陆" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5429,6 +5503,28 @@
         }
       }
     },
+    "允许携带 cookies" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Credentials"
+          }
+        }
+      }
+    },
+    "允许的域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed Domains"
+          }
+        }
+      }
+    },
     "允许的访问来源" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5436,6 +5532,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Allowed Origins"
+          }
+        }
+      }
+    },
+    "允许的请求头" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed Headers"
+          }
+        }
+      }
+    },
+    "允许的请求方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed Methods"
+          }
+        }
+      }
+    },
+    "允许访问的域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed Origins"
+          }
+        }
+      }
+    },
+    "允许非标准 Referer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Non-standard Referer"
           }
         }
       }
@@ -5990,6 +6130,17 @@
         }
       }
     },
+    "其他 Header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other Header"
+          }
+        }
+      }
+    },
     "其他域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6331,6 +6482,17 @@
         }
       }
     },
+    "最大失败次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Fails"
+          }
+        }
+      }
+    },
     "最大连接数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6360,6 +6522,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Minimum file size to compress"
+          }
+        }
+      }
+    },
+    "最小连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Least Connections"
           }
         }
       }
@@ -6782,6 +6955,17 @@
         }
       }
     },
+    "创建 FTP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create FTP"
+          }
+        }
+      }
+    },
     "创建 IP 组" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7079,6 +7263,17 @@
         }
       }
     },
+    "创建站点时同步开通 FTP，用于上传静态资源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FTP is created with the site for uploading static assets"
+          }
+        }
+      }
+    },
     "创建端口规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7174,6 +7369,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create Task"
+          }
+        }
+      }
+    },
+    "创建负载均衡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Load Balancer"
+          }
+        }
+      }
+    },
+    "创建负载均衡后，请前往「反向代理」，添加代理并将后端地址设置为：http://<负载均衡名称>" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After creating a load balancer, go to Reverse Proxy and add a proxy with backend http://<name>"
           }
         }
       }
@@ -9488,6 +9705,17 @@
         }
       }
     },
+    "受防盗链约束的文件扩展名，逗号分隔" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File extensions subject to hotlink protection, comma-separated"
+          }
+        }
+      }
+    },
     "受阻" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9495,6 +9723,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Blocked"
+          }
+        }
+      }
+    },
+    "另存为模版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save as Template"
           }
         }
       }
@@ -9990,6 +10229,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name cannot be changed"
+          }
+        }
+      }
+    },
+    "名称修改后请确保域名解析已指向本服务器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After changing the name, make sure DNS points to this server"
           }
         }
       }
@@ -10764,6 +11014,17 @@
         }
       }
     },
+    "命令与参数以空格分隔；默认 1 行，行末继续输入自动增高" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Separate command and arguments with spaces; grows automatically past line 1"
+          }
+        }
+      }
+    },
     "命令内容，如 df -hT" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10848,6 +11109,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Response Traffic"
+          }
+        }
+      }
+    },
+    "响应资源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Response Status"
           }
         }
       }
@@ -11167,6 +11439,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Domain Binding"
+          }
+        }
+      }
+    },
+    "域名设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domains"
           }
         }
       }
@@ -11530,6 +11813,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notes (optional)"
+          }
+        }
+      }
+    },
+    "备用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup"
           }
         }
       }
@@ -13833,6 +14127,17 @@
         }
       }
     },
+    "已另存为模版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved as template"
+          }
+        }
+      }
+    },
     "已同步" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15006,6 +15311,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In observation mode, all WAF matches are only logged and no requests are blocked. Continue?"
+          }
+        }
+      }
+    },
+    "开启跨域" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable CORS"
           }
         }
       }
@@ -16293,6 +16609,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Run Settings"
+          }
+        }
+      }
+    },
+    "扩展名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Extensions"
           }
         }
       }
@@ -17793,6 +18120,17 @@
         }
       }
     },
+    "故障超时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fail Timeout"
+          }
+        }
+      }
+    },
     "敬请期待" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18409,6 +18747,17 @@
         }
       }
     },
+    "方案" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preset"
+          }
+        }
+      }
+    },
     "无" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18834,6 +19183,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unmount partition %@?"
+          }
+        }
+      }
+    },
+    "是否启用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable"
           }
         }
       }
@@ -19824,6 +20184,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Diagnostics Yet"
+          }
+        }
+      }
+    },
+    "暂无负载均衡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Load Balancers"
           }
         }
       }
@@ -21166,6 +21537,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Authority Details"
+          }
+        }
+      }
+    },
+    "权重" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weight"
           }
         }
       }
@@ -22611,6 +22993,17 @@
         }
       }
     },
+    "浏览器缓存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser Cache"
+          }
+        }
+      }
+    },
     "浏览峰值 %ld，访客峰值 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23337,6 +23730,17 @@
         }
       }
     },
+    "源文已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source file saved"
+          }
+        }
+      }
+    },
     "源端口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23861,6 +24265,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap the top-right button to create your first alert"
+          }
+        }
+      }
+    },
+    "点击右上角创建第一个负载均衡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + to create the first load balancer"
           }
         }
       }
@@ -24888,6 +25303,28 @@
         }
       }
     },
+    "真实 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real IP"
+          }
+        }
+      }
+    },
+    "真实 IP 配置已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real IP config saved"
+          }
+        }
+      }
+    },
     "真实IP获取方式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25027,6 +25464,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete command \"%@\"?"
+          }
+        }
+      }
+    },
+    "确定删除域名「%@」吗？删除后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete domain \"%@\"? This cannot be undone."
           }
         }
       }
@@ -25192,6 +25640,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete this channel's configuration? You will need to reconfigure it to use it again."
+          }
+        }
+      }
+    },
+    "确定删除负载均衡「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete load balancer \"%@\"?"
           }
         }
       }
@@ -26252,6 +26711,17 @@
         }
       }
     },
+    "端口为 80 的域名不可开启 SSL；仅剩一个域名时不可删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domains on port 80 cannot enable SSL; the last remaining domain cannot be deleted"
+          }
+        }
+      }
+    },
     "端口号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26270,6 +26740,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Expose Port"
+          }
+        }
+      }
+    },
+    "端口存储" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ports & Storage"
           }
         }
       }
@@ -26435,6 +26916,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Issue Certificate"
+          }
+        }
+      }
+    },
+    "算法" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algorithm"
           }
         }
       }
@@ -27154,6 +27646,17 @@
         }
       }
     },
+    "缓存时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Duration"
+          }
+        }
+      }
+    },
     "缓存清理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27524,6 +28027,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Certificate"
+          }
+        }
+      }
+    },
+    "编辑负载均衡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Load Balancer"
           }
         }
       }
@@ -28331,6 +28845,17 @@
         }
       }
     },
+    "节点-%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server-%ld"
+          }
+        }
+      }
+    },
     "节点不存在或已被移除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28459,6 +28984,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "If the local terminal cannot connect, add the panel server as a host and connect over SSH"
+          }
+        }
+      }
+    },
+    "若设置伪静态后网站无法正常访问，请尝试设置回 default" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If the site breaks after applying URL rewrite, try switching back to default"
           }
         }
       }
@@ -29119,6 +29655,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load records: %@"
+          }
+        }
+      }
+    },
+    "记录请求日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Requests"
           }
         }
       }
@@ -30641,6 +31188,28 @@
         }
       }
     },
+    "负载均衡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Balancing"
+          }
+        }
+      }
+    },
+    "负载均衡已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load balancer saved"
+          }
+        }
+      }
+    },
     "账号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31000,6 +31569,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shared memory across conversations"
+          }
+        }
+      }
+    },
+    "跨域访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CORS"
+          }
+        }
+      }
+    },
+    "跨域配置已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CORS config saved"
           }
         }
       }
@@ -32489,6 +33080,17 @@
         }
       }
     },
+    "遇见请求快速响应" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preflight Fast Response"
+          }
+        }
+      }
+    },
     "邮箱" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33365,6 +33967,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Firewall Rules"
+          }
+        }
+      }
+    },
+    "防盗链" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotlink Protection"
+          }
+        }
+      }
+    },
+    "防盗链已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotlink protection saved"
+          }
+        }
+      }
+    },
+    "防盗链配置已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotlink protection saved"
           }
         }
       }
@@ -34399,655 +35034,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Connection"
-          }
-        }
-      }
-    },
-    "创建 FTP" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create FTP"
-          }
-        }
-      }
-    },
-    "FTP 账号" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FTP Account"
-          }
-        }
-      }
-    },
-    "FTP 密码" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FTP Password"
-          }
-        }
-      }
-    },
-    "创建站点时同步开通 FTP，用于上传静态资源" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FTP is created with the site for uploading static assets"
-          }
-        }
-      }
-    },
-    "域名设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Domains"
-          }
-        }
-      }
-    },
-    "端口为 80 的域名不可开启 SSL；仅剩一个域名时不可删除" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Domains on port 80 cannot enable SSL; the last remaining domain cannot be deleted"
-          }
-        }
-      }
-    },
-    "确定删除域名「%@」吗？删除后不可恢复。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete domain \"%@\"? This cannot be undone."
-          }
-        }
-      }
-    },
-    "防盗链" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hotlink Protection"
-          }
-        }
-      }
-    },
-    "是否启用" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enable"
-          }
-        }
-      }
-    },
-    "扩展名" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File Extensions"
-          }
-        }
-      }
-    },
-    "受防盗链约束的文件扩展名，逗号分隔" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File extensions subject to hotlink protection, comma-separated"
-          }
-        }
-      }
-    },
-    "允许的域名" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allowed Domains"
-          }
-        }
-      }
-    },
-    "允许 Referer 为空" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow Empty Referer"
-          }
-        }
-      }
-    },
-    "允许非标准 Referer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow Non-standard Referer"
-          }
-        }
-      }
-    },
-    "响应资源" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Response Status"
-          }
-        }
-      }
-    },
-    "浏览器缓存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Browser Cache"
-          }
-        }
-      }
-    },
-    "缓存时间" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache Duration"
-          }
-        }
-      }
-    },
-    "记录请求日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Log Requests"
-          }
-        }
-      }
-    },
-    "防盗链配置已保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hotlink protection saved"
-          }
-        }
-      }
-    },
-    "伪静态" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "URL Rewrite"
-          }
-        }
-      }
-    },
-    "方案" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preset"
-          }
-        }
-      }
-    },
-    "另存为模版" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save as Template"
-          }
-        }
-      }
-    },
-    "若设置伪静态后网站无法正常访问，请尝试设置回 default" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If the site breaks after applying URL rewrite, try switching back to default"
-          }
-        }
-      }
-    },
-    "保存并重载" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save & Reload"
-          }
-        }
-      }
-    },
-    "伪静态已保存并重载" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "URL rewrite saved and reloaded"
-          }
-        }
-      }
-    },
-    "已另存为模版" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saved as template"
-          }
-        }
-      }
-    },
-    "真实 IP" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Real IP"
-          }
-        }
-      }
-    },
-    "IP 来源" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IP Sources"
-          }
-        }
-      }
-    },
-    "IP Header" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IP Header"
-          }
-        }
-      }
-    },
-    "其他 Header" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Other Header"
-          }
-        }
-      }
-    },
-    "真实 IP 配置已保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Real IP config saved"
-          }
-        }
-      }
-    },
-    "跨域访问" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CORS"
-          }
-        }
-      }
-    },
-    "开启跨域" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enable CORS"
-          }
-        }
-      }
-    },
-    "允许访问的域名" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allowed Origins"
-          }
-        }
-      }
-    },
-    "允许的请求方式" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allowed Methods"
-          }
-        }
-      }
-    },
-    "允许的请求头" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allowed Headers"
-          }
-        }
-      }
-    },
-    "允许携带 cookies" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow Credentials"
-          }
-        }
-      }
-    },
-    "遇见请求快速响应" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preflight Fast Response"
-          }
-        }
-      }
-    },
-    "跨域配置已保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CORS config saved"
-          }
-        }
-      }
-    },
-    "负载均衡" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Load Balancing"
-          }
-        }
-      }
-    },
-    "暂无负载均衡" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Load Balancers"
-          }
-        }
-      }
-    },
-    "点击右上角创建第一个负载均衡" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap + to create the first load balancer"
-          }
-        }
-      }
-    },
-    "创建负载均衡后，请前往「反向代理」，添加代理并将后端地址设置为：http://<负载均衡名称>" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "After creating a load balancer, go to Reverse Proxy and add a proxy with backend http://<name>"
-          }
-        }
-      }
-    },
-    "创建负载均衡" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create Load Balancer"
-          }
-        }
-      }
-    },
-    "编辑负载均衡" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Load Balancer"
-          }
-        }
-      }
-    },
-    "确定删除负载均衡「%@」吗？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete load balancer \"%@\"?"
-          }
-        }
-      }
-    },
-    "算法" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Algorithm"
-          }
-        }
-      }
-    },
-    "IP 哈希" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IP Hash"
-          }
-        }
-      }
-    },
-    "最小连接" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Least Connections"
-          }
-        }
-      }
-    },
-    "%ld 节点" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld servers"
-          }
-        }
-      }
-    },
-    "节点-%ld" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Server-%ld"
-          }
-        }
-      }
-    },
-    "权重" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Weight"
-          }
-        }
-      }
-    },
-    "备用" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Backup"
-          }
-        }
-      }
-    },
-    "最大失败次数" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Max Fails"
-          }
-        }
-      }
-    },
-    "故障超时" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fail Timeout"
-          }
-        }
-      }
-    },
-    "负载均衡已保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Load balancer saved"
-          }
-        }
-      }
-    },
-    "源文已保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Source file saved"
-          }
-        }
-      }
-    },
-    "名称修改后请确保域名解析已指向本服务器" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "After changing the name, make sure DNS points to this server"
-          }
-        }
-      }
-    },
-    "防盗链已保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hotlink protection saved"
           }
         }
       }

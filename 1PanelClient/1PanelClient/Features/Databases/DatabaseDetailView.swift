@@ -453,27 +453,35 @@ struct ChangeAccessSheet: View {
         }
     }
 
+    /// 访问权限枚举 ↔ 字符串（OutlinedPicker 用 String）
+    private var modeBinding: Binding<String> {
+        Binding<String>(
+            get: { mode.rawValue },
+            set: { mode = AccessMode(rawValue: $0) ?? .all }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section(L10n.t("访问权限")) {
-                    Picker(L10n.t("权限"), selection: $mode) {
-                        ForEach(AccessMode.allCases) { m in
-                            Text(L10n.t(m.rawValue)).tag(m)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                Section {
+                    OutlinedPicker(label: L10n.t("访问权限"),
+                                   options: AccessMode.allCases.map(\.rawValue),
+                                   selection: modeBinding,
+                                   optionLabels: AccessMode.allCases.reduce(into: [:]) {
+                                       $0[$1.rawValue] = L10n.t($1.rawValue)
+                                   })
 
                     if mode == .ip {
-                        TextField(L10n.t("IP 地址（逗号分隔）"), text: $ipList, axis: .vertical)
-                            .textFieldStyle(.roundedBorder)
-                            .lineLimit(2...4)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .font(.dataMonospacedBody)
+                        OutlinedMultiLineField(label: L10n.t("IP"),
+                                               prompt: "192.168.1.100, 10.0.0.5",
+                                               text: $ipList)
+                    }
+                } header: {
+                    Text(L10n.t("访问权限"))
+                } footer: {
+                    if mode == .ip {
                         Text(L10n.t("多个 IP 用逗号分隔，如 192.168.1.100, 10.0.0.5"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
                     }
                 }
             }

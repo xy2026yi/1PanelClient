@@ -142,24 +142,44 @@ struct OutlinedTextField: View {
 /// range 传入时输入即时钳制到范围（如原 Stepper 的 1...9999）
 struct OutlinedUnitField: View {
     let label: String
+    /// 框右侧常驻单位（如「核」「MB」）；无单位传空串
     let unit: String
+    /// 空值时框内提示（如「可选」），有值自动隐藏
+    var prompt: String? = nil
     @Binding var text: String
     var range: ClosedRange<Int>? = nil
+    var keyboardType: UIKeyboardType = .numberPad
+    /// 框下方常驻提示（如「如果设置为 0，则表示没有限制」）
+    var hint: String? = nil
 
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
-                      trailing: {
-            Text(unit)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }) {
+        VStack(alignment: .leading, spacing: 4) {
+            OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
+                          trailing: {
+                Text(unit)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }) {
             TextField("", text: clampedText)
-                .keyboardType(.numberPad)
+                .keyboardType(keyboardType)
                 .focused($isFocused)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                if text.isEmpty, let prompt, !isFocused {
+                    Text(prompt)
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                        .allowsHitTesting(false)
+                }
+            }
+            if let hint {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 14)
+            }
         }
     }
 
@@ -183,6 +203,8 @@ struct OutlinedMultiLineField: View {
     let label: String
     /// 聚焦且空值时框内的格式提示（可选）
     var prompt: String? = nil
+    /// 默认行数（minHeight 随之；内容超出自动增高），默认 5
+    var lines: Int = 5
     @Binding var text: String
 
     @FocusState private var isFocused: Bool
@@ -192,7 +214,11 @@ struct OutlinedMultiLineField: View {
     @ScaledMetric(relativeTo: .body) private var bodyFontSize: CGFloat = 16
     @ScaledMetric(relativeTo: .caption2) private var floatLift: CGFloat = 7
     @ScaledMetric(relativeTo: .caption2) private var floatArea: CGFloat = 13
-    @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 134
+    @ScaledMetric(relativeTo: .body) private var bodyFont: CGFloat = 16
+    /// 框高 = 浮动区 + 行数×行高 + 上下内边距（1 行约 60pt，文字不贴底边线）
+    private var minHeight: CGFloat {
+        floatArea + CGFloat(lines) * bodyFont * 1.45 + 24
+    }
 
     private var isFloating: Bool { isFocused || !text.isEmpty }
 

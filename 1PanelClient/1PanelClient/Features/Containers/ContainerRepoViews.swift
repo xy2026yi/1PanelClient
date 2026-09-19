@@ -242,11 +242,10 @@ struct RepoFormView: View {
                 }
             }
             FormTextField(label: L10n.t("下载地址"), text: $downloadUrl, style: .stacked, keyboardType: .URL)
-            Picker(L10n.t("协议"), selection: $useHTTPS) {
-                Text("https").tag(true)
-                Text("http").tag(false)
-            }
-            .pickerStyle(.segmented)
+            OutlinedPicker(label: L10n.t("协议"), options: ["https", "http"],
+                           selection: Binding(
+                               get: { useHTTPS ? "https" : "http" },
+                               set: { useHTTPS = $0 == "https" }))
             Text(L10n.t("http 仓库添加授信需要重启 Docker 服务"))
                 .font(.caption)
                 .foregroundStyle(.secondary)

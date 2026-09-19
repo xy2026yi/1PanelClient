@@ -252,10 +252,14 @@ nonisolated struct InstalledParamField: Decodable, Identifiable, Hashable, Senda
 
     var id: String { key ?? UUID().uuidString }
 
-    /// 显示标签（优先中文）
+    /// 显示标签（优先中文）；服务端个别标签过长时按映射精简
     var displayLabel: String {
-        labelZh ?? labelEn ?? key ?? L10n.t("参数")
+        let raw = labelZh ?? labelEn ?? key ?? L10n.t("参数")
+        return Self.labelRenames[raw] ?? Self.labelRenames[raw.lowercased()] ?? raw
     }
+
+    /// 服务端标签 → 展示名（如 root用户密码 → Root密码）
+    static let labelRenames: [String: String] = ["root用户密码": L10n.t("Root密码")]
 
     enum CodingKeys: String, CodingKey {
         case edit, key, rule, labelZh, labelEn, type, values, showValue

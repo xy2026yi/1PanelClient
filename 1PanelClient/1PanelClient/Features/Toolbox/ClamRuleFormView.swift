@@ -149,12 +149,11 @@ struct ClamRuleFormView: View {
                 .accessibilityLabel(L10n.t("浏览目录"))
             }
 
-            Picker(L10n.t("感染文件策略"), selection: $strategy) {
-                Text(L10n.t("不操作")).tag("none")
-                Text(L10n.t("删除")).tag("remove")
-                Text(L10n.t("移动")).tag("move")
-                Text(L10n.t("复制")).tag("copy")
-            }
+            OutlinedPicker(label: L10n.t("感染文件策略"),
+                           options: ["none", "remove", "move", "copy"],
+                           selection: $strategy,
+                           optionLabels: ["none": L10n.t("不操作"), "remove": L10n.t("删除"),
+                                          "move": L10n.t("移动"), "copy": L10n.t("复制")])
 
             if needsQuarantine {
                 HStack {
@@ -183,38 +182,32 @@ struct ClamRuleFormView: View {
             Toggle(L10n.t("定期扫描"), isOn: $hasSpec)
 
             if hasSpec {
-                Picker(L10n.t("周期"), selection: $specType) {
-                    Text(L10n.t("每月")).tag("perMonth")
-                    Text(L10n.t("每周")).tag("perWeek")
-                    Text(L10n.t("每天")).tag("perDay")
-                }
-                .pickerStyle(.segmented)
+                OutlinedPicker(label: L10n.t("周期"),
+                               options: ["perMonth", "perWeek", "perDay"],
+                               selection: $specType,
+                               optionLabels: ["perMonth": L10n.t("每月"),
+                                              "perWeek": L10n.t("每周"),
+                                              "perDay": L10n.t("每天")])
 
                 if specType == "perWeek" {
-                    Picker(L10n.t("星期"), selection: $week) {
-                        ForEach(1...7, id: \.self) { w in
-                            Text(weekdayName(w)).tag(w)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("星期"),
+                                   options: (1...7).map(String.init),
+                                   selection: weekText,
+                                   optionLabels: Dictionary(uniqueKeysWithValues:
+                                       (1...7).map { (String($0), weekdayName($0)) }))
                 }
                 if specType == "perMonth" {
-                    Picker(L10n.t("几号"), selection: $day) {
-                        ForEach(1...31, id: \.self) { d in
-                            Text("\(d)").tag(d)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("几号"),
+                                   options: (1...31).map(String.init),
+                                   selection: dayText)
                 }
 
-                Picker(L10n.t("小时"), selection: $hour) {
-                    ForEach(0..<24, id: \.self) { h in
-                        Text(String(format: "%02d", h)).tag(h)
-                    }
-                }
-                Picker(L10n.t("分钟"), selection: $minute) {
-                    ForEach(0..<60, id: \.self) { m in
-                        Text(String(format: "%02d", m)).tag(m)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("小时"),
+                               options: (0..<24).map(String.init),
+                               selection: hourText)
+                OutlinedPicker(label: L10n.t("分钟"),
+                               options: (0..<60).map(String.init),
+                               selection: minuteText)
             }
         } header: {
             SectionLabel(title: L10n.t("定期扫描"), systemImage: "clock")
@@ -258,12 +251,10 @@ struct ClamRuleFormView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else {
-                    Picker(L10n.t("告警方式"), selection: $alertMethodID) {
-                        Text(L10n.t("请选择")).tag(0)
-                        ForEach(alertConfigs) { config in
-                            Text(config.sendConfig.displayName ?? config.type ?? "—").tag(config.id)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("告警方式"),
+                                   options: alertMethodOptionKeys,
+                                   selection: alertMethodText,
+                                   optionLabels: alertMethodOptionLabels)
                     Stepper(value: $alertCount, in: 1...99) {
                         HStack {
                             Text(L10n.t("告警次数"))
@@ -283,6 +274,43 @@ struct ClamRuleFormView: View {
     }
 
     // MARK: - 超时
+
+    // 定期扫描数值选项 Int ↔ String（OutlinedPicker 用 String 键）
+    private var weekText: Binding<String> {
+        Binding<String>(get: { String(week) }, set: { week = Int($0) ?? week })
+    }
+
+    private var dayText: Binding<String> {
+        Binding<String>(get: { String(day) }, set: { day = Int($0) ?? day })
+    }
+
+    private var hourText: Binding<String> {
+        Binding<String>(get: { String(hour) }, set: { hour = Int($0) ?? hour })
+    }
+
+    private var minuteText: Binding<String> {
+        Binding<String>(get: { String(minute) }, set: { minute = Int($0) ?? minute })
+    }
+
+    /// 告警方式选项（0=请选择）
+    private var alertMethodOptionKeys: [String] {
+        ["0"] + alertConfigs.map { String($0.id) }
+    }
+
+    private var alertMethodOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("请选择")]
+        for config in alertConfigs {
+            labels[String(config.id)] = config.sendConfig.displayName ?? config.type ?? "—"
+        }
+        return labels
+    }
+
+    private var alertMethodText: Binding<String> {
+        Binding<String>(
+            get: { String(alertMethodID) },
+            set: { alertMethodID = Int($0) ?? 0 }
+        )
+    }
 
     private var timeoutSection: some View {
         Section {

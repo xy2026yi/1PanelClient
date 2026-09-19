@@ -395,19 +395,20 @@ final class ContainersViewModel: ObservableObject {
     }
 
     /// 创建容器（POST /containers），字段对齐 doc/手动创建容器.log
+    /// 成功返回任务 ID（供进度页轮询），失败返回 nil
     @discardableResult
-    func createContainer(draft: ContainerCreateDraft) async -> Bool {
+    func createContainer(draft: ContainerCreateDraft) async -> String? {
         guard !draft.name.trimmingCharacters(in: .whitespaces).isEmpty,
               !draft.image.trimmingCharacters(in: .whitespaces).isEmpty else {
             showAlert(message: L10n.t("容器名称和镜像不能为空"))
-            return false
+            return nil
         }
         containerOperating = true
         defer { containerOperating = false }
 
         let ports = draft.ports.map {
             ContainerUpdatePort(
-                hostIP: "", hostPort: $0.host,
+                hostIP: $0.hostIP, hostPort: $0.host,
                 containerPort: $0.containerPort, protocolField: $0.protocolField,
                 host: $0.host
             )
@@ -418,8 +419,12 @@ final class ContainersViewModel: ObservableObject {
                 mode: $0.mode, shared: $0.shared
             )
         }
+        let isPanelNetwork = draft.network == "1panel-network"
         let networks = [ContainerNetworkInfo(
-            network: draft.network, ipv4: "", ipv6: "", macAddr: ""
+            network: draft.network,
+            ipv4: isPanelNetwork ? draft.networkIPv4 : "",
+            ipv6: isPanelNetwork ? draft.networkIPv6 : "",
+            macAddr: ""
         )]
         let req = ContainerUpdateRequest(
             taskID: UUID().uuidString,
@@ -431,24 +436,24 @@ final class ContainersViewModel: ObservableObject {
             hostname: draft.hostname,
             domainName: "",
             dns: [],
-            cmdStr: "",
-            entrypointStr: "",
+            cmdStr: draft.cmdStr.trimmingCharacters(in: .whitespaces),
+            entrypointStr: draft.entrypointStr.trimmingCharacters(in: .whitespaces),
             memoryItem: 0,
-            cmd: [],
-            workingDir: "",
-            user: "",
+            cmd: draft.cmd,
+            workingDir: draft.workingDir.trimmingCharacters(in: .whitespaces),
+            user: draft.user.trimmingCharacters(in: .whitespaces),
             openStdin: draft.openStdin,
             tty: draft.tty,
-            entrypoint: [],
+            entrypoint: draft.entrypoint,
             publishAllPorts: draft.publishAllPorts,
             exposedPorts: ports,
-            nanoCPUs: 0,
+            nanoCPUs: draft.cpuCores * 1_000_000_000,
             cpuShares: draft.cpuShares,
             memory: Int64(draft.memoryMB) * 1024 * 1024,
             volumes: volumes,
             privileged: draft.privileged,
             autoRemove: draft.autoRemove,
-            labels: [],
+            labels: draft.labels,
             env: draft.env,
             restartPolicy: draft.restartPolicy
         )
@@ -456,68 +461,76 @@ final class ContainersViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.containersCreate.path, body: req, as: EmptyResponse.self
             )
-            try? await Task.sleep(for: .seconds(1))
             await load(query: "")
-            showToast(L10n.f("创建容器「%@」任务已提交", draft.name))
-            return true
+            return req.taskID
         } catch {
             showAlert(message: L10n.f("创建容器失败：%@", error.localizedDescription))
-            return false
+            return nil
         }
     }
 
     /// 更新容器配置（POST /containers/update）
-    /// info 来自 /containers/info；image / forcePull / publishAllPorts / env 为用户编辑后的值
+    /// 编辑表单与创建共用 ContainerCreateDraft（全字段可编辑）；
+    /// info 仅回写表单外字段（dns/domainName）及未变更网络的原有 IP/MAC
     @discardableResult
-    func updateContainer(
-        info: ContainerInfo,
-        image: String,
-        forcePull: Bool,
-        publishAllPorts: Bool,
-        env: [String]
-    ) async -> Bool {
+    func updateContainer(info: ContainerInfo, draft: ContainerCreateDraft) async -> Bool {
         containerOperating = true
         defer { containerOperating = false }
 
-        let ports = (info.exposedPorts ?? []).map { p in
+        let ports = draft.ports.map {
             ContainerUpdatePort(
-                hostIP: p.hostIP,
-                hostPort: p.hostPort,
-                containerPort: p.containerPort,
-                protocolField: p.protocolField,
-                host: "\(p.hostIP):\(p.hostPort)"
+                hostIP: $0.hostIP, hostPort: $0.host,
+                containerPort: $0.containerPort, protocolField: $0.protocolField,
+                host: $0.host
             )
         }
+        let volumes = draft.volumes.map {
+            ContainerVolumeInfo(
+                type: $0.type, sourceDir: $0.sourceDir, containerDir: $0.containerDir,
+                mode: $0.mode, shared: $0.shared
+            )
+        }
+        // 网络未变更时保留原有 IPv4/IPv6/MAC（避免清掉非表单维护的地址）；
+        // 切到 1panel-network 以表单输入为准，其余网络置空
+        let orig = info.networks?.first
+        let sameNetwork = orig?.network == draft.network
+        let isPanelNetwork = draft.network == "1panel-network"
+        let networks = [ContainerNetworkInfo(
+            network: draft.network,
+            ipv4: isPanelNetwork ? draft.networkIPv4 : (sameNetwork ? (orig?.ipv4 ?? "") : ""),
+            ipv6: isPanelNetwork ? draft.networkIPv6 : (sameNetwork ? (orig?.ipv6 ?? "") : ""),
+            macAddr: sameNetwork ? (orig?.macAddr ?? "") : ""
+        )]
         let req = ContainerUpdateRequest(
             taskID: UUID().uuidString,
             name: info.name,
-            image: image,
+            image: draft.image.trimmingCharacters(in: .whitespaces),
             imageInput: false,
-            forcePull: forcePull,
-            networks: info.networks ?? [],
-            hostname: info.hostname ?? "",
+            forcePull: draft.forcePull,
+            networks: networks,
+            hostname: draft.hostname,
             domainName: info.domainName ?? "",
             dns: info.dns ?? [],
-            cmdStr: "",
-            entrypointStr: (info.entrypoint ?? []).joined(separator: " "),
+            cmdStr: draft.cmdStr.trimmingCharacters(in: .whitespaces),
+            entrypointStr: draft.entrypointStr.trimmingCharacters(in: .whitespaces),
             memoryItem: 0,
-            cmd: info.cmd ?? [],
-            workingDir: info.workingDir ?? "",
-            user: info.user ?? "",
-            openStdin: info.openStdin ?? false,
-            tty: info.tty ?? false,
-            entrypoint: info.entrypoint ?? [],
-            publishAllPorts: publishAllPorts,
+            cmd: draft.cmd,
+            workingDir: draft.workingDir.trimmingCharacters(in: .whitespaces),
+            user: draft.user.trimmingCharacters(in: .whitespaces),
+            openStdin: draft.openStdin,
+            tty: draft.tty,
+            entrypoint: draft.entrypoint,
+            publishAllPorts: draft.publishAllPorts,
             exposedPorts: ports,
-            nanoCPUs: info.nanoCPUs ?? 0,
-            cpuShares: info.cpuShares ?? 0,
-            memory: info.memory ?? 0,
-            volumes: info.volumes ?? [],
-            privileged: info.privileged ?? false,
-            autoRemove: info.autoRemove ?? false,
-            labels: info.labels ?? [],
-            env: env,
-            restartPolicy: info.restartPolicy ?? "always"
+            nanoCPUs: draft.cpuCores * 1_000_000_000,
+            cpuShares: draft.cpuShares,
+            memory: Int64(draft.memoryMB) * 1024 * 1024,
+            volumes: volumes,
+            privileged: draft.privileged,
+            autoRemove: draft.autoRemove,
+            labels: draft.labels,
+            env: draft.env,
+            restartPolicy: draft.restartPolicy
         )
         do {
             let _: EmptyResponse = try await client.send(

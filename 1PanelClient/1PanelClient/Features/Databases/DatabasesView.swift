@@ -1238,28 +1238,35 @@ struct ChangePasswordSheet: View {
                     }
                 }
                 Section(L10n.t("新密码")) {
-                    HStack {
+                    // 眼睛 + 骰子内嵌描边框右侧
+                    OutlinedShape(label: L10n.t("新密码"), isFocused: false,
+                                  hasValue: !newPassword.isEmpty,
+                                  trailing: {
+                        HStack(spacing: 10) {
+                            Button { showNew.toggle() } label: {
+                                Image(systemName: showNew ? "eye.slash" : "eye")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }.accessibilityLabel(showNew ? L10n.t("隐藏密码") : L10n.t("显示密码"))
+                            Button {
+                                newPassword = randomPassword()
+                                showNew = true
+                            } label: {
+                                Image(systemName: "dice")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }.accessibilityLabel(L10n.t("生成随机密码"))
+                        }
+                    }) {
                         Group {
                             if showNew {
-                                TextField(L10n.t("输入或生成新密码"), text: $newPassword)
+                                TextField("", text: $newPassword)
                             } else {
-                                SecureField(L10n.t("输入或生成新密码"), text: $newPassword)
+                                SecureField("", text: $newPassword)
                             }
                         }
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                        .font(.dataMonospacedBody)
-
-                        Button { showNew.toggle() } label: {
-                            Image(systemName: showNew ? "eye.slash" : "eye")
-                                .foregroundStyle(.secondary)
-                        }.accessibilityLabel(showNew ? L10n.t("隐藏密码") : L10n.t("显示密码"))
-                    }
-                    Button {
-                        newPassword = randomPassword()
-                        showNew = true
-                    } label: {
-                        Label(L10n.t("生成随机密码"), systemImage: "shuffle")
                     }
                 }
             }
@@ -1295,6 +1302,7 @@ struct RedisPasswordSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var newPassword = ""
     @State private var showCurrent = false
+    @State private var showNew = false
     @State private var step: Step = .input
     @State private var restartConfirm = ""
 
@@ -1351,15 +1359,33 @@ struct RedisPasswordSheet: View {
                 }
             }
             Section(L10n.t("新密码")) {
-                TextField(L10n.t("输入或生成新密码"), text: $newPassword)
-                    .textFieldStyle(.roundedBorder)
+                OutlinedShape(label: L10n.t("新密码"), isFocused: false,
+                              hasValue: !newPassword.isEmpty,
+                              trailing: {
+                    HStack(spacing: 10) {
+                        Button { showNew.toggle() } label: {
+                            Image(systemName: showNew ? "eye.slash" : "eye")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }.accessibilityLabel(showNew ? L10n.t("隐藏密码") : L10n.t("显示密码"))
+                        Button {
+                            newPassword = randomPassword()
+                        } label: {
+                            Image(systemName: "dice")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }.accessibilityLabel(L10n.t("生成随机密码"))
+                    }
+                }) {
+                    Group {
+                        if showNew {
+                            TextField("", text: $newPassword)
+                        } else {
+                            SecureField("", text: $newPassword)
+                        }
+                    }
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
-                    .font(.dataMonospacedBody)
-                Button {
-                    newPassword = randomPassword()
-                } label: {
-                    Label(L10n.t("生成随机密码"), systemImage: "shuffle")
                 }
             }
         }

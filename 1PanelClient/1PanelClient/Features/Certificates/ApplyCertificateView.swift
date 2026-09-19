@@ -93,16 +93,15 @@ struct ApplyCertificateView: View {
             }
 
             Section {
-                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $description_)
-            } header: {
-                Text(L10n.t("备注"))
-            }
-
-            Section {
                 InfoRow(L10n.t("密钥算法"), value: selectedKeyType.displayName)
                 Toggle(L10n.t("自动续签"), isOn: $autoRenew)
             } header: {
                 Text(L10n.t("配置"))
+            }
+
+            // 备注统一置底
+            Section {
+                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $description_)
             }
         }
     }
@@ -115,31 +114,23 @@ struct ApplyCertificateView: View {
                 OutlinedTextField(label: L10n.t("主域名（必填）"), text: $primaryDomain)
                 OutlinedMultiLineField(label: L10n.t("其他域名（可选，一行一个）"), text: $otherDomains)
                     .lineLimit(3, reservesSpace: true)
-                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $description_)
             }
 
             Section(L10n.t("申请配置")) {
-                Picker(L10n.t("Acme 账户"), selection: $selectedAcmeId) {
-                    ForEach(acmeAccounts) { acc in
-                        Text("\(acc.email) (\(AcmeType(rawValue: acc.type)?.displayName ?? acc.type))")
-                            .tag(acc.id)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("Acme 账户"),
+                               options: acmeOptionKeys, selection: acmeBinding,
+                               optionLabels: acmeOptionLabels)
 
                 OutlinedPicker(label: L10n.t("密匙算法"), options: SSLKeyType.allCases,
                                selection: $selectedKeyType) { $0.displayName }
 
-                Picker(L10n.t("验证方式"), selection: $selectedProvider) {
-                    ForEach(SSLProvider.allCases) { Text($0.displayName).tag($0) }
-                }
+                OutlinedPicker(label: L10n.t("验证方式"), options: SSLProvider.allCases,
+                               selection: $selectedProvider) { $0.displayName }
 
                 if selectedProvider == .dnsAccount {
-                    Picker(L10n.t("DNS 账户"), selection: $selectedDnsId) {
-                        ForEach(dnsAccounts) { acc in
-                            Text("\(acc.name) (\(DnsType(rawValue: acc.type)?.displayName ?? acc.type))")
-                                .tag(acc.id)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("DNS 账户"),
+                                   options: dnsOptionKeys, selection: dnsBinding,
+                                   optionLabels: dnsOptionLabels)
                 }
 
                 Toggle(L10n.t("自动续签"), isOn: $autoRenew)
@@ -169,7 +160,42 @@ struct ApplyCertificateView: View {
             } header: {
                 Text(L10n.t("其他选项"))
             }
+
+            // 备注统一置底
+            Section {
+                OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $description_)
+            }
         }
+    }
+
+    // MARK: - 账户选项（OutlinedPicker 用 String 键）
+
+    private var acmeOptionKeys: [String] { acmeAccounts.map { String($0.id) } }
+    private var acmeOptionLabels: [String: String] {
+        Dictionary(uniqueKeysWithValues: acmeAccounts.map {
+            (String($0.id), "\($0.email) (\(AcmeType(rawValue: $0.type)?.displayName ?? $0.type))")
+        })
+    }
+
+    private var acmeBinding: Binding<String> {
+        Binding<String>(
+            get: { String(selectedAcmeId) },
+            set: { selectedAcmeId = Int($0) ?? selectedAcmeId }
+        )
+    }
+
+    private var dnsOptionKeys: [String] { dnsAccounts.map { String($0.id) } }
+    private var dnsOptionLabels: [String: String] {
+        Dictionary(uniqueKeysWithValues: dnsAccounts.map {
+            (String($0.id), "\($0.name) (\(DnsType(rawValue: $0.type)?.displayName ?? $0.type))")
+        })
+    }
+
+    private var dnsBinding: Binding<String> {
+        Binding<String>(
+            get: { String(selectedDnsId) },
+            set: { selectedDnsId = Int($0) ?? selectedDnsId }
+        )
     }
 
     // MARK: - 数据加载

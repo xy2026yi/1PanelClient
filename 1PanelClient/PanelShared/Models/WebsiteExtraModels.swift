@@ -43,6 +43,22 @@ nonisolated struct WebsiteLeechConfig: Codable {
     var logEnable: Bool = true
     /// 允许非标准 Referer
     var blocked: Bool = false
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        enable = try c.decodeIfPresent(Bool.self, forKey: .enable) ?? false
+        extends = try c.decodeIfPresent(String.self, forKey: .extends) ?? ""
+        `return` = try c.decodeIfPresent(String.self, forKey: .return) ?? ""
+        serverNames = try c.decodeIfPresent([String].self, forKey: .serverNames) ?? []
+        cache = try c.decodeIfPresent(Bool.self, forKey: .cache) ?? false
+        cacheTime = try c.decodeIfPresent(Int.self, forKey: .cacheTime) ?? 0
+        cacheUint = try c.decodeIfPresent(String.self, forKey: .cacheUint) ?? ""
+        noneRef = try c.decodeIfPresent(Bool.self, forKey: .noneRef) ?? false
+        logEnable = try c.decodeIfPresent(Bool.self, forKey: .logEnable) ?? true
+        blocked = try c.decodeIfPresent(Bool.self, forKey: .blocked) ?? false
+    }
 }
 
 /// 防盗链保存请求（POST /websites/leech/update）
@@ -130,6 +146,17 @@ nonisolated struct WebsiteRealIPConfig: Codable {
     var ipHeader: String = ""
     /// 选「其他」时的自定义 Header
     var ipOther: String = ""
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        websiteID = try c.decodeIfPresent(Int.self, forKey: .websiteID) ?? 0
+        open = try c.decodeIfPresent(Bool.self, forKey: .open) ?? false
+        ipFrom = try c.decodeIfPresent(String.self, forKey: .ipFrom) ?? ""
+        ipHeader = try c.decodeIfPresent(String.self, forKey: .ipHeader) ?? ""
+        ipOther = try c.decodeIfPresent(String.self, forKey: .ipOther) ?? ""
+    }
 }
 
 // MARK: - 跨域访问
@@ -143,6 +170,20 @@ nonisolated struct WebsiteCorsConfig: Codable {
     var allowCredentials: Bool = false
     var preflight: Bool = true
     var websiteID: Int = 0
+
+    init() {}
+
+    // 服务端可能省略字段（响应不含 websiteID 等），统一宽容解码
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        cors = try c.decodeIfPresent(Bool.self, forKey: .cors) ?? false
+        allowOrigins = try c.decodeIfPresent(String.self, forKey: .allowOrigins) ?? "*"
+        allowMethods = try c.decodeIfPresent(String.self, forKey: .allowMethods) ?? "GET,POST,OPTIONS,PUT,DELETE"
+        allowHeaders = try c.decodeIfPresent(String.self, forKey: .allowHeaders) ?? ""
+        allowCredentials = try c.decodeIfPresent(Bool.self, forKey: .allowCredentials) ?? false
+        preflight = try c.decodeIfPresent(Bool.self, forKey: .preflight) ?? true
+        websiteID = try c.decodeIfPresent(Int.self, forKey: .websiteID) ?? 0
+    }
 }
 
 // MARK: - 负载均衡
@@ -190,4 +231,68 @@ nonisolated struct WebsiteLbsFileRequest: Encodable {
 nonisolated struct WebsiteLbsDeleteRequest: Encodable {
     let websiteID: Int
     let name: String
+}
+
+
+// MARK: - PHP 运行环境切换（依据 docs/0919-修正1.md 抓包）
+
+/// 运行环境列表查询（POST /runtimes/search {page,pageSize,type:"php"}）
+nonisolated struct RuntimeSearchRequest: Encodable {
+    let page: Int
+    let pageSize: Int
+    let type: String
+}
+
+nonisolated struct RuntimeItem: Decodable, Identifiable, Hashable {
+    let id: Int?
+    let name: String?
+    let type: String?
+    let version: String?
+    let status: String?
+
+    var displayName: String { name ?? "—" }
+}
+
+/// 运行环境分页响应（data 直接是分页对象）
+nonisolated struct RuntimeSearchResponse: Decodable {
+    let total: Int?
+    let items: [RuntimeItem]?
+}
+
+/// 切换 PHP 版本（POST /websites/php/version；runtimeID 0 = 切回静态网站）
+nonisolated struct WebsitePhpVersionRequest: Encodable {
+    let websiteID: Int
+    let runtimeID: Int
+}
+
+/// 防跨站攻击开关（POST /websites/crosssite）
+nonisolated struct WebsiteCrosssiteRequest: Encodable {
+    let websiteID: Int
+    /// Enable / Disable
+    let operation: String
+}
+
+/// 可关联数据库（GET /websites/databases 数组元素）
+nonisolated struct WebsiteDatabaseOption: Decodable, Identifiable, Hashable {
+    let name: String?
+    let databaseName: String?
+    let type: String?
+    let from: String?
+    let id: Int?
+
+    var displayName: String {
+        // name=实例名、databaseName=类型；关联提交 db 用 name
+        "\(name ?? "—") (\(databaseName ?? ""))"
+    }
+
+    var customID: String { "\(id ?? 0)-\(name ?? "")" }
+}
+
+/// 切换关联数据库（POST /websites/databases；不关联传 0/空）
+nonisolated struct WebsiteDatabaseSwitchRequest: Encodable {
+    let websiteID: Int
+    let databaseID: Int
+    let databaseType: String
+    /// 关联时传数据库实例名（如 "1mysql"=id+name），不关联传 0
+    let db: String
 }
