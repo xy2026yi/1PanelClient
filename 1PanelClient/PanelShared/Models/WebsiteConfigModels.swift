@@ -14,10 +14,10 @@ nonisolated struct WebsiteUpdateRequest: Encodable {
     let id: Int
     var primaryDomain: String
     var remark: String
-    let ipv6: Bool
+    var ipv6: Bool
     let expireDate: String
     let favorite: Bool
-    let webSiteGroupID: Int
+    var webSiteGroupID: Int
 
     enum CodingKeys: String, CodingKey {
         case id, primaryDomain, remark, favorite, expireDate

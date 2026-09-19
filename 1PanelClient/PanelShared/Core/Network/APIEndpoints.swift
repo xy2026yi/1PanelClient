@@ -91,6 +91,22 @@ enum APIEndpoint {
     case websitesAuths            // POST 获取密码访问配置
     case websitesAuthsUpdate      // POST 创建/编辑/删除/启停密码访问账号
     case websitesDomains          // GET  获取网站域名列表（:id 路径参数）
+    case websitesDomainsUpdate    // POST 域名启停 SSL（{id, ssl}）
+    case websitesDomainsDelete    // POST 删除域名（{id}）
+    case websitesLeech            // POST 获取防盗链配置（{websiteID}）
+    case websitesLeechUpdate      // POST 保存防盗链配置
+    case websitesRewrite          // POST 切换伪静态方案（{websiteID, name}，返回 content）
+    case websitesRewriteUpdate    // POST 保存并重载伪静态（{websiteID, content, name}）
+    case websitesRewriteCustom    // POST 伪静态另存模版/删除（{name, operate, content}）
+    case websitesRealIPConfig     // GET  获取真实 IP 配置（:id 路径参数）
+    case websitesRealIPUpdate     // POST 保存真实 IP 配置
+    case websitesCors             // GET  获取跨域配置（:id 路径参数）
+    case websitesCorsUpdate       // POST 保存跨域配置
+    case websitesLbs              // GET  获取负载均衡列表（:id 路径参数）
+    case websitesLbsCreate        // POST 创建负载均衡
+    case websitesLbsUpdate        // POST 更新负载均衡
+    case websitesLbsFile          // POST 保存负载均衡源文（{name, websiteID, content}）
+    case websitesLbsDelete        // POST 删除负载均衡（{websiteID, name}）
 
     // MARK: - SSL 证书（独立管理）
     case websitesSSLList          // POST 分页查询证书
@@ -730,6 +746,22 @@ enum APIEndpoint {
         case .websitesAuths:         return "/api/v2/websites/auths"
         case .websitesAuthsUpdate:   return "/api/v2/websites/auths/update"
         case .websitesDomains:       return "/api/v2/websites/domains/:id"
+        case .websitesDomainsUpdate: return "/api/v2/websites/domains/update"
+        case .websitesDomainsDelete: return "/api/v2/websites/domains/del"
+        case .websitesLeech:         return "/api/v2/websites/leech"
+        case .websitesLeechUpdate:   return "/api/v2/websites/leech/update"
+        case .websitesRewrite:       return "/api/v2/websites/rewrite"
+        case .websitesRewriteUpdate: return "/api/v2/websites/rewrite/update"
+        case .websitesRewriteCustom: return "/api/v2/websites/rewrite/custom"
+        case .websitesRealIPConfig:  return "/api/v2/websites/realip/config/:id"
+        case .websitesRealIPUpdate:  return "/api/v2/websites/realip/config"
+        case .websitesCors:          return "/api/v2/websites/cors/:id"
+        case .websitesCorsUpdate:    return "/api/v2/websites/cors/update"
+        case .websitesLbs:           return "/api/v2/websites/:id/lbs"
+        case .websitesLbsCreate:     return "/api/v2/websites/lbs/create"
+        case .websitesLbsUpdate:     return "/api/v2/websites/lbs/update"
+        case .websitesLbsFile:       return "/api/v2/websites/lbs/file"
+        case .websitesLbsDelete:     return "/api/v2/websites/lbs/del"
         case .websitesNginxConfig:   return "/api/v2/websites/:id/config/openresty"
         case .websitesNginxUpdate:   return "/api/v2/websites/nginx/update"
         case .websitesLogRead:       return "/api/v2/files/read/website?operateNode=local"
@@ -1215,6 +1247,7 @@ enum APIEndpoint {
              .appsInstalledDeleteCheck, .appsInstalledParams,
              .appStoreSettingConfig,
              .websitesDetail, .websitesNginxConfig, .websitesHTTPSRead, .websitesDomains,
+             .websitesRealIPConfig, .websitesCors, .websitesLbs,
              .websitesSSLDetail, .cronjobsBackups, .cronjobsUsers, .cronjobsScripts,
              .containersListStats, .containersStats, .containersDockerStatus, .containersImageAll,
              .containersImageOptions, .containersNetwork, .containersVolume, .containersLimit,

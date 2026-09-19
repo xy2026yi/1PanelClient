@@ -15,7 +15,6 @@ struct WebsiteDetailView: View {
     @State private var detail: WebsiteFull?
     @State private var isLoadingDetail = false
     @State private var showDeleteSheet = false
-    @State private var showEdit = false
     @State private var isOperating = false
     @State private var pendingToggle: Bool?
     @State private var isStatusExpanded = false
@@ -28,6 +27,14 @@ struct WebsiteDetailView: View {
     @State private var showRedirects = false
     @State private var showAuths = false
     @State private var showMenu = false
+    // 新增功能入口（依据 logs/网站修改与增加-1.md）
+    @State private var showDomains = false
+    @State private var showLbs = false
+    @State private var showCors = false
+    @State private var showRealIP = false
+    @State private var showRewrite = false
+    @State private var showLeech = false
+    @State private var showOther = false
     /// 浏览器打开网站链接（toolbar 打开按钮用）
     @Environment(\.openURL) private var openURL
 
@@ -125,12 +132,18 @@ struct WebsiteDetailView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("基础信息")) { showEdit = true },
-                    .action(title: L10n.t("反向代理")) { showProxies = true },
+                    .action(title: L10n.t("域名设置")) { showDomains = true },
                     .action(title: L10n.t("默认文档")) { showDefaultDoc = true },
                     .action(title: L10n.t("流量限制")) { showLimitConn = true },
-                    .action(title: L10n.t("重定向")) { showRedirects = true },
+                    .action(title: L10n.t("反向代理")) { showProxies = true },
+                    .action(title: L10n.t("负载均衡")) { showLbs = true },
                     .action(title: L10n.t("密码访问")) { showAuths = true },
+                    .action(title: L10n.t("跨域访问")) { showCors = true },
+                    .action(title: L10n.t("真实IP")) { showRealIP = true },
+                    .action(title: L10n.t("伪静态")) { showRewrite = true },
+                    .action(title: L10n.t("防盗链")) { showLeech = true },
+                    .action(title: L10n.t("重定向")) { showRedirects = true },
+                    .action(title: L10n.t("其他")) { showOther = true },
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
                 }
@@ -172,21 +185,30 @@ struct WebsiteDetailView: View {
         .navigationDestination(isPresented: $showRedirects) {
             WebsiteRedirectView(websiteId: website.id, vm: vm)
         }
+        // 新增功能入口（依据 logs/网站修改与增加-1.md）
+        .navigationDestination(isPresented: $showDomains) {
+            WebsiteDomainsView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showLbs) {
+            WebsiteLbsView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showCors) {
+            WebsiteCorsView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showRealIP) {
+            WebsiteRealIPView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showRewrite) {
+            WebsiteRewriteView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showLeech) {
+            WebsiteLeechView(websiteId: website.id, vm: vm)
+        }
+        .navigationDestination(isPresented: $showOther) {
+            WebsiteOtherView(website: website, vm: vm)
+        }
         .navigationDestination(isPresented: $showAuths) {
             WebsiteAuthsView(websiteId: website.id, vm: vm)
-        }
-        .navigationDestination(isPresented: $showEdit) {
-            if let d = detail {
-                WebsiteEditView(detail: d, vm: vm) {
-                    Task {
-                        await loadDetail()
-                        await vm.refresh()
-                    }
-                }
-            } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
         }
         .task {
             await loadDetail()
@@ -331,69 +353,6 @@ struct WebsiteDetailView: View {
 
 // MARK: - 编辑网站基础信息（主域名 / 备注）
 
-/// 编辑网站基础信息：POST /websites/update 仅接收主域名/备注等少量字段，
-/// 其余字段（IPV6/expireDate/favorite/分组）按当前详情原样回填，避免被零值覆盖。
-struct WebsiteEditView: View {
-    let detail: WebsiteFull
-    @ObservedObject var vm: WebsitesViewModel
-    let onSaved: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var primaryDomain: String
-    @State private var remark: String
-    @State private var isSaving = false
-
-    init(detail: WebsiteFull, vm: WebsitesViewModel, onSaved: @escaping () -> Void) {
-        self.detail = detail
-        self.vm = vm
-        self.onSaved = onSaved
-        _primaryDomain = State(initialValue: detail.primaryDomain ?? "")
-        _remark = State(initialValue: detail.remark ?? "")
-    }
-
-    private var trimmedDomain: String {
-        primaryDomain.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                FormTextField(label: L10n.t("主域名"), prompt: "example.com",
-                              text: $primaryDomain, style: .stacked, keyboardType: .URL)
-            } header: {
-                Text(L10n.t("主域名"))
-            } footer: {
-                Text(L10n.t("网站的主访问域名，修改后请确保域名解析已指向本服务器"))
-            }
-
-            Section {
-                FormTextField(label: L10n.t("备注（可选）"), text: $remark, machineValue: false)
-            } header: {
-                Text(L10n.t("备注"))
-            }
-        }
-        .navigationTitle(L10n.t("编辑网站"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button(isSaving ? L10n.t("保存中…") : L10n.t("保存")) {
-                    Task {
-                        isSaving = true
-                        var req = WebsiteUpdateRequest(from: detail)
-                        req.primaryDomain = trimmedDomain
-                        req.remark = remark
-                        if await vm.updateWebsite(req) {
-                            onSaved()
-                            dismiss()
-                        }
-                        isSaving = false
-                    }
-                }
-                .disabled(trimmedDomain.isEmpty || isSaving)
-            }
-        }
-    }
-}
 
 // MARK: - 删除网站确认（R1 输入域名确认 + 连带删除选项）
 

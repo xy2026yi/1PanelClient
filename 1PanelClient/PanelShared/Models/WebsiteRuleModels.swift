@@ -144,4 +144,5 @@ nonisolated struct WebsiteDomainItem: Decodable, Identifiable {
     let id: Int?
     let domain: String?
     let port: Int?
+    let ssl: Bool?
 }

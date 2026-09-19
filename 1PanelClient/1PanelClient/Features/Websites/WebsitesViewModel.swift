@@ -822,6 +822,190 @@ final class WebsitesViewModel: ObservableObject {
 
     // MARK: - 网站域名列表
 
+    // MARK: - 域名设置（SSL 启停 / 删除）
+
+    func updateDomainSSL(id: Int, ssl: Bool) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesDomainsUpdate.path,
+                body: WebsiteDomainSSLRequest(id: id, ssl: ssl),
+                as: EmptyResponse.self)
+            return true
+        } catch {
+            showAlert(message: L10n.f("操作失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    func deleteDomain(id: Int) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesDomainsDelete.path,
+                body: WebsiteDomainDeleteRequest(id: id),
+                as: EmptyResponse.self)
+            return true
+        } catch {
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    // MARK: - 防盗链
+
+    func loadLeech(websiteId: Int) async throws -> WebsiteLeechConfig {
+        try await client.send(path: APIEndpoint.websitesLeech.path,
+                              body: WebsiteLeechReadRequest(websiteID: websiteId),
+                              as: WebsiteLeechConfig.self)
+    }
+
+    func updateLeech(_ req: WebsiteLeechUpdateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesLeechUpdate.path, body: req,
+                as: EmptyResponse.self)
+            toastMessage = L10n.t("防盗链配置已保存")
+            return true
+        } catch {
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    // MARK: - 伪静态
+
+    /// 切换方案（返回该方案 content；current 为站点当前配置）
+    func loadRewrite(websiteId: Int, name: String) async throws -> String {
+        let resp: WebsiteRewriteResponse = try await client.send(
+            path: APIEndpoint.websitesRewrite.path,
+            body: WebsiteRewriteRequest(websiteID: websiteId, name: name),
+            as: WebsiteRewriteResponse.self)
+        return resp.content ?? ""
+    }
+
+    func updateRewrite(websiteId: Int, name: String, content: String) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesRewriteUpdate.path,
+                body: WebsiteRewriteUpdateRequest(websiteID: websiteId, content: content, name: name),
+                as: EmptyResponse.self)
+            toastMessage = L10n.t("伪静态已保存并重载")
+            return true
+        } catch {
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    func saveRewriteTemplate(name: String, content: String) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesRewriteCustom.path,
+                body: WebsiteRewriteCustomRequest(name: name, operate: "create", content: content),
+                as: EmptyResponse.self)
+            toastMessage = L10n.t("已另存为模版")
+            return true
+        } catch {
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    // MARK: - 真实 IP
+
+    func loadRealIP(websiteId: Int) async throws -> WebsiteRealIPConfig {
+        try await client.send(
+            path: APIEndpoint.websitesRealIPConfig.path
+                .replacingOccurrences(of: ":id", with: String(websiteId)),
+            method: "GET", as: WebsiteRealIPConfig.self)
+    }
+
+    func updateRealIP(_ config: WebsiteRealIPConfig) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesRealIPUpdate.path, body: config,
+                as: EmptyResponse.self)
+            toastMessage = L10n.t("真实 IP 配置已保存")
+            return true
+        } catch {
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    // MARK: - 跨域访问
+
+    func loadCors(websiteId: Int) async throws -> WebsiteCorsConfig {
+        try await client.send(
+            path: APIEndpoint.websitesCors.path
+                .replacingOccurrences(of: ":id", with: String(websiteId)),
+            method: "GET", as: WebsiteCorsConfig.self)
+    }
+
+    func updateCors(_ config: WebsiteCorsConfig) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesCorsUpdate.path, body: config,
+                as: EmptyResponse.self)
+            toastMessage = L10n.t("跨域配置已保存")
+            return true
+        } catch {
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    // MARK: - 负载均衡
+
+    func loadLbs(websiteId: Int) async throws -> [WebsiteLbsItem] {
+        try await client.send(
+            path: APIEndpoint.websitesLbs.path
+                .replacingOccurrences(of: ":id", with: String(websiteId)),
+            method: "GET", as: [WebsiteLbsItem].self)
+    }
+
+    func saveLbs(websiteId: Int, name: String, algorithm: String,
+                 servers: [WebsiteLbsServer], isEdit: Bool) async -> Bool {
+        let req = WebsiteLbsSaveRequest(websiteID: websiteId, name: name,
+                                        algorithm: algorithm, servers: servers)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: (isEdit ? APIEndpoint.websitesLbsUpdate : APIEndpoint.websitesLbsCreate).path,
+                body: req, as: EmptyResponse.self)
+            toastMessage = L10n.t("负载均衡已保存")
+            return true
+        } catch {
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    func saveLbsFile(websiteId: Int, name: String, content: String) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesLbsFile.path,
+                body: WebsiteLbsFileRequest(name: name, websiteID: websiteId, content: content),
+                as: EmptyResponse.self)
+            toastMessage = L10n.t("源文已保存")
+            return true
+        } catch {
+            showAlert(message: L10n.f("保存失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    func deleteLbs(websiteId: Int, name: String) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.websitesLbsDelete.path,
+                body: WebsiteLbsDeleteRequest(websiteID: websiteId, name: name),
+                as: EmptyResponse.self)
+            return true
+        } catch {
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
     func loadWebsiteDomains(websiteId: Int) async -> [WebsiteDomainItem] {
         let path = APIEndpoint.websitesDomains.path.replacingOccurrences(of: ":id", with: String(websiteId))
         do {

@@ -869,6 +869,9 @@
         }
       }
     },
+    "2" : {
+
+    },
     "3 GiB+" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -997,12 +1000,6 @@
     "300" : {
 
     },
-    "301" : {
-
-    },
-    "302" : {
-
-    },
     "360搜索" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1013,9 +1010,6 @@
           }
         }
       }
-    },
-    "404" : {
-
     },
     "404 频率限制" : {
       "extractionState" : "manual",
@@ -1038,6 +1032,9 @@
 
     },
     "10000" : {
+
+    },
+    "18789" : {
 
     },
     "ACME 服务 URL" : {
@@ -1430,6 +1427,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CPU Limit"
+          }
+        }
+      }
+    },
+    "CPU核心数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU Cores"
           }
         }
       }
@@ -2163,6 +2171,17 @@
         }
       }
     },
+    "IP 范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Range"
+          }
+        }
+      }
+    },
     "IP 范围（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2673,9 +2692,6 @@
     "sshd_config" : {
 
     },
-    "SSL" : {
-
-    },
     "SSL 协议" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2782,9 +2798,6 @@
 
     },
     "Telegram" : {
-
-    },
-    "TLS" : {
 
     },
     "TLSv1.2" : {
@@ -4840,6 +4853,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "e.g. 2001:db8::1"
+          }
+        }
+      }
+    },
+    "例: example.com 或 example.com:8080" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. example.com or example.com:8080"
           }
         }
       }
@@ -9035,6 +9059,17 @@
         }
       }
     },
+    "压缩密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compression Password"
+          }
+        }
+      }
+    },
     "压缩密码（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9581,6 +9616,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Availability Verification"
+          }
+        }
+      }
+    },
+    "可选" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional"
           }
         }
       }
@@ -11631,6 +11677,17 @@
         }
       }
     },
+    "多个IP以逗号分隔，例: 172.16.10.111,172.16.10.112" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Separate multiple IPs with commas, e.g. 172.16.10.111,172.16.10.112"
+          }
+        }
+      }
+    },
     "多机管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12225,6 +12282,17 @@
         }
       }
     },
+    "容器名、资源限制、重启规则等进阶项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced items such as container name, resource limits and restart policy"
+          }
+        }
+      }
+    },
     "容器名称" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12639,6 +12707,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Perform ${operation} on ${website}"
+          }
+        }
+      }
+    },
+    "对应主目录: /opt/1panel/apps/openresty/openresty/www/sites" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Site root: /opt/1panel/apps/openresty/openresty/www/sites"
           }
         }
       }
@@ -13827,6 +13906,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default configuration loaded. Review and save"
+          }
+        }
+      }
+    },
+    "已填写的多页内容将丢失" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filled-in content across pages will be lost"
           }
         }
       }
@@ -17670,6 +17760,28 @@
         }
       }
     },
+    "放弃" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard"
+          }
+        }
+      }
+    },
+    "放弃编辑？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard changes?"
+          }
+        }
+      }
+    },
     "放行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20119,6 +20231,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Valid"
+          }
+        }
+      }
+    },
+    "有效期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Validity Period"
           }
         }
       }
@@ -27009,6 +27132,17 @@
         }
       }
     },
+    "继续编辑" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Editing"
+          }
+        }
+      }
+    },
     "缓存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29517,6 +29651,17 @@
         }
       }
     },
+    "该应用无可配置参数，可直接进入下一步" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app has no configurable parameters; continue to the next step"
+          }
+        }
+      }
+    },
     "该应用暂无更高版本可供升级" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30668,6 +30813,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Resources"
+          }
+        }
+      }
+    },
+    "资源限制、编排覆盖等进阶项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced items such as resource limits and compose overrides"
           }
         }
       }
@@ -32674,6 +32830,17 @@
         }
       }
     },
+    "重启策略、资源限制等进阶项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced items such as restart policy and resource limits"
+          }
+        }
+      }
+    },
     "重启规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34071,6 +34238,17 @@
         }
       }
     },
+    "默认 5 行，到达第 5 行末尾继续输入自动增加一行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5 lines by default; typing past the end of line 5 grows the field automatically"
+          }
+        }
+      }
+    },
     "默认（不指定）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34122,6 +34300,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Group"
+          }
+        }
+      }
+    },
+    "默认同名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defaults to the database name"
           }
         }
       }
@@ -34214,200 +34403,651 @@
         }
       }
     },
-    "默认同名称" : {
+    "创建 FTP" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Defaults to the database name"
+            "value" : "Create FTP"
           }
         }
       }
     },
-    "可选" : {
+    "FTP 账号" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Optional"
+            "value" : "FTP Account"
           }
         }
       }
     },
-    "压缩密码" : {
+    "FTP 密码" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Compression Password"
+            "value" : "FTP Password"
           }
         }
       }
     },
-    "IP 范围" : {
+    "创建站点时同步开通 FTP，用于上传静态资源" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "IP Range"
+            "value" : "FTP is created with the site for uploading static assets"
           }
         }
       }
     },
-    "CPU核心数" : {
+    "域名设置" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "CPU Cores"
+            "value" : "Domains"
           }
         }
       }
     },
-    "有效期" : {
+    "端口为 80 的域名不可开启 SSL；仅剩一个域名时不可删除" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Validity Period"
+            "value" : "Domains on port 80 cannot enable SSL; the last remaining domain cannot be deleted"
           }
         }
       }
     },
-    "多个IP以逗号分隔，例: 172.16.10.111,172.16.10.112" : {
+    "确定删除域名「%@」吗？删除后不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Separate multiple IPs with commas, e.g. 172.16.10.111,172.16.10.112"
+            "value" : "Delete domain \"%@\"? This cannot be undone."
           }
         }
       }
     },
-    "该应用无可配置参数，可直接进入下一步" : {
+    "防盗链" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This app has no configurable parameters; continue to the next step"
+            "value" : "Hotlink Protection"
           }
         }
       }
     },
-    "容器名、资源限制、重启规则等进阶项" : {
+    "是否启用" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Advanced items such as container name, resource limits and restart policy"
+            "value" : "Enable"
           }
         }
       }
     },
-    "重启策略、资源限制等进阶项" : {
+    "扩展名" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Advanced items such as restart policy and resource limits"
+            "value" : "File Extensions"
           }
         }
       }
     },
-    "资源限制、编排覆盖等进阶项" : {
+    "受防盗链约束的文件扩展名，逗号分隔" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Advanced items such as resource limits and compose overrides"
+            "value" : "File extensions subject to hotlink protection, comma-separated"
           }
         }
       }
     },
-    "放弃编辑？" : {
+    "允许的域名" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Discard changes?"
+            "value" : "Allowed Domains"
           }
         }
       }
     },
-    "继续编辑" : {
+    "允许 Referer 为空" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keep Editing"
+            "value" : "Allow Empty Referer"
           }
         }
       }
     },
-    "放弃" : {
+    "允许非标准 Referer" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Discard"
+            "value" : "Allow Non-standard Referer"
           }
         }
       }
     },
-    "已填写的多页内容将丢失" : {
+    "响应资源" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filled-in content across pages will be lost"
+            "value" : "Response Status"
           }
         }
       }
     },
-    "默认 5 行，到达第 5 行末尾继续输入自动增加一行" : {
+    "浏览器缓存" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "5 lines by default; typing past the end of line 5 grows the field automatically"
+            "value" : "Browser Cache"
           }
         }
       }
     },
-    "例: example.com 或 example.com:8080" : {
+    "缓存时间" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "e.g. example.com or example.com:8080"
+            "value" : "Cache Duration"
           }
         }
       }
     },
-    "对应主目录: /opt/1panel/apps/openresty/openresty/www/sites" : {
+    "记录请求日志" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Site root: /opt/1panel/apps/openresty/openresty/www/sites"
+            "value" : "Log Requests"
+          }
+        }
+      }
+    },
+    "防盗链配置已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotlink protection saved"
+          }
+        }
+      }
+    },
+    "伪静态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL Rewrite"
+          }
+        }
+      }
+    },
+    "方案" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preset"
+          }
+        }
+      }
+    },
+    "另存为模版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save as Template"
+          }
+        }
+      }
+    },
+    "若设置伪静态后网站无法正常访问，请尝试设置回 default" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If the site breaks after applying URL rewrite, try switching back to default"
+          }
+        }
+      }
+    },
+    "保存并重载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save & Reload"
+          }
+        }
+      }
+    },
+    "伪静态已保存并重载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL rewrite saved and reloaded"
+          }
+        }
+      }
+    },
+    "已另存为模版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved as template"
+          }
+        }
+      }
+    },
+    "真实 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real IP"
+          }
+        }
+      }
+    },
+    "IP 来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Sources"
+          }
+        }
+      }
+    },
+    "IP Header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Header"
+          }
+        }
+      }
+    },
+    "其他 Header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other Header"
+          }
+        }
+      }
+    },
+    "真实 IP 配置已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real IP config saved"
+          }
+        }
+      }
+    },
+    "跨域访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CORS"
+          }
+        }
+      }
+    },
+    "开启跨域" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable CORS"
+          }
+        }
+      }
+    },
+    "允许访问的域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed Origins"
+          }
+        }
+      }
+    },
+    "允许的请求方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed Methods"
+          }
+        }
+      }
+    },
+    "允许的请求头" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed Headers"
+          }
+        }
+      }
+    },
+    "允许携带 cookies" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Credentials"
+          }
+        }
+      }
+    },
+    "遇见请求快速响应" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preflight Fast Response"
+          }
+        }
+      }
+    },
+    "跨域配置已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CORS config saved"
+          }
+        }
+      }
+    },
+    "负载均衡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Balancing"
+          }
+        }
+      }
+    },
+    "暂无负载均衡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Load Balancers"
+          }
+        }
+      }
+    },
+    "点击右上角创建第一个负载均衡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + to create the first load balancer"
+          }
+        }
+      }
+    },
+    "创建负载均衡后，请前往「反向代理」，添加代理并将后端地址设置为：http://<负载均衡名称>" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After creating a load balancer, go to Reverse Proxy and add a proxy with backend http://<name>"
+          }
+        }
+      }
+    },
+    "创建负载均衡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Load Balancer"
+          }
+        }
+      }
+    },
+    "编辑负载均衡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Load Balancer"
+          }
+        }
+      }
+    },
+    "确定删除负载均衡「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete load balancer \"%@\"?"
+          }
+        }
+      }
+    },
+    "算法" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algorithm"
+          }
+        }
+      }
+    },
+    "IP 哈希" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Hash"
+          }
+        }
+      }
+    },
+    "最小连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Least Connections"
+          }
+        }
+      }
+    },
+    "%ld 节点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld servers"
+          }
+        }
+      }
+    },
+    "节点-%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server-%ld"
+          }
+        }
+      }
+    },
+    "权重" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weight"
+          }
+        }
+      }
+    },
+    "备用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup"
+          }
+        }
+      }
+    },
+    "最大失败次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Fails"
+          }
+        }
+      }
+    },
+    "故障超时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fail Timeout"
+          }
+        }
+      }
+    },
+    "负载均衡已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load balancer saved"
+          }
+        }
+      }
+    },
+    "源文已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source file saved"
+          }
+        }
+      }
+    },
+    "名称修改后请确保域名解析已指向本服务器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After changing the name, make sure DNS points to this server"
+          }
+        }
+      }
+    },
+    "防盗链已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotlink protection saved"
           }
         }
       }

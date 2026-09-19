@@ -42,6 +42,10 @@ struct CreateWebsiteView: View {
 
     // SSL
     @State private var enableSSL = false
+    // FTP（静态网站；创建后随站点开通 FTP 访问）
+    @State private var enableFtp = false
+    @State private var ftpUser = ""
+    @State private var ftpPassword = ""
     @State private var selectedSSLId: Int? = nil
 
     // 分组（0 = 未初始化，task 加载后回落默认分组）
@@ -79,6 +83,29 @@ struct CreateWebsiteView: View {
                             proxySection
                         case .staticSite:
                             EmptyView()
+                        }
+
+                        // FTP（仅静态网站）
+                        if selectedType == .staticSite {
+                            Section {
+                                Toggle(L10n.t("创建 FTP"), isOn: $enableFtp)
+                                if enableFtp {
+                                    OutlinedTextField(label: L10n.t("FTP 账号"), text: $ftpUser)
+                                    HStack(alignment: .firstTextBaseline) {
+                                        OutlinedTextField(label: L10n.t("FTP 密码"),
+                                                          text: $ftpPassword, isSecure: true)
+                                        Button {
+                                            ftpPassword = Self.randomFTPPassword()
+                                        } label: {
+                                            Image(systemName: "dice")
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .padding(.top, 13)
+                                    }
+                                }
+                            } footer: {
+                                Text(L10n.t("创建站点时同步开通 FTP，用于上传静态资源"))
+                            }
                         }
 
                         // SSL
@@ -266,8 +293,17 @@ struct CreateWebsiteView: View {
         case .proxy:
             return !proxyAddress.isEmpty
         case .staticSite:
+            if enableFtp {
+                return !ftpUser.isEmpty && !ftpPassword.isEmpty
+            }
             return true
         }
+    }
+
+    /// 16 位随机字母数字 FTP 密码
+    private static func randomFTPPassword() -> String {
+        let chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        return String((0..<16).map { _ in chars.randomElement() ?? "x" })
     }
 
     private func performCreate() async {
@@ -283,6 +319,9 @@ struct CreateWebsiteView: View {
         // 分组（0 = 未选中，回落默认分组）
         req.webSiteGroupId = selectedGroupID != 0 ? selectedGroupID : vm.defaultGroupID
         req.enableSSL = enableSSL
+        req.enableFtp = enableFtp && selectedType == .staticSite
+        req.ftpUser = enableFtp ? ftpUser : ""
+        req.ftpPassword = enableFtp ? ftpPassword : ""
         req.websiteSSLID = selectedSSLId ?? 0
         req.taskID = UUID().uuidString
         // 端口：HTTPS 启用时端口字段常被设为 443/自定义；未启用时默认 80
