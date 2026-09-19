@@ -282,10 +282,50 @@ private func kvPairs(_ text: String) -> [String] {
 }
 
 /// 网络排除 IP 可编辑行（形态 8：每行 标签 + IP）
-private struct ContainerAuxRow: Identifiable {
+struct ContainerAuxRow: Identifiable {
     let id = UUID()
     var label = ""
     var ip = ""
+}
+
+/// 网络排除 IP 编辑页（入口行进入，与端口/挂载编辑页同模式）：
+/// 每行 = 标签（可选）+ IP 两个描边框，行右侧删除、底部添加
+struct ContainerAuxIPsEditorView: View {
+    @Binding var rows: [ContainerAuxRow]
+
+    var body: some View {
+        Form {
+            ForEach($rows) { $row in
+                Section {
+                    HStack(alignment: .center) {
+                        OutlinedTextField(label: L10n.t("标签"), prompt: L10n.t("可选"),
+                                          text: $row.label)
+                        Button {
+                            rows.removeAll { $0.id == row.id }
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(.red)
+                        }
+                        // 与描边框内容行垂直居中（顶部 13pt 浮动标签区）
+                        .padding(.top, 13)
+                        .accessibilityLabel(L10n.t("删除"))
+                    }
+                    OutlinedTextField(label: "IP", prompt: "172.16.0.5", text: $row.ip)
+                }
+            }
+            Section {
+                Button {
+                    rows.append(ContainerAuxRow())
+                } label: {
+                    Label(L10n.t("添加"), systemImage: "plus.circle")
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+        }
+        .navigationTitle(L10n.t("排除"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
 }
 
 struct ContainerNetworksView: View {
@@ -693,45 +733,30 @@ private struct ContainerNetworkCreateSheet: View {
         OutlinedTextField(label: L10n.t("子网"), prompt: "172.16.0.0/24", text: $subnet)
         OutlinedTextField(label: L10n.t("网关"), prompt: L10n.t("可选"), text: $gateway)
         OutlinedTextField(label: L10n.t("IP 范围"), prompt: L10n.t("可选"), text: $ipRange)
-        auxRowsEditor($auxRows)
+        auxEntryRow($auxRows)
     }
 
     @ViewBuilder private var ipv6Fields: some View {
         OutlinedTextField(label: L10n.t("子网"), prompt: "fd00::/64", text: $subnetV6)
         OutlinedTextField(label: L10n.t("网关"), prompt: L10n.t("可选"), text: $gatewayV6)
         OutlinedTextField(label: L10n.t("IP 范围"), prompt: L10n.t("可选"), text: $ipRangeV6)
-        auxRowsEditor($auxRowsV6)
+        auxEntryRow($auxRowsV6)
     }
 
-    /// 排除 IP 动态行编辑器（形态 8「行即 Section」，与负载均衡节点同款）：
-    /// 每行 = 标签（可选）+ IP 两个描边框，行右侧删除、底部添加
-    private func auxRowsEditor(_ rows: Binding<[ContainerAuxRow]>) -> some View {
-        Group {
-            ForEach(rows) { $row in
-                Section {
-                    HStack(alignment: .center) {
-                        OutlinedTextField(label: L10n.t("标签"), prompt: L10n.t("可选"),
-                                          text: $row.label)
-                        Button {
-                            rows.wrappedValue.removeAll { $0.id == row.id }
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.title3)
-                                .foregroundStyle(.red)
-                        }
-                        // 与描边框内容行垂直居中（顶部 13pt 浮动标签区）
-                        .padding(.top, 13)
-                        .accessibilityLabel(L10n.t("删除"))
+    /// 排除 IP 入口行（未设置 / N 条）→ 子编辑页增删（与创建容器端口入口一致）
+    private func auxEntryRow(_ rows: Binding<[ContainerAuxRow]>) -> some View {
+        Section {
+            NavigationLink {
+                ContainerAuxIPsEditorView(rows: rows)
+            } label: {
+                HStack {
+                    Text(L10n.t("排除"))
+                    Spacer()
+                    if rows.wrappedValue.isEmpty {
+                        Text(L10n.t("未设置")).foregroundStyle(.secondary)
+                    } else {
+                        Text(L10n.f("%ld 条", rows.wrappedValue.count)).foregroundStyle(.secondary)
                     }
-                    OutlinedTextField(label: "IP", prompt: "172.16.0.5", text: $row.ip)
-                }
-            }
-            Section {
-                Button {
-                    rows.wrappedValue.append(ContainerAuxRow())
-                } label: {
-                    Label(L10n.t("添加"), systemImage: "plus.circle")
-                        .foregroundStyle(Color.accentColor)
                 }
             }
         }

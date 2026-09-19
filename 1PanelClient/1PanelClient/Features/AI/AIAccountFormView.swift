@@ -37,8 +37,6 @@ struct AIAccountFormView: View {
     @State private var models: [AIModelRef] = []
     /// 验证账号可用性使用的模型 id（空 = 未选）
     @State private var verifyModelId = ""
-    @State private var manualModelId = ""
-    @State private var manualModelName = ""
     @State private var isDiscovering = false
 
     @State private var isSaving = false
@@ -118,6 +116,12 @@ struct AIAccountFormView: View {
             }
         }
         .task { await prepare() }
+        // 表单页内直接弹错误（否则 alert 挂在列表页，需返回上一层才能看到）
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
         .onChange(of: selectedProvider) { _, _ in
             guard !isEditing else { return }
             onProviderChange()
@@ -164,8 +168,8 @@ struct AIAccountFormView: View {
                 }
             }
 
-            FormTextField(label: "Base URL", text: $baseURL, style: .stacked, keyboardType: .URL)
-                .font(.dataMonospacedBody)
+            OutlinedTextField(label: "Base URL", prompt: "https://api.example.com/v1",
+                              text: $baseURL, keyboardType: .URL)
                 .disabled(!editableBaseURL)
 
             if !isEditing && authModeOptions.count > 1 {
@@ -190,21 +194,30 @@ struct AIAccountFormView: View {
 
     private var authSection: some View {
         Section {
-            HStack {
-                if showApiKey {
-                    OutlinedTextField(label: "API Key", text: $apiKey)
-                        .font(.dataMonospacedBody)
-                } else {
-                    OutlinedTextField(label: "API Key", text: $apiKey, isSecure: true)
-                }
+            // 眼睛切换内嵌描边框右侧（明文用等宽字体便于核对密钥）
+            OutlinedShape(label: "API Key", isFocused: false,
+                          hasValue: !apiKey.isEmpty,
+                          trailing: {
                 Button {
                     showApiKey.toggle()
                 } label: {
                     Image(systemName: showApiKey ? "eye.slash" : "eye")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
                 .accessibilityLabel(L10n.t("显示密钥"))
+            }) {
+                if showApiKey {
+                    TextField("", text: $apiKey)
+                        .font(.dataMonospacedBody)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                } else {
+                    SecureField("", text: $apiKey)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
             }
             Toggle(L10n.t("记住认证信息"), isOn: $rememberApiKey)
         } header: {
@@ -243,26 +256,56 @@ struct AIAccountFormView: View {
         }
     }
 
-    /// 创建模式的模型池：发现 / 预设清单 / 手动添加 + 验证模型单选
+    /// 创建模式的模型池：自动获取 / 手动配置（形态 3 下拉）+ 验证模型单选。
+    /// 手动配置的模型编辑走入口行 → 子编辑页（与创建容器端口同模式）
+    @State private var poolMode = "auto"
+
     private var modelPoolSection: some View {
         Section {
-            if supportsDiscovery {
-                Button {
-                    Task { await discover() }
+            OutlinedPicker(label: L10n.t("模型池"), options: ["auto", "manual"],
+                           selection: $poolMode,
+                           optionLabels: ["auto": L10n.t("自动获取"),
+                                          "manual": L10n.t("手动配置")])
+
+            if poolMode == "auto" {
+                if supportsDiscovery {
+                    Button {
+                        Task { await discover() }
+                    } label: {
+                        HStack {
+                            Label(L10n.t("获取模型"), systemImage: "arrow.down.circle")
+                            Spacer()
+                            if isDiscovering { ProgressView() }
+                        }
+                    }
+                    .disabled(isDiscovering || apiKey.isEmpty || baseURL.isEmpty)
+                } else {
+                    Text(L10n.t("当前 API 类型不支持自动获取，请切换为手动配置"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                NavigationLink {
+                    AIModelsEditorView(models: $models)
                 } label: {
                     HStack {
-                        Label(L10n.t("获取模型"), systemImage: "arrow.down.circle")
+                        Text(L10n.t("模型"))
                         Spacer()
-                        if isDiscovering { ProgressView() }
+                        if models.isEmpty {
+                            Text(L10n.t("未设置")).foregroundStyle(.secondary)
+                        } else {
+                            Text(L10n.f("%ld 条", models.count)).foregroundStyle(.secondary)
+                        }
                     }
                 }
-                .disabled(isDiscovering || apiKey.isEmpty || baseURL.isEmpty)
             }
 
             if models.isEmpty {
-                Text(L10n.t("暂无模型：可自动获取或手动添加"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if poolMode == "auto" {
+                    Text(L10n.t("暂无模型：可自动获取或手动添加"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             } else {
                 ForEach(models) { model in
                     Button {
@@ -306,31 +349,13 @@ struct AIAccountFormView: View {
                     }
                 }
             }
-
-            HStack(spacing: 8) {
-                OutlinedTextField(label: L10n.t("模型"), text: $manualModelId)
-                    .font(.dataMonospacedCaption)
-                Image(systemName: "arrow.right")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                OutlinedTextField(label: L10n.t("名称"), text: $manualModelName)
-                Button {
-                    addManualModel()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(manualModelId.isEmpty ? Color.secondary : Color.accentColor)
-                }
-                .buttonStyle(.borderless)
-                .disabled(manualModelId.isEmpty)
-                .accessibilityLabel(L10n.t("添加模型"))
-            }
         } header: {
             SectionLabel(title: L10n.t("模型池"), systemImage: "shippingbox")
         } footer: {
             if validateAvailability {
                 Text(L10n.t("已开启可用性验证：点击模型选中验证所用模型"))
             } else {
-                Text(L10n.t("自动获取支持当前 API 类型时可用；也可在下方手动输入模型与名称逐个添加"))
+                Text(L10n.t("自动获取支持当前 API 类型时可用；也可切换手动配置逐个添加"))
             }
         }
     }
@@ -347,8 +372,8 @@ struct AIAccountFormView: View {
 
     private var remarkSection: some View {
         Section {
-            TextField(L10n.t("备注"), text: $remark, axis: .vertical)
-                .lineLimit(1...3)
+            OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"),
+                                   lines: 1, text: $remark)
         } header: {
             SectionLabel(title: L10n.t("备注"), systemImage: "text.alignleft")
         }
@@ -413,16 +438,6 @@ struct AIAccountFormView: View {
         applyApiTypeDefaults(selectedApiTypeItem, provider: selectedProviderItem)
     }
 
-    private func addManualModel() {
-        let id = manualModelId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !id.isEmpty, !models.contains(where: { $0.id == id }) else { return }
-        let display = manualModelName.trimmingCharacters(in: .whitespacesAndNewlines)
-        models.append(AIModelRef(recordId: 0, id: id, name: display.isEmpty ? id : display))
-        if verifyModelId.isEmpty { verifyModelId = id }
-        manualModelId = ""
-        manualModelName = ""
-    }
-
     private func discover() async {
         isDiscovering = true
         defer { isDiscovering = false }
@@ -463,12 +478,19 @@ struct AIAccountFormView: View {
             if ok { dismiss() }
         } else {
             // 图片类型不支持可用性验证（抓包确认 validateAvailability=false）；
-            // 模型池条目创建时统一 recordId=0（服务端按新纪录入库）
+            // 模型池条目创建时统一 recordId=0（服务端按新纪录入库），空行（手动页未填完）丢弃
             let wantsVerify = validateAvailability && !isImageApi
-            let poolModels = models.map { model -> AIModelRef in
-                var m = model
-                m.recordId = 0
-                return m
+            let poolModels = models
+                .filter { !$0.id.trimmingCharacters(in: .whitespaces).isEmpty }
+                .map { model -> AIModelRef in
+                    var m = model
+                    m.recordId = 0
+                    return m
+                }
+            // 验证模型被手动页删掉时回落到首个模型
+            var effectiveVerify = verifyModelId
+            if wantsVerify && !poolModels.contains(where: { $0.id == effectiveVerify }) {
+                effectiveVerify = poolModels.first?.id ?? ""
             }
             let ok = await vm.create(req: AIAccountCreateRequest(
                 provider: selectedProvider,
@@ -478,12 +500,78 @@ struct AIAccountFormView: View {
                 rememberApiKey: rememberApiKey,
                 apiType: selectedApiType,
                 authMode: authMode,
-                verifyModel: wantsVerify ? verifyModelId : "",
+                verifyModel: wantsVerify ? effectiveVerify : "",
                 validateAvailability: wantsVerify,
                 models: poolModels,
                 remark: remark
             ))
             if ok { dismiss() }
         }
+    }
+}
+
+// MARK: - 模型手动编辑页（入口行 → 行编辑，与创建容器端口/挂载编辑页同模式）
+
+/// 手动配置模型池：每行 = 模型 ID + 名称（可选）两个描边框，行右侧删除、底部添加。
+/// AIModelRef.id 为常量，编辑经绑定整行重建（按数组下标定位，防空 id 重复键告警）
+struct AIModelsEditorView: View {
+    @Binding var models: [AIModelRef]
+
+    var body: some View {
+        Form {
+            ForEach(Array(models.enumerated()), id: \.offset) { idx, _ in
+                Section {
+                    HStack(alignment: .center) {
+                        OutlinedTextField(label: L10n.t("模型"), text: modelIDBinding(idx))
+                        Button {
+                            models.remove(at: idx)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(.red)
+                        }
+                        // 与描边框内容行垂直居中（顶部 13pt 浮动标签区）
+                        .padding(.top, 13)
+                        .accessibilityLabel(L10n.t("删除"))
+                    }
+                    OutlinedTextField(label: L10n.t("名称"), prompt: L10n.t("可选"),
+                                      text: modelNameBinding(idx))
+                }
+            }
+            Section {
+                Button {
+                    models.append(AIModelRef(recordId: 0, id: "", name: nil))
+                } label: {
+                    Label(L10n.t("添加"), systemImage: "plus.circle")
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+        }
+        .navigationTitle(L10n.t("模型"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func modelIDBinding(_ idx: Int) -> Binding<String> {
+        Binding(
+            get: { models.indices.contains(idx) ? models[idx].id : "" },
+            set: { newValue in
+                guard models.indices.contains(idx) else { return }
+                models[idx] = AIModelRef(recordId: models[idx].recordId,
+                                         id: newValue,
+                                         name: models[idx].name)
+            }
+        )
+    }
+
+    private func modelNameBinding(_ idx: Int) -> Binding<String> {
+        Binding(
+            get: { models.indices.contains(idx) ? (models[idx].name ?? "") : "" },
+            set: { newValue in
+                guard models.indices.contains(idx) else { return }
+                models[idx] = AIModelRef(recordId: models[idx].recordId,
+                                         id: models[idx].id,
+                                         name: newValue.isEmpty ? nil : newValue)
+            }
+        )
     }
 }
