@@ -259,11 +259,18 @@ struct AIAccountFormView: View {
     /// 创建模式的模型池：自动获取 / 手动配置（形态 3 下拉）+ 验证模型单选。
     /// 手动配置的模型编辑走入口行 → 子编辑页（与创建容器端口同模式）
     @State private var poolMode = "auto"
+    /// 用户手动选过模型池模式后，联动不再自动覆盖
+    @State private var poolModeUserSet = false
 
     private var modelPoolSection: some View {
         Section {
             OutlinedPicker(label: L10n.t("模型池"), options: ["auto", "manual"],
-                           selection: $poolMode,
+                           selection: Binding(
+                               get: { poolMode },
+                               set: { newValue in
+                                   poolMode = newValue
+                                   poolModeUserSet = true
+                               }),
                            optionLabels: ["auto": L10n.t("自动获取"),
                                           "manual": L10n.t("手动配置")])
 
@@ -422,7 +429,12 @@ struct AIAccountFormView: View {
         let modes = apiType?.authModes ?? []
         let def = apiType?.defaultAuthMode ?? ""
         authMode = modes.contains(def) ? def : (modes.first ?? "")
-        // 预设供应商（DeepSeek 等）直接给固定模型清单；custom 为空靠发现/手填
+        // 预设供应商（DeepSeek 等）直接给固定模型清单；custom 为空靠发现/手填。
+        // 模型池模式智能默认：支持自动发现→自动获取，否则（预设清单型）→手动配置；
+        // 用户手动选过后不再随联动覆盖
+        if !poolModeUserSet {
+            poolMode = (apiType?.supportsModelDiscovery ?? false) ? "auto" : "manual"
+        }
         models = provider?.models ?? []
         verifyModelId = models.first?.id ?? ""
     }

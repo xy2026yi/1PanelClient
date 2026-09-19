@@ -110,12 +110,6 @@ struct AIDownloaderSearchView: View {
 
             OutlinedPicker(label: L10n.t("排序"), options: ModelRepoSort.allCases,
                            selection: $sort) { $0.displayName }
-                .onChange(of: sort) { _, _ in
-                    // 已有结果时切排序自动重搜（提示语「换个关键词或排序试试」的闭环）
-                    if hasSearched && !isLoading {
-                        Task { await search(reset: true) }
-                    }
-                }
 
             if isLoading && results.isEmpty {
                 HStack {

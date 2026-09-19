@@ -279,7 +279,7 @@ struct CreateWebsiteView: View {
     private var sslOptionLabels: [String: String] {
         var labels = ["0": L10n.t("请选择证书")]
         for ssl in vm.availableSSLs {
-            labels[String(ssl.id)] = "\(ssl.displayName)（有效期至 \(ssl.displayExpireDate)）"
+            labels[String(ssl.id)] = ssl.displayName
         }
         return labels
     }
