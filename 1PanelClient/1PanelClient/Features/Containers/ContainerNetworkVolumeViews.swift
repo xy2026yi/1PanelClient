@@ -281,18 +281,11 @@ private func kvPairs(_ text: String) -> [String] {
         .filter { !$0.isEmpty && $0 != "=" }
 }
 
-/// 排除 IP 多行原文 → [ContainerKVPair]（每行 标签=IP；仅 IP 时标签留空）
-private func auxPairs(_ text: String) -> [ContainerKVPair] {
-    text.split(whereSeparator: \.isNewline)
-        .map { $0.trimmingCharacters(in: .whitespaces) }
-        .filter { !$0.isEmpty }
-        .map { line in
-            if let eq = line.firstIndex(of: "=") {
-                return ContainerKVPair(key: String(line[..<eq]),
-                                       value: String(line[line.index(after: eq)...]))
-            }
-            return ContainerKVPair(key: "", value: String(line))
-        }
+/// 网络排除 IP 可编辑行（形态 8：每行 标签 + IP）
+private struct ContainerAuxRow: Identifiable {
+    let id = UUID()
+    var label = ""
+    var ip = ""
 }
 
 struct ContainerNetworksView: View {
@@ -549,13 +542,13 @@ private struct ContainerNetworkCreateSheet: View {
     @State private var subnet = ""
     @State private var gateway = ""
     @State private var ipRange = ""
-    /// 排除 IP 多行原文（每行一条 标签=IP，形态 7.1 默认 1 行）
-    @State private var auxText = ""
+    /// 排除 IP 动态行（形态 8「行即 Section」：每行 = 标签 + IP 两个描边框）
+    @State private var auxRows: [ContainerAuxRow] = []
     @State private var ipv6 = false
     @State private var subnetV6 = ""
     @State private var gatewayV6 = ""
     @State private var ipRangeV6 = ""
-    @State private var auxTextV6 = ""
+    @State private var auxRowsV6: [ContainerAuxRow] = []
     /// 参数/标签多行原文（每行一条 key=value，形态 7.1 默认 1 行）
     @State private var optionText = ""
     @State private var labelText = ""
@@ -565,6 +558,10 @@ private struct ContainerNetworkCreateSheet: View {
 
     private let client: APIClient
     private let drivers = ["bridge", "ipvlan", "macvlan", "overlay"]
+
+    /// 向导分页：0 基础（名称/模式/参数/标签） 1 IP 配置（IPv4/IPv6）
+    @State private var wizardPage = 0
+    private let wizardPageNames = [L10n.t("基础"), L10n.t("IP 配置")]
 
     init(server: ServerConfig, onCreated: @escaping () async -> Void) {
         self.server = server
@@ -579,68 +576,44 @@ private struct ContainerNetworkCreateSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    OutlinedTextField(label: L10n.t("网络名"), text: $name)
-                    OutlinedPicker(label: L10n.t("模式"), options: drivers, selection: $driver)
-                    // 父网卡仅 macvlan / overlay 需要（抓包：ipvlan 未携带）
-                    if driver == "macvlan" || driver == "overlay" {
-                        OutlinedPicker(label: L10n.t("父网卡"),
-                                       options: netCards.isEmpty ? [""] : netCards,
-                                       selection: $parentCard)
-                    }
-                } header: {
-                    SectionLabel(title: L10n.t("基本信息"), systemImage: "network")
-                }
-
-                if ipv6Section {
-                    Section {
-                        Toggle("IPv4", isOn: $ipv4)
-                        if ipv4 {
-                            ipv4Fields
+            VStack(spacing: 0) {
+                WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+                Form {
+                    Group {
+                        switch wizardPage {
+                        case 0:
+                            basicSection
+                            optionAndLabelSection
+                        default:
+                            ipSection
                         }
-                    } header: {
-                        SectionLabel(title: "IPv4", systemImage: "4.circle")
                     }
-                    Section {
-                        Toggle("IPv6", isOn: $ipv6)
-                        if ipv6 {
-                            ipv6Fields
-                        }
-                    } header: {
-                        SectionLabel(title: "IPv6", systemImage: "6.circle")
-                    }
-                }
-
-                Section {
-                    OutlinedMultiLineField(label: L10n.t("参数"), prompt: "key=value",
-                                           lines: 1, text: $optionText)
-                } header: {
-                    SectionLabel(title: L10n.t("参数"), systemImage: "list.bullet.rectangle")
-                } footer: {
-                    Text(L10n.t("可选，一行一个，格式 key=value"))
-                }
-                Section {
-                    OutlinedMultiLineField(label: L10n.t("标签"), prompt: "key=value",
-                                           lines: 1, text: $labelText)
-                } header: {
-                    SectionLabel(title: L10n.t("标签"), systemImage: "tag")
-                } footer: {
-                    Text(L10n.t("可选，一行一个，格式 key=value"))
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)))
                 }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                WizardBottomBar(
+                    page: wizardPage,
+                    totalPages: wizardPageNames.count,
+                    primaryTitle: L10n.t("创建"),
+                    isBusy: isSubmitting,
+                    // 非最后页只校验当前页必填（网络名）；IP 段合法性在最后页整体校验
+                    primaryDisabled: wizardPage == 0
+                        ? name.trimmingCharacters(in: .whitespaces).isEmpty
+                        : !canSubmit,
+                    onBack: { withAnimation { wizardPage -= 1 } },
+                    onNext: { withAnimation { wizardPage += 1 } },
+                    onPrimary: { Task { await submit() } })
+            }
+            .animation(.easeInOut(duration: 0.22), value: wizardPage)
             .navigationTitle(L10n.t("创建网络"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
                         .disabled(isSubmitting)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("创建")) {
-                        Task { await submit() }
-                    }
-                    .disabled(!canSubmit || isSubmitting)
                 }
             }
             .alert(L10n.t("提示"), isPresented: $showError) {
@@ -655,30 +628,112 @@ private struct ContainerNetworkCreateSheet: View {
         .interactiveDismissDisabled(isSubmitting)
     }
 
-    /// 桥接模式无独立地址段配置（抓包：bridge 只带 subnet；简化为 IPv4/IPv6 面板常显）
-    private var ipv6Section: Bool { true }
+    // MARK: 第 1 页 基础：名称/模式/父网卡 + 参数/标签
+
+    private var basicSection: some View {
+        Section {
+            OutlinedTextField(label: L10n.t("网络名"), text: $name)
+            OutlinedPicker(label: L10n.t("模式"), options: drivers, selection: $driver)
+            // 父网卡仅 macvlan / overlay 需要（抓包：ipvlan 未携带）
+            if driver == "macvlan" || driver == "overlay" {
+                OutlinedPicker(label: L10n.t("父网卡"),
+                               options: netCards.isEmpty ? [""] : netCards,
+                               selection: $parentCard)
+            }
+        } header: {
+            SectionLabel(title: L10n.t("基本信息"), systemImage: "network")
+        }
+    }
+
+    private var optionAndLabelSection: some View {
+        Group {
+            Section {
+                OutlinedMultiLineField(label: L10n.t("参数"), prompt: "key=value",
+                                       lines: 1, text: $optionText)
+            } header: {
+                SectionLabel(title: L10n.t("参数"), systemImage: "list.bullet.rectangle")
+            } footer: {
+                Text(L10n.t("可选，一行一个，格式 key=value"))
+            }
+            Section {
+                OutlinedMultiLineField(label: L10n.t("标签"), prompt: "key=value",
+                                       lines: 1, text: $labelText)
+            } header: {
+                SectionLabel(title: L10n.t("标签"), systemImage: "tag")
+            } footer: {
+                Text(L10n.t("可选，一行一个，格式 key=value"))
+            }
+        }
+    }
+
+    // MARK: 第 2 页 IP 配置：IPv4 / IPv6
+
+    private var ipSection: some View {
+        Group {
+            Section {
+                Toggle("IPv4", isOn: $ipv4)
+                if ipv4 {
+                    ipv4Fields
+                }
+            } header: {
+                SectionLabel(title: "IPv4", systemImage: "4.circle")
+            }
+            Section {
+                Toggle("IPv6", isOn: $ipv6)
+                if ipv6 {
+                    ipv6Fields
+                }
+            } header: {
+                SectionLabel(title: "IPv6", systemImage: "6.circle")
+            }
+        }
+    }
 
     @ViewBuilder private var ipv4Fields: some View {
         OutlinedTextField(label: L10n.t("子网"), prompt: "172.16.0.0/24", text: $subnet)
         OutlinedTextField(label: L10n.t("网关"), prompt: L10n.t("可选"), text: $gateway)
         OutlinedTextField(label: L10n.t("IP 范围"), prompt: L10n.t("可选"), text: $ipRange)
-        auxTextEditor($auxText)
+        auxRowsEditor($auxRows)
     }
 
     @ViewBuilder private var ipv6Fields: some View {
         OutlinedTextField(label: L10n.t("子网"), prompt: "fd00::/64", text: $subnetV6)
         OutlinedTextField(label: L10n.t("网关"), prompt: L10n.t("可选"), text: $gatewayV6)
         OutlinedTextField(label: L10n.t("IP 范围"), prompt: L10n.t("可选"), text: $ipRangeV6)
-        auxTextEditor($auxTextV6)
+        auxRowsEditor($auxRowsV6)
     }
 
-    /// 排除 IP（形态 7.1 默认 1 行；每行 标签=IP，仅 IP 时标签留空）
-    private func auxTextEditor(_ text: Binding<String>) -> some View {
-        Section {
-            OutlinedMultiLineField(label: L10n.t("排除 IP"), prompt: "label=172.16.0.5",
-                                   lines: 1, text: text)
-        } footer: {
-            Text(L10n.t("可选，一行一个，格式 标签=IP；仅填 IP 时标签留空"))
+    /// 排除 IP 动态行编辑器（形态 8「行即 Section」，与负载均衡节点同款）：
+    /// 每行 = 标签（可选）+ IP 两个描边框，行右侧删除、底部添加
+    private func auxRowsEditor(_ rows: Binding<[ContainerAuxRow]>) -> some View {
+        Group {
+            ForEach(rows) { $row in
+                Section {
+                    HStack(alignment: .center) {
+                        OutlinedTextField(label: L10n.t("标签"), prompt: L10n.t("可选"),
+                                          text: $row.label)
+                        Button {
+                            rows.wrappedValue.removeAll { $0.id == row.id }
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(.red)
+                        }
+                        // 与描边框内容行垂直居中（顶部 13pt 浮动标签区）
+                        .padding(.top, 13)
+                        .accessibilityLabel(L10n.t("删除"))
+                    }
+                    OutlinedTextField(label: "IP", prompt: "172.16.0.5", text: $row.ip)
+                }
+            }
+            Section {
+                Button {
+                    rows.wrappedValue.append(ContainerAuxRow())
+                } label: {
+                    Label(L10n.t("添加"), systemImage: "plus.circle")
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
         }
     }
 
@@ -689,6 +744,15 @@ private struct ContainerNetworkCreateSheet: View {
             netCards = options.filter { $0 != "all" }
             parentCard = netCards.first ?? ""
         }
+    }
+
+    /// 排除 IP 行 → 提交对（IP 为空的行丢弃，标签/IP 去空白）
+    static func submittedAux(_ rows: [ContainerAuxRow]) -> [ContainerKVPair] {
+        rows.filter { !$0.ip.trimmingCharacters(in: .whitespaces).isEmpty }
+            .map {
+                ContainerKVPair(key: $0.label.trimmingCharacters(in: .whitespaces),
+                                value: $0.ip.trimmingCharacters(in: .whitespaces))
+            }
     }
 
     private func submit() async {
@@ -706,12 +770,12 @@ private struct ContainerNetworkCreateSheet: View {
             subnet: ipv4 ? subnet : "",
             gateway: ipv4 ? gateway : "",
             ipRange: ipv4 ? ipRange : "",
-            auxAddress: ipv4 ? auxPairs(auxText) : [],
+            auxAddress: ipv4 ? Self.submittedAux(auxRows) : [],
             ipv6: ipv6,
             subnetV6: ipv6 ? subnetV6 : "",
             gatewayV6: ipv6 ? gatewayV6 : "",
             ipRangeV6: ipv6 ? ipRangeV6 : "",
-            auxAddressV6: ipv6 ? auxPairs(auxTextV6) : [])
+            auxAddressV6: ipv6 ? Self.submittedAux(auxRowsV6) : [])
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.containersNetworkCreate.path, body: req, as: EmptyResponse.self)

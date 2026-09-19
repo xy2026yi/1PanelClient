@@ -2009,9 +2009,6 @@
         }
       }
     },
-    "IP" : {
-
-    },
     "IP / CIDR，留空=任意" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2140,6 +2137,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "IP Allowlist"
+          }
+        }
+      }
+    },
+    "IP 配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Settings"
           }
         }
       }
@@ -2282,9 +2290,6 @@
         }
       }
     },
-    "local" : {
-
-    },
     "MCP Server 网关管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2339,12 +2344,6 @@
           }
         }
       }
-    },
-    "NFS" : {
-
-    },
-    "NFS4" : {
-
     },
     "nginx.conf" : {
 
@@ -34114,17 +34113,6 @@
         }
       }
     },
-    "随机生成" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Generate Random"
-          }
-        }
-      }
-    },
     "隐藏的功能将从管理列表中移除，但不会影响服务器上的实际运行。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34132,6 +34120,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hidden modules disappear from the list but keep running on the server."
+          }
+        }
+      }
+    },
+    "随机生成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate Random"
           }
         }
       }
