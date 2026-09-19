@@ -1014,22 +1014,23 @@ struct FilePathBrowseRow: View {
     @State private var showPicker = false
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.caption).foregroundStyle(.secondary)
-                Text(path)
-                    .font(.dataMonospacedFootnote)
-                    .lineLimit(1)
-                    .truncationMode(.head)
-            }
-            Spacer()
+        // 描边框内可手动输入，右侧文件夹图标进目录/文件选择页回填
+        OutlinedShape(label: title, isFocused: false, hasValue: !path.isEmpty,
+                      trailing: {
             Button {
                 showPicker = true
             } label: {
                 Image(systemName: "folder")
+                    .font(.caption)
+                    .foregroundStyle(Color.accentColor)
             }
             .buttonStyle(.borderless)
             .accessibilityLabel(fileExtensions == nil ? L10n.t("选择目录") : L10n.t("选择文件"))
+        }) {
+            TextField("", text: $path)
+                .font(.dataMonospacedFootnote)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
         }
         .sheet(isPresented: $showPicker) {
             DirectoryPickerSheet(client: client, fileExtensions: fileExtensions) { picked in

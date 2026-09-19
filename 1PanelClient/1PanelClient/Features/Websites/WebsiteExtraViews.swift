@@ -621,13 +621,15 @@ struct WebsiteRewriteView: View {
 
     private func load() async {
         await loadContent(name: selectedName)
+        // 基线只在首次进入时记录：切换方案加载新内容后「保存并重载」应可点
+        // （应用所选方案本身就是一次保存），仅内容与基线一致且未换方案时才禁用
+        originalContent = content
         isLoading = false
     }
 
     private func loadContent(name: String) async {
         do {
             content = try await vm.loadRewrite(websiteId: websiteId, name: name)
-            originalContent = content
             loadError = nil
         } catch {
             loadError = error.localizedDescription

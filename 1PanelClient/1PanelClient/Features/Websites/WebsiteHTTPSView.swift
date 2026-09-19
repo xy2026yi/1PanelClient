@@ -105,7 +105,7 @@ struct WebsiteHTTPSView: View {
             }
         }
         for ssl in vm.availableSSLs {
-            labels[String(ssl.id)] = "\(ssl.displayName)（有效期至 \(ssl.displayExpireDate)）"
+            labels[String(ssl.id)] = ssl.displayName
         }
         return labels
     }

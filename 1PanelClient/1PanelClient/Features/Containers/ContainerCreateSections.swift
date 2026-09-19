@@ -92,13 +92,9 @@ struct ContainerWizardForm: View {
             if nameEditable {
                 OutlinedTextField(label: L10n.t("名称"), prompt: "nginx-test", text: $draft.name)
             } else {
-                HStack {
-                    Text(L10n.t("名称")).foregroundStyle(.secondary)
-                    Spacer()
-                    Text(draft.name)
-                        .font(.dataMonospacedBody)
-                        .multilineTextAlignment(.trailing)
-                }
+                // 编辑流名称不可改（接口按原名称重建容器），描边框只读展示
+                OutlinedTextField(label: L10n.t("名称"), text: .constant(draft.name),
+                                  disabled: true)
             }
             // 镜像输入框右侧图标：进入已有镜像选择页，选中回填
             OutlinedShape(label: L10n.t("镜像"), isFocused: false,

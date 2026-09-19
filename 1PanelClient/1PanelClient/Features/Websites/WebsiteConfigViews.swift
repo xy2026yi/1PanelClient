@@ -526,15 +526,15 @@ struct WebsiteRedirectEditView: View {
                                    optionLabels: ["": domains.isEmpty
                                         ? L10n.t("未获取") : L10n.t("请选择")])
                 } else if type == "path" {
-                    FormTextField(label: L10n.t("路径"), prompt: "/ai", text: $path,
-                                  style: .stacked, keyboardType: .URL)
+                    OutlinedTextField(label: L10n.t("路径"), prompt: "/ai",
+                                      text: $path, keyboardType: .URL)
                 } else {
                     Toggle(L10n.t("重定向到首页"), isOn: $redirectRoot)
                 }
 
                 if !(is404 && redirectRoot) {
-                    FormTextField(label: L10n.t("目标URL地址"), prompt: "http://…",
-                                  text: $target, style: .stacked, keyboardType: .URL)
+                    OutlinedTextField(label: L10n.t("目标URL地址"), prompt: "http://…",
+                                      text: $target, keyboardType: .URL)
                 }
 
                 if !is404 {
@@ -873,6 +873,7 @@ struct WebsiteAuthEditView: View {
     @State private var username = ""
     @State private var password = ""
     @State private var remark = ""
+    @State private var showPassword = false
     @State private var isSaving = false
 
     private var isEdit: Bool { item != nil }
@@ -881,22 +882,40 @@ struct WebsiteAuthEditView: View {
         Form {
             Section(L10n.t("账号")) {
                 OutlinedTextField(label: L10n.t("用户名"), text: $username, disabled: isEdit)
-                // 随机按钮内嵌描边框右侧（与单位/箭头同位）
+                // 密码框右侧：眼睛切换明文/密文 + 骰子随机生成（与 FTP 密码一致的组合）
                 OutlinedShape(label: L10n.t("密码"), isFocused: false,
                               hasValue: !password.isEmpty,
                               trailing: {
-                    Button {
-                        password = Self.randomPassword()
-                    } label: {
-                        Image(systemName: "dice")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 12) {
+                        Button {
+                            showPassword.toggle()
+                        } label: {
+                            Image(systemName: showPassword ? "eye.slash" : "eye")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(showPassword ? L10n.t("隐藏密码") : L10n.t("显示密码"))
+                        Button {
+                            password = Self.randomPassword()
+                        } label: {
+                            Image(systemName: "dice")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.t("随机生成"))
                     }
-                    .buttonStyle(.borderless)
                 }) {
-                    SecureField("", text: $password)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    if showPassword {
+                        TextField("", text: $password)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    } else {
+                        SecureField("", text: $password)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
                 }
                 OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $remark)
             }

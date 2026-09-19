@@ -1058,9 +1058,8 @@ private struct ContainerTemplateEditSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    FormTextField(label: L10n.t("名称"), text: $name)
-                        .disabled(template != nil)
-                    FormTextField(label: L10n.t("描述"), text: $descriptionText, machineValue: false)
+                    OutlinedTextField(label: L10n.t("名称"), text: $name,
+                                      disabled: template != nil)
                 } header: {
                     SectionLabel(title: L10n.t("基本信息"), systemImage: "doc.on.doc")
                 }
@@ -1073,6 +1072,11 @@ private struct ContainerTemplateEditSheet: View {
                         .scrollContentBackground(.hidden)
                 } header: {
                     SectionLabel(title: "docker-compose.yml", systemImage: "doc.text")
+                }
+                // 描述置底（形态 7.1，默认 1 行自动增高）
+                Section {
+                    OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"),
+                                           lines: 1, text: $descriptionText)
                 }
             }
             .navigationTitle(template == nil ? L10n.t("创建模板") : L10n.t("编辑模板"))

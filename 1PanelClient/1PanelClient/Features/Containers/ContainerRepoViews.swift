@@ -17,6 +17,8 @@ struct RepoListView: View {
     /// 当前编辑的仓库（sheet(item:)）
     @State private var editingRepo: ContainerRepo?
     @State private var pendingDelete: ContainerRepo?
+    /// 长按弹出的操作菜单目标
+    @State private var actionRepo: ContainerRepo?
 
     var body: some View {
         Group {
@@ -35,25 +37,12 @@ struct RepoListView: View {
             } else {
                 List {
                     ForEach(repos) { repo in
-                        Button {
-                            editingRepo = repo
-                        } label: {
-                            RepoRow(repo: repo)
-                        }
-                        .buttonStyle(.plain)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                pendingDelete = repo
-                            } label: {
-                                Label(L10n.t("删除"), systemImage: "trash")
+                        RepoRow(repo: repo)
+                            .contentShape(Rectangle())
+                            // 长按弹窗：编辑 / 同步 / 删除（替代原点击直进编辑 + 滑动操作）
+                            .onLongPressGesture {
+                                actionRepo = repo
                             }
-                            Button {
-                                Task { await sync(repo) }
-                            } label: {
-                                Label(L10n.t("同步"), systemImage: "arrow.triangle.2.circlepath")
-                            }
-                            .tint(.blue)
-                        }
                     }
                 }
                 .listStyle(.insetGrouped)
@@ -77,6 +66,34 @@ struct RepoListView: View {
         }
         .navigationDestination(item: $editingRepo) { repo in
             RepoFormView(editing: repo, vm: vm) { await loadRepos() }
+        }
+        // 长按操作弹窗：编辑 / 同步 / 删除
+        .sheet(isPresented: Binding(
+            get: { actionRepo != nil },
+            set: { if !$0 { actionRepo = nil } }
+        )) {
+            ActionBottomSheet(
+                title: actionRepo?.name ?? L10n.t("仓库"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        let repo = actionRepo
+                        actionRepo = nil
+                        if let repo { editingRepo = repo }
+                    },
+                    ActionMenuItem(title: L10n.t("同步"), icon: "arrow.triangle.2.circlepath", color: .green) {
+                        let repo = actionRepo
+                        actionRepo = nil
+                        if let repo { Task { await sync(repo) } }
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        pendingDelete = actionRepo
+                        actionRepo = nil
+                    },
+                ],
+                onDismiss: { actionRepo = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
+            .presentationDragIndicator(.visible)
         }
         .alert(
             L10n.t("删除仓库"),
@@ -219,29 +236,39 @@ struct RepoFormView: View {
 
     private var formSection: some View {
         Section {
-            FormTextField(label: L10n.t("名称"), text: $name)
+            OutlinedTextField(label: L10n.t("名称"), text: $name)
             Toggle(L10n.t("认证"), isOn: $useAuth)
             if useAuth {
-                FormTextField(label: L10n.t("用户名"), text: $username)
+                OutlinedTextField(label: L10n.t("用户名"), text: $username)
                 if !isEditing {
-                    HStack {
-                        Group {
-                            if showPassword {
-                                FormTextField(label: L10n.t("密码"), text: $password)
-                            } else {
-                                FormTextField(label: L10n.t("密码"), text: $password, isSecure: true)
-                            }
-                        }
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        Button { showPassword.toggle() } label: {
+                    // 密码框右侧眼睛切换明文/密文（与密码访问账号一致）
+                    OutlinedShape(label: L10n.t("密码"), isFocused: false,
+                                  hasValue: !password.isEmpty,
+                                  trailing: {
+                        Button {
+                            showPassword.toggle()
+                        } label: {
                             Image(systemName: showPassword ? "eye.slash" : "eye")
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(showPassword ? L10n.t("隐藏密码") : L10n.t("显示密码"))
+                    }) {
+                        if showPassword {
+                            TextField("", text: $password)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                        } else {
+                            SecureField("", text: $password)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
                         }
                     }
                 }
             }
-            FormTextField(label: L10n.t("下载地址"), text: $downloadUrl, style: .stacked, keyboardType: .URL)
+            OutlinedTextField(label: L10n.t("下载地址"), prompt: "docker.io",
+                              text: $downloadUrl, keyboardType: .URL)
             OutlinedPicker(label: L10n.t("协议"), options: ["https", "http"],
                            selection: Binding(
                                get: { useHTTPS ? "https" : "http" },

@@ -272,50 +272,28 @@ nonisolated enum InspectSectionsBuilder {
 // MARK: - 动态 key=value 行编辑器（参数/标签/环境变量共用）
 
 /// 一组 "key=value" 行的增删编辑（提交时同时产出数组和换行串，匹配请求体双字段）
-struct KVRowsEditor: View {
-    let title: String
-    @Binding var rows: [ContainerKVPair]
+// MARK: - 网络管理
 
-    var body: some View {
-        Section {
-            ForEach($rows) { $row in
-                HStack(spacing: 8) {
-                    FormTextField(label: L10n.t("标签"), text: $row.key)
-                    FormTextField(label: L10n.t("值"), text: $row.value)
-                    Button {
-                        rows.removeAll { $0.id == row.id }
-                    } label: {
-                        Image(systemName: "minus.circle")
-                            .foregroundStyle(.red)
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel(L10n.t("删除"))
-                }
-            }
-            Button {
-                rows.append(ContainerKVPair(key: "", value: ""))
-            } label: {
-                Label(L10n.t("添加"), systemImage: "plus.circle")
-            }
-        } header: {
-            SectionLabel(title: title, systemImage: "list.bullet.rectangle")
-        } footer: {
-            Text(L10n.t("可选，一行一个，格式 key=value"))
-        }
-    }
-
-    /// "k=v" 数组（空行过滤）
-    static func pairs(_ rows: [ContainerKVPair]) -> [String] {
-        rows.map { "\($0.key)=\($0.value)" }.filter { !$0.isEmpty && $0 != "=" }
-    }
-
-    /// "k=v\nk=v" 串
-    static func joined(_ rows: [ContainerKVPair]) -> String {
-        pairs(rows).joined(separator: "\n")
-    }
+/// 多行 KV 原文 → "k=v" 数组（空行过滤；存储卷/网络的参数、标签共用）
+private func kvPairs(_ text: String) -> [String] {
+    text.split(whereSeparator: \.isNewline)
+        .map { $0.trimmingCharacters(in: .whitespaces) }
+        .filter { !$0.isEmpty && $0 != "=" }
 }
 
-// MARK: - 网络管理
+/// 排除 IP 多行原文 → [ContainerKVPair]（每行 标签=IP；仅 IP 时标签留空）
+private func auxPairs(_ text: String) -> [ContainerKVPair] {
+    text.split(whereSeparator: \.isNewline)
+        .map { $0.trimmingCharacters(in: .whitespaces) }
+        .filter { !$0.isEmpty }
+        .map { line in
+            if let eq = line.firstIndex(of: "=") {
+                return ContainerKVPair(key: String(line[..<eq]),
+                                       value: String(line[line.index(after: eq)...]))
+            }
+            return ContainerKVPair(key: "", value: String(line))
+        }
+}
 
 struct ContainerNetworksView: View {
     let server: ServerConfig
@@ -571,14 +549,16 @@ private struct ContainerNetworkCreateSheet: View {
     @State private var subnet = ""
     @State private var gateway = ""
     @State private var ipRange = ""
-    @State private var auxRows: [ContainerKVPair] = []
+    /// 排除 IP 多行原文（每行一条 标签=IP，形态 7.1 默认 1 行）
+    @State private var auxText = ""
     @State private var ipv6 = false
     @State private var subnetV6 = ""
     @State private var gatewayV6 = ""
     @State private var ipRangeV6 = ""
-    @State private var auxRowsV6: [ContainerKVPair] = []
-    @State private var optionRows: [ContainerKVPair] = []
-    @State private var labelRows: [ContainerKVPair] = []
+    @State private var auxTextV6 = ""
+    /// 参数/标签多行原文（每行一条 key=value，形态 7.1 默认 1 行）
+    @State private var optionText = ""
+    @State private var labelText = ""
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var showError = false
@@ -601,15 +581,13 @@ private struct ContainerNetworkCreateSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    FormTextField(label: L10n.t("网络名"), text: $name)
-                    Picker(L10n.t("模式"), selection: $driver) {
-                        ForEach(drivers, id: \.self) { Text($0).tag($0) }
-                    }
+                    OutlinedTextField(label: L10n.t("网络名"), text: $name)
+                    OutlinedPicker(label: L10n.t("模式"), options: drivers, selection: $driver)
                     // 父网卡仅 macvlan / overlay 需要（抓包：ipvlan 未携带）
                     if driver == "macvlan" || driver == "overlay" {
-                        Picker(L10n.t("父网卡"), selection: $parentCard) {
-                            ForEach(netCards, id: \.self) { Text($0).tag($0) }
-                        }
+                        OutlinedPicker(label: L10n.t("父网卡"),
+                                       options: netCards.isEmpty ? [""] : netCards,
+                                       selection: $parentCard)
                     }
                 } header: {
                     SectionLabel(title: L10n.t("基本信息"), systemImage: "network")
@@ -634,8 +612,22 @@ private struct ContainerNetworkCreateSheet: View {
                     }
                 }
 
-                KVRowsEditor(title: L10n.t("参数"), rows: $optionRows)
-                KVRowsEditor(title: L10n.t("标签"), rows: $labelRows)
+                Section {
+                    OutlinedMultiLineField(label: L10n.t("参数"), prompt: "key=value",
+                                           lines: 1, text: $optionText)
+                } header: {
+                    SectionLabel(title: L10n.t("参数"), systemImage: "list.bullet.rectangle")
+                } footer: {
+                    Text(L10n.t("可选，一行一个，格式 key=value"))
+                }
+                Section {
+                    OutlinedMultiLineField(label: L10n.t("标签"), prompt: "key=value",
+                                           lines: 1, text: $labelText)
+                } header: {
+                    SectionLabel(title: L10n.t("标签"), systemImage: "tag")
+                } footer: {
+                    Text(L10n.t("可选，一行一个，格式 key=value"))
+                }
             }
             .navigationTitle(L10n.t("创建网络"))
             .navigationBarTitleDisplayMode(.inline)
@@ -667,38 +659,26 @@ private struct ContainerNetworkCreateSheet: View {
     private var ipv6Section: Bool { true }
 
     @ViewBuilder private var ipv4Fields: some View {
-        FormTextField(label: L10n.t("子网"), text: $subnet)
-        FormTextField(label: L10n.t("网关"), prompt: L10n.t("可选"), text: $gateway)
-        FormTextField(label: L10n.t("IP 范围"), prompt: L10n.t("可选"), text: $ipRange)
-        auxRowsEditor($auxRows, title: L10n.t("排除 IP"))
+        OutlinedTextField(label: L10n.t("子网"), prompt: "172.16.0.0/24", text: $subnet)
+        OutlinedTextField(label: L10n.t("网关"), prompt: L10n.t("可选"), text: $gateway)
+        OutlinedTextField(label: L10n.t("IP 范围"), prompt: L10n.t("可选"), text: $ipRange)
+        auxTextEditor($auxText)
     }
 
     @ViewBuilder private var ipv6Fields: some View {
-        FormTextField(label: L10n.t("子网"), text: $subnetV6)
-        FormTextField(label: L10n.t("网关"), prompt: L10n.t("可选"), text: $gatewayV6)
-        FormTextField(label: L10n.t("IP 范围"), prompt: L10n.t("可选"), text: $ipRangeV6)
-        auxRowsEditor($auxRowsV6, title: L10n.t("排除 IP"))
+        OutlinedTextField(label: L10n.t("子网"), prompt: "fd00::/64", text: $subnetV6)
+        OutlinedTextField(label: L10n.t("网关"), prompt: L10n.t("可选"), text: $gatewayV6)
+        OutlinedTextField(label: L10n.t("IP 范围"), prompt: L10n.t("可选"), text: $ipRangeV6)
+        auxTextEditor($auxTextV6)
     }
 
-    /// 排除 IP 行（标签 + IP）
-    private func auxRowsEditor(_ rows: Binding<[ContainerKVPair]>, title: String) -> some View {
+    /// 排除 IP（形态 7.1 默认 1 行；每行 标签=IP，仅 IP 时标签留空）
+    private func auxTextEditor(_ text: Binding<String>) -> some View {
         Section {
-            ForEach(rows.wrappedValue.indices, id: \.self) { idx in
-                HStack(spacing: 8) {
-                    TextField(L10n.t("标签"), text: rows[idx].key)
-                        .frame(maxWidth: 90)
-                        .autocorrectionDisabled()
-                    TextField("IP", text: rows[idx].value)
-                        // IPv6 排除地址需输入冒号，不用 decimalPad
-                        .autocorrectionDisabled()
-                }
-            }
-            .onDelete { rows.wrappedValue.remove(atOffsets: $0) }
-            Button {
-                rows.wrappedValue.append(ContainerKVPair(key: "", value: ""))
-            } label: {
-                Label(title, systemImage: "plus.circle")
-            }
+            OutlinedMultiLineField(label: L10n.t("排除 IP"), prompt: "label=172.16.0.5",
+                                   lines: 1, text: text)
+        } footer: {
+            Text(L10n.t("可选，一行一个，格式 标签=IP；仅填 IP 时标签留空"))
         }
     }
 
@@ -717,21 +697,21 @@ private struct ContainerNetworkCreateSheet: View {
         let req = ContainerNetworkCreateRequest(
             name: name.trimmingCharacters(in: .whitespaces),
             parentNetworkCard: driver == "macvlan" || driver == "overlay" ? parentCard : "",
-            labelStr: KVRowsEditor.joined(labelRows),
-            labels: KVRowsEditor.pairs(labelRows),
-            optionStr: KVRowsEditor.joined(optionRows),
-            options: KVRowsEditor.pairs(optionRows),
+            labelStr: kvPairs(labelText).joined(separator: "\n"),
+            labels: kvPairs(labelText),
+            optionStr: kvPairs(optionText).joined(separator: "\n"),
+            options: kvPairs(optionText),
             driver: driver,
             ipv4: ipv4,
             subnet: ipv4 ? subnet : "",
             gateway: ipv4 ? gateway : "",
             ipRange: ipv4 ? ipRange : "",
-            auxAddress: ipv4 ? auxRows : [],
+            auxAddress: ipv4 ? auxPairs(auxText) : [],
             ipv6: ipv6,
             subnetV6: ipv6 ? subnetV6 : "",
             gatewayV6: ipv6 ? gatewayV6 : "",
             ipRangeV6: ipv6 ? ipRangeV6 : "",
-            auxAddressV6: ipv6 ? auxRowsV6 : [])
+            auxAddressV6: ipv6 ? auxPairs(auxTextV6) : [])
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.containersNetworkCreate.path, body: req, as: EmptyResponse.self)
@@ -982,8 +962,9 @@ private struct ContainerVolumeCreateSheet: View {
     @State private var nfsVersion = "v4"
     @State private var nfsMount = ""
     @State private var nfsOption = "rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
-    @State private var optionRows: [ContainerKVPair] = []
-    @State private var labelRows: [ContainerKVPair] = []
+    /// 参数/标签多行原文（每行一条 key=value，形态 7.1）
+    @State private var optionText = ""
+    @State private var labelText = ""
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var showError = false
@@ -1009,10 +990,9 @@ private struct ContainerVolumeCreateSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    FormTextField(label: L10n.t("名称"), text: $name)
-                    Picker(L10n.t("模式"), selection: .constant("local")) {
-                        Text("local").tag("local")
-                    }
+                    OutlinedTextField(label: L10n.t("名称"), text: $name)
+                    OutlinedPicker(label: L10n.t("模式"), options: ["local"],
+                                   selection: .constant("local"))
                 } header: {
                     SectionLabel(title: L10n.t("基本信息"), systemImage: "externaldrive")
                 }
@@ -1020,24 +1000,35 @@ private struct ContainerVolumeCreateSheet: View {
                 Section {
                     Toggle(L10n.t("启用 NFS 存储"), isOn: $nfsEnabled)
                     if nfsEnabled {
-                        FormTextField(label: L10n.t("地址"), text: $nfsAddress, style: .stacked)
-                            // NFS 地址可为域名（含字母），不用 decimalPad
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                        Picker(L10n.t("版本"), selection: $nfsVersion) {
-                            Text("NFS").tag("v3")
-                            Text("NFS4").tag("v4")
-                        }
-                        FormTextField(label: L10n.t("挂载点"), text: $nfsMount)
-                        FormTextField(label: L10n.t("可选参数"), text: $nfsOption)
-                            .font(.dataMonospacedFootnote)
+                        // NFS 地址可为域名（含字母），不用 decimalPad
+                        OutlinedTextField(label: L10n.t("地址"), text: $nfsAddress,
+                                          keyboardType: .URL)
+                        OutlinedPicker(label: L10n.t("版本"), options: ["v3", "v4"],
+                                       selection: $nfsVersion,
+                                       optionLabels: ["v3": "NFS", "v4": "NFS4"])
+                        OutlinedTextField(label: L10n.t("挂载点"), text: $nfsMount)
+                        OutlinedTextField(label: L10n.t("可选参数"), text: $nfsOption)
                     }
                 } header: {
                     SectionLabel(title: "NFS", systemImage: "externaldrive.badge.icloud")
                 }
 
-                KVRowsEditor(title: L10n.t("参数"), rows: $optionRows)
-                KVRowsEditor(title: L10n.t("标签"), rows: $labelRows)
+                Section {
+                    OutlinedMultiLineField(label: L10n.t("参数"), prompt: "key=value",
+                                           text: $optionText)
+                } header: {
+                    SectionLabel(title: L10n.t("参数"), systemImage: "list.bullet.rectangle")
+                } footer: {
+                    Text(L10n.t("可选，一行一个，格式 key=value"))
+                }
+                Section {
+                    OutlinedMultiLineField(label: L10n.t("标签"), prompt: "key=value",
+                                           text: $labelText)
+                } header: {
+                    SectionLabel(title: L10n.t("标签"), systemImage: "tag")
+                } footer: {
+                    Text(L10n.t("可选，一行一个，格式 key=value"))
+                }
             }
             .navigationTitle(L10n.t("创建存储卷"))
             .navigationBarTitleDisplayMode(.inline)
@@ -1068,7 +1059,7 @@ private struct ContainerVolumeCreateSheet: View {
         isSubmitting = true
         defer { isSubmitting = false }
         // NFS 开启时按抓包推导三条挂载参数（type / o / device），并入 options
-        var options = KVRowsEditor.pairs(optionRows)
+        var options = kvPairs(optionText)
         if nfsEnabled {
             let nfsType = nfsVersion == "v3" ? "nfs" : "nfs4"
             options += [
@@ -1080,9 +1071,9 @@ private struct ContainerVolumeCreateSheet: View {
         var req = ContainerVolumeCreateRequest(
             name: name.trimmingCharacters(in: .whitespaces),
             driver: "local",
-            labelStr: KVRowsEditor.joined(labelRows),
-            labels: KVRowsEditor.pairs(labelRows),
-            optionStr: KVRowsEditor.joined(optionRows),
+            labelStr: kvPairs(labelText).joined(separator: "\n"),
+            labels: kvPairs(labelText),
+            optionStr: kvPairs(optionText).joined(separator: "\n"),
             options: options)
         if nfsEnabled {
             req.nfsStatus = "enable"

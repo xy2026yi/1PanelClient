@@ -329,16 +329,6 @@
         }
       }
     },
-    "%@（%@）" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@（%2$@）"
-          }
-        }
-      }
-    },
     "%@（动态模块）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1011,9 +1001,6 @@
 
     },
     "1000" : {
-
-    },
-    "18789" : {
 
     },
     "ACME 服务 URL" : {
@@ -1906,9 +1893,6 @@
         }
       }
     },
-    "http://" : {
-
-    },
     "HTTP/3 (QUIC)" : {
 
     },
@@ -1966,9 +1950,6 @@
           }
         }
       }
-    },
-    "https://" : {
-
     },
     "HTTPS防窜站" : {
       "extractionState" : "manual",
@@ -2302,9 +2283,6 @@
       }
     },
     "local" : {
-
-    },
-    "MB" : {
 
     },
     "MCP Server 网关管理" : {
@@ -6240,17 +6218,6 @@
         }
       }
     },
-    "内存单位" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Memory Unit"
-          }
-        }
-      }
-    },
     "内存 (RSS)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6280,6 +6247,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Memory Usage"
+          }
+        }
+      }
+    },
+    "内存单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory Unit"
           }
         }
       }
@@ -9888,6 +9866,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Optional, one per line, in key=value format"
+          }
+        }
+      }
+    },
+    "可选，一行一个，格式 标签=IP；仅填 IP 时标签留空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional, one per line as label=IP; label can be omitted"
           }
         }
       }
@@ -34121,6 +34110,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hide Password"
+          }
+        }
+      }
+    },
+    "随机生成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate Random"
           }
         }
       }
