@@ -16,6 +16,9 @@ struct WebsitesTab: View {
     /// 类型选择半屏弹窗（+ 号入口）：选中后经 pendingCreateType 进入对应向导
     @State private var showCreateTypeSheet = false
     @State private var pendingCreateType: WebsiteType?
+    /// 传给向导的类型初值（push 前写入；不可在 push 前清掉 pendingCreateType
+    /// 后又让向导读它——此前三类型全进一键部署正是这个时序 bug）
+    @State private var createInitialType: WebsiteType = .deployment
     @State private var showOpenRestyConfig = false
     // OpenResty 管理增强页入口
     @State private var showOpenRestyStatus = false
@@ -140,7 +143,7 @@ struct WebsitesTab: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             // 类型由 + 号的半屏弹窗预选，向导内不再切换类型
-            CreateWebsiteView(vm: vm, initialType: pendingCreateType ?? .deployment)
+            CreateWebsiteView(vm: vm, initialType: createInitialType)
         }
         .sheet(isPresented: $showCreateTypeSheet) {
             CreateWebsiteTypeSheet { type in
@@ -151,12 +154,11 @@ struct WebsitesTab: View {
         }
         // sheet 关闭转场后再 push 向导，避免并发动画被丢弃
         .onChange(of: showCreateTypeSheet) { _, shown in
-            if !shown, pendingCreateType != nil {
-                let type = pendingCreateType
+            if !shown, let type = pendingCreateType {
                 pendingCreateType = nil
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    createInitialType = type
                     showCreate = true
-                    _ = type
                 }
             }
         }
