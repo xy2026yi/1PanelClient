@@ -1124,9 +1124,6 @@
         }
       }
     },
-    "Base URL" : {
-
-    },
     "Bot ID" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2141,17 +2138,6 @@
         }
       }
     },
-    "IP 配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IP Settings"
-          }
-        }
-      }
-    },
     "IP 类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2225,6 +2211,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "IP Rules (%ld)"
+          }
+        }
+      }
+    },
+    "IP 配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Settings"
           }
         }
       }
@@ -2811,9 +2808,6 @@
 
     },
     "TLSv1.3" : {
-
-    },
-    "Token" : {
 
     },
     "Token 由系统自动生成，用于 OpenClaw 控制台接入" : {
@@ -15490,6 +15484,17 @@
         }
       }
     },
+    "当前 API 类型不支持自动获取，请切换为手动配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto fetch is unavailable for this API type; switch to manual"
+          }
+        }
+      }
+    },
     "当前 docker-compose.yml" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16447,6 +16452,17 @@
         }
       }
     },
+    "手动配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual"
+          }
+        }
+      }
+    },
     "手机上传" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17382,17 +17398,6 @@
         }
       }
     },
-    "排除 IP" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Excluded IPs"
-          }
-        }
-      }
-    },
     "排除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17400,6 +17405,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Excluded"
+          }
+        }
+      }
+    },
+    "排除 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excluded IPs"
           }
         }
       }
@@ -28679,39 +28695,6 @@
         }
       }
     },
-    "自动获取" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto Fetch"
-          }
-        }
-      }
-    },
-    "手动配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manual"
-          }
-        }
-      }
-    },
-    "当前 API 类型不支持自动获取，请切换为手动配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto fetch is unavailable for this API type; switch to manual"
-          }
-        }
-      }
-    },
     "自动启动" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28741,6 +28724,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto Renew"
+          }
+        }
+      }
+    },
+    "自动获取" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Fetch"
           }
         }
       }

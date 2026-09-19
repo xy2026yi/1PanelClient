@@ -96,7 +96,13 @@ struct AIAgentModelConfigView: View {
                                        selection: $selectedModel)
                     }
                     if let current = c.model, !current.isEmpty {
-                        LabeledContent(L10n.t("当前模型"), value: current)
+                        // 当前生效模型（只读）：描边框展示
+                        OutlinedShape(label: L10n.t("当前模型"), isFocused: false,
+                                      hasValue: true, trailing: { EmptyView() }) {
+                            Text(current)
+                                .font(.dataMonospacedCaption)
+                                .lineLimit(1)
+                        }
                     }
                 } header: {
                     SectionLabel(title: L10n.t("模型配置"), systemImage: "brain")
@@ -383,30 +389,42 @@ struct AIAgentSettingsView: View {
                 if !isOpenClaw {
                     Section {
                         OutlinedTextField(label: L10n.t("用户名"), text: $username)
-                        HStack {
+                        // 眼睛切换 + 复制内嵌描边框右侧（明文等宽字体便于核对）
+                        OutlinedShape(label: L10n.t("密码"), isFocused: false,
+                                      hasValue: !password.isEmpty,
+                                      trailing: {
+                            HStack(spacing: 12) {
+                                Button {
+                                    showPassword.toggle()
+                                } label: {
+                                    Image(systemName: showPassword ? "eye.slash" : "eye")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.borderless)
+                                .accessibilityLabel(L10n.t("显示密码"))
+                                Button {
+                                    UIPasteboard.general.string = password
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                                .buttonStyle(.borderless)
+                                .disabled(password.isEmpty)
+                                .accessibilityLabel(L10n.t("复制"))
+                            }
+                        }) {
                             if showPassword {
-                                OutlinedTextField(label: L10n.t("密码"), text: $password)
+                                TextField("", text: $password)
                                     .font(.dataMonospacedBody)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
                             } else {
-                                OutlinedTextField(label: L10n.t("密码"), text: $password, isSecure: true)
+                                SecureField("", text: $password)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
                             }
-                            Button {
-                                showPassword.toggle()
-                            } label: {
-                                Image(systemName: showPassword ? "eye.slash" : "eye")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.borderless)
-                            .accessibilityLabel(L10n.t("显示密码"))
-                            Button {
-                                UIPasteboard.general.string = password
-                            } label: {
-                                Image(systemName: "doc.on.doc")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.borderless)
-                            .disabled(password.isEmpty)
-                            .accessibilityLabel(L10n.t("复制"))
                         }
                     } header: {
                         SectionLabel(title: L10n.t("控制台账号"), systemImage: "person.crop.circle")
