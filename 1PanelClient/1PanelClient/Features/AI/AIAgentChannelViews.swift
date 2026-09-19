@@ -238,26 +238,26 @@ struct AIAgentChannelsView: View {
 
 // MARK: - 通用小组件
 
-/// 策略 Picker（选项集按频道传入：pairing / open / allowlist / disabled）。
+/// 策略选择（选项集按频道传入：pairing / open / allowlist / disabled），描边菜单（形态 2）。
 /// get 可能返回空串/未知值（如钉钉 groupPolicy:""）：不在选项集内时折叠到首个选项，
-/// 避免 Picker 空 selection 告警与空白行（提交仍走 state，用户不改动即保持折叠值）
+/// 避免空 selection 告警与空白行（提交仍走 state，用户不改动即保持折叠值）
 private struct ChannelPolicyPicker: View {
     let title: String
     let options: [(value: String, label: String)]
     @Binding var value: String
 
     var body: some View {
-        Picker(title, selection: Binding(
-            get: {
-                options.contains(where: { $0.value == value })
-                    ? value : (options.first?.value ?? value)
-            },
-            set: { value = $0 }
-        )) {
-            ForEach(options, id: \.value) { p in
-                Text(p.label).tag(p.value)
-            }
-        }
+        OutlinedPicker(label: title,
+                       options: options.map(\.value),
+                       selection: Binding(
+                           get: {
+                               options.contains(where: { $0.value == value })
+                                   ? value : (options.first?.value ?? value)
+                           },
+                           set: { value = $0 }
+                       ),
+                       optionLabels: Dictionary(uniqueKeysWithValues:
+                           options.map { ($0.value, $0.label) }))
     }
 }
 
@@ -328,35 +328,26 @@ private struct HermesChannelDeleteModifier: ViewModifier {
     }
 }
 
-/// 白名单编辑（策略=白名单时显示，一行一个；设置页 allowedOrigins 复用）
+/// 白名单编辑（策略=白名单时显示，一行一个；设置页 allowedOrigins 复用），
+/// 形态 7.1 多行描边框
 struct WhitelistEditor: View {
     let title: String
     @Binding var list: [String]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            TextEditor(text: Binding(
-                get: { list.joined(separator: "\n") },
-                set: { raw in
-                    // 保留空行（含键入行尾换行产生的尾部空行）：丢弃会让回写内容
-                    // 与 TextEditor 当前文本不一致，任何重渲染都会把换行吞掉，
-                    // 表现为无法换行输入。空行原样进提交，与网页端 textarea 行为一致
-                    let items = raw.split(
-                        omittingEmptySubsequences: false,
-                        whereSeparator: \.isNewline
-                    ).map(String.init)
-                    if items != list { list = items }
-                }
-            ))
-            .font(.dataMonospacedCaption)
-            .frame(minHeight: 64)
-            .scrollContentBackground(.hidden)
-            .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: Radius.small))
-        }
+        OutlinedMultiLineField(label: title, prompt: "example.com", text: Binding(
+            get: { list.joined(separator: "\n") },
+            set: { raw in
+                // 保留空行（含键入行尾换行产生的尾部空行）：丢弃会让回写内容
+                // 与输入框当前文本不一致，任何重渲染都会把换行吞掉，
+                // 表现为无法换行输入。空行原样进提交，与网页端 textarea 行为一致
+                let items = raw.split(
+                    omittingEmptySubsequences: false,
+                    whereSeparator: \.isNewline
+                ).map(String.init)
+                if items != list { list = items }
+            }
+        ))
     }
 }
 
@@ -1260,19 +1251,9 @@ private struct AIQQBotFormSheet: View {
                     WhitelistEditor(title: L10n.t("私聊白名单"), list: Binding(
                         get: { bot.allowFrom ?? [] },
                         set: { bot.allowFrom = $0.isEmpty ? nil : $0 }))
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(L10n.t("系统提示词"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        TextEditor(text: Binding(
-                            get: { bot.systemPrompt ?? "" },
-                            set: { bot.systemPrompt = $0 }))
-                            .font(.dataMonospacedCaption)
-                            .frame(minHeight: 72)
-                            .scrollContentBackground(.hidden)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: Radius.small))
-                    }
+                    OutlinedMultiLineField(label: L10n.t("系统提示词"), text: Binding(
+                        get: { bot.systemPrompt ?? "" },
+                        set: { bot.systemPrompt = $0 }))
                 } header: {
                     SectionLabel(title: L10n.t("策略"), systemImage: "slider.horizontal.3")
                 } footer: {

@@ -54,7 +54,6 @@
 			membershipExceptions = (
 				.mimosa,
 				Features/.mimosa,
-				Features/AI/.mimosa,
 			);
 			target = 14904F5F2FE7BFC6009BA44F /* 1PanelClient */;
 		};
