@@ -168,16 +168,14 @@ struct AIAgentSkillsView: View {
     @ViewBuilder
     private var marketSection: some View {
         Section {
-            Picker(L10n.t("来源"), selection: $source) {
-                ForEach(SkillSource.sources(for: agentType)) { s in
-                    Text(s.displayName).tag(s)
+            OutlinedPicker(label: L10n.t("来源"),
+                           options: SkillSource.sources(for: agentType),
+                           selection: $source) { $0.displayName }
+                .onChange(of: source) { _, _ in
+                    if hasSearched {
+                        Task { await search() }
+                    }
                 }
-            }
-            .onChange(of: source) { _, _ in
-                if hasSearched {
-                    Task { await search() }
-                }
-            }
 
             TextField(L10n.t("输入关键词搜索"), text: $keyword)
                 .onSubmit { Task { await search() } }

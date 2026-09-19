@@ -35,9 +35,8 @@ struct AIMcpFormView: View {
     @State private var portField = "8000"
     @State private var allowPort = false
 
-    @State private var environments: [AIKeyValueItem] = []
-    @State private var newEnvKey = ""
-    @State private var newEnvValue = ""
+    /// 环境变量多行原文（每行一条 KEY=VALUE，形态 7.1；提交拆为 environments）
+    @State private var envText = ""
 
     @State private var volumes: [String] = []
     @State private var newVolumeHost = ""
@@ -127,15 +126,10 @@ struct AIMcpFormView: View {
             OutlinedTextField(label: L10n.t("名称"), text: $name)
                 .disabled(isEditing)
 
-            Picker(L10n.t("类型"), selection: $type) {
-                ForEach(types, id: \.self) { Text($0).tag($0) }
-            }
+            OutlinedPicker(label: L10n.t("类型"), options: types, selection: $type)
 
-            TextEditor(text: $command)
-                .font(.dataMonospacedCaption)
-                .frame(minHeight: 88)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            OutlinedMultiLineField(label: L10n.t("启动命令"), prompt: "npx -y …",
+                                   text: $command)
         } header: {
             SectionLabel(title: L10n.t("基本信息"), systemImage: "puzzlepiece")
         } footer: {
@@ -145,26 +139,14 @@ struct AIMcpFormView: View {
 
     private var transportSection: some View {
         Section {
-            // 行内左标签：外部访问地址 = 协议下拉 + 地址输入
-            HStack {
-                Text(L10n.t("外部访问地址"))
-                Spacer(minLength: 12)
-                Picker("", selection: $protocolScheme) {
-                    Text("http://").tag("http://")
-                    Text("https://").tag("https://")
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-                TextField("", text: $urlHost)
-                    .keyboardType(.URL)
-                    .multilineTextAlignment(.trailing)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-            }
+            // 外部访问地址 = 协议 + 地址（两个描边字段，与反向代理一致）
+            OutlinedPicker(label: L10n.t("协议"), options: ["http://", "https://"],
+                           selection: $protocolScheme)
+            OutlinedTextField(label: L10n.t("外部访问地址"), prompt: "host:port",
+                              text: $urlHost, keyboardType: .URL)
 
-            Picker(L10n.t("输出类型"), selection: $outputTransport) {
-                ForEach(transports, id: \.self) { Text($0).tag($0) }
-            }
+            OutlinedPicker(label: L10n.t("输出类型"), options: transports,
+                           selection: $outputTransport)
 
             if outputTransport == "sse" {
                 OutlinedTextField(label: L10n.t("SSE 路径"), text: $pathField)
@@ -189,13 +171,8 @@ struct AIMcpFormView: View {
     private var containerSection: some View {
         Section {
             OutlinedTextField(label: L10n.t("容器名称"), text: $containerName)
-            HStack {
-                Text(L10n.t("端口")).foregroundStyle(.secondary)
-                Spacer()
-                OutlinedTextField(label: "8000", text: $portField, keyboardType: .numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
-            }
+            OutlinedTextField(label: L10n.t("端口"), text: $portField,
+                              keyboardType: .numberPad)
             Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
         } header: {
             SectionLabel(title: L10n.t("容器"), systemImage: "shippingbox")
@@ -204,40 +181,11 @@ struct AIMcpFormView: View {
         }
     }
 
-    /// 环境变量：KEY/VALUE 成对添加（对齐 ContainerCreateView envSection 模式）
+    /// 环境变量（形态 7.1：每行一条 KEY=VALUE，默认 5 行自动增高）
     private var envSection: some View {
         Section {
-            ForEach(environments) { env in
-                HStack {
-                    Text(env.key)
-                        .font(.dataMonospacedCaption)
-                    Spacer()
-                    Text(env.value)
-                        .font(.dataMonospacedCaption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .onDelete { environments.remove(atOffsets: $0) }
-
-            HStack(spacing: 8) {
-                OutlinedTextField(label: "KEY", text: $newEnvKey)
-                    .font(.dataMonospacedCaption)
-                Image(systemName: "arrow.left")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                OutlinedTextField(label: "VALUE", text: $newEnvValue)
-                    .font(.dataMonospacedCaption)
-                Button {
-                    addEnv()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(newEnvKey.isEmpty ? Color.secondary : Color.accentColor)
-                }
-                .buttonStyle(.borderless)
-                .disabled(newEnvKey.isEmpty)
-                .accessibilityLabel(L10n.t("添加"))
-            }
+            OutlinedMultiLineField(label: L10n.t("环境变量"), prompt: "KEY=VALUE",
+                                   text: $envText)
         } header: {
             SectionLabel(title: L10n.t("环境变量"), systemImage: "gearshape.2")
         }
@@ -291,7 +239,8 @@ struct AIMcpFormView: View {
         gatewayImage = e.gatewayImage ?? "supercorp/supergateway:3.4.3"
         containerName = e.containerName ?? e.name
         portField = String(e.port ?? 8000)
-        environments = e.environments ?? []
+        envText = (e.environments ?? []).map { "\($0.key)=\($0.value)" }
+            .joined(separator: "\n")
         volumes = e.volumes ?? []
         allowPort = !(e.hostIP ?? "").isEmpty
 
@@ -306,15 +255,6 @@ struct AIMcpFormView: View {
         }
     }
 
-    private func addEnv() {
-        let key = newEnvKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { return }
-        environments.removeAll { $0.key == key }
-        environments.append(AIKeyValueItem(key: key, value: newEnvValue))
-        newEnvKey = ""
-        newEnvValue = ""
-    }
-
     private func addVolume() {
         let host = newVolumeHost.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !host.isEmpty else { return }
@@ -324,6 +264,21 @@ struct AIMcpFormView: View {
         volumes.append(entry)
         newVolumeHost = ""
         newVolumeContainer = ""
+    }
+
+    /// 环境变量多行原文 → KEY=VALUE 数组（首个 = 分隔；无 = 视为仅有键）
+    private var envItems: [AIKeyValueItem] {
+        envText.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .map { line in
+                if let eq = line.firstIndex(of: "=") {
+                    return AIKeyValueItem(
+                        key: String(line[..<eq]),
+                        value: String(line[line.index(after: eq)...]))
+                }
+                return AIKeyValueItem(key: line, value: "")
+            }
     }
 
     // MARK: - 保存
@@ -357,7 +312,7 @@ struct AIMcpFormView: View {
             gatewayImage: gatewayImage,
             protocolVersion: protocolVersion,
             gatewayArgs: gatewayArgs,
-            environments: environments,
+            environments: envItems,
             volumes: volumes,
             protocolScheme: protocolScheme,
             urlHost: urlHost,

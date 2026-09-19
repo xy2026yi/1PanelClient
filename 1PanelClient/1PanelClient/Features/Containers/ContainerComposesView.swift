@@ -575,12 +575,8 @@ struct ContainerComposeEditView: View {
                 SectionLabel(title: "docker-compose.yml", systemImage: "doc.text")
             }
             Section {
-                TextEditor(text: $envText)
-                    .font(.dataMonospacedCaption)
-                    .frame(minHeight: 100)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .scrollContentBackground(.hidden)
+                OutlinedMultiLineField(label: L10n.t("环境变量"), prompt: "KEY=VALUE",
+                                       text: $envText)
             } header: {
                 SectionLabel(title: L10n.t("环境变量"), systemImage: "gearshape.2")
             } footer: {
@@ -679,7 +675,8 @@ struct ContainerComposeCreateView: View {
     /// path 来源：名称是否被手动编辑过（未编辑时随路径自动带出目录名）
     @State private var nameManuallyEdited = false
     @State private var file = ""
-    @State private var envRows: [ContainerKVPair] = []
+    /// 环境变量多行原文（每行一条 KEY=VALUE，形态 7.1）
+    @State private var envText = ""
     @State private var forcePull = false
     @State private var templates: [ContainerTemplate] = []
     @State private var selectedTemplate: Int?
@@ -728,19 +725,16 @@ struct ContainerComposeCreateView: View {
                                                   "template": L10n.t("编排模板")])
 
                     if from == "template" {
-                        Picker(L10n.t("模板"), selection: $selectedTemplate) {
-                            Text(L10n.t("请选择")).tag(Int?.none)
-                            ForEach(templates) { t in
-                                Text(t.name ?? "#\(t.id)").tag(Int?.some(t.id))
+                        OutlinedPicker(label: L10n.t("模板"),
+                                       options: templateOptionKeys, selection: templateText,
+                                       optionLabels: templateOptionLabels)
+                            .onChange(of: selectedTemplate) { _, newValue in
+                                // 选中模板即把内容带入编辑器（网页端行为）
+                                if let id = newValue,
+                                   let t = templates.first(where: { $0.id == id }) {
+                                    file = t.content ?? ""
+                                }
                             }
-                        }
-                        .onChange(of: selectedTemplate) { _, newValue in
-                            // 选中模板即把内容带入编辑器（网页端行为）
-                            if let id = newValue,
-                               let t = templates.first(where: { $0.id == id }) {
-                                file = t.content ?? ""
-                            }
-                        }
                     }
                     if from == "path" {
                         // 路径必须选到 compose 文件（抓包：完整 docker-compose.yml 路径）
@@ -748,7 +742,7 @@ struct ContainerComposeCreateView: View {
                             title: L10n.t("路径"), path: $pathText, client: client,
                             fileExtensions: ["yml", "yaml"])
                     }
-                    FormTextField(label: L10n.t("名称"), text: $dirName)
+                    OutlinedTextField(label: L10n.t("名称"), text: $dirName)
                         .onChange(of: dirName) { old, new in
                             // 区分用户编辑与自动带出：手动改动后不再跟随路径
                             if !new.isEmpty && new != old { nameManuallyEdited = true }
@@ -782,7 +776,10 @@ struct ContainerComposeCreateView: View {
                     }
                 }
 
-                KVRowsEditor(title: L10n.t("环境变量"), rows: $envRows)
+                Section {
+                    OutlinedMultiLineField(label: L10n.t("环境变量"), prompt: "KEY=VALUE",
+                                           text: $envText)
+                }
                 Section {
                     Toggle(L10n.t("强制拉取镜像"), isOn: $forcePull)
                 }
@@ -822,6 +819,24 @@ struct ContainerComposeCreateView: View {
         }
     }
 
+    /// 模板选项（OutlinedPicker 用 String 键；0=请选择）
+    private var templateOptionKeys: [String] {
+        ["0"] + templates.map { String($0.id) }
+    }
+
+    private var templateOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("请选择")]
+        for t in templates { labels[String(t.id)] = t.name ?? "#\(t.id)" }
+        return labels
+    }
+
+    private var templateText: Binding<String> {
+        Binding<String>(
+            get: { selectedTemplate.map(String.init) ?? "0" },
+            set: { selectedTemplate = $0 == "0" ? nil : Int($0) }
+        )
+    }
+
     /// 两段提交：compose/test 校验通过（data=true）后才真正提交 compose
     private func submit() async {
         isSubmitting = true
@@ -834,7 +849,7 @@ struct ContainerComposeCreateView: View {
             path: from == "path" ? pathText.trimmingCharacters(in: .whitespaces) : "",
             file: from == "path" ? "" : file,
             template: from == "template" ? selectedTemplate : nil,
-            env: KVRowsEditor.joined(envRows),
+            env: envText,
             forcePull: forcePull)
         // 抓包：test 请求同样携带 name（path 来源为名称输入框的值）
         var testReqNamed = testReq

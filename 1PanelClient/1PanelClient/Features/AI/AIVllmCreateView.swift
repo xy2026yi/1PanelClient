@@ -254,11 +254,8 @@ struct AIVllmCreateView: View {
                 InfoRow(L10n.t("类型"), value: originalImageTypeRaw ?? imageType.displayName)
                 InfoRow(L10n.t("版本"), value: appVersion)
             } else {
-                Picker(L10n.t("类型"), selection: $imageType) {
-                    ForEach(VllmImageType.allCases) { t in
-                        Text(t.displayName).tag(t)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("类型"), options: VllmImageType.allCases,
+                               selection: $imageType) { $0.displayName }
 
                 if isLoadingMeta && allVersions.isEmpty {
                     HStack(spacing: 8) {
@@ -273,17 +270,14 @@ struct AIVllmCreateView: View {
                     }
                     .listRowBackground(Color.clear)
                 } else {
-                    Picker(L10n.t("版本"), selection: $appVersion) {
-                        ForEach(availableVersions, id: \.self) { v in
-                            Text(v).tag(v)
+                    OutlinedPicker(label: L10n.t("版本"), options: availableVersions,
+                                   selection: $appVersion)
+                        .onChange(of: appVersion) { _, newValue in
+                            // 版本切换重新推导镜像（用户可再手动改）
+                            if let mapped = VllmImageMapper.defaultImage(appVersion: newValue) {
+                                image = mapped
+                            }
                         }
-                    }
-                    .onChange(of: appVersion) { _, newValue in
-                        // 版本切换重新推导镜像（用户可再手动改）
-                        if let mapped = VllmImageMapper.defaultImage(appVersion: newValue) {
-                            image = mapped
-                        }
-                    }
                 }
             }
 
@@ -315,34 +309,40 @@ struct AIVllmCreateView: View {
 
     private var commandSection: some View {
         Section {
-            Picker(L10n.t("启动命令模板"), selection: $selectedTemplateID) {
-                Text(L10n.t("自定义")).tag(0)
-                ForEach(templates) { t in
-                    Text(t.name ?? "#\(t.id)").tag(t.id)
+            OutlinedPicker(label: L10n.t("启动命令模板"),
+                           options: commandTemplateOptionKeys, selection: commandTemplateText,
+                           optionLabels: commandTemplateOptionLabels)
+                .onChange(of: selectedTemplateID) { _, newValue in
+                    if let t = templates.first(where: { $0.id == newValue }) {
+                        command = t.command ?? ""
+                    }
                 }
-            }
-            .onChange(of: selectedTemplateID) { _, newValue in
-                if let t = templates.first(where: { $0.id == newValue }) {
-                    command = t.command ?? ""
-                }
-            }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(L10n.t("启动命令"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                TextEditor(text: $command)
-                    .font(.dataMonospacedCaption)
-                    .frame(minHeight: 110)
-                    .scrollContentBackground(.hidden)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: Radius.small))
-            }
+            OutlinedMultiLineField(label: L10n.t("启动命令"), prompt: "vllm serve …",
+                                   text: $command)
         } header: {
             SectionLabel(title: L10n.t("启动命令"), systemImage: "terminal")
         } footer: {
             Text(L10n.t("模板选择后自动填入，可手动调整启动参数"))
         }
+    }
+
+    /// 启动命令模板选项（0=自定义）
+    private var commandTemplateOptionKeys: [String] {
+        ["0"] + templates.map { String($0.id) }
+    }
+
+    private var commandTemplateOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("自定义")]
+        for t in templates { labels[String(t.id)] = t.name ?? "#\(t.id)" }
+        return labels
+    }
+
+    private var commandTemplateText: Binding<String> {
+        Binding<String>(
+            get: { String(selectedTemplateID) },
+            set: { selectedTemplateID = Int($0) ?? 0 }
+        )
     }
 
     // MARK: 模型账号
@@ -352,18 +352,15 @@ struct AIVllmCreateView: View {
             Toggle(L10n.t("同步到模型账号"), isOn: $syncModelAccount)
 
             if syncModelAccount {
-                Picker(L10n.t("访问地址"), selection: $baseURLType) {
-                    ForEach(VllmBaseURLType.allCases) { t in
-                        Text(t.displayName).tag(t)
+                OutlinedPicker(label: L10n.t("访问地址"), options: VllmBaseURLType.allCases,
+                               selection: $baseURLType) { $0.displayName }
+                    .onChange(of: baseURLType) { _, newValue in
+                        if let url = newValue.baseURL(port: portValue ?? 8000,
+                                                      containerName: containerName,
+                                                      panelHost: panelHost) {
+                            baseURL = url
+                        }
                     }
-                }
-                .onChange(of: baseURLType) { _, newValue in
-                    if let url = newValue.baseURL(port: portValue ?? 8000,
-                                                  containerName: containerName,
-                                                  panelHost: panelHost) {
-                        baseURL = url
-                    }
-                }
 
                 FormTextField(label: "Base URL", text: $baseURL, style: .stacked, keyboardType: .URL)
                     .font(.dataMonospacedBody)
@@ -393,30 +390,17 @@ struct AIVllmCreateView: View {
                     .keyboardType(.decimalPad)
                     .font(.dataMonospacedBody)
 
-                Picker(L10n.t("重启规则"), selection: $restartPolicy) {
-                    ForEach(VllmRestartPolicy.allCases) { p in
-                        Text(p.displayName).tag(p)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("重启规则"), options: VllmRestartPolicy.allCases,
+                               selection: $restartPolicy) { $0.displayName }
 
-                HStack {
-                    OutlinedTextField(label: L10n.t("CPU 限制"), text: $cpuQuotaText)
-                        .keyboardType(.decimalPad)
-                    Text(L10n.t("核心"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                OutlinedUnitField(label: L10n.t("CPU 限制"), unit: L10n.t("核心"),
+                                  text: $cpuQuotaText, keyboardType: .decimalPad)
 
-                HStack {
-                    OutlinedTextField(label: L10n.t("内存限制"), text: $memoryLimitText)
-                        .keyboardType(.decimalPad)
-                    Picker("", selection: $memoryUnit) {
-                        Text("MB").tag("M")
-                        Text("GB").tag("G")
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                }
+                OutlinedTextField(label: L10n.t("内存限制"), text: $memoryLimitText,
+                                  keyboardType: .decimalPad)
+                OutlinedPicker(label: L10n.t("内存单位"), options: ["M", "G"],
+                               selection: $memoryUnit,
+                               optionLabels: ["M": "MB", "G": "GB"])
 
                 Toggle(L10n.t("拉取镜像"), isOn: $pullImage)
 

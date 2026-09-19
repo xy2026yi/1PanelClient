@@ -206,19 +206,49 @@ struct WebsiteBatchSSLSheet: View {
         return list
     }
 
+    /// Acme 账户选项（OutlinedPicker 用 String 键；0=全部）
+    private var accountOptionKeys: [String] {
+        ["0"] + accounts.map { String($0.id) }
+    }
+
+    private var accountOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("全部")]
+        for account in accounts {
+            labels[String(account.id)] = account.email.isEmpty ? "#\(account.id)" : account.email
+        }
+        return labels
+    }
+
+    private var accountText: Binding<String> {
+        Binding<String>(
+            get: { String(selectedAccountID) },
+            set: { selectedAccountID = Int($0) ?? 0 }
+        )
+    }
+
+    private var sslOptionLabels: [String: String] {
+        var labels: [String: String] = [:]
+        for ssl in certificates { labels[String(ssl.id)] = ssl.displayName }
+        return labels
+    }
+
+    private var sslText: Binding<String> {
+        Binding<String>(
+            get: { selectedSSLID.map(String.init) ?? "" },
+            set: { selectedSSLID = Int($0) }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    Picker(L10n.t("Acme 账户"), selection: $selectedAccountID) {
-                        Text(L10n.t("全部")).tag(0)
-                        ForEach(accounts) { account in
-                            Text(account.email.isEmpty ? "#\(account.id)" : account.email).tag(account.id)
+                    OutlinedPicker(label: L10n.t("Acme 账户"),
+                                   options: accountOptionKeys, selection: accountText,
+                                   optionLabels: accountOptionLabels)
+                        .onChange(of: selectedAccountID) { _, _ in
+                            Task { await loadCertificates() }
                         }
-                    }
-                    .onChange(of: selectedAccountID) { _, _ in
-                        Task { await loadCertificates() }
-                    }
 
                     if isLoading {
                         HStack { Spacer(); ProgressView(); Spacer() }
@@ -243,22 +273,21 @@ struct WebsiteBatchSSLSheet: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        Picker(L10n.t("证书"), selection: $selectedSSLID) {
-                            ForEach(certificates) { ssl in
-                                Text(ssl.displayName).tag(Optional(ssl.id))
-                            }
-                        }
+                        OutlinedPicker(label: L10n.t("证书"),
+                                       options: certificates.map { String($0.id) },
+                                       selection: sslText,
+                                       optionLabels: sslOptionLabels)
                     }
                 } header: {
                     SectionLabel(title: L10n.t("证书"), systemImage: "lock.shield")
                 }
 
                 Section {
-                    Picker(L10n.t("HTTP 选项"), selection: $httpConfig) {
-                        ForEach(httpOptions, id: \.value) { option in
-                            Text(option.label).tag(option.value)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("HTTP 选项"),
+                                   options: httpOptions.map(\.value),
+                                   selection: $httpConfig,
+                                   optionLabels: Dictionary(uniqueKeysWithValues:
+                                       httpOptions.map { ($0.value, $0.label) }))
                     Toggle(L10n.t("启用 HSTS"), isOn: $hsts)
                     Toggle(L10n.t("HSTS 子域"), isOn: $hstsSubDomains)
                     Toggle(L10n.t("启用 HTTP3"), isOn: $http3)

@@ -634,6 +634,14 @@ struct AIAgentWebsiteBindView: View {
     @State private var actionError: String?
     @State private var showError = false
 
+    /// 绑定网站 Int? ↔ String（OutlinedPicker 用）
+    private var websiteIDText: Binding<String> {
+        Binding<String>(
+            get: { selectedWebsiteId.map(String.init) ?? "" },
+            set: { selectedWebsiteId = Int($0) }
+        )
+    }
+
     private let client: APIClient
 
     init(server: ServerConfig, agentId: Int, current: AIAgent?) {
@@ -681,11 +689,11 @@ struct AIAgentWebsiteBindView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        Picker(L10n.t("网站"), selection: $selectedWebsiteId) {
-                            ForEach(websites) { site in
-                                Text(site.displayName).tag(Optional(site.id))
-                            }
-                        }
+                        OutlinedPicker(label: L10n.t("网站"),
+                                       options: websites.map { String($0.id) },
+                                       selection: websiteIDText,
+                                       optionLabels: Dictionary(uniqueKeysWithValues:
+                                           websites.map { (String($0.id), $0.displayName) }))
                     }
                 } header: {
                     SectionLabel(title: L10n.t("绑定网站"), systemImage: "link")

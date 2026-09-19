@@ -53,6 +53,51 @@ struct DomainBindFormView: View {
 
     private var isBound: Bool { info != nil }
 
+    /// Acme 账户选项（0=手动创建，不在账户列表时 acmeAccountID=0）
+    private var acmeOptionKeys: [String] {
+        ["0"] + acmeAccounts.map { String($0.id) }
+    }
+
+    private var acmeOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("手动创建")]
+        for account in acmeAccounts {
+            labels[String(account.id)] = account.email.isEmpty ? "#\(account.id)" : account.email
+        }
+        return labels
+    }
+
+    private var acmeText: Binding<String> {
+        Binding<String>(
+            get: { String(selectedAcmeId ?? 0) },
+            set: { selectedAcmeId = Int($0) ?? 0 }
+        )
+    }
+
+    /// 证书选项；已绑定证书不在当前账户列表时保留原选择并以占位项展示，不悄悄改绑
+    private var certOptionKeys: [String] {
+        var keys: [String] = []
+        if let bound = selectedSSLId, !certs.contains(where: { $0.id == bound }) {
+            keys.append(String(bound))
+        }
+        return keys + certs.map { String($0.id) }
+    }
+
+    private var certOptionLabels: [String: String] {
+        var labels: [String: String] = [:]
+        if let bound = selectedSSLId, !certs.contains(where: { $0.id == bound }) {
+            labels[String(bound)] = L10n.f("当前绑定证书 · %d", bound)
+        }
+        for cert in certs { labels[String(cert.id)] = cert.displayName }
+        return labels
+    }
+
+    private var certText: Binding<String> {
+        Binding<String>(
+            get: { selectedSSLId.map(String.init) ?? "" },
+            set: { selectedSSLId = Int($0) }
+        )
+    }
+
     private var canSubmit: Bool {
         !domain.isEmpty && (!enableSSL || (selectedSSLId != nil)) && !isSaving
     }
@@ -63,11 +108,8 @@ struct DomainBindFormView: View {
                 OutlinedTextField(label: L10n.t("域名"), text: $domain, keyboardType: .URL)
                     .disabled(isBound)
 
-                TextEditor(text: $ipList)
-                    .font(.dataMonospacedCaption)
-                    .frame(minHeight: 72)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                OutlinedMultiLineField(label: L10n.t("白名单 IP"), prompt: "1.2.3.4",
+                                       text: $ipList)
             } header: {
                 SectionLabel(title: L10n.t("域名"), systemImage: "globe")
             } footer: {
@@ -83,38 +125,20 @@ struct DomainBindFormView: View {
                     }
 
                 if enableSSL {
-                    Picker(L10n.t("Acme 账户"), selection: $selectedAcmeId) {
-                        // 手动创建（不在 Acme 账户列表中，acmeAccountID=0）
-                        Text(L10n.t("手动创建")).tag(Optional(0))
-                        ForEach(acmeAccounts) { account in
-                            Text(account.email.isEmpty ? "#\(account.id)" : account.email).tag(Optional(account.id))
+                    OutlinedPicker(label: L10n.t("Acme 账户"),
+                                   options: acmeOptionKeys, selection: acmeText,
+                                   optionLabels: acmeOptionLabels)
+                        .onChange(of: selectedAcmeId) { _, _ in
+                            Task { await loadCerts() }
                         }
-                    }
-                    .pickerStyle(.menu)
-                    .onChange(of: selectedAcmeId) { _, _ in
-                        Task { await loadCerts() }
-                    }
 
-                    HStack {
-                        Text(L10n.t("证书"))
-                        Spacer()
-                        if isLoadingCerts {
-                            ProgressView()
-                        }
+                    if isLoadingCerts {
+                        HStack { Spacer(); ProgressView(); Spacer() }
                     }
                     if !certs.isEmpty {
-                        Picker("", selection: $selectedSSLId) {
-                            // 已绑定证书不在当前账户的证书列表（绑定在其他账户下）：
-                            // 保留原选择并以占位项展示，不悄悄改绑列表第一张
-                            if let bound = selectedSSLId,
-                               !certs.contains(where: { $0.id == bound }) {
-                                Text(L10n.f("当前绑定证书 · %d", bound)).tag(Optional(bound))
-                            }
-                            ForEach(certs) { cert in
-                                Text(cert.displayName).tag(Optional(cert.id))
-                            }
-                        }
-                        .labelsHidden()
+                        OutlinedPicker(label: L10n.t("证书"),
+                                       options: certOptionKeys, selection: certText,
+                                       optionLabels: certOptionLabels)
                     }
                 }
             } header: {

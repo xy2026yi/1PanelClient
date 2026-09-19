@@ -6240,6 +6240,17 @@
         }
       }
     },
+    "内存单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory Unit"
+          }
+        }
+      }
+    },
     "内存 (RSS)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24925,6 +24936,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Allowlist"
+          }
+        }
+      }
+    },
+    "白名单 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whitelist IPs"
           }
         }
       }

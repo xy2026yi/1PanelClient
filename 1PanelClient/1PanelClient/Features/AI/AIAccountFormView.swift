@@ -149,18 +149,16 @@ struct AIAccountFormView: View {
                 LabeledContent(L10n.t("模型供应商"), value: "-")
                 LabeledContent(L10n.t("API 类型"), value: "-")
             } else {
-                Picker(L10n.t("模型供应商"), selection: $selectedProvider) {
-                    ForEach(providers) { p in
-                        Text(p.displayTitle).tag(p.provider)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("模型供应商"),
+                               options: providers.map(\.provider),
+                               selection: $selectedProvider,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   providers.map { ($0.provider, $0.displayTitle) }))
 
                 if let apiTypes = selectedProviderItem?.apiTypes, !apiTypes.isEmpty {
-                    Picker(L10n.t("API 类型"), selection: $selectedApiType) {
-                        ForEach(apiTypes) { t in
-                            Text(t.apiType).tag(t.apiType)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("API 类型"),
+                                   options: apiTypes.map(\.apiType),
+                                   selection: $selectedApiType)
                 } else {
                     LabeledContent(L10n.t("API 类型"), value: "-")
                 }
@@ -171,11 +169,8 @@ struct AIAccountFormView: View {
                 .disabled(!editableBaseURL)
 
             if !isEditing && authModeOptions.count > 1 {
-                Picker(L10n.t("认证方式"), selection: authModeBinding) {
-                    ForEach(authModeOptions, id: \.self) { mode in
-                        Text(mode).tag(mode)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("认证方式"),
+                               options: authModeOptions, selection: authModeBinding)
             }
         } header: {
             SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")

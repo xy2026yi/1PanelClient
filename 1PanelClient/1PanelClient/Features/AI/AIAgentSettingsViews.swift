@@ -56,6 +56,14 @@ struct AIAgentModelConfigView: View {
         return pool.filter { $0 != selectedModel && !fallbacks.contains($0) }
     }
 
+    /// 模型账号 Int? ↔ String（OutlinedPicker 用）
+    private var accountIDText: Binding<String> {
+        Binding<String>(
+            get: { selectedAccountId.map(String.init) ?? "" },
+            set: { selectedAccountId = Int($0) }
+        )
+    }
+
     private var canSubmit: Bool {
         selectedAccountId != nil && !selectedModel.isEmpty && !isSaving
     }
@@ -78,16 +86,14 @@ struct AIAgentModelConfigView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        Picker(L10n.t("模型账号"), selection: $selectedAccountId) {
-                            ForEach(accounts) { account in
-                                Text(account.name).tag(Optional(account.id))
-                            }
-                        }
-                        Picker(L10n.t("主模型"), selection: $selectedModel) {
-                            ForEach(selectedAccount?.models ?? []) { model in
-                                Text(model.id).tag(model.id)
-                            }
-                        }
+                        OutlinedPicker(label: L10n.t("模型账号"),
+                                       options: accounts.map { String($0.id) },
+                                       selection: accountIDText,
+                                       optionLabels: Dictionary(uniqueKeysWithValues:
+                                           accounts.map { (String($0.id), $0.name) }))
+                        OutlinedPicker(label: L10n.t("主模型"),
+                                       options: (selectedAccount?.models ?? []).map(\.id),
+                                       selection: $selectedModel)
                     }
                     if let current = c.model, !current.isEmpty {
                         LabeledContent(L10n.t("当前模型"), value: current)
@@ -125,12 +131,10 @@ struct AIAgentModelConfigView: View {
                         }
 
                         if !fallbackCandidates.isEmpty {
-                            Picker(L10n.t("备用模型"), selection: $fallbackCandidate) {
-                                Text(L10n.t("请选择")).tag("")
-                                ForEach(fallbackCandidates, id: \.self) { m in
-                                    Text(m).tag(m)
-                                }
-                            }
+                            OutlinedPicker(label: L10n.t("备用模型"),
+                                           options: [""] + fallbackCandidates,
+                                           selection: $fallbackCandidate,
+                                           optionLabels: ["": L10n.t("请选择")])
                             Button {
                                 guard !fallbackCandidate.isEmpty else { return }
                                 fallbacks.append(fallbackCandidate)
@@ -334,6 +338,15 @@ struct AIAgentSettingsView: View {
         "https://repo.huaweicloud.com/repository/npm/",
     ]
 
+    /// NPM 源选项：当前值不在预设内时补一个键，避免无效 selection
+    private var npmOptionKeys: [String] {
+        var keys: [String] = []
+        if !npmMirrors.contains(npmRegistry), !npmRegistry.isEmpty {
+            keys.append(npmRegistry)
+        }
+        return keys + npmMirrors
+    }
+
     private var canSubmit: Bool {
         // 加载失败（config 未落地）时禁止保存：@State 全是默认值，
         // 保存会用默认值覆盖服务端真实配置
@@ -357,21 +370,11 @@ struct AIAgentSettingsView: View {
                         // Hermes 网页端无浏览器/NPM 源（核对隐藏），保存回传服务端原值
                         if !isHermes {
                             Toggle(L10n.t("浏览器"), isOn: $browserEnabled)
-                            Picker(L10n.t("NPM 源"), selection: $npmRegistry) {
-                                // 当前值不在预设内时补一个 tag，避免无效 selection 告警
-                                if !npmMirrors.contains(npmRegistry), !npmRegistry.isEmpty {
-                                    Text(npmRegistry).tag(npmRegistry)
-                                }
-                                ForEach(npmMirrors, id: \.self) { mirror in
-                                    Text(mirror).tag(mirror)
-                                }
-                            }
+                            OutlinedPicker(label: L10n.t("NPM 源"),
+                                           options: npmOptionKeys, selection: $npmRegistry)
                         }
-                        Picker(L10n.t("时区"), selection: $timezone) {
-                            ForEach(timezones, id: \.self) { tz in
-                                Text(tz).tag(tz)
-                            }
-                        }
+                        OutlinedPicker(label: L10n.t("时区"), options: timezones,
+                                       selection: $timezone)
                     } header: {
                         SectionLabel(title: L10n.t("其他"), systemImage: "gearshape")
                     }

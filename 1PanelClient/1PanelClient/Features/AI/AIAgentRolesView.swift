@@ -257,32 +257,33 @@ struct RoleBindRow: View {
         existingBindings.contains(where: { $0.channel == name })
     }
 
+    /// 频道选项（空串=请选择；已绑定频道标注）
+    private var channelOptionLabels: [String: String] {
+        var labels = ["": L10n.t("请选择")]
+        for ch in channels {
+            labels[ch.name] = isBound(ch.name)
+                ? "\(ch.name)（\(L10n.t("已绑定"))）" : ch.name
+        }
+        return labels
+    }
+
     var body: some View {
         if channels.isEmpty {
             Text(L10n.t("暂无可绑定频道"))
                 .foregroundStyle(.secondary)
         } else {
-            Picker(L10n.t("频道"), selection: $channel) {
-                Text(L10n.t("请选择")).tag("")
-                ForEach(channels) { ch in
-                    if isBound(ch.name) {
-                        Text("\(ch.name)（\(L10n.t("已绑定"))）").tag(ch.name)
-                    } else {
-                        Text(ch.name).tag(ch.name)
-                    }
+            OutlinedPicker(label: L10n.t("频道"),
+                           options: [""] + channels.map(\.name),
+                           selection: $channel,
+                           optionLabels: channelOptionLabels)
+                .onChange(of: channel) { _, _ in
+                    // 账户 ID 随频道自动带入（网页端口径）；多 Bot 频道可再改选
+                    account = accountOptions.first ?? ""
                 }
-            }
-            .onChange(of: channel) { _, _ in
-                // 账户 ID 随频道自动带入（网页端口径）；多 Bot 频道可再改选
-                account = accountOptions.first ?? ""
-            }
 
             if !accountOptions.isEmpty {
-                Picker(L10n.t("账户 ID"), selection: $account) {
-                    ForEach(accountOptions, id: \.self) { id in
-                        Text(id).tag(id)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("账户 ID"),
+                               options: accountOptions, selection: $account)
             }
 
             Button {
@@ -323,12 +324,10 @@ private struct AIAgentRoleCreateSheet: View {
             Form {
                 Section {
                     OutlinedTextField(label: L10n.t("名称"), text: $name)
-                    Picker(L10n.t("模型"), selection: $model) {
-                        Text(L10n.t("请选择")).tag("")
-                        ForEach(modelOptions, id: \.self) { m in
-                            Text(m).tag(m)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("模型"),
+                                   options: [""] + modelOptions,
+                                   selection: $model,
+                                   optionLabels: ["": L10n.t("请选择")])
                 } header: {
                     SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
                 }

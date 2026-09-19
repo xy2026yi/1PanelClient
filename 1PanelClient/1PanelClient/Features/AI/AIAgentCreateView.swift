@@ -217,20 +217,14 @@ struct AIAgentCreateView: View {
 
     private var typeSection: some View {
         Section {
-            Picker(L10n.t("智能体类型"), selection: $selectedTypeKey) {
-                ForEach(AIAgentType.all) { t in
-                    Text(t.displayName).tag(t.key)
-                }
-            }
+            OutlinedPicker(label: L10n.t("智能体类型"),
+                           options: AIAgentType.all.map(\.key),
+                           selection: $selectedTypeKey,
+                           optionLabels: Dictionary(uniqueKeysWithValues:
+                               AIAgentType.all.map { ($0.key, $0.displayName) }))
 
-            HStack {
-                Text(L10n.t("名称")).foregroundStyle(.secondary)
-                Spacer()
-                TextField(agentType.displayName, text: $name)
-                    .multilineTextAlignment(.trailing)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-            }
+            OutlinedTextField(label: L10n.t("名称"), prompt: agentType.displayName,
+                              text: $name)
 
             if isLoadingVersions {
                 HStack {
@@ -239,11 +233,8 @@ struct AIAgentCreateView: View {
                     ProgressView()
                 }
             } else {
-                Picker(L10n.t("应用版本"), selection: $selectedVersion) {
-                    ForEach(versions, id: \.self) { v in
-                        Text(v).tag(v)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("应用版本"), options: versions,
+                               selection: $selectedVersion)
             }
 
             OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), text: $remark)
@@ -270,18 +261,16 @@ struct AIAgentCreateView: View {
                         .font(.caption)
                 }
             } else {
-                Picker(L10n.t("模型账号"), selection: $selectedAccountId) {
-                    ForEach(accounts) { account in
-                        Text(account.name).tag(Optional(account.id))
-                    }
-                }
+                OutlinedPicker(label: L10n.t("模型账号"),
+                               options: accounts.map { String($0.id) },
+                               selection: accountText,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   accounts.map { (String($0.id), $0.name) }))
 
                 if let models = selectedAccount?.models, !models.isEmpty {
-                    Picker(L10n.t("模型"), selection: modelSelection) {
-                        ForEach(models) { model in
-                            Text(model.id).tag(model.id)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("模型"),
+                                   options: models.map(\.id),
+                                   selection: modelSelection)
                 } else {
                     HStack {
                         Text(L10n.t("模型"))
@@ -309,14 +298,8 @@ struct AIAgentCreateView: View {
 
     private var webUISection: some View {
         Section {
-            HStack {
-                Text("WebUI " + L10n.t("端口")).foregroundStyle(.secondary)
-                Spacer()
-                TextField("18789", text: $webUIPort)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 120)
-            }
+            OutlinedTextField(label: "WebUI " + L10n.t("端口"), prompt: "18789",
+                              text: $webUIPort, keyboardType: .numberPad)
 
             if agentType.usesToken {
                 FormTextField(label: L10n.t("访问地址"), text: $allowedOrigin, style: .stacked, keyboardType: .URL)
@@ -361,29 +344,24 @@ struct AIAgentCreateView: View {
 
     private var advancedContainerSection: some View {
         Section(L10n.t("容器")) {
-            HStack {
-                Text(L10n.t("容器名称")).foregroundStyle(.secondary)
-                Spacer()
-                TextField(L10n.t("留空则自动生成"), text: $containerName)
-                    .multilineTextAlignment(.trailing)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-            }
+            OutlinedTextField(label: L10n.t("容器名称"), prompt: L10n.t("留空则自动生成"),
+                              text: $containerName)
             Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
             if allowPort {
-                HStack {
-                    Text(L10n.t("绑定主机 IP")).foregroundStyle(.secondary)
-                    Spacer()
-                    TextField(L10n.t("留空则全部 IP"), text: $specifyIP)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 140)
-                }
+                OutlinedTextField(label: L10n.t("绑定主机 IP"), prompt: L10n.t("留空则全部 IP"),
+                                  text: $specifyIP, keyboardType: .decimalPad)
             }
-            Picker(L10n.t("重启规则"), selection: $restartPolicy) {
-                ForEach(restartPolicies, id: \.self) { Text($0).tag($0) }
-            }
+            OutlinedPicker(label: L10n.t("重启规则"), options: restartPolicies,
+                           selection: $restartPolicy)
         }
+    }
+
+    /// 模型账号 Int? ↔ String（OutlinedPicker 用）
+    private var accountText: Binding<String> {
+        Binding<String>(
+            get: { selectedAccountId.map(String.init) ?? "" },
+            set: { selectedAccountId = Int($0) }
+        )
     }
 
     private var advancedResourceSection: some View {

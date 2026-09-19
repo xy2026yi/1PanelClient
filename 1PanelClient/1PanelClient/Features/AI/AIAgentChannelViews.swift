@@ -1658,16 +1658,16 @@ struct AIAgentDingtalkChannelView: View {
             Toggle(L10n.t("按会话隔离"), isOn: Binding(
                 get: { c.separateSessionByConversation ?? true },
                 set: { c.separateSessionByConversation = $0 }))
-            Picker(L10n.t("群会话范围"), selection: Binding(
-                get: {
-                    let v = c.groupSessionScope ?? ""
-                    return groupScopes.contains(where: { $0.value == v }) ? v : "group_sender"
-                },
-                set: { c.groupSessionScope = $0 })) {
-                ForEach(groupScopes, id: \.value) { s in
-                    Text(s.label).tag(s.value)
-                }
-            }
+            OutlinedPicker(label: L10n.t("群会话范围"),
+                           options: groupScopes.map(\.value),
+                           selection: Binding(
+                               get: {
+                                   let v = c.groupSessionScope ?? ""
+                                   return groupScopes.contains(where: { $0.value == v }) ? v : "group_sender"
+                               },
+                               set: { c.groupSessionScope = $0 }),
+                           optionLabels: Dictionary(uniqueKeysWithValues:
+                               groupScopes.map { ($0.value, $0.label) }))
             Toggle(L10n.t("跨会话共享记忆"), isOn: Binding(
                 get: { c.sharedMemoryAcrossConversations ?? false },
                 set: { c.sharedMemoryAcrossConversations = $0 }))
@@ -2097,16 +2097,16 @@ struct AIAgentFeishuChannelView: View {
                         get: { c.streaming ?? false }, set: { c.streaming = $0 }))
                     // 回复模式：网页端为带标签展示（值 auto），非自由输入
                     LabeledContent(L10n.t("回复模式"), value: c.replyMode ?? "auto")
-                    Picker(L10n.t("群聊需@机器人"), selection: Binding(
-                        get: {
-                            let v = c.requireMention ?? ""
-                            return mentionModes.contains(where: { $0.value == v }) ? v : "true"
-                        },
-                        set: { c.requireMention = $0 })) {
-                        ForEach(mentionModes, id: \.value) { m in
-                            Text(m.label).tag(m.value)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("群聊需@机器人"),
+                                   options: mentionModes.map(\.value),
+                                   selection: Binding(
+                                       get: {
+                                           let v = c.requireMention ?? ""
+                                           return mentionModes.contains(where: { $0.value == v }) ? v : "true"
+                                       },
+                                       set: { c.requireMention = $0 }),
+                                   optionLabels: Dictionary(uniqueKeysWithValues:
+                                       mentionModes.map { ($0.value, $0.label) }))
                     ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
                                          value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
                     if c.groupPolicy == "allowlist" {
@@ -2692,13 +2692,13 @@ struct AIAgentTelegramChannelView: View {
                         OutlinedTextField(label: L10n.t("代理服务器"), text: Binding(
                             get: { c.proxy ?? "" }, set: { c.proxy = $0 }))
                             .keyboardType(.URL)
-                        Picker(L10n.t("流式传输"), selection: Binding(
-                            get: { let v = c.streaming ?? ""; return v.isEmpty ? "partial" : v },
-                            set: { c.streaming = $0 })) {
-                            ForEach(AIChannelStreaming.options, id: \.value) { o in
-                                Text(o.label).tag(o.value)
-                            }
-                        }
+                        OutlinedPicker(label: L10n.t("流式传输"),
+                                       options: AIChannelStreaming.options.map(\.value),
+                                       selection: Binding(
+                                           get: { let v = c.streaming ?? ""; return v.isEmpty ? "partial" : v },
+                                           set: { c.streaming = $0 }),
+                                       optionLabels: Dictionary(uniqueKeysWithValues:
+                                           AIChannelStreaming.options.map { ($0.value, $0.label) }))
                     }
                 }
 
@@ -3104,13 +3104,13 @@ private struct AITelegramBotFormSheet: View {
                                          value: Binding(get: { bot.dmPolicy ?? "open" }, set: { bot.dmPolicy = $0 }))
                     ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
                                          value: Binding(get: { bot.groupPolicy ?? "open" }, set: { bot.groupPolicy = $0 }))
-                    Picker(L10n.t("流式传输"), selection: Binding(
-                        get: { let v = bot.streaming ?? ""; return v.isEmpty ? "partial" : v },
-                        set: { bot.streaming = $0 })) {
-                        ForEach(AIChannelStreaming.options, id: \.value) { o in
-                            Text(o.label).tag(o.value)
-                        }
-                    }
+                    OutlinedPicker(label: L10n.t("流式传输"),
+                                   options: AIChannelStreaming.options.map(\.value),
+                                   selection: Binding(
+                                       get: { let v = bot.streaming ?? ""; return v.isEmpty ? "partial" : v },
+                                       set: { bot.streaming = $0 }),
+                                   optionLabels: Dictionary(uniqueKeysWithValues:
+                                       AIChannelStreaming.options.map { ($0.value, $0.label) }))
                 } header: {
                     SectionLabel(title: L10n.t("策略"), systemImage: "slider.horizontal.3")
                 }
