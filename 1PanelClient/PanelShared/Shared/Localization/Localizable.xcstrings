@@ -2276,6 +2276,17 @@
         }
       }
     },
+    "IP版本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP Version"
+          }
+        }
+      }
+    },
     "IP组" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2798,9 +2809,6 @@
         }
       }
     },
-    "TCP" : {
-
-    },
     "Telegram" : {
 
     },
@@ -2822,9 +2830,6 @@
       }
     },
     "TTY" : {
-
-    },
-    "UDP" : {
 
     },
     "URL" : {
@@ -3384,6 +3389,17 @@
         }
       }
     },
+    "不修改请留空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave empty to keep current"
+          }
+        }
+      }
+    },
     "不勾选时移入服务器回收站，可在回收站中还原。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3402,17 +3418,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Insecure"
-          }
-        }
-      }
-    },
-    "不修改请留空" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leave empty to keep current"
           }
         }
       }
@@ -13119,6 +13124,28 @@
         }
       }
     },
+    "导入转发规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Forwarding Rules"
+          }
+        }
+      }
+    },
+    "导入防护策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Guard Policies"
+          }
+        }
+      }
+    },
     "导出" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13313,6 +13340,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This deletes 1Panel Docker port guard runtime rules in %@: all related rules and chains are removed, database data is kept. Type the backend name \"%@\" to confirm."
+          }
+        }
+      }
+    },
+    "将删除 %@ 中的 1Panel 端口转发运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will delete 1Panel forwarding runtime rules in %@: all related rules and chains are removed while database data is kept. Type the backend name \"%@\" to confirm."
           }
         }
       }
@@ -17981,6 +18019,17 @@
         }
       }
     },
+    "支持单端口及 8000-8100 格式的端口范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Single port or a range like 8000-8100"
+          }
+        }
+      }
+    },
     "支持添加多个周期，任务将在每个设定的时间点执行。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19550,6 +19599,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No exportable rules"
+          }
+        }
+      }
+    },
+    "暂无可导出的转发" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No forwarding rules to export"
+          }
+        }
+      }
+    },
+    "暂无可导出的防护策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No guard policies to export"
           }
         }
       }
@@ -26396,17 +26467,6 @@
         }
       }
     },
-    "私钥密码" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Passphrase"
-          }
-        }
-      }
-    },
     "私钥（PRIVATE KEY）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26447,6 +26507,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Private Key Content"
+          }
+        }
+      }
+    },
+    "私钥密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passphrase"
           }
         }
       }
@@ -26832,6 +26903,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Port Whitelist"
+          }
+        }
+      }
+    },
+    "端口范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port Range"
           }
         }
       }
@@ -32831,6 +32913,28 @@
         }
       }
     },
+    "选择导出的 1Panel Docker 防护策略 JSON 文件，勾选需要导入的策略。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick an exported 1Panel Docker guard policy JSON file and select the policies to import."
+          }
+        }
+      }
+    },
+    "选择导出的 1Panel 端口转发 JSON 文件，勾选需要导入的转发。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick an exported 1Panel forwarding JSON file and select the forwards to import."
+          }
+        }
+      }
+    },
     "选择导出的 1Panel 防火墙规则 JSON 文件，勾选需要导入的规则。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33663,6 +33767,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reset to New Version Defaults"
+          }
+        }
+      }
+    },
+    "重置端口转发规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Forwarding Rules"
           }
         }
       }

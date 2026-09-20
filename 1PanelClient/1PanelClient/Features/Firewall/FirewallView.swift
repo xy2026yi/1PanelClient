@@ -372,6 +372,8 @@ final class FirewallViewModel: ObservableObject {
             toastMessage = L10n.f("已重置：移除 %ld 条规则", resp.removed ?? 0)
             await loadSystemStatus()
             await loadRules(replacing: true)
+            // 重置会改变 settings 各组当前后端的 initialized，同步刷新供切换预检
+            await loadSettings()
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
@@ -386,6 +388,19 @@ final class FirewallViewModel: ObservableObject {
                              backend: dockerGuard?.base?.backend ?? systemStatus?.backend ?? "iptables",
                              operation: "cleanup")
         await loadDockerGuard()
+        await loadSettings()
+    }
+
+    /// 转发运行时规则重置（settings/operate cleanup，抓包 2026-09-19 logs/iptables.md；
+    /// R1：调用方需先经输入后端名确认）
+    func resetForwarding() async {
+        isOperating = true
+        defer { isOperating = false }
+        await operateBackend(subsystem: "forwarding",
+                             backend: forwardStatus?.backend ?? systemStatus?.backend ?? "iptables",
+                             operation: "cleanup")
+        await loadForwards(replacing: true)
+        await loadSettings()
     }
 
     /// 设置 Docker 端点防护策略（任务式）
@@ -497,8 +512,8 @@ final class FirewallViewModel: ObservableObject {
 
     /// 导出：对齐 Web 端——面板管理且可删除的规则，去除 uuid 后本地组 JSON
     /// （无服务端端点），写入临时文件供 ShareLink 分享
-    func exportRulesURL() -> URL? {
-        let exportable = inventory.filter { item in
+    func exportRulesURL(for items: [FirewallInventoryItem]? = nil) -> URL? {
+        let exportable = items ?? inventory.filter { item in
             guard item.manageableUUID != nil, item.state != "protected" else { return false }
             return true
         }
@@ -520,6 +535,138 @@ final class FirewallViewModel: ObservableObject {
             return url
         } catch {
             return nil
+        }
+    }
+
+    /// 导出转发规则（本地组 JSON，无服务端端点；清 id/num 等运行时字段；
+    /// 传入子集时长按菜单多选导出，nil = 全量）
+    func exportForwardsURL(for rules: [FirewallForwardRule]? = nil) -> URL? {
+        let list = rules ?? forwards
+        guard !list.isEmpty else { return nil }
+        let cleaned = list.map { rule -> FirewallForwardRule in
+            var r = rule
+            r.id = nil
+            r.num = nil
+            return r
+        }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(cleaned) else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMddHHmmss"
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("1panel-firewall-forwards-\(formatter.string(from: Date())).json")
+        do {
+            try data.write(to: url)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    /// 导入转发（forward/operate 批量 add；抓包 2026-09-19 logs/iptables.md）
+    func importForwards(_ rules: [FirewallForwardRule]) async -> Bool {
+        guard !rules.isEmpty else { return false }
+        isOperating = true
+        defer { isOperating = false }
+        let ops = rules.map { rule in
+            FirewallForwardOperation(
+                operation: "add", id: nil, chain: rule.chain, family: rule.family,
+                address: rule.address, port: rule.port,
+                protocolField: rule.protocolField, strategy: rule.strategy,
+                num: nil, targetIP: rule.targetIP, targetPort: rule.targetPort,
+                interface: rule.interface, usedStatus: nil,
+                descriptionText: rule.descriptionText, isDesired: nil,
+                isRuntime: nil, syncStatus: nil)
+        }
+        do {
+            let resp: FirewallTaskResponse = try await client.send(
+                path: APIEndpoint.firewallForwardOperate.path,
+                body: FirewallForwardOperateRequest(forceDelete: false, rules: ops),
+                as: FirewallTaskResponse.self)
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("导入转发规则"))
+            }
+            await loadForwards(replacing: true)
+            return true
+        } catch {
+            guard !APIError.isCancellation(error) else { return false }
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// 导出 Docker 端口防护策略（本地组 JSON；含容器端点策略与孤儿策略，
+    /// 不含 host_firewall 托管的端点——那类须在规则段调整；
+    /// 传入子集时长按菜单多选导出，nil = 全量）
+    func exportDockerPoliciesURL(for policies: [DockerGuardPolicy]? = nil) -> URL? {
+        let list = policies ?? allExportableDockerPolicies()
+        guard !list.isEmpty else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(list) else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMddHHmmss"
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("1panel-firewall-docker-\(formatter.string(from: Date())).json")
+        do {
+            try data.write(to: url)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    /// 全部可导出策略（容器端点 + 孤儿策略）
+    private func allExportableDockerPolicies() -> [DockerGuardPolicy] {
+        guard let guard_ = dockerGuard else { return [] }
+        var policies: [DockerGuardPolicy] = []
+        for container in guard_.containers ?? [] {
+            policies += Self.exportablePolicies(endpoints: container.endpoints)
+        }
+        policies += Self.exportablePolicies(endpoints: guard_.orphanPolicies)
+        return policies
+    }
+
+    /// 可导出策略（视图层多选页读取）
+    var dockerExportablePolicies: [DockerGuardPolicy] {
+        allExportableDockerPolicies()
+    }
+
+    /// 端点 → 可导出策略（缺关键字段或 host_firewall 托管的跳过）
+    private static func exportablePolicies(endpoints: [DockerGuardEndpoint]?) -> [DockerGuardPolicy] {
+        (endpoints ?? []).compactMap { ep in
+            guard ep.managementTarget != "host_firewall",
+                  let family = ep.family, let hostIP = ep.hostIP,
+                  let hostPort = ep.hostPort, let proto = ep.protocolField else { return nil }
+            return DockerGuardPolicy(
+                family: family, hostIP: hostIP, hostPort: hostPort,
+                protocolField: proto,
+                mode: ep.mode ?? "deny_all",
+                sources: ep.sources ?? [],
+                descriptionText: ep.descriptionText ?? "")
+        }
+    }
+
+    /// 导入 Docker 端口防护策略（docker/policies/batch；抓包 2026-09-19 logs/iptables.md）
+    func importDockerPolicies(_ policies: [DockerGuardPolicy]) async -> Bool {
+        guard !policies.isEmpty else { return false }
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let resp: FirewallTaskResponse = try await client.send(
+                path: APIEndpoint.firewallDockerPolicyBatch.path,
+                body: DockerGuardPolicyBatchRequest(policies: policies),
+                as: FirewallTaskResponse.self)
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("导入防护策略"))
+            }
+            await loadDockerGuard()
+            return true
+        } catch {
+            guard !APIError.isCancellation(error) else { return false }
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 
@@ -816,11 +963,23 @@ struct FirewallView: View {
     @State private var syncSubsystem = "system"
     @State private var showRulesReset = false
     @State private var showDockerReset = false
+    @State private var showForwardReset = false
     @State private var editingPolicy: DockerGuardEndpoint?
     // 规则低频操作
     @State private var showImport = false
     @State private var rawDetail: RawDetailPayload?
-    @State private var exportedRulesURL: URL?
+    @State private var showForwardImport = false
+    @State private var showDockerImport = false
+    /// 长按弹出的规则操作目标
+    @State private var actionItem: FirewallInventoryItem?
+    /// 长按弹出的转发操作目标
+    @State private var actionForward: FirewallForwardRule?
+    /// 规则导出多选页
+    @State private var showExportPicker = false
+    /// 转发导出多选页
+    @State private var showForwardExportPicker = false
+    /// Docker 导出多选页
+    @State private var showDockerExportPicker = false
     struct RawDetailPayload: Identifiable {
         let title: String
         let text: String
@@ -865,15 +1024,20 @@ struct FirewallView: View {
                         Image(systemName: "shield.lefthalf.filled")
                     }
                     .accessibilityLabel("WAF")
-                    // + 菜单按段条件渲染（Docker 段与未初始化段不显示）。
-                    // 若恒挂一个内容随段变化的 Menu，内容出现「非空→空→非空」后
-                    // Menu 弹出快照会失效、点了无反应；.id(segment) 切段重建双保险
+                    // + 按段条件渲染（未初始化段不显示；导入/导出/同步/重置均已收进
+                    // 状态抽屉，规则与转发都只剩创建，直接点击不经菜单）
                     if segment == 0 && !needsRulesInit {
-                        addRulesMenu
-                            .id(segment)
+                        Button { showAddRule = true } label: {
+                            Image(systemName: "plus.circle")
+                        }
+                        .accessibilityLabel(L10n.t("创建规则"))
+                        .id(segment)
                     } else if segment == 1 && !needsForwardInit {
-                        addForwardMenu
-                            .id(segment)
+                        Button { showAddForward = true } label: {
+                            Image(systemName: "plus.circle")
+                        }
+                        .accessibilityLabel(L10n.t("创建转发"))
+                        .id(segment)
                     }
                 }
             }
@@ -997,33 +1161,75 @@ struct FirewallView: View {
         .sheet(isPresented: $showImport) {
             FirewallImportView(vm: vm)
         }
+        // 转发导入（文件解析 + 勾选 + forward/operate 批量 add）
+        .sheet(isPresented: $showForwardImport) {
+            FirewallForwardImportView(vm: vm)
+        }
+        // Docker 防护策略导入（文件解析 + 勾选 + docker/policies/batch）
+        .sheet(isPresented: $showDockerImport) {
+            FirewallDockerImportView(vm: vm)
+        }
         // 原文查看（observed.raw 或 native/detail）
         .sheet(item: $rawDetail) { payload in
             FirewallRawDetailView(title: payload.title, text: payload.text)
                 .bottomSheetDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
-        // 导出分享（本地组 JSON，无服务端端点）；无可导出规则时仅提示
+        // 长按规则：半屏操作弹窗（编辑/删除/上移下移/导出规则/查看原文，或纳管）
         .sheet(isPresented: Binding(
-            get: { exportedRulesURL != nil },
-            set: { if !$0 { exportedRulesURL = nil } }
+            get: { actionItem != nil },
+            set: { if !$0 { actionItem = nil } }
         )) {
-            if let url = exportedRulesURL {
-                VStack(spacing: 16) {
-                    Image(systemName: "doc.badge.arrow.up")
-                        .font(.title)
-                        .foregroundStyle(.tint)
-                    Text(url.lastPathComponent)
-                        .font(.dataMonospaced)
-                    ShareLink(item: url) {
-                        Label(L10n.t("分享"), systemImage: "square.and.arrow.up")
-                            .frame(maxWidth: 240)
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .padding(24)
-                .presentationDetents([.height(200)])
-            }
+            ActionBottomSheet(
+                title: actionItem?.rule?.destinationPort ?? actionItem?.rule?.sourceAddress ?? L10n.t("规则"),
+                items: ruleActionItems,
+                onDismiss: { actionItem = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: ruleActionItems.count))])
+            .presentationDragIndicator(.visible)
+        }
+        // 规则导出多选（长按菜单「导出规则」进入）
+        .sheet(isPresented: $showExportPicker) {
+            FirewallExportPickerView(vm: vm)
+        }
+        // 长按转发：半屏操作弹窗（编辑/删除/导出规则）
+        .sheet(isPresented: Binding(
+            get: { actionForward != nil },
+            set: { if !$0 { actionForward = nil } }
+        )) {
+            ActionBottomSheet(
+                title: actionForward?.port ?? L10n.t("转发"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        let rule = actionForward
+                        actionForward = nil
+                        if let rule { editingForward = rule }
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red,
+                                   role: .destructive) {
+                        Haptic.warning()
+                        let rule = actionForward
+                        actionForward = nil
+                        if let rule { pendingDeleteForward = rule }
+                    },
+                    ActionMenuItem(title: L10n.t("导出规则"), icon: "square.and.arrow.up",
+                                   color: .teal) {
+                        actionForward = nil
+                        showForwardExportPicker = true
+                    },
+                ],
+                onDismiss: { actionForward = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
+            .presentationDragIndicator(.visible)
+        }
+        // 转发导出多选（长按菜单「导出规则」进入）
+        .sheet(isPresented: $showForwardExportPicker) {
+            FirewallForwardExportPickerView(vm: vm)
+        }
+        // Docker 导出多选（容器行长按「导出规则」进入）
+        .sheet(isPresented: $showDockerExportPicker) {
+            FirewallDockerExportPickerView(vm: vm)
         }
         // 规则重置（R1：输入后端名确认，对齐 Web 端「请手动输入 iptables」）
         .sheet(isPresented: $showRulesReset) {
@@ -1047,6 +1253,18 @@ struct FirewallView: View {
                 fieldPlaceholder: vm.dockerGuard?.base?.backend
             ) {
                 Task { await vm.resetDockerGuard() }
+            }
+        }
+        // 转发运行时规则重置（R1：同款输入后端名确认；settings/operate cleanup）
+        .sheet(isPresented: $showForwardReset) {
+            TextInputConfirmSheet(
+                title: L10n.t("重置端口转发规则"),
+                message: L10n.f("将删除 %@ 中的 1Panel 端口转发运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。", vm.forwardStatus?.backend ?? vm.systemStatus?.backend ?? "", vm.forwardStatus?.backend ?? vm.systemStatus?.backend ?? ""),
+                expectedText: vm.forwardStatus?.backend ?? vm.systemStatus?.backend ?? "",
+                fieldLabel: L10n.t("确认输入"),
+                fieldPlaceholder: vm.forwardStatus?.backend ?? vm.systemStatus?.backend
+            ) {
+                Task { await vm.resetForwarding() }
             }
         }
         // 任务式操作进度页（初始化/启用转发/白名单/Docker 操作）
@@ -1080,58 +1298,6 @@ struct FirewallView: View {
         return base.isExist == true && base.initialized != true
     }
 
-    // MARK: 添加菜单（按段拆分恒非空，避免空内容 Menu 失效）
-
-    private var addRulesMenu: some View {
-        Menu {
-            Button { showAddRule = true } label: {
-                Label(L10n.t("创建规则"), systemImage: "plus")
-            }
-            Button {
-                syncSubsystem = "system"
-                showSyncPreview = true
-            } label: {
-                Label(L10n.t("同步规则"), systemImage: "arrow.triangle.2.circlepath")
-            }
-            Button(role: .destructive) { showRulesReset = true } label: {
-                Label(L10n.t("重置规则"), systemImage: "trash")
-            }
-            Button { showImport = true } label: {
-                Label(L10n.t("导入规则"), systemImage: "square.and.arrow.down")
-            }
-            Button {
-                Haptic.selection()
-                if vm.inventory.filter({ $0.manageableUUID != nil && $0.state != "protected" }).isEmpty {
-                    vm.toastMessage = L10n.t("暂无可导出的规则")
-                } else {
-                    exportedRulesURL = vm.exportRulesURL()
-                }
-            } label: {
-                Label(L10n.t("导出规则"), systemImage: "square.and.arrow.up")
-            }
-        } label: {
-            Image(systemName: "plus.circle")
-        }
-        .accessibilityLabel(L10n.t("添加"))
-    }
-
-    private var addForwardMenu: some View {
-        Menu {
-            Button { showAddForward = true } label: {
-                Label(L10n.t("创建转发"), systemImage: "plus")
-            }
-            Button {
-                syncSubsystem = "forwarding"
-                showSyncPreview = true
-            } label: {
-                Label(L10n.t("同步转发规则"), systemImage: "arrow.triangle.2.circlepath")
-            }
-        } label: {
-            Image(systemName: "plus.circle")
-        }
-        .accessibilityLabel(L10n.t("添加"))
-    }
-
     /// 段未初始化时的占位：说明 + 初始化按钮（隐藏 +、列表与筛选）
     private func uninitializedPlaceholder(message: String, buttonTitle: String,
                                           action: @escaping () -> Void) -> some View {
@@ -1145,10 +1311,14 @@ struct FirewallView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                 Button(action: action) {
+                    // 图标/文字显式白色：主题 tint 下 Label 内容可能与按钮底色
+                    // 同色导致图标不可见（borderedProminent 不保证内容对比度）
                     Label(buttonTitle, systemImage: "wand.and.stars")
+                        .foregroundStyle(.white)
                         .frame(minWidth: 160)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(Color.accentColor)
                 .disabled(vm.isOperating)
             }
             .frame(maxWidth: .infinity)
@@ -1198,7 +1368,7 @@ struct FirewallView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        Text(vm.systemStatus?.isActive == true ? L10n.t("运行中") : L10n.t("已停止"))
+                        Text(lifeStatusText)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -1229,14 +1399,40 @@ struct FirewallView: View {
         }
     }
 
+    /// 生命周期状态文案：停止（不论是否初始化）→ 已停止；
+    /// 运行中未初始化（iptables/nftables）→ 未初始化；运行中已初始化 → 运行中。
+    /// 转发/Docker 段按各自子系统状态显示（转发 isActive 恒 false 用 isInit 判据）
+    private var lifeStatusText: String {
+        switch segment {
+        case 1:
+            guard let fs = vm.forwardStatus else { return "—" }
+            return fs.isInit == true ? L10n.t("运行中") : L10n.t("未初始化")
+        case 2:
+            guard let base = vm.dockerGuard?.base, base.isExist == true else { return "—" }
+            return base.initialized == true ? L10n.t("运行中") : L10n.t("未初始化")
+        default:
+            guard let s = vm.systemStatus else { return "—" }
+            if s.isActive != true { return L10n.t("已停止") }
+            if s.isInit != true, s.backend == "iptables" || s.backend == "nftables" {
+                return L10n.t("未初始化")
+            }
+            return L10n.t("运行中")
+        }
+    }
+
+    /// 已绑定随段取值：规则=系统基础链；转发无绑定概念；Docker=端口守护
+    private var isBoundCurrent: Bool? {
+        switch segment {
+        case 1: return nil
+        case 2: return vm.dockerGuard?.base?.bound
+        default: return vm.systemStatus?.isBind
+        }
+    }
+
     private var badgesRow: some View {
         HStack(spacing: 6) {
-            if vm.systemStatus?.isInit == true {
-                StatusBadge(text: L10n.t("已初始化"), color: .statusRunning)
-            } else if vm.systemStatus?.backend == "iptables" || vm.systemStatus?.backend == "nftables" {
-                StatusBadge(text: L10n.t("未初始化"), color: .semanticWarning)
-            }
-            if vm.systemStatus?.isBind == true {
+            // 初始化状态并入头部运行状态文案，徽标行不再重复
+            if isBoundCurrent == true {
                 StatusBadge(text: L10n.t("已绑定"), color: .blue)
             }
             familyBadge("IPv4", vm.systemStatus?.ipv4)
@@ -1256,37 +1452,122 @@ struct FirewallView: View {
     }
 
     private var operationsRow: some View {
-        HStack(spacing: 8) {
-            CardActionButton(
-                title: vm.systemStatus?.isActive == true ? L10n.t("停止") : L10n.t("启动"),
-                icon: vm.systemStatus?.isActive == true ? "stop.fill" : "play.fill",
-                color: .blue,
-                busy: vm.isOperating
-            ) {
-                pendingLifeOp = (vm.systemStatus?.isActive == true) ? "stop" : "start"
-            }
-            CardActionButton(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath",
-                             color: .orange, busy: vm.isOperating) {
-                pendingLifeOp = "restart"
-            }
-            // 禁 Ping 开关移入设置页；设置入口以按钮形式收进状态抽屉
-            CardActionButton(title: L10n.t("设置"), icon: "gearshape",
-                             color: .purple, busy: false) {
-                showSettings = true
-            }
-            // iptables/nftables：基础链绑定 / 解绑（初始化入口移至规则段主区，
-            // 未初始化时不提供绑定操作）
-            if vm.systemStatus?.backend == "iptables" || vm.systemStatus?.backend == "nftables" {
-                if vm.systemStatus?.isBind == true {
-                    CardActionButton(title: L10n.t("解绑"), icon: "link.badge.plus",
-                                     color: .secondary, busy: vm.isOperating) {
-                        Task { await vm.operateFilterChain("unbind-base") }
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                // iptables/nftables 无服务生命周期概念，不提供停止/重启
+                if vm.systemStatus?.backend != "iptables", vm.systemStatus?.backend != "nftables" {
+                    CardActionButton(
+                        title: vm.systemStatus?.isActive == true ? L10n.t("停止") : L10n.t("启动"),
+                        icon: vm.systemStatus?.isActive == true ? "stop.fill" : "play.fill",
+                        color: .blue,
+                        busy: vm.isOperating
+                    ) {
+                        pendingLifeOp = (vm.systemStatus?.isActive == true) ? "stop" : "start"
                     }
-                } else if vm.systemStatus?.isInit == true {
-                    CardActionButton(title: L10n.t("绑定"), icon: "link",
-                                     color: .green, busy: vm.isOperating) {
-                        Task { await vm.operateFilterChain("bind-base") }
+                    CardActionButton(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath",
+                                     color: .orange, busy: vm.isOperating) {
+                        pendingLifeOp = "restart"
                     }
+                }
+                // 禁 Ping 开关移入设置页；设置入口以按钮形式收进状态抽屉
+                CardActionButton(title: L10n.t("设置"), icon: "gearshape",
+                                 color: .purple, busy: false) {
+                    showSettings = true
+                }
+            }
+            // 随段变化的上下文操作：同名按钮（解绑/绑定、同步规则、重置）按段传对应参数
+            contextOperationsRow
+        }
+    }
+
+    @ViewBuilder
+    private var contextOperationsRow: some View {
+        switch segment {
+        case 0:
+            // 规则段：基础链解绑/绑定 + 同步 + 重置 + 导入/导出（未初始化段不提供）
+            if !needsRulesInit {
+                HStack(spacing: 8) {
+                    filterChainBindButton
+                    CardActionButton(title: L10n.t("同步规则"),
+                                     icon: "arrow.triangle.2.circlepath",
+                                     color: .blue, busy: vm.isOperating) {
+                        syncSubsystem = "system"
+                        showSyncPreview = true
+                    }
+                    CardActionButton(title: L10n.t("重置"), icon: "trash",
+                                     color: .statusError, busy: vm.isOperating) {
+                        showRulesReset = true
+                    }
+                    CardActionButton(title: L10n.t("导入"), icon: "square.and.arrow.down",
+                                     color: .teal, busy: false) {
+                        showImport = true
+                    }
+                }
+            }
+        case 1:
+            // 转发段：同步 + 重置 + 导入（导出走长按菜单，子系统无绑定概念）
+            if !needsForwardInit {
+                HStack(spacing: 8) {
+                    CardActionButton(title: L10n.t("同步规则"),
+                                     icon: "arrow.triangle.2.circlepath",
+                                     color: .blue, busy: vm.isOperating) {
+                        syncSubsystem = "forwarding"
+                        showSyncPreview = true
+                    }
+                    CardActionButton(title: L10n.t("重置"), icon: "trash",
+                                     color: .statusError, busy: vm.isOperating) {
+                        showForwardReset = true
+                    }
+                    CardActionButton(title: L10n.t("导入"), icon: "square.and.arrow.down",
+                                     color: .teal, busy: false) {
+                        showForwardImport = true
+                    }
+                }
+            }
+        default:
+            // Docker 段：端口守护解绑/绑定 + 同步 + 重置 + 导入/导出（未初始化/不可用不提供）
+            if let base = vm.dockerGuard?.base,
+               base.isExist == true, base.initialized == true {
+                HStack(spacing: 8) {
+                    CardActionButton(
+                        title: base.bound == true ? L10n.t("解绑") : L10n.t("绑定"),
+                        icon: base.bound == true ? "link.badge.plus" : "link",
+                        color: base.bound == true ? .secondary : .green,
+                        busy: vm.isOperating
+                    ) {
+                        Task { await vm.dockerOperate(base.bound == true ? "unbind" : "bind") }
+                    }
+                    CardActionButton(title: L10n.t("同步规则"),
+                                     icon: "arrow.triangle.2.circlepath",
+                                     color: .blue, busy: vm.isOperating) {
+                        Task { await vm.dockerSync() }
+                    }
+                    CardActionButton(title: L10n.t("重置"), icon: "trash",
+                                     color: .statusError, busy: vm.isOperating) {
+                        showDockerReset = true
+                    }
+                    CardActionButton(title: L10n.t("导入"), icon: "square.and.arrow.down",
+                                     color: .teal, busy: false) {
+                        showDockerImport = true
+                    }
+                }
+            }
+        }
+    }
+
+    /// 规则段基础链解绑/绑定（iptables/nftables；未初始化时不提供绑定）
+    @ViewBuilder
+    private var filterChainBindButton: some View {
+        if vm.systemStatus?.backend == "iptables" || vm.systemStatus?.backend == "nftables" {
+            if vm.systemStatus?.isBind == true {
+                CardActionButton(title: L10n.t("解绑"), icon: "link.badge.plus",
+                                 color: .secondary, busy: vm.isOperating) {
+                    Task { await vm.operateFilterChain("unbind-base") }
+                }
+            } else if vm.systemStatus?.isInit == true {
+                CardActionButton(title: L10n.t("绑定"), icon: "link",
+                                 color: .green, busy: vm.isOperating) {
+                    Task { await vm.operateFilterChain("bind-base") }
                 }
             }
         }
@@ -1307,6 +1588,51 @@ struct FirewallView: View {
                 rulesListContent
             }
         }
+    }
+
+    /// 长按规则弹窗（半屏）菜单项：可管理 → 编辑/删除/上移下移；
+    /// external/drifted → 纳管；末尾固定 导出规则 + 查看原文
+    private var ruleActionItems: [ActionMenuItem] {
+        guard let item = actionItem else { return [] }
+        var items: [ActionMenuItem] = []
+        if let uuid = item.manageableUUID, let rule = item.rule {
+            items.append(ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                editingRuleUUID = uuid
+                editingRule = rule
+            })
+            items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red,
+                                        role: .destructive) {
+                Haptic.warning()
+                pendingDeleteItem = item
+            })
+            if let position = item.observed?.locator?.position {
+                items.append(ActionMenuItem(title: L10n.t("上移"), icon: "arrow.up", color: .orange) {
+                    Task { await vm.reorderRule(uuid: uuid, to: Int64(max(1, position - 1))) }
+                })
+                items.append(ActionMenuItem(title: L10n.t("下移"), icon: "arrow.down", color: .orange) {
+                    Task { await vm.reorderRule(uuid: uuid, to: Int64(position + 1)) }
+                })
+            }
+        } else if item.state == "external" || item.state == "drifted" {
+            items.append(ActionMenuItem(title: L10n.t("纳管"),
+                                        icon: "square.and.arrow.down.on.square", color: .blue) {
+                Task { await vm.adoptRule(item) }
+            })
+        }
+        items.append(ActionMenuItem(title: L10n.t("导出规则"),
+                                    icon: "square.and.arrow.up", color: .teal) {
+            showExportPicker = true
+        })
+        items.append(ActionMenuItem(title: L10n.t("查看原文"),
+                                    icon: "doc.text.magnifyingglass", color: .gray) {
+            Task {
+                let text = await vm.loadNativeDetail(for: item)
+                rawDetail = RawDetailPayload(
+                    title: item.rule?.destinationPort ?? item.rule?.sourceAddress ?? "",
+                    text: text)
+            }
+        })
+        return items
     }
 
     private var rulesListContent: some View {
@@ -1332,59 +1658,9 @@ struct FirewallView: View {
                                     editingRule = rule
                                 }
                             }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                if item.manageableUUID != nil {
-                                    Button(role: .destructive) {
-                                        Haptic.warning()
-                                        pendingDeleteItem = item
-                                    } label: {
-                                        Label(L10n.t("删除"), systemImage: "trash")
-                                    }
-                                }
-                            }
-                            .contextMenu {
-                                if let uuid = item.manageableUUID, let rule = item.rule {
-                                    Button {
-                                        editingRuleUUID = uuid
-                                        editingRule = rule
-                                    } label: {
-                                        Label(L10n.t("编辑"), systemImage: "pencil")
-                                    }
-                                    Button {
-                                        Haptic.warning()
-                                        pendingDeleteItem = item
-                                    } label: {
-                                        Label(L10n.t("删除"), systemImage: "trash")
-                                    }
-                                    if let position = item.observed?.locator?.position {
-                                        Button {
-                                            Task { await vm.reorderRule(uuid: uuid, to: Int64(max(1, position - 1))) }
-                                        } label: {
-                                            Label(L10n.t("上移"), systemImage: "arrow.up")
-                                        }
-                                        Button {
-                                            Task { await vm.reorderRule(uuid: uuid, to: Int64(position + 1)) }
-                                        } label: {
-                                            Label(L10n.t("下移"), systemImage: "arrow.down")
-                                        }
-                                    }
-                                } else if item.state == "external" || item.state == "drifted" {
-                                    Button {
-                                        Task { await vm.adoptRule(item) }
-                                    } label: {
-                                        Label(L10n.t("纳管"), systemImage: "square.and.arrow.down.on.square")
-                                    }
-                                }
-                                Button {
-                                    Task {
-                                        let text = await vm.loadNativeDetail(for: item)
-                                        rawDetail = RawDetailPayload(
-                                            title: item.rule?.destinationPort ?? item.rule?.sourceAddress ?? "",
-                                            text: text)
-                                    }
-                                } label: {
-                                    Label(L10n.t("查看原文"), systemImage: "doc.text.magnifyingglass")
-                                }
+                            // 长按弹半屏操作菜单（编辑/删除/上移下移/导出规则/查看原文，或纳管）
+                            .onLongPressGesture {
+                                actionItem = item
                             }
                             .onAppear {
                                 if item.id == vm.inventory.last?.id,
@@ -1393,7 +1669,8 @@ struct FirewallView: View {
                                 }
                             }
                     }
-                    if vm.isRulesLoadingMore {
+                    // 加载指示行仅在仍有更多页时出现（已加载全量时不再多占一行）
+                    if vm.isRulesLoadingMore && vm.inventory.count < vm.rulesAllTotal {
                         HStack { Spacer(); ProgressView(); Spacer() }
                     }
                 } header: {
@@ -1470,7 +1747,7 @@ struct FirewallView: View {
             if needsForwardInit {
                 uninitializedPlaceholder(
                     message: L10n.t("启用端口转发子系统后将创建转发规则链；完成前不可创建转发。"),
-                    buttonTitle: L10n.t("启用转发")
+                    buttonTitle: L10n.t("初始化")
                 ) {
                     Task { await vm.enableForwarding() }
                 }
@@ -1482,27 +1759,7 @@ struct FirewallView: View {
 
     private var forwardListContent: some View {
         Group {
-            if let fs = vm.forwardStatus {
-                Section {
-                    HStack(spacing: 10) {
-                        // 抓包 2026-09-17：转发子系统 isActive 恒 false（iptables-forward），
-                        // 启用判据用 isInit
-                        StatusDot(color: (fs.isInit == true) ? .statusRunning : .statusStopped,
-                                  diameter: 8)
-                        Text(fs.backend?.uppercased() ?? "—")
-                            .font(.subheadline.bold())
-                        if let v = fs.version, !v.isEmpty {
-                            Text("v\(v)").font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if let err = fs.syncError, !err.isEmpty {
-                            StatusBadge(text: L10n.t("同步异常"), color: .semanticWarning)
-                        }
-                    }
-                } header: {
-                    SectionLabel(title: L10n.t("转发子系统"), systemImage: "arrow.triangle.branch")
-                }
-            }
+            // 转发子系统状态分组已移除（初始化状态并入头部，操作收进右上角菜单）
             if vm.forwards.isEmpty {
                 Section {
                     ContentUnavailableView(L10n.t("暂无转发规则"), systemImage: "arrow.triangle.branch")
@@ -1515,14 +1772,8 @@ struct FirewallView: View {
                         FirewallForwardRowView(rule: rule)
                             .contentShape(Rectangle())
                             .onTapGesture { editingForward = rule }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    Haptic.warning()
-                                    pendingDeleteForward = rule
-                                } label: {
-                                    Label(L10n.t("删除"), systemImage: "trash")
-                                }
-                            }
+                            // 长按弹半屏操作菜单（编辑/删除/导出规则）
+                            .onLongPressGesture { actionForward = rule }
                             .onAppear {
                                 if rule.id == vm.forwards.last?.id,
                                    vm.forwards.count < vm.forwardsTotal {
@@ -1548,7 +1799,7 @@ struct FirewallView: View {
                 if needsDockerInit {
                     uninitializedPlaceholder(
                         message: L10n.t("初始化容器端口防护后将接管已发布端口的访问控制；完成前不可配置策略。"),
-                        buttonTitle: L10n.t("初始化守护")
+                        buttonTitle: L10n.t("初始化")
                     ) {
                         Task { await vm.dockerOperate("initialize") }
                     }
@@ -1569,58 +1820,12 @@ struct FirewallView: View {
         }
     }
 
-    /// Docker 段主内容（已初始化）：状态行 + 操作按钮 + 容器端点列表
+    /// Docker 段主内容（已初始化）：容器入口行 + 孤立策略
     private func dockerListContent(_ guard_: DockerGuardList, _ base: DockerGuardBase) -> some View {
         Group {
-                Section {
-                    HStack(spacing: 10) {
-                        IconBadge(systemName: "shippingbox.fill", color: .blue)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(base.name?.uppercased() ?? "DOCKER")
-                                .font(.subheadline.bold())
-                            if let backend = base.backend, !backend.isEmpty {
-                                Text(backend.uppercased())
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
-                        if base.bound == true {
-                            StatusBadge(text: L10n.t("已绑定"), color: .blue)
-                        }
-                    }
-                    HStack(spacing: 8) {
-                        CardActionButton(
-                            title: base.bound == true ? L10n.t("解绑") : L10n.t("绑定"),
-                            icon: base.bound == true ? "link.badge.plus" : "link",
-                            color: base.bound == true ? .secondary : .green,
-                            busy: vm.isOperating
-                        ) {
-                            Task { await vm.dockerOperate(base.bound == true ? "unbind" : "bind") }
-                        }
-                        CardActionButton(title: L10n.t("同步规则"), icon: "arrow.triangle.2.circlepath",
-                                         color: .blue, busy: vm.isOperating) {
-                            Task { await vm.dockerSync() }
-                        }
-                        CardActionButton(title: L10n.t("重置"), icon: "trash",
-                                         color: .statusError, busy: vm.isOperating) {
-                            showDockerReset = true
-                        }
-                    }
-                    if let msg = base.message, !msg.isEmpty {
-                        Text(msg).font(.caption).foregroundStyle(.secondary)
-                    }
-                } header: {
-                    SectionLabel(title: L10n.t("Docker 端口守护"), systemImage: "shippingbox")
-                }
-
                 ForEach(guard_.containers ?? []) { container in
                     DockerGuardContainerSection(
                         container: container,
-                        onDeletePolicy: { endpoint in
-                            Haptic.warning()
-                            Task { await vm.deleteDockerPolicy(endpoint) }
-                        },
                         onEditPolicy: { endpoint in
                             if endpoint.managementTarget == "host_firewall" {
                                 vm.toastMessage = L10n.t("该端点由主机防火墙规则管理，请在规则段调整")
@@ -1628,7 +1833,7 @@ struct FirewallView: View {
                                 editingPolicy = endpoint
                             }
                         },
-                        isOperating: vm.isOperating
+                        onExport: { showDockerExportPicker = true }
                     )
                 }
 
@@ -1657,6 +1862,8 @@ private struct FirewallSettingsPageView: View {
 
     /// 待确认的后端切换（弹窗确认后才下发 select）
     @State private var pendingSwitch: BackendSwitch?
+    /// 被拦截的切换（当前后端仍含运行时规则，仅提示不发请求）
+    @State private var blockedSwitch: (current: String, target: String)?
 
     struct BackendSwitch: Identifiable {
         let subsystem: String
@@ -1730,26 +1937,27 @@ private struct FirewallSettingsPageView: View {
         } message: {
             Text(L10n.f("确认切换为 %@？", pendingSwitch?.backend ?? ""))
         }
+        // 切换被拦：当前后端仍含 1Panel 运行时规则，须先重置（仅提示，不发请求）
+        .alert(L10n.t("重置"), isPresented: Binding(
+            get: { blockedSwitch != nil },
+            set: { if !$0 { blockedSwitch = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { blockedSwitch = nil }
+        } message: {
+            Text(L10n.f("当前后端 %@ 仍存在 1Panel 运行时规则，请先重置该后端，再切换到 %@。重置仅清理运行时规则，数据库策略会保留，切换后可以重新初始化或同步。", blockedSwitch?.current ?? "", blockedSwitch?.target ?? ""))
+        }
     }
 
-    /// 单组防护后端：下拉选择（未安装 / 不支持的选项不可选）
+    /// 单组防护后端：形态 3 描边菜单（未安装 / 不支持的选项不展示，
+    /// 当前选中不在可选列表时兜底保留，避免无效 selection）
     private func backendPickerSection(title: String, subsystem: String,
                                       group: FirewallBackendGroup?) -> some View {
         Section {
-            Picker(title, selection: backendBinding(subsystem: subsystem, group: group)) {
-                ForEach(group?.options ?? []) { option in
-                    Text((option.name ?? "").uppercased())
-                        .tag(option.name ?? "")
-                        .disabled(option.installed != true || option.supported == false)
-                }
-                // 当前后端不在选项列表（数据异常）时兜底，避免 invalid selection
-                if let selected = group?.selected, !selected.isEmpty,
-                   !(group?.options ?? []).contains(where: { $0.name == selected }) {
-                    Text(selected.uppercased()).tag(selected)
-                }
-            }
-            .pickerStyle(.menu)
-            .disabled(vm.isOperating)
+            OutlinedPicker(label: title,
+                           options: backendOptionKeys(group: group),
+                           selection: backendBinding(subsystem: subsystem, group: group),
+                           optionLabels: backendOptionLabels(group: group))
+                .disabled(vm.isOperating)
         } header: {
             SectionLabel(title: title, systemImage: "server.rack")
         } footer: {
@@ -1761,12 +1969,40 @@ private struct FirewallSettingsPageView: View {
         }
     }
 
-    /// 选择值真源是服务端的 group.selected；用户改选仅触发确认弹窗，不直接落状态
+    /// 可选后端键：可用选项 + 当前选中兜底（去重）
+    private func backendOptionKeys(group: FirewallBackendGroup?) -> [String] {
+        var keys = (group?.options ?? [])
+            .filter { $0.installed == true && $0.supported != false }
+            .compactMap { $0.name }
+        if let selected = group?.selected, !selected.isEmpty,
+           !(group?.options ?? []).contains(where: { $0.name == selected && $0.installed == true && $0.supported != false }) {
+            keys.insert(selected, at: 0)
+        }
+        var seen = Set<String>()
+        return keys.filter { seen.insert($0).inserted }
+    }
+
+    private func backendOptionLabels(group: FirewallBackendGroup?) -> [String: String] {
+        var labels: [String: String] = [:]
+        for option in group?.options ?? [] {
+            if let name = option.name { labels[name] = name.uppercased() }
+        }
+        if let selected = group?.selected { labels[selected] = selected.uppercased() }
+        return labels
+    }
+
+    /// 选择值真源是服务端的 group.selected；用户改选仅触发确认弹窗，不直接落状态。
+    /// 当前后端仍含运行时规则（settings options 中当前 name 的 initialized=true）
+    /// 时不发请求，改弹「请先重置」提示（服务端此时返回 409 FW_BACKEND_CLEANUP_REQUIRED）
     private func backendBinding(subsystem: String, group: FirewallBackendGroup?) -> Binding<String> {
         Binding<String>(
             get: { group?.selected ?? "" },
             set: { chosen in
                 guard let group, !chosen.isEmpty, chosen != group.selected else { return }
+                if group.currentInitialized {
+                    blockedSwitch = (current: group.current ?? group.selected ?? "", target: chosen)
+                    return
+                }
                 pendingSwitch = BackendSwitch(subsystem: subsystem, backend: chosen)
             }
         )
@@ -1926,57 +2162,137 @@ struct FirewallForwardRowView: View {
 
 private struct DockerGuardContainerSection: View {
     let container: DockerGuardContainer
-    let onDeletePolicy: (DockerGuardEndpoint) -> Void
     var onEditPolicy: (DockerGuardEndpoint) -> Void = { _ in }
-    let isOperating: Bool
-    @State private var expanded = true
+    /// 长按「导出规则」入口
+    var onExport: () -> Void = {}
+
+    /// 容器下平铺 endpoints（ipv4/ipv6 各一条）；portGroups 为 DTO 保留形态，
+    /// 两者并集、按 id 去重（抓包 2026-09-17）
+    private var endpoints: [DockerGuardEndpoint] {
+        let groupEndpoints = (container.portGroups ?? []).compactMap { $0.endpoint }
+        var seen = Set<String>()
+        return ((container.endpoints ?? []) + groupEndpoints).filter { seen.insert($0.id).inserted }
+    }
 
     var body: some View {
         Section {
-            Button {
-                withAnimation(Motion.standard) { expanded.toggle() }
+            NavigationLink {
+                DockerGuardEndpointsView(container: container, onEditPolicy: onEditPolicy)
             } label: {
-                HStack(spacing: 8) {
+                HStack(alignment: .center, spacing: 8) {
                     Image(systemName: "shippingbox.fill")
                         .foregroundStyle(.blue)
-                    Text(container.name ?? "—")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.primary)
-                    if let compose = container.compose, !compose.isEmpty {
-                        StatusBadge(text: compose, color: .purple)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(container.name ?? "—")
+                            .font(.subheadline.bold())
+                        // 第二行：应用名（缺省回落 compose）
+                        Text(container.application?.isEmpty == false
+                             ? container.application! : (container.compose ?? ""))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.secondary)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if expanded {
-                // 抓包 2026-09-17：实际返回为容器下平铺 endpoints（ipv4/ipv6 各一条）；
-                // portGroups 为 DTO 保留形态，两者并集渲染、按 id 去重
-                let groupEndpoints = (container.portGroups ?? []).compactMap { $0.endpoint }
-                var seen = Set<String>()
-                let endpoints = ((container.endpoints ?? []) + groupEndpoints).filter { seen.insert($0.id).inserted }
-                if endpoints.isEmpty {
-                    Text(L10n.t("未发布端口"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(endpoints) { endpoint in
-                        DockerGuardEndpointRow(endpoint: endpoint) {
-                            if endpoint.readOnly != true, endpoint.policyUUID?.isEmpty == false {
-                                onDeletePolicy(endpoint)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture { onEditPolicy(endpoint) }
+                    if endpoints.isEmpty {
+                        Text(L10n.t("未发布端口"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(L10n.f("%ld 条", endpoints.count))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
+                }
+            }
+            // 长按弹半屏菜单（导出规则）
+            .onLongPressGesture { onExport() }
+        }
+    }
+}
+
+// MARK: - 容器端口规则展示页（入口行进入）
+
+/// 容器端口规则只读展示（形态 8「行即 Section」对应式，不提供添加/删除）：
+/// 每条规则 = 来源（形态 1）+ 目标（形态 1）+ 防护模式（标签为模式名，内容为
+/// sources，形态 7.1）；点击规则进入防护策略编辑
+struct DockerGuardEndpointsView: View {
+    let container: DockerGuardContainer
+    var onEditPolicy: (DockerGuardEndpoint) -> Void = { _ in }
+
+    private let modeLabels = [
+        "deny_sources": L10n.t("禁止指定来源"),
+        "allow_sources": L10n.t("仅允许指定来源"),
+        "deny_all": L10n.t("禁止所有访问"),
+    ]
+
+    private var endpoints: [DockerGuardEndpoint] {
+        let groupEndpoints = (container.portGroups ?? []).compactMap { $0.endpoint }
+        var seen = Set<String>()
+        return ((container.endpoints ?? []) + groupEndpoints).filter { seen.insert($0.id).inserted }
+    }
+
+    var body: some View {
+        Form {
+            if endpoints.isEmpty {
+                Section {
+                    ContentUnavailableView(L10n.t("未发布端口"), systemImage: "shippingbox")
+                        .frame(maxWidth: .infinity, minHeight: 120)
+                        .listRowBackground(Color.clear)
+                }
+            } else {
+                ForEach(endpoints) { endpoint in
+                    endpointSection(endpoint)
                 }
             }
         }
+        .navigationTitle(container.name ?? "—")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func endpointSection(_ endpoint: DockerGuardEndpoint) -> some View {
+        Section {
+            OutlinedShape(label: L10n.t("来源"), isFocused: false,
+                          hasValue: sourceText(endpoint) != L10n.t("未设置"),
+                          trailing: { EmptyView() }) {
+                Text(sourceText(endpoint))
+                    .font(.dataMonospacedBody)
+                    .lineLimit(1)
+            }
+            OutlinedShape(label: L10n.t("目标"), isFocused: false,
+                          hasValue: targetText(endpoint) != L10n.t("未设置"),
+                          trailing: { EmptyView() }) {
+                Text(targetText(endpoint))
+                    .font(.dataMonospacedBody)
+                    .lineLimit(1)
+            }
+            OutlinedMultiLineField(
+                label: endpoint.mode.flatMap { modeLabels[$0] } ?? L10n.t("防护模式"),
+                text: .constant(sourcesText(endpoint)))
+                .disabled(true)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { onEditPolicy(endpoint) }
+    }
+
+    /// 来源 = 主机 IP + 端口；缺任一显示未设置
+    private func sourceText(_ endpoint: DockerGuardEndpoint) -> String {
+        if let ip = endpoint.hostIP, let port = endpoint.hostPort {
+            return "\(ip):\(port)"
+        }
+        return L10n.t("未设置")
+    }
+
+    /// 目标 = 容器端口 + 协议；缺任一显示未设置
+    private func targetText(_ endpoint: DockerGuardEndpoint) -> String {
+        if let port = endpoint.containerPort, let proto = endpoint.protocolField {
+            return "\(port)/\(proto.uppercased())"
+        }
+        return L10n.t("未设置")
+    }
+
+    /// 防护模式内容 = sources（每行一条）；空（deny_all 或未配置）显示未设置
+    private func sourcesText(_ endpoint: DockerGuardEndpoint) -> String {
+        let list = (endpoint.sources ?? []).filter { !$0.isEmpty }
+        return list.isEmpty ? L10n.t("未设置") : list.joined(separator: "\n")
     }
 }
 

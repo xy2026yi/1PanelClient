@@ -483,6 +483,14 @@ nonisolated struct FirewallBackendGroup: Decodable, Sendable {
     let selected: String?
     let current: String?
     let options: [FirewallBackendOption]?
+
+    /// 当前后端（current/selected 对应的 option）是否仍含 1Panel 运行时规则：
+    /// 切换预检用——true 时须先重置才能换后端（否则服务端 409 CLEANUP_REQUIRED）
+    var currentInitialized: Bool {
+        let name = current ?? selected
+        guard let name, !name.isEmpty else { return false }
+        return (options ?? []).first { $0.name == name }?.initialized == true
+    }
 }
 
 nonisolated struct FirewallSettings: Decodable, Sendable {
@@ -529,10 +537,10 @@ nonisolated struct FirewallPortWhitelistEntry: Codable, Equatable, Identifiable,
 
     var id: String { "\(family)|\(protocolField)|\(port)" }
 
-    /// 展示文本（80/tcp）
+    /// 展示文本（80/tcp，不带地址族后缀）
     var display: String {
         let proto = protocolField.isEmpty ? "" : "/\(protocolField)"
-        return "\(port)\(proto) (\(family.uppercased()))"
+        return "\(port)\(proto)"
     }
 }
 
@@ -661,7 +669,7 @@ nonisolated struct DockerGuardOperateRequest: Encodable, Sendable {
     var taskID: String?
 }
 
-nonisolated struct DockerGuardPolicy: Encodable, Sendable {
+nonisolated struct DockerGuardPolicy: Codable, Sendable {
     var family: String
     var hostIP: String
     var hostPort: Int
