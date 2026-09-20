@@ -483,6 +483,8 @@ struct SnapshotCreateView: View {
     /// 向导分页：0 基础数据 1 系统应用+应用数据 2 系统数据+备份数据 3 其他数据+排除规则
     @State private var wizardPage = 0
     private let wizardPageNames = [L10n.t("基础"), L10n.t("应用"), L10n.t("数据"), L10n.t("其他")]
+    /// 叶子关闭引发的级联置位：此时总开关关闭只改自身，不清空其余应用的个别勾选
+    @State private var suppressMasterClear = false
 
     private let client: APIClient
     private let timeoutUnits: [(value: String, label: String, seconds: Int)] = [
@@ -571,10 +573,17 @@ struct SnapshotCreateView: View {
         .animation(.easeInOut(duration: 0.22), value: wizardPage)
         // 创建快照进行中禁下拉关闭，防异步提交被误中断（与 TextInputConfirmSheet 同款防护）
         .interactiveDismissDisabled(isSubmitting)
-        // 总开关打开 → 应用数据树内所有「应用镜像」叶子全部勾上（反向联动见树回调）
+        // 总开关 ↔ 应用镜像双向联动：开 → 全选；直接关 → 全部取消（对齐网页端）；
+        // 由叶子关闭引发的级联关（suppressMasterClear）保留其余应用的个别勾选
         .onChange(of: backupAllImage) { _, on in
-            if on, let data = loadData {
-                checked.formUnion(Self.appImageLeafIDs(data.appData ?? []))
+            guard let data = loadData else { return }
+            let imageIDs = Self.appImageLeafIDs(data.appData ?? [])
+            if on {
+                checked.formUnion(imageIDs)
+            } else if suppressMasterClear {
+                suppressMasterClear = false
+            } else {
+                checked.subtract(imageIDs)
             }
         }
         .alert(L10n.t("提示"), isPresented: $showError) {
@@ -626,7 +635,11 @@ struct SnapshotCreateView: View {
                                 nodes: data.appData ?? [], checked: $checked,
                                 onLeafToggled: { node, on in
                 // 关闭任一应用的「应用镜像」时，联动关闭「备份所有应用镜像」总开关
-                if node.label == "appImage" && !on { backupAllImage = false }
+                // （置 suppressMasterClear：其余应用的个别勾选不被级联清空）
+                if node.label == "appImage" && !on {
+                    suppressMasterClear = true
+                    backupAllImage = false
+                }
             })
         }
     }

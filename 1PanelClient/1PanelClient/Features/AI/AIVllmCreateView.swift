@@ -379,12 +379,14 @@ struct AIVllmCreateView: View {
                 OutlinedPicker(label: L10n.t("重启规则"), options: VllmRestartPolicy.allCases,
                                selection: $restartPolicy) { $0.displayName }
 
+                // CPU 配额允许小数（如 0.5 核，提交按 Double 解析）
                 OutlinedUnitField(label: L10n.t("CPU 限制"), unit: L10n.t("核心"),
-                                  text: $cpuQuotaText, keyboardType: .decimalPad)
+                                  text: $cpuQuotaText, keyboardType: .decimalPad,
+                                  allowsDecimal: true)
 
-                // 单位固定 MB（与安装表单一致，提交 memoryUnit=M）
+                // 单位固定 MB（与安装表单一致，提交 memoryUnit=M）；MB 为整数输入
                 OutlinedUnitField(label: L10n.t("内存限制"), unit: "MB",
-                                  text: $memoryLimitText, keyboardType: .decimalPad)
+                                  text: $memoryLimitText, keyboardType: .numberPad)
 
                 Toggle(L10n.t("拉取镜像"), isOn: $pullImage)
 

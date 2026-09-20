@@ -187,6 +187,19 @@ struct ApplyCertificateView: View {
     private var advancedSection: some View {
         Section {
             Toggle(L10n.t("启用高级选项"), isOn: $advancedEnabled)
+                .onChange(of: advancedEnabled) { _, on in
+                    // 收起即重置：开关关闭表示不启用高级选项，避免隐藏字段按原值随提交生效
+                    if !on {
+                        disableCNAME = false
+                        skipDNS = false
+                        nameserver1 = ""
+                        nameserver2 = ""
+                        pushDir = false
+                        dir = ""
+                        execShell = false
+                        shell = ""
+                    }
+                }
             if advancedEnabled {
                 Toggle(L10n.t("禁用 CNAME"), isOn: $disableCNAME)
                 Toggle(L10n.t("跳过 DNS 校验"), isOn: $skipDNS)

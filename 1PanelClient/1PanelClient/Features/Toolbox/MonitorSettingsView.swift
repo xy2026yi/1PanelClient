@@ -23,6 +23,9 @@ struct MonitorSettingsView: View {
 
     /// 采集间隔（分钟；UI 固定单位，提交换算回秒）
     @State private var intervalMinutesText = "5"
+    /// 加载时的原值（脏检查：失焦/回车仅在改动后提交，避免每次聚焦都发请求）
+    @State private var loadedStoreDays = 0
+    @State private var loadedIntervalMinutes = ""
 
     private let client: APIClient
 
@@ -66,15 +69,15 @@ struct MonitorSettingsView: View {
                     settings.monitorStatus = on
                     update(key: "MonitorStatus", value: on ? "Enable" : "Disable")
                 }))
+            // numberPad 无回车键：失焦（onCommit）为主提交时机，onSubmit 兜底外接键盘
             OutlinedUnitField(label: L10n.t("保存天数"), unit: L10n.t("天"),
-                              text: storeDaysText, range: 1...365)
-                .onSubmit {
-                    // 回车提交（输入即时钳制在 1...365）
-                    update(key: "MonitorStoreDays", value: String(settings.storeDays))
-                }
+                              text: storeDaysText, range: 1...365,
+                              onCommit: { commitStoreDays() })
+                .onSubmit { commitStoreDays() }
             OutlinedUnitField(label: L10n.t("采集间隔"), unit: L10n.t("分钟"),
-                              text: $intervalMinutesText, range: 1...1440)
-                .onSubmit { submitInterval() }
+                              text: $intervalMinutesText, range: 1...1440,
+                              onCommit: { commitInterval() })
+                .onSubmit { commitInterval() }
             OutlinedPicker(label: L10n.t("默认网卡"),
                            options: netOptions.isEmpty ? [""] : netOptions,
                            selection: Binding(
@@ -122,6 +125,8 @@ struct MonitorSettingsView: View {
             settings = loaded
             // 秒 → 分钟（不足 1 分钟按 1 计）
             intervalMinutesText = String(max(1, loaded.interval / 60))
+            loadedStoreDays = loaded.storeDays
+            loadedIntervalMinutes = intervalMinutesText
         }
         if let nets: [String] = try? await client.send(
             path: APIEndpoint.monitorNetOptions.path, method: "GET", as: [String].self) {
@@ -140,6 +145,20 @@ struct MonitorSettingsView: View {
 
     private func submitInterval() {
         update(key: "MonitorInterval", value: String(intervalSeconds))
+    }
+
+    /// 保存天数脏检查提交（失焦/回车共用）
+    private func commitStoreDays() {
+        guard settings.storeDays != loadedStoreDays else { return }
+        loadedStoreDays = settings.storeDays
+        update(key: "MonitorStoreDays", value: String(settings.storeDays))
+    }
+
+    /// 采集间隔脏检查提交（失焦/回车共用）
+    private func commitInterval() {
+        guard intervalMinutesText != loadedIntervalMinutes else { return }
+        loadedIntervalMinutes = intervalMinutesText
+        submitInterval()
     }
 
     /// 单项设置提交（{key,value}，抓包确认）
@@ -355,10 +374,9 @@ struct SwapEditView: View {
             Text(errorMessage ?? "")
         }
         .onAppear {
-            // KB → MB（向上取整到能被 4 整除：KB 必须为 4 的倍数）
-            let mb = (detail.size + 4095) / 1024
-            let mbAligned = max(0, (mb + 3) / 4 * 4)
-            sizeMBText = String(mbAligned)
+            // KB → MB 向上取整（不足 1MB 按 1 计）；已是整 MB 的值原样回显，
+            // 原样保存不漂移（MB×1024 恒为 4 的倍数，无需再对齐）
+            sizeMBText = String((detail.size + 1023) / 1024)
         }
     }
 

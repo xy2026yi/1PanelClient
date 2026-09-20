@@ -151,6 +151,10 @@ struct OutlinedUnitField: View {
     var keyboardType: UIKeyboardType = .numberPad
     /// 框下方常驻提示（如「如果设置为 0，则表示没有限制」）
     var hint: String? = nil
+    /// 允许小数（如 CPU 核数 0.5）：跳过整数钳制，解析交给调用方（通常配 decimalPad）
+    var allowsDecimal = false
+    /// 失焦提交回调：numberPad 无回车键，onSubmit 不可达，靠失焦触发保存
+    var onCommit: (() -> Void)? = nil
 
     @FocusState private var isFocused: Bool
 
@@ -181,13 +185,21 @@ struct OutlinedUnitField: View {
                     .padding(.leading, 14)
             }
         }
+        .onChange(of: isFocused) { _, focused in
+            if !focused { onCommit?() }
+        }
     }
 
-    /// 输入即时钳制：非法输入保持原值，超出范围收敛到边界
+    /// 输入即时钳制：非法输入保持原值，超出范围收敛到边界；
+    /// allowsDecimal 时原样透传（含小数点），范围钳制不适用
     private var clampedText: Binding<String> {
         Binding<String>(
             get: { text },
             set: { newValue in
+                if allowsDecimal {
+                    text = newValue
+                    return
+                }
                 guard let parsed = Int(newValue) else { return }
                 text = String(range.map { min(max(parsed, $0.lowerBound), $0.upperBound) } ?? parsed)
             }
