@@ -1398,11 +1398,21 @@ struct FileRenameSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(L10n.t("当前名称")) {
-                    Text(item.name).foregroundStyle(.secondary)
-                }
-                Section(L10n.t("新名称")) {
-                    TextField(L10n.t("输入新名称"), text: $newName)
+                // 无分组标题；字段标签即原分组名（当前名称 / 新名称）
+                Section {
+                    // 当前名称只读：描边框 + 锁标识
+                    OutlinedShape(label: L10n.t("当前名称"), isFocused: false,
+                                  hasValue: !item.name.isEmpty,
+                                  trailing: {
+                        Image(systemName: "lock.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }) {
+                        Text(item.name)
+                            .lineLimit(1)
+                    }
+                    OutlinedTextField(label: L10n.t("新名称"), text: $newName)
+                        .onSubmit { Task { await rename() } }
                 }
             }
             .navigationTitle(L10n.t("重命名"))

@@ -21,14 +21,10 @@ struct MonitorSettingsView: View {
     @State private var showError = false
     @State private var showCleanConfirm = false
 
-    /// 采集间隔的展示单位（秒/分钟/小时；提交换算回秒）
-    @State private var intervalValue = 5
-    @State private var intervalUnit = "m"
+    /// 采集间隔（分钟；UI 固定单位，提交换算回秒）
+    @State private var intervalMinutesText = "5"
 
     private let client: APIClient
-    private let intervalUnits: [(value: String, label: String, seconds: Int)] = [
-        ("s", L10n.t("秒"), 1), ("m", L10n.t("分钟"), 60), ("h", L10n.t("小时"), 3600),
-    ]
 
     init(server: ServerConfig) {
         self.server = server
@@ -70,47 +66,27 @@ struct MonitorSettingsView: View {
                     settings.monitorStatus = on
                     update(key: "MonitorStatus", value: on ? "Enable" : "Disable")
                 }))
-            Stepper(value: $settings.storeDays, in: 1...365) {
-                HStack {
-                    Text(L10n.t("保存天数"))
-                    Spacer()
-                    Text(L10n.f("%ld 天", settings.storeDays))
-                        .foregroundStyle(.secondary)
-                }
-            } onEditingChanged: { editing in
-                // 松手才提交（拖动过程中不连发请求）
-                if !editing {
+            OutlinedUnitField(label: L10n.t("保存天数"), unit: L10n.t("天"),
+                              text: storeDaysText, range: 1...365)
+                .onSubmit {
+                    // 回车提交（输入即时钳制在 1...365）
                     update(key: "MonitorStoreDays", value: String(settings.storeDays))
                 }
-            }
-            HStack {
-                Text(L10n.t("采集间隔"))
-                Spacer()
-                TextField("", value: $intervalValue, format: .number)
-                    .keyboardType(.numberPad)
-                    .frame(width: 52)
-                    .multilineTextAlignment(.trailing)
-                Picker("", selection: $intervalUnit) {
-                    ForEach(intervalUnits, id: \.value) { Text($0.label).tag($0.value) }
-                }
-                .labelsHidden()
-                .frame(width: 74)
-            }
-            .onChange(of: intervalUnit) { _, _ in submitInterval() }
-            Picker(L10n.t("默认网卡"), selection: Binding(
-                get: { settings.defaultNetwork },
-                set: { settings.defaultNetwork = $0; update(key: "DefaultNetwork", value: $0) })) {
-                ForEach(netOptions, id: \.self) { option in
-                    Text(option == "all" ? L10n.t("所有") : option).tag(option)
-                }
-            }
-            Picker(L10n.t("默认磁盘"), selection: Binding(
-                get: { settings.defaultIO },
-                set: { settings.defaultIO = $0; update(key: "DefaultIO", value: $0) })) {
-                ForEach(ioOptions, id: \.self) { option in
-                    Text(option == "all" ? L10n.t("所有") : option).tag(option)
-                }
-            }
+            OutlinedUnitField(label: L10n.t("采集间隔"), unit: L10n.t("分钟"),
+                              text: $intervalMinutesText, range: 1...1440)
+                .onSubmit { submitInterval() }
+            OutlinedPicker(label: L10n.t("默认网卡"),
+                           options: netOptions.isEmpty ? [""] : netOptions,
+                           selection: Binding(
+                               get: { settings.defaultNetwork },
+                               set: { settings.defaultNetwork = $0; update(key: "DefaultNetwork", value: $0) }),
+                           optionLabels: Self.deviceOptionLabels(netOptions))
+            OutlinedPicker(label: L10n.t("默认磁盘"),
+                           options: ioOptions.isEmpty ? [""] : ioOptions,
+                           selection: Binding(
+                               get: { settings.defaultIO },
+                               set: { settings.defaultIO = $0; update(key: "DefaultIO", value: $0) }),
+                           optionLabels: Self.deviceOptionLabels(ioOptions))
             Button(role: .destructive) {
                 showCleanConfirm = true
             } label: {
@@ -125,16 +101,27 @@ struct MonitorSettingsView: View {
 
     // MARK: 数据加载
 
+    /// 保存天数 Int ↔ String（OutlinedUnitField 用）
+    private var storeDaysText: Binding<String> {
+        Binding<String>(get: { String(settings.storeDays) },
+                        set: { settings.storeDays = Int($0) ?? settings.storeDays })
+    }
+
+    /// 网卡/磁盘选项显示名（all → 所有）
+    private static func deviceOptionLabels(_ options: [String]) -> [String: String] {
+        var labels: [String: String] = [:]
+        for option in options { labels[option] = option == "all" ? L10n.t("所有") : option }
+        return labels
+    }
+
     private func loadAll() async {
         // GET setting 响应按扁平字典防御性解码（键大小写不敏感）
         if let dict: [String: String] = try? await client.send(
             path: APIEndpoint.hostsMonitorSettingGet.path, method: "GET", as: [String: String].self) {
             let loaded = MonitorSettings.from(dict: dict)
             settings = loaded
-            // 秒 → 展示单位（优先分钟）
-            let (value, unit) = Self.splitInterval(loaded.interval)
-            intervalValue = value
-            intervalUnit = unit
+            // 秒 → 分钟（不足 1 分钟按 1 计）
+            intervalMinutesText = String(max(1, loaded.interval / 60))
         }
         if let nets: [String] = try? await client.send(
             path: APIEndpoint.monitorNetOptions.path, method: "GET", as: [String].self) {
@@ -147,15 +134,8 @@ struct MonitorSettingsView: View {
         isLoading = false
     }
 
-    /// 秒 → (数值, 单位)：可整除分钟用分钟，否则小时/秒
-    private static func splitInterval(_ seconds: Int) -> (Int, String) {
-        if seconds >= 3600 && seconds % 3600 == 0 { return (seconds / 3600, "h") }
-        if seconds >= 60 && seconds % 60 == 0 { return (seconds / 60, "m") }
-        return (seconds, "s")
-    }
-
     private var intervalSeconds: Int {
-        intervalValue * (intervalUnits.first(where: { $0.value == intervalUnit })?.seconds ?? 1)
+        (Int(intervalMinutesText) ?? 5) * 60
     }
 
     private func submitInterval() {

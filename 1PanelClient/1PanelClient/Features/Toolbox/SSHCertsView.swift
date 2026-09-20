@@ -392,7 +392,7 @@ struct SSHCertCreateView: View {
     var body: some View {
         Form {
             Section(L10n.t("基本信息")) {
-                FormTextField(label: L10n.t("名称"), text: $name)
+                OutlinedTextField(label: L10n.t("名称"), text: $name)
 
                 OutlinedPicker(label: L10n.t("创建方式"), options: SSHCertCreateMode.allCases,
                                selection: $mode) { $0.displayName }
@@ -403,7 +403,9 @@ struct SSHCertCreateView: View {
 
             Section {
                 PasswordInputRow(password: $passPhrase, showPassword: $showPassPhrase)
-                FormTextField(label: L10n.t("描述（可选）"), text: $description, machineValue: false)
+                // 描述 7.1（默认 1 行）置底，可选作 prompt 不并入标签
+                OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"),
+                                       lines: 1, text: $description)
             } header: {
                 Text(L10n.t("密码与描述"))
             } footer: {
@@ -418,7 +420,8 @@ struct SSHCertCreateView: View {
             case .input:
                 Section {
                     keyEditor(title: L10n.t("私钥"), text: $privateKeyText)
-                    keyEditor(title: L10n.t("公钥（可选）"), text: $publicKeyText)
+                    keyEditor(title: L10n.t("公钥"), text: $publicKeyText,
+                              optional: true)
                 } header: {
                     Text(L10n.t("密钥内容"))
                 } footer: {
@@ -491,11 +494,18 @@ struct SSHCertCreateView: View {
     }
 
     /// 密钥文本编辑器：等宽小字 + placeholder 浮层（TextEditor 原生不显示 placeholder）
-    private func keyEditor(title: String, text: Binding<String>) -> some View {
+    private func keyEditor(title: String, text: Binding<String>, optional: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if optional {
+                    Text(L10n.t("可选"))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
             TextEditor(text: text)
                 .font(.dataMonospacedCaption)
                 .frame(minHeight: 110)

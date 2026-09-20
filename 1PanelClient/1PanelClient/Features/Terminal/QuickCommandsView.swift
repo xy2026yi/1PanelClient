@@ -168,6 +168,27 @@ struct QuickCommandEditView: View {
             && !commandText.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
+    /// 分组选项（形态 3；选中值失效时回落默认组）
+    private var groupOptionKeys: [String] {
+        vm.groups.map { String($0.id) }
+    }
+
+    private var groupOptionLabels: [String: String] {
+        var labels: [String: String] = [:]
+        for g in vm.groups { labels[String(g.id)] = g.name ?? "Default" }
+        return labels
+    }
+
+    private var groupText: Binding<String> {
+        Binding<String>(
+            get: {
+                vm.groups.contains(where: { $0.id == groupID })
+                    ? String(groupID) : String(vm.defaultGroupID)
+            },
+            set: { groupID = Int($0) ?? vm.defaultGroupID }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -181,30 +202,15 @@ struct QuickCommandEditView: View {
                     if vm.groups.isEmpty {
                         LabeledContent(L10n.t("分组"), value: "Default")
                     } else {
-                        Picker(L10n.t("分组"), selection: $groupID) {
-                            ForEach(vm.groups) { group in
-                                Text(group.name ?? "Default").tag(group.id)
-                            }
-                        }
+                        OutlinedPicker(label: L10n.t("分组"),
+                                       options: groupOptionKeys, selection: groupText,
+                                       optionLabels: groupOptionLabels)
                     }
                 }
 
                 Section {
-                    TextEditor(text: $commandText)
-                        .font(.dataMonospacedFootnote)
-                        .frame(minHeight: 100)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .overlay(alignment: .topLeading) {
-                            if commandText.isEmpty {
-                                Text(L10n.t("命令内容，如 df -hT"))
-                                    .font(.footnote)
-                                    .foregroundStyle(.tertiary)
-                                    .padding(.top, 8)
-                                    .padding(.leading, 4)
-                                    .allowsHitTesting(false)
-                            }
-                        }
+                    OutlinedMultiLineField(label: L10n.t("命令"), prompt: "df -hT",
+                                           text: $commandText)
                 } header: {
                     Text(L10n.t("命令"))
                 }

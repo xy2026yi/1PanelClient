@@ -117,18 +117,28 @@ struct WAFWebsiteSettingsView: View {
     /// 网站下拉：选中后下方各开关带入该站当前值，CC 参数回填真实值
     private var websiteSection: some View {
         Section {
-            Picker(L10n.t("选择网站"), selection: Binding(
-                get: { selectedID },
-                set: {
-                    selectedID = $0
-                    Task { await loadWebsiteConfig() }
-                }
-            )) {
-                ForEach(websites) { site in
-                    Text(site.primaryDomain ?? "#\(site.id)").tag(Optional(site.id))
-                }
-            }
+            OutlinedPicker(label: L10n.t("选择网站"),
+                           options: websites.map { String($0.id) },
+                           selection: websiteText,
+                           optionLabels: Dictionary(uniqueKeysWithValues:
+                               websites.map { (String($0.id), $0.primaryDomain ?? "#\($0.id)") }))
         }
+    }
+
+    /// 选中网站 Int? ↔ String（OutlinedPicker 用；选中即加载该站配置）
+    private var websiteText: Binding<String> {
+        Binding<String>(
+            get: {
+                if let id = selectedID, websites.contains(where: { $0.id == id }) {
+                    return String(id)
+                }
+                return String(websites.first?.id ?? 0)
+            },
+            set: { newValue in
+                selectedID = Int(newValue)
+                Task { await loadWebsiteConfig() }
+            }
+        )
     }
 
     private var protectionSection: some View {
@@ -191,39 +201,18 @@ struct WAFWebsiteSettingsView: View {
             ))
             .disabled(isOperating || !wafOn)
 
-            Picker(L10n.t("模式"), selection: $ccMode) {
-                Text(L10n.t("URL 模式")).tag("uri")
-                Text(L10n.t("全局模式")).tag("global")
-            }
-            .disabled(selected?.ccState != "on")
+            OutlinedPicker(label: L10n.t("模式"), options: ["uri", "global"],
+                           selection: $ccMode,
+                           optionLabels: ["uri": L10n.t("URL 模式"),
+                                          "global": L10n.t("全局模式")])
+                .disabled(selected?.ccState != "on")
 
-            HStack {
-                Text(L10n.t("周期"))
-                Spacer()
-                TextField("", text: $ccDuration)
-                    .keyboardType(.numberPad)
-                    .frame(width: 80)
-                    .multilineTextAlignment(.trailing)
-                Text(L10n.t("秒")).foregroundStyle(.secondary)
-            }
-            HStack {
-                Text(L10n.t("频率"))
-                Spacer()
-                TextField("", text: $ccThreshold)
-                    .keyboardType(.numberPad)
-                    .frame(width: 80)
-                    .multilineTextAlignment(.trailing)
-                Text(L10n.t("次")).foregroundStyle(.secondary)
-            }
-            HStack {
-                Text(L10n.t("封禁时间"))
-                Spacer()
-                TextField("", text: $ccBlockTime)
-                    .keyboardType(.numberPad)
-                    .frame(width: 80)
-                    .multilineTextAlignment(.trailing)
-                Text(L10n.t("秒")).foregroundStyle(.secondary)
-            }
+            OutlinedUnitField(label: L10n.t("周期"), unit: L10n.t("秒"),
+                              text: $ccDuration)
+            OutlinedUnitField(label: L10n.t("频率"), unit: L10n.t("次"),
+                              text: $ccThreshold)
+            OutlinedUnitField(label: L10n.t("封禁时间"), unit: L10n.t("秒"),
+                              text: $ccBlockTime)
 
             Button(L10n.t("保存")) {
                 Task { await saveCC() }

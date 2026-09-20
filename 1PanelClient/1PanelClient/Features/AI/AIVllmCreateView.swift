@@ -70,7 +70,6 @@ struct AIVllmCreateView: View {
     @State private var restartPolicy = VllmRestartPolicy.unlessStopped
     @State private var cpuQuotaText = "0"
     @State private var memoryLimitText = "0"
-    @State private var memoryUnit = "M"
     @State private var pullImage = true
     @State private var editCompose = false
     @State private var dockerCompose = ""
@@ -125,8 +124,10 @@ struct AIVllmCreateView: View {
             _specifyIP = State(initialValue: i.specifyIP ?? "")
             _restartPolicy = State(initialValue: VllmRestartPolicy(rawValue: i.restartPolicy ?? "") ?? .unlessStopped)
             _cpuQuotaText = State(initialValue: Self.shortNumber(i.cpuQuota))
-            _memoryLimitText = State(initialValue: Self.shortNumber(i.memoryLimit))
-            _memoryUnit = State(initialValue: i.memoryUnit ?? "M")
+            // UI 单位固定 MB：编辑回填时 GB 值 ×1024 换算为 MB
+            _memoryLimitText = State(initialValue: Self.shortNumber(
+                (i.memoryUnit ?? "M").uppercased() == "G"
+                    ? (i.memoryLimit ?? 0) * 1024 : i.memoryLimit))
             _pullImage = State(initialValue: i.pullImage ?? true)
             _editCompose = State(initialValue: i.editCompose ?? false)
             _dockerCompose = State(initialValue: i.dockerCompose ?? "")
@@ -218,11 +219,6 @@ struct AIVllmCreateView: View {
                 await loadCompose()
             }
         }
-        .sheet(isPresented: $showDirPicker) {
-            DirectoryPickerSheet(client: client) { path in
-                modelDir = path
-            }
-        }
         .sheet(isPresented: $showComposeEditor) {
             ComposeEditorSheet(compose: $dockerCompose)
         }
@@ -287,17 +283,7 @@ struct AIVllmCreateView: View {
             OutlinedTextField(label: L10n.t("端口"), text: $portText, keyboardType: .numberPad)
                 .onChange(of: portText) { _, _ in refreshBaseURL() }
 
-            HStack(spacing: 10) {
-                OutlinedTextField(label: L10n.t("模型目录"), text: $modelDir)
-                    .font(.dataMonospacedBody)
-                Button {
-                    showDirPicker = true
-                } label: {
-                    Image(systemName: "folder.badge.plus")
-                }
-                .buttonStyle(.borderless)
-                .accessibilityLabel(L10n.t("浏览目录"))
-            }
+            FilePathBrowseRow(title: L10n.t("模型目录"), path: $modelDir, client: client)
         } header: {
             SectionLabel(title: L10n.t("基础设置"), systemImage: "gearshape")
         } footer: {
@@ -362,8 +348,8 @@ struct AIVllmCreateView: View {
                         }
                     }
 
-                FormTextField(label: "Base URL", text: $baseURL, style: .stacked, keyboardType: .URL)
-                    .font(.dataMonospacedBody)
+                OutlinedTextField(label: "Base URL", prompt: "http://127.0.0.1:8000/v1",
+                                  text: $baseURL, keyboardType: .URL)
                     .disabled(baseURLType != .custom)
             }
         } header: {
@@ -396,11 +382,9 @@ struct AIVllmCreateView: View {
                 OutlinedUnitField(label: L10n.t("CPU 限制"), unit: L10n.t("核心"),
                                   text: $cpuQuotaText, keyboardType: .decimalPad)
 
-                OutlinedTextField(label: L10n.t("内存限制"), text: $memoryLimitText,
-                                  keyboardType: .decimalPad)
-                OutlinedPicker(label: L10n.t("内存单位"), options: ["M", "G"],
-                               selection: $memoryUnit,
-                               optionLabels: ["M": "MB", "G": "GB"])
+                // 单位固定 MB（与安装表单一致，提交 memoryUnit=M）
+                OutlinedUnitField(label: L10n.t("内存限制"), unit: "MB",
+                                  text: $memoryLimitText, keyboardType: .decimalPad)
 
                 Toggle(L10n.t("拉取镜像"), isOn: $pullImage)
 
@@ -502,7 +486,8 @@ struct AIVllmCreateView: View {
             restartPolicy: restartPolicy.rawValue,
             cpuQuota: Double(cpuQuotaText) ?? 0,
             memoryLimit: Double(memoryLimitText) ?? 0,
-            memoryUnit: memoryUnit,
+            // UI 单位固定 MB，按 MB 语义提交 M（与安装请求一致）
+            memoryUnit: "M",
             syncModelAccount: syncModelAccount,
             modelAccountBaseURLType: syncModelAccount ? baseURLType.rawValue : "",
             modelAccountBaseURL: syncModelAccount ? baseURL.trimmingCharacters(in: .whitespaces) : "",

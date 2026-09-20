@@ -52,17 +52,21 @@ struct WAFCdnSettingsView: View {
             }
 
             Section {
-                Picker(L10n.t("真实IP获取方式"), selection: $type) {
-                    Text(L10n.t("从HTTP Header中获取")).tag("header")
-                    Text(L10n.t("从Header列表中获取")).tag("headers")
-                    Text(L10n.t("获取X-Forwarded-For的上一级代理地址")).tag("xff1")
-                    Text(L10n.t("获取X-Forwarded-For的上上一级代理地址")).tag("xff2")
-                    Text(L10n.t("获取X-Forwarded-For的上上上一级代理地址")).tag("xff3")
-                }
+                OutlinedPicker(label: L10n.t("IP 来源"),
+                               options: ["header", "headers", "xff1", "xff2", "xff3"],
+                               selection: $type,
+                               optionLabels: [
+                                   "header": L10n.t("从HTTP Header中获取"),
+                                   "headers": L10n.t("从Header列表中获取"),
+                                   "xff1": L10n.t("获取X-Forwarded-For的上一级代理地址"),
+                                   "xff2": L10n.t("获取X-Forwarded-For的上上一级代理地址"),
+                                   "xff3": L10n.t("获取X-Forwarded-For的上上上一级代理地址"),
+                               ])
 
                 // 从HTTP Header中获取：可填写的 Header 名（其余方式回传当前值）
                 if type == "header" {
-                    FormTextField(label: L10n.t("HTTP Header"), text: $header)
+                    OutlinedTextField(label: L10n.t("HTTP Header"), prompt: "x-real-ip",
+                                      text: $header)
                 }
             } footer: {
                 // 对齐面板 Web 端：开关不限制编辑，保存时原样携带当前开关状态

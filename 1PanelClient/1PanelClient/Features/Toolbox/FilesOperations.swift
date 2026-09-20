@@ -371,10 +371,9 @@ struct FileCompressSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Picker(L10n.t("压缩格式"), selection: $type) {
-                        ForEach(fileCompressFormats, id: \.self) { Text($0).tag($0) }
-                    }
-                    FormTextField(label: L10n.t("压缩名称"), text: $name)
+                    OutlinedPicker(label: L10n.t("压缩格式"),
+                                   options: fileCompressFormats, selection: $type)
+                    OutlinedTextField(label: L10n.t("压缩名称"), text: $name)
                     FilePathBrowseRow(title: L10n.t("压缩路径"), path: $dst, client: client)
                     Toggle(L10n.t("覆盖已存在的文件"), isOn: $replace)
                 } header: {
@@ -635,18 +634,23 @@ struct FilePermissionSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    InfoRow(L10n.t("名称"), value: items.count == 1 ? (item?.name ?? "-") : L10n.f("%ld 项", items.count))
-                    InfoRow(L10n.t("权限"), value: FileModeMath.octalString(mode))
-                        .font(.dataMonospacedBody)
+                    OutlinedShape(label: L10n.t("名称"), isFocused: false,
+                                  hasValue: true, trailing: { EmptyView() }) {
+                        Text(items.count == 1 ? (item?.name ?? "-") : L10n.f("%ld 项", items.count))
+                            .lineLimit(1)
+                    }
+                    OutlinedShape(label: L10n.t("权限"), isFocused: false,
+                                  hasValue: true, trailing: { EmptyView() }) {
+                        Text(FileModeMath.octalString(mode))
+                            .font(.dataMonospacedBody)
+                    }
                     permGrid
-                    Picker(L10n.t("用户"), selection: $user) {
-                        ForEach(users, id: \.username) { u in
-                            Text(u.username ?? "-").tag(u.username ?? "-")
-                        }
-                    }
-                    Picker(L10n.t("用户组"), selection: $group) {
-                        ForEach(groups, id: \.self) { Text($0) }
-                    }
+                    OutlinedPicker(label: L10n.t("用户"),
+                                   options: users.map { $0.username ?? "-" },
+                                   selection: $user)
+                    OutlinedPicker(label: L10n.t("用户组"),
+                                   options: groups.isEmpty ? [""] : groups,
+                                   selection: $group)
                     Toggle(L10n.t("同时修改子文件属性"), isOn: $sub)
                 } footer: {
                     Text(L10n.t("修改所有者/用户组/公共的读取、写入、可执行权限"))
@@ -797,9 +801,9 @@ struct FileWgetSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    FormTextField(label: L10n.t("下载地址"), text: $urlText, axis: .vertical, keyboardType: .URL)
-                        .lineLimit(1...3)
-                    FormTextField(label: L10n.t("文件名"), text: $name)
+                    OutlinedTextField(label: L10n.t("下载地址"), prompt: "https://example.com/file.zip",
+                                      text: $urlText, keyboardType: .URL)
+                    OutlinedTextField(label: L10n.t("文件名"), text: $name)
                         .focused($nameFocused)
                     FilePathBrowseRow(title: L10n.t("保存路径"), path: $path, client: client)
                 } header: {

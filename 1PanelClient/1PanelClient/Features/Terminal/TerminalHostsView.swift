@@ -360,10 +360,11 @@ struct SSHHostEditView: View {
 
     private var basicSection: some View {
         Section {
-            FormTextField(label: L10n.t("主机地址"), text: $addr, style: .stacked, keyboardType: .URL)
+            OutlinedTextField(label: L10n.t("主机地址"), prompt: "192.168.1.10",
+                              text: $addr, keyboardType: .URL)
             OutlinedTextField(label: L10n.t("端口"), text: $portText, keyboardType: .numberPad)
             OutlinedTextField(label: L10n.t("用户名"), text: $user)
-            OutlinedTextField(label: L10n.t("标题（可选）"), text: $name)
+            OutlinedTextField(label: L10n.t("标题"), prompt: L10n.t("可选"), text: $name)
             OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $desc)
         } header: {
             Text(L10n.t("基本信息"))
@@ -395,9 +396,12 @@ struct SSHHostEditView: View {
                                 .allowsHitTesting(false)
                         }
                     }
-                OutlinedTextField(label: L10n.t("私钥密码（可选）"), text: $passPhrase, isSecure: true)
+                OutlinedTextField(label: L10n.t("私钥密码"), prompt: L10n.t("可选"),
+                                  text: $passPhrase, isSecure: true)
             } else {
-                SecureField(isEditing ? L10n.t("密码（不修改请留空）") : L10n.t("密码"), text: $password)
+                OutlinedTextField(label: L10n.t("密码"),
+                                  prompt: isEditing ? L10n.t("不修改请留空") : nil,
+                                  text: $password, isSecure: true)
             }
 
             Toggle(L10n.t("记住认证信息"), isOn: $rememberPassword)
@@ -415,13 +419,32 @@ struct SSHHostEditView: View {
             if vm.groups.isEmpty {
                 LabeledContent(L10n.t("分组"), value: "Default")
             } else {
-                Picker(L10n.t("分组"), selection: $groupID) {
-                    ForEach(vm.groups) { group in
-                        Text(group.name ?? "Default").tag(group.id)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("分组"),
+                               options: groupOptionKeys, selection: groupText,
+                               optionLabels: groupOptionLabels)
             }
         }
+    }
+
+    /// 分组选项（形态 3；与原 Picker 同集，选中值失效时回落默认组）
+    private var groupOptionKeys: [String] {
+        vm.groups.map { String($0.id) }
+    }
+
+    private var groupOptionLabels: [String: String] {
+        var labels: [String: String] = [:]
+        for g in vm.groups { labels[String(g.id)] = g.name ?? "Default" }
+        return labels
+    }
+
+    private var groupText: Binding<String> {
+        Binding<String>(
+            get: {
+                vm.groups.contains(where: { $0.id == groupID })
+                    ? String(groupID) : String(vm.defaultGroupID)
+            },
+            set: { groupID = Int($0) ?? vm.defaultGroupID }
+        )
     }
 
     // MARK: - 连接测试

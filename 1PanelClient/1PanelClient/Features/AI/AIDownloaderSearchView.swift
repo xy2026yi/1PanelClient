@@ -58,27 +58,45 @@ struct AIDownloaderSearchView: View {
 
     private var manualSection: some View {
         Section {
-            HStack(spacing: 10) {
-                OutlinedTextField(label: L10n.t("仓库 ID，如 Qwen/Qwen3-0.6B"), text: $manualRepoID)
-                    .font(.dataMonospacedBody)
-                    .onSubmit { Task { await manualDownload() } }
+            // 下载按钮内嵌描边框右侧（与镜像选择/眼睛同位），回车或点按钮均可
+            OutlinedShape(label: L10n.t("仓库 ID，如 Qwen/Qwen3-0.6B"),
+                          isFocused: false,
+                          hasValue: !manualRepoID.isEmpty,
+                          trailing: {
                 Button {
                     Task { await manualDownload() }
                 } label: {
-                    if isManualDownloading {
-                        ProgressView()
-                    } else {
-                        Text(L10n.t("下载"))
+                    HStack(spacing: 4) {
+                        if isManualDownloading {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .font(.caption)
+                            Text(L10n.t("下载"))
+                                .font(.subheadline.bold())
+                        }
                     }
+                    .foregroundStyle(canManualDownload ? Color.accentColor : Color.secondary)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(manualRepoID.trimmingCharacters(in: .whitespaces).isEmpty || isManualDownloading)
+                .buttonStyle(.borderless)
+                .disabled(!canManualDownload)
+                .accessibilityLabel(L10n.t("下载"))
+            }) {
+                TextField("", text: $manualRepoID)
+                    .font(.dataMonospacedBody)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .onSubmit { Task { await manualDownload() } }
             }
         } header: {
             SectionLabel(title: L10n.t("手动下载"), systemImage: "square.and.arrow.down")
         } footer: {
             Text(L10n.f("按当前来源（%@）直接下载指定仓库", source.displayName))
         }
+    }
+
+    private var canManualDownload: Bool {
+        !manualRepoID.trimmingCharacters(in: .whitespaces).isEmpty && !isManualDownloading
     }
 
     private func manualDownload() async {
@@ -95,17 +113,26 @@ struct AIDownloaderSearchView: View {
 
     private var searchSection: some View {
         Section {
-            HStack(alignment: .center, spacing: 10) {
-                OutlinedTextField(label: L10n.t("搜索模型，如 Qwen"), text: $query)
-                    .onSubmit { Task { await search(reset: true) } }
+            // 搜索按钮内嵌描边框右侧，回车或点按钮均可
+            OutlinedShape(label: L10n.t("搜索模型，如 Qwen"),
+                          isFocused: false,
+                          hasValue: !query.isEmpty,
+                          trailing: {
                 Button {
                     Task { await search(reset: true) }
                 } label: {
                     Image(systemName: "magnifyingglass")
+                        .font(.caption)
+                        .foregroundStyle(Color.accentColor)
                 }
+                .buttonStyle(.borderless)
                 .disabled(isLoading)
-                // 与描边框内容行垂直居中（顶部 13pt 浮动标签区）
-                .padding(.top, 13)
+                .accessibilityLabel(L10n.t("搜索"))
+            }) {
+                TextField("", text: $query)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .onSubmit { Task { await search(reset: true) } }
             }
 
             OutlinedPicker(label: L10n.t("排序"), options: ModelRepoSort.allCases,

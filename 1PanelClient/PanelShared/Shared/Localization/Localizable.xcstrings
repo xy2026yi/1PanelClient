@@ -3406,6 +3406,17 @@
         }
       }
     },
+    "不修改请留空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave empty to keep current"
+          }
+        }
+      }
+    },
     "不导出GTID" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26381,6 +26392,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Private Key"
+          }
+        }
+      }
+    },
+    "私钥密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passphrase"
           }
         }
       }

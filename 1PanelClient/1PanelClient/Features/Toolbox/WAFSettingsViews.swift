@@ -35,39 +35,18 @@ struct WAFCcSettingsView: View {
     var body: some View {
         Form {
             Section(L10n.t("模式")) {
-                Picker(L10n.t("模式"), selection: $mode) {
-                    Text(L10n.t("URL 模式")).tag("uri")
-                    Text(L10n.t("全局模式")).tag("global")
-                }
+                OutlinedPicker(label: L10n.t("模式"), options: ["uri", "global"],
+                               selection: $mode,
+                               optionLabels: ["uri": L10n.t("URL 模式"),
+                                              "global": L10n.t("全局模式")])
             }
             Section(L10n.t("参数")) {
-                HStack {
-                    Text(L10n.t("周期"))
-                    Spacer()
-                    TextField("", text: $duration)
-                        .keyboardType(.numberPad)
-                        .frame(width: 80)
-                        .multilineTextAlignment(.trailing)
-                    Text(L10n.t("秒")).foregroundStyle(.secondary)
-                }
-                HStack {
-                    Text(L10n.t("频率"))
-                    Spacer()
-                    TextField("", text: $threshold)
-                        .keyboardType(.numberPad)
-                        .frame(width: 80)
-                        .multilineTextAlignment(.trailing)
-                    Text(L10n.t("次")).foregroundStyle(.secondary)
-                }
-                HStack {
-                    Text(L10n.t("封禁时间"))
-                    Spacer()
-                    TextField("", text: $ipBlockTime)
-                        .keyboardType(.numberPad)
-                        .frame(width: 80)
-                        .multilineTextAlignment(.trailing)
-                    Text(L10n.t("秒")).foregroundStyle(.secondary)
-                }
+                OutlinedUnitField(label: L10n.t("周期"), unit: L10n.t("秒"),
+                                  text: $duration)
+                OutlinedUnitField(label: L10n.t("频率"), unit: L10n.t("次"),
+                                  text: $threshold)
+                OutlinedUnitField(label: L10n.t("封禁时间"), unit: L10n.t("秒"),
+                                  text: $ipBlockTime)
             }
         }
         .navigationTitle(title)
@@ -165,33 +144,12 @@ struct WAFAttackCountSettingsView: View {
     var body: some View {
         Form {
             Section(L10n.t("参数")) {
-                HStack {
-                    Text(L10n.t("周期"))
-                    Spacer()
-                    TextField("", text: $duration)
-                        .keyboardType(.numberPad)
-                        .frame(width: 80)
-                        .multilineTextAlignment(.trailing)
-                    Text(L10n.t("秒")).foregroundStyle(.secondary)
-                }
-                HStack {
-                    Text(L10n.t("频率"))
-                    Spacer()
-                    TextField("", text: $threshold)
-                        .keyboardType(.numberPad)
-                        .frame(width: 80)
-                        .multilineTextAlignment(.trailing)
-                    Text(L10n.t("次")).foregroundStyle(.secondary)
-                }
-                HStack {
-                    Text(L10n.t("封禁时间"))
-                    Spacer()
-                    TextField("", text: $ipBlockTime)
-                        .keyboardType(.numberPad)
-                        .frame(width: 80)
-                        .multilineTextAlignment(.trailing)
-                    Text(L10n.t("秒")).foregroundStyle(.secondary)
-                }
+                OutlinedUnitField(label: L10n.t("周期"), unit: L10n.t("秒"),
+                                  text: $duration)
+                OutlinedUnitField(label: L10n.t("频率"), unit: L10n.t("次"),
+                                  text: $threshold)
+                OutlinedUnitField(label: L10n.t("封禁时间"), unit: L10n.t("秒"),
+                                  text: $ipBlockTime)
             }
         }
         .navigationTitle(title)

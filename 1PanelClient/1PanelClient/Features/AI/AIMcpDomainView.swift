@@ -4,7 +4,7 @@
 //
 //  域名绑定（MCP /ai/mcp/domain 与 Ollama 网关 /ai/domain 共用表单）：
 //  域名 / 白名单 IP（多行）/ 开启 HTTPS（ACME 账户 + 证书下拉）；
-//  已绑定时进入编辑模式（域名只读），保存走 update
+//  已绑定（域名非空）域名只读，保存走 update
 //
 
 import SwiftUI
@@ -51,7 +51,11 @@ struct DomainBindFormView: View {
         self.onSave = onSave
     }
 
-    private var isBound: Bool { info != nil }
+    /// 是否已真正绑定：以域名非空为准（服务端「未绑定」可能返回非空对象但
+    /// domain 为空——按 info!=nil 判定会把首次设置也误锁成只读）
+    private var isBound: Bool {
+        !(info?.domain ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+    }
 
     /// Acme 账户选项（0=手动创建，不在账户列表时 acmeAccountID=0）
     private var acmeOptionKeys: [String] {
@@ -105,7 +109,9 @@ struct DomainBindFormView: View {
     var body: some View {
         Form {
             Section {
-                OutlinedTextField(label: L10n.t("域名"), text: $domain, keyboardType: .URL)
+                // 已绑定（域名非空）只读；首次设置（含返回空对象）可输入
+                OutlinedTextField(label: L10n.t("域名"), prompt: "ollama.example.com",
+                                  text: $domain, keyboardType: .URL)
                     .disabled(isBound)
 
                 OutlinedMultiLineField(label: L10n.t("白名单 IP"), prompt: "1.2.3.4",
