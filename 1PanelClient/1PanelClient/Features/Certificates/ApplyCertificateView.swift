@@ -150,6 +150,7 @@ struct ApplyCertificateView: View {
             )
         }
         .animation(.easeInOut(duration: 0.22), value: wizardPage)
+        .modifier(WizardDiscardGuard(page: wizardPage))
     }
 
     private var domainSection: some View {

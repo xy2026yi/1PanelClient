@@ -239,12 +239,11 @@ struct ClamRuleFormView: View {
 
     // MARK: - 超时
 
-    /// 告警次数 Int ↔ String（输入钳制 1...99，对齐原 Stepper 范围）
+    /// 告警次数 Int ↔ String（范围钳制由 OutlinedUnitField 失焦归位负责）
     private var alertCountText: Binding<String> {
         Binding<String>(get: { String(alertCount) },
                         set: { text in
-            guard let parsed = Int(text) else { return }
-            alertCount = min(max(parsed, 1), 99)
+            if let parsed = Int(text) { alertCount = parsed }
         })
     }
 
@@ -287,9 +286,9 @@ struct ClamRuleFormView: View {
 
     private var timeoutSection: some View {
         Section {
-            // 单位固定分钟（提交换算秒）
+            // 单位固定分钟（提交换算秒）；上限放宽到一年避免编辑旧规则被 1440 截断
             OutlinedUnitField(label: L10n.t("超时时间"), unit: L10n.t("分钟"),
-                              text: $timeoutText, range: 1...1440)
+                              text: $timeoutText, range: 1...525600)
         } header: {
             SectionLabel(title: L10n.t("超时时间"), systemImage: "hourglass")
         } footer: {

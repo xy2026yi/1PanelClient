@@ -728,6 +728,7 @@ struct BackupAccountEditView: View {
             )
         }
         .animation(.easeInOut(duration: 0.22), value: wizardPage)
+        .modifier(WizardDiscardGuard(page: wizardPage))
     }
 
     // MARK: 表单区块

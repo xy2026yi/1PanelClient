@@ -1118,6 +1118,8 @@ struct FirewallDockerImportView: View {
 /// 可导出规则多选：全选/反全选 + 勾选 → 导出（本地组 JSON → 分享）
 struct FirewallExportPickerView: View {
     @ObservedObject var vm: FirewallViewModel
+    /// 长按入口预选（仅长按的这条；nil = 默认全选）
+    var preselectedIDs: Set<String>? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var selected: Set<String> = []
@@ -1208,8 +1210,23 @@ struct FirewallExportPickerView: View {
                 }
             }
             .onAppear {
-                selected = Set(exportable.map(\.id))
+                selected = preselectedIDs ?? Set(exportable.map(\.id))
+                // 主列表懒加载只到当前滚动位置：导出前后台补齐剩余分页，
+                // 保证「全选」等于全部规则而非已加载部分
+                Task { await fillRemainingPages() }
             }
+        }
+    }
+
+    /// 补齐未加载的分页（上限 50 页防失控；完成后默认全选态同步到全量）
+    private func fillRemainingPages() async {
+        var pages = 0
+        while vm.inventory.count < vm.rulesAllTotal, pages < 50 {
+            await vm.loadRules(replacing: false)
+            pages += 1
+        }
+        if preselectedIDs == nil {
+            selected = Set(exportable.map(\.id))
         }
     }
 
@@ -1229,6 +1246,8 @@ struct FirewallExportPickerView: View {
 /// 可导出转发多选：全选/反全选 + 勾选 → 导出（本地组 JSON → 分享）
 struct FirewallForwardExportPickerView: View {
     @ObservedObject var vm: FirewallViewModel
+    /// 长按入口预选（仅长按的这条转发；nil = 默认全选）
+    var preselectedIndex: Int? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var selected: Set<Int> = []
@@ -1318,7 +1337,11 @@ struct FirewallForwardExportPickerView: View {
                 }
             }
             .onAppear {
-                selected = Set(vm.forwards.indices)
+                if let preselectedIndex, vm.forwards.indices.contains(preselectedIndex) {
+                    selected = [preselectedIndex]
+                } else {
+                    selected = Set(vm.forwards.indices)
+                }
             }
         }
     }
@@ -1341,6 +1364,8 @@ struct FirewallForwardExportPickerView: View {
 /// 可导出防护策略多选：全选/反全选 + 勾选 → 导出（本地组 JSON → 分享）
 struct FirewallDockerExportPickerView: View {
     @ObservedObject var vm: FirewallViewModel
+    /// 容器行长按入口预选（仅该容器的策略；nil = 默认全选）
+    var preselectedIndices: Set<Int>? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var selected: Set<Int> = []
@@ -1454,7 +1479,7 @@ struct FirewallDockerExportPickerView: View {
                 }
             }
             .onAppear {
-                selected = Set(vm.dockerExportablePolicies.indices)
+                selected = preselectedIndices ?? Set(vm.dockerExportablePolicies.indices)
             }
         }
     }

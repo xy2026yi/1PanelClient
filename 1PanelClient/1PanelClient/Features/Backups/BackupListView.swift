@@ -631,7 +631,6 @@ private struct BackupCreateView: View {
     let onSubmit: (_ secret: String, _ description: String, _ args: [String], _ stopBefore: Bool) async -> String?
 
     @State private var secret = ""
-    @State private var showSecret = false
     @State private var description = ""
     @State private var selectedArgs: Set<String> = []
     @State private var showArgsPicker = false
@@ -643,25 +642,7 @@ private struct BackupCreateView: View {
     var body: some View {
         Form {
                 Section {
-                    OutlinedShape(label: L10n.t("压缩密码"), isFocused: false,
-                                  hasValue: !secret.isEmpty,
-                                  trailing: {
-                        Button {
-                            showSecret.toggle()
-                        } label: {
-                            Image(systemName: showSecret ? "eye.slash" : "eye")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel(showSecret ? L10n.t("隐藏密码") : L10n.t("显示密码"))
-                    }) {
-                        if showSecret {
-                            TextField("", text: $secret)
-                        } else {
-                            SecureField("", text: $secret)
-                        }
-                    }
+                    OutlinedPasswordField(label: L10n.t("压缩密码"), text: $secret)
                     OutlinedTextField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $description,
                                   machineValue: false)
                 } header: {
@@ -741,7 +722,6 @@ private struct BackupRecoverSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var secret = ""
-    @State private var showSecret = false
     @State private var isSubmitting = false
     @State private var submitError: String?
 
@@ -775,25 +755,7 @@ case hour = "小时"
                 }
 
                 Section {
-                    OutlinedShape(label: L10n.t("压缩密码"), isFocused: false,
-                                  hasValue: !secret.isEmpty,
-                                  trailing: {
-                        Button {
-                            showSecret.toggle()
-                        } label: {
-                            Image(systemName: showSecret ? "eye.slash" : "eye")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel(showSecret ? L10n.t("隐藏密码") : L10n.t("显示密码"))
-                    }) {
-                        if showSecret {
-                            TextField("", text: $secret)
-                        } else {
-                            SecureField("", text: $secret)
-                        }
-                    }
+                    OutlinedPasswordField(label: L10n.t("压缩密码"), text: $secret)
                 } header: {
                     Text(L10n.t("恢复选项"))
                 } footer: {

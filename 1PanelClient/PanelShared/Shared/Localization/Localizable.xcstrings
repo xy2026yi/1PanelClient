@@ -9889,6 +9889,28 @@
         }
       }
     },
+    "可用空间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available Space"
+          }
+        }
+      }
+    },
+    "正在检查磁盘空间…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking disk space…"
+          }
+        }
+      }
+    },
     "可用性检查" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26308,17 +26330,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "High Disk Usage"
-          }
-        }
-      }
-    },
-    "磁盘总量" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total Disk"
           }
         }
       }

@@ -633,6 +633,22 @@ final class FirewallViewModel: ObservableObject {
         allExportableDockerPolicies()
     }
 
+    /// 指定容器在 dockerExportablePolicies 中的下标集合（容器行长按「导出规则」预选用；
+    /// 顺序与 allExportableDockerPolicies 完全一致：容器顺序 + 末尾孤儿策略）
+    func dockerExportableIndices(containerID: String) -> Set<Int> {
+        guard let guard_ = dockerGuard else { return [] }
+        var result: Set<Int> = []
+        var idx = 0
+        for container in guard_.containers ?? [] {
+            let count = Self.exportablePolicies(endpoints: container.endpoints).count
+            if container.id == containerID {
+                result.formUnion(idx..<idx + count)
+            }
+            idx += count
+        }
+        return result
+    }
+
     /// 端点 → 可导出策略（缺关键字段或 host_firewall 托管的跳过）
     private static func exportablePolicies(endpoints: [DockerGuardEndpoint]?) -> [DockerGuardPolicy] {
         (endpoints ?? []).compactMap { ep in
@@ -980,6 +996,10 @@ struct FirewallView: View {
     @State private var showForwardExportPicker = false
     /// Docker 导出多选页
     @State private var showDockerExportPicker = false
+    /// 长按「导出规则」的预选（与计划任务语义一致：仅预选长按对象，nil = 默认全选）
+    @State private var ruleExportPreselect: Set<String>? = nil
+    @State private var forwardExportPreselect: Int? = nil
+    @State private var dockerExportPreselect: Set<Int>? = nil
     struct RawDetailPayload: Identifiable {
         let title: String
         let text: String
@@ -1188,9 +1208,9 @@ struct FirewallView: View {
             .bottomSheetDetents([.height(ActionBottomSheet.height(for: ruleActionItems.count))])
             .presentationDragIndicator(.visible)
         }
-        // 规则导出多选（长按菜单「导出规则」进入）
+        // 规则导出多选（长按菜单「导出规则」进入：仅预选长按的这条）
         .sheet(isPresented: $showExportPicker) {
-            FirewallExportPickerView(vm: vm)
+            FirewallExportPickerView(vm: vm, preselectedIDs: ruleExportPreselect)
         }
         // 长按转发：半屏操作弹窗（编辑/删除/导出规则）
         .sheet(isPresented: Binding(
@@ -1214,7 +1234,16 @@ struct FirewallView: View {
                     },
                     ActionMenuItem(title: L10n.t("导出规则"), icon: "square.and.arrow.up",
                                    color: .teal) {
+                        let rule = actionForward
                         actionForward = nil
+                        // 仅预选长按的这条转发（与计划任务「导出任务」语义一致）
+                        if let rule {
+                            forwardExportPreselect = vm.forwards.firstIndex {
+                                $0.port == rule.port && $0.protocolField == rule.protocolField
+                                    && $0.family == rule.family && $0.targetIP == rule.targetIP
+                                    && $0.targetPort == rule.targetPort && $0.interface == rule.interface
+                            }
+                        }
                         showForwardExportPicker = true
                     },
                 ],
@@ -1225,11 +1254,11 @@ struct FirewallView: View {
         }
         // 转发导出多选（长按菜单「导出规则」进入）
         .sheet(isPresented: $showForwardExportPicker) {
-            FirewallForwardExportPickerView(vm: vm)
+            FirewallForwardExportPickerView(vm: vm, preselectedIndex: forwardExportPreselect)
         }
-        // Docker 导出多选（容器行长按「导出规则」进入）
+        // Docker 导出多选（容器行长按「导出规则」进入：仅预选该容器的策略）
         .sheet(isPresented: $showDockerExportPicker) {
-            FirewallDockerExportPickerView(vm: vm)
+            FirewallDockerExportPickerView(vm: vm, preselectedIndices: dockerExportPreselect)
         }
         // 规则重置（R1：输入后端名确认，对齐 Web 端「请手动输入 iptables」）
         .sheet(isPresented: $showRulesReset) {
@@ -1621,6 +1650,8 @@ struct FirewallView: View {
         }
         items.append(ActionMenuItem(title: L10n.t("导出规则"),
                                     icon: "square.and.arrow.up", color: .teal) {
+            // 仅预选长按的这条规则（与计划任务「导出任务」语义一致）
+            ruleExportPreselect = [item.id]
             showExportPicker = true
         })
         items.append(ActionMenuItem(title: L10n.t("查看原文"),
@@ -1660,6 +1691,10 @@ struct FirewallView: View {
                             }
                             // 长按弹半屏操作菜单（编辑/删除/上移下移/导出规则/查看原文，或纳管）
                             .onLongPressGesture {
+                                actionItem = item
+                            }
+                            // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                            .accessibilityAction(named: L10n.t("更多操作")) {
                                 actionItem = item
                             }
                             .onAppear {
@@ -1774,6 +1809,8 @@ struct FirewallView: View {
                             .onTapGesture { editingForward = rule }
                             // 长按弹半屏操作菜单（编辑/删除/导出规则）
                             .onLongPressGesture { actionForward = rule }
+                            // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                            .accessibilityAction(named: L10n.t("更多操作")) { actionForward = rule }
                             .onAppear {
                                 if rule.id == vm.forwards.last?.id,
                                    vm.forwards.count < vm.forwardsTotal {
@@ -1833,7 +1870,11 @@ struct FirewallView: View {
                                 editingPolicy = endpoint
                             }
                         },
-                        onExport: { showDockerExportPicker = true }
+                        onExport: {
+                            // 仅预选该容器的策略（与计划任务「导出任务」语义一致）
+                            dockerExportPreselect = vm.dockerExportableIndices(containerID: container.id)
+                            showDockerExportPicker = true
+                        }
                     )
                 }
 
@@ -2205,6 +2246,8 @@ private struct DockerGuardContainerSection: View {
             }
             // 长按弹半屏菜单（导出规则）
             .onLongPressGesture { onExport() }
+            // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+            .accessibilityAction(named: L10n.t("更多操作")) { onExport() }
         }
     }
 }

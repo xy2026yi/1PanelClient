@@ -59,6 +59,7 @@ struct WizardBottomBar: View {
     var body: some View {
         HStack(spacing: 12) {
             if page > 0 {
+                // 提交/检查进行中禁返回，避免中途离开打断异步操作
                 Button(L10n.t("返回"), action: onBack)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -66,6 +67,7 @@ struct WizardBottomBar: View {
                         RoundedRectangle(cornerRadius: 10)
                             .strokeBorder(Color.secondary.opacity(0.4))
                     )
+                    .disabled(isBusy)
             }
             Button(action: isLast ? onPrimary : onNext) {
                 if isBusy {

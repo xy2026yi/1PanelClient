@@ -250,6 +250,8 @@ private struct SnapshotRecoverSheet: View {
     /// 磁盘空间校验：系统可用空间与快照文件大小（任一取不到则不拦截）
     @State private var diskSize: Int64?
     @State private var snapshotFileSize: Int64?
+    /// 校验数据加载完成（含失败）：完成前禁用恢复，避免异步间隙绕过校验
+    @State private var diskCheckReady = false
     @State private var showSpaceAlert = false
 
     private let client: APIClient
@@ -282,7 +284,14 @@ private struct SnapshotRecoverSheet: View {
                         Text(snapshot.displayName)
                             .lineLimit(2)
                     }
-                    if diskSize != nil || snapshotFileSize != nil {
+                    if !diskCheckReady {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                            Text(L10n.t("正在检查磁盘空间…"))
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    } else if diskSize != nil || snapshotFileSize != nil {
                         VStack(alignment: .leading, spacing: 2) {
                             if let size = snapshotFileSize {
                                 Text(L10n.f("快照大小：%@", SnapshotListView.fmt(size)))
@@ -323,7 +332,7 @@ private struct SnapshotRecoverSheet: View {
                         onConfirm(secret, taskID)
                         dismiss()
                     }
-                    .disabled(!confirmed)
+                    .disabled(!confirmed || !diskCheckReady)
                 }
             }
             .alert(L10n.t("提示"), isPresented: $showSpaceAlert) {
@@ -337,8 +346,10 @@ private struct SnapshotRecoverSheet: View {
         .task { await loadDiskInfo() }
     }
 
-    /// 并行取系统可用空间（dashboard/base/os）与快照文件大小（backups/record/size，按 id 匹配）
+    /// 并行取系统可用空间（dashboard/base/os）与快照文件大小（backups/record/size，按 id 匹配）；
+    /// 结束（含失败）置 diskCheckReady，恢复按钮在此之前禁用
     private func loadDiskInfo() async {
+        defer { diskCheckReady = true }
         async let os: OsInfo? = try? await client.send(
             path: APIEndpoint.dashboardOS.path,
             method: APIEndpoint.dashboardOS.method,
@@ -347,7 +358,7 @@ private struct SnapshotRecoverSheet: View {
         async let sizes: [BackupRecordSizeItem]? = try? await client.send(
             path: APIEndpoint.backupsRecordSize.path,
             body: BackupRecordSearchRequest(
-                page: 1, pageSize: 100, type: "snapshot", name: "", detailName: ""),
+                page: 1, pageSize: 500, type: "snapshot", name: "", detailName: ""),
             as: [BackupRecordSizeItem].self
         )
         diskSize = (await os)?.diskSize
@@ -571,8 +582,8 @@ struct SnapshotCreateView: View {
             )
         }
         .animation(.easeInOut(duration: 0.22), value: wizardPage)
-        // 创建快照进行中禁下拉关闭，防异步提交被误中断（与 TextInputConfirmSheet 同款防护）
-        .interactiveDismissDisabled(isSubmitting)
+        // 创建中禁下拉防异步被中断；翻页后（page>0）禁下拉防多页输入被手势静默丢弃
+        .interactiveDismissDisabled(isSubmitting || wizardPage > 0)
         // 总开关 ↔ 应用镜像双向联动：开 → 全选；直接关 → 全部取消（对齐网页端）；
         // 由叶子关闭引发的级联关（suppressMasterClear）保留其余应用的个别勾选
         .onChange(of: backupAllImage) { _, on in

@@ -136,6 +136,45 @@ struct OutlinedTextField: View {
     }
 }
 
+// MARK: - 描边密码框（眼睛切换）
+
+/// 描边包裹式密码输入 + 框内右侧明文/密文切换眼睛。
+/// 聚焦态由组件 FocusState 驱动（取代手包 OutlinedShape 固定 isFocused: false 的写法，
+/// 那会导致聚焦时标签不上浮、边框不变色）
+struct OutlinedPasswordField: View {
+    let label: String
+    @Binding var text: String
+    @State private var showPlain = false
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
+                      trailing: {
+            Button {
+                showPlain.toggle()
+            } label: {
+                Image(systemName: showPlain ? "eye.slash" : "eye")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(L10n.t(showPlain ? "隐藏密码" : "显示密码"))
+        }) {
+            Group {
+                if showPlain {
+                    TextField("", text: $text)
+                } else {
+                    SecureField("", text: $text)
+                }
+            }
+            .focused($isFocused)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+        }
+    }
+}
+
 // MARK: - 描边数值+单位输入
 
 /// 描边包裹式数值输入：框内值居左、固定单位贴右（如「核」「MB」）。
@@ -157,21 +196,24 @@ struct OutlinedUnitField: View {
     var onCommit: (() -> Void)? = nil
 
     @FocusState private var isFocused: Bool
+    /// 编辑期显示镜像：允许临时空值/超范围中间态（输入中放宽），
+    /// 失焦时归位到钳制后的模型值（解决「删空即回弹、无法重输」）
+    @State private var display = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
+            OutlinedShape(label: label, isFocused: isFocused, hasValue: !display.isEmpty,
                           trailing: {
                 Text(unit)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }) {
-            TextField("", text: clampedText)
+            TextField("", text: $display)
                 .keyboardType(keyboardType)
                 .focused($isFocused)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                if text.isEmpty, let prompt, !isFocused {
+                if display.isEmpty, let prompt, !isFocused {
                     Text(prompt)
                         .font(.subheadline)
                         .foregroundStyle(.tertiary)
@@ -185,25 +227,38 @@ struct OutlinedUnitField: View {
                     .padding(.leading, 14)
             }
         }
-        .onChange(of: isFocused) { _, focused in
-            if !focused { onCommit?() }
+        .onAppear { display = text }
+        // 非编辑期的外部回填/联动同步到显示；编辑期以显示为准（模型滞后到失焦归位）
+        .onChange(of: text) { _, newValue in
+            if !isFocused { display = newValue }
         }
-    }
-
-    /// 输入即时钳制：非法输入保持原值，超出范围收敛到边界；
-    /// allowsDecimal 时原样透传（含小数点），范围钳制不适用
-    private var clampedText: Binding<String> {
-        Binding<String>(
-            get: { text },
-            set: { newValue in
-                if allowsDecimal {
-                    text = newValue
-                    return
-                }
-                guard let parsed = Int(newValue) else { return }
+        .onChange(of: display) { _, newValue in
+            if allowsDecimal {
+                text = newValue
+            } else if newValue.isEmpty {
+                // 过渡空：不写回模型，失焦归位
+            } else if let parsed = Int(newValue) {
                 text = String(range.map { min(max(parsed, $0.lowerBound), $0.upperBound) } ?? parsed)
+            } else {
+                // 非数字字符：回退到当前模型值（保持纯数字输入）
+                display = text
             }
-        )
+        }
+        .onChange(of: isFocused) { _, focused in
+            if !focused {
+                if !allowsDecimal {
+                    if let parsed = Int(display) {
+                        text = String(range.map { min(max(parsed, $0.lowerBound), $0.upperBound) } ?? parsed)
+                    } else if range == nil {
+                        // 无范围的数值字段允许清空 = 未设置（可选字段）
+                        text = display
+                    }
+                    // 有范围且显示为空：保持模型最近有效值
+                }
+                display = text
+                onCommit?()
+            }
+        }
     }
 }
 

@@ -231,6 +231,8 @@ struct CronjobsTab: View {
                         CronjobRow(job: job)
                     }
                     .onLongPressGesture { actionJob = job }
+                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                    .accessibilityAction(named: L10n.t("更多操作")) { actionJob = job }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
                             Task { await vm.handle(job: job) }

@@ -426,7 +426,8 @@ struct OverviewTab: View {
             }
             InfoRow(key: L10n.t("内核"), value: "\(os.kernelVersion ?? "-") (\(os.kernelArch ?? "-"))")
             if let size = os.diskSize {
-                InfoRow(key: L10n.t("磁盘总量"), value: formatBytes(size))
+                // 后端 diskSize 实为磁盘可用空间（base/os → diskInfo.Free），非总量
+                InfoRow(key: L10n.t("可用空间"), value: formatBytes(size))
             }
         }
         .padding()

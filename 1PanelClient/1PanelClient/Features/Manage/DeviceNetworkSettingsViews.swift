@@ -397,8 +397,6 @@ struct DevicePasswordView: View {
     @State private var user = ""
     @State private var passwd = ""
     @State private var confirm = ""
-    @State private var showPasswd = false
-    @State private var showConfirm = false
     @State private var isSaving = false
     @State private var errorText: String?
 
@@ -427,49 +425,9 @@ struct DevicePasswordView: View {
             }
 
             Section {
-                // 眼睛切换内嵌描边框右侧
-                OutlinedShape(label: L10n.t("新密码"), isFocused: false,
-                              hasValue: !passwd.isEmpty,
-                              trailing: {
-                    Button {
-                        showPasswd.toggle()
-                    } label: {
-                        Image(systemName: showPasswd ? "eye.slash" : "eye")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel(L10n.t(showPasswd ? "隐藏密码" : "显示密码"))
-                }) {
-                    if showPasswd {
-                        TextField("", text: $passwd)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                    } else {
-                        SecureField("", text: $passwd)
-                    }
-                }
-                OutlinedShape(label: L10n.t("确认密码"), isFocused: false,
-                              hasValue: !confirm.isEmpty,
-                              trailing: {
-                    Button {
-                        showConfirm.toggle()
-                    } label: {
-                        Image(systemName: showConfirm ? "eye.slash" : "eye")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel(L10n.t(showConfirm ? "隐藏密码" : "显示密码"))
-                }) {
-                    if showConfirm {
-                        TextField("", text: $confirm)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                    } else {
-                        SecureField("", text: $confirm)
-                    }
-                }
+                // 眼睛切换内嵌描边框右侧（组件自带聚焦态联动）
+                OutlinedPasswordField(label: L10n.t("新密码"), text: $passwd)
+                OutlinedPasswordField(label: L10n.t("确认密码"), text: $confirm)
             } header: {
                 SectionLabel(title: L10n.t("密码"), systemImage: "lock")
             } footer: {

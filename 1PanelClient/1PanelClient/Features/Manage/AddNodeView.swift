@@ -190,16 +190,11 @@ struct AddNodeView: View {
             .navigationTitle(isEditing ? L10n.t("编辑节点") : L10n.t("添加节点"))
             .navigationBarTitleDisplayMode(.inline)
             .formWidthLimit()
-            // 创建节点进行中禁下拉关闭，防异步提交被误中断（与 TextInputConfirmSheet 同款防护）
-            .interactiveDismissDisabled(isSubmitting)
+            // 提交中禁下拉关闭防异步被中断；翻页后（page>0）禁下拉防多页输入被手势静默丢弃
+            .interactiveDismissDisabled(isSubmitting || wizardPage > 0)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if isChecking || isSubmitting {
-                        ProgressView()
-                    }
                 }
             }
             .alert(L10n.t("操作失败"), isPresented: .init(
@@ -404,8 +399,10 @@ struct AddNodeView: View {
             as: [NodeGroup].self
         ) {
             groups = list
-            // 添加模式默认分组：标记 isDefault 的组；编辑模式保持回填的原分组
-            if editing == nil, selectedGroupID == 0 {
+            // 添加模式默认分组：标记 isDefault 的组；选中项已不在列表（被删）时同样回落，
+            // 保持「显示的回落值 = 提交值」一致（编辑模式保持回填的原分组不强制回落）
+            if editing == nil,
+               selectedGroupID == 0 || !groups.contains(where: { $0.id == selectedGroupID }) {
                 selectedGroupID = list.first(where: { $0.isDefault == true })?.id ?? list.first?.id ?? 0
             }
         }
