@@ -209,11 +209,16 @@ struct DeviceSwapSettingsView: View {
                     InfoRow(L10n.t("Swap 已用"), value: MonitorSettingsView.fmt(device.swapMemoryUsed ?? 0))
                     InfoRow(L10n.t("Swap 空闲"), value: MonitorSettingsView.fmt(device.swapMemoryAvailable ?? 0))
                     ForEach(device.swapDetails ?? []) { detail in
-                        SwapDetailRow(
-                            detail: detail,
-                            maxSizeGB: device.maxSize.map { Double($0) / 1024 / 1024 / 1024 } ?? 8) { path, sizeKB in
-                            Task { await updateSwap(path: path, sizeKB: sizeKB) }
+                        NavigationLink {
+                            SwapEditView(
+                                detail: detail,
+                                maxSizeGB: device.maxSize.map { Double($0) / 1024 / 1024 / 1024 } ?? 8) { path, sizeKB in
+                                Task { await updateSwap(path: path, sizeKB: sizeKB) }
+                            }
+                        } label: {
+                            SwapDetailRow(detail: detail)
                         }
+                        .buttonStyle(.plain)
                     }
                 } else {
                     HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 12)
@@ -274,51 +279,108 @@ struct SwapTaskTarget: Identifiable, Hashable {
     var id: String { taskID }
 }
 
-/// 单个 Swap 行：路径 + 大小(GB)编辑 + 已用 + 保存
+/// 单个 Swap 行（点击进入修改总数）：
+/// 上=路径（高度居中于两行内容），下=总数（2 位小数）+ 已用
 private struct SwapDetailRow: View {
     let detail: SwapDetail
-    let maxSizeGB: Double
-    let onSave: (String, Int) -> Void
 
-    @State private var sizeGBText: String = ""
-    @State private var appeared = false
+    /// KB → GB（2 位小数显示；1.9 → 1.87 类还原真实容量）
+    private var sizeGBText2: String {
+        String(format: "%.2f", detail.sizeGB)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(detail.path)
-                    .font(.dataMonospaced)
-                Spacer()
+        HStack(alignment: .center) {
+            Text(detail.path)
+                .font(.dataMonospaced)
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(L10n.t("总数") + " " + sizeGBText2 + " GB")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Text(L10n.t("已用") + " " + MonitorSettingsView.fmt(Int64(detail.usedKB) * 1024))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            HStack {
-                Text(L10n.t("大小"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                TextField("2", text: $sizeGBText)
-                    .keyboardType(.numberPad)
-                    .frame(width: 80)
-                    .multilineTextAlignment(.trailing)
-                Text("GB")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button(L10n.t("保存")) {
-                    let gb = Double(sizeGBText) ?? 0
-                    let kb = Int((gb * 1024 * 1024).rounded())
-                    onSave(detail.path, kb)
-                }
-                .buttonStyle(.bordered)
-                .disabled(sizeGBText.isEmpty)
-            }
         }
         .padding(.vertical, 2)
-        .onAppear {
-            guard !appeared else { return }
-            appeared = true
-            sizeGBText = String(format: "%.1f", detail.sizeGB)
+        .contentShape(Rectangle())
+    }
+}
+
+/// Swap 总数编辑页（形态 1）：路径只读 + 总数（MB，能被 4 整除换算 KB，
+/// 0=关闭该 Swap；服务端最小 40KB）
+struct SwapEditView: View {
+    let detail: SwapDetail
+    let maxSizeGB: Double
+    let onSave: (String, Int) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var sizeMBText: String = ""
+    @State private var errorMessage: String?
+    @State private var showError = false
+    @State private var isSaving = false
+
+    var body: some View {
+        Form {
+            Section {
+                OutlinedShape(label: L10n.t("路径"), isFocused: false,
+                              hasValue: !detail.path.isEmpty,
+                              trailing: { EmptyView() }) {
+                    Text(detail.path)
+                        .font(.dataMonospacedBody)
+                        .lineLimit(1)
+                }
+                OutlinedUnitField(label: L10n.t("总数"), unit: "MB",
+                                  text: $sizeMBText)
+            } footer: {
+                Text(L10n.t("分区大小最小值为 40 KB，设置成 0 则关闭 Swap 分区。"))
+            }
         }
+        .navigationTitle(L10n.t("修改 Swap"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    save()
+                } label: {
+                    if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
+                }
+                .disabled(sizeMBText.isEmpty || isSaving)
+            }
+        }
+        .alert(L10n.t("提示"), isPresented: $showError) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+        .onAppear {
+            // KB → MB（向上取整到能被 4 整除：KB 必须为 4 的倍数）
+            let mb = (detail.size + 4095) / 1024
+            let mbAligned = max(0, (mb + 3) / 4 * 4)
+            sizeMBText = String(mbAligned)
+        }
+    }
+
+    private func save() {
+        guard let mb = Int(sizeMBText), mb >= 0 else {
+            errorMessage = L10n.t("请输入有效的数值")
+            showError = true
+            return
+        }
+        let kb = mb * 1024
+        if kb != 0 && kb < 40 {
+            errorMessage = L10n.t("分区大小最小值为 40 KB，设置成 0 则关闭 Swap 分区。")
+            showError = true
+            return
+        }
+        if kb % 4 != 0 {
+            errorMessage = L10n.t("大小需要能被 4 整除")
+            showError = true
+            return
+        }
+        isSaving = true
+        onSave(detail.path, kb)
+        dismiss()
     }
 }

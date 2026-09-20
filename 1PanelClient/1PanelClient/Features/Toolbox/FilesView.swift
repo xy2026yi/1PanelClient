@@ -1125,7 +1125,7 @@ private struct FilesDialogsModifier: ViewModifier {
                 .presentationDragIndicator(.visible)
             }
             .alert(L10n.t("前往路径"), isPresented: $showPathInput) {
-                FormTextField(label: L10n.t("路径"), text: $pathInput, style: .stacked)
+                OutlinedTextField(label: L10n.t("路径"), text: $pathInput, keyboardType: .URL)
                 Button(L10n.t("取消"), role: .cancel) { }
                 Button(L10n.t("前往")) {
                     let target = pathInput.trimmingCharacters(in: .whitespaces)

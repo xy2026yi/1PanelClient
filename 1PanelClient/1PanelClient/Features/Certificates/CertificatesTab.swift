@@ -590,13 +590,13 @@ struct UploadCertificateView: View {
 
             case .local:
                 Section {
-                    FormTextField(label: L10n.t("私钥文件路径"), prompt: "/home/user/privkey.pem",
-                                  text: $privateKeyPath, style: .stacked)
+                    OutlinedTextField(label: L10n.t("私钥文件路径"), prompt: "/home/user/privkey.pem",
+                                  text: $privateKeyPath)
                 } header: { Text(L10n.t("私钥文件路径")) }
 
                 Section {
-                    FormTextField(label: L10n.t("证书文件路径"), prompt: "/home/user/fullchain.pem",
-                                  text: $certificatePath, style: .stacked)
+                    OutlinedTextField(label: L10n.t("证书文件路径"), prompt: "/home/user/fullchain.pem",
+                                  text: $certificatePath)
                 } header: { Text(L10n.t("证书文件路径")) }
 
             case .phone:

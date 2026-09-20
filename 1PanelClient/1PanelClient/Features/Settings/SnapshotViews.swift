@@ -401,7 +401,8 @@ struct SnapshotCreateView: View {
     @State private var withTaskLog = false
     /// 勾选的叶子节点 id 集合（提交时回写树的 isCheck）
     @State private var checked: Set<String> = []
-    @State private var ignoreFiles: [String] = []
+    /// 排除规则多行文本（每行一条；提交时拆分为 ignoreFiles 数组）
+    @State private var ignoreRulesText = ""
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var showError = false
@@ -419,6 +420,25 @@ struct SnapshotCreateView: View {
 
     private var timeoutSeconds: Int {
         timeoutValue * (timeoutUnits.first(where: { $0.value == timeoutUnit })?.seconds ?? 1)
+    }
+
+    /// 超时数值 Int ↔ String（描边框用）
+    private var timeoutText: Binding<String> {
+        Binding<String>(get: { String(timeoutValue) },
+                        set: { timeoutValue = Int($0) ?? timeoutValue })
+    }
+
+    /// 备份账号 Int? ↔ String（描边菜单用；空列表时回落首项）
+    private var accountText: Binding<String> {
+        Binding<String>(
+            get: {
+                if let id = selectedAccountID, accounts.contains(where: { $0.id == id }) {
+                    return String(id)
+                }
+                return String(accounts.first?.id ?? 0)
+            },
+            set: { selectedAccountID = Int($0) ?? accounts.first?.id }
+        )
     }
 
     var body: some View {
@@ -441,26 +461,25 @@ struct SnapshotCreateView: View {
     private func createForm(_ data: SnapshotLoadData) -> some View {
         Form {
             Section {
-                Picker(L10n.t("备份账号"), selection: $selectedAccountID) {
-                    ForEach(accounts) { account in
-                        Text(account.name ?? "#\(account.id)").tag(Optional(account.id))
-                    }
+                if accounts.isEmpty {
+                    Text(L10n.t("无数据"))
+                        .foregroundStyle(.secondary)
+                } else {
+                    OutlinedPicker(label: L10n.t("备份账号"),
+                                   options: accounts.map { String($0.id) },
+                                   selection: accountText,
+                                   optionLabels: Dictionary(uniqueKeysWithValues:
+                                       accounts.map { (String($0.id), $0.name ?? "#\($0.id)") }))
                 }
                 OutlinedTextField(label: L10n.t("压缩密码（可选）"), text: $secret)
-                HStack {
-                    Stepper(value: $timeoutValue, in: 1...8760) {
-                        Text(L10n.t("超时时间"))
-                    }
-                    TextField("", value: $timeoutValue, format: .number)
-                        .keyboardType(.numberPad)
-                        .frame(width: 72)
-                        .multilineTextAlignment(.trailing)
-                    Picker("", selection: $timeoutUnit) {
-                        ForEach(timeoutUnits, id: \.value) { Text($0.label).tag($0.value) }
-                    }
-                    .labelsHidden()
-                    .frame(width: 74)
-                }
+                // 超时：数值 + 单位下拉（形态 3）
+                OutlinedUnitField(label: L10n.t("超时时间"), unit: "",
+                                  text: timeoutText, range: 1...8760)
+                OutlinedPicker(label: L10n.t("超时单位"),
+                               options: timeoutUnits.map(\.value),
+                               selection: $timeoutUnit,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   timeoutUnits.map { ($0.value, $0.label) }))
                 OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $descriptionText)
             } header: {
                 SectionLabel(title: L10n.t("基础数据"), systemImage: "externaldrive")
@@ -491,22 +510,12 @@ struct SnapshotCreateView: View {
             }
 
             Section {
-                ForEach(ignoreFiles.indices, id: \.self) { idx in
-                    TextField("*.log", text: $ignoreFiles[idx])
-                        .font(.dataMonospacedFootnote)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                }
-                .onDelete { ignoreFiles.remove(atOffsets: $0) }
-                Button {
-                    ignoreFiles.append("")
-                } label: {
-                    Label(L10n.t("添加"), systemImage: "plus.circle")
-                }
+                OutlinedMultiLineField(label: L10n.t("排除规则"), prompt: "*.log",
+                                       lines: 3, text: $ignoreRulesText)
             } header: {
                 SectionLabel(title: L10n.t("排除规则"), systemImage: "exclamationmark.triangle")
             } footer: {
-                Text(L10n.t("快照将跳过匹配的文件，支持多个规则"))
+                Text(L10n.t("快照将跳过匹配的文件，每行一条规则"))
             }
 
             Section {
@@ -545,7 +554,7 @@ struct SnapshotCreateView: View {
             withOperationLog = data.withOperationLog ?? false
             withSystemLog = data.withSystemLog ?? false
             withTaskLog = data.withTaskLog ?? false
-            ignoreFiles = data.ignoreFiles ?? []
+            ignoreRulesText = (data.ignoreFiles ?? []).joined(separator: "\n")
             // 叶子勾选初始 = load 默认值（网页端默认勾选态）
             checked = Self.leafChecked(data.appData ?? [])
                 .union(Self.leafChecked(data.panelData ?? []))
@@ -596,6 +605,13 @@ struct SnapshotCreateView: View {
         }
     }
 
+    /// 多行排除规则文本 → ignoreFiles 数组（每行一条，去空白行）
+    private static func parseIgnoreRules(_ text: String) -> [String] {
+        text.split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
     private func submit() async {
         guard let accountID = selectedAccountID, let data = loadData else { return }
         isSubmitting = true
@@ -622,7 +638,7 @@ struct SnapshotCreateView: View {
             panelData: Self.applyChecked(data.panelData ?? [], checked: checked, backupAllImage: backupAllImage),
             backupData: Self.applyChecked(data.backupData ?? [], checked: checked, backupAllImage: backupAllImage),
             appData: Self.applyChecked(data.appData ?? [], checked: checked, backupAllImage: backupAllImage),
-            ignoreFiles: ignoreFiles.filter { !$0.isEmpty })
+            ignoreFiles: Self.parseIgnoreRules(ignoreRulesText))
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.settingsSnapshotCreate.path, body: req, as: EmptyResponse.self)

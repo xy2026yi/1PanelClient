@@ -297,7 +297,7 @@ struct TerminalCommandPicker: View {
                 }
 
                 Section(L10n.t("自定义")) {
-                    FormTextField(label: L10n.t("命令路径"), text: $command, style: .stacked)
+                    OutlinedTextField(label: L10n.t("命令路径"), text: $command, keyboardType: .URL)
                         .font(.dataMonospacedBody)
                 }
 

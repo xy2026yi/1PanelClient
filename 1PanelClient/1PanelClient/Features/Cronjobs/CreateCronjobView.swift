@@ -21,13 +21,8 @@ struct CreateCronjobView: View {
     @State private var name = ""
     /// 所属分组（0 = 未初始化，加载后回落默认分组）
     @State private var selectedGroupID = 0
-    // 周期（支持多个）
+    // 周期（支持多个；编辑入口见 CronjobSchedulesEditorView）
     @State private var schedules: [ScheduleItem] = [ScheduleItem()]
-    /// 周期预览（cronjobs/next 返回的每个周期接下来 5 次执行时间）
-    @State private var isPreviewing = false
-    @State private var previewResults: [(spec: String, times: [String])] = []
-    /// 预览请求失败的周期数（>0 时在预览区尾部提示，避免全部失败时无反馈）
-    @State private var previewFailedCount = 0
     // Shell
     @State private var script = "#!/bin/bash\n"
     @State private var user = ""           // 默认不选（空字符串 = 服务器默认）
@@ -243,13 +238,10 @@ struct CreateCronjobView: View {
 
     private var basicInfoSection: some View {
         Section(L10n.t("基本信息")) {
-            FormTextField(label: L10n.t("任务名称"), text: $name)
+            OutlinedTextField(label: L10n.t("任务名称"), text: $name)
 
-            Picker(L10n.t("任务类型"), selection: $type) {
-                ForEach(CronjobType.allCases) { t in
-                    Label(t.displayName, systemImage: t.icon).tag(t)
-                }
-            }
+            OutlinedPicker(label: L10n.t("任务类型"), options: CronjobType.allCases,
+                           selection: $type) { $0.displayName }
 
             // 分组（未加载到分组数据时仅展示默认分组占位）
             if vm.groups.isEmpty {
@@ -260,61 +252,47 @@ struct CreateCronjobView: View {
                         .foregroundStyle(.secondary)
                 }
             } else {
-                Picker(L10n.t("分组"), selection: $selectedGroupID) {
-                    // tag(0) 兜底：分组数据先于初值就绪的一帧内 selection 仍为 0，
-                    // 缺少对应 tag 会触发 Picker invalid selection 运行时警告
-                    Text(L10n.t("默认分组")).tag(0)
-                    ForEach(vm.groups) { group in
-                        Text(group.displayName).tag(group.id)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("分组"),
+                               options: groupOptionKeys, selection: groupText,
+                               optionLabels: groupOptionLabels)
             }
         }
     }
 
+    /// 分组选项（"0"=默认分组兜底，避免选择初值无对应项的运行时警告）
+    private var groupOptionKeys: [String] {
+        ["0"] + vm.groups.map { String($0.id) }
+    }
+
+    private var groupOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("默认分组")]
+        for group in vm.groups { labels[String(group.id)] = group.displayName }
+        return labels
+    }
+
+    private var groupText: Binding<String> {
+        Binding<String>(
+            get: {
+                vm.groups.contains(where: { $0.id == selectedGroupID })
+                    ? String(selectedGroupID) : "0"
+            },
+            set: { selectedGroupID = Int($0) ?? 0 }
+        )
+    }
+
+    /// 执行周期：入口行（N 个周期）→ 子编辑页（形态 8，与创建容器端口/挂载同模式）
     private var scheduleSection: some View {
         Section {
-            ForEach($schedules) { $item in
-                scheduleRow(for: $item)
-            }
-
-            Button {
-                schedules.append(ScheduleItem())
+            NavigationLink {
+                CronjobSchedulesEditorView(server: server, schedules: $schedules)
             } label: {
-                Label(L10n.t("添加周期"), systemImage: "plus.circle")
-                    .foregroundStyle(Color.accentColor)
-            }
-            .disabled(schedules.count >= 10)
-
-            // 周期预览（POST /cronjobs/next {spec}，抓包 2026-09-14）
-            Button {
-                Task { await previewSchedules() }
-            } label: {
-                Label(L10n.t("预览执行时间"), systemImage: "clock.badge.questionmark")
-                    .foregroundStyle(Color.accentColor)
-            }
-            if isPreviewing {
-                HStack { Spacer(); ProgressView(); Spacer() }
-            }
-            ForEach(Array(previewResults.enumerated()), id: \.offset) { _, result in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(result.spec)
-                        .font(.dataMonospacedCaption)
+                HStack {
+                    Text(L10n.t("执行周期"))
+                    Spacer()
+                    Text(L10n.f("%ld 个周期", schedules.count))
                         .foregroundStyle(.secondary)
-                    ForEach(result.times, id: \.self) { time in
-                        Text(time)
-                            .font(.dataMonospacedCaption)
-                    }
                 }
             }
-            if previewFailedCount > 0 {
-                Label(L10n.f("%ld 个周期预览失败", previewFailedCount),
-                      systemImage: "exclamationmark.triangle")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            }
-        } header: {
-            Text(L10n.t("执行周期"))
         } footer: {
             Text(schedules.count > 1 ? L10n.f("已添加 %ld 个周期，将按各周期分别执行。", schedules.count) : L10n.t("支持添加多个周期，任务将在每个设定的时间点执行。"))
         }
@@ -337,12 +315,9 @@ struct CreateCronjobView: View {
             } header: { Text(L10n.t("脚本内容")) }
 
             Section {
-                Picker(L10n.t("执行用户"), selection: $user) {
-                    Text(L10n.t("默认（不指定）")).tag("")
-                    ForEach(vm.systemUsers, id: \.self) { u in
-                        Text(u).tag(u)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("执行用户"),
+                               options: userOptionKeys, selection: $user,
+                               optionLabels: userOptionLabels)
             } header: {
                 Text(L10n.t("执行设置"))
             } footer: {
@@ -430,25 +405,52 @@ struct CreateCronjobView: View {
         }
     }
 
+    /// 超时与重试（所有任务类型通用，放在各类型设置之后）
     private var timeoutSection: some View {
-        // 超时与重试（所有任务类型通用，放在各类型设置之后）
         Section(L10n.t("超时与重试")) {
-            Stepper(L10n.f("失败重试次数：%ld 次", retryTimes), value: $retryTimes, in: 0...10)
-            Picker(L10n.t("超时单位"), selection: $timeoutUnit) {
-                ForEach(TimeoutUnit.allCases) { u in
-                    Text(L10n.t(u.rawValue)).tag(u)
+            OutlinedTextField(label: L10n.t("失败重试次数"),
+                              text: retryTimesText, keyboardType: .numberPad)
+            OutlinedTextField(label: L10n.t("超时时间"),
+                              text: timeoutText, keyboardType: .numberPad)
+            OutlinedPicker(label: L10n.t("超时单位"),
+                           options: TimeoutUnit.allCases,
+                           selection: $timeoutUnit) { L10n.t($0.rawValue) }
+                .onChange(of: timeoutUnit) { oldUnit, newUnit in
+                    // 切换单位时尽量保持总时长不变：按新单位取整
+                    let totalSeconds = timeoutValue * oldUnit.multiplier
+                    let newValue = max(1, totalSeconds / newUnit.multiplier)
+                    timeoutValue = newValue
                 }
-            }
-            .onChange(of: timeoutUnit) { oldUnit, newUnit in
-                // 切换单位时尽量保持总时长不变：按新单位取整
-                let totalSeconds = timeoutValue * oldUnit.multiplier
-                let newValue = max(1, totalSeconds / newUnit.multiplier)
-                timeoutValue = newValue
-            }
-            Stepper(L10n.f("超时时间：%ld %@", timeoutValue, L10n.t(timeoutUnit.rawValue)), value: $timeoutValue, in: 1...9999)
         }
     }
 
+    /// 失败重试次数 Int ↔ String（输入钳制 0...10，对齐原 Stepper 范围）
+    private var retryTimesText: Binding<String> {
+        Binding<String>(get: { String(retryTimes) },
+                        set: { text in clampInt(text, into: 0...10) { retryTimes = $0 } })
+    }
+
+    /// 超时时间 Int ↔ String（输入钳制 1...9999，对齐原 Stepper 范围）
+    private var timeoutText: Binding<String> {
+        Binding<String>(get: { String(timeoutValue) },
+                        set: { text in clampInt(text, into: 1...9999) { timeoutValue = $0 } })
+    }
+
+    /// 数字文本钳制：非法输入保持原值，超出范围收敛到边界
+    private func clampInt(_ text: String, into range: ClosedRange<Int>, set: (Int) -> Void) {
+        guard let parsed = Int(text) else { return }
+        set(min(max(parsed, range.lowerBound), range.upperBound))
+    }
+
+
+    /// 执行用户选项（""=默认（不指定））
+    private var userOptionKeys: [String] {
+        [""] + vm.systemUsers
+    }
+
+    private var userOptionLabels: [String: String] {
+        ["": L10n.t("默认（不指定）")]
+    }
 
     /// 备份参数摘要（用于创建表单的右侧预览文本）
     private var backupParamsSummary: String {
@@ -471,102 +473,7 @@ struct CreateCronjobView: View {
         }
     }
 
-    /// 单个执行周期的编辑块（嵌入「执行周期」Section 内）。
-    /// 使用 VStack + 内边距 + 圆角背景，让每个周期成为一个独立视觉区块，
-    /// 避免直接堆在 List row 中导致 Stepper 点击区域重叠、控件过于紧凑。
-    @ViewBuilder
-    private func scheduleRow(for item: Binding<ScheduleItem>) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // 顶部：周期标题 + 删除按钮
-            HStack {
-                Text(L10n.f("周期 %ld", index(of: item.wrappedValue) + 1))
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.primary)
-                Spacer()
-                if schedules.count > 1 {
-                    Button(role: .destructive) {
-                        schedules.removeAll { $0.id == item.wrappedValue.id }
-                    } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(.red)
-                    }
-                    .buttonStyle(.plain)
-                            .accessibilityLabel(L10n.t("删除此周期"))
-                }
-            }
-
-            // 周期类型
-            Picker(L10n.t("周期类型"), selection: item.specType) {
-                ForEach(SpecType.allCases) { s in
-                    Text(L10n.t(s.rawValue)).tag(s)
-                }
-            }
-
-            // 小时 / 分钟：每个 Stepper 单独成行并增加垂直留白，
-            // 避免相邻 Stepper 的加减按钮视觉/点击区域重叠。
-            Stepper(L10n.f("小时：%ld 时", item.wrappedValue.hour), value: item.hour, in: 0...23)
-                .padding(.vertical, 2)
-            Stepper(L10n.f("分钟：%ld 分", item.wrappedValue.minute), value: item.minute, in: 0...59)
-                .padding(.vertical, 2)
-
-            if item.wrappedValue.specType == .perWeek {
-                Picker(L10n.t("星期"), selection: item.week) {
-                    ForEach(0..<7) { w in
-                        Text(weekDay(w)).tag(w)
-                    }
-                }
-            }
-            if item.wrappedValue.specType == .perMonth {
-                Stepper(L10n.f("日期：%ld 号", item.wrappedValue.day), value: item.day, in: 1...28)
-            }
-
-            // 预览生成的 cron 表达式
-            HStack {
-                Text(L10n.t("表达式"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(item.wrappedValue.cronSpec)
-                    .font(.dataMonospacedCaption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(12)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
-        .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
-    }
-
-    /// 查找某个周期在数组中的下标（用于显示「周期 N」）
-    private func index(of item: ScheduleItem) -> Int {
-        schedules.firstIndex { $0.id == item.id } ?? 0
-    }
-
-    private func weekDay(_ w: Int) -> String {
-        let names = [L10n.t("周日"), L10n.t("周一"), L10n.t("周二"), L10n.t("周三"), L10n.t("周四"), L10n.t("周五"), L10n.t("周六")]
-        return names[w]
-    }
-
-    /// 预览各周期接下来 5 次执行时间（POST /cronjobs/next {spec}，抓包 2026-09-14）
-    private func previewSchedules() async {
-        isPreviewing = true
-        previewResults = []
-        previewFailedCount = 0
-        defer { isPreviewing = false }
-        let client = APIClient.shared(for: server)
-        var results: [(spec: String, times: [String])] = []
-        for item in schedules {
-            let spec = item.cronSpec
-            if let times: [String] = try? await client.send(
-                path: APIEndpoint.cronjobsNext.path,
-                body: CronjobNextRequest(spec: spec), as: [String].self) {
-                results.append((spec, times))
-            } else {
-                previewFailedCount += 1
-            }
-        }
-        previewResults = results
-    }
+    /// 单个执行周期的编辑已迁移至 CronjobSchedulesEditorView（入口行进入）
 
     private func submit() async {
         var req = CronjobCreateRequest()
@@ -727,6 +634,160 @@ struct CreateCronjobView: View {
             item.specType = .perDay
         }
         return item
+    }
+}
+
+// MARK: - 执行周期编辑页（入口行进入，形态 8：每周期一个 Section + 底部添加）
+
+/// 周期列表编辑：每周期一个 Section（类型/小时/分钟，每月加日期、每周加星期），
+/// 头部「删除周期」（存在多个周期才出现）；页尾预览执行时间 + 添加
+struct CronjobSchedulesEditorView: View {
+    let server: ServerConfig
+    @Binding var schedules: [CreateCronjobView.ScheduleItem]
+
+    /// 周期预览（cronjobs/next 返回的每个周期接下来 5 次执行时间）
+    @State private var isPreviewing = false
+    @State private var previewResults: [(spec: String, times: [String])] = []
+    /// 预览请求失败的周期数（>0 时在预览区尾部提示，避免全部失败时无反馈）
+    @State private var previewFailedCount = 0
+
+    var body: some View {
+        Form {
+            ForEach($schedules) { $item in
+                scheduleSection($item)
+            }
+
+            Section {
+                Button {
+                    Task { await previewSchedules() }
+                } label: {
+                    Label(L10n.t("预览执行时间"), systemImage: "clock.badge.questionmark")
+                        .foregroundStyle(Color.accentColor)
+                }
+                if isPreviewing {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                }
+                ForEach(Array(previewResults.enumerated()), id: \.offset) { _, result in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(result.spec)
+                            .font(.dataMonospacedCaption)
+                            .foregroundStyle(.secondary)
+                        ForEach(result.times, id: \.self) { time in
+                            Text(time)
+                                .font(.dataMonospacedCaption)
+                        }
+                    }
+                }
+                if previewFailedCount > 0 {
+                    Label(L10n.f("%ld 个周期预览失败", previewFailedCount),
+                          systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            Section {
+                Button {
+                    schedules.append(CreateCronjobView.ScheduleItem())
+                } label: {
+                    Label(L10n.t("添加"), systemImage: "plus.circle")
+                        .foregroundStyle(Color.accentColor)
+                }
+                .disabled(schedules.count >= 10)
+            }
+        }
+        .navigationTitle(L10n.t("执行周期"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// 单个周期：头部「周期-N + 删除周期」，字段描边化（类型/星期 形态 3，小时/分钟/日期 形态 1）
+    private func scheduleSection(_ item: Binding<CreateCronjobView.ScheduleItem>) -> some View {
+        Section {
+            OutlinedPicker(label: L10n.t("类型"),
+                           options: CreateCronjobView.SpecType.allCases,
+                           selection: item.specType) { L10n.t($0.rawValue) }
+            OutlinedTextField(label: L10n.t("小时"), text: intText(item.hour, range: 0...23),
+                              keyboardType: .numberPad)
+            OutlinedTextField(label: L10n.t("分钟"), text: intText(item.minute, range: 0...59),
+                              keyboardType: .numberPad)
+            if item.wrappedValue.specType == .perMonth {
+                OutlinedTextField(label: L10n.t("日期"), text: intText(item.day, range: 1...28),
+                                  keyboardType: .numberPad)
+            }
+            if item.wrappedValue.specType == .perWeek {
+                OutlinedPicker(label: L10n.t("星期"),
+                               options: (0..<7).map(String.init),
+                               selection: weekText(item.week),
+                               optionLabels: weekLabels)
+            }
+        } header: {
+            HStack {
+                Text(L10n.f("周期 %ld", index(of: item.wrappedValue) + 1))
+                Spacer()
+                if schedules.count > 1 {
+                    Button(L10n.t("删除周期")) {
+                        schedules.removeAll { $0.id == item.wrappedValue.id }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                }
+            }
+        }
+    }
+
+    /// 查找某个周期在数组中的下标（用于显示「周期 N」）
+    private func index(of item: CreateCronjobView.ScheduleItem) -> Int {
+        schedules.firstIndex { $0.id == item.id } ?? 0
+    }
+
+    /// 数字字段 Int ↔ String（输入钳制到原 Stepper 范围）
+    private func intText(_ value: Binding<Int>, range: ClosedRange<Int>) -> Binding<String> {
+        Binding<String>(
+            get: { String(value.wrappedValue) },
+            set: { text in
+                guard let parsed = Int(text) else { return }
+                value.wrappedValue = min(max(parsed, range.lowerBound), range.upperBound)
+            }
+        )
+    }
+
+    /// 星期 Int ↔ String（描边菜单用，键为 0...6）
+    private func weekText(_ value: Binding<Int>) -> Binding<String> {
+        Binding<String>(get: { String(value.wrappedValue) },
+                        set: { value.wrappedValue = Int($0) ?? 0 })
+    }
+
+    private var weekLabels: [String: String] {
+        var labels: [String: String] = [:]
+        for w in 0..<7 { labels[String(w)] = weekDay(w) }
+        return labels
+    }
+
+    private func weekDay(_ w: Int) -> String {
+        let names = [L10n.t("周日"), L10n.t("周一"), L10n.t("周二"), L10n.t("周三"),
+                     L10n.t("周四"), L10n.t("周五"), L10n.t("周六")]
+        return names[w]
+    }
+
+    /// 预览各周期接下来 5 次执行时间（POST /cronjobs/next {spec}，抓包 2026-09-14）
+    private func previewSchedules() async {
+        isPreviewing = true
+        previewResults = []
+        previewFailedCount = 0
+        defer { isPreviewing = false }
+        let client = APIClient.shared(for: server)
+        var results: [(spec: String, times: [String])] = []
+        for item in schedules {
+            let spec = item.cronSpec
+            if let times: [String] = try? await client.send(
+                path: APIEndpoint.cronjobsNext.path,
+                body: CronjobNextRequest(spec: spec), as: [String].self) {
+                results.append((spec, times))
+            } else {
+                previewFailedCount += 1
+            }
+        }
+        previewResults = results
     }
 }
 

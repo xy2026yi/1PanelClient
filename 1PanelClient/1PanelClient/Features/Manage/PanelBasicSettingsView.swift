@@ -135,9 +135,36 @@ struct PanelBasicSettingsView: View {
         Int(core?.sessionTimeout ?? "") ?? 86400
     }
 
-    /// 当前超时值是否在预设选项中（不在则补一项显示原始秒数）
+    /// 当前超时值是否在预设选项中（不在则选项补当前值显示原始秒数）
     private var timeoutInOptions: Bool {
         Self.timeoutOptions.contains { $0.seconds == currentTimeout }
+    }
+
+    /// 超时选项键（秒转 String；不在预设时补当前值，避免无效 selection）
+    private var timeoutOptionKeys: [String] {
+        var keys = Self.timeoutOptions.map { String($0.seconds) }
+        if !timeoutInOptions {
+            keys.append(String(currentTimeout))
+        }
+        return keys
+    }
+
+    private var timeoutOptionLabels: [String: String] {
+        var labels: [String: String] = Dictionary(uniqueKeysWithValues:
+            Self.timeoutOptions.map { (String($0.seconds), $0.label) })
+        if !timeoutInOptions {
+            labels[String(currentTimeout)] = L10n.f("%ld 秒", currentTimeout)
+        }
+        return labels
+    }
+
+    private var timeoutText: Binding<String> {
+        Binding<String>(
+            get: { String(currentTimeout) },
+            set: { seconds in
+                Task { await updateCore("SessionTimeout", seconds) }
+            }
+        )
     }
 
     var body: some View {
@@ -219,21 +246,14 @@ struct PanelBasicSettingsView: View {
     private var panelSection: some View {
         Group {
             Section {
-                FormTextField(label: L10n.t("面板别名"), text: $nameInput)
+                OutlinedTextField(label: L10n.t("面板别名"), text: $nameInput)
                     .focused($focusedField, equals: .name)
                     .onSubmit { commit(.name) }
 
-                Picker(L10n.t("面板超时时间"), selection: Binding(
-                    get: { currentTimeout },
-                    set: { seconds in Task { await updateCore("SessionTimeout", String(seconds)) } }
-                )) {
-                    ForEach(Self.timeoutOptions, id: \.seconds) { opt in
-                        Text(opt.label).tag(opt.seconds)
-                    }
-                    if !timeoutInOptions {
-                        Text(L10n.f("%ld 秒", currentTimeout)).tag(currentTimeout)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("面板超时时间"),
+                               options: timeoutOptionKeys,
+                               selection: timeoutText,
+                               optionLabels: timeoutOptionLabels)
             } header: {
                 SectionLabel(title: L10n.t("面板"), systemImage: "square.grid.2x2")
             } footer: {
@@ -255,8 +275,7 @@ struct PanelBasicSettingsView: View {
 
     private var accessSection: some View {
         Section {
-            FormTextField(label: L10n.t("IP 或域名"), text: $ipInput)
-                .keyboardType(.asciiCapable)
+            OutlinedTextField(label: L10n.t("IP 或域名"), text: $ipInput)
                 .focused($focusedField, equals: .ip)
                 .onSubmit { commit(.ip) }
         } header: {
@@ -305,20 +324,20 @@ struct PanelBasicSettingsView: View {
 
     private var runtimeSection: some View {
         Section {
-            Picker(L10n.t("运行区域"), selection: Binding(
-                get: { (core?.edition ?? "cn") == "cn" ? "cn" : "intl" },
-                set: { value in Task { await updateCore("Edition", value) } }
-            )) {
-                Text(L10n.t("中国大陆")).tag("cn")
-                Text(L10n.t("全球")).tag("intl")
-            }
-            Picker(L10n.t("文档来源"), selection: Binding(
-                get: { (core?.docSource ?? "withByRegion") == "withByLang" ? "withByLang" : "withByRegion" },
-                set: { value in Task { await updateCore("DocSource", value) } }
-            )) {
-                Text(L10n.t("跟随运行区域")).tag("withByRegion")
-                Text(L10n.t("跟随系统语言")).tag("withByLang")
-            }
+            OutlinedPicker(label: L10n.t("运行区域"), options: ["cn", "intl"],
+                           selection: Binding(
+                               get: { (core?.edition ?? "cn") == "cn" ? "cn" : "intl" },
+                               set: { value in Task { await updateCore("Edition", value) } }
+                           ),
+                           optionLabels: ["cn": L10n.t("中国大陆"),
+                                          "intl": L10n.t("全球")])
+            OutlinedPicker(label: L10n.t("文档来源"), options: ["withByRegion", "withByLang"],
+                           selection: Binding(
+                               get: { (core?.docSource ?? "withByRegion") == "withByLang" ? "withByLang" : "withByRegion" },
+                               set: { value in Task { await updateCore("DocSource", value) } }
+                           ),
+                           optionLabels: ["withByRegion": L10n.t("跟随运行区域"),
+                                          "withByLang": L10n.t("跟随系统语言")])
         } header: {
             SectionLabel(title: L10n.t("运行环境"), systemImage: "globe.asia.australia")
         }
@@ -441,9 +460,7 @@ struct PanelBasicSettingsView: View {
                 }
                 Spacer()
             }
-            FormTextField(label: "pool.ntp.org", text: $ntpInput)
-                .font(.dataMonospacedBody)
-                .keyboardType(.asciiCapable)
+            OutlinedTextField(label: L10n.t("NTP 服务器"), prompt: "pool.ntp.org", text: $ntpInput)
                 .focused($focusedField, equals: .ntp)
                 .onSubmit { commit(.ntp) }
         } header: {
@@ -705,16 +722,15 @@ struct PanelProxyEditView: View {
 
             if !proxyType.isEmpty {
                 Section {
-                    FormTextField(label: L10n.t("代理地址"), text: $proxyUrl, style: .stacked)
-                        .keyboardType(.asciiCapable)
-                    FormTextField(label: L10n.t("代理端口"), text: $proxyPort, keyboardType: .numberPad)
+                    OutlinedTextField(label: L10n.t("代理地址"), text: $proxyUrl)
+                    OutlinedUnitField(label: L10n.t("代理端口"), unit: "", text: $proxyPort)
                 } header: {
                     Text(L10n.t("连接信息"))
                 }
 
                 Section {
-                    FormTextField(label: L10n.t("用户名"), text: $proxyUser)
-                    FormTextField(label: L10n.t("密码"), text: $proxyPasswd, isSecure: true)
+                    OutlinedTextField(label: L10n.t("用户名"), text: $proxyUser)
+                    OutlinedTextField(label: L10n.t("密码"), text: $proxyPasswd, isSecure: true)
                     Toggle(L10n.t("记住密码"), isOn: $passwdKeep)
                 } header: {
                     Text(L10n.t("认证（可选）"))

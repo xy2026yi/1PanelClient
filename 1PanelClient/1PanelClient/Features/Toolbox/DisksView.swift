@@ -525,7 +525,7 @@ private struct DiskMountFormSheet: View {
                     .foregroundStyle(isPartitionMode ? .primary : .secondary)
 
                     HStack {
-                        FormTextField(label: L10n.t("挂载目录"), text: $mountPoint, style: .stacked)
+                        OutlinedTextField(label: L10n.t("挂载目录"), text: $mountPoint, keyboardType: .URL)
                         Button {
                             showDirPicker = true
                         } label: {

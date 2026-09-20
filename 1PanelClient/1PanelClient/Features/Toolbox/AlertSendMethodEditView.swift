@@ -98,15 +98,23 @@ struct AlertSendMethodEditView: View {
     private var typeSection: some View {
         Section(L10n.t("类型")) {
             if isEditing {
-                LabeledContent(L10n.t("类型"), value: AlertSendType(rawValue: editing?.type ?? "")?.displayName ?? (editing?.type ?? L10n.t("未知")))
-            } else {
-                Picker(L10n.t("类型"), selection: $sendType) {
-                    ForEach(AlertSendType.allCases) { t in
-                        Label(t.displayName, systemImage: t.icon).tag(t)
-                    }
+                // 类型不可改：描边只读框 + 锁标识
+                OutlinedShape(label: L10n.t("类型"), isFocused: false,
+                              hasValue: true,
+                              trailing: {
+                    Image(systemName: "lock.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }) {
+                    Text(AlertSendType(rawValue: editing?.type ?? "")?.displayName
+                         ?? (editing?.type ?? L10n.t("未知")))
+                        .lineLimit(1)
                 }
-                .pickerStyle(.inline)
-                .onChange(of: sendType) { _, _ in tested = false }
+            } else {
+                OutlinedPicker(label: L10n.t("类型"),
+                               options: AlertSendType.allCases,
+                               selection: $sendType) { $0.displayName }
+                    .onChange(of: sendType) { _, _ in tested = false }
             }
         }
     }
@@ -163,7 +171,7 @@ struct AlertSendMethodEditView: View {
     private var barkSection: some View {
         Section {
             OutlinedTextField(label: L10n.t("机器人名称"), text: $displayName)
-            FormTextField(label: L10n.t("Webhook 地址"), text: $barkURL, style: .stacked, keyboardType: .URL)
+            OutlinedTextField(label: L10n.t("Webhook 地址"), text: $barkURL, keyboardType: .URL)
         } header: {
             SectionLabel(title: "Bark", systemImage: "bell")
         } footer: {

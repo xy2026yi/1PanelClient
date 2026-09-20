@@ -17,10 +17,18 @@ struct CronjobsTab: View {
     @State private var isSearching = false
     // 分组管理弹窗入口（筛选条末尾「管理」chip）
     @State private var showGroupManage = false
-    // 导入导出入口（右上角菜单）
+    // 导入导出入口（右上角菜单导出；导入并入 + 号菜单）
     @State private var showTransferMenu = false
     @State private var showExport = false
     @State private var showImport = false
+    /// 导出多选的初始勾选（长按菜单「导出任务」= 仅当前任务；nil = 默认全选）
+    @State private var exportPreselect: Set<Int>? = nil
+    /// 行长按操作菜单（立即执行/停启用/编辑/导出/删除）
+    @State private var actionJob: Cronjob?
+    /// 长按菜单「编辑任务」：加载详情后推入编辑表单
+    @State private var editingInfo: CronjobInfo?
+    @State private var showEditView = false
+    @State private var isLoadingEditInfo = false
     /// 分组管理页所需服务器配置（init 时固定）
     private let server: ServerConfig
 
@@ -84,9 +92,17 @@ struct CronjobsTab: View {
             title: L10n.t("计划任务"),
             prompt: L10n.t("搜索脚本名")
         )
+        // 长按「编辑任务」拉取详情期间的轻量加载指示
+        .overlay {
+            if isLoadingEditInfo {
+                ProgressView()
+                    .padding(12)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+            }
+        }
         .navigationTitle(L10n.t("计划任务"))
         .navigationBarTitleDisplayMode(.inline)
-        // 脚本库入口已上移至 管理-计划任务 Hub；右上角留 搜索 + 菜单 + 创建 三键
+        // 脚本库入口已上移至 管理-计划任务 Hub；右上角留 搜索 + 菜单 + 创建/导入 三键
         .toolbar {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -96,8 +112,18 @@ struct CronjobsTab: View {
                     .accessibilityLabel(L10n.t("更多操作"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showCreate = true
+                    // 创建与导入合并进 + 号：主操作创建，导入为次入口（换机迁移场景）
+                    Menu {
+                        Button {
+                            showCreate = true
+                        } label: {
+                            Label(L10n.t("创建计划任务"), systemImage: "plus")
+                        }
+                        Button {
+                            showImport = true
+                        } label: {
+                            Label(L10n.t("导入"), systemImage: "square.and.arrow.down")
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -108,15 +134,12 @@ struct CronjobsTab: View {
         .overlay(alignment: .topTrailing) {
             if showTransferMenu {
                 EllipsisMenuPopup(entries: [
-                    // 导出依赖已有任务（空列表禁用）；导入不依赖（换机迁移场景）
+                    // 导出依赖已有任务（空列表禁用）；进入多选（默认全选）
                     .action(title: L10n.t("导出计划任务"), icon: "square.and.arrow.up",
                             isDisabled: vm.cronjobs.isEmpty) {
                         showTransferMenu = false
+                        exportPreselect = nil
                         showExport = true
-                    },
-                    .action(title: L10n.t("导入计划任务"), icon: "square.and.arrow.down") {
-                        showTransferMenu = false
-                        showImport = true
                     },
                 ]) {
                     withAnimation(Motion.fast) { showTransferMenu = false }
@@ -124,7 +147,8 @@ struct CronjobsTab: View {
             }
         }
         .sheet(isPresented: $showExport) {
-            CronjobExportView(server: server, cronjobs: vm.cronjobs)
+            CronjobExportView(server: server, cronjobs: vm.cronjobs,
+                              preselectedIDs: exportPreselect)
         }
         .sheet(isPresented: $showImport) {
             CronjobImportView(server: server) {
@@ -139,6 +163,22 @@ struct CronjobsTab: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateCronjobView(vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+        }
+        .navigationDestination(isPresented: $showEditView) {
+            if let info = editingInfo {
+                CreateCronjobView(vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""),
+                                  editingJob: info)
+            }
+        }
+        // 行长按操作菜单（与防火墙规则行同款半屏 ActionBottomSheet）
+        .sheet(isPresented: Binding(
+            get: { actionJob != nil },
+            set: { if !$0 { actionJob = nil } }
+        )) {
+            ActionBottomSheet(title: actionJob?.name ?? L10n.t("计划任务"),
+                              items: actionMenuItems) { actionJob = nil }
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionMenuItems.count))])
+                .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showGroupManage) {
             GroupManageView(server: server, scope: .cronjob) {
@@ -159,6 +199,44 @@ struct CronjobsTab: View {
         return vm.cronjobs.filter { ($0.name ?? "").localizedCaseInsensitiveContains(keyword) }
     }
 
+    /// 长按行菜单项：立即执行 / 停用·启用 / 编辑 / 导出（进入多选）/ 删除
+    private var actionMenuItems: [ActionMenuItem] {
+        guard let job = actionJob else { return [] }
+        var items: [ActionMenuItem] = []
+        items.append(ActionMenuItem(title: L10n.t("立即执行"), icon: "play.fill", color: .blue) {
+            Task { await vm.handle(job: job) }
+        })
+        items.append(ActionMenuItem(
+            title: job.isEnabled ? L10n.t("停用任务") : L10n.t("启用任务"),
+            icon: job.isEnabled ? "pause.fill" : "checkmark.circle.fill", color: .orange) {
+            Task { await vm.updateStatus(job: job, enabled: !job.isEnabled) }
+        })
+        items.append(ActionMenuItem(title: L10n.t("编辑任务"), icon: "pencil", color: .blue) {
+            Task { await loadEditInfo(job: job) }
+        })
+        items.append(ActionMenuItem(title: L10n.t("导出任务"), icon: "square.and.arrow.up", color: .teal) {
+            exportPreselect = [job.id]
+            showExport = true
+        })
+        items.append(ActionMenuItem(title: L10n.t("删除任务"), icon: "trash", color: .red,
+                                    role: .destructive) {
+            Haptic.warning()
+            vm.pendingDeleteJob = job
+        })
+        return items
+    }
+
+    /// 加载编辑所需的任务详情，加载成功后跳转到编辑表单
+    private func loadEditInfo(job: Cronjob) async {
+        isLoadingEditInfo = true
+        let info = await vm.loadCronjobInfo(id: job.id)
+        isLoadingEditInfo = false
+        if let info = info {
+            editingInfo = info
+            showEditView = true
+        }
+    }
+
     private var cronjobList: some View {
         List {
             if filteredCronjobs.isEmpty {
@@ -174,6 +252,7 @@ struct CronjobsTab: View {
                     NavigationLink(value: job) {
                         CronjobRow(job: job)
                     }
+                    .onLongPressGesture { actionJob = job }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
                             Task { await vm.handle(job: job) }

@@ -25,6 +25,36 @@ struct AddNodeView: View {
 
     // 连接信息
     @State private var addr = ""
+    // 描边框 String 绑定（端口/版本/许可证/分组）
+    private var portText: Binding<String> {
+        Binding<String>(get: { String(port) },
+                        set: { port = Int($0) ?? port })
+    }
+
+    private var nodePortText: Binding<String> {
+        Binding<String>(get: { String(nodePort) },
+                        set: { nodePort = Int($0) ?? nodePort })
+    }
+
+    /// 版本 Bool ↔ String（community/pro）
+    private var editionText: Binding<String> {
+        Binding<String>(get: { isPro ? "pro" : "community" },
+                        set: { isPro = $0 == "pro" })
+    }
+
+    private var licenseText: Binding<String> {
+        Binding<String>(get: { String(selectedLicenseID) },
+                        set: { selectedLicenseID = Int($0) ?? 0 })
+    }
+
+    private var groupText: Binding<String> {
+        Binding<String>(get: {
+            selectedGroupID != 0 && groups.contains(where: { $0.id == selectedGroupID })
+                ? String(selectedGroupID) : String(groups.first?.id ?? 0)
+        },
+        set: { selectedGroupID = Int($0) ?? 0 })
+    }
+
     @State private var port = 22
     @State private var user = "root"
     @State private var authMode = "password"
@@ -174,21 +204,21 @@ struct AddNodeView: View {
 
     private var connectionSection: some View {
         Section(L10n.t("连接信息")) {
-            FormTextField(label: L10n.t("主机地址"), text: $addr, style: .stacked)
+            OutlinedTextField(label: L10n.t("主机地址"), text: $addr, keyboardType: .URL)
                 .keyboardType(.asciiCapable)
                 .onChange(of: addr) { _, newValue in
                     if !nameManuallyEdited { name = newValue }
                 }
-            TextField(L10n.t("端口"), value: $port, format: .number.grouping(.never))
-                .keyboardType(.numberPad)
-            FormTextField(label: L10n.t("用户名"), text: $user)
+            OutlinedTextField(label: L10n.t("主机端口"), prompt: "22",
+                              text: portText, keyboardType: .numberPad)
+            OutlinedTextField(label: L10n.t("用户名"), text: $user)
                 .keyboardType(.asciiCapable)
-            Picker(L10n.t("认证方式"), selection: $authMode) {
-                Text(L10n.t("密码认证")).tag("password")
-                Text(L10n.t("私钥认证")).tag("key")
-            }
+            OutlinedPicker(label: L10n.t("认证方式"), options: ["password", "key"],
+                           selection: $authMode,
+                           optionLabels: ["password": L10n.t("密码认证"),
+                                          "key": L10n.t("私钥认证")])
             if authMode == "password" {
-                FormTextField(label: L10n.t("密码"), text: $password, isSecure: true)
+                OutlinedTextField(label: L10n.t("密码"), text: $password, isSecure: true)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L10n.t("私钥"))
@@ -207,31 +237,29 @@ struct AddNodeView: View {
 
     private var nodeInfoSection: some View {
         Section(L10n.t("节点信息")) {
-            TextField(L10n.t("名称"), text: Binding(
+            OutlinedTextField(label: L10n.t("名称"), text: Binding(
                 get: { name },
                 set: { newValue in
                     name = newValue
                     if !newValue.isEmpty && newValue != addr { nameManuallyEdited = true }
                 }
             ))
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            FormTextField(label: L10n.t("安装目录"), text: $baseDir, style: .stacked)
-            TextField(L10n.t("节点端口"), value: $nodePort, format: .number.grouping(.never))
-                .keyboardType(.numberPad)
-            Picker(L10n.t("版本"), selection: $isPro) {
-                Text(L10n.t("社区版")).tag(false)
-                Text(L10n.t("专业版")).tag(true)
-            }
+            OutlinedTextField(label: L10n.t("安装目录"), prompt: "/opt/1panel", text: $baseDir, keyboardType: .URL)
+            OutlinedTextField(label: L10n.t("节点端口"), prompt: "9999",
+                              text: nodePortText, keyboardType: .numberPad)
+            OutlinedPicker(label: L10n.t("版本"), options: ["community", "pro"],
+                           selection: editionText,
+                           optionLabels: ["community": L10n.t("社区版"),
+                                          "pro": L10n.t("专业版")])
             if availableLicenses.isEmpty {
                 Text(L10n.t("无数据"))
                     .foregroundStyle(.secondary)
             } else {
-                Picker(L10n.t("许可证"), selection: $selectedLicenseID) {
-                    ForEach(availableLicenses) { license in
-                        Text(license.displayName).tag(license.id)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("许可证"),
+                               options: availableLicenses.map { String($0.id) },
+                               selection: licenseText,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   availableLicenses.map { (String($0.id), $0.displayName) }))
             }
             if groups.isEmpty {
                 // 分组接口不可用（社区版）：只读展示，沿用节点原分组
@@ -243,13 +271,13 @@ struct AddNodeView: View {
                         .foregroundStyle(.secondary)
                 }
             } else {
-                Picker(L10n.t("分组"), selection: $selectedGroupID) {
-                    ForEach(groups) { group in
-                        Text(group.name ?? "#\(group.id)").tag(group.id)
-                    }
-                }
+                OutlinedPicker(label: L10n.t("分组"),
+                               options: groups.map { String($0.id) },
+                               selection: groupText,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   groups.map { (String($0.id), $0.name ?? "#\($0.id)") }))
             }
-            FormTextField(label: L10n.t("描述"), text: $descriptionText, machineValue: false)
+            OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"), lines: 1, text: $descriptionText)
         }
     }
 

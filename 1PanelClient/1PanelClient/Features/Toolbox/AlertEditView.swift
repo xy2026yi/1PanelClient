@@ -274,7 +274,17 @@ struct AlertEditView: View {
                 OutlinedUnitField(label: L10n.t("失败次数"), unit: L10n.t("次"),
                                   text: unitText($failCount, range: 1...999))
             } else if type.isPercentType {
-                LabeledContent(L10n.t("指定时间"), value: L10n.t("5 分钟"))
+                // 指定时间不可修改（固定为监控采集间隔 5 分钟）：形态 1 只读框 + 小锁
+                OutlinedShape(label: L10n.t("指定时间"), isFocused: false,
+                              hasValue: true,
+                              trailing: {
+                    Image(systemName: "lock.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }) {
+                    Text(L10n.t("5 分钟"))
+                        .lineLimit(1)
+                }
                 OutlinedUnitField(label: L10n.t("平均使用率超过"), unit: "%",
                                   text: unitText($threshold, range: 1...100))
             } else if type.isDisk {

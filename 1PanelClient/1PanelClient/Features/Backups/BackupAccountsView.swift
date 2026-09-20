@@ -554,6 +554,18 @@ struct BackupAccountEditView: View {
     var onComplete: (() -> Void)? = nil
 
     // MARK: 表单状态
+    /// WebDAV 端口 String ↔ 提交值（空=不带 port）
+    private var webdavPortText: Binding<String> {
+        Binding<String>(get: { webdavPort },
+                        set: { webdavPort = $0.filter(\.isNumber) })
+    }
+
+    /// SFTP 端口 Int ↔ String（描边框用）
+    private var sftpPortText: Binding<String> {
+        Binding<String>(get: { String(sftpPort) },
+                        set: { sftpPort = Int($0) ?? sftpPort })
+    }
+
     @State private var name = ""
     @State private var type: BackupAccountType = .minio
     @State private var rememberAuth = false
@@ -574,6 +586,8 @@ struct BackupAccountEditView: View {
 
     // WebDAV
     @State private var webdavAddress = ""
+    /// WebDAV 端口（vars.port；留空不提交，地址可带 :port）
+    @State private var webdavPort = ""
     @State private var webdavUsername = ""
     @State private var webdavPassword = ""
 
@@ -657,7 +671,17 @@ struct BackupAccountEditView: View {
         Section {
             OutlinedTextField(label: L10n.t("名称"), text: $name)
             if isEdit {
-                LabeledContent(L10n.t("类型"), value: isLocal ? "LOCAL" : type.displayName)
+                // 类型不可改：描边只读框 + 锁标识
+                OutlinedShape(label: L10n.t("类型"), isFocused: false,
+                              hasValue: true,
+                              trailing: {
+                    Image(systemName: "lock.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }) {
+                    Text(isLocal ? "LOCAL" : type.displayName)
+                        .lineLimit(1)
+                }
             } else {
                 OutlinedPicker(label: L10n.t("类型"), options: BackupAccountType.allCases,
                                selection: $type) { $0.displayName }
@@ -749,8 +773,9 @@ struct BackupAccountEditView: View {
 
     private var webdavSection: some View {
         Section {
-            FormTextField(label: L10n.t("地址（含 http(s)://）"), text: $webdavAddress,
-                          style: .stacked, keyboardType: .URL)
+            OutlinedTextField(label: L10n.t("地址"), prompt: "https://example.com:5006",
+                          text: $webdavAddress, keyboardType: .URL)
+            OutlinedUnitField(label: L10n.t("端口"), unit: "", text: webdavPortText)
             OutlinedTextField(label: L10n.t("用户名"), text: $webdavUsername)
             OutlinedTextField(label: L10n.t("密码"), text: $webdavPassword, isSecure: true)
         } header: {
@@ -761,16 +786,10 @@ struct BackupAccountEditView: View {
     @ViewBuilder
     private var sftpSections: some View {
         Section {
-            FormTextField(label: L10n.t("地址"), text: $sftpAddress,
-                          style: .stacked, keyboardType: .URL)
-            HStack {
-                Text(L10n.t("端口"))
-                Spacer()
-                TextField("22", value: $sftpPort, format: .number)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 72)
-            }
+            OutlinedTextField(label: L10n.t("地址"), text: $sftpAddress,
+                          keyboardType: .URL)
+            OutlinedUnitField(label: L10n.t("端口"), unit: "", prompt: "22",
+                              text: sftpPortText)
             OutlinedTextField(label: L10n.t("用户名"), text: $sftpUsername)
         } header: {
             Text(L10n.t("连接信息"))
@@ -801,8 +820,8 @@ struct BackupAccountEditView: View {
                             }
                         }
                 }
-                FormTextField(label: L10n.t("私钥密码（可选）"), text: $sftpPassPhrase,
-                              isSecure: true)
+                OutlinedTextField(label: L10n.t("私钥密码"), prompt: L10n.t("可选"),
+                              text: $sftpPassPhrase, isSecure: true)
             }
         } header: {
             Text(L10n.t("认证方式"))
@@ -812,8 +831,8 @@ struct BackupAccountEditView: View {
     /// LOCAL 内置账号：仅可改名称与备份目录（保存后服务器会移动现有备份）
     private var localPathSection: some View {
         Section {
-            FormTextField(label: L10n.t("备份目录"), prompt: "/opt/1panel/backup",
-                          text: $backupPath, style: .stacked)
+            OutlinedTextField(label: L10n.t("备份目录"), prompt: "/opt/1panel/backup",
+                          text: $backupPath)
         } header: {
             Text(L10n.t("备份目录"))
         } footer: {
@@ -824,8 +843,8 @@ struct BackupAccountEditView: View {
     private var otherSection: some View {
         Section {
             Toggle(L10n.t("记住认证信息"), isOn: $rememberAuth)
-            FormTextField(label: L10n.t("备份目录"), prompt: "/",
-                          text: $backupPath, style: .stacked, keyboardType: .URL)
+            OutlinedTextField(label: L10n.t("备份目录"), prompt: "/",
+                          text: $backupPath, keyboardType: .URL)
         } header: {
             Text(L10n.t("认证与目录"))
         } footer: {
@@ -906,6 +925,7 @@ struct BackupAccountEditView: View {
             extraVars = vars.values.filter { !["scType", "endpointItem", "endpoint"].contains($0.key) }
         case .webdav:
             webdavAddress = vars["address"]?.stringValue ?? ""
+            if let p = vars["port"]?.intValue { webdavPort = String(p) }
         case .sftp:
             sftpAddress = vars["address"]?.stringValue ?? ""
             if let p = vars["port"]?.intValue { sftpPort = p }
@@ -999,6 +1019,9 @@ struct BackupAccountEditView: View {
             vars["endpoint"] = .string("\(endpointProto)://\(host)")
         case .webdav:
             vars["address"] = .string(webdavAddress.trimmingCharacters(in: .whitespaces))
+            if let p = Int(webdavPort), p > 0 {
+                vars["port"] = .int(p)
+            }
         case .sftp:
             vars["address"] = .string(sftpAddress.trimmingCharacters(in: .whitespaces))
             vars["port"] = .int(sftpPort)

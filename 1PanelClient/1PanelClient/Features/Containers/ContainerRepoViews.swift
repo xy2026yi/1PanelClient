@@ -207,7 +207,7 @@ struct RepoFormView: View {
                         .font(.subheadline)
                 }
                 Section(L10n.t("确认")) {
-                    FormTextField(label: L10n.t("立即重启"), text: $restartConfirm)
+                    OutlinedTextField(label: L10n.t("立即重启"), prompt: L10n.t("立即重启"), text: $restartConfirm, machineValue: false)
                 }
             } else {
                 formSection

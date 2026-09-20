@@ -643,18 +643,26 @@ private struct BackupCreateView: View {
     var body: some View {
         Form {
                 Section {
-                    HStack(alignment: .firstTextBaseline) {
-                        FormTextField(label: L10n.t("压缩密码"), prompt: L10n.t("可选"), text: $secret,
-                                      isSecure: !showSecret)
+                    OutlinedShape(label: L10n.t("压缩密码"), isFocused: false,
+                                  hasValue: !secret.isEmpty,
+                                  trailing: {
                         Button {
                             showSecret.toggle()
                         } label: {
                             Image(systemName: showSecret ? "eye.slash" : "eye")
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
+                        .accessibilityLabel(showSecret ? L10n.t("隐藏密码") : L10n.t("显示密码"))
+                    }) {
+                        if showSecret {
+                            TextField("", text: $secret)
+                        } else {
+                            SecureField("", text: $secret)
+                        }
                     }
-                    FormTextField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $description,
+                    OutlinedTextField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $description,
                                   machineValue: false)
                 } header: {
                     Text(L10n.t("备份选项"))
@@ -767,16 +775,24 @@ case hour = "小时"
                 }
 
                 Section {
-                    HStack(alignment: .firstTextBaseline) {
-                        FormTextField(label: L10n.t("压缩密码"), prompt: L10n.t("可选"), text: $secret,
-                                      isSecure: !showSecret)
+                    OutlinedShape(label: L10n.t("压缩密码"), isFocused: false,
+                                  hasValue: !secret.isEmpty,
+                                  trailing: {
                         Button {
                             showSecret.toggle()
                         } label: {
                             Image(systemName: showSecret ? "eye.slash" : "eye")
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
+                        .accessibilityLabel(showSecret ? L10n.t("隐藏密码") : L10n.t("显示密码"))
+                    }) {
+                        if showSecret {
+                            TextField("", text: $secret)
+                        } else {
+                            SecureField("", text: $secret)
+                        }
                     }
                 } header: {
                     Text(L10n.t("恢复选项"))

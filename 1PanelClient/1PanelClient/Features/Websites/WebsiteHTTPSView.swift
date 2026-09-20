@@ -169,7 +169,7 @@ struct WebsiteHTTPSView: View {
                                    selection: $httpConfig,
                                    optionLabels: Dictionary(uniqueKeysWithValues:
                                        availableHttpConfigs.map { ($0.0, $0.1) }))
-                    FormTextField(label: L10n.t("HTTPS 端口"), prompt: "443",
+                    OutlinedTextField(label: L10n.t("HTTPS 端口"), prompt: "443",
                                   text: $httpsPort, keyboardType: .numberPad)
                 }
             }

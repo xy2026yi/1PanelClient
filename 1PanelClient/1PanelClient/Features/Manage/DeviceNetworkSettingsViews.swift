@@ -65,10 +65,8 @@ struct DeviceDNSSettingsView: View {
     var body: some View {
         Form {
             Section {
-                FormTextField(label: L10n.t("每行一个 DNS 地址"), text: $dnsInput, axis: .vertical)
-                    .lineLimit(6...12)
-                    .font(.dataMonospacedBody)
-                    .keyboardType(.asciiCapable)
+                OutlinedMultiLineField(label: L10n.t("DNS 地址"), prompt: "223.5.5.5",
+                                       lines: 6, text: $dnsInput)
                     .focused($focused)
                     .onSubmit { Task { await commit() } }
             } footer: {
@@ -265,12 +263,8 @@ struct DeviceHostsSettingsView: View {
 
                     if addingHost {
                         VStack(spacing: 8) {
-                            FormTextField(label: L10n.t("IP 地址"), text: $newHostIP, style: .stacked)
-                                .font(.dataMonospacedBody)
-                                .keyboardType(.asciiCapable)
-                            FormTextField(label: L10n.t("域名（可多个，空格分隔）"), text: $newHostName)
-                                .font(.dataMonospacedBody)
-                                .keyboardType(.asciiCapable)
+                            OutlinedTextField(label: L10n.t("IP 地址"), text: $newHostIP)
+                            OutlinedTextField(label: L10n.t("域名（可多个，空格分隔）"), text: $newHostName)
                             HStack {
                                 Button(L10n.t("取消")) {
                                     addingHost = false
@@ -427,41 +421,54 @@ struct DevicePasswordView: View {
     var body: some View {
         Form {
             Section {
-                FormTextField(label: L10n.t("用户"), text: $user)
+                OutlinedTextField(label: L10n.t("用户"), text: $user)
             } header: {
                 SectionLabel(title: L10n.t("用户"), systemImage: "person.crop.circle")
             }
 
             Section {
-                HStack {
-                    if showPasswd {
-                        FormTextField(label: L10n.t("新密码"), text: $passwd)
-                    } else {
-                        FormTextField(label: L10n.t("新密码"), text: $passwd, isSecure: true)
-                    }
+                // 眼睛切换内嵌描边框右侧
+                OutlinedShape(label: L10n.t("新密码"), isFocused: false,
+                              hasValue: !passwd.isEmpty,
+                              trailing: {
                     Button {
                         showPasswd.toggle()
                     } label: {
                         Image(systemName: showPasswd ? "eye.slash" : "eye")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
                     .accessibilityLabel(L10n.t(showPasswd ? "隐藏密码" : "显示密码"))
-                }
-                HStack {
-                    if showConfirm {
-                        FormTextField(label: L10n.t("确认密码"), text: $confirm)
+                }) {
+                    if showPasswd {
+                        TextField("", text: $passwd)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
                     } else {
-                        FormTextField(label: L10n.t("确认密码"), text: $confirm, isSecure: true)
+                        SecureField("", text: $passwd)
                     }
+                }
+                OutlinedShape(label: L10n.t("确认密码"), isFocused: false,
+                              hasValue: !confirm.isEmpty,
+                              trailing: {
                     Button {
                         showConfirm.toggle()
                     } label: {
                         Image(systemName: showConfirm ? "eye.slash" : "eye")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
                     .accessibilityLabel(L10n.t(showConfirm ? "隐藏密码" : "显示密码"))
+                }) {
+                    if showConfirm {
+                        TextField("", text: $confirm)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    } else {
+                        SecureField("", text: $confirm)
+                    }
                 }
             } header: {
                 SectionLabel(title: L10n.t("密码"), systemImage: "lock")
@@ -556,7 +563,7 @@ struct DeviceTimezoneView: View {
     var body: some View {
         List {
             Section {
-                FormTextField(label: L10n.t("搜索时区"), text: $searchText)
+                OutlinedTextField(label: L10n.t("搜索时区"), text: $searchText, machineValue: false)
             }
 
             if isLoading {

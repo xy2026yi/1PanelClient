@@ -185,7 +185,7 @@ struct CreateAcmeAccountView: View {
 
             if type == .custom {
                 Section {
-                    FormTextField(label: L10n.t("ACME 服务 URL"), text: $caDirURL, style: .stacked, keyboardType: .URL)
+                    OutlinedTextField(label: L10n.t("ACME 服务 URL"), text: $caDirURL, keyboardType: .URL)
                     Toggle(L10n.t("使用 EAB 认证"), isOn: $useEAB.animation())
                 } header: {
                     Text(L10n.t("自定义服务"))

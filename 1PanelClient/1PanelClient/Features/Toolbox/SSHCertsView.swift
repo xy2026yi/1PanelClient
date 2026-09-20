@@ -775,7 +775,7 @@ struct SSHCertEditView: View {
     var body: some View {
         Form {
             Section(L10n.t("基本信息")) {
-                FormTextField(label: L10n.t("名称"), text: $name)
+                OutlinedTextField(label: L10n.t("名称"), text: $name)
 
                 OutlinedPicker(label: L10n.t("加密方式"), options: SSHCertEncryption.allCases,
                                selection: $encryption) { $0.displayName }
@@ -783,7 +783,7 @@ struct SSHCertEditView: View {
 
             Section {
                 PasswordInputRow(password: $passPhrase, showPassword: $showPassPhrase)
-                FormTextField(label: L10n.t("描述（可选）"), text: $description, machineValue: false)
+                OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"), lines: 1, text: $description)
             } header: {
                 Text(L10n.t("密码与描述"))
             } footer: {

@@ -519,7 +519,7 @@ private struct NodeRenameSheet: View {
         NavigationStack {
             Form {
                 Section(L10n.t("节点信息")) {
-                    FormTextField(label: L10n.t("名称"), text: $name)
+                    OutlinedTextField(label: L10n.t("名称"), text: $name)
                     if groups.isEmpty {
                         HStack {
                             Text(L10n.t("分组"))
@@ -534,7 +534,7 @@ private struct NodeRenameSheet: View {
                             }
                         }
                     }
-                    FormTextField(label: L10n.t("备注"), text: $descriptionText, machineValue: false)
+                    OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"), lines: 1, text: $descriptionText)
                 }
             }
             .navigationTitle(L10n.t("改名称"))

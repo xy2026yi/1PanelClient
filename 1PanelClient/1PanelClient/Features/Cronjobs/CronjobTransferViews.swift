@@ -12,11 +12,14 @@ import UniformTypeIdentifiers
 
 // MARK: - 导出
 
-/// 导出计划任务：任务勾选列表 + 导出按钮（导出后出现分享行）
+/// 导出计划任务：任务勾选列表（全选/反全选）+ 导出按钮（导出后出现分享行）。
+/// preselectedIDs：长按菜单「导出任务」进入时仅勾选当前任务；nil = 默认全选
 struct CronjobExportView: View {
     let server: ServerConfig
     /// 任务列表数据源（复用列表页已加载的 cronjobs）
     let cronjobs: [Cronjob]
+    /// 初始勾选集合（nil = 全选）
+    var preselectedIDs: Set<Int>? = nil
     var onDone: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
@@ -29,13 +32,15 @@ struct CronjobExportView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, cronjobs: [Cronjob], onDone: @escaping () -> Void = {}) {
+    init(server: ServerConfig, cronjobs: [Cronjob],
+         preselectedIDs: Set<Int>? = nil, onDone: @escaping () -> Void = {}) {
         self.server = server
         self.cronjobs = cronjobs
+        self.preselectedIDs = preselectedIDs
         self.onDone = onDone
         self.client = APIClient.shared(for: server)
-        // 默认全选（导出通常要整包迁移，可再手动取消）
-        _selectedIDs = State(initialValue: Set(cronjobs.map(\.id)))
+        // 默认全选（导出通常要整包迁移，可再手动取消）；长按进入时仅当前任务
+        _selectedIDs = State(initialValue: preselectedIDs ?? Set(cronjobs.map(\.id)))
     }
 
     var body: some View {
@@ -63,14 +68,26 @@ struct CronjobExportView: View {
         .interactiveDismissDisabled(isExporting)
     }
 
-    /// 任务勾选列表（默认全选）
+    /// 任务勾选列表（头部全选/反全选）
     private var taskListSection: some View {
         Section {
             ForEach(cronjobs) { job in
                 exportRow(job)
             }
         } header: {
-            SectionLabel(title: L10n.f("计划任务（%ld）", cronjobs.count), systemImage: "clock.badge.checkmark")
+            HStack {
+                Text(L10n.f("计划任务（%ld）", cronjobs.count))
+                Spacer()
+                Button(selectedIDs.count == cronjobs.count
+                       ? L10n.t("全不选") : L10n.t("全选")) {
+                    if selectedIDs.count == cronjobs.count {
+                        selectedIDs.removeAll()
+                    } else {
+                        selectedIDs = Set(cronjobs.map(\.id))
+                    }
+                }
+                .font(.caption)
+            }
         } footer: {
             exportFooter
         }

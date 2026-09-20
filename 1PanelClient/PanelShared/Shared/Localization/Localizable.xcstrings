@@ -470,6 +470,17 @@
         }
       }
     },
+    "%ld 个周期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld Schedules"
+          }
+        }
+      }
+    },
     "%ld 个进程" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1437,6 +1448,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DNS unreachable"
+          }
+        }
+      }
+    },
+    "DNS 地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DNS Servers"
           }
         }
       }
@@ -5215,6 +5237,17 @@
         }
       }
     },
+    "修改 Swap" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Swap"
+          }
+        }
+      }
+    },
     "修改保存后需重启数据库才能生效。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6381,6 +6414,17 @@
         }
       }
     },
+    "内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Content"
+          }
+        }
+      }
+    },
     "内置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6674,6 +6718,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Partition %@ unmounted"
+          }
+        }
+      }
+    },
+    "分区大小最小值为 40 KB，设置成 0 则关闭 Swap 分区。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimum partition size is 40 KB; set it to 0 to disable the swap partition."
           }
         }
       }
@@ -8027,6 +8082,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Agent"
+          }
+        }
+      }
+    },
+    "删除周期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Schedule"
           }
         }
       }
@@ -12024,6 +12090,17 @@
         }
       }
     },
+    "大小需要能被 4 整除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size must be divisible by 4"
+          }
+        }
+      }
+    },
     "天" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12053,6 +12130,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restart on failure"
+          }
+        }
+      }
+    },
+    "失败重试次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retries on Failure"
           }
         }
       }
@@ -13186,6 +13274,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export Cronjobs"
+          }
+        }
+      }
+    },
+    "导出任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Task"
           }
         }
       }
@@ -15830,6 +15929,17 @@
         }
       }
     },
+    "快照将跳过匹配的文件，每行一条规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matching files will be skipped; one rule per line"
+          }
+        }
+      }
+    },
     "快照将跳过匹配的文件，支持多个规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16035,6 +16145,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Always Pull Latest"
+          }
+        }
+      }
+    },
+    "总数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total"
           }
         }
       }
@@ -31127,6 +31248,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Please enter an instance name"
+          }
+        }
+      }
+    },
+    "请输入有效的数值" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a valid number"
           }
         }
       }
