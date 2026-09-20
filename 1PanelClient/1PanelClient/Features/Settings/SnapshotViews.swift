@@ -3,8 +3,8 @@
 //  1PanelClient
 //
 //  面板快照（logs/推荐实现-计划任务和面板.md 抓包 2026-09-14）：
-//  列表（删除/恢复）· 创建（数据树勾选 + 基础配置，全量回传 + 任务进度）
-//  网页端 6 步向导在移动端收敛为单页分区表单
+//  列表（删除/恢复）· 创建（分页向导：基础数据 → 应用 → 数据 → 其他，全量回传 + 任务进度）
+//  网页端 6 步向导在移动端收敛为 4 页（数据树勾选保持原生 Toggle，形态 9 约定）
 //
 
 import SwiftUI
@@ -449,7 +449,7 @@ private struct SnapshotLeafRow: View {
     }
 }
 
-// MARK: - 创建快照（单页分区表单）
+// MARK: - 创建快照（分页向导：基础数据 → 应用 → 数据 → 其他）
 
 struct SnapshotCreateView: View {
     let server: ServerConfig
@@ -479,6 +479,10 @@ struct SnapshotCreateView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var showError = false
+
+    /// 向导分页：0 基础数据 1 系统应用+应用数据 2 系统数据+备份数据 3 其他数据+排除规则
+    @State private var wizardPage = 0
+    private let wizardPageNames = [L10n.t("基础"), L10n.t("应用"), L10n.t("数据"), L10n.t("其他")]
 
     private let client: APIClient
     private let timeoutUnits: [(value: String, label: String, seconds: Int)] = [
@@ -532,32 +536,87 @@ struct SnapshotCreateView: View {
     }
 
     private func createForm(_ data: SnapshotLoadData) -> some View {
-        Form {
-            Section {
-                if accounts.isEmpty {
-                    Text(L10n.t("无数据"))
-                        .foregroundStyle(.secondary)
-                } else {
-                    OutlinedPicker(label: L10n.t("备份账号"),
-                                   options: accounts.map { String($0.id) },
-                                   selection: accountText,
-                                   optionLabels: Dictionary(uniqueKeysWithValues:
-                                       accounts.map { (String($0.id), $0.name ?? "#\($0.id)") }))
+        VStack(spacing: 0) {
+            WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+            Form {
+                Group {
+                    switch wizardPage {
+                    case 0:
+                        basicDataSection
+                    case 1:
+                        appPage(data)
+                    case 2:
+                        dataPage(data)
+                    default:
+                        otherPage
+                    }
                 }
-                OutlinedTextField(label: L10n.t("压缩密码（可选）"), text: $secret)
-                // 超时：数值 + 单位下拉（形态 3）
-                OutlinedUnitField(label: L10n.t("超时时间"), unit: "",
-                                  text: timeoutText, range: 1...8760)
-                OutlinedPicker(label: L10n.t("超时单位"),
-                               options: timeoutUnits.map(\.value),
-                               selection: $timeoutUnit,
-                               optionLabels: Dictionary(uniqueKeysWithValues:
-                                   timeoutUnits.map { ($0.value, $0.label) }))
-                OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $descriptionText)
-            } header: {
-                SectionLabel(title: L10n.t("基础数据"), systemImage: "externaldrive")
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
             }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WizardBottomBar(
+                page: wizardPage,
+                totalPages: wizardPageNames.count,
+                primaryTitle: L10n.t("创建"),
+                isBusy: isSubmitting,
+                primaryDisabled: selectedAccountID == nil,
+                onBack: { withAnimation { wizardPage -= 1 } },
+                onNext: { withAnimation { wizardPage += 1 } },
+                onPrimary: { Task { await submit() } }
+            )
+        }
+        .animation(.easeInOut(duration: 0.22), value: wizardPage)
+        // 创建快照进行中禁下拉关闭，防异步提交被误中断（与 TextInputConfirmSheet 同款防护）
+        .interactiveDismissDisabled(isSubmitting)
+        // 总开关打开 → 应用数据树内所有「应用镜像」叶子全部勾上（反向联动见树回调）
+        .onChange(of: backupAllImage) { _, on in
+            if on, let data = loadData {
+                checked.formUnion(Self.appImageLeafIDs(data.appData ?? []))
+            }
+        }
+        .alert(L10n.t("提示"), isPresented: $showError) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
 
+    // MARK: 向导分页成员（自单页表单拆出）
+
+    /// 页 0 · 基础数据：备份账号 / 压缩密码 / 超时 / 描述
+    private var basicDataSection: some View {
+        Section {
+            if accounts.isEmpty {
+                Text(L10n.t("无数据"))
+                    .foregroundStyle(.secondary)
+            } else {
+                OutlinedPicker(label: L10n.t("备份账号"),
+                               options: accounts.map { String($0.id) },
+                               selection: accountText,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   accounts.map { (String($0.id), $0.name ?? "#\($0.id)") }))
+            }
+            OutlinedTextField(label: L10n.t("压缩密码（可选）"), text: $secret)
+            // 超时：数值 + 单位下拉（形态 3）
+            OutlinedUnitField(label: L10n.t("超时时间"), unit: "",
+                              text: timeoutText, range: 1...8760)
+            OutlinedPicker(label: L10n.t("超时单位"),
+                           options: timeoutUnits.map(\.value),
+                           selection: $timeoutUnit,
+                           optionLabels: Dictionary(uniqueKeysWithValues:
+                               timeoutUnits.map { ($0.value, $0.label) }))
+            OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $descriptionText)
+        } header: {
+            SectionLabel(title: L10n.t("基础数据"), systemImage: "externaldrive")
+        }
+    }
+
+    /// 页 1 · 应用：系统应用（备份所有应用镜像总开关）+ 应用数据树（与总开关联动）
+    private func appPage(_ data: SnapshotLoadData) -> some View {
+        Group {
             Section {
                 Toggle(L10n.t("备份所有应用镜像"), isOn: $backupAllImage)
             } header: {
@@ -569,12 +628,22 @@ struct SnapshotCreateView: View {
                 // 关闭任一应用的「应用镜像」时，联动关闭「备份所有应用镜像」总开关
                 if node.label == "appImage" && !on { backupAllImage = false }
             })
+        }
+    }
 
+    /// 页 2 · 数据：系统数据树 + 备份数据树
+    private func dataPage(_ data: SnapshotLoadData) -> some View {
+        Group {
             SnapshotTreeSection(title: L10n.t("系统数据"), systemIcon: "gearshape.2",
                                 nodes: data.panelData ?? [], checked: $checked)
             SnapshotTreeSection(title: L10n.t("备份数据"), systemIcon: "externaldrive.badge.icloud",
                                 nodes: data.backupData ?? [], checked: $checked)
+        }
+    }
 
+    /// 页 3 · 其他：日志类开关 + 排除规则
+    private var otherPage: some View {
+        Group {
             Section {
                 Toggle(L10n.t("Docker配置"), isOn: $withDockerConf)
                 Toggle(L10n.t("监控数据"), isOn: $withMonitorData)
@@ -594,34 +663,6 @@ struct SnapshotCreateView: View {
             } footer: {
                 Text(L10n.t("快照将跳过匹配的文件，每行一条规则"))
             }
-
-            Section {
-                Button {
-                    Task { await submit() }
-                } label: {
-                    HStack {
-                        if isSubmitting { ProgressView() } else { Text(L10n.t("创建")) }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .font(.headline)
-                }
-                .buttonStyle(.borderedProminent)
-                .listRowBackground(Color.clear)
-                .disabled(isSubmitting || selectedAccountID == nil)
-            }
-        }
-        // 创建快照进行中禁下拉关闭，防异步提交被误中断（与 TextInputConfirmSheet 同款防护）
-        .interactiveDismissDisabled(isSubmitting)
-        // 总开关打开 → 应用数据树内所有「应用镜像」叶子全部勾上（反向联动见树回调）
-        .onChange(of: backupAllImage) { _, on in
-            if on, let data = loadData {
-                checked.formUnion(Self.appImageLeafIDs(data.appData ?? []))
-            }
-        }
-        .alert(L10n.t("提示"), isPresented: $showError) {
-            Button(L10n.t("好的"), role: .cancel) {}
-        } message: {
-            Text(errorMessage ?? "")
         }
     }
 
