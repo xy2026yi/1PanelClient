@@ -400,7 +400,8 @@ struct CreateCronjobView: View {
         case .clean, .ntp, .syncIpGroup:
             // 这三种类型无备份账号、无类型特定配置，仅需保留份数
             Section(L10n.t("任务设置")) {
-                Stepper(L10n.f("保留份数：%ld 份", retainCopies), value: $retainCopies, in: 1...100)
+                OutlinedUnitField(label: L10n.t("保留份数"), unit: L10n.t("份"),
+                                  text: retainCopiesText, range: 1...100)
             }
         }
     }
@@ -436,6 +437,12 @@ struct CreateCronjobView: View {
                         set: { text in clampInt(text, into: 1...9999) { timeoutValue = $0 } })
     }
 
+    /// 保留份数 Int ↔ String（输入钳制 1...100，对齐原 Stepper 范围）
+    private var retainCopiesText: Binding<String> {
+        Binding<String>(get: { String(retainCopies) },
+                        set: { text in clampInt(text, into: 1...100) { retainCopies = $0 } })
+    }
+
     /// 数字文本钳制：非法输入保持原值，超出范围收敛到边界
     private func clampInt(_ text: String, into range: ClosedRange<Int>, set: (Int) -> Void) {
         guard let parsed = Int(text) else { return }
@@ -463,7 +470,8 @@ struct CreateCronjobView: View {
     @ViewBuilder
     private var backupSection: some View {
         Section(L10n.t("备份设置")) {
-            Stepper(L10n.f("保留份数：%ld 份", retainCopies), value: $retainCopies, in: 1...100)
+            OutlinedUnitField(label: L10n.t("保留份数"), unit: L10n.t("份"),
+                              text: retainCopiesText, range: 1...100)
 
             Picker(L10n.t("备份账号"), selection: $backupAccountID) {
                 ForEach(vm.backupAccounts, id: \.id) { acc in

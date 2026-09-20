@@ -2,7 +2,7 @@
 //  AddNodeView.swift
 //  1PanelClient
 //
-//  添加/编辑节点：连接信息（SSH）/ 节点信息（含分组选择）/ 数据同步 → 可用性检查 → 确认提交（异步任务进度）
+//  添加/编辑节点：分页向导（连接信息 → 节点信息 → 数据同步），末页主操作为可用性检查 → 确认提交（异步任务进度）
 //  基于网页端抓包（logs/多机管理/多机管理-节点管理-1.md、多机管理-2.md）
 //  说明：密码/私钥 base64 编码传输（对齐网页端）；「使用代理」未勾选时不发送，暂未实现；
 //  「导入许可证」为专业版许可流程，暂仅支持选择已有许可证
@@ -137,13 +137,56 @@ struct AddNodeView: View {
             && (!isPro || availableLicenses.indices.contains(where: { availableLicenses[$0].id == selectedLicenseID }))
     }
 
+    /// 向导分页：0 连接信息 1 节点信息 2 数据同步（末页主操作 = 可用性检查）
+    @State private var wizardPage = 0
+    private let wizardPageNames = [L10n.t("连接信息"), L10n.t("节点信息"), L10n.t("数据同步")]
+
+    /// 当前页必填是否满足（控制「下一步」；末页主操作用完整 canSubmit）
+    private var pageReady: Bool {
+        switch wizardPage {
+        case 0:
+            return !addr.trimmingCharacters(in: .whitespaces).isEmpty
+                && !user.isEmpty && port > 0
+                && (authMode == "password" ? !password.isEmpty : !privateKey.isEmpty)
+        case 1:
+            return !name.trimmingCharacters(in: .whitespaces).isEmpty
+                && nodePort > 0 && !baseDir.isEmpty
+                && (!isPro || availableLicenses.indices.contains(where: { availableLicenses[$0].id == selectedLicenseID }))
+        default:
+            return true
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            Form {
-                connectionSection
-                nodeInfoSection
-                syncSection
+            VStack(spacing: 0) {
+                WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+                Form {
+                    Group {
+                        switch wizardPage {
+                        case 0: connectionSection
+                        case 1: nodeInfoSection
+                        default: syncSection
+                        }
+                    }
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)))
+                }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                WizardBottomBar(
+                    page: wizardPage,
+                    totalPages: wizardPageNames.count,
+                    primaryTitle: L10n.t("可用性检查"),
+                    isBusy: isChecking || isSubmitting,
+                    primaryDisabled: wizardPage < wizardPageNames.count - 1 ? !pageReady : !canSubmit,
+                    onBack: { withAnimation { wizardPage -= 1 } },
+                    onNext: { withAnimation { wizardPage += 1 } },
+                    onPrimary: { Task { await check() } }
+                )
+            }
+            .animation(.easeInOut(duration: 0.22), value: wizardPage)
             .navigationTitle(isEditing ? L10n.t("编辑节点") : L10n.t("添加节点"))
             .navigationBarTitleDisplayMode(.inline)
             .formWidthLimit()
@@ -158,20 +201,6 @@ struct AddNodeView: View {
                         ProgressView()
                     }
                 }
-            }
-            .safeAreaInset(edge: .bottom) {
-                Button {
-                    Task { await check() }
-                } label: {
-                    Text(L10n.t("可用性检查"))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!canSubmit || isChecking || isSubmitting)
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-                .background(.regularMaterial)
             }
             .alert(L10n.t("操作失败"), isPresented: .init(
                 get: { errorMessage != nil },

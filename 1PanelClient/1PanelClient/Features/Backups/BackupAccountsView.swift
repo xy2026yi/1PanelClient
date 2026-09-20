@@ -609,42 +609,42 @@ struct BackupAccountEditView: View {
     @State private var showValidationAlert = false
     @State private var validationMessage = ""
 
+    // 向导分页：MINIO/OSS 三页（基本信息 → 连接信息 → 存储桶），
+    // WebDAV/SFTP 两页（基本信息 → 连接信息）；LOCAL 保持单页（工具栏保存）
+    @State private var wizardPage = 0
+    private var isThreePage: Bool { type == .minio || type == .oss }
+    private var wizardPageNames: [String] {
+        isThreePage
+            ? [L10n.t("基本信息"), L10n.t("连接信息"), L10n.t("存储桶")]
+            : [L10n.t("基本信息"), L10n.t("连接信息")]
+    }
+
     private var isEdit: Bool { existing != nil }
     private var isLocal: Bool { existing?.isLocal ?? false }
 
-    var body: some View {
-        Form {
-            basicSection
+    /// 当前页必填是否满足（控制「下一步」；末页主操作用「连接测试通过」整表校验）
+    private var pageReady: Bool {
+        switch wizardPage {
+        case 0:
+            return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case 1 where isThreePage:
+            return !accessKeyID.isEmpty && !secretKey.isEmpty
+                && !endpointHost.trimmingCharacters(in: .whitespaces).isEmpty
+        default:
+            return true
+        }
+    }
 
+    var body: some View {
+        Group {
             if isLocal {
-                localPathSection
+                localBody
             } else {
-                switch type {
-                case .minio:  minioSections
-                case .oss:    ossSections
-                case .webdav: webdavSection
-                case .sftp:   sftpSections
-                }
-                otherSection
-                checkSection
+                wizardBody
             }
         }
         .navigationTitle(isEdit ? L10n.t("编辑备份账号") : L10n.t("添加备份账号"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await submit() }
-                } label: {
-                    if isSubmitting {
-                        ProgressView()
-                    } else {
-                        Text(isEdit ? L10n.t("保存") : L10n.t("确认")).bold()
-                    }
-                }
-                .disabled(isSubmitting || (isLocal ? false : checkState != .ok))
-            }
-        }
         .alert(L10n.t("提示"), isPresented: $showValidationAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -663,6 +663,71 @@ struct BackupAccountEditView: View {
         .onChange(of: formFingerprint) { _, _ in
             if checkState != .none { checkState = .none }
         }
+    }
+
+    /// LOCAL 内置账号：单页（基本信息 + 备份目录），右上角保存
+    private var localBody: some View {
+        Form {
+            basicSection
+            localPathSection
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSubmitting {
+                        ProgressView()
+                    } else {
+                        Text(isEdit ? L10n.t("保存") : L10n.t("确认")).bold()
+                    }
+                }
+                .disabled(isSubmitting)
+            }
+        }
+    }
+
+    /// MINIO/OSS/WebDAV/SFTP：分页向导（底部导航；末页主操作 = 保存，需连接测试通过）
+    private var wizardBody: some View {
+        VStack(spacing: 0) {
+            WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+            Form {
+                Group {
+                    switch wizardPage {
+                    case 0:
+                        basicSection
+                    case 1:
+                        connectionPage
+                        if !isThreePage {
+                            dirSection
+                            checkSection
+                        }
+                    default:
+                        if type == .oss { ossStorageSection }
+                        bucketSection
+                        dirSection
+                        checkSection
+                    }
+                }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WizardBottomBar(
+                page: wizardPage,
+                totalPages: wizardPageNames.count,
+                primaryTitle: isEdit ? L10n.t("保存") : L10n.t("确认"),
+                isBusy: isSubmitting,
+                primaryDisabled: wizardPage < wizardPageNames.count - 1
+                    ? !pageReady : checkState != .ok,
+                onBack: { withAnimation { wizardPage -= 1 } },
+                onNext: { withAnimation { wizardPage += 1 } },
+                onPrimary: { Task { await submit() } }
+            )
+        }
+        .animation(.easeInOut(duration: 0.22), value: wizardPage)
     }
 
     // MARK: 表单区块
@@ -695,13 +760,34 @@ struct BackupAccountEditView: View {
         }
     }
 
-    /// MINIO / 阿里云OSS 共用：Access Key 凭证
+    /// 连接页内容：MINIO/OSS = 连接信息（凭证）+ Endpoint；WebDAV = 连接信息；SFTP = 连接信息 + 认证方式
+    @ViewBuilder
+    private var connectionPage: some View {
+        switch type {
+        case .minio:
+            credentialsSection
+            endpointSection
+        case .oss:
+            credentialsSection
+            endpointSection
+        case .webdav:
+            webdavSection
+        case .sftp:
+            sftpConnectionSection
+            sftpAuthSection
+        }
+    }
+
+    /// MINIO / 阿里云OSS 共用：Access Key 凭证（记住认证信息置于分组末尾）
     private var credentialsSection: some View {
         Section {
             OutlinedTextField(label: "Access Key ID", text: $accessKeyID)
             OutlinedTextField(label: "Secret Key", text: $secretKey, isSecure: true)
+            Toggle(L10n.t("记住认证信息"), isOn: $rememberAuth)
         } header: {
-            Text(L10n.t("认证信息"))
+            Text(L10n.t("连接信息"))
+        } footer: {
+            Text(L10n.t("开启「记住认证信息」后凭证加密存储在服务器，编辑时可直接回显"))
         }
     }
 
@@ -749,17 +835,8 @@ struct BackupAccountEditView: View {
         }
     }
 
-    @ViewBuilder
-    private var minioSections: some View {
-        credentialsSection
-        endpointSection
-        bucketSection
-    }
-
-    @ViewBuilder
-    private var ossSections: some View {
-        credentialsSection
-        endpointSection
+    /// OSS 存储类型（存储页，桶列表之上）
+    private var ossStorageSection: some View {
         Section {
             OutlinedPicker(label: L10n.t("存储类型"), options: OSSStorageType.allCases,
                            selection: $ossScType) { $0.displayName }
@@ -768,7 +845,6 @@ struct BackupAccountEditView: View {
         } footer: {
             Text(ossScType.remark)
         }
-        bucketSection
     }
 
     private var webdavSection: some View {
@@ -778,23 +854,32 @@ struct BackupAccountEditView: View {
             OutlinedUnitField(label: L10n.t("端口"), unit: "", text: webdavPortText)
             OutlinedTextField(label: L10n.t("用户名"), text: $webdavUsername)
             OutlinedTextField(label: L10n.t("密码"), text: $webdavPassword, isSecure: true)
+            Toggle(L10n.t("记住认证信息"), isOn: $rememberAuth)
         } header: {
             Text(L10n.t("连接信息"))
+        } footer: {
+            Text(L10n.t("开启「记住认证信息」后凭证加密存储在服务器，编辑时可直接回显"))
         }
     }
 
-    @ViewBuilder
-    private var sftpSections: some View {
+    /// SFTP 连接信息（记住认证信息置于分组末尾）
+    private var sftpConnectionSection: some View {
         Section {
             OutlinedTextField(label: L10n.t("地址"), text: $sftpAddress,
                           keyboardType: .URL)
             OutlinedUnitField(label: L10n.t("端口"), unit: "", prompt: "22",
                               text: sftpPortText)
             OutlinedTextField(label: L10n.t("用户名"), text: $sftpUsername)
+            Toggle(L10n.t("记住认证信息"), isOn: $rememberAuth)
         } header: {
             Text(L10n.t("连接信息"))
+        } footer: {
+            Text(L10n.t("开启「记住认证信息」后凭证加密存储在服务器，编辑时可直接回显"))
         }
+    }
 
+    /// SFTP 认证方式（密码 / 私钥）
+    private var sftpAuthSection: some View {
         Section {
             OutlinedPicker(label: L10n.t("认证方式"), options: SFTPAuthMode.allCases,
                            selection: $sftpAuthMode) { $0.displayName }
@@ -840,15 +925,15 @@ struct BackupAccountEditView: View {
         }
     }
 
-    private var otherSection: some View {
+    /// 备份目录（MINIO/OSS 在存储页；WebDAV/SFTP 在连接页末尾）
+    private var dirSection: some View {
         Section {
-            Toggle(L10n.t("记住认证信息"), isOn: $rememberAuth)
             OutlinedTextField(label: L10n.t("备份目录"), prompt: "/",
                           text: $backupPath, keyboardType: .URL)
         } header: {
-            Text(L10n.t("认证与目录"))
+            Text(L10n.t("备份目录"))
         } footer: {
-            Text(L10n.t("开启「记住认证信息」后凭证加密存储在服务器，编辑时可直接回显；备份目录为该账号下的备份存放路径，需手动填写（如 /backup）"))
+            Text(L10n.t("备份目录为该账号下的备份存放路径，需手动填写（如 /backup）"))
         }
     }
 

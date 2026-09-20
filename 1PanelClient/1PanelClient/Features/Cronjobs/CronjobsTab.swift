@@ -17,8 +17,7 @@ struct CronjobsTab: View {
     @State private var isSearching = false
     // 分组管理弹窗入口（筛选条末尾「管理」chip）
     @State private var showGroupManage = false
-    // 导入导出入口（右上角菜单导出；导入并入 + 号菜单）
-    @State private var showTransferMenu = false
+    // 导入导出（导出走行长按「导出任务」多选；导入并入 + 号菜单）
     @State private var showExport = false
     @State private var showImport = false
     /// 导出多选的初始勾选（长按菜单「导出任务」= 仅当前任务；nil = 默认全选）
@@ -102,15 +101,9 @@ struct CronjobsTab: View {
         }
         .navigationTitle(L10n.t("计划任务"))
         .navigationBarTitleDisplayMode(.inline)
-        // 脚本库入口已上移至 管理-计划任务 Hub；右上角留 搜索 + 菜单 + 创建/导入 三键
+        // 脚本库入口已上移至 管理-计划任务 Hub；右上角留 搜索 + 创建/导入 两键
         .toolbar {
             if !isSearching {
-                ToolbarItem(placement: .topBarTrailing) {
-                    EllipsisMenuButton {
-                        withAnimation(Motion.fast) { showTransferMenu.toggle() }
-                    }
-                    .accessibilityLabel(L10n.t("更多操作"))
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     // 创建与导入合并进 + 号：主操作创建，导入为次入口（换机迁移场景）
                     Menu {
@@ -128,21 +121,6 @@ struct CronjobsTab: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel(L10n.t("创建计划任务"))
-                }
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if showTransferMenu {
-                EllipsisMenuPopup(entries: [
-                    // 导出依赖已有任务（空列表禁用）；进入多选（默认全选）
-                    .action(title: L10n.t("导出计划任务"), icon: "square.and.arrow.up",
-                            isDisabled: vm.cronjobs.isEmpty) {
-                        showTransferMenu = false
-                        exportPreselect = nil
-                        showExport = true
-                    },
-                ]) {
-                    withAnimation(Motion.fast) { showTransferMenu = false }
                 }
             }
         }

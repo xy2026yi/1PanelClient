@@ -224,13 +224,8 @@ struct ClamRuleFormView: View {
                                    options: alertMethodOptionKeys,
                                    selection: alertMethodText,
                                    optionLabels: alertMethodOptionLabels)
-                    Stepper(value: $alertCount, in: 1...99) {
-                        HStack {
-                            Text(L10n.t("告警次数"))
-                            Spacer()
-                            Text("\(alertCount)").foregroundStyle(.secondary)
-                        }
-                    }
+                    OutlinedUnitField(label: L10n.t("告警次数"), unit: L10n.t("次"),
+                                      text: alertCountText, range: 1...99)
                 }
             }
         } header: {
@@ -243,6 +238,15 @@ struct ClamRuleFormView: View {
     }
 
     // MARK: - 超时
+
+    /// 告警次数 Int ↔ String（输入钳制 1...99，对齐原 Stepper 范围）
+    private var alertCountText: Binding<String> {
+        Binding<String>(get: { String(alertCount) },
+                        set: { text in
+            guard let parsed = Int(text) else { return }
+            alertCount = min(max(parsed, 1), 99)
+        })
+    }
 
     // 定期扫描数值选项 Int ↔ String（OutlinedPicker 用 String 键）
     private var weekText: Binding<String> {

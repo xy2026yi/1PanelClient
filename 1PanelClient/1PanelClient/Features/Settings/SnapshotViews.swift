@@ -85,7 +85,7 @@ struct SnapshotListView: View {
             }
         }
         .sheet(item: $recoveringItem) { snapshot in
-            SnapshotRecoverSheet(snapshot: snapshot) { secret, taskID in
+            SnapshotRecoverSheet(server: server, snapshot: snapshot) { secret, taskID in
                 Task { await recover(snapshot, secret: secret, taskID: taskID) }
             }
         }
@@ -238,7 +238,7 @@ struct SnapshotTaskTarget: Identifiable, Hashable {
     var id: String { taskID }
 }
 
-// MARK: - 恢复 Sheet（压缩密码 + 风险确认）
+// MARK: - 恢复 Sheet（压缩密码 + 磁盘空间校验 + 风险确认）
 
 private struct SnapshotRecoverSheet: View {
     let snapshot: SnapshotItem
@@ -247,12 +247,53 @@ private struct SnapshotRecoverSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var secret = ""
     @State private var confirmed = false
+    /// 磁盘空间校验：系统可用空间与快照文件大小（任一取不到则不拦截）
+    @State private var diskSize: Int64?
+    @State private var snapshotFileSize: Int64?
+    @State private var showSpaceAlert = false
+
+    private let client: APIClient
+
+    init(server: ServerConfig, snapshot: SnapshotItem,
+         onConfirm: @escaping (String, String) -> Void) {
+        self.snapshot = snapshot
+        self.onConfirm = onConfirm
+        self.client = APIClient.shared(for: server)
+    }
+
+    /// 可用空间需大于快照文件大小；数据取不到时放行（不因辅助接口失败卡死恢复）
+    private var hasEnoughSpace: Bool {
+        guard let diskSize, let snapshotFileSize else { return true }
+        return diskSize > snapshotFileSize
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    InfoRow(L10n.t("快照"), value: snapshot.displayName)
+                    // 形态 1 只读展示 + 小锁：快照由列表选定，此处不可改
+                    OutlinedShape(label: L10n.t("快照"), isFocused: false,
+                                  hasValue: true,
+                                  trailing: {
+                        Image(systemName: "lock.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }) {
+                        Text(snapshot.displayName)
+                            .lineLimit(2)
+                    }
+                    if diskSize != nil || snapshotFileSize != nil {
+                        VStack(alignment: .leading, spacing: 2) {
+                            if let size = snapshotFileSize {
+                                Text(L10n.f("快照大小：%@", SnapshotListView.fmt(size)))
+                            }
+                            if let disk = diskSize {
+                                Text(L10n.f("系统可用空间：%@", SnapshotListView.fmt(disk)))
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
                 }
                 Section {
                     OutlinedTextField(label: L10n.t("压缩密码（可选）"), text: $secret, isSecure: true)
@@ -273,6 +314,10 @@ private struct SnapshotRecoverSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.t("恢复"), role: .destructive) {
+                        guard hasEnoughSpace else {
+                            showSpaceAlert = true
+                            return
+                        }
                         Haptic.warning()
                         let taskID = UUID().uuidString
                         onConfirm(secret, taskID)
@@ -281,9 +326,32 @@ private struct SnapshotRecoverSheet: View {
                     .disabled(!confirmed)
                 }
             }
+            .alert(L10n.t("提示"), isPresented: $showSpaceAlert) {
+                Button(L10n.t("好的"), role: .cancel) {}
+            } message: {
+                Text(L10n.t("系统可用空间不足，无法恢复快照"))
+            }
         }
         .presentationDragIndicator(.visible)
         .bottomSheetDetents([.medium])
+        .task { await loadDiskInfo() }
+    }
+
+    /// 并行取系统可用空间（dashboard/base/os）与快照文件大小（backups/record/size，按 id 匹配）
+    private func loadDiskInfo() async {
+        async let os: OsInfo? = try? await client.send(
+            path: APIEndpoint.dashboardOS.path,
+            method: APIEndpoint.dashboardOS.method,
+            as: OsInfo.self
+        )
+        async let sizes: [BackupRecordSizeItem]? = try? await client.send(
+            path: APIEndpoint.backupsRecordSize.path,
+            body: BackupRecordSearchRequest(
+                page: 1, pageSize: 100, type: "snapshot", name: "", detailName: ""),
+            as: [BackupRecordSizeItem].self
+        )
+        diskSize = (await os)?.diskSize
+        snapshotFileSize = (await sizes)?.first(where: { $0.id == snapshot.id })?.size
     }
 }
 
@@ -295,14 +363,16 @@ private struct SnapshotTreeSection: View {
     let systemIcon: String
     let nodes: [SnapshotNode]
     @Binding var checked: Set<String>
+    /// 叶子勾选变化回调（应用数据树用于「应用镜像」与总开关联动）
+    var onLeafToggled: ((SnapshotNode, Bool) -> Void)? = nil
 
     var body: some View {
         Section {
             ForEach(nodes) { node in
                 if node.isLeaf {
-                    SnapshotLeafRow(node: node, checked: $checked)
+                    SnapshotLeafRow(node: node, checked: $checked, onToggled: onLeafToggled)
                 } else {
-                    SnapshotGroupNode(node: node, checked: $checked)
+                    SnapshotGroupNode(node: node, checked: $checked, onLeafToggled: onLeafToggled)
                 }
             }
         } header: {
@@ -315,14 +385,15 @@ private struct SnapshotTreeSection: View {
 private struct SnapshotGroupNode: View {
     let node: SnapshotNode
     @Binding var checked: Set<String>
+    var onLeafToggled: ((SnapshotNode, Bool) -> Void)? = nil
 
     var body: some View {
         DisclosureGroup {
             ForEach(node.children ?? []) { child in
                 if child.isLeaf {
-                    SnapshotLeafRow(node: child, checked: $checked)
+                    SnapshotLeafRow(node: child, checked: $checked, onToggled: onLeafToggled)
                 } else {
-                    SnapshotGroupNode(node: child, checked: $checked)
+                    SnapshotGroupNode(node: child, checked: $checked, onLeafToggled: onLeafToggled)
                 }
             }
         } label: {
@@ -341,6 +412,7 @@ private struct SnapshotGroupNode: View {
 private struct SnapshotLeafRow: View {
     let node: SnapshotNode
     @Binding var checked: Set<String>
+    var onToggled: ((SnapshotNode, Bool) -> Void)? = nil
 
     private var label: String {
         switch node.label {
@@ -355,6 +427,7 @@ private struct SnapshotLeafRow: View {
             get: { checked.contains(node.id) },
             set: { on in
                 if on { checked.insert(node.id) } else { checked.remove(node.id) }
+                onToggled?(node, on)
             }
         )) {
             VStack(alignment: .leading, spacing: 2) {
@@ -491,7 +564,11 @@ struct SnapshotCreateView: View {
                 SectionLabel(title: L10n.t("系统应用"), systemImage: "app.badge")
             }
             SnapshotTreeSection(title: L10n.t("应用数据"), systemIcon: "shippingbox",
-                                nodes: data.appData ?? [], checked: $checked)
+                                nodes: data.appData ?? [], checked: $checked,
+                                onLeafToggled: { node, on in
+                // 关闭任一应用的「应用镜像」时，联动关闭「备份所有应用镜像」总开关
+                if node.label == "appImage" && !on { backupAllImage = false }
+            })
 
             SnapshotTreeSection(title: L10n.t("系统数据"), systemIcon: "gearshape.2",
                                 nodes: data.panelData ?? [], checked: $checked)
@@ -535,6 +612,12 @@ struct SnapshotCreateView: View {
         }
         // 创建快照进行中禁下拉关闭，防异步提交被误中断（与 TextInputConfirmSheet 同款防护）
         .interactiveDismissDisabled(isSubmitting)
+        // 总开关打开 → 应用数据树内所有「应用镜像」叶子全部勾上（反向联动见树回调）
+        .onChange(of: backupAllImage) { _, on in
+            if on, let data = loadData {
+                checked.formUnion(Self.appImageLeafIDs(data.appData ?? []))
+            }
+        }
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -578,6 +661,22 @@ struct SnapshotCreateView: View {
             for n in list {
                 if n.isLeaf {
                     if n.isCheck { result.insert(n.id) }
+                } else {
+                    walk(n.children ?? [])
+                }
+            }
+        }
+        walk(nodes)
+        return result
+    }
+
+    /// 应用数据树内全部「应用镜像」叶子 id（总开关打开时全量勾选）
+    private static func appImageLeafIDs(_ nodes: [SnapshotNode]) -> Set<String> {
+        var result: Set<String> = []
+        func walk(_ list: [SnapshotNode]) {
+            for n in list {
+                if n.isLeaf {
+                    if n.label == "appImage" { result.insert(n.id) }
                 } else {
                     walk(n.children ?? [])
                 }
