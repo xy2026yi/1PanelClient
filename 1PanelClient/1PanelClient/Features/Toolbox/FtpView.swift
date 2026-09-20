@@ -567,7 +567,6 @@ struct FTPAccountFormView: View {
     @State private var showPassword = false
     @State private var path = ""
     @State private var desc = ""
-    @State private var showDirPicker = false
     /// 目录权限变更确认（创建必弹；编辑仅路径变化时弹）
     @State private var showPermConfirm = false
     @State private var isSaving = false
@@ -594,17 +593,8 @@ struct FTPAccountFormView: View {
             }
 
             Section {
-                HStack {
-                    OutlinedTextField(label: L10n.t("根目录"), text: $path)
-                    Button {
-                        showDirPicker = true
-                    } label: {
-                        Image(systemName: "folder.badge.plus")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel(L10n.t("浏览目录"))
-                }
+                // 目录浏览图标内嵌描边框右侧（FilePathBrowseRow：可手输 + 浏览回填）
+                FilePathBrowseRow(title: L10n.t("根目录"), path: $path, client: vm.client)
             } header: {
                 SectionLabel(title: L10n.t("根目录"), systemImage: "folder")
             } footer: {
@@ -642,12 +632,6 @@ struct FTPAccountFormView: View {
             } else if password.isEmpty {
                 password = PasswordInputRow.randomPassword()
                 showPassword = true
-            }
-        }
-        .sheet(isPresented: $showDirPicker) {
-            // 用宿主 VM 的 client：避免多机切换瞬间读到别的服务器的目录
-            DirectoryPickerSheet(client: vm.client) { picked in
-                path = picked
             }
         }
         .alert("FTP", isPresented: $showPermConfirm) {

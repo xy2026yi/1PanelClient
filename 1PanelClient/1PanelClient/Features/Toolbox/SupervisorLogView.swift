@@ -305,10 +305,6 @@ struct SupervisorServiceLogView: View {
     var body: some View {
         List {
             Section {
-                Toggle(L10n.t("追踪"), isOn: $isTracking)
-            }
-
-            Section {
                 if isLoading && lines.isEmpty {
                     HStack {
                         Spacer()
@@ -333,6 +329,16 @@ struct SupervisorServiceLogView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(L10n.t("服务日志"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // 追踪开关收进右上角
+            ToolbarItem(placement: .topBarTrailing) {
+                Toggle(isOn: $isTracking) {
+                    Text(L10n.t("追踪"))
+                }
+                .toggleStyle(.button)
+                .tint(isTracking ? Color.accentColor : Color.secondary)
+            }
+        }
         .task { await load() }
         .refreshable { await load() }
         .task(id: isTracking) {
@@ -353,7 +359,10 @@ struct SupervisorServiceLogView: View {
             page: 1, pageSize: 500, latest: true)
         do {
             let resp: LogFileReadResponse = try await client.send(
-                path: APIEndpoint.supervisorLogRead.path,
+                // 服务日志必须走 /files/read/supervisord：1Panel 源码以 URL 路径
+                // 参数 type 覆盖 body —— /supervisor 会进进程日志分支，
+                // 把 name 当进程名拼 /tools/supervisord/log/supervisor（不存在，500）
+                path: APIEndpoint.supervisordLogRead.path,
                 body: req,
                 queryItems: client.operateNodeQuery,
                 as: LogFileReadResponse.self)

@@ -334,7 +334,8 @@ enum APIEndpoint {
     case supervisorProcessFile   // POST 保存源文 / 清空日志 {name, operate, file[, content]}
     case supervisorConfigGet     // POST 读取主配置 {type}
     case supervisorConfigSet     // POST 保存主配置 {type, content}
-    case supervisorLogRead       // POST 进程/服务日志（files/read/supervisor）
+    case supervisorLogRead       // POST 进程日志（files/read/supervisor，路径参数 type=supervisor）
+    case supervisordLogRead      // POST 服务日志（files/read/supervisord，路径参数 type=supervisord）
 
     // MARK: - 告警通知
     case alertSearch            // POST 分页查询告警规则
@@ -949,6 +950,7 @@ enum APIEndpoint {
         case .supervisorConfigGet:   return "/api/v2/hosts/tool/config/get"
         case .supervisorConfigSet:   return "/api/v2/hosts/tool/config/set"
         case .supervisorLogRead:     return "/api/v2/files/read/supervisor"
+        case .supervisordLogRead:    return "/api/v2/files/read/supervisord"
         case .filesSearch:           return "/api/v2/files/search"
         case .filesFavorite:         return "/api/v2/files/favorite"
         case .filesFavoriteSearch:   return "/api/v2/files/favorite/search"

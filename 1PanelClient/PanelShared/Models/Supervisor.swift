@@ -130,9 +130,10 @@ nonisolated struct SupervisorProcessFileRequest: Encodable {
 }
 
 /// POST /api/v2/files/read/supervisor?operateNode=local：进程日志 type="supervisor"、
-/// name="<进程名>.out.log"/".err.log"；服务日志 type="supervisord"、name="supervisor"
+/// name="<进程名>.out.log"/".err.log"；服务日志 type="supervisord"、name="supervisor"。
+/// 抓包两种日志均显式携带 id=0；省略时服务端会把 name 当进程名拼 tool 目录路径（500）
 nonisolated struct SupervisorLogReadRequest: Encodable {
-    var id: Int? = nil
+    var id: Int = 0
     let type: String
     let name: String
     let page: Int

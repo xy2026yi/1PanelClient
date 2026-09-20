@@ -128,6 +128,9 @@ final class APIClient {
         } else if method == "POST" {
             request.httpBody = Data("{}".utf8)
         }
+        // 请求体快照：业务错误时随响应一并打出（定位“网页正常、App 500”类
+        // 请求差异用，如 supervisor 日志的 id 缺省问题）
+        let debugBody = request.httpBody.flatMap { String(data: $0, encoding: .utf8) } ?? ""
 
         let (data, response): (Data, URLResponse)
         do {
@@ -171,7 +174,7 @@ final class APIClient {
             }
             #if DEBUG
             Logger(subsystem: "com.xy.1PanelClient.debug", category: "api")
-                .warning("[API-DEBUG] \(path, privacy: .public) -> \(String(data: data, encoding: .utf8) ?? "", privacy: .public)")
+                .warning("[API-DEBUG] \(path, privacy: .public) \(debugBody, privacy: .public) -> \(String(data: data, encoding: .utf8) ?? "", privacy: .public)")
             #endif
             throw APIError.businessError(wrapped.code, wrapped.message ?? "")
         }

@@ -230,7 +230,6 @@ struct ClamView: View {
     @State private var showFreshClam = true
     @State private var pendingAction: String?
     @State private var showCreate = false
-    @State private var showMenu = false
     /// 长按弹出的操作菜单目标（执行 / 报告 / 编辑 / 删除）
     @State private var actionRule: ClamItem?
     /// 行「编辑」推入的表单目标
@@ -269,14 +268,8 @@ struct ClamView: View {
         .navigationTitle(L10n.t("病毒扫描"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // 未安装时不显示设置/添加入口
+            // 未安装时不显示添加入口（设置已收进 ClamAV 状态抽屉）
             if vm.isInstalled {
-                ToolbarItem(placement: .topBarTrailing) {
-                    EllipsisMenuButton {
-                        withAnimation(Motion.fast) { showMenu.toggle() }
-                    }
-                    .accessibilityLabel(L10n.t("更多操作"))
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showCreate = true
@@ -284,17 +277,6 @@ struct ClamView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel(L10n.t("添加规则"))
-                }
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if showMenu {
-                EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("ClamAV 设置"), icon: "gearshape") {
-                        showSettings = true
-                    },
-                ]) {
-                    withAnimation(Motion.fast) { showMenu = false }
                 }
             }
         }
@@ -516,6 +498,10 @@ struct ClamView: View {
                     color: .indigo
                 ) {
                     withAnimation(Motion.fast) { showFreshClam.toggle() }
+                },
+                // 设置入口收进状态抽屉（原右上角菜单移除）
+                ServiceAction(title: L10n.t("ClamAV 设置"), icon: "gearshape", color: .purple) {
+                    showSettings = true
                 },
             ]
         ) {

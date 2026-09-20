@@ -22837,6 +22837,28 @@
         }
       }
     },
+    "每行一个 IP 或 IP 段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One IP or CIDR per line"
+          }
+        }
+      }
+    },
+    "每行一条 KEY=value" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One KEY=value per line"
+          }
+        }
+      }
+    },
     "每行一个端口，可带协议（如 80/tcp、443/udp）；逗号或换行分隔均可，保存为全量覆盖。" : {
       "extractionState" : "manual",
       "localizations" : {

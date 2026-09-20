@@ -21,10 +21,8 @@ struct ClamRuleFormView: View {
 
     // 扫描目录 / 感染文件策略
     @State private var path = ""
-    @State private var showDirPicker = false
     @State private var strategy = "none"
     @State private var quarantineDir = ""
-    @State private var showQuarantinePicker = false
 
     // 定期扫描
     @State private var hasSpec = false
@@ -41,8 +39,7 @@ struct ClamRuleFormView: View {
     @State private var alertConfigs: [AlertConfigItem] = []
 
     // 超时
-    @State private var timeoutUnit = "h"
-    @State private var timeoutText = "5"
+    @State private var timeoutText = "300"
 
     @State private var isSaving = false
     @State private var didFill = false
@@ -58,15 +55,9 @@ struct ClamRuleFormView: View {
     private var isEditing: Bool { editing != nil }
     private var needsQuarantine: Bool { strategy == "move" || strategy == "copy" }
 
+    /// UI 单位固定分钟，提交换算秒
     private var timeoutSeconds: Int {
-        let value = Int(timeoutText) ?? 0
-        let multiplier: Int
-        switch timeoutUnit {
-        case "h": multiplier = 3600
-        case "m": multiplier = 60
-        default:  multiplier = 1
-        }
-        return value * multiplier
+        (Int(timeoutText) ?? 0) * 60
     }
 
     private var canSubmit: Bool {
@@ -85,6 +76,8 @@ struct ClamRuleFormView: View {
             scheduleSection
             alertSection
             timeoutSection
+            // 描述统一置底（形态 7.1，默认 1 行）
+            descSection
         }
         .navigationTitle(isEditing ? L10n.t("编辑规则") : L10n.t("添加规则"))
         .navigationBarTitleDisplayMode(.inline)
@@ -103,27 +96,14 @@ struct ClamRuleFormView: View {
             fillIfEditing()
             reconcileAlertMethod()
         }
-        .sheet(isPresented: $showDirPicker) {
-            // 用宿主 VM 的 client：避免多机切换瞬间读到别的服务器的目录
-            DirectoryPickerSheet(client: vm.client) { picked in
-                path = picked
-            }
-        }
-        .sheet(isPresented: $showQuarantinePicker) {
-            DirectoryPickerSheet(client: vm.client) { picked in
-                quarantineDir = picked
-            }
-        }
     }
 
     // MARK: - 基本信息
 
     private var basicSection: some View {
         Section {
-            FormTextField(label: L10n.t("名称"), text: $name)
+            OutlinedTextField(label: L10n.t("名称"), text: $name)
                 .disabled(isEditing)
-            FormTextField(label: L10n.t("可选描述"), text: $desc, axis: .vertical, machineValue: false)
-                .lineLimit(1...3)
         } header: {
             SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
         } footer: {
@@ -133,21 +113,20 @@ struct ClamRuleFormView: View {
         }
     }
 
+    /// 描述（置底）
+    private var descSection: some View {
+        Section {
+            OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"),
+                                   lines: 1, text: $desc)
+        }
+    }
+
     // MARK: - 扫描设置
 
     private var scanSection: some View {
         Section {
-            HStack {
-                FormTextField(label: L10n.t("扫描目录"), text: $path, style: .stacked)
-                Button {
-                    showDirPicker = true
-                } label: {
-                    Image(systemName: "folder.badge.plus")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.borderless)
-                .accessibilityLabel(L10n.t("浏览目录"))
-            }
+            // 扫描目录：目录浏览图标内嵌描边框右侧（可手输 + 浏览回填）
+            FilePathBrowseRow(title: L10n.t("扫描目录"), path: $path, client: vm.client)
 
             OutlinedPicker(label: L10n.t("感染文件策略"),
                            options: ["none", "remove", "move", "copy"],
@@ -156,17 +135,7 @@ struct ClamRuleFormView: View {
                                           "move": L10n.t("移动"), "copy": L10n.t("复制")])
 
             if needsQuarantine {
-                HStack {
-                    FormTextField(label: L10n.t("隔离目录"), text: $quarantineDir, style: .stacked)
-                    Button {
-                        showQuarantinePicker = true
-                    } label: {
-                        Image(systemName: "folder.badge.plus")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel(L10n.t("浏览目录"))
-                }
+                FilePathBrowseRow(title: L10n.t("隔离目录"), path: $quarantineDir, client: vm.client)
             }
         } header: {
             SectionLabel(title: L10n.t("扫描设置"), systemImage: "magnifyingglass")
@@ -314,16 +283,9 @@ struct ClamRuleFormView: View {
 
     private var timeoutSection: some View {
         Section {
-            HStack {
-                FormTextField(label: L10n.t("超时时间"), text: $timeoutText, keyboardType: .numberPad)
-                Picker("", selection: $timeoutUnit) {
-                    Text(L10n.t("小时")).tag("h")
-                    Text(L10n.t("分钟")).tag("m")
-                    Text(L10n.t("秒")).tag("s")
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-            }
+            // 单位固定分钟（提交换算秒）
+            OutlinedUnitField(label: L10n.t("超时时间"), unit: L10n.t("分钟"),
+                              text: $timeoutText, range: 1...1440)
         } header: {
             SectionLabel(title: L10n.t("超时时间"), systemImage: "hourglass")
         } footer: {
@@ -374,18 +336,9 @@ struct ClamRuleFormView: View {
             }
         }
 
-        // 超时秒数反推：整小时 → 小时；整分钟 → 分钟；否则秒
+        // 超时秒数反推为分钟（向上取整，不足 1 分钟按 1 计）
         if let seconds = rule.timeout, seconds > 0 {
-            if seconds % 3600 == 0 {
-                timeoutUnit = "h"
-                timeoutText = String(seconds / 3600)
-            } else if seconds % 60 == 0 {
-                timeoutUnit = "m"
-                timeoutText = String(seconds / 60)
-            } else {
-                timeoutUnit = "s"
-                timeoutText = String(seconds)
-            }
+            timeoutText = String(max(1, (seconds + 59) / 60))
         }
 
         if let method = rule.alertMethod, !method.isEmpty, let id = Int(method) {
@@ -428,7 +381,7 @@ struct ClamRuleFormView: View {
                 minute: minute,
                 second: 30),
             timeoutItem: Int(timeoutText) ?? 0,
-            timeoutUnit: timeoutUnit,
+            timeoutUnit: "m",
             hasAlert: hasAlert,
             alertMethodItems: hasAlert && alertMethodID != 0 ? [method] : [],
             alertTitle: hasAlert ? L10n.f("病毒扫描「 %@ 」任务检测到感染文件告警", name) : "",

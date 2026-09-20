@@ -19,7 +19,6 @@ struct SupervisorProcessFormView: View {
     @State private var name = ""
     @State private var user = "root"
     @State private var dir = ""
-    @State private var showDirPicker = false
     @State private var command = ""
     @State private var numprocs = 1
     @State private var environment = ""
@@ -38,11 +37,11 @@ struct SupervisorProcessFormView: View {
     var body: some View {
         Form {
             Section {
-                FormTextField(label: L10n.t("名称"), text: $name)
+                OutlinedTextField(label: L10n.t("名称"), text: $name)
                     .disabled(isEditing)
-                FormTextField(label: L10n.t("启动命令"), text: $command, axis: .vertical)
-                    .font(.dataMonospacedBody)
-                    .lineLimit(1...3)
+                // 启动命令（形态 7.1，默认 1 行自动增高）
+                OutlinedMultiLineField(label: L10n.t("启动命令"), prompt: "python app.py",
+                                       lines: 1, text: $command)
             } header: {
                 SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
             } footer: {
@@ -52,25 +51,11 @@ struct SupervisorProcessFormView: View {
             }
 
             Section {
-                HStack {
-                    FormTextField(label: L10n.t("运行目录"), text: $dir, style: .stacked)
-                    Button {
-                        showDirPicker = true
-                    } label: {
-                        Image(systemName: "folder.badge.plus")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel(L10n.t("浏览目录"))
-                }
-                FormTextField(label: L10n.t("启动用户"), text: $user)
-                Stepper(value: $numprocs, in: 1...64) {
-                    HStack {
-                        Text(L10n.t("进程数量"))
-                        Spacer()
-                        Text("\(numprocs)").foregroundStyle(.secondary)
-                    }
-                }
+                // 运行目录：目录浏览图标内嵌描边框右侧（可手输 + 浏览回填）
+                FilePathBrowseRow(title: L10n.t("运行目录"), path: $dir, client: vm.client)
+                OutlinedTextField(label: L10n.t("启动用户"), prompt: "root", text: $user)
+                OutlinedUnitField(label: L10n.t("进程数量"), unit: L10n.t("个"),
+                                  text: numprocsText, range: 1...64)
             } header: {
                 SectionLabel(title: L10n.t("运行设置"), systemImage: "gearshape.2")
             }
@@ -85,11 +70,13 @@ struct SupervisorProcessFormView: View {
             }
 
             Section {
-                TextField(L10n.t("环境变量（KEY=value，多个用逗号分隔）"), text: $environment, axis: .vertical)
-                    .font(.dataMonospacedFootnote)
-                    .lineLimit(1...3)
+                // 环境变量（形态 7.1，每行一条 KEY=value）
+                OutlinedMultiLineField(label: L10n.t("环境变量"), prompt: "KEY=value",
+                                       lines: 1, text: $environment)
             } header: {
                 SectionLabel(title: L10n.t("环境变量"), systemImage: "curlybraces")
+            } footer: {
+                Text(L10n.t("每行一条 KEY=value"))
             }
         }
         .navigationTitle(isEditing ? L10n.t("编辑进程") : L10n.t("添加进程"))
@@ -113,22 +100,33 @@ struct SupervisorProcessFormView: View {
                 dir = process.dir ?? ""
                 command = process.command ?? ""
                 numprocs = Int(process.numprocs ?? "") ?? 1
-                environment = process.environment ?? ""
+                // 服务端逗号分隔 ↔ 表单按行编辑
+                environment = (process.environment ?? "")
+                    .split(separator: ",")
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty }
+                    .joined(separator: "\n")
                 autoRestart = process.isEnabled(process.autoRestart)
                 autoStart = process.isEnabled(process.autoStart)
             }
         }
-        .sheet(isPresented: $showDirPicker) {
-            // 用宿主 VM 的 client：避免多机切换瞬间读到别的服务器的目录
-            DirectoryPickerSheet(client: vm.client) { picked in
-                dir = picked
-            }
-        }
+    }
+
+    /// 进程数量 Int ↔ String（描边框用）
+    private var numprocsText: Binding<String> {
+        Binding<String>(get: { String(numprocs) },
+                        set: { numprocs = Int($0) ?? numprocs })
     }
 
     private func save() async {
         isSaving = true
         defer { isSaving = false }
+        // 环境变量：按行编辑，提交拼回服务端的逗号分隔格式
+        let envValue = environment
+            .split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ",")
         let req = SupervisorProcessRequest(
             operate: isEditing ? "update" : "create",
             name: name,
@@ -139,7 +137,7 @@ struct SupervisorProcessFormView: View {
             numprocs: String(numprocs),
             autoRestart: autoRestart ? "true" : "false",
             autoStart: autoStart ? "true" : "false",
-            environment: environment)
+            environment: envValue)
 
         let ok: Bool
         if isEditing {

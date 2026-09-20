@@ -178,6 +178,9 @@ struct Fail2banView: View {
     @StateObject private var vm: Fail2banViewModel
     @Environment(\.dismiss) private var dismiss
 
+    /// 安装入口（脚本库）跳转用
+    private let server: ServerConfig
+
     @State private var activeSheet: Fail2banSheet?
     @State private var isServiceExpanded = false
     @State private var pendingAction: String?
@@ -189,9 +192,42 @@ struct Fail2banView: View {
     }
 
     init(server: ServerConfig) {
+        self.server = server
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.fail2ban.storeKey(server: server)) {
             Fail2banViewModel(server: server)
         })
+    }
+
+    /// 未安装：与 FTP 未安装页同款样式，安装入口跳转脚本库
+    private var notInstalledView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            IconBadge(systemName: "lock.shield", color: .orange, size: 72, cornerRadius: Radius.large)
+                .opacity(0.5)
+
+            VStack(spacing: 8) {
+                Text(L10n.f("%@未安装", "Fail2ban"))
+                    .font(.headline)
+                Text(L10n.f("请先安装 %@ 后再使用此功能", "Fail2ban"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            NavigationLink {
+                ScriptLibraryView(server: server)
+            } label: {
+                Label(L10n.f("安装 %@", "Fail2ban"), systemImage: "arrow.down.circle.fill")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.horizontal, 40)
+
+            Spacer()
+        }
+        .padding()
     }
 
     var body: some View {
@@ -202,11 +238,7 @@ struct Fail2banView: View {
                 if base.isExist {
                     content(base: base)
                 } else {
-                    ContentUnavailableView {
-                        Label(L10n.t("未安装 Fail2ban"), systemImage: "exclamationmark.triangle.fill")
-                    } description: {
-                        Text(L10n.t("请在服务器上安装 Fail2ban 后使用"))
-                    }
+                    notInstalledView
                 }
             } else if let err = vm.errorMessage {
                 ContentUnavailableView {
@@ -685,93 +717,58 @@ struct Fail2banIPListView: View {
     @ObservedObject var vm: Fail2banViewModel
 
     @Environment(\.dismiss) private var dismiss
-    @State private var newIP = ""
-    @State private var pendingDeleteIP: String?
+    @State private var ipText = ""
+    @State private var isSaving = false
 
     private var isWhitelist: Bool { status == "ignore" }
 
+    /// 多行原文 → 非空行 IP 数组（保存时提交全量）
+    private var ipLines: [String] {
+        ipText.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
     var body: some View {
         NavigationStack {
-            List {
+            Form {
                 Section {
-                    HStack {
-                        TextField(L10n.t("输入 IP 或 IP 段"), text: $newIP)
-                            .textFieldStyle(.roundedBorder)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .font(.dataMonospacedBody)
-                        Button {
-                            guard !newIP.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                            let ips = isWhitelist ? vm.whitelist : vm.blacklist
-                            Task {
-                                await vm.saveIPs(
-                                    operate: isWhitelist ? "ignore" : "banned",
-                                    ips: ips + [newIP.trimmingCharacters(in: .whitespaces)],
-                                    status: status
-                                )
-                                newIP = ""
-                            }
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title3)
-                        }
-                        .accessibilityLabel(L10n.t("添加"))
-                    }
-                }
-                Section(L10n.f("%@列表", isWhitelist ? L10n.t("白名单") : L10n.t("黑名单"))) {
-                    let ips = isWhitelist ? vm.whitelist : vm.blacklist
-                    if ips.isEmpty {
-                        ContentUnavailableView {
-                            Label(L10n.t("暂无数据"), systemImage: "tray")
-                        }
-                    } else {
-                        ForEach(ips, id: \.self) { ip in
-                            HStack {
-                                Image(systemName: isWhitelist ? "checkmark.shield" : "hand.raised")
-                                    .foregroundStyle(isWhitelist ? .green : .red)
-                                Text(ip).font(.dataMonospacedBody)
-                                Spacer()
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    pendingDeleteIP = ip
-                                } label: {
-                                    Label(L10n.t("删除"), systemImage: "trash")
-                                }
-                            }
-                        }
-                    }
+                    OutlinedMultiLineField(
+                        label: L10n.f("%@列表", isWhitelist ? L10n.t("白名单") : L10n.t("黑名单")),
+                        prompt: "192.168.1.100",
+                        text: $ipText)
+                } footer: {
+                    Text(L10n.t("每行一个 IP 或 IP 段"))
                 }
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(L10n.t("完成")) { dismiss() }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isSaving)
                 }
-            }
-            .task { await vm.loadList(status: status) }
-            .alert(L10n.t("删除"), isPresented: Binding(
-                get: { pendingDeleteIP != nil },
-                set: { if !$0 { pendingDeleteIP = nil } }
-            )) {
-                Button(L10n.t("取消"), role: .cancel) { pendingDeleteIP = nil }
-                Button(L10n.t("删除"), role: .destructive) {
-                    Haptic.warning()
-                    if let ip = pendingDeleteIP {
-                        let ips = isWhitelist ? vm.whitelist : vm.blacklist
-                        let remaining = ips.filter { $0 != ip }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(L10n.t("确认")) {
                         Task {
+                            isSaving = true
                             await vm.saveIPs(
                                 operate: isWhitelist ? "ignore" : "banned",
-                                ips: remaining,
+                                ips: ipLines,
                                 status: status
                             )
+                            isSaving = false
+                            dismiss()
                         }
                     }
+                    .disabled(isSaving)
                 }
-            } message: {
-                Text(L10n.f("确定删除 IP「%@」吗？", pendingDeleteIP ?? ""))
+            }
+            .interactiveDismissDisabled(isSaving)
+            .task {
+                await vm.loadList(status: status)
+                let ips = isWhitelist ? vm.whitelist : vm.blacklist
+                ipText = ips.joined(separator: "\n")
             }
         }
     }
