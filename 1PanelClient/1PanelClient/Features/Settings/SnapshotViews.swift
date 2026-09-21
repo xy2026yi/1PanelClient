@@ -77,11 +77,11 @@ struct SnapshotListView: View {
         } message: {
             Text(errorMessage ?? "")
         }
-        .sheet(isPresented: $showCreate) {
-            // 创建成功的进度跳转由本页（NavigationStack 内）承接：
-            // Sheet 内无导航栈，navigationDestination 不生效会表现为无任何反馈
-            SnapshotCreateView(server: server) { target in
-                progressTask = target
+        // 创建表单 push 进入（与安装应用一致）；创建进度由表单内自行 push，
+        // 完成回调仅用于刷新列表
+        .navigationDestination(isPresented: $showCreate) {
+            SnapshotCreateView(server: server) { _ in
+                Task { await load() }
             }
         }
         .sheet(item: $recoveringItem) { snapshot in
@@ -464,7 +464,7 @@ private struct SnapshotLeafRow: View {
 
 struct SnapshotCreateView: View {
     let server: ServerConfig
-    /// 创建请求成功后回传任务目标（父级在 NavigationStack 内 push 进度页）
+    /// 创建任务完成回调（表单内已自行展示任务进度，回调仅用于父级刷新列表）
     let onTaskStarted: (SnapshotTaskTarget) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -490,6 +490,8 @@ struct SnapshotCreateView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var showError = false
+    /// 创建任务进度（提交成功后由表单内 push，与安装应用同模式）
+    @State private var activeTask: SnapshotTaskTarget?
 
     /// 向导分页：0 基础数据 1 系统应用+应用数据 2 系统数据+备份数据 3 其他数据+排除规则
     @State private var wizardPage = 0
@@ -582,8 +584,9 @@ struct SnapshotCreateView: View {
             )
         }
         .animation(.easeInOut(duration: 0.22), value: wizardPage)
-        // 创建中禁下拉防异步被中断；翻页后（page>0）禁下拉防多页输入被手势静默丢弃
-        .interactiveDismissDisabled(isSubmitting || wizardPage > 0)
+        .modifier(WizardDiscardGuard(page: wizardPage))
+        // 创建中禁手势返回防异步被中断
+        .interactiveDismissDisabled(isSubmitting)
         // 总开关 ↔ 应用镜像双向联动：开 → 全选；直接关 → 全部取消（对齐网页端）；
         // 由叶子关闭引发的级联关（suppressMasterClear）保留其余应用的个别勾选
         .onChange(of: backupAllImage) { _, on in
@@ -595,6 +598,18 @@ struct SnapshotCreateView: View {
                 suppressMasterClear = false
             } else {
                 checked.subtract(imageIDs)
+            }
+        }
+        // 创建进度由本表单内 push（与安装应用同模式），完成后分步收栈
+        .navigationDestination(item: $activeTask) { target in
+            TaskProgressView(taskID: target.taskID, title: target.title) { isDone in
+                if isDone {
+                    onTaskStarted(target)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        dismiss()
+                    }
+                }
+                return false
             }
         }
         .alert(L10n.t("提示"), isPresented: $showError) {
@@ -806,9 +821,8 @@ struct SnapshotCreateView: View {
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.settingsSnapshotCreate.path, body: req, as: EmptyResponse.self)
-            // 交给父级 push 进度页后关闭 Sheet（Sheet 内无导航栈，自身无法跳转）
-            onTaskStarted(SnapshotTaskTarget(taskID: taskID, title: L10n.t("创建快照")))
-            dismiss()
+            // 进度页由本表单内 push（与安装应用同模式），完成后回调刷新列表并收栈
+            activeTask = SnapshotTaskTarget(taskID: taskID, title: L10n.t("创建快照"))
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription

@@ -44,6 +44,19 @@ struct ApplyCertificateView: View {
     @State private var wizardPage = 0
     private let wizardPageNames = [L10n.t("域名"), L10n.t("申请配置"), L10n.t("高级设置")]
 
+    /// 当前页必填是否满足（控制「下一步」；末页主操作用完整提交校验）
+    private var pageReady: Bool {
+        switch wizardPage {
+        case 0:
+            return !primaryDomain.trimmingCharacters(in: .whitespaces).isEmpty
+        case 1:
+            // 验证方式为 DNS 账户时必须有可选的 DNS 账户
+            return !(selectedProvider == .dnsAccount && dnsAccounts.isEmpty)
+        default:
+            return true
+        }
+    }
+
     private var isEdit: Bool { existingCert != nil }
 
     /// 编辑自签证书时使用简化表单
@@ -143,7 +156,9 @@ struct ApplyCertificateView: View {
                 totalPages: wizardPageNames.count,
                 primaryTitle: isEdit ? L10n.t("保存") : L10n.t("申请"),
                 isBusy: isSubmitting,
-                primaryDisabled: primaryDomain.trimmingCharacters(in: .whitespaces).isEmpty,
+                primaryDisabled: wizardPage < wizardPageNames.count - 1
+                    ? !pageReady
+                    : primaryDomain.trimmingCharacters(in: .whitespaces).isEmpty,
                 onBack: { withAnimation { wizardPage -= 1 } },
                 onNext: { withAnimation { wizardPage += 1 } },
                 onPrimary: { Task { await submit() } }
@@ -174,9 +189,23 @@ struct ApplyCertificateView: View {
                            selection: $selectedProvider) { $0.displayName }
 
             if selectedProvider == .dnsAccount {
-                OutlinedPicker(label: L10n.t("DNS 账户"),
-                               options: dnsOptionKeys, selection: dnsBinding,
-                               optionLabels: dnsOptionLabels)
+                if dnsAccounts.isEmpty {
+                    // 无可用 DNS 账户：保持形态 3 描边框展示占位（下一步已被 pageReady 拦截）
+                    OutlinedShape(label: L10n.t("DNS 账户"), isFocused: false,
+                                  hasValue: true,
+                                  trailing: {
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }) {
+                        Text(L10n.t("没有找到DNS账户"))
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    OutlinedPicker(label: L10n.t("DNS 账户"),
+                                   options: dnsOptionKeys, selection: dnsBinding,
+                                   optionLabels: dnsOptionLabels)
+                }
             }
 
             Toggle(L10n.t("自动续签"), isOn: $autoRenew)

@@ -63,7 +63,6 @@ struct AIVllmCreateView: View {
     @State private var baseURLType: VllmBaseURLType = .systemIP
     @State private var baseURL = ""
 
-    @State private var advanced = true
     @State private var containerName = ""
     @State private var allowPort = true
     @State private var specifyIP = ""
@@ -84,6 +83,9 @@ struct AIVllmCreateView: View {
     @State private var metaError: String?
     @State private var isSubmitting = false
     @State private var validationMessage: String?
+    /// 创建任务进度（提交成功后由表单内 push，与安装应用同模式）
+    @State private var showProgress = false
+    @State private var activeTaskID = ""
 
     private let client: APIClient
 
@@ -150,60 +152,70 @@ struct AIVllmCreateView: View {
     private let wizardPageNames = [L10n.t("基础"), L10n.t("配置"), L10n.t("高级")]
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
-                Form {
-                    Group {
-                        switch wizardPage {
-                        case 0:
-                            basicSection
-                        case 1:
-                            commandSection
-                            accountSection
-                        default:
-                            Section {
-                                Toggle(L10n.t("高级设置"), isOn: $advancedEnabled)
-                            } footer: {
-                                Text(L10n.t("资源限制、编排覆盖等进阶项"))
-                            }
-                            if advancedEnabled {
-                                advancedSection
-                            }
-                        }
-                    }
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)))
-                    if let msg = validationMessage {
+        VStack(spacing: 0) {
+            WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+            Form {
+                Group {
+                    switch wizardPage {
+                    case 0:
+                        basicSection
+                    case 1:
+                        commandSection
+                        accountSection
+                    default:
+                        // 高级页主开关（默认收起）；开启后直接展示全部高级字段，
+                        // 不再有内层第二个「高级设置」开关
                         Section {
-                            Text(msg)
-                                .foregroundStyle(.red)
-                                .font(.footnote)
+                            Toggle(L10n.t("高级设置"), isOn: $advancedEnabled)
+                        } footer: {
+                            Text(L10n.t("资源限制、编排覆盖等进阶项"))
+                        }
+                        if advancedEnabled {
+                            advancedSection
                         }
                     }
                 }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                WizardBottomBar(
-                    page: wizardPage,
-                    totalPages: wizardPageNames.count,
-                    primaryTitle: isEdit ? L10n.t("保存") : L10n.t("创建"),
-                    isBusy: isSubmitting,
-                    primaryDisabled: false,
-                    onBack: { withAnimation { wizardPage -= 1 } },
-                    onNext: { withAnimation { wizardPage += 1 } },
-                    onPrimary: { Task { await submit() } }
-                )
-            }
-            .animation(.easeInOut(duration: 0.22), value: wizardPage)
-            .navigationTitle(isEdit ? L10n.t("编辑实例") : L10n.t("创建实例"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                        .disabled(isSubmitting)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
+                if let msg = validationMessage {
+                    Section {
+                        Text(msg)
+                            .foregroundStyle(.red)
+                            .font(.footnote)
+                    }
                 }
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WizardBottomBar(
+                page: wizardPage,
+                totalPages: wizardPageNames.count,
+                primaryTitle: isEdit ? L10n.t("保存") : L10n.t("创建"),
+                isBusy: isSubmitting,
+                primaryDisabled: false,
+                onBack: { withAnimation { wizardPage -= 1 } },
+                onNext: { withAnimation { wizardPage += 1 } },
+                onPrimary: { Task { await submit() } }
+            )
+        }
+        .animation(.easeInOut(duration: 0.22), value: wizardPage)
+        .modifier(WizardDiscardGuard(page: wizardPage))
+        .navigationTitle(isEdit ? L10n.t("编辑实例") : L10n.t("创建实例"))
+        .navigationBarTitleDisplayMode(.inline)
+        // 创建进度由表单内 push（与安装应用同模式）：完成后分步收栈
+        .navigationDestination(isPresented: $showProgress) {
+            TaskProgressView(taskID: activeTaskID,
+                             title: L10n.t("创建 vLLM 实例"),
+                             latest: false, node: "local") { isDone in
+                if isDone {
+                    Task { await vm.loadInstances() }
+                    // 进度页自行 dismiss，这里稍后收创建表单（分步收栈避免同帧拆多层）
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        dismiss()
+                    }
+                }
+                return false
             }
         }
         .task { await loadMeta() }
@@ -243,6 +255,8 @@ struct AIVllmCreateView: View {
         Section {
             OutlinedTextField(label: L10n.t("名称"), text: $name)
                 .disabled(isEdit)
+                // 名称即默认容器名：改名联动刷新容器地址 Base URL
+                .onChange(of: name) { _, _ in refreshBaseURL() }
 
             if isEdit {
                 // 编辑时类型/版本不可修改（服务端约定），以信息行展示；
@@ -342,7 +356,7 @@ struct AIVllmCreateView: View {
                                selection: $baseURLType) { $0.displayName }
                     .onChange(of: baseURLType) { _, newValue in
                         if let url = newValue.baseURL(port: portValue ?? 8000,
-                                                      containerName: containerName,
+                                                      containerName: effectiveContainerName,
                                                       panelHost: panelHost) {
                             baseURL = url
                         }
@@ -363,56 +377,51 @@ struct AIVllmCreateView: View {
 
     private var advancedSection: some View {
         Section {
-            Toggle(L10n.t("高级设置"), isOn: $advanced)
+            OutlinedTextField(label: L10n.t("容器名称"), prompt: L10n.t("默认与名称一致"),
+                              text: $containerName)
+                .font(.dataMonospacedBody)
+                .onChange(of: containerName) { _, _ in refreshBaseURL() }
 
-            if advanced {
-                OutlinedTextField(label: L10n.t("容器名称"), text: $containerName)
-                    .font(.dataMonospacedBody)
-                    .onChange(of: containerName) { _, _ in refreshBaseURL() }
+            Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
 
-                Toggle(L10n.t("端口外部访问"), isOn: $allowPort)
+            OutlinedTextField(label: L10n.t("绑定主机 IP"), text: $specifyIP)
+                .keyboardType(.decimalPad)
+                .font(.dataMonospacedBody)
 
-                OutlinedTextField(label: L10n.t("绑定主机 IP"), text: $specifyIP)
-                    .keyboardType(.decimalPad)
-                    .font(.dataMonospacedBody)
+            OutlinedPicker(label: L10n.t("重启规则"), options: VllmRestartPolicy.allCases,
+                           selection: $restartPolicy) { $0.displayName }
 
-                OutlinedPicker(label: L10n.t("重启规则"), options: VllmRestartPolicy.allCases,
-                               selection: $restartPolicy) { $0.displayName }
+            // CPU 配额允许小数（如 0.5 核，提交按 Double 解析）
+            OutlinedUnitField(label: L10n.t("CPU 限制"), unit: L10n.t("核心"),
+                              text: $cpuQuotaText, keyboardType: .decimalPad,
+                              allowsDecimal: true)
 
-                // CPU 配额允许小数（如 0.5 核，提交按 Double 解析）
-                OutlinedUnitField(label: L10n.t("CPU 限制"), unit: L10n.t("核心"),
-                                  text: $cpuQuotaText, keyboardType: .decimalPad,
-                                  allowsDecimal: true)
+            // 单位固定 MB（与安装表单一致，提交 memoryUnit=M）；MB 为整数输入
+            OutlinedUnitField(label: L10n.t("内存限制"), unit: "MB",
+                              text: $memoryLimitText, keyboardType: .numberPad)
 
-                // 单位固定 MB（与安装表单一致，提交 memoryUnit=M）；MB 为整数输入
-                OutlinedUnitField(label: L10n.t("内存限制"), unit: "MB",
-                                  text: $memoryLimitText, keyboardType: .numberPad)
+            Toggle(L10n.t("拉取镜像"), isOn: $pullImage)
 
-                Toggle(L10n.t("拉取镜像"), isOn: $pullImage)
+            Toggle(L10n.t("编辑 Compose 文件"), isOn: $editCompose)
 
-                Toggle(L10n.t("编辑 Compose 文件"), isOn: $editCompose)
-
-                if editCompose {
-                    Button {
-                        showComposeEditor = true
-                    } label: {
-                        Label(
-                            dockerCompose.isEmpty ? L10n.t("加载模板中…") : L10n.t("查看 / 编辑 Compose"),
-                            systemImage: "chevron.right"
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(dockerCompose.isEmpty)
-                    .listRowBackground(Color.clear)
+            if editCompose {
+                Button {
+                    showComposeEditor = true
+                } label: {
+                    Label(
+                        dockerCompose.isEmpty ? L10n.t("加载模板中…") : L10n.t("查看 / 编辑 Compose"),
+                        systemImage: "chevron.right"
+                    )
+                    .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.bordered)
+                .disabled(dockerCompose.isEmpty)
+                .listRowBackground(Color.clear)
             }
         } header: {
             SectionLabel(title: L10n.t("高级设置"), systemImage: "slider.horizontal.3")
         } footer: {
-            if advanced {
-                Text(L10n.t("限制为 0 表示不限制；勾选编辑 Compose 后将以编辑内容创建"))
-            }
+            Text(L10n.t("限制为 0 表示不限制；勾选编辑 Compose 后将以编辑内容创建"))
         }
     }
 
@@ -426,11 +435,18 @@ struct AIVllmCreateView: View {
         URLComponents(string: server.normalizedBaseURL)?.host ?? server.baseURL
     }
 
-    /// 端口/容器名变化时同步 Base URL（自定义除外）
+    /// 容器地址用的容器名：未指定容器名称时与实例名一致
+    ///（后端默认以实例名创建容器，抓包确认；Base URL 需用同名主机别名访问）
+    private var effectiveContainerName: String {
+        let trimmed = containerName.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? name.trimmingCharacters(in: .whitespaces) : trimmed
+    }
+
+    /// 端口/容器名/名称变化时同步 Base URL（自定义除外）
     private func refreshBaseURL() {
         guard baseURLType != .custom else { return }
         if let url = baseURLType.baseURL(port: portValue ?? 8000,
-                                         containerName: containerName,
+                                         containerName: effectiveContainerName,
                                          panelHost: panelHost) {
             baseURL = url
         }
@@ -481,7 +497,7 @@ struct AIVllmCreateView: View {
             port: port,
             modelDir: modelDir.trimmingCharacters(in: .whitespaces),
             command: command.trimmingCharacters(in: .whitespaces),
-            advanced: advanced,
+            advanced: advancedEnabled,
             containerName: containerName.trimmingCharacters(in: .whitespaces),
             allowPort: allowPort,
             specifyIP: specifyIP.trimmingCharacters(in: .whitespaces),
@@ -510,7 +526,10 @@ struct AIVllmCreateView: View {
                 dismiss()
             }
         } else if let taskID = await vm.submitCreate(request) {
-            dismiss()
+            // 创建进度由本表单内 push（与安装应用同模式），完成后分步收栈；
+            // onSubmit 保留兼容（调用方不再需要自行 push 进度）
+            activeTaskID = taskID
+            showProgress = true
             onSubmit(taskID)
         }
     }

@@ -225,6 +225,15 @@ nonisolated struct SwapDetail: Decodable, Hashable, Identifiable {
 
     enum CodingKeys: String, CodingKey { case path, size, used, isNew, taskID }
 
+    /// 成员构造（解码 init 会隐藏 memberwise；合成行如 /opt/.1panel_swap 使用）
+    init(path: String, size: Int, used: String? = nil, isNew: Bool? = nil, taskID: String? = nil) {
+        self.path = path
+        self.size = size
+        self.used = used
+        self.isNew = isNew
+        self.taskID = taskID
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         path = c.decodeDefault(String.self, forKey: .path, "")

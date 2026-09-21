@@ -16665,6 +16665,61 @@
         }
       }
     },
+    "点击进入桶选择页自动获取桶列表，选中后自动回填" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the bucket picker to fetch the bucket list; selecting one fills it in automatically"
+          }
+        }
+      }
+    },
+    "共 %ld 个桶" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld buckets"
+          }
+        }
+      }
+    },
+    "未获取到桶列表" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No buckets fetched"
+          }
+        }
+      }
+    },
+    "获取失败或列表中没有目标桶时可手动填写" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If fetching fails or the target bucket is not listed, enter it manually"
+          }
+        }
+      }
+    },
+    "请先在上一页填写 Access Key ID / Secret Key / Endpoint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fill in Access Key ID / Secret Key / Endpoint on the previous page first"
+          }
+        }
+      }
+    },
     "手动输入桶名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23118,6 +23173,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No apps with ignored upgrades"
+          }
+        }
+      }
+    },
+    "没有找到许可证" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No licenses found"
+          }
+        }
+      }
+    },
+    "没有找到DNS账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No DNS accounts found"
           }
         }
       }
@@ -33055,6 +33132,17 @@
         }
       }
     },
+    "选择桶" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Bucket"
+          }
+        }
+      }
+    },
     "选择 IP 组" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35317,6 +35405,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Group"
+          }
+        }
+      }
+    },
+    "默认与名称一致" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defaults to the instance name"
           }
         }
       }

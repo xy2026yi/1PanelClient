@@ -227,7 +227,7 @@ struct DeviceSwapSettingsView: View {
                     InfoRow(L10n.t("Swap 总数"), value: MonitorSettingsView.fmt(device.swapMemoryTotal ?? 0))
                     InfoRow(L10n.t("Swap 已用"), value: MonitorSettingsView.fmt(device.swapMemoryUsed ?? 0))
                     InfoRow(L10n.t("Swap 空闲"), value: MonitorSettingsView.fmt(device.swapMemoryAvailable ?? 0))
-                    ForEach(device.swapDetails ?? []) { detail in
+                    ForEach(swapDetailsForDisplay) { detail in
                         NavigationLink {
                             SwapEditView(
                                 detail: detail,
@@ -272,11 +272,25 @@ struct DeviceSwapSettingsView: View {
         }
     }
 
+    /// 展示用明细：网页端固定展示默认交换文件 /opt/.1panel_swap（0MB），
+    /// 接口未返回该条时补一条合成行（与网页端一致；点入编辑即创建）
+    private var swapDetailsForDisplay: [SwapDetail] {
+        var list = device?.swapDetails ?? []
+        let defaultPath = "/opt/.1panel_swap"
+        if !list.contains(where: { $0.path == defaultPath }) {
+            list.append(SwapDetail(path: defaultPath, size: 0, used: "0",
+                                   isNew: nil, taskID: nil))
+        }
+        return list
+    }
+
     /// 调整 Swap（size KB；used 回传原字符串；任务进度）
     private func updateSwap(path: String, sizeKB: Int) async {
         let taskID = UUID().uuidString
-        let used = device?.swapDetails?.first(where: { $0.path == path })?.used ?? "0"
-        let isNew = device?.swapDetails?.first(where: { $0.path == path })?.isNew ?? false
+        let detail = device?.swapDetails?.first(where: { $0.path == path })
+        let used = detail?.used ?? "0"
+        // 接口未返回该路径（如网页端默认 /opt/.1panel_swap）按新建提交
+        let isNew = detail?.isNew ?? true
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.toolboxDeviceUpdateSwap.path,

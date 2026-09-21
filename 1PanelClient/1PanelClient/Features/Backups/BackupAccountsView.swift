@@ -576,10 +576,7 @@ struct BackupAccountEditView: View {
     @State private var secretKey = ""
     @State private var endpointProto = "https"
     @State private var endpointHost = ""
-    @State private var bucketManual = false
     @State private var bucket = ""
-    @State private var buckets: [String] = []
-    @State private var isLoadingBuckets = false
 
     // 阿里云OSS
     @State private var ossScType: OSSStorageType = .standard
@@ -804,35 +801,33 @@ struct BackupAccountEditView: View {
         }
     }
 
-    /// MINIO / 阿里云OSS 共用：桶下拉（获取桶）/ 手动输入
+    /// MINIO / 阿里云OSS 共用：桶入口行（形态 1 + 桶图标）→ 桶选择页自动获取、选中回填
     private var bucketSection: some View {
         Section {
-            Toggle(L10n.t("手动输入桶名"), isOn: $bucketManual)
-            if bucketManual {
-                OutlinedTextField(label: L10n.t("桶名"), text: $bucket)
-            } else {
-                Picker(L10n.t("桶"), selection: $bucket) {
-                    Text(buckets.isEmpty ? L10n.t("未获取") : L10n.t("请选择")).tag("")
-                    ForEach(buckets, id: \.self) { b in
-                        Text(b).tag(b)
-                    }
+            NavigationLink {
+                BackupBucketPickerView(
+                    vm: vm, type: type,
+                    endpointProto: endpointProto, endpointHost: endpointHost,
+                    accessKeyID: accessKeyID, secretKey: secretKey,
+                    ossScType: ossScType, bucket: $bucket)
+            } label: {
+                OutlinedShape(label: L10n.t("桶"), isFocused: false,
+                              hasValue: !bucket.isEmpty,
+                              trailing: {
+                    Image(systemName: "externaldrive")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }) {
+                    Text(bucket.isEmpty ? L10n.t("未获取") : bucket)
+                        .foregroundStyle(bucket.isEmpty ? Color.secondary : Color.primary)
+                        .lineLimit(1)
                 }
-                .pickerStyle(.menu)
-                Button {
-                    Task { await loadBuckets() }
-                } label: {
-                    HStack {
-                        Text(L10n.t("获取桶"))
-                        Spacer()
-                        if isLoadingBuckets { ProgressView() }
-                    }
-                }
-                .disabled(isLoadingBuckets)
             }
+            .buttonStyle(.plain)
         } header: {
             Text(L10n.t("存储桶"))
         } footer: {
-            Text(L10n.t("默认从 Endpoint 拉取桶列表；开启手动输入可直接填写桶名"))
+            Text(L10n.t("点击进入桶选择页自动获取桶列表，选中后自动回填"))
         }
     }
 
@@ -974,7 +969,7 @@ struct BackupAccountEditView: View {
     private var formFingerprint: String {
         [
             name, type.rawValue, String(rememberAuth), backupPath,
-            accessKeyID, secretKey, endpointProto, endpointHost, String(bucketManual), bucket,
+            accessKeyID, secretKey, endpointProto, endpointHost, bucket,
             ossScType.rawValue,
             webdavAddress, webdavUsername, webdavPassword,
             sftpAddress, String(sftpPort), sftpUsername, sftpAuthMode.rawValue,
@@ -995,7 +990,6 @@ struct BackupAccountEditView: View {
             if let proto = endpoint.proto { endpointProto = proto }
             endpointHost = endpoint.host
             bucket = account.bucket ?? ""
-            bucketManual = !(account.bucket ?? "").isEmpty
             // 保留 timeout 等其他键（与 OSS 一致）
             extraVars = vars.values.filter { !["endpointItem", "endpoint"].contains($0.key) }
         case .oss:
@@ -1003,7 +997,6 @@ struct BackupAccountEditView: View {
             if let proto = endpoint.proto { endpointProto = proto }
             endpointHost = endpoint.host
             bucket = account.bucket ?? ""
-            bucketManual = !(account.bucket ?? "").isEmpty
             if let sc = vars["scType"]?.stringValue, let t = OSSStorageType(rawValue: sc) {
                 ossScType = t
             }
@@ -1158,47 +1151,6 @@ struct BackupAccountEditView: View {
         )
     }
 
-    private func loadBuckets() async {
-        // 拉桶只需 Endpoint 与凭证，不要求名称/桶已填
-        let bucketFetchError: String?
-        if accessKeyID.isEmpty { bucketFetchError = L10n.t("请填写 Access Key ID") }
-        else if secretKey.isEmpty { bucketFetchError = L10n.t("请填写 Secret Key") }
-        else if endpointHost.trimmingCharacters(in: .whitespaces).isEmpty { bucketFetchError = L10n.t("请填写 Endpoint 地址") }
-        else { bucketFetchError = nil }
-        if let error = bucketFetchError {
-            validationMessage = error
-            showValidationAlert = true
-            return
-        }
-        isLoadingBuckets = true
-        defer { isLoadingBuckets = false }
-        let host = endpointHost.trimmingCharacters(in: .whitespaces)
-        // OSS 的拉桶 vars 需携带 scType，MINIO 仅 endpoint
-        let vars: BackupVarsJSON
-        switch type {
-        case .minio:
-            vars = BackupVarsJSON(["endpoint": .string("\(endpointProto)://\(host)")])
-        case .oss:
-            vars = BackupVarsJSON([
-                "scType": .string(ossScType.rawValue),
-                "endpoint": .string("\(endpointProto)://\(host)"),
-            ])
-        case .webdav, .sftp:
-            return
-        }
-        let list = await vm.fetchBuckets(
-            type: type.rawValue,
-            vars: vars,
-            accessKey: Self.encodeBase64(accessKeyID),
-            credential: Self.encodeBase64(secretKey)
-        )
-        buckets = list
-        // 获取失败（空列表）时保留已选/回显的桶，不强制清空
-        if !list.isEmpty, !list.contains(bucket) {
-            bucket = list.first ?? ""
-        }
-    }
-
     private func runCheck() async {
         if let error = validationError() {
             validationMessage = error
@@ -1236,5 +1188,100 @@ struct BackupAccountEditView: View {
             onComplete?()
             dismiss()
         }
+    }
+}
+
+// MARK: - 桶选择页（存储页入口行进入）
+
+/// 桶选择页：进入自动获取桶列表，选中行自动返回回填；获取失败可重试或手动输入。
+/// 拉桶只需 Endpoint 与凭证（与原表单内「获取桶」一致），OSS 需携带存储类型
+private struct BackupBucketPickerView: View {
+    @ObservedObject var vm: BackupAccountsViewModel
+    let type: BackupAccountType
+    let endpointProto: String
+    let endpointHost: String
+    let accessKeyID: String
+    let secretKey: String
+    let ossScType: OSSStorageType
+    @Binding var bucket: String
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var buckets: [String] = []
+    @State private var isLoading = false
+    @State private var loadError: String?
+
+    var body: some View {
+        List {
+            if isLoading && buckets.isEmpty {
+                HStack { Spacer(); LoadingStateView(); Spacer() }
+                    .listRowBackground(Color.clear)
+            } else if buckets.isEmpty {
+                Section {
+                    LoadErrorStateView(message: loadError ?? L10n.t("未获取到桶列表")) {
+                        Task { await fetch() }
+                    }
+                    .listRowBackground(Color.clear)
+                }
+            } else {
+                Section {
+                    ForEach(buckets, id: \.self) { name in
+                        Button {
+                            bucket = name
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Text(name).font(.dataMonospacedBody)
+                                Spacer()
+                                if name == bucket {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text(L10n.f("共 %ld 个桶", buckets.count))
+                }
+            }
+
+            // 获取失败或列表中没有目标桶时的兜底
+            Section {
+                OutlinedTextField(label: L10n.t("桶名"), text: $bucket)
+            } header: {
+                Text(L10n.t("手动输入"))
+            } footer: {
+                Text(L10n.t("获取失败或列表中没有目标桶时可手动填写"))
+            }
+        }
+        .navigationTitle(L10n.t("选择桶"))
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await fetch() }
+    }
+
+    private func fetch() async {
+        guard !accessKeyID.isEmpty, !secretKey.isEmpty,
+              !endpointHost.trimmingCharacters(in: .whitespaces).isEmpty else {
+            loadError = L10n.t("请先在上一页填写 Access Key ID / Secret Key / Endpoint")
+            return
+        }
+        isLoading = true
+        defer { isLoading = false }
+        let host = endpointHost.trimmingCharacters(in: .whitespaces)
+        var vars = BackupVarsJSON()
+        vars["endpoint"] = .string("\(endpointProto)://\(host)")
+        if type == .oss {
+            vars["scType"] = .string(ossScType.rawValue)
+        }
+        let list = await vm.fetchBuckets(
+            type: type.rawValue, vars: vars,
+            accessKey: Self.encodeBase64(accessKeyID),
+            credential: Self.encodeBase64(secretKey))
+        buckets = list
+        if list.isEmpty { loadError = L10n.t("未获取到桶列表") }
+    }
+
+    private static func encodeBase64(_ text: String) -> String {
+        Data(text.utf8).base64EncodedString()
     }
 }

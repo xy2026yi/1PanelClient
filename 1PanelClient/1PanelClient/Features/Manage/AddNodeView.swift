@@ -134,7 +134,7 @@ struct AddNodeView: View {
             && !user.isEmpty && port > 0 && nodePort > 0
             && !baseDir.isEmpty
             && (authMode == "password" ? !password.isEmpty : !privateKey.isEmpty)
-            && (!isPro || availableLicenses.indices.contains(where: { availableLicenses[$0].id == selectedLicenseID }))
+            && availableLicenses.indices.contains(where: { availableLicenses[$0].id == selectedLicenseID })
     }
 
     /// 向导分页：0 连接信息 1 节点信息 2 数据同步（末页主操作 = 可用性检查）
@@ -149,9 +149,10 @@ struct AddNodeView: View {
                 && !user.isEmpty && port > 0
                 && (authMode == "password" ? !password.isEmpty : !privateKey.isEmpty)
         case 1:
+            // 许可证未查询到可用项时不允许下一步（社区版同样需要可用许可证）
             return !name.trimmingCharacters(in: .whitespaces).isEmpty
                 && nodePort > 0 && !baseDir.isEmpty
-                && (!isPro || availableLicenses.indices.contains(where: { availableLicenses[$0].id == selectedLicenseID }))
+                && availableLicenses.indices.contains(where: { availableLicenses[$0].id == selectedLicenseID })
         default:
             return true
         }
@@ -275,9 +276,18 @@ struct AddNodeView: View {
                            selection: editionText,
                            optionLabels: ["community": L10n.t("社区版"),
                                           "pro": L10n.t("专业版")])
+            // 无可用许可证：保持形态 3 描边框展示占位文案（下一步已被 pageReady 拦截）
             if availableLicenses.isEmpty {
-                Text(L10n.t("无数据"))
-                    .foregroundStyle(.secondary)
+                OutlinedShape(label: L10n.t("许可证"), isFocused: false,
+                              hasValue: true,
+                              trailing: {
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }) {
+                    Text(L10n.t("没有找到许可证"))
+                        .foregroundStyle(.secondary)
+                }
             } else {
                 OutlinedPicker(label: L10n.t("许可证"),
                                options: availableLicenses.map { String($0.id) },

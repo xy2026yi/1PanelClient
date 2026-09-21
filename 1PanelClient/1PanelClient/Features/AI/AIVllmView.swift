@@ -190,8 +190,6 @@ struct AIVllmView: View {
     @State private var forceDeleteInstance = false
     @State private var pendingOperate: (instance: VllmInstance, operate: String)?
     @State private var logInstance: VllmInstance?
-    @State private var showProgress = false
-    @State private var activeTaskID = ""
 
     init(server: ServerConfig) {
         self.server = server
@@ -261,13 +259,11 @@ struct AIVllmView: View {
                             operateDisplayName(pending.operate)))
             }
         }
-        .sheet(isPresented: $showCreate) {
-            AIVllmCreateView(server: server, vm: vm) { taskID in
-                activeTaskID = taskID
-                showProgress = true
-            }
+        // 创建/编辑表单改为 push 进入（与安装应用一致）；创建进度由表单内自行 push
+        .navigationDestination(isPresented: $showCreate) {
+            AIVllmCreateView(server: server, vm: vm) { _ in }
         }
-        .sheet(isPresented: Binding(
+        .navigationDestination(isPresented: Binding(
             get: { editInstance != nil },
             set: { if !$0 { editInstance = nil } }
         )) {
@@ -301,15 +297,6 @@ struct AIVllmView: View {
             )
             .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(instance).count))])
             .presentationDragIndicator(.visible)
-        }
-        .navigationDestination(isPresented: $showProgress) {
-            // 网页端创建进度从头读日志（latest=false），任务日志查询参数均空、仅按 taskID
-            TaskProgressView(taskID: activeTaskID, title: L10n.t("创建 vLLM 实例"), latest: false, node: "local") { isDone in
-                if isDone {
-                    Task { await vm.loadInstances() }
-                }
-                return false
-            }
         }
         .navigationDestination(isPresented: Binding(
             get: { logInstance != nil },
