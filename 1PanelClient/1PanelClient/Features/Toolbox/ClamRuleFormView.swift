@@ -40,6 +40,9 @@ struct ClamRuleFormView: View {
 
     // 超时
     @State private var timeoutText = "300"
+    /// 超时单位（s/m/h，随数值一起提交，后端按单位换算）
+    @State private var timeoutUnitValue = "m"
+    private let timeoutUnitOptions = ["s", "m", "h"]
 
     @State private var isSaving = false
     @State private var didFill = false
@@ -57,7 +60,16 @@ struct ClamRuleFormView: View {
 
     /// UI 单位固定分钟，提交换算秒
     private var timeoutSeconds: Int {
-        (Int(timeoutText) ?? 0) * 60
+        (Int(timeoutText) ?? 0) * Self.timeoutUnitSeconds(timeoutUnitValue)
+    }
+
+    /// 单位 → 秒
+    private static func timeoutUnitSeconds(_ unit: String) -> Int {
+        switch unit {
+        case "s": return 1
+        case "h": return 3600
+        default:  return 60
+        }
     }
 
     private var canSubmit: Bool {
@@ -286,9 +298,14 @@ struct ClamRuleFormView: View {
 
     private var timeoutSection: some View {
         Section {
-            // 单位固定分钟（提交换算秒）；上限放宽到一年避免编辑旧规则被 1440 截断
-            OutlinedUnitField(label: L10n.t("超时时间"), unit: L10n.t("分钟"),
-                              text: $timeoutText, range: 1...525600)
+            // 数值 + 单位菜单（提交携带单位，后端换算）
+            OutlinedUnitField(label: L10n.t("超时时间"), unit: "",
+                              text: $timeoutText, range: 1...8760)
+            OutlinedPicker(label: L10n.t("超时单位"),
+                           options: timeoutUnitOptions, selection: $timeoutUnitValue,
+                           optionLabels: ["s": L10n.t("秒"),
+                                          "m": L10n.t("分钟"),
+                                          "h": L10n.t("小时")])
         } header: {
             SectionLabel(title: L10n.t("超时时间"), systemImage: "hourglass")
         } footer: {
@@ -341,7 +358,17 @@ struct ClamRuleFormView: View {
 
         // 超时秒数反推为分钟（向上取整，不足 1 分钟按 1 计）
         if let seconds = rule.timeout, seconds > 0 {
-            timeoutText = String(max(1, (seconds + 59) / 60))
+            // 秒 → 数值+单位：整除取大单位（原值可整除时往返无损）
+            if seconds % 3600 == 0, seconds >= 3600 {
+                timeoutUnitValue = "h"
+                timeoutText = String(seconds / 3600)
+            } else if seconds % 60 == 0 {
+                timeoutUnitValue = "m"
+                timeoutText = String(seconds / 60)
+            } else {
+                timeoutUnitValue = "s"
+                timeoutText = String(max(1, seconds))
+            }
         }
 
         if let method = rule.alertMethod, !method.isEmpty, let id = Int(method) {
@@ -384,7 +411,7 @@ struct ClamRuleFormView: View {
                 minute: minute,
                 second: 30),
             timeoutItem: Int(timeoutText) ?? 0,
-            timeoutUnit: "m",
+            timeoutUnit: timeoutUnitValue,
             hasAlert: hasAlert,
             alertMethodItems: hasAlert && alertMethodID != 0 ? [method] : [],
             alertTitle: hasAlert ? L10n.f("病毒扫描「 %@ 」任务检测到感染文件告警", name) : "",

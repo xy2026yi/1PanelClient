@@ -82,6 +82,8 @@ struct DatabaseRedisPerformanceView: View {
     @State private var timeoutText = ""
     @State private var maxclientsText = ""
     @State private var maxmemoryMBText = ""
+    /// 最大内存单位（K/M/G，提交拼 "Xkb/mb/gb"）
+    @State private var memoryUnit = "M"
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var isSaving = false
@@ -119,8 +121,11 @@ struct DatabaseRedisPerformanceView: View {
                                       text: $timeoutText, range: 0...999999)
                     OutlinedUnitField(label: L10n.t("最大连接数"), unit: "", prompt: L10n.t("可选"),
                                       text: $maxclientsText, range: 0...999999)
-                    OutlinedUnitField(label: L10n.t("最大内存使用"), unit: "MB",
+                    OutlinedUnitField(label: L10n.t("最大内存使用"), unit: "",
                                       text: $maxmemoryMBText, range: 0...9_999_999)
+                    OutlinedPicker(label: L10n.t("内存单位"), options: ["K", "M", "G"],
+                                   selection: $memoryUnit,
+                                   optionLabels: ["K": "KB", "M": "MB", "G": "GB"])
                 } header: {
                     SectionLabel(title: L10n.t("性能调整"), systemImage: "speedometer")
                 } footer: {
@@ -175,9 +180,16 @@ struct DatabaseRedisPerformanceView: View {
                 as: RedisConf.self)
             timeoutText = resp.timeout ?? "0"
             maxclientsText = resp.maxclients ?? "10000"
-            // 纯字节数字 → MB 展示；非数字值原样展示（保存时原样回传，不静默改值）
-            if let mb = RedisConfUpdateRequest.mbFromBytes(resp.maxmemory) {
-                maxmemoryMBText = String(mb)
+            // 纯字节数字 → 数值+单位（整除且 ≥1GB 取 GB，否则 MB 四舍五入）；
+            // 非数字值原样展示（保存时原样回传，不静默改值）
+            if let bytes = Int(resp.maxmemory ?? ""), bytes > 0 {
+                if bytes % (1024 * 1024 * 1024) == 0, bytes >= 1024 * 1024 * 1024 {
+                    memoryUnit = "G"
+                    maxmemoryMBText = String(bytes / 1024 / 1024 / 1024)
+                } else {
+                    memoryUnit = "M"
+                    maxmemoryMBText = String(Int((Double(bytes) / 1024 / 1024).rounded()))
+                }
             } else if let raw = resp.maxmemory, !raw.isEmpty {
                 maxmemoryMBText = raw
             } else {
@@ -201,8 +213,9 @@ struct DatabaseRedisPerformanceView: View {
         let maxclients = maxclientsText.trimmingCharacters(in: .whitespaces)
         let memoryInput = maxmemoryMBText.trimmingCharacters(in: .whitespaces)
         let maxmemory: String
-        if let mb = Int(memoryInput) {
-            maxmemory = RedisConfUpdateRequest.mbString(mb)
+        if let value = Int(memoryInput) {
+            // 单位随菜单拼接（服务端 "Xkb/Xmb/Xgb" 格式，抓包确认）
+            maxmemory = "\(value)\(memoryUnit.lowercased())"
         } else if !memoryInput.isEmpty {
             maxmemory = memoryInput
         } else {

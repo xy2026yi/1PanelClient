@@ -158,11 +158,13 @@ struct NodeDetailView: View {
         .onReceive(NotificationCenter.default.publisher(for: NodeScope.changeNotification)) { _ in
             currentNode = NodeScope.current(for: server.id) ?? "local"
         }
-        .sheet(isPresented: $showEditSheet) {
+        // 编辑节点 push 进入（与安装应用一致）；提交成功后分步收栈再进任务进度
+        .navigationDestination(isPresented: $showEditSheet) {
             AddNodeView(server: server, editing: item, currentNode: current) { taskID in
-                navPath.append(NodeManageView.Dest.taskProgress(taskID: taskID, title: L10n.t("编辑节点")))
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    navPath.append(NodeManageView.Dest.taskProgress(taskID: taskID, title: L10n.t("编辑节点")))
+                }
             }
-            .bottomSheetDetents([.large])
         }
         .sheet(isPresented: $showRenameSheet) {
             if let item {

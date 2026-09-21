@@ -69,6 +69,8 @@ struct AIVllmCreateView: View {
     @State private var restartPolicy = VllmRestartPolicy.unlessStopped
     @State private var cpuQuotaText = "0"
     @State private var memoryLimitText = "0"
+    /// 内存单位（K/M/G，随请求提交）
+    @State private var memoryUnitValue = "M"
     @State private var pullImage = true
     @State private var editCompose = false
     @State private var dockerCompose = ""
@@ -126,10 +128,12 @@ struct AIVllmCreateView: View {
             _specifyIP = State(initialValue: i.specifyIP ?? "")
             _restartPolicy = State(initialValue: VllmRestartPolicy(rawValue: i.restartPolicy ?? "") ?? .unlessStopped)
             _cpuQuotaText = State(initialValue: Self.shortNumber(i.cpuQuota))
-            // UI 单位固定 MB：编辑回填时 GB 值 ×1024 换算为 MB
-            _memoryLimitText = State(initialValue: Self.shortNumber(
-                (i.memoryUnit ?? "M").uppercased() == "G"
-                    ? (i.memoryLimit ?? 0) * 1024 : i.memoryLimit))
+            // 编辑按实例原值 + 原单位回填（服务端单位取首字母归一 K/M/G）
+            _memoryLimitText = State(initialValue: Self.shortNumber(i.memoryLimit))
+            _memoryUnitValue = State(initialValue: {
+                let u = (i.memoryUnit ?? "M").uppercased().first.map(String.init) ?? "M"
+                return ["K", "M", "G"].contains(u) ? u : "M"
+            }())
             _pullImage = State(initialValue: i.pullImage ?? true)
             _editCompose = State(initialValue: i.editCompose ?? false)
             _dockerCompose = State(initialValue: i.dockerCompose ?? "")
@@ -150,6 +154,13 @@ struct AIVllmCreateView: View {
     @State private var wizardPage = 0
     @State private var advancedEnabled = false
     private let wizardPageNames = [L10n.t("基础"), L10n.t("配置"), L10n.t("高级")]
+
+    /// 当前页必填是否满足（模型目录为必填，随名称一起卡「下一步」）
+    private var pageReady: Bool {
+        wizardPage != 0
+            || (!name.trimmingCharacters(in: .whitespaces).isEmpty
+                && !modelDir.trimmingCharacters(in: .whitespaces).isEmpty)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -193,7 +204,7 @@ struct AIVllmCreateView: View {
                 totalPages: wizardPageNames.count,
                 primaryTitle: isEdit ? L10n.t("保存") : L10n.t("创建"),
                 isBusy: isSubmitting,
-                primaryDisabled: false,
+                primaryDisabled: !pageReady,
                 onBack: { withAnimation { wizardPage -= 1 } },
                 onNext: { withAnimation { wizardPage += 1 } },
                 onPrimary: { Task { await submit() } }
@@ -218,7 +229,12 @@ struct AIVllmCreateView: View {
                 return false
             }
         }
-        .task { await loadMeta() }
+        .task {
+            await loadMeta()
+            // 创建态访问地址默认类型下 Base URL 为空（首刷），补一次推导；
+            // 编辑态已回填非空不覆盖
+            if baseURL.isEmpty { refreshBaseURL() }
+        }
         .onChange(of: imageType) { _, _ in
             // 切类型：重选该类型最新版本（appVersion 变化联动镜像推导），
             // 重载命令模板与 compose，并按新端口/容器名刷新 Base URL
@@ -396,9 +412,12 @@ struct AIVllmCreateView: View {
                               text: $cpuQuotaText, keyboardType: .decimalPad,
                               allowsDecimal: true)
 
-            // 单位固定 MB（与安装表单一致，提交 memoryUnit=M）；MB 为整数输入
-            OutlinedUnitField(label: L10n.t("内存限制"), unit: "MB",
+            // 数值 + 单位菜单（提交携带单位，后端换算）；MB 为整数输入
+            OutlinedUnitField(label: L10n.t("内存限制"), unit: "",
                               text: $memoryLimitText, keyboardType: .numberPad)
+            OutlinedPicker(label: L10n.t("内存单位"), options: ["K", "M", "G"],
+                           selection: $memoryUnitValue,
+                           optionLabels: ["K": "KB", "M": "MB", "G": "GB"])
 
             Toggle(L10n.t("拉取镜像"), isOn: $pullImage)
 
@@ -504,8 +523,7 @@ struct AIVllmCreateView: View {
             restartPolicy: restartPolicy.rawValue,
             cpuQuota: Double(cpuQuotaText) ?? 0,
             memoryLimit: Double(memoryLimitText) ?? 0,
-            // UI 单位固定 MB，按 MB 语义提交 M（与安装请求一致）
-            memoryUnit: "M",
+            memoryUnit: memoryUnitValue,
             syncModelAccount: syncModelAccount,
             modelAccountBaseURLType: syncModelAccount ? baseURLType.rawValue : "",
             modelAccountBaseURL: syncModelAccount ? baseURL.trimmingCharacters(in: .whitespaces) : "",

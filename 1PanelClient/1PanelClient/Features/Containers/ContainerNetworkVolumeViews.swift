@@ -297,21 +297,23 @@ struct ContainerAuxIPsEditorView: View {
         Form {
             ForEach($rows) { $row in
                 Section {
-                    HStack(alignment: .center) {
-                        OutlinedTextField(label: L10n.t("标签"), prompt: L10n.t("可选"),
-                                          text: $row.label)
+                    OutlinedTextField(label: L10n.t("标签"), prompt: L10n.t("可选"),
+                                      text: $row.label)
+                    OutlinedTextField(label: "IP", prompt: "172.16.0.5", text: $row.ip)
+                } header: {
+                    // 样式 A（与负载均衡节点一致）：节头序号 + 节头删除
+                    HStack {
+                        Text(L10n.f("IP-%ld", (rows.firstIndex(where: { $0.id == row.id }) ?? 0) + 1))
+                        Spacer()
                         Button {
                             rows.removeAll { $0.id == row.id }
                         } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.title3)
+                            Label(L10n.t("删除IP"), systemImage: "trash")
+                                .font(.caption)
                                 .foregroundStyle(.red)
                         }
-                        // 与描边框内容行垂直居中（顶部 13pt 浮动标签区）
-                        .padding(.top, 13)
                         .accessibilityLabel(L10n.t("删除"))
                     }
-                    OutlinedTextField(label: "IP", prompt: "172.16.0.5", text: $row.ip)
                 }
             }
             Section {

@@ -49,6 +49,8 @@ struct AIAgentCreateView: View {
     @State private var restartPolicy = "unless-stopped"
     @State private var cpuQuota = 0
     @State private var memoryLimit = 0
+    /// 内存单位（K/M/G，随请求提交）
+    @State private var memoryUnit = "M"
     @State private var pullImage = true
     @State private var editCompose = false
     @State private var customCompose = ""
@@ -387,8 +389,11 @@ struct AIAgentCreateView: View {
         Section {
             OutlinedUnitField(label: L10n.t("CPU核心数"), unit: L10n.t("核"),
                               text: cpuQuotaText, range: 0...1024)
-            OutlinedUnitField(label: L10n.t("内存"), unit: "MB",
+            OutlinedUnitField(label: L10n.t("内存"), unit: "",
                               text: memoryLimitText, range: 0...9_999_999)
+                              OutlinedPicker(label: L10n.t("内存单位"), options: ["K", "M", "G"],
+                                             selection: $memoryUnit,
+                                             optionLabels: ["K": "KB", "M": "MB", "G": "GB"])
         } header: {
             Text(L10n.t("资源限制"))
         } footer: {
@@ -524,8 +529,7 @@ struct AIAgentCreateView: View {
             restartPolicy: restartPolicy,
             cpuQuota: cpuQuota,
             memoryLimit: memoryLimit,
-            // UI 单位固定 MB（无 M/G 切换），按 MB 语义提交 M
-            memoryUnit: "M",
+            memoryUnit: memoryUnit,
             pullImage: pullImage,
             editCompose: editCompose,
             dockerCompose: editCompose ? customCompose : ""

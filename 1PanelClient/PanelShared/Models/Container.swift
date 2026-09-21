@@ -544,7 +544,23 @@ nonisolated struct ContainerCreateDraft {
     var cpuShares = 1024
     /// CPU 核心数（0=不限，提交换算 nanoCPUs = cores × 1e9）
     var cpuCores: Double = 0
-    var memoryMB = 0
+    /// 内存值（单位见 memoryUnit；0=不限，提交换算字节）
+    var memoryValue = 0
+    var memoryUnit = "M"
+
+    /// 单位 → 字节
+    static func memoryUnitBytes(_ unit: String) -> Int64 {
+        switch unit {
+        case "K": return 1024
+        case "G": return 1024 * 1024 * 1024
+        default:  return 1024 * 1024
+        }
+    }
+
+    /// 内存值按当前单位换算的字节数
+    var memoryBytes: Int64 {
+        Int64(memoryValue) * Self.memoryUnitBytes(memoryUnit)
+    }
     /// 1panel-network 指定 IP（其他网络忽略）
     var networkIPv4 = ""
     var networkIPv6 = ""

@@ -27,9 +27,14 @@ struct AdvancedFeatureGateTests {
 
     @Test("可见性状态机：非门禁项只看偏好；门禁项需 license 或解锁再叠加偏好")
     func visibilityMatrix() {
+        // unlock 标记是全局 UserDefaults，Swift Testing 用例并发执行时会与
+        // unlockFlag 的「置 true→defer 清除」窗口竞态：本用例先显式清零并负责清理
+        UserDefaults.standard.set(false, forKey: "manage.advancedUnlocked")
+        defer { UserDefaults.standard.removeObject(forKey: "manage.advancedUnlocked") }
+
         let gate = AdvancedFeatureGate()
 
-        // 未解锁（UserDefaults 默认 false）
+        // 未解锁
         gate.serverLicensed = nil    // 未知 → 隐藏
         #expect(!gate.shows(.aiVllm, prefsEnabled: true))
         #expect(!gate.shows(.gpuMonitor, prefsEnabled: true))

@@ -725,6 +725,24 @@ struct DatabaseSystemView: View {
     @State private var pendingDeleteDb: DatabaseItem?
     @State private var isStatusExpanded = false
     @State private var showCreateUser = false
+    /// + 号半屏菜单（创建数据库/创建用户，按系统能力显示）
+    @State private var showAddMenu = false
+    /// + 号半屏菜单项（按系统能力：创建数据库 / 创建用户）
+    private var addMenuItems: [ActionMenuItem] {
+        var items: [ActionMenuItem] = []
+        if vm.supportsDatabaseList {
+            items.append(.init(title: L10n.t("创建数据库"), icon: "cylinder", color: .blue) {
+                showCreate = true
+            })
+        }
+        if vm.supportsUserManagement {
+            items.append(.init(title: L10n.t("创建用户"), icon: "person.badge.plus", color: .blue) {
+                showCreateUser = true
+            })
+        }
+        return items
+    }
+
     @State private var pendingDeleteUser: DatabaseUser?
     @State private var searchText = ""
     @State private var isSearching = false
@@ -767,21 +785,9 @@ struct DatabaseSystemView: View {
             if !isSearching && vm.isContainerRunning
                 && (vm.supportsDatabaseList || vm.supportsUserManagement) {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        if vm.supportsDatabaseList {
-                            Button {
-                                showCreate = true
-                            } label: {
-                                Label(L10n.t("创建数据库"), systemImage: "cylinder")
-                            }
-                        }
-                        if vm.supportsUserManagement {
-                            Button {
-                                showCreateUser = true
-                            } label: {
-                                Label(L10n.t("创建用户"), systemImage: "person.badge.plus")
-                            }
-                        }
+                    // 半屏菜单呈现（与网站列表统一），按系统能力显示可用项
+                    Button {
+                        showAddMenu = true
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -791,6 +797,13 @@ struct DatabaseSystemView: View {
         }
         .refreshable { await vm.refresh() }
         .task { await vm.refresh() }
+        .sheet(isPresented: $showAddMenu) {
+            ActionBottomSheet(title: vm.system.displayName, items: addMenuItems) {
+                showAddMenu = false
+            }
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: addMenuItems.count))])
+            .presentationDragIndicator(.visible)
+        }
         .navigationDestination(isPresented: $showCreate) {
             CreateDatabaseView(system: vm.system) { await vm.loadDatabases() }
         }

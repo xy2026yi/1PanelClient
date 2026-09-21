@@ -449,7 +449,7 @@ final class ContainersViewModel: ObservableObject {
             exposedPorts: ports,
             nanoCPUs: draft.cpuCores * 1_000_000_000,
             cpuShares: draft.cpuShares,
-            memory: Int64(draft.memoryMB) * 1024 * 1024,
+            memory: draft.memoryBytes,
             volumes: volumes,
             privileged: draft.privileged,
             autoRemove: draft.autoRemove,
@@ -502,13 +502,14 @@ final class ContainersViewModel: ObservableObject {
             macAddr: sameNetwork ? (orig?.macAddr ?? "") : ""
         )]
         // 内存：MB 值与原值换算一致（用户未改动）时原样回传字节，
-        // 避免非整 MB 容器保存一次后被取整"洗掉"精度；改动过则按 MB 换算
+        // 避免非整 MB 容器保存一次后被取整"洗掉"精度；改动过（含换单位）按当前单位换算
         let memoryBytes: Int64
-        if let origMemory = info.memory, origMemory > 0,
-           Int64(draft.memoryMB) == origMemory / 1024 / 1024 {
+        if draft.memoryUnit == "M",
+           let origMemory = info.memory, origMemory > 0,
+           Int64(draft.memoryValue) == origMemory / 1024 / 1024 {
             memoryBytes = origMemory
         } else {
-            memoryBytes = Int64(draft.memoryMB) * 1024 * 1024
+            memoryBytes = draft.memoryBytes
         }
         let req = ContainerUpdateRequest(
             taskID: UUID().uuidString,

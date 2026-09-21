@@ -203,7 +203,15 @@ struct ContainerEditView: View {
         d.restartPolicy = i.restartPolicy ?? "always"
         d.cpuShares = i.cpuShares ?? 1024
         d.cpuCores = (i.nanoCPUs ?? 0) / 1_000_000_000
-        d.memoryMB = Int((i.memory ?? 0) / 1024 / 1024)
+        // 字节 → 数值+单位（整除且 ≥1GB 取 GB，否则 MB；与创建表单单位菜单一致）
+        let memBytes = i.memory ?? 0
+        if memBytes % (1024 * 1024 * 1024) == 0, memBytes >= 1024 * 1024 * 1024 {
+            d.memoryUnit = "G"
+            d.memoryValue = Int(memBytes / 1024 / 1024 / 1024)
+        } else {
+            d.memoryUnit = "M"
+            d.memoryValue = Int(memBytes / 1024 / 1024)
+        }
         d.privileged = i.privileged ?? false
         d.autoRemove = i.autoRemove ?? false
         d.tty = i.tty ?? false

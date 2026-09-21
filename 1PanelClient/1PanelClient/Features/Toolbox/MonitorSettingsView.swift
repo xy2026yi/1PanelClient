@@ -21,11 +21,13 @@ struct MonitorSettingsView: View {
     @State private var showError = false
     @State private var showCleanConfirm = false
 
-    /// 采集间隔（分钟；UI 固定单位，提交换算回秒）
-    @State private var intervalMinutesText = "5"
+    /// 采集间隔：数值 + 单位（s/m/h，提交换算回秒）
+    @State private var intervalValueText = "5"
+    @State private var intervalUnit = "m"
+    private let intervalUnitOptions = ["s", "m", "h"]
     /// 加载时的原值（脏检查：失焦/回车仅在改动后提交，避免每次聚焦都发请求）
     @State private var loadedStoreDays = 0
-    @State private var loadedIntervalMinutes = ""
+    @State private var loadedIntervalSeconds = 0
 
     private let client: APIClient
 
@@ -74,10 +76,15 @@ struct MonitorSettingsView: View {
                               text: storeDaysText, range: 1...365,
                               onCommit: { commitStoreDays() })
                 .onSubmit { commitStoreDays() }
-            OutlinedUnitField(label: L10n.t("采集间隔"), unit: L10n.t("分钟"),
-                              text: $intervalMinutesText, range: 1...1440,
+            OutlinedUnitField(label: L10n.t("采集间隔"), unit: "",
+                              text: $intervalValueText, range: 1...86400,
                               onCommit: { commitInterval() })
                 .onSubmit { commitInterval() }
+            OutlinedPicker(label: L10n.t("间隔单位"),
+                           options: intervalUnitOptions, selection: $intervalUnit,
+                           optionLabels: ["s": L10n.t("秒"),
+                                          "m": L10n.t("分钟"),
+                                          "h": L10n.t("小时")])
             OutlinedPicker(label: L10n.t("默认网卡"),
                            options: netOptions.isEmpty ? [""] : netOptions,
                            selection: Binding(
@@ -123,10 +130,19 @@ struct MonitorSettingsView: View {
             path: APIEndpoint.hostsMonitorSettingGet.path, method: "GET", as: [String: String].self) {
             let loaded = MonitorSettings.from(dict: dict)
             settings = loaded
-            // 秒 → 分钟（不足 1 分钟按 1 计）
-            intervalMinutesText = String(max(1, loaded.interval / 60))
+            // 秒 → 数值+单位（整除取大单位，原值可整除时往返无损）
+            if loaded.interval % 3600 == 0, loaded.interval >= 3600 {
+                intervalUnit = "h"
+                intervalValueText = String(max(1, loaded.interval / 3600))
+            } else if loaded.interval % 60 == 0 {
+                intervalUnit = "m"
+                intervalValueText = String(max(1, loaded.interval / 60))
+            } else {
+                intervalUnit = "s"
+                intervalValueText = String(max(1, loaded.interval))
+            }
             loadedStoreDays = loaded.storeDays
-            loadedIntervalMinutes = intervalMinutesText
+            loadedIntervalSeconds = loaded.interval
         }
         if let nets: [String] = try? await client.send(
             path: APIEndpoint.monitorNetOptions.path, method: "GET", as: [String].self) {
@@ -139,8 +155,17 @@ struct MonitorSettingsView: View {
         isLoading = false
     }
 
+    /// 单位 → 秒
+    private static func intervalUnitSeconds(_ unit: String) -> Int {
+        switch unit {
+        case "s": return 1
+        case "h": return 3600
+        default:  return 60
+        }
+    }
+
     private var intervalSeconds: Int {
-        (Int(intervalMinutesText) ?? 5) * 60
+        (Int(intervalValueText) ?? 5) * Self.intervalUnitSeconds(intervalUnit)
     }
 
     private func submitInterval() {
@@ -154,10 +179,10 @@ struct MonitorSettingsView: View {
         update(key: "MonitorStoreDays", value: String(settings.storeDays))
     }
 
-    /// 采集间隔脏检查提交（失焦/回车共用）
+    /// 采集间隔脏检查提交（失焦/回车共用；数值或单位变化都算脏）
     private func commitInterval() {
-        guard intervalMinutesText != loadedIntervalMinutes else { return }
-        loadedIntervalMinutes = intervalMinutesText
+        guard intervalSeconds != loadedIntervalSeconds else { return }
+        loadedIntervalSeconds = intervalSeconds
         submitInterval()
     }
 
@@ -349,7 +374,10 @@ struct SwapEditView: View {
     let onSave: (String, Int) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var sizeMBText: String = ""
+    @State private var sizeValueText: String = ""
+    /// 总数单位（K/M/G，提交换算回 KB）
+    @State private var sizeUnit = "M"
+    private let sizeUnitOptions = ["K", "M", "G"]
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var isSaving = false
@@ -364,8 +392,11 @@ struct SwapEditView: View {
                         .font(.dataMonospacedBody)
                         .lineLimit(1)
                 }
-                OutlinedUnitField(label: L10n.t("总数"), unit: "MB",
-                                  text: $sizeMBText)
+                OutlinedUnitField(label: L10n.t("总数"), unit: "",
+                                  text: $sizeValueText)
+                OutlinedPicker(label: L10n.t("单位"),
+                               options: sizeUnitOptions, selection: $sizeUnit,
+                               optionLabels: ["K": "KB", "M": "MB", "G": "GB"])
             } footer: {
                 Text(L10n.t("分区大小最小值为 40 KB，设置成 0 则关闭 Swap 分区。"))
             }
@@ -379,7 +410,7 @@ struct SwapEditView: View {
                 } label: {
                     if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
-                .disabled(sizeMBText.isEmpty || isSaving)
+                .disabled(sizeValueText.isEmpty || isSaving)
             }
         }
         .alert(L10n.t("提示"), isPresented: $showError) {
@@ -388,19 +419,36 @@ struct SwapEditView: View {
             Text(errorMessage ?? "")
         }
         .onAppear {
-            // KB → MB 向上取整（不足 1MB 按 1 计）；已是整 MB 的值原样回显，
-            // 原样保存不漂移（MB×1024 恒为 4 的倍数，无需再对齐）
-            sizeMBText = String((detail.size + 1023) / 1024)
+            // KB → 数值+单位：整除取大单位（原值可整除时往返无损）
+            if detail.size % (1024 * 1024) == 0, detail.size >= 1024 * 1024 {
+                sizeUnit = "G"
+                sizeValueText = String(detail.size / 1024 / 1024)
+            } else if detail.size % 1024 == 0 {
+                sizeUnit = "M"
+                sizeValueText = String(detail.size / 1024)
+            } else {
+                sizeUnit = "K"
+                sizeValueText = String(detail.size)
+            }
+        }
+    }
+
+    /// 单位 → KB
+    private static func sizeUnitKB(_ unit: String) -> Int {
+        switch unit {
+        case "K": return 1
+        case "G": return 1024 * 1024
+        default:  return 1024
         }
     }
 
     private func save() {
-        guard let mb = Int(sizeMBText), mb >= 0 else {
+        guard let value = Int(sizeValueText), value >= 0 else {
             errorMessage = L10n.t("请输入有效的数值")
             showError = true
             return
         }
-        let kb = mb * 1024
+        let kb = value * Self.sizeUnitKB(sizeUnit)
         if kb != 0 && kb < 40 {
             errorMessage = L10n.t("分区大小最小值为 40 KB，设置成 0 则关闭 Swap 分区。")
             showError = true

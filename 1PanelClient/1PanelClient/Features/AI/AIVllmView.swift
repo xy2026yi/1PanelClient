@@ -337,7 +337,9 @@ struct AIVllmView: View {
                     }
                 }
             } footer: {
-                Text(L10n.t("点击实例查看操作，长命令启动参数以模板为准"))
+                if !vm.instances.isEmpty {
+                    Text(L10n.t("点击实例查看操作，长命令启动参数以模板为准"))
+                }
             }
         }
         .listStyle(.insetGrouped)

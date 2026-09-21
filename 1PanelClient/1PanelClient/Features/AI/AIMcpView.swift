@@ -202,6 +202,8 @@ struct AIMcpView: View {
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var showCreate = false
+    /// + 号半屏菜单（创建/域名绑定）
+    @State private var showAddMenu = false
     @State private var editingServer: McpServer?
     @State private var actionServer: McpServer?
     @State private var logServer: McpServer?
@@ -248,24 +250,27 @@ struct AIMcpView: View {
             prompt: L10n.t("搜索名称")
         )
         .toolbar {
-            // 搜索按钮由 searchIconMode 提供；此处合并为单一菜单，避免右上角按钮过多
+            // 搜索按钮由 searchIconMode 提供；+ 号半屏菜单（与其他列表页统一）
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        showCreate = true
-                    } label: {
-                        Label(L10n.t("创建 MCP"), systemImage: "plus")
-                    }
-                    Button {
-                        showDomain = true
-                    } label: {
-                        Label(L10n.t("域名绑定"), systemImage: "globe")
-                    }
+                Button {
+                    showAddMenu = true
                 } label: {
-                    Image(systemName: "ellipsis")
+                    Image(systemName: "plus")
                 }
-                .accessibilityLabel(L10n.t("更多操作"))
+                .accessibilityLabel(L10n.t("创建 MCP"))
             }
+        }
+        .sheet(isPresented: $showAddMenu) {
+            ActionBottomSheet(title: "MCP", items: [
+                .init(title: L10n.t("创建 MCP"), icon: "plus", color: .blue) {
+                    showCreate = true
+                },
+                .init(title: L10n.t("域名绑定"), icon: "globe", color: .blue) {
+                    showDomain = true
+                },
+            ]) { showAddMenu = false }
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
         }
         .refreshable { await vm.load(name: searchText) }
         .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load(name: searchText) } }

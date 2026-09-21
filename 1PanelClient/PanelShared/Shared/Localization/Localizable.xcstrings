@@ -1729,6 +1729,28 @@
         }
       }
     },
+    "GB" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GB"
+          }
+        }
+      }
+    },
+    "KB" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KB"
+          }
+        }
+      }
+    },
     "gzip" : {
 
     },
@@ -1993,6 +2015,17 @@
     },
     "ID: %lld" : {
 
+    },
+    "IP-%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP %ld"
+          }
+        }
+      }
     },
     "Innodb索引命中率" : {
       "extractionState" : "manual",
@@ -7608,6 +7641,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete"
+          }
+        }
+      }
+    },
+    "删除端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Port"
+          }
+        }
+      }
+    },
+    "删除挂载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Mount"
+          }
+        }
+      }
+    },
+    "删除IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete IP"
           }
         }
       }
@@ -17358,6 +17424,17 @@
         }
       }
     },
+    "挂载-%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mount %ld"
+          }
+        }
+      }
+    },
     "挂载分区" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22517,6 +22594,17 @@
         }
       }
     },
+    "模型-%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model %ld"
+          }
+        }
+      }
+    },
     "模型 · 共 %d 个" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27049,6 +27137,17 @@
         }
       }
     },
+    "端口-%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port %ld"
+          }
+        }
+      }
+    },
     "端口 %ld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29454,6 +29553,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Third-level proxy of X-Forwarded-For"
+          }
+        }
+      }
+    },
+    "获取桶失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to fetch buckets"
           }
         }
       }
@@ -33788,6 +33898,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Collect Interval"
+          }
+        }
+      }
+    },
+    "间隔单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interval Unit"
           }
         }
       }

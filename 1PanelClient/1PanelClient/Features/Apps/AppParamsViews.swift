@@ -22,6 +22,8 @@ struct UpdateParamsView: View {
     @State private var restartPolicy = "always"
     @State private var cpuQuota = 0
     @State private var memoryLimit = 0
+    /// 内存单位（K/M/G，随请求提交）
+    @State private var memoryUnit = "M"
     @State private var editCompose = false
     @State private var customCompose = ""
 
@@ -109,8 +111,11 @@ struct UpdateParamsView: View {
             Section {
                 OutlinedUnitField(label: L10n.t("CPU核心数"), unit: L10n.t("核"),
                                   text: cpuQuotaText, range: 0...1024)
-                OutlinedUnitField(label: L10n.t("内存"), unit: "MB",
+                OutlinedUnitField(label: L10n.t("内存"), unit: "",
                                   text: memoryLimitText, range: 0...9_999_999)
+                OutlinedPicker(label: L10n.t("内存单位"), options: ["K", "M", "G"],
+                               selection: $memoryUnit,
+                               optionLabels: ["K": "KB", "M": "MB", "G": "GB"])
             } header: {
                 Text(L10n.t("资源限制"))
             } footer: {
@@ -179,11 +184,10 @@ struct UpdateParamsView: View {
         allowPort = resp.allowPort ?? false
         restartPolicy = resp.restartPolicy ?? "always"
         cpuQuota = resp.cpuQuota ?? 0
-        // UI 单位固定 MB（与安装表单一致）：服务端为 GB 时换算回 MB 展示
+        // 按服务端原值 + 原单位回填（单位取首字母归一 K/M/G）
         memoryLimit = resp.memoryLimit ?? 0
-        if (resp.memoryUnit ?? "").uppercased() == "GB" {
-            memoryLimit *= 1024
-        }
+        let u = (resp.memoryUnit ?? "MB").uppercased().first.map(String.init) ?? "M"
+        memoryUnit = ["K", "M", "G"].contains(u) ? u : "M"
         customCompose = resp.dockerCompose ?? resp.rawCompose ?? ""
         isLoading = false
     }
@@ -207,7 +211,7 @@ struct UpdateParamsView: View {
             memoryLimit: memoryLimit,
             cpuQuota: cpuQuota,
             // UI 单位固定 MB，按 MB 语义提交 M（与安装请求一致）
-            memoryUnit: "M",
+            memoryUnit: memoryUnit,
             allowPort: allowPort,
             containerName: containerName,
             editCompose: editCompose,

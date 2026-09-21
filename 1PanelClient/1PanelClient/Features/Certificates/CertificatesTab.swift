@@ -16,6 +16,8 @@ struct CertificatesTab: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showUpload = false
     @State private var showApply = false
+    /// + 号半屏菜单（申请/上传）
+    @State private var showAddMenu = false
     @State private var showAcme = false
     @State private var showDns = false
     @State private var showCA = false
@@ -69,19 +71,27 @@ struct CertificatesTab: View {
         .toolbar {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button { showApply = true } label: {
-                            Label(L10n.t("申请证书"), systemImage: "arrow.down.circle")
-                        }
-                        Button { showUpload = true } label: {
-                            Label(L10n.t("上传证书"), systemImage: "icloud.and.arrow.up")
-                        }
+                    // 申请/上传合并进 + 号半屏菜单（呈现方式与网站列表统一）
+                    Button {
+                        showAddMenu = true
                     } label: {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel(L10n.t("申请或上传证书"))
                 }
             }
+        }
+        .sheet(isPresented: $showAddMenu) {
+            ActionBottomSheet(title: L10n.t("证书"), items: [
+                .init(title: L10n.t("申请证书"), icon: "arrow.down.circle", color: .blue) {
+                    showApply = true
+                },
+                .init(title: L10n.t("上传证书"), icon: "icloud.and.arrow.up", color: .blue) {
+                    showUpload = true
+                },
+            ]) { showAddMenu = false }
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showUpload) {
             UploadCertificateView(vm: vm)

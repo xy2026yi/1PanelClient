@@ -328,25 +328,27 @@ struct McpVolumesEditorView: View {
         Form {
             ForEach(Array(volumes.enumerated()), id: \.offset) { idx, _ in
                 Section {
-                    HStack(alignment: .center) {
-                        OutlinedTextField(label: L10n.t("宿主机目录"), prompt: "/data/1",
-                                          text: fieldBinding(idx, \.source), keyboardType: .URL)
-                        Button {
-                            volumes.remove(at: idx)
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.title3)
-                                .foregroundStyle(.red)
-                        }
-                        // 与描边框内容行垂直居中（顶部 13pt 浮动标签区）
-                        .padding(.top, 13)
-                        .accessibilityLabel(L10n.t("删除"))
-                    }
+                    OutlinedTextField(label: L10n.t("宿主机目录"), prompt: "/data/1",
+                                      text: fieldBinding(idx, \.source), keyboardType: .URL)
                     OutlinedTextField(label: L10n.t("容器目录"), prompt: "/data1",
                                       text: fieldBinding(idx, \.target))
                     OutlinedPicker(label: L10n.t("模式"), options: ["rw", "ro"],
                                    selection: fieldBinding(idx, \.mode),
                                    optionLabels: modeLabels)
+                } header: {
+                    // 样式 A（与负载均衡节点一致）：节头序号 + 节头删除
+                    HStack {
+                        Text(L10n.f("挂载-%ld", idx + 1))
+                        Spacer()
+                        Button {
+                            volumes.remove(at: idx)
+                        } label: {
+                            Label(L10n.t("删除挂载"), systemImage: "trash")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                        .accessibilityLabel(L10n.t("删除"))
+                    }
                 }
             }
             Section {

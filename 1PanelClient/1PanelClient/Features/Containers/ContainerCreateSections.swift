@@ -247,9 +247,12 @@ struct ContainerWizardForm: View {
             OutlinedUnitField(label: L10n.t("CPU核心数"), unit: L10n.t("核"),
                               text: cpuCoresText,
                               hint: L10n.t("如果设置为 0，则表示没有限制"))
-            OutlinedUnitField(label: L10n.t("内存"), unit: "MB", prompt: "0",
+            OutlinedUnitField(label: L10n.t("内存"), unit: "", prompt: "0",
                               text: memoryText,
                               hint: L10n.t("如果设置为 0，则表示没有限制"))
+            OutlinedPicker(label: L10n.t("内存单位"), options: ["K", "M", "G"],
+                           selection: $draft.memoryUnit,
+                           optionLabels: ["K": "KB", "M": "MB", "G": "GB"])
         } header: {
             Text(L10n.t("资源限制"))
         }
@@ -287,8 +290,8 @@ struct ContainerWizardForm: View {
     }
 
     private var memoryText: Binding<String> {
-        Binding<String>(get: { String(draft.memoryMB) },
-                        set: { draft.memoryMB = Int($0) ?? 0 })
+        Binding<String>(get: { String(draft.memoryValue) },
+                        set: { draft.memoryValue = Int($0) ?? 0 })
     }
 }
 
@@ -363,27 +366,29 @@ struct ContainerPortsEditorView: View {
 
     private func portSection(_ port: Binding<CreatePortRow>) -> some View {
         Section {
-            HStack(alignment: .center) {
-                OutlinedTextField(label: L10n.t("主机端口"), text: port.host,
-                                  keyboardType: .numberPad)
-                // 高度居中删除符（多行时仅一条不可删）
-                if ports.count > 1 {
-                    Button {
-                        ports.removeAll { $0.id == port.id }
-                    } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(.red)
-                    }
-                    .padding(.top, 13)
-                }
-            }
+            OutlinedTextField(label: L10n.t("主机端口"), text: port.host,
+                              keyboardType: .numberPad)
             OutlinedTextField(label: L10n.t("容器端口"), text: port.containerPort,
                               keyboardType: .numberPad)
             OutlinedTextField(label: L10n.t("主机 IP"), prompt: L10n.t("可选"),
                               text: port.hostIP)
             OutlinedPicker(label: L10n.t("协议"), options: protocols,
                            selection: port.protocolField)
+        } header: {
+            // 样式 A（与负载均衡节点一致）：节头序号 + 节头删除（仅一条不可删）
+            HStack {
+                Text(L10n.f("端口-%ld", (ports.firstIndex(where: { $0.id == port.id }) ?? 0) + 1))
+                Spacer()
+                if ports.count > 1 {
+                    Button {
+                        ports.removeAll { $0.id == port.id }
+                    } label: {
+                        Label(L10n.t("删除端口"), systemImage: "trash")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
         }
     }
 }
@@ -433,21 +438,9 @@ struct ContainerVolumesEditorView: View {
 
     private func volumeSection(_ vol: Binding<CreateVolumeRow>) -> some View {
         Section {
-            HStack(alignment: .center) {
-                OutlinedPicker(label: L10n.t("类型"), options: typeOptions,
-                               selection: vol.type,
-                               optionLabels: ["bind": "bind", "volume": "volume"])
-                if volumes.count > 1 {
-                    Button {
-                        volumes.removeAll { $0.id == vol.id }
-                    } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(.red)
-                    }
-                    .padding(.top, 13)
-                }
-            }
+            OutlinedPicker(label: L10n.t("类型"), options: typeOptions,
+                           selection: vol.type,
+                           optionLabels: ["bind": "bind", "volume": "volume"])
 
             if vol.type.wrappedValue == "bind" {
                 OutlinedTextField(label: L10n.t("主机目录"), prompt: "/data/1",
@@ -477,6 +470,21 @@ struct ContainerVolumesEditorView: View {
                     Text(hint)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            // 样式 A（与负载均衡节点一致）：节头序号 + 节头删除（仅一条不可删）
+            HStack {
+                Text(L10n.f("挂载-%ld", (volumes.firstIndex(where: { $0.id == vol.id }) ?? 0) + 1))
+                Spacer()
+                if volumes.count > 1 {
+                    Button {
+                        volumes.removeAll { $0.id == vol.id }
+                    } label: {
+                        Label(L10n.t("删除挂载"), systemImage: "trash")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
                 }
             }
         }

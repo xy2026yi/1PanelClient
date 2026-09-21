@@ -135,11 +135,13 @@ struct NodeManageView: View {
         .navigationDestination(for: Dest.self) { dest in
             destination(for: dest)
         }
-        .sheet(isPresented: $showAddSheet) {
+        // 添加节点 push 进入（与安装应用一致）；提交成功后分步收栈再进任务进度
+        .navigationDestination(isPresented: $showAddSheet) {
             AddNodeView(server: server) { taskID in
-                navPath.append(Dest.taskProgress(taskID: taskID, title: L10n.t("添加节点")))
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    navPath.append(Dest.taskProgress(taskID: taskID, title: L10n.t("添加节点")))
+                }
             }
-            .bottomSheetDetents([.large])
         }
     }
 

@@ -159,68 +159,62 @@ struct AddNodeView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
-                Form {
-                    Group {
-                        switch wizardPage {
-                        case 0: connectionSection
-                        case 1: nodeInfoSection
-                        default: syncSection
-                        }
+        VStack(spacing: 0) {
+            WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+            Form {
+                Group {
+                    switch wizardPage {
+                    case 0: connectionSection
+                    case 1: nodeInfoSection
+                    default: syncSection
                     }
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)))
                 }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                WizardBottomBar(
-                    page: wizardPage,
-                    totalPages: wizardPageNames.count,
-                    primaryTitle: L10n.t("可用性检查"),
-                    isBusy: isChecking || isSubmitting,
-                    primaryDisabled: wizardPage < wizardPageNames.count - 1 ? !pageReady : !canSubmit,
-                    onBack: { withAnimation { wizardPage -= 1 } },
-                    onNext: { withAnimation { wizardPage += 1 } },
-                    onPrimary: { Task { await check() } }
-                )
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WizardBottomBar(
+                page: wizardPage,
+                totalPages: wizardPageNames.count,
+                primaryTitle: L10n.t("可用性检查"),
+                isBusy: isChecking || isSubmitting,
+                primaryDisabled: wizardPage < wizardPageNames.count - 1 ? !pageReady : !canSubmit,
+                onBack: { withAnimation { wizardPage -= 1 } },
+                onNext: { withAnimation { wizardPage += 1 } },
+                onPrimary: { Task { await check() } }
+            )
+        }
+        .animation(.easeInOut(duration: 0.22), value: wizardPage)
+        .modifier(WizardDiscardGuard(page: wizardPage))
+        .navigationTitle(isEditing ? L10n.t("编辑节点") : L10n.t("添加节点"))
+        .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
+        // 提交中禁手势返回防异步被中断（翻页后的丢弃确认由 WizardDiscardGuard 承担）
+        .interactiveDismissDisabled(isSubmitting)
+        .alert(L10n.t("操作失败"), isPresented: .init(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+        .sheet(isPresented: $showResultSheet) {
+            NodeCheckResultSheet(result: testResult) {
+                Task { await submit() }
             }
-            .animation(.easeInOut(duration: 0.22), value: wizardPage)
-            .navigationTitle(isEditing ? L10n.t("编辑节点") : L10n.t("添加节点"))
-            .navigationBarTitleDisplayMode(.inline)
-            .formWidthLimit()
-            // 提交中禁下拉关闭防异步被中断；翻页后（page>0）禁下拉防多页输入被手势静默丢弃
-            .interactiveDismissDisabled(isSubmitting || wizardPage > 0)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                }
-            }
-            .alert(L10n.t("操作失败"), isPresented: .init(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button(L10n.t("好的"), role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "")
-            }
-            .sheet(isPresented: $showResultSheet) {
-                NodeCheckResultSheet(result: testResult) {
-                    Task { await submit() }
-                }
-                .bottomSheetDetents([.medium])
-                .presentationDragIndicator(.visible)
-            }
-            .task {
-                await loadGroupsAndLicenses()
-            }
-            .onChange(of: isPro) { _, _ in
-                // 版本切换后可用许可证集合变化，重选首个可用项
-                if !availableLicenses.indices.contains(where: { availableLicenses[$0].id == selectedLicenseID }) {
-                    selectedLicenseID = availableLicenses.first?.id ?? 0
-                }
+            .bottomSheetDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+        .task {
+            await loadGroupsAndLicenses()
+        }
+        .onChange(of: isPro) { _, _ in
+            // 版本切换后可用许可证集合变化，重选首个可用项
+            if !availableLicenses.indices.contains(where: { availableLicenses[$0].id == selectedLicenseID }) {
+                selectedLicenseID = availableLicenses.first?.id ?? 0
             }
         }
     }

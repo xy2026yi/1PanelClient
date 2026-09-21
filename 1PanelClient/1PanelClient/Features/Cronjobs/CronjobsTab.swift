@@ -17,8 +17,10 @@ struct CronjobsTab: View {
     @State private var isSearching = false
     // 分组管理弹窗入口（筛选条末尾「管理」chip）
     @State private var showGroupManage = false
-    // 导入导出（导出走行长按「导出任务」多选；导入并入 + 号菜单）
+    // 导入导出（导出走行长按「导出任务」多选；导入并入 + 号半屏菜单）
     @State private var showExport = false
+    /// + 号半屏菜单（创建/导入，与其他列表页统一呈现）
+    @State private var showAddMenu = false
     @State private var showImport = false
     /// 导出多选的初始勾选（长按菜单「导出任务」= 仅当前任务；nil = 默认全选）
     @State private var exportPreselect: Set<Int>? = nil
@@ -105,24 +107,27 @@ struct CronjobsTab: View {
         .toolbar {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
-                    // 创建与导入合并进 + 号：主操作创建，导入为次入口（换机迁移场景）
-                    Menu {
-                        Button {
-                            showCreate = true
-                        } label: {
-                            Label(L10n.t("创建计划任务"), systemImage: "plus")
-                        }
-                        Button {
-                            showImport = true
-                        } label: {
-                            Label(L10n.t("导入"), systemImage: "square.and.arrow.down")
-                        }
+                    // 创建/导入合并进 + 号半屏菜单（呈现方式与网站列表统一）
+                    Button {
+                        showAddMenu = true
                     } label: {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel(L10n.t("创建计划任务"))
                 }
             }
+        }
+        .sheet(isPresented: $showAddMenu) {
+            ActionBottomSheet(title: L10n.t("计划任务"), items: [
+                .init(title: L10n.t("创建计划任务"), icon: "plus", color: .blue) {
+                    showCreate = true
+                },
+                .init(title: L10n.t("导入"), icon: "square.and.arrow.down", color: .blue) {
+                    showImport = true
+                },
+            ]) { showAddMenu = false }
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showExport) {
             CronjobExportView(server: server, cronjobs: vm.cronjobs,
