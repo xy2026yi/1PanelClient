@@ -506,11 +506,12 @@ enum ManageItem: String, Identifiable {
     static var groups: [(title: String, items: [ManageItem])] {
         [
             (L10n.t("应用"), [.apps, .ai, .websites, .database, .containers]),
-            // SSH 服务管理收进「SSH」页三点菜单（服务管理入口）；磁盘管理移入工具箱；
-            // WAF 从防火墙右上角移出并与 WAF 监控合并为常显模块（监控为内部子入口）
-            (L10n.t("主机"), [.terminal, .files, .monitor, .process, .firewall, .waf]),
+            // SSH 服务管理收进「SSH」页三点菜单（服务管理入口）；磁盘管理移入工具箱
+            (L10n.t("主机"), [.terminal, .files, .monitor, .process, .firewall]),
             (L10n.t("工具箱"), [.fail2ban, .ftp, .clam, .supervisor, .diskManage, .clean]),
-            (L10n.t("高级功能"), [.gpuMonitor, .websiteMonitor, .nodeManage]),
+            // WAF 并入「WAF 监控」后放高级功能分组（GPU 监控之下）；
+            // 自身不受许可证门禁（无 license 仅隐藏其内部「监控」子入口）
+            (L10n.t("高级功能"), [.gpuMonitor, .waf, .websiteMonitor, .nodeManage]),
             // 告警通知 / 备份账号 / 许可证收进「设置」Hub（对齐网页端面板菜单）
             (L10n.t("面板"), [.panelSettings, .cronjob, .taskCenter, .logs]),
         ]
