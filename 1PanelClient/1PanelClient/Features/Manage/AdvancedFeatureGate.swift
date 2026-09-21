@@ -31,9 +31,11 @@ final class AdvancedFeatureGate: ObservableObject {
         UserDefaults.standard.bool(forKey: Self.unlockKey)
     }
 
-    /// 门禁项：高级功能分组整体 + AI 的 vLLM / 模型下载（确认整体隐藏，不拆分）
+    /// 门禁项：高级功能分组整体 + AI 的 vLLM / 模型下载（确认整体隐藏，不拆分）。
+    /// WAF 已合并为一个模块常显（根列表「主机」分组），其内部「监控」子入口
+    /// 由 gatedAllowed 单独管控（无许可证仅 状态/黑白名单/网站设置/全局设置）
     static let gatedItems: Set<ManageItem> = [
-        .gpuMonitor, .websiteMonitor, .nodeManage, .wafMonitor,
+        .gpuMonitor, .websiteMonitor, .nodeManage,
         .aiVllm, .aiDownloader,
     ]
 
@@ -46,6 +48,12 @@ final class AdvancedFeatureGate: ObservableObject {
     func shows(_ item: ManageItem, prefsEnabled: Bool) -> Bool {
         guard Self.isGated(item) else { return prefsEnabled }
         return (serverLicensed == true || isUnlocked) && prefsEnabled
+    }
+
+    /// 门禁能力是否放行（「服务器已绑定 或 设备已解锁」）：
+    /// 供非根列表场景（如 WAF 内的「监控」子入口）做单项显隐
+    var gatedAllowed: Bool {
+        serverLicensed == true || isUnlocked
     }
 
     func unlock() {

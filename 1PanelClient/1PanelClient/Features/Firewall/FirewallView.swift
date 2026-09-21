@@ -973,7 +973,6 @@ struct FirewallView: View {
     @State private var pendingDeleteForward: FirewallForwardRule?
     @State private var pendingDeleteForwardForce = false
     // WAF 入口（与防火墙同属主机安全防护，管理列表不单列）
-    @State private var showWAF = false
     // 同步 / 重置 / Docker 策略（抓包 2026-09-17 补齐）
     @State private var showSyncPreview = false
     @State private var syncSubsystem = "system"
@@ -1038,12 +1037,6 @@ struct FirewallView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 if !vm.unsupportedPanel {
-                    // WAF 与防火墙同属主机安全防护，入口收进本页右上角（管理列表不单列），
-                    // 与「添加」菜单并排独立成按钮
-                    Button { showWAF = true } label: {
-                        Image(systemName: "shield.lefthalf.filled")
-                    }
-                    .accessibilityLabel("WAF")
                     // + 按段条件渲染（未初始化段不显示；导入/导出/同步/重置均已收进
                     // 状态抽屉，规则与转发都只剩创建，直接点击不经菜单）
                     if segment == 0 && !needsRulesInit {
@@ -1158,10 +1151,7 @@ struct FirewallView: View {
                         pendingLifeOp.flatMap(Self.lifeOpName) ?? ""))
         }
         // WAF 与防火墙同属主机安全防护，入口收进本页右上角（管理列表不单列）
-        .navigationDestination(isPresented: $showWAF) {
-            WAFView(server: server)
-        }
-        // 设置页（状态抽屉按钮进入）：禁 Ping / 白名单 / 三组防护后端下拉切换
+                // 设置页（状态抽屉按钮进入）：禁 Ping / 白名单 / 三组防护后端下拉切换
         .navigationDestination(isPresented: $showSettings) {
             FirewallSettingsPageView(vm: vm)
         }

@@ -12,9 +12,12 @@
 
 import SwiftUI
 
-/// POST compose / command-template/list 共用请求 {imageType}
+/// POST compose / command-template/list 共用请求 {imageType, appVersion}
+///（compose 的 AppVersion 必填，抓包 2026-09-21：缺失报 400 参数错误；
+/// 模板列表对 appVersion 兼容忽略）
 private struct VllmImageTypeRequest: Encodable {
     let imageType: String
+    var appVersion: String? = nil
 }
 
 /// 重启规则选项（rawValue 为 compose restart 取值）
@@ -302,6 +305,10 @@ struct AIVllmCreateView: View {
                             // 版本切换重新推导镜像（用户可再手动改）
                             if let mapped = VllmImageMapper.defaultImage(appVersion: newValue) {
                                 image = mapped
+                            }
+                            // 首刷时版本为空被跳过的 compose 模板，版本选定后补拉
+                            if !newValue.isEmpty, dockerCompose.isEmpty {
+                                Task { await loadCompose() }
                             }
                         }
                 }
@@ -612,10 +619,13 @@ struct AIVllmCreateView: View {
             dockerCompose = saved
             return
         }
+        // appVersion 为必填：版本列表还没就绪（映射不到可用版本）时先跳过，
+        // 待版本选定后由 onChange(of: appVersion) 补拉，避免必填参数空发 400
+        guard !appVersion.isEmpty else { return }
         do {
             let resp: VllmComposeResponse = try await client.send(
                 path: APIEndpoint.vllmCompose.path,
-                body: VllmImageTypeRequest(imageType: imageType.rawValue),
+                body: VllmImageTypeRequest(imageType: imageType.rawValue, appVersion: appVersion),
                 as: VllmComposeResponse.self)
             dockerCompose = resp.dockerCompose ?? ""
         } catch {

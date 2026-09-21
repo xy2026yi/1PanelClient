@@ -16,7 +16,8 @@ struct AdvancedFeatureGateTests {
 
     @Test("门禁集合：高级功能分组整体 + AI 的 vLLM/模型下载")
     func gatedItems() {
-        let expected: Set<ManageItem> = [.gpuMonitor, .websiteMonitor, .nodeManage, .wafMonitor,
+        // WAF 已合并为常显模块（监控为其内部受控子入口），不再整体门禁
+        let expected: Set<ManageItem> = [.gpuMonitor, .websiteMonitor, .nodeManage,
                                          .aiVllm, .aiDownloader]
         #expect(AdvancedFeatureGate.gatedItems == expected)
         // 非门禁项抽查
@@ -44,7 +45,7 @@ struct AdvancedFeatureGateTests {
         #expect(gate.shows(.aiVllm, prefsEnabled: true))
         #expect(!gate.shows(.aiVllm, prefsEnabled: false))
         gate.serverLicensed = false  // 无 license + 用户在编辑里关了 → 隐藏
-        #expect(!gate.shows(.wafMonitor, prefsEnabled: false))
+        #expect(!gate.shows(.nodeManage, prefsEnabled: false))
 
         // 非门禁项不受 license 影响
         gate.serverLicensed = nil

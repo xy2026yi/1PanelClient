@@ -830,8 +830,10 @@ struct BackupAccountEditView: View {
                 Button {
                     showBucketPicker = true
                 } label: {
+                    // hasValue 恒真：空态标签浮到框线、内容显示「未获取」，
+                    // 避免占位标签与内容文字同位重叠（与许可证空态同款处理）
                     OutlinedShape(label: L10n.t("桶"), isFocused: false,
-                                  hasValue: !bucket.isEmpty,
+                                  hasValue: true,
                                   trailing: {
                         Image(systemName: "externaldrive")
                             .font(.caption)

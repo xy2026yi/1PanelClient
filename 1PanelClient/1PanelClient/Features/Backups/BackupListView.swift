@@ -830,7 +830,8 @@ case hour = "小时"
 
 // MARK: - MySQL 备份参数多选（与计划任务一致）
 
-private struct BackupArgsPicker: View {
+/// mysqldump 备份参数多选（备份记录页与创建计划任务共用）
+struct BackupArgsPicker: View {
     /// "mysql" / "mariadb"（mariadb 不提供 --set-gtid-purged=OFF）
     let dbType: String
     @Binding var selection: Set<String>

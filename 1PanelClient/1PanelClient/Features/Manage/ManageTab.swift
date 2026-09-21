@@ -243,8 +243,6 @@ struct ManageTab: View {
             FilesView(server: server)
         case .websiteMonitor:
             WebsiteMonitorView(server: server)
-        case .wafMonitor:
-            WAFMonitorView(server: server)
         case .gpuMonitor:
             GPUMonitorView(server: server)
         case .panelSettings:
@@ -467,7 +465,6 @@ enum ManageItem: String, Identifiable {
     case taskCenter
     case logs
     case websiteMonitor
-    case wafMonitor
     /// GPU 监控（/ai/gpu/*：实时快照 + 历史曲线）
     case gpuMonitor
     /// 设置（Hub 子页：基础设置 / 告警通知 / 备份账号 / 许可证）
@@ -509,10 +506,11 @@ enum ManageItem: String, Identifiable {
     static var groups: [(title: String, items: [ManageItem])] {
         [
             (L10n.t("应用"), [.apps, .ai, .websites, .database, .containers]),
-            // SSH 服务管理收进「SSH」页三点菜单（服务管理入口）；磁盘管理移入工具箱
-            (L10n.t("主机"), [.terminal, .files, .monitor, .process, .firewall]),
+            // SSH 服务管理收进「SSH」页三点菜单（服务管理入口）；磁盘管理移入工具箱；
+            // WAF 从防火墙右上角移出并与 WAF 监控合并为常显模块（监控为内部子入口）
+            (L10n.t("主机"), [.terminal, .files, .monitor, .process, .firewall, .waf]),
             (L10n.t("工具箱"), [.fail2ban, .ftp, .clam, .supervisor, .diskManage, .clean]),
-            (L10n.t("高级功能"), [.gpuMonitor, .websiteMonitor, .nodeManage, .wafMonitor]),
+            (L10n.t("高级功能"), [.gpuMonitor, .websiteMonitor, .nodeManage]),
             // 告警通知 / 备份账号 / 许可证收进「设置」Hub（对齐网页端面板菜单）
             (L10n.t("面板"), [.panelSettings, .cronjob, .taskCenter, .logs]),
         ]
@@ -548,7 +546,6 @@ enum ManageItem: String, Identifiable {
         case .taskCenter:  return L10n.t("任务中心")
         case .logs:        return L10n.t("日志")
         case .websiteMonitor: return L10n.t("网站监控")
-        case .wafMonitor:  return L10n.t("WAF 监控")
         case .gpuMonitor:  return L10n.t("GPU 监控")
         case .panelSettings: return L10n.t("设置")
         case .basicSettings: return L10n.t("基础设置")
@@ -584,7 +581,7 @@ enum ManageItem: String, Identifiable {
         case .clam:        return L10n.t("ClamAV 病毒扫描")
         case .supervisor:  return L10n.t("Supervisor 进程守护")
         case .clean:       return L10n.t("系统 / 备份 / 容器 / 日志垃圾清理")
-        case .waf:         return L10n.t("Web 应用防火墙")
+        case .waf:         return L10n.t("Web 应用防火墙 / 拦截与封锁监控")
         case .alert:       return L10n.t("告警规则 / 日志 / 发送方式")
         case .nodeManage:  return L10n.t("节点概览 / 添加节点 / 切换（专业版）")
         case .backupAccount: return L10n.t("MINIO / WebDAV / SFTP 备份存储")
@@ -594,7 +591,6 @@ enum ManageItem: String, Identifiable {
         case .taskCenter:  return L10n.t("应用同步 / 镜像拉取等异步任务")
         case .logs:        return L10n.t("面板 / SSH / 网站日志")
         case .websiteMonitor: return L10n.t("QPS / 访客趋势 / 访客地图 / 请求日志")
-        case .wafMonitor:  return L10n.t("拦截趋势 / 拦截记录 / 封锁记录")
         case .gpuMonitor:  return L10n.t("利用率 / 显存 / 温度 / 功耗 / 进程")
         case .panelSettings: return L10n.t("告警通知 / 备份账号 / 许可证")
         case .basicSettings: return L10n.t("面板别名 / 超时 / 代理 / 运行环境")
@@ -647,7 +643,6 @@ enum ManageItem: String, Identifiable {
         case .taskCenter:  return "checklist"
         case .logs:        return "doc.text.magnifyingglass"
         case .websiteMonitor: return "chart.pie.fill"
-        case .wafMonitor:  return "chart.bar.xaxis"
         case .gpuMonitor:  return "memorychip"
         case .panelSettings: return "gearshape.fill"
         case .basicSettings: return "slider.horizontal.3"
@@ -692,7 +687,6 @@ enum ManageItem: String, Identifiable {
         case .taskCenter:  return .brown
         case .logs:        return .cyan
         case .websiteMonitor: return .indigo
-        case .wafMonitor:  return .red
         case .gpuMonitor:  return .mint
         case .panelSettings: return .blue
         case .basicSettings: return .teal

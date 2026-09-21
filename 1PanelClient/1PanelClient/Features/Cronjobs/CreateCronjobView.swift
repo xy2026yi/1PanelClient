@@ -218,6 +218,19 @@ struct CreateCronjobView: View {
             selectedGroupID = vm.defaultGroupID
         }
         }
+        // 备份参数多选（MySQL 家族；点击入口行弹出，选中集直接回写）
+        .sheet(isPresented: $showBackupParamsPicker) {
+            NavigationStack {
+                BackupArgsPicker(dbType: dbType.rawValue, selection: $dbBackupParams)
+                    .navigationTitle(L10n.t("备份参数"))
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button(L10n.t("完成")) { showBackupParamsPicker = false }
+                        }
+                    }
+            }
+        }
         .sheet(isPresented: $showScriptPicker) {
         NavigationStack {
             ScriptLibraryView(server: server) { picked in
@@ -326,45 +339,33 @@ struct CreateCronjobView: View {
 
         case .app:
             Section(L10n.t("备份应用")) {
-                Picker(L10n.t("范围"), selection: $appSelection) {
-                    Text(L10n.t("全部应用")).tag("all")
-                    ForEach(vm.installedApps, id: \.id) { app in
-                        Text(app.name ?? "—").tag(app.key ?? "")
-                    }
-                }
+                OutlinedPicker(label: L10n.t("范围"),
+                               options: appScopeOptions, selection: $appSelection,
+                               optionLabels: appScopeLabels)
             }
             backupSection
 
         case .website:
             Section(L10n.t("备份网站")) {
-                Picker(L10n.t("范围"), selection: $websiteSelection) {
-                    Text(L10n.t("全部网站")).tag("all")
-                    ForEach(vm.websiteOptions, id: \.id) { site in
-                        Text(site.alias ?? site.primaryDomain ?? "—").tag(String(site.id))
-                    }
-                }
+                OutlinedPicker(label: L10n.t("范围"),
+                               options: websiteScopeOptions, selection: $websiteSelection,
+                               optionLabels: websiteScopeLabels)
             }
             backupSection
 
         case .database:
             Section(L10n.t("备份数据库")) {
-                Picker(L10n.t("数据库类型"), selection: $dbType) {
-                    ForEach(DBBackupType.allCases) { t in
-                        Text(t.displayName).tag(t)
+                OutlinedPicker(label: L10n.t("数据库类型"), options: DBBackupType.allCases,
+                               selection: $dbType) { $0.displayName }
+                    .onChange(of: dbType) { _, newType in
+                        dbSelection = "all"
+                        dbBackupParams.removeAll()
+                        Task { await vm.loadDBItems(dbType: newType.rawValue) }
                     }
-                }
-                .onChange(of: dbType) { _, newType in
-                    dbSelection = "all"
-                    dbBackupParams.removeAll()
-                    Task { await vm.loadDBItems(dbType: newType.rawValue) }
-                }
 
-                Picker(L10n.t("范围"), selection: $dbSelection) {
-                    Text(L10n.t("全部数据库")).tag("all")
-                    ForEach(vm.dbItems, id: \.id) { item in
-                        Text(item.name ?? "—").tag(String(item.id))
-                    }
-                }
+                OutlinedPicker(label: L10n.t("范围"),
+                               options: dbScopeOptions, selection: $dbSelection,
+                               optionLabels: dbScopeLabels)
             }
 
             if dbType.supportsBackupParams {
@@ -450,6 +451,60 @@ struct CreateCronjobView: View {
     }
 
 
+    /// 备份应用范围选项（"all"=全部应用）
+    private var appScopeOptions: [String] {
+        ["all"] + vm.installedApps.compactMap { $0.key }
+    }
+    private var appScopeLabels: [String: String] {
+        var labels = ["all": L10n.t("全部应用")]
+        for app in vm.installedApps {
+            if let key = app.key { labels[key] = app.name ?? "—" }
+        }
+        return labels
+    }
+
+    /// 备份网站范围选项（"all"=全部网站）
+    private var websiteScopeOptions: [String] {
+        ["all"] + vm.websiteOptions.map { String($0.id) }
+    }
+    private var websiteScopeLabels: [String: String] {
+        var labels = ["all": L10n.t("全部网站")]
+        for site in vm.websiteOptions {
+            labels[String(site.id)] = site.alias ?? site.primaryDomain ?? "—"
+        }
+        return labels
+    }
+
+    /// 数据库范围选项（"all"=全部数据库）
+    private var dbScopeOptions: [String] {
+        ["all"] + vm.dbItems.map { String($0.id) }
+    }
+    private var dbScopeLabels: [String: String] {
+        var labels = ["all": L10n.t("全部数据库")]
+        for item in vm.dbItems {
+            labels[String(item.id)] = item.name ?? "—"
+        }
+        return labels
+    }
+
+    /// 备份账号选项与 Int ↔ String 绑定（描边菜单用）
+    private var backupAccountOptions: [String] {
+        vm.backupAccounts.map { String($0.id) }
+    }
+    private var backupAccountLabels: [String: String] {
+        var labels: [String: String] = [:]
+        for acc in vm.backupAccounts {
+            labels[String(acc.id)] = acc.name ?? "—"
+        }
+        return labels
+    }
+    private var backupAccountText: Binding<String> {
+        Binding<String>(
+            get: { vm.backupAccounts.contains(where: { $0.id == backupAccountID })
+                ? String(backupAccountID) : String(vm.backupAccounts.first?.id ?? 0) },
+            set: { backupAccountID = Int($0) ?? 0 })
+    }
+
     /// 执行用户选项（""=默认（不指定））
     private var userOptionKeys: [String] {
         [""] + vm.systemUsers
@@ -473,11 +528,9 @@ struct CreateCronjobView: View {
             OutlinedUnitField(label: L10n.t("保留份数"), unit: L10n.t("份"),
                               text: retainCopiesText, range: 1...100)
 
-            Picker(L10n.t("备份账号"), selection: $backupAccountID) {
-                ForEach(vm.backupAccounts, id: \.id) { acc in
-                    Text(acc.name ?? "—").tag(acc.id)
-                }
-            }
+            OutlinedPicker(label: L10n.t("备份账号"),
+                           options: backupAccountOptions, selection: backupAccountText,
+                           optionLabels: backupAccountLabels)
         }
     }
 

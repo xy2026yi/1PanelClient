@@ -2,7 +2,8 @@
 //  WAFView.swift
 //  1PanelClient
 //
-//  WAF 管理：状态 / 黑白名单 / 全局配置
+//  WAF 模块（方案二）：状态 / 监控（许可证管控） / 黑白名单 / 网站设置 / 全局配置；
+//  与原「WAF 监控」合并——监控三板块（概览/拦截/封锁）作为「监控」子入口进入
 //
 
 import SwiftUI
@@ -14,6 +15,8 @@ struct WAFView: View {
     @StateObject private var vm: WAFViewModel
     let server: ServerConfig
     @State private var pendingAction: String?
+    /// 许可证门禁：无许可证时隐藏「监控」子入口（状态/黑白名单/网站设置/全局设置常显）
+    @ObservedObject private var gate = AdvancedFeatureGate.shared
     /// 应用商店 VM（OpenResty 未安装时的安装入口，安装流程复用应用商店页面）
     @StateObject private var installStoreVM: AppStoreViewModel
 
@@ -46,7 +49,10 @@ struct WAFView: View {
         .navigationTitle("WAF")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.loadAll() }
-        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.loadAll() } }
+        .task {
+            await PageVMStore.shared.autoRefresh(vm: vm) { await vm.loadAll() }
+            await gate.refresh(server: server)
+        }
         // 从安装入口装完 OpenResty 后自动重查，返回本页即见 WAF 内容
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
             Task { await vm.loadAll() }
@@ -117,17 +123,24 @@ struct WAFView: View {
                 }
             }
 
-            // 防护规则
+            // 子入口（方案二顺序）：监控（许可证管控）→ 黑白名单 → 网站设置 → 全局配置
             Section {
-                NavigationLink {
-                    WAFWebsiteSettingsView(server: server)
-                } label: {
-                    entryRow(icon: "at", color: .teal, title: L10n.t("网站设置"))
+                if gate.gatedAllowed {
+                    NavigationLink {
+                        WAFMonitorView(server: server)
+                    } label: {
+                        entryRow(icon: "chart.bar.xaxis", color: .purple, title: L10n.t("监控"))
+                    }
                 }
                 NavigationLink {
                     WAFBlackWhiteView(vm: vm, server: server)
                 } label: {
                     entryRow(icon: "shield.lefthalf.filled", color: .red, title: L10n.t("黑白名单"))
+                }
+                NavigationLink {
+                    WAFWebsiteSettingsView(server: server)
+                } label: {
+                    entryRow(icon: "at", color: .teal, title: L10n.t("网站设置"))
                 }
                 NavigationLink {
                     WAFGlobalConfigView(vm: vm, server: server)
