@@ -538,6 +538,7 @@ enum APIEndpoint {
     case backupAccountsCreate      // POST 创建备份账号
     case backupAccountsUpdate      // POST 更新备份账号
     case backupAccountsDelete      // POST 删除备份账号
+    case backupAccountsClientInfo  // GET  OAuth 默认客户端信息（OneDrive/GoogleDrive）
 
     // MARK: - 任务日志（安装/卸载进度）
     case logsTaskRead            // POST 读取任务日志（轮询 taskID）
@@ -1128,6 +1129,7 @@ enum APIEndpoint {
         case .backupAccountsCreate:  return "/api/v2/backups"
         case .backupAccountsUpdate:  return "/api/v2/backups/update"
         case .backupAccountsDelete:  return "/api/v2/backups/del"
+        case .backupAccountsClientInfo: return "/api/v2/backups/client/:type"
         case .logsOperation:         return "/api/v2/core/logs/operation"
         case .logsLogin:             return "/api/v2/core/logs/login"
         case .logsSystemFiles:       return "/api/v2/logs/system/files"
@@ -1250,7 +1252,7 @@ enum APIEndpoint {
     var method: String {
         switch self {
         case .dashboardOS, .dashboardBase, .dashboardCurrent, .dashboardTopCPU, .dashboardTopMem,
-             .monitorNetOptions,
+             .monitorNetOptions, .backupAccountsClientInfo,
              .appsIgnoredList, .appsStoreDetail,
              .appsTags,
              .disksList,

@@ -46,6 +46,13 @@ enum BackupAccountType: String, CaseIterable, Identifiable {
     case oss = "OSS"
     case webdav = "WebDAV"
     case sftp = "SFTP"
+    case cos = "COS"
+    case s3 = "S3"
+    case kodo = "KODO"
+    case upyun = "UPYUN"
+    case aliyun = "ALIYUN"
+    case oneDrive = "OneDrive"
+    case googleDrive = "GoogleDrive"
 
     var id: String { rawValue }
     var displayName: String {
@@ -54,8 +61,39 @@ enum BackupAccountType: String, CaseIterable, Identifiable {
         case .oss:    return L10n.t("阿里云OSS")
         case .webdav: return "WebDAV"
         case .sftp:   return "SFTP"
+        case .cos:    return L10n.t("腾讯云COS")
+        case .s3:     return L10n.t("亚马逊S3云存储")
+        case .kodo:   return L10n.t("七牛云Kodo")
+        case .upyun:  return L10n.t("又拍云")
+        case .aliyun: return L10n.t("阿里云盘")
+        case .oneDrive: return L10n.t("微软 OneDrive")
+        case .googleDrive: return L10n.t("谷歌云盘")
         }
     }
+
+    // MARK: 表单形态分组（对齐官方 hasAccessKey/hasPassword/isUPYUN/hasClient 等谓词）
+
+    /// AK/SK + Endpoint + 桶（KODO 的 Endpoint 键名为 domain）
+    var hasAccessKey: Bool {
+        switch self {
+        case .minio, .oss, .cos, .s3, .kodo: return true
+        default: return false
+        }
+    }
+    var hasPasswordAuth: Bool { self == .webdav || self == .sftp }
+    var isUpyun: Bool { self == .upyun }
+    var isAliyun: Bool { self == .aliyun }
+    /// OAuth 客户端类型（client_id/secret/redirect_uri + 授权码换 token）
+    var isOAuthClient: Bool { self == .oneDrive || self == .googleDrive }
+
+    /// 桶选择页（自动获取）；UPYUN 服务名手动输入、ALIYUN/OAuth 无桶概念
+    var supportsBucketListing: Bool { hasAccessKey }
+
+    /// 「记住认证信息」：OAuth/阿里云盘不存凭证（对齐官方 hasRemember）
+    var showsRememberAuth: Bool { !isOAuthClient && !isAliyun }
+
+    /// 三页向导（连接页凭证+Endpoint，存储页桶+类型设置）
+    var isThreePageWizard: Bool { hasAccessKey }
 }
 
 /// 阿里云OSS 存储类型（vars.scType）
@@ -134,6 +172,11 @@ nonisolated enum BackupVarsValue: Codable, Equatable {
 
     var stringValue: String? {
         if case .string(let s) = self { return s }
+        return nil
+    }
+
+    var boolValue: Bool? {
+        if case .bool(let b) = self { return b }
         return nil
     }
 
@@ -311,16 +354,30 @@ final class BackupAccountsViewModel: ObservableObject {
     }
 
     /// 连接测试；返回失败原因（成功返回 nil）
-    func checkConnection(_ op: BackupAccountOperate) async -> String? {
+    /// 连接测试；成功时 OAuth 类型（OneDrive/GoogleDrive）响应携带 token
+    ///（Base64 的 refresh_token，由调用方解码存入 vars）
+    func checkConnection(_ op: BackupAccountOperate) async -> (reason: String?, token: String?) {
         do {
             let res: BackupCheckResult = try await client.send(
                 path: APIEndpoint.backupAccountsCheck.path, body: op, as: BackupCheckResult.self
             )
-            if res.isOk { return nil }
+            if res.isOk { return (nil, res.token) }
             let msg = res.msg ?? ""
-            return msg.isEmpty ? L10n.t("连接失败") : msg
+            return (msg.isEmpty ? L10n.t("连接失败") : msg, nil)
         } catch {
-            return error.localizedDescription
+            return (error.localizedDescription, nil)
+        }
+    }
+
+    /// OAuth 默认客户端信息（GET /backups/client/:type，OneDrive/GoogleDrive 创建时预填）
+    func loadOAuthClientInfo(type: String) async -> BackupClientInfo? {
+        do {
+            return try await client.send(
+                path: APIEndpoint.backupAccountsClientInfo.path
+                    .replacingOccurrences(of: ":type", with: type),
+                method: "GET", as: BackupClientInfo.self)
+        } catch {
+            return nil
         }
     }
 
@@ -504,6 +561,13 @@ struct BackupAccountRow: View {
         case "OSS":    return ("externaldrive.badge.icloud", .indigo)
         case "WebDAV": return ("externaldrive.connected.to.line.below", .blue)
         case "SFTP":   return ("externaldrive.badge.timemachine", .green)
+        case "COS":    return ("externaldrive.badge.icloud", .teal)
+        case "S3":     return ("externaldrive.badge.icloud", .yellow)
+        case "KODO":   return ("externaldrive.badge.icloud", .mint)
+        case "UPYUN":  return ("externaldrive.connected.to.line.below", .cyan)
+        case "ALIYUN": return ("externaldrive.badge.person.cloud", .blue)
+        case "OneDrive": return ("externaldrive.badge.icloud", .blue)
+        case "GoogleDrive": return ("externaldrive.badge.icloud", .red)
         default:       return ("externaldrive", .purple)
         }
     }
@@ -558,6 +622,7 @@ struct BackupAccountRow: View {
 struct BackupAccountEditView: View {
     @ObservedObject var vm: BackupAccountsViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     /// 传入则进入「编辑」模式，为 nil 则为「创建」
     let existing: BackupAccount?
     /// 保存成功回调（用于刷新列表）
@@ -594,6 +659,37 @@ struct BackupAccountEditView: View {
     // 阿里云OSS
     @State private var ossScType: OSSStorageType = .standard
 
+    // 腾讯云COS
+    @State private var cosRegion = ""
+    /// COS 地域录入：select = 常用地域菜单；manual = 手动输入（其他地域）
+    @State private var cosRegionMode = "select"
+    @State private var cosScType: COSScType = .standard
+
+    // 亚马逊S3
+    @State private var s3Region = ""
+    @State private var s3ScType: S3ScType = .standard
+    @State private var s3Mode: S3EndpointMode = .virtualHost
+
+    // 七牛云Kodo（Endpoint 键名 domain；timeout 单位小时）
+    @State private var kodoTimeout = 1
+
+    // 阿里云盘（粘贴 token JSON 解析出 drive_id / refresh_token）
+    @State private var aliyunToken = ""
+    @State private var aliyunDriveID = ""
+    @State private var aliyunRefreshToken = ""
+
+    // OneDrive / GoogleDrive（授权码粘贴流）
+    @State private var oauthClientID = ""
+    @State private var oauthClientSecret = ""
+    @State private var oauthRedirectURI = ""
+    @State private var oauthCode = ""
+    @State private var oneDriveIsCN = false
+    /// 服务端默认客户端信息（OneDrive 创建态预填，切回国际版时恢复）
+    @State private var defaultClientInfo: BackupClientInfo?
+    /// 阿里云盘 token 解析结果提示
+    @State private var aliyunParseHint: String?
+    @State private var aliyunParseOK = false
+
     // WebDAV
     @State private var webdavAddress = ""
     /// WebDAV 端口（vars.port；留空不提交，地址可带 :port）
@@ -622,7 +718,7 @@ struct BackupAccountEditView: View {
     // 向导分页：MINIO/OSS 三页（基本信息 → 连接信息 → 存储桶），
     // WebDAV/SFTP 两页（基本信息 → 连接信息）；LOCAL 保持单页（工具栏保存）
     @State private var wizardPage = 0
-    private var isThreePage: Bool { type == .minio || type == .oss }
+    private var isThreePage: Bool { type.isThreePageWizard }
     private var wizardPageNames: [String] {
         isThreePage
             ? [L10n.t("基本信息"), L10n.t("连接信息"), L10n.t("存储桶")]
@@ -637,9 +733,30 @@ struct BackupAccountEditView: View {
         switch wizardPage {
         case 0:
             return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case 1 where isThreePage:
-            return !accessKeyID.isEmpty && !secretKey.isEmpty
-                && !endpointHost.trimmingCharacters(in: .whitespaces).isEmpty
+        case 1:
+            switch type {
+            case .minio, .oss, .kodo:
+                return !accessKeyID.isEmpty && !secretKey.isEmpty
+                    && !endpointHost.trimmingCharacters(in: .whitespaces).isEmpty
+            case .cos:
+                return !accessKeyID.isEmpty && !secretKey.isEmpty
+                    && !endpointHost.trimmingCharacters(in: .whitespaces).isEmpty
+                    && !cosRegion.trimmingCharacters(in: .whitespaces).isEmpty
+            case .s3:
+                return !accessKeyID.isEmpty && !secretKey.isEmpty
+                    && !endpointHost.trimmingCharacters(in: .whitespaces).isEmpty
+                    && !s3Region.trimmingCharacters(in: .whitespaces).isEmpty
+            case .upyun:
+                return !accessKeyID.isEmpty && !secretKey.isEmpty
+                    && !bucket.trimmingCharacters(in: .whitespaces).isEmpty
+            case .aliyun:
+                return !aliyunDriveID.isEmpty && !aliyunRefreshToken.isEmpty
+            case .oneDrive, .googleDrive:
+                return !oauthClientID.isEmpty && !oauthClientSecret.isEmpty
+                    && !oauthRedirectURI.isEmpty
+            default:
+                return true
+            }
         default:
             return true
         }
@@ -713,8 +830,10 @@ struct BackupAccountEditView: View {
                             checkSection
                         }
                     default:
-                        if type == .oss { ossStorageSection }
-                        bucketSection
+                        storageExtrasSection
+                        if type.supportsBucketListing {
+                            bucketSection
+                        }
                         dirSection
                         checkSection
                     }
@@ -739,13 +858,27 @@ struct BackupAccountEditView: View {
         }
         .animation(.easeInOut(duration: 0.22), value: wizardPage)
         .modifier(WizardDiscardGuard(page: wizardPage))
-        // 桶选择页（自动获取模式入口行进入）
+        // 类型切换：OneDrive 创建态拉取服务端默认客户端信息预填
+        .onChange(of: type) { _, newType in
+            if newType == .oneDrive, !isEdit, defaultClientInfo == nil {
+                Task {
+                    defaultClientInfo = await vm.loadOAuthClientInfo(type: "Onedrive")
+                    if !oneDriveIsCN, let info = defaultClientInfo,
+                       oauthClientID.isEmpty {
+                        oauthClientID = info.client_id ?? ""
+                        oauthClientSecret = info.client_secret ?? ""
+                        oauthRedirectURI = info.redirect_uri ?? ""
+                    }
+                }
+            }
+        }
+        // 桶选择页（自动获取模式入口行进入；vars 由表单按类型预构建）
         .navigationDestination(isPresented: $showBucketPicker) {
             BackupBucketPickerView(
-                vm: vm, type: type,
-                endpointProto: endpointProto, endpointHost: endpointHost,
+                vm: vm, type: type.rawValue,
+                vars: varsForBuckets,
                 accessKeyID: accessKeyID, secretKey: secretKey,
-                ossScType: ossScType, bucket: $bucket)
+                bucket: $bucket)
         }
     }
 
@@ -783,12 +916,26 @@ struct BackupAccountEditView: View {
     @ViewBuilder
     private var connectionPage: some View {
         switch type {
-        case .minio:
+        case .minio, .oss:
             credentialsSection
-            endpointSection
-        case .oss:
+            endpointSection()
+        case .cos:
             credentialsSection
-            endpointSection
+            cosRegionSection
+            endpointSection()
+        case .s3:
+            credentialsSection
+            s3RegionSection
+            endpointSection()
+        case .kodo:
+            credentialsSection
+            endpointSection(kodo: true)
+        case .upyun:
+            upyunSection
+        case .aliyun:
+            aliyunSection
+        case .oneDrive, .googleDrive:
+            oauthSection
         case .webdav:
             webdavSection
         case .sftp:
@@ -810,16 +957,268 @@ struct BackupAccountEditView: View {
         }
     }
 
-    /// MINIO / 阿里云OSS 共用：协议 + Endpoint 地址
-    private var endpointSection: some View {
+    /// MINIO / OSS / COS / S3 / Kodo 共用：协议 + Endpoint 地址
+    ///（KODO 的 Endpoint 是下载域名，vars 键名为 domain）
+    private func endpointSection(kodo: Bool = false) -> some View {
         Section {
             OutlinedPicker(label: L10n.t("协议"), options: ["http", "https"],
                            selection: $endpointProto)
-            OutlinedTextField(label: L10n.t("Endpoint 地址"), text: $endpointHost,
-                              keyboardType: .URL)
+            OutlinedTextField(label: kodo ? L10n.t("域名") : L10n.t("Endpoint 地址"),
+                              text: $endpointHost, keyboardType: .URL)
         } header: {
-            Text("Endpoint")
+            Text(kodo ? L10n.t("域名") : "Endpoint")
         }
+    }
+
+    /// COS 地域：常用地域菜单 / 手动输入（其他地域）
+    private var cosRegionSection: some View {
+        Section {
+            OutlinedPicker(label: L10n.t("地域"), options: ["select", "manual"],
+                           selection: $cosRegionMode,
+                           optionLabels: ["select": L10n.t("常用地域"),
+                                          "manual": L10n.t("手动输入")])
+            if cosRegionMode == "manual" {
+                OutlinedTextField(label: L10n.t("地域"), prompt: "ap-guangzhou",
+                                  text: $cosRegion, keyboardType: .URL)
+            } else {
+                OutlinedPicker(label: L10n.t("地域"), options: COSRegions.all,
+                               selection: $cosRegion)
+            }
+        } header: {
+            Text(L10n.t("地域"))
+        }
+    }
+
+    /// S3 地域（自由输入，如 us-east-1）
+    private var s3RegionSection: some View {
+        Section {
+            OutlinedTextField(label: L10n.t("地域"), prompt: "us-east-1",
+                              text: $s3Region, keyboardType: .URL)
+        } header: {
+            Text(L10n.t("地域"))
+        }
+    }
+
+    /// UPYUN：操作员 / 密码 / 服务名称（无 vars、无桶列表）
+    private var upyunSection: some View {
+        Section {
+            OutlinedTextField(label: L10n.t("操作员"), text: $accessKeyID)
+            OutlinedPasswordField(label: L10n.t("密码"), text: $secretKey)
+            OutlinedTextField(label: L10n.t("服务名称"), text: $bucket)
+            Toggle(L10n.t("记住认证信息"), isOn: $rememberAuth)
+        } header: {
+            Text(L10n.t("连接信息"))
+        } footer: {
+            Text(L10n.t("开启「记住认证信息」后凭证加密存储在服务器，编辑时可直接回显"))
+        }
+    }
+
+    /// 阿里云盘：粘贴 token JSON 一键解析（drive_id / refresh_token）
+    private var aliyunSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Token")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button {
+                        parseAliyunToken()
+                    } label: {
+                        Label(L10n.t("解析"), systemImage: "wand.and.stars")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(aliyunToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                TextEditor(text: $aliyunToken)
+                    .font(.caption.monospaced())
+                    .frame(minHeight: 88)
+                    .overlay(alignment: .topLeading) {
+                        if aliyunToken.isEmpty {
+                            Text("{ \"default_drive_id\": …, \"refresh_token\": … }")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.tertiary)
+                                .padding(.top, 8)
+                                .padding(.leading, 4)
+                                .allowsHitTesting(false)
+                        }
+                    }
+            }
+            OutlinedTextField(label: "Drive ID", text: $aliyunDriveID,
+                              keyboardType: .URL)
+            OutlinedTextField(label: "Refresh Token", text: $aliyunRefreshToken,
+                              keyboardType: .URL)
+            if let hint = aliyunParseHint {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundStyle(aliyunParseOK ? .green : .red)
+            }
+        } header: {
+            Text(L10n.t("连接信息"))
+        } footer: {
+            Text(L10n.t("粘贴整个 token 内容自动解析；阿里云盘非客户端下载单文件限 100 MB"))
+        }
+    }
+
+    /// OneDrive / GoogleDrive：客户端信息 + 授权码粘贴流
+    private var oauthSection: some View {
+        Section {
+            if type == .oneDrive {
+                OutlinedPicker(label: L10n.t("版本"), options: ["global", "cn"],
+                               selection: oneDriveEditionText,
+                               optionLabels: ["global": L10n.t("国际版"),
+                                              "cn": L10n.t("世纪互联")])
+                    .onChange(of: oneDriveIsCN) { _, cn in
+                        // 世纪互联需自填自有应用信息；切回国际版恢复服务端默认值
+                        if cn {
+                            oauthClientID = ""
+                            oauthClientSecret = ""
+                            oauthRedirectURI = ""
+                        } else if let info = defaultClientInfo {
+                            oauthClientID = info.client_id ?? ""
+                            oauthClientSecret = info.client_secret ?? ""
+                            oauthRedirectURI = info.redirect_uri ?? ""
+                        }
+                    }
+            }
+            OutlinedTextField(label: L10n.t("客户端 ID"), text: $oauthClientID,
+                              keyboardType: .URL)
+            OutlinedTextField(label: L10n.t("客户端密钥"), text: $oauthClientSecret,
+                              keyboardType: .URL)
+            OutlinedTextField(label: L10n.t("重定向 Url"), text: $oauthRedirectURI,
+                              keyboardType: .URL)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(L10n.t("授权码"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button {
+                        openAuthorizePage()
+                    } label: {
+                        Label(L10n.t("打开授权页"), systemImage: "safari")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(oauthClientID.isEmpty || oauthRedirectURI.isEmpty)
+                }
+                TextEditor(text: $oauthCode)
+                    .font(.caption.monospaced())
+                    .frame(minHeight: 72)
+                    .overlay(alignment: .topLeading) {
+                        if oauthCode.isEmpty {
+                            Text(L10n.t("在授权页完成登录后，从跳转地址中复制 code 参数粘贴至此"))
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .padding(.top, 8)
+                                .padding(.leading, 4)
+                                .allowsHitTesting(false)
+                        }
+                    }
+            }
+        } header: {
+            Text(L10n.t("连接信息"))
+        } footer: {
+            Text(L10n.t("测试通过后服务端将以授权码换取令牌；编辑已有账号且令牌仍有效时可留空授权码"))
+        }
+    }
+
+    /// 存储页的类型设置（OSS/COS/S3 存储类型、S3 寻址模式、Kodo 过期时间）
+    @ViewBuilder
+    private var storageExtrasSection: some View {
+        switch type {
+        case .oss:
+            ossStorageSection
+        case .cos:
+            cosStorageSection
+        case .s3:
+            s3StorageSection
+        case .kodo:
+            kodoTimeoutSection
+        default:
+            EmptyView()
+        }
+    }
+
+    /// COS 存储类型
+    private var cosStorageSection: some View {
+        Section {
+            OutlinedPicker(label: L10n.t("存储类型"), options: COSScType.allCases,
+                           selection: $cosScType) { $0.displayName }
+        } header: {
+            Text(L10n.t("存储类型"))
+        } footer: {
+            if cosScType.isArchive {
+                Text(L10n.t("归档存储的文件无法直接下载，需先在云服务商网站恢复，请谨慎使用"))
+            }
+        }
+    }
+
+    /// S3 寻址模式 + 存储类型
+    private var s3StorageSection: some View {
+        Section {
+            OutlinedPicker(label: L10n.t("寻址模式"), options: S3EndpointMode.allCases,
+                           selection: $s3Mode) { $0.displayName }
+            OutlinedPicker(label: L10n.t("存储类型"), options: S3ScType.allCases,
+                           selection: $s3ScType) { $0.displayName }
+        } header: {
+            Text(L10n.t("存储类型"))
+        } footer: {
+            if s3ScType.isArchive {
+                Text(L10n.t("归档存储的文件无法直接下载，需先在云服务商网站恢复，请谨慎使用"))
+            }
+        }
+    }
+
+    /// Kodo 上传请求过期时间（小时）
+    private var kodoTimeoutSection: some View {
+        Section {
+            OutlinedUnitField(label: L10n.t("上传请求过期时间"), unit: L10n.t("小时"),
+                              text: kodoTimeoutText, range: 1...720)
+        } header: {
+            Text(L10n.t("上传请求过期时间"))
+        }
+    }
+
+    /// Kodo 过期时间 Int ↔ String
+    private var kodoTimeoutText: Binding<String> {
+        Binding<String>(get: { String(kodoTimeout) },
+                        set: { kodoTimeout = Int($0) ?? kodoTimeout })
+    }
+
+    /// OneDrive 版本 String 键 ↔ isCN
+    private var oneDriveEditionText: Binding<String> {
+        Binding<String>(get: { oneDriveIsCN ? "cn" : "global" },
+                        set: { oneDriveIsCN = $0 == "cn" })
+    }
+
+    /// 阿里云盘 token 解析（官方 loadFromTokenForAliyun：default_drive_id / refresh_token）
+    private func parseAliyunToken() {
+        guard let parsed = BackupOAuth.parseAliyunToken(
+            aliyunToken.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            aliyunParseOK = false
+            aliyunParseHint = L10n.t("Token 解析失败：需包含 default_drive_id 与 refresh_token")
+            return
+        }
+        aliyunDriveID = parsed.driveID
+        aliyunRefreshToken = parsed.refreshToken
+        aliyunParseOK = true
+        aliyunParseHint = L10n.t("解析成功：已填入 Drive ID 与 Refresh Token")
+    }
+
+    /// 打开 OAuth 授权页（Safari；用户复制跳转地址中的 code 回填）
+    private func openAuthorizePage() {
+        let url: URL?
+        if type == .oneDrive {
+            url = BackupOAuth.oneDriveAuthorizeURL(
+                clientID: oauthClientID, redirectURI: oauthRedirectURI,
+                isCN: oneDriveIsCN)
+        } else {
+            url = BackupOAuth.googleDriveAuthorizeURL(
+                clientID: oauthClientID, redirectURI: oauthRedirectURI)
+        }
+        if let url { openURL(url) }
     }
 
     /// MINIO / 阿里云OSS 共用：桶录入（选择方式 + 手动输入 / 自动获取入口行）。
@@ -1001,6 +1400,12 @@ struct BackupAccountEditView: View {
             name, type.rawValue, String(rememberAuth), backupPath,
             accessKeyID, secretKey, endpointProto, endpointHost, bucket,
             ossScType.rawValue,
+            cosRegion, cosScType.rawValue,
+            s3Region, s3ScType.rawValue, s3Mode.rawValue,
+            String(kodoTimeout),
+            aliyunDriveID, aliyunRefreshToken,
+            oauthClientID, oauthClientSecret, oauthRedirectURI, oauthCode,
+            String(oneDriveIsCN),
             webdavAddress, webdavUsername, webdavPassword,
             sftpAddress, String(sftpPort), sftpUsername, sftpAuthMode.rawValue,
             sftpPassword, sftpPrivateKey, sftpPassPhrase,
@@ -1036,6 +1441,69 @@ struct BackupAccountEditView: View {
             }
             // 保留 timeout 等其他键
             extraVars = vars.values.filter { !["scType", "endpointItem", "endpoint"].contains($0.key) }
+        case .cos:
+            let endpoint = Self.splitProto(vars["endpoint"]?.stringValue ?? "")
+            if let proto = endpoint.proto { endpointProto = proto }
+            endpointHost = endpoint.host
+            bucket = account.bucket ?? ""
+            bucketMode = (account.bucket ?? "").isEmpty ? "auto" : "manual"
+            cosRegion = vars["region"]?.stringValue ?? ""
+            // 非常用地域回落手动输入
+            cosRegionMode = COSRegions.all.contains(cosRegion) ? "select" : "manual"
+            if let sc = vars["scType"]?.stringValue, let t = COSScType(rawValue: sc) {
+                cosScType = t
+            }
+            extraVars = vars.values.filter {
+                !["region", "scType", "endpointItem", "endpoint"].contains($0.key)
+            }
+        case .s3:
+            let endpoint = Self.splitProto(vars["endpoint"]?.stringValue ?? "")
+            if let proto = endpoint.proto { endpointProto = proto }
+            endpointHost = endpoint.host
+            bucket = account.bucket ?? ""
+            bucketMode = (account.bucket ?? "").isEmpty ? "auto" : "manual"
+            s3Region = vars["region"]?.stringValue ?? ""
+            if let sc = vars["scType"]?.stringValue, let t = S3ScType(rawValue: sc) {
+                s3ScType = t
+            }
+            if let m = vars["mode"]?.stringValue, let t = S3EndpointMode(rawValue: m) {
+                s3Mode = t
+            }
+            extraVars = vars.values.filter {
+                !["region", "scType", "mode", "endpointItem", "endpoint"].contains($0.key)
+            }
+        case .kodo:
+            // KODO 的 Endpoint 存于 domain 键
+            let endpoint = Self.splitProto(vars["domain"]?.stringValue ?? "")
+            if let proto = endpoint.proto { endpointProto = proto }
+            endpointHost = endpoint.host
+            bucket = account.bucket ?? ""
+            bucketMode = (account.bucket ?? "").isEmpty ? "auto" : "manual"
+            kodoTimeout = vars["timeout"]?.intValue ?? 1
+            extraVars = vars.values.filter {
+                !["domain", "timeout", "endpointItem"].contains($0.key)
+            }
+        case .upyun:
+            bucket = account.bucket ?? ""
+            extraVars = [:]
+        case .aliyun:
+            aliyunDriveID = vars["drive_id"]?.stringValue ?? ""
+            aliyunRefreshToken = vars["refresh_token"]?.stringValue ?? ""
+            // 保留 refresh_status / refresh_time 等键；token 仅是输入辅助不回填
+            extraVars = vars.values.filter {
+                !["drive_id", "refresh_token", "token"].contains($0.key)
+            }
+        case .oneDrive, .googleDrive:
+            oauthClientID = vars["client_id"]?.stringValue ?? ""
+            oauthClientSecret = vars["client_secret"]?.stringValue ?? ""
+            oauthRedirectURI = vars["redirect_uri"]?.stringValue ?? ""
+            if case .oneDrive = type, let cn = vars["isCN"]?.boolValue {
+                oneDriveIsCN = cn
+            }
+            // 保留 refresh_token / refresh_status / refresh_time；code 不回填
+            extraVars = vars.values.filter {
+                !["client_id", "client_secret", "redirect_uri", "isCN", "code"].contains($0.key)
+            }
         case .webdav:
             webdavAddress = vars["address"]?.stringValue ?? ""
             if let p = vars["port"]?.intValue { webdavPort = String(p) }
@@ -1053,9 +1521,12 @@ struct BackupAccountEditView: View {
         // 凭证仅记住认证时回显（服务端返回 base64，解码展示），且只填入当前类型对应的字段
         if rememberAuth {
             switch type {
-            case .minio, .oss:
+            case .minio, .oss, .cos, .s3, .kodo, .upyun:
                 accessKeyID = Self.decodeBase64(account.accessKey)
                 secretKey = Self.decodeBase64(account.credential)
+            case .aliyun, .oneDrive, .googleDrive:
+                // 无 AK/SK 凭证概念（token 走 vars），且这两类不提供「记住认证信息」
+                break
             case .webdav:
                 webdavUsername = Self.decodeBase64(account.accessKey)
                 webdavPassword = Self.decodeBase64(account.credential)
@@ -1095,11 +1566,40 @@ struct BackupAccountEditView: View {
         }
         guard !isLocal else { return nil }
         switch type {
-        case .minio, .oss:
+        case .minio, .oss, .kodo:
+            if accessKeyID.isEmpty { return L10n.t("请填写 Access Key ID") }
+            if secretKey.isEmpty { return L10n.t("请填写 Secret Key") }
+            if endpointHost.isEmpty {
+                return L10n.t(type == .kodo ? "请填写域名" : "请填写 Endpoint 地址")
+            }
+            if bucket.trimmingCharacters(in: .whitespaces).isEmpty { return L10n.t("请选择或填写桶") }
+        case .cos:
             if accessKeyID.isEmpty { return L10n.t("请填写 Access Key ID") }
             if secretKey.isEmpty { return L10n.t("请填写 Secret Key") }
             if endpointHost.isEmpty { return L10n.t("请填写 Endpoint 地址") }
+            if cosRegion.trimmingCharacters(in: .whitespaces).isEmpty { return L10n.t("请填写地域") }
             if bucket.trimmingCharacters(in: .whitespaces).isEmpty { return L10n.t("请选择或填写桶") }
+        case .s3:
+            if accessKeyID.isEmpty { return L10n.t("请填写 Access Key ID") }
+            if secretKey.isEmpty { return L10n.t("请填写 Secret Key") }
+            if endpointHost.isEmpty { return L10n.t("请填写 Endpoint 地址") }
+            if s3Region.trimmingCharacters(in: .whitespaces).isEmpty { return L10n.t("请填写地域") }
+            if bucket.trimmingCharacters(in: .whitespaces).isEmpty { return L10n.t("请选择或填写桶") }
+        case .upyun:
+            if accessKeyID.isEmpty { return L10n.t("请填写操作员") }
+            if secretKey.isEmpty { return L10n.t("请填写密码") }
+            if bucket.trimmingCharacters(in: .whitespaces).isEmpty { return L10n.t("请填写服务名称") }
+        case .aliyun:
+            if aliyunDriveID.isEmpty { return L10n.t("请填写 Drive ID") }
+            if aliyunRefreshToken.isEmpty { return L10n.t("请填写 Refresh Token") }
+        case .oneDrive, .googleDrive:
+            if oauthClientID.isEmpty { return L10n.t("请填写客户端 ID") }
+            if oauthClientSecret.isEmpty { return L10n.t("请填写客户端密钥") }
+            if oauthRedirectURI.isEmpty { return L10n.t("请填写重定向 Url") }
+            // 首次绑定需授权码；已有 refresh_token（编辑）且未改动客户端信息时可免
+            if oauthCode.isEmpty, extraVars["refresh_token"] == nil {
+                return L10n.t("请填写授权码")
+            }
         case .webdav:
             if webdavAddress.isEmpty { return L10n.t("请填写地址") }
             if webdavUsername.isEmpty { return L10n.t("请填写用户名") }
@@ -1113,25 +1613,52 @@ struct BackupAccountEditView: View {
         return nil
     }
 
-    /// 构造 vars / varsJson（按类型）
-    private func buildVars() -> BackupVarsJSON {
-        var vars = BackupVarsJSON()
+    /// 构造 vars / varsJson（按类型，键形状经 BackupAccountVarsBuilder 与官方前端对齐）
+    private func buildVars(includeOAuthCode: Bool = true) -> BackupVarsJSON {
+        let host = endpointHost.trimmingCharacters(in: .whitespaces)
+        var vars: BackupVarsJSON
         switch type {
         case .minio:
-            let host = endpointHost.trimmingCharacters(in: .whitespaces)
-            vars["endpointItem"] = .string(host)
-            vars["endpoint"] = .string("\(endpointProto)://\(host)")
+            vars = BackupAccountVarsBuilder.minio(proto: endpointProto, host: host)
         case .oss:
-            let host = endpointHost.trimmingCharacters(in: .whitespaces)
-            vars["scType"] = .string(ossScType.rawValue)
-            vars["endpointItem"] = .string(host)
-            vars["endpoint"] = .string("\(endpointProto)://\(host)")
+            vars = BackupAccountVarsBuilder.oss(proto: endpointProto, host: host,
+                                                scType: ossScType.rawValue)
+        case .cos:
+            vars = BackupAccountVarsBuilder.cos(proto: endpointProto, host: host,
+                                                region: cosRegion.trimmingCharacters(in: .whitespaces),
+                                                scType: cosScType.rawValue)
+        case .s3:
+            vars = BackupAccountVarsBuilder.s3(proto: endpointProto, host: host,
+                                               region: s3Region.trimmingCharacters(in: .whitespaces),
+                                               scType: s3ScType.rawValue,
+                                               mode: s3Mode.rawValue)
+        case .kodo:
+            vars = BackupAccountVarsBuilder.kodo(proto: endpointProto, host: host,
+                                                 timeoutHours: kodoTimeout)
+        case .upyun:
+            vars = BackupAccountVarsBuilder.upyun()
+        case .aliyun:
+            vars = BackupAccountVarsBuilder.aliyun(
+                driveID: aliyunDriveID.trimmingCharacters(in: .whitespaces),
+                refreshToken: aliyunRefreshToken.trimmingCharacters(in: .whitespaces))
+        case .oneDrive, .googleDrive:
+            // isCN 仅 OneDrive 携带；code 仅测试时携带（保存走 extraVars 里的 refresh_token）
+            vars = BackupAccountVarsBuilder.oauthClient(
+                clientID: oauthClientID.trimmingCharacters(in: .whitespaces),
+                clientSecret: oauthClientSecret.trimmingCharacters(in: .whitespaces),
+                redirectURI: oauthRedirectURI.trimmingCharacters(in: .whitespaces),
+                isCN: type == .oneDrive ? oneDriveIsCN : nil,
+                code: includeOAuthCode
+                    ? oauthCode.trimmingCharacters(in: .whitespaces).removingPercentEncoding
+                    : nil)
         case .webdav:
+            vars = BackupVarsJSON()
             vars["address"] = .string(webdavAddress.trimmingCharacters(in: .whitespaces))
             if let p = Int(webdavPort), p > 0 {
                 vars["port"] = .int(p)
             }
         case .sftp:
+            vars = BackupVarsJSON()
             vars["address"] = .string(sftpAddress.trimmingCharacters(in: .whitespaces))
             vars["port"] = .int(sftpPort)
             vars["authMode"] = .string(sftpAuthMode.rawValue)
@@ -1145,6 +1672,14 @@ struct BackupAccountEditView: View {
         return vars
     }
 
+    /// 拉桶用的 vars：与提交同形，但剥离 endpointItem（对齐官方 getBuckets 的 undefined 处理）
+    private var varsForBuckets: BackupVarsJSON {
+        let vars = buildVars()
+        var copy = vars
+        copy["endpointItem"] = nil
+        return copy
+    }
+
     /// 构造提交/测试共用请求体（凭证 base64）
     private func buildOperate() -> BackupAccountOperate {
         // LOCAL 内置账号没有 MINIO/OSS/WebDAV/SFTP 表单，vars 沿用服务端原值，
@@ -1153,9 +1688,13 @@ struct BackupAccountEditView: View {
         let userKey: String
         let secret: String
         switch type {
-        case .minio, .oss:
+        case .minio, .oss, .cos, .s3, .kodo, .upyun:
             userKey = BackupAccountsViewModel.encodeBase64(accessKeyID)
             secret = BackupAccountsViewModel.encodeBase64(secretKey)
+        case .aliyun, .oneDrive, .googleDrive:
+            // 无 AK/SK 概念（token 走 vars），凭证为空串
+            userKey = ""
+            secret = ""
         case .webdav:
             userKey = BackupAccountsViewModel.encodeBase64(webdavUsername)
             secret = BackupAccountsViewModel.encodeBase64(webdavPassword)
@@ -1192,13 +1731,43 @@ struct BackupAccountEditView: View {
         // 记录发起测试时的表单指纹：测试期间表单被改动则结果作废，
         // 防止基于旧凭证的结果放行新表单保存
         let fingerprintAtStart = formFingerprint
-        let reason = await vm.checkConnection(buildOperate())
+        let result = await vm.checkConnection(buildOperate())
         guard formFingerprint == fingerprintAtStart else {
             checkState = .none
             return
         }
-        checkState = reason.map { ConnectionCheckState.failed($0) } ?? .ok
+        guard let reason = result.reason else {
+            checkState = .ok
+            handleCheckToken(result.token)
+            return
+        }
+        checkState = .failed(reason)
     }
+
+    /// 测试通过后的令牌回写（对齐官方 onCheck 成功分支）：
+    /// OAuth 类型用响应 token（Base64 refresh_token）落 extraVars；
+    /// OAuth / 阿里云盘补 refresh_status / refresh_time（extraVars 变化不触发重测，
+    /// 与表单指纹不含 extraVars 的既有语义一致）
+    private func handleCheckToken(_ token: String?) {
+        let now = Self.refreshTimeFormatter.string(from: Date())
+        if type.isOAuthClient, let token, !token.isEmpty {
+            let decoded = BackupOAuth.decodeRefreshToken(token)
+            if !decoded.isEmpty {
+                extraVars["refresh_token"] = .string(decoded)
+            }
+        }
+        if type.isOAuthClient || type.isAliyun {
+            extraVars["refresh_status"] = .string("Success")
+            extraVars["refresh_time"] = .string(now)
+        }
+    }
+
+    /// refresh_time 格式（官方 dateFormat 的 YYYY-MM-DD HH:mm:ss）
+    private static let refreshTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return f
+    }()
 
     private func submit() async {
         if let error = validationError() {
@@ -1224,15 +1793,13 @@ struct BackupAccountEditView: View {
 // MARK: - 桶选择页（存储页入口行进入）
 
 /// 桶选择页：进入自动获取桶列表，选中行自动返回回填；获取失败可重试或手动输入。
-/// 拉桶只需 Endpoint 与凭证（与原表单内「获取桶」一致），OSS 需携带存储类型
+/// vars 由表单按类型预构建（endpoint/domain/region/scType 等，endpointItem 已剥离）
 private struct BackupBucketPickerView: View {
     @ObservedObject var vm: BackupAccountsViewModel
-    let type: BackupAccountType
-    let endpointProto: String
-    let endpointHost: String
+    let type: String
+    let vars: BackupVarsJSON
     let accessKeyID: String
     let secretKey: String
-    let ossScType: OSSStorageType
     @Binding var bucket: String
 
     @Environment(\.dismiss) private var dismiss
@@ -1299,7 +1866,7 @@ private struct BackupBucketPickerView: View {
     }
 
     private func fetch() async {
-        // 凭证/Endpoint 缺失时给出具体缺失项（而非泛化的「获取桶失败」）
+        // 凭证缺失给出具体缺失项（Endpoint/地域等由表单页门控保证非空）
         if accessKeyID.isEmpty {
             fetchFailMessage = L10n.t("请填写 Access Key ID")
             showFetchFailAlert = true
@@ -1310,22 +1877,11 @@ private struct BackupBucketPickerView: View {
             showFetchFailAlert = true
             return
         }
-        if endpointHost.trimmingCharacters(in: .whitespaces).isEmpty {
-            fetchFailMessage = L10n.t("请填写 Endpoint 地址")
-            showFetchFailAlert = true
-            return
-        }
         isLoading = true
         defer { isLoading = false }
-        let host = endpointHost.trimmingCharacters(in: .whitespaces)
-        var vars = BackupVarsJSON()
-        vars["endpoint"] = .string("\(endpointProto)://\(host)")
-        if type == .oss {
-            vars["scType"] = .string(ossScType.rawValue)
-        }
         // 静默拉取：失败由本页弹窗提示（VM 级 alert 会在返回后才弹出）
         let list = await vm.fetchBuckets(
-            type: type.rawValue, vars: vars,
+            type: type, vars: vars,
             accessKey: BackupAccountsViewModel.encodeBase64(accessKeyID),
             credential: BackupAccountsViewModel.encodeBase64(secretKey),
             alertOnError: false)

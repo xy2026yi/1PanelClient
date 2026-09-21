@@ -36394,6 +36394,402 @@
         }
       }
     },
+    "腾讯云COS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tencent COS"
+          }
+        }
+      }
+    },
+    "亚马逊S3云存储" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amazon S3"
+          }
+        }
+      }
+    },
+    "七牛云Kodo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qiniu Kodo"
+          }
+        }
+      }
+    },
+    "又拍云" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UPYUN"
+          }
+        }
+      }
+    },
+    "阿里云盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aliyun Drive"
+          }
+        }
+      }
+    },
+    "微软 OneDrive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft OneDrive"
+          }
+        }
+      }
+    },
+    "谷歌云盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Drive"
+          }
+        }
+      }
+    },
+    "地域" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Region"
+          }
+        }
+      }
+    },
+    "常用地域" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Common regions"
+          }
+        }
+      }
+    },
+    "请填写地域" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Region is required"
+          }
+        }
+      }
+    },
+    "操作员" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operator"
+          }
+        }
+      }
+    },
+    "请填写操作员" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operator is required"
+          }
+        }
+      }
+    },
+    "请填写服务名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service name is required"
+          }
+        }
+      }
+    },
+    "解析" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parse"
+          }
+        }
+      }
+    },
+    "客户端 ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client ID"
+          }
+        }
+      }
+    },
+    "客户端密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client Secret"
+          }
+        }
+      }
+    },
+    "重定向 Url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect URL"
+          }
+        }
+      }
+    },
+    "请填写客户端 ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client ID is required"
+          }
+        }
+      }
+    },
+    "请填写客户端密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client Secret is required"
+          }
+        }
+      }
+    },
+    "请填写重定向 Url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect URL is required"
+          }
+        }
+      }
+    },
+    "授权码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authorization Code"
+          }
+        }
+      }
+    },
+    "请填写授权码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authorization code is required"
+          }
+        }
+      }
+    },
+    "打开授权页" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Authorization Page"
+          }
+        }
+      }
+    },
+    "在授权页完成登录后，从跳转地址中复制 code 参数粘贴至此" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After signing in on the authorization page, copy the code parameter from the redirected URL and paste it here"
+          }
+        }
+      }
+    },
+    "测试通过后服务端将以授权码换取令牌；编辑已有账号且令牌仍有效时可留空授权码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After the test passes, the server exchanges the code for a token; leave it empty when editing an account whose token is still valid"
+          }
+        }
+      }
+    },
+    "国际版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global"
+          }
+        }
+      }
+    },
+    "世纪互联" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "21Vianet"
+          }
+        }
+      }
+    },
+    "默认存储（轻量）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default (Lighthouse)"
+          }
+        }
+      }
+    },
+    "归档存储的文件无法直接下载，需先在云服务商网站恢复，请谨慎使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archived files cannot be downloaded directly and must be restored on the cloud provider's site first; use with caution"
+          }
+        }
+      }
+    },
+    "寻址模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Addressing Mode"
+          }
+        }
+      }
+    },
+    "上传请求过期时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload Request Expiry"
+          }
+        }
+      }
+    },
+    "粘贴整个 token 内容自动解析；阿里云盘非客户端下载单文件限 100 MB" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste the entire token to auto-parse; Aliyun Drive limits non-client downloads to 100 MB per file"
+          }
+        }
+      }
+    },
+    "请填写 Drive ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drive ID is required"
+          }
+        }
+      }
+    },
+    "请填写 Refresh Token" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh Token is required"
+          }
+        }
+      }
+    },
+    "Token 解析失败：需包含 default_drive_id 与 refresh_token" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to parse token: it must contain default_drive_id and refresh_token"
+          }
+        }
+      }
+    },
+    "解析成功：已填入 Drive ID 与 Refresh Token" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parsed: Drive ID and Refresh Token filled in"
+          }
+        }
+      }
+    },
     "没有找到Acme账户" : {
       "extractionState" : "manual",
       "localizations" : {
