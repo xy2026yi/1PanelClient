@@ -195,8 +195,8 @@ struct DeviceDNSSettingsView: View {
 
 // MARK: - Hosts 编辑页
 
-/// Hosts 列表编辑：一行一条（IP + 域名），行尾单独删除；添加在下方展开输入行。
-/// 增删均按抓包提交完整数组（update/host）
+/// Hosts 编辑（形态 7.1）：多行文本一行一条「IP 域名」，保存时解析校验后
+/// 按抓包提交完整数组（update/host）
 struct DeviceHostsSettingsView: View {
     let server: ServerConfig
     /// 保存成功回调（父页更新摘要）
@@ -205,11 +205,10 @@ struct DeviceHostsSettingsView: View {
     @State private var entries: [DeviceHostItem] = []
     @State private var isLoading = true
     @State private var loadError: String?
-    @State private var addingHost = false
-    @State private var newHostIP = ""
-    @State private var newHostName = ""
-    /// 待确认删除的行（行尾一键删除 = 全量覆盖提交，需先确认）
-    @State private var deletingEntry: DeviceHostItem?
+    /// 多行文本：一行一条「IP 域名」（域名可多个，空格分隔）
+    @State private var hostsText = ""
+    /// 加载时的原文（脏检查控制保存按钮）
+    @State private var loadedHostsText = ""
     @State private var isBusy = false
     @State private var toast: String?
     @State private var errorText: String?
@@ -240,80 +239,27 @@ struct DeviceHostsSettingsView: View {
                 }
             } else {
                 Section {
-                    ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
-                        HStack(alignment: .firstTextBaseline) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.ip)
-                                    .font(.dataMonospaced.bold())
-                                Text(entry.host)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Button {
-                                deletingEntry = entry
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundStyle(.red)
-                            }
-                            .buttonStyle(.borderless)
-                            .disabled(isBusy)
-                        }
-                    }
-
-                    if addingHost {
-                        VStack(spacing: 8) {
-                            OutlinedTextField(label: L10n.t("IP 地址"), text: $newHostIP)
-                            OutlinedTextField(label: L10n.t("域名（可多个，空格分隔）"), text: $newHostName)
-                            HStack {
-                                Button(L10n.t("取消")) {
-                                    addingHost = false
-                                    newHostIP = ""
-                                    newHostName = ""
-                                }
-                                .buttonStyle(.bordered)
-                                Spacer()
-                                Button(L10n.t("添加")) { addHostEntry() }
-                                    .buttonStyle(.borderedProminent)
-                                    .disabled(newHostIP.trimmingCharacters(in: .whitespaces).isEmpty
-                                              || newHostName.trimmingCharacters(in: .whitespaces).isEmpty
-                                              || isBusy)
-                            }
-                        }
-                    } else {
-                        Button {
-                            addingHost = true
-                        } label: {
-                            Label(L10n.t("添加 Hosts 记录"), systemImage: "plus.circle")
-                        }
-                        .disabled(isBusy)
-                    }
+                    OutlinedMultiLineField(label: "Hosts", prompt: "127.0.0.1 example.com",
+                                           lines: 6, text: $hostsText)
                 } footer: {
-                    Text(L10n.t("增删均为全量覆盖提交，系统默认条目请谨慎移除。"))
+                    Text(L10n.t("每行一条：IP 域名（域名可多个，空格分隔）；保存为全量覆盖提交，系统默认条目请谨慎移除。"))
                 }
             }
         }
         .navigationTitle("Hosts")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
-        .refreshable { await load() }
-        .alert(L10n.t("删除 Hosts 记录"), isPresented: Binding(
-            get: { deletingEntry != nil },
-            set: { if !$0 { deletingEntry = nil } }
-        )) {
-            Button(L10n.t("取消"), role: .cancel) { deletingEntry = nil }
-            Button(L10n.t("删除"), role: .destructive) {
-                Haptic.warning()
-                if let entry = deletingEntry {
-                    deletingEntry = nil
-                    Task { await updateHosts(entries.filter { $0 != entry }) }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isBusy { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
-            }
-        } message: {
-            if let entry = deletingEntry {
-                Text(L10n.f("确定删除 \"%@ %@\" 吗？删除为全量覆盖提交，系统默认条目请谨慎移除。", entry.ip, entry.host))
+                .disabled(isBusy || hostsText == loadedHostsText)
             }
         }
+        .task { await load() }
+        .refreshable { await load() }
         .alert(L10n.t("提示"), isPresented: Binding(
             get: { errorText != nil },
             set: { if !$0 { errorText = nil } }
@@ -333,6 +279,8 @@ struct DeviceHostsSettingsView: View {
                 path: APIEndpoint.deviceBase.path, as: DeviceBaseInfo.self
             )
             entries = base.hosts ?? []
+            hostsText = entries.map { "\($0.ip) \($0.host)" }.joined(separator: "\n")
+            loadedHostsText = hostsText
             loadError = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -340,19 +288,27 @@ struct DeviceHostsSettingsView: View {
         }
     }
 
-    /// 校验输入并提交（原数组 + 新条目）；IP 不合法保留输入供修改
-    private func addHostEntry() {
-        let ip = newHostIP.trimmingCharacters(in: .whitespaces)
-        let host = newHostName.trimmingCharacters(in: .whitespaces)
-        guard !ip.isEmpty, !host.isEmpty else { return }
-        guard Self.isValidHostsIP(ip) else {
-            errorText = L10n.f("IP 地址格式不正确：%@", ip)
-            return
+    /// 解析多行文本并提交：一行一条「IP 域名」，格式/IP 不合法保留输入供修改
+    private func save() async {
+        var parsed: [DeviceHostItem] = []
+        for rawLine in hostsText.split(whereSeparator: \.isNewline) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            guard !line.isEmpty else { continue }
+            let tokens = line.split(separator: " ", omittingEmptySubsequences: true)
+            guard tokens.count >= 2 else {
+                errorText = L10n.f("Hosts 行格式应为「IP 域名」：%@", line)
+                return
+            }
+            let ip = String(tokens[0])
+            let host = tokens.dropFirst().joined(separator: " ")
+            guard Self.isValidHostsIP(ip) else {
+                errorText = L10n.f("IP 地址格式不正确：%@", ip)
+                return
+            }
+            parsed.append(DeviceHostItem(ip: ip, host: host))
         }
-        addingHost = false
-        newHostIP = ""
-        newHostName = ""
-        Task { await updateHosts(entries + [DeviceHostItem(ip: ip, host: host)]) }
+        await updateHosts(parsed)
+        if errorText == nil { loadedHostsText = hostsText }
     }
 
     /// Hosts IP 字段校验：仅接受 IPv4 / IPv6（hosts 行首是地址，不是域名）

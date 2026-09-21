@@ -122,7 +122,7 @@ struct CronjobsTab: View {
                 .init(title: L10n.t("创建计划任务"), icon: "plus", color: .blue) {
                     showCreate = true
                 },
-                .init(title: L10n.t("导入"), icon: "square.and.arrow.down", color: .blue) {
+                .init(title: L10n.t("导入计划任务"), icon: "square.and.arrow.down", color: .blue) {
                     showImport = true
                 },
             ]) { showAddMenu = false }
