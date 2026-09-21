@@ -483,7 +483,7 @@ struct CreateDNSAccountView: View {
         case .AliYun:
             Section {
                 OutlinedTextField(label: "Access Key", text: $accessKey)
-                OutlinedTextField(label: "Secret Key", text: $secretKey, isSecure: true)
+                OutlinedPasswordField(label: "Secret Key", text: $secretKey)
             } header: {
                 Text(L10n.t("阿里云凭证"))
             }
@@ -500,7 +500,7 @@ struct CreateDNSAccountView: View {
         case .TencentCloud:
             Section {
                 OutlinedTextField(label: "Secret ID", text: $secretID)
-                OutlinedTextField(label: "Secret Key", text: $secretKey, isSecure: true)
+                OutlinedPasswordField(label: "Secret Key", text: $secretKey)
             } header: {
                 Text(L10n.t("腾讯云凭证"))
             }
@@ -508,7 +508,7 @@ struct CreateDNSAccountView: View {
         case .HuaweiCloud:
             Section {
                 OutlinedTextField(label: "Access Key", text: $accessKey)
-                OutlinedTextField(label: "Secret Key", text: $secretKey, isSecure: true)
+                OutlinedPasswordField(label: "Secret Key", text: $secretKey)
                 OutlinedTextField(label: L10n.t("Region（可选）"), text: $region)
             } header: {
                 Text(L10n.t("华为云凭证"))
@@ -519,7 +519,7 @@ struct CreateDNSAccountView: View {
                 OutlinedTextField(label: L10n.t("Client ID（可选）"), text: $clientID)
                 OutlinedTextField(label: L10n.t("Email（可选）"), text: $email)
                     .keyboardType(.emailAddress)
-                OutlinedTextField(label: "Password", text: $password, isSecure: true)
+                OutlinedPasswordField(label: "Password", text: $password)
             } header: {
                 Text(L10n.t("CloudDNS 凭证"))
             }

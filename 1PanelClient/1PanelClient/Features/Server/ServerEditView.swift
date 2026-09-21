@@ -47,7 +47,7 @@ struct ServerEditView: View {
                 OutlinedTextField(label: L10n.t("显示名称"), text: $name)
                 OutlinedTextField(label: L10n.t("面板地址"), prompt: "http://10.0.0.1:36130",
                               text: $baseURL, keyboardType: .URL)
-                OutlinedTextField(label: "API Key", text: $apiKey, isSecure: true)
+                OutlinedPasswordField(label: "API Key", text: $apiKey)
                 if draftIsPlainHTTP {
                     Label(L10n.t("HTTP 明文连接：API Key 与数据可能被链路窃听，建议改用 https://"), systemImage: "lock.open")
                         .font(.footnote)

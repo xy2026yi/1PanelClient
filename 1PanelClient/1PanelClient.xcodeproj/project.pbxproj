@@ -49,13 +49,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		7A00000000000000000000CE /* Exceptions for "1PanelClient" folder in "1PanelClient" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				.mimosa,
-			);
-			target = 14904F5F2FE7BFC6009BA44F /* 1PanelClient */;
-		};
 		7C00000000000000000000CE /* Exceptions for "PanelWidgets" folder in "PanelWidgets" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -68,9 +61,6 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		14904F622FE7BFC6009BA44F /* 1PanelClient */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				7A00000000000000000000CE /* Exceptions for "1PanelClient" folder in "1PanelClient" target */,
-			);
 			path = 1PanelClient;
 			sourceTree = "<group>";
 		};

@@ -1251,7 +1251,8 @@ struct ChangePasswordSheet: View {
                     }
                 }
                 Section(L10n.t("新密码")) {
-                    // 眼睛 + 骰子内嵌描边框右侧
+                    // 眼睛 + 骰子内嵌描边框右侧（borderless：Form 行内多按钮
+                    // 默认样式会整行同触——点眼睛曾连带触发随机生成并强制明文）
                     OutlinedShape(label: L10n.t("新密码"), isFocused: false,
                                   hasValue: !newPassword.isEmpty,
                                   trailing: {
@@ -1260,7 +1261,9 @@ struct ChangePasswordSheet: View {
                                 Image(systemName: showNew ? "eye.slash" : "eye")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                            }.accessibilityLabel(showNew ? L10n.t("隐藏密码") : L10n.t("显示密码"))
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel(showNew ? L10n.t("隐藏密码") : L10n.t("显示密码"))
                             Button {
                                 newPassword = randomPassword()
                                 showNew = true
@@ -1268,7 +1271,9 @@ struct ChangePasswordSheet: View {
                                 Image(systemName: "dice")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                            }.accessibilityLabel(L10n.t("生成随机密码"))
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel(L10n.t("生成随机密码"))
                         }
                     }) {
                         Group {
@@ -1380,14 +1385,18 @@ struct RedisPasswordSheet: View {
                             Image(systemName: showNew ? "eye.slash" : "eye")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                        }.accessibilityLabel(showNew ? L10n.t("隐藏密码") : L10n.t("显示密码"))
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(showNew ? L10n.t("隐藏密码") : L10n.t("显示密码"))
                         Button {
                             newPassword = randomPassword()
                         } label: {
                             Image(systemName: "dice")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                        }.accessibilityLabel(L10n.t("生成随机密码"))
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.t("生成随机密码"))
                     }
                 }) {
                     Group {

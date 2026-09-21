@@ -132,17 +132,10 @@ struct MonitorSettingsView: View {
             path: APIEndpoint.hostsMonitorSettingGet.path, method: "GET", as: [String: String].self) {
             let loaded = MonitorSettings.from(dict: dict)
             settings = loaded
-            // 秒 → 数值+单位（整除取大单位，原值可整除时往返无损）
-            if loaded.interval % 3600 == 0, loaded.interval >= 3600 {
-                intervalUnit = "h"
-                intervalValueText = String(max(1, loaded.interval / 3600))
-            } else if loaded.interval % 60 == 0 {
-                intervalUnit = "m"
-                intervalValueText = String(max(1, loaded.interval / 60))
-            } else {
-                intervalUnit = "s"
-                intervalValueText = String(max(1, loaded.interval))
-            }
+            // 秒 → 数值+单位（UnitCodec.scaleTime：整除取大单位，可整除时往返无损）
+            let scaled = UnitCodec.scaleTime(seconds: loaded.interval)
+            intervalUnit = scaled.unit
+            intervalValueText = String(scaled.value)
             loadedStoreDays = loaded.storeDays
             loadedIntervalSeconds = loaded.interval
         }
@@ -157,15 +150,6 @@ struct MonitorSettingsView: View {
         isLoading = false
     }
 
-    /// 单位 → 秒
-    private static func intervalUnitSeconds(_ unit: String) -> Int {
-        switch unit {
-        case "s": return 1
-        case "h": return 3600
-        default:  return 60
-        }
-    }
-
     /// 数值范围随单位缩放（总量上限 24 小时 = 原 1440 分钟上限）
     private var intervalRange: ClosedRange<Int> {
         switch intervalUnit {
@@ -177,7 +161,7 @@ struct MonitorSettingsView: View {
 
     private var intervalSeconds: Int {
         // 切换单位不换算数值，组合可能超上限（如 90 切到「小时」），按 24h 钳制
-        min(max((Int(intervalValueText) ?? 5) * Self.intervalUnitSeconds(intervalUnit), 1), 86400)
+        min(max((Int(intervalValueText) ?? 5) * UnitCodec.unitToSeconds(intervalUnit), 1), 86400)
     }
 
     private func submitInterval() {

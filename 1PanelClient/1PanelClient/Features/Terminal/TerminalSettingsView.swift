@@ -235,10 +235,10 @@ struct TerminalSSHConnEditView: View {
                                         .allowsHitTesting(false)
                                 }
                             }
-                        OutlinedTextField(label: L10n.t("私钥密码"), prompt: L10n.t("可选"),
-                                          text: $passPhrase, isSecure: true)
+                        OutlinedPasswordField(label: L10n.t("私钥密码"), prompt: L10n.t("可选"),
+                                          text: $passPhrase)
                     } else {
-                        OutlinedTextField(label: L10n.t("密码"), text: $password, isSecure: true)
+                        OutlinedPasswordField(label: L10n.t("密码"), text: $password)
                     }
                 } header: {
                     Text(L10n.t("认证"))

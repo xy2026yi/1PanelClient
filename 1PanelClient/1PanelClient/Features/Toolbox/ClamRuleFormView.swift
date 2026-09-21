@@ -60,16 +60,7 @@ struct ClamRuleFormView: View {
 
     /// 数值 × 当前单位 → 秒（提交时后端按单位换算）
     private var timeoutSeconds: Int {
-        (Int(timeoutText) ?? 0) * Self.timeoutUnitSeconds(timeoutUnitValue)
-    }
-
-    /// 单位 → 秒
-    private static func timeoutUnitSeconds(_ unit: String) -> Int {
-        switch unit {
-        case "s": return 1
-        case "h": return 3600
-        default:  return 60
-        }
+        (Int(timeoutText) ?? 0) * UnitCodec.unitToSeconds(timeoutUnitValue)
     }
 
     /// 数值范围随单位缩放（总量上限 1 年；固定小值域会把旧规则
@@ -366,19 +357,11 @@ struct ClamRuleFormView: View {
             }
         }
 
-        // 超时秒数反推为分钟（向上取整，不足 1 分钟按 1 计）
+        // 超时秒数回填为 数值+单位（UnitCodec.scaleTime：整除取大单位，可整除时往返无损）
         if let seconds = rule.timeout, seconds > 0 {
-            // 秒 → 数值+单位：整除取大单位（原值可整除时往返无损）
-            if seconds % 3600 == 0, seconds >= 3600 {
-                timeoutUnitValue = "h"
-                timeoutText = String(seconds / 3600)
-            } else if seconds % 60 == 0 {
-                timeoutUnitValue = "m"
-                timeoutText = String(seconds / 60)
-            } else {
-                timeoutUnitValue = "s"
-                timeoutText = String(max(1, seconds))
-            }
+            let scaled = UnitCodec.scaleTime(seconds: seconds)
+            timeoutUnitValue = scaled.unit
+            timeoutText = String(scaled.value)
         }
 
         if let method = rule.alertMethod, !method.isEmpty, let id = Int(method) {

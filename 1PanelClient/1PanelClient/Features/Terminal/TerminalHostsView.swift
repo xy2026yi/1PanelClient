@@ -396,12 +396,12 @@ struct SSHHostEditView: View {
                                 .allowsHitTesting(false)
                         }
                     }
-                OutlinedTextField(label: L10n.t("私钥密码"), prompt: L10n.t("可选"),
-                                  text: $passPhrase, isSecure: true)
+                OutlinedPasswordField(label: L10n.t("私钥密码"), prompt: L10n.t("可选"),
+                                  text: $passPhrase)
             } else {
-                OutlinedTextField(label: L10n.t("密码"),
+                OutlinedPasswordField(label: L10n.t("密码"),
                                   prompt: isEditing ? L10n.t("不修改请留空") : nil,
-                                  text: $password, isSecure: true)
+                                  text: $password)
             }
 
             Toggle(L10n.t("记住认证信息"), isOn: $rememberPassword)

@@ -131,10 +131,11 @@ final class FirewallViewModel: ObservableObject {
         } else {
             guard !isRulesLoadingMore, inventory.count < rulesAllTotal else { return }
             isRulesLoadingMore = true
-            // defer 复位：generation 失配/取消的早退路径也必须清标志，
-            // 否则懒加载永久失效（补页循环与下拉刷新并发时必现）
-            defer { isRulesLoadingMore = false }
         }
+        // 函数级 defer 复位（不能放在上面的 else 块尾——块尾 defer 在块结束时
+        // 立即执行，标志等于没设）：generation 失配/取消的早退路径也必须清标志，
+        // 否则懒加载永久失效（补页循环与下拉刷新并发时必现）
+        defer { if !replacing { isRulesLoadingMore = false } }
         let generation = rulesGeneration
         var req = FirewallRuleSearchRequest(page: replacing ? 1 : rulesPage + 1,
                                             pageSize: Self.rulesPageSize)

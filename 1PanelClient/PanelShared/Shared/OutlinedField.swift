@@ -81,13 +81,12 @@ struct OutlinedShape<Content: View, Trailing: View>: View {
 
 // MARK: - 描边文本输入框
 
-/// 描边包裹式文本输入（含 SecureField 变体）
+/// 描边包裹式文本输入（密码场景用 OutlinedPasswordField）
 struct OutlinedTextField: View {
     let label: String
     /// 聚焦且空值时框内的格式提示（可选，区别于标签）
     var prompt: String? = nil
     @Binding var text: String
-    var isSecure = false
     var keyboardType: UIKeyboardType = .default
     /// 机器值：禁用首字母自动大写与纠错（默认开）
     var machineValue = true
@@ -105,7 +104,7 @@ struct OutlinedTextField: View {
         VStack(alignment: .leading, spacing: 4) {
             OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
                           trailing: { EmptyView() }) {
-            fieldBody
+            TextField("", text: $text)
                 .keyboardType(keyboardType)
                 .focused($isFocused)
                 .disabled(disabled)
@@ -125,52 +124,60 @@ struct OutlinedTextField: View {
         }
         }
     }
-
-    @ViewBuilder
-    private var fieldBody: some View {
-        if isSecure {
-            SecureField("", text: $text)
-        } else {
-            TextField("", text: $text)
-        }
-    }
 }
 
 // MARK: - 描边密码框（眼睛切换）
 
 /// 描边包裹式密码输入 + 框内右侧明文/密文切换眼睛。
 /// 聚焦态由组件 FocusState 驱动（取代手包 OutlinedShape 固定 isFocused: false 的写法，
-/// 那会导致聚焦时标签不上浮、边框不变色）
+/// 那会导致聚焦时标签不上浮、边框不变色）。
+/// 明密文为双字段叠放（不销毁重建）——条件 if/else 切换 TextField↔SecureField
+/// 是两个视图身份，切换瞬间可能掉焦/键盘闪落；叠放共享同一绑定，切换不中断编辑
 struct OutlinedPasswordField: View {
     let label: String
+    /// 聚焦且空值时框内的格式提示（可选，区别于标签）
+    var prompt: String? = nil
     @Binding var text: String
-    @State private var showPlain = false
+    var keyboardType: UIKeyboardType = .default
 
+    @State private var showPlain = false
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
-                      trailing: {
-            Button {
-                showPlain.toggle()
-            } label: {
-                Image(systemName: showPlain ? "eye.slash" : "eye")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.borderless)
-            .accessibilityLabel(L10n.t(showPlain ? "隐藏密码" : "显示密码"))
-        }) {
-            Group {
-                if showPlain {
-                    TextField("", text: $text)
-                } else {
-                    SecureField("", text: $text)
+        VStack(alignment: .leading, spacing: 4) {
+            OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
+                          trailing: {
+                Button {
+                    showPlain.toggle()
+                } label: {
+                    Image(systemName: showPlain ? "eye.slash" : "eye")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+                // borderless：Form 行内多按钮默认样式会整行同触
+                .buttonStyle(.borderless)
+                .accessibilityLabel(L10n.t(showPlain ? "隐藏密码" : "显示密码"))
+            }) {
+                ZStack {
+                    TextField("", text: $text)
+                        .opacity(showPlain ? 1 : 0)
+                        .allowsHitTesting(showPlain)
+                        .focused($isFocused)
+                    SecureField("", text: $text)
+                        .opacity(showPlain ? 0 : 1)
+                        .allowsHitTesting(!showPlain)
+                        .focused($isFocused)
+                }
+                .keyboardType(keyboardType)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
             }
-            .focused($isFocused)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
+            if isFocused, text.isEmpty, let prompt {
+                Text(prompt)
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+                    .allowsHitTesting(false)
+            }
         }
     }
 }

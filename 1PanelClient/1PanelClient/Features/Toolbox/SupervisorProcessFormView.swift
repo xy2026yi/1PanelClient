@@ -101,7 +101,7 @@ struct SupervisorProcessFormView: View {
                 command = process.command ?? ""
                 numprocs = Int(process.numprocs ?? "") ?? 1
                 // 服务端逗号分隔 ↔ 表单按行编辑（值可带双引号且内含逗号，引号内逗号不拆）
-                environment = Self.splitEnvironment(process.environment ?? "")
+                environment = SupervisorEnvCodec.split(process.environment ?? "")
                     .joined(separator: "\n")
                 autoRestart = process.isEnabled(process.autoRestart)
                 autoStart = process.isEnabled(process.autoStart)
@@ -120,7 +120,7 @@ struct SupervisorProcessFormView: View {
         defer { isSaving = false }
         // 环境变量：按行编辑，提交拼回服务端的逗号分隔格式
         //（值含逗号且未加引号时补引号，supervisor ini 语义要求，保证往返不拆断）
-        let envValue = Self.joinEnvironment(
+        let envValue = SupervisorEnvCodec.join(
             environment
                 .split(whereSeparator: \.isNewline)
                 .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -146,44 +146,7 @@ struct SupervisorProcessFormView: View {
         if ok { dismiss() }
     }
 
-    // MARK: environment 串 ↔ 行（引号感知）
-
-    /// 服务端 environment 串 "K=V,K2=V2"（值可带双引号且内含逗号）→ 行数组。
-    /// 引号内的逗号不拆分；引号外空白去除（抓包确认网页端即此格式，
-    /// 如 environment: "KEY=\"val\",KEY2=\"val2\""）
-    private static func splitEnvironment(_ raw: String) -> [String] {
-        var lines: [String] = []
-        var current = ""
-        var inQuotes = false
-        for ch in raw {
-            if ch == "\"" {
-                inQuotes.toggle()
-                current.append(ch)
-            } else if ch == "," && !inQuotes {
-                let trimmed = current.trimmingCharacters(in: .whitespaces)
-                if !trimmed.isEmpty { lines.append(trimmed) }
-                current = ""
-            } else {
-                current.append(ch)
-            }
-        }
-        let trimmed = current.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty { lines.append(trimmed) }
-        return lines
-    }
-
-    /// 行数组 → 服务端逗号分隔串：值含逗号且整行未带引号时给值补双引号，
-    /// 保证含逗号的值往返不拆断（无逗号行原样保留，含引号行视为用户自行处理）
-    private static func joinEnvironment(_ lines: [String]) -> String {
-        lines.map { line in
-            guard line.contains(","), !line.contains("\""),
-                  let eq = line.firstIndex(of: "=") else { return line }
-            let key = String(line[line.startIndex..<eq])
-            let value = String(line[line.index(after: eq)...])
-            return "\(key)=\"\(value)\""
-        }
-        .joined(separator: ",")
-    }
+    // environment 串 ↔ 行 编解码已下沉 SupervisorEnvCodec（FormCodecs.swift，含单测）
 }
 
 // MARK: - 源文件编辑

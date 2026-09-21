@@ -243,7 +243,7 @@ struct AddNodeView: View {
                            optionLabels: ["password": L10n.t("密码认证"),
                                           "key": L10n.t("私钥认证")])
             if authMode == "password" {
-                OutlinedTextField(label: L10n.t("密码"), text: $password, isSecure: true)
+                OutlinedPasswordField(label: L10n.t("密码"), text: $password)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L10n.t("私钥"))

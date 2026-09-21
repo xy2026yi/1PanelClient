@@ -305,7 +305,7 @@ private struct SnapshotRecoverSheet: View {
                     }
                 }
                 Section {
-                    OutlinedTextField(label: L10n.t("压缩密码（可选）"), text: $secret, isSecure: true)
+                    OutlinedPasswordField(label: L10n.t("压缩密码（可选）"), text: $secret)
                 } header: {
                     SectionLabel(title: L10n.t("恢复选项"), systemImage: "key")
                 }

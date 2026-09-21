@@ -159,7 +159,7 @@ struct AlertSendMethodEditView: View {
             OutlinedTextField(label: L10n.t("发信地址"), text: $sender)
                 .keyboardType(.emailAddress)
             OutlinedTextField(label: L10n.t("用户名"), text: $userName)
-            OutlinedTextField(label: L10n.t("密码"), text: $password, isSecure: true)
+            OutlinedPasswordField(label: L10n.t("密码"), text: $password)
             OutlinedTextField(label: L10n.t("SMTP 服务器"), text: $host, keyboardType: .URL)
             OutlinedTextField(label: L10n.t("端口号"), text: $portText, keyboardType: .numberPad)
             OutlinedPicker(label: L10n.t("加密方式"),

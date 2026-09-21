@@ -892,8 +892,8 @@ struct AIAgentQQChannelView: View {
                     }
                     OutlinedTextField(label: "App ID", text: Binding(
                         get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
-                    OutlinedTextField(label: "App Secret", text: Binding(
-                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }), isSecure: true)
+                    OutlinedPasswordField(label: "App Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
                     ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
                                          value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                     ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesBasic,
@@ -1236,8 +1236,8 @@ private struct AIQQBotFormSheet: View {
                         .disabled(lockAccountID)
                     OutlinedTextField(label: "App ID", text: Binding(
                         get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
-                    OutlinedTextField(label: "App Secret", text: Binding(
-                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }), isSecure: true)
+                    OutlinedPasswordField(label: "App Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
                 } footer: {
@@ -1345,8 +1345,8 @@ struct AIAgentWecomChannelView: View {
                     }
                     OutlinedTextField(label: L10n.t("Bot ID"), text: Binding(
                         get: { c.botId ?? "" }, set: { c.botId = $0 }))
-                    OutlinedTextField(label: L10n.t("密钥"), text: Binding(
-                        get: { c.secret ?? "" }, set: { c.secret = $0 }), isSecure: true)
+                    OutlinedPasswordField(label: L10n.t("密钥"), text: Binding(
+                        get: { c.secret ?? "" }, set: { c.secret = $0 }))
                     ChannelPolicyPicker(title: L10n.t("私聊策略"),
                                          options: isOpenClaw ? AIChannelPolicy.dmPoliciesFull : AIChannelPolicy.dmPoliciesBasic,
                                          value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
@@ -1570,8 +1570,8 @@ struct AIAgentDingtalkChannelView: View {
                     }
                     OutlinedTextField(label: "Client ID", text: Binding(
                         get: { bot.clientId ?? "" }, set: { bot.clientId = $0 }))
-                    OutlinedTextField(label: "Client Secret", text: Binding(
-                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }), isSecure: true)
+                    OutlinedPasswordField(label: "Client Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
                     ChannelPolicyPicker(title: L10n.t("私聊策略"), options: AIChannelPolicy.dmPoliciesBasic,
                                          value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                     // Hermes 网页端无群组策略（核对隐藏，保存仍回传服务端值）
@@ -1965,8 +1965,8 @@ private struct AIDingtalkBotFormSheet: View {
                         }))
                     OutlinedTextField(label: "Client ID", text: Binding(
                         get: { bot.clientId ?? "" }, set: { bot.clientId = $0 }))
-                    OutlinedTextField(label: "Client Secret", text: Binding(
-                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }), isSecure: true)
+                    OutlinedPasswordField(label: "Client Secret", text: Binding(
+                        get: { bot.clientSecret ?? "" }, set: { bot.clientSecret = $0 }))
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
                 } footer: {
@@ -2108,8 +2108,8 @@ struct AIAgentFeishuChannelView: View {
                     }
                     OutlinedTextField(label: "App ID", text: Binding(
                         get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
-                    OutlinedTextField(label: "App Secret", text: Binding(
-                        get: { bot.appSecret ?? "" }, set: { bot.appSecret = $0 }), isSecure: true)
+                    OutlinedPasswordField(label: "App Secret", text: Binding(
+                        get: { bot.appSecret ?? "" }, set: { bot.appSecret = $0 }))
                     // Hermes 私聊策略无禁用（网页核对）：配队码 / 开放
                     ChannelPolicyPicker(title: L10n.t("私聊策略"),
                                          options: isHermes ? AIChannelPolicy.dmPoliciesPairingOpen : AIChannelPolicy.dmPoliciesBasic,
@@ -2516,8 +2516,8 @@ private struct AIFeishuBotFormSheet: View {
                         .disabled(lockAccountID)
                     OutlinedTextField(label: "App ID", text: Binding(
                         get: { bot.appId ?? "" }, set: { bot.appId = $0 }))
-                    OutlinedTextField(label: "App Secret", text: Binding(
-                        get: { bot.appSecret ?? "" }, set: { bot.appSecret = $0 }), isSecure: true)
+                    OutlinedPasswordField(label: "App Secret", text: Binding(
+                        get: { bot.appSecret ?? "" }, set: { bot.appSecret = $0 }))
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
                 } footer: {
@@ -2646,8 +2646,8 @@ struct AIAgentTelegramChannelView: View {
                     }
                     if isHermes {
                         // Hermes 网页核对：仅 Bot Token / 私聊策略（配队码、开放）/ 群聊需@机器人
-                        OutlinedTextField(label: L10n.t("Bot Token"), text: Binding(
-                            get: { bot.botToken ?? "" }, set: { bot.botToken = $0 }), isSecure: true)
+                        OutlinedPasswordField(label: L10n.t("Bot Token"), text: Binding(
+                            get: { bot.botToken ?? "" }, set: { bot.botToken = $0 }))
                         ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
                                              value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                         Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
@@ -3069,8 +3069,8 @@ private struct AITelegramBotFormSheet: View {
                         Toggle(L10n.t("启用"), isOn: Binding(
                             get: { bot.enabled ?? true }, set: { bot.enabled = $0 }))
                     }
-                    OutlinedTextField(label: L10n.t("Bot Token"), text: Binding(
-                        get: { bot.botToken ?? "" }, set: { bot.botToken = $0 }), isSecure: true)
+                    OutlinedPasswordField(label: L10n.t("Bot Token"), text: Binding(
+                        get: { bot.botToken ?? "" }, set: { bot.botToken = $0 }))
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
                 } footer: {
@@ -3202,8 +3202,8 @@ struct AIAgentDiscordChannelView: View {
                     }
                     if isHermes {
                         // Hermes 网页核对：仅 Token / 私聊策略（配队码、开放）/ 群聊需@机器人
-                        OutlinedTextField(label: "Token", text: Binding(
-                            get: { bot.token ?? "" }, set: { bot.token = $0 }), isSecure: true)
+                        OutlinedPasswordField(label: "Token", text: Binding(
+                            get: { bot.token ?? "" }, set: { bot.token = $0 }))
                         ChannelPolicyPicker(title: L10n.t("私聊策略"), options: dmPolicies,
                                              value: Binding(get: { c.dmPolicy ?? "pairing" }, set: { c.dmPolicy = $0 }))
                         Toggle(L10n.t("群聊需@机器人"), isOn: Binding(
@@ -3645,8 +3645,8 @@ private struct AIDiscordBotFormSheet: View {
                         Toggle(L10n.t("启用"), isOn: Binding(
                             get: { bot.enabled ?? true }, set: { bot.enabled = $0 }))
                     }
-                    OutlinedTextField(label: "Token", text: Binding(
-                        get: { bot.token ?? "" }, set: { bot.token = $0 }), isSecure: true)
+                    OutlinedPasswordField(label: "Token", text: Binding(
+                        get: { bot.token ?? "" }, set: { bot.token = $0 }))
                 } header: {
                     SectionLabel(title: isEdit ? L10n.t("编辑 Bot") : L10n.t("新增 Bot"), systemImage: "person.crop.circle")
                 } footer: {

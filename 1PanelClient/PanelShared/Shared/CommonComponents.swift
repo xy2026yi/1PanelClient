@@ -211,7 +211,9 @@ struct PasswordInputRow: View {
     @Binding var showPassword: Bool
 
     var body: some View {
-        // 描边包裹式：眼睛 + 骰子内嵌框右侧（与全站密码框一致）
+        // 描边包裹式：眼睛 + 骰子内嵌框右侧（与全站密码框一致）。
+        // borderless 必须保留：Form 行内多个默认样式 Button 会整行同触
+        //（点眼睛会连带触发骰子重新生成密码）
         OutlinedShape(label: L10n.t("密码"), isFocused: false,
                       hasValue: !password.isEmpty,
                       trailing: {
@@ -220,14 +222,18 @@ struct PasswordInputRow: View {
                     Image(systemName: showPassword ? "eye.slash" : "eye")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                }.accessibilityLabel(showPassword ? L10n.t("隐藏密码") : L10n.t("显示密码"))
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(showPassword ? L10n.t("隐藏密码") : L10n.t("显示密码"))
                 Button {
                     password = Self.randomPassword()
                 } label: {
                     Image(systemName: "dice")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                }.accessibilityLabel(L10n.t("生成随机密码"))
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(L10n.t("生成随机密码"))
             }
         }) {
             Group {

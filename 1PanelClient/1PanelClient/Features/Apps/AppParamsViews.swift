@@ -233,7 +233,7 @@ struct InstalledParamEditRow: View {
             OutlinedTextField(label: field.displayLabel, text: $value,
                               keyboardType: .numberPad)
         case "password":
-            OutlinedTextField(label: field.displayLabel, text: $value, isSecure: true)
+            OutlinedPasswordField(label: field.displayLabel, text: $value)
         case "select", "apps":
             OutlinedPicker(label: field.displayLabel,
                            options: field.values ?? [],

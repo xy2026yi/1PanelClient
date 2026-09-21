@@ -730,7 +730,7 @@ struct PanelProxyEditView: View {
 
                 Section {
                     OutlinedTextField(label: L10n.t("用户名"), text: $proxyUser)
-                    OutlinedTextField(label: L10n.t("密码"), text: $proxyPasswd, isSecure: true)
+                    OutlinedPasswordField(label: L10n.t("密码"), text: $proxyPasswd)
                     Toggle(L10n.t("记住密码"), isOn: $passwdKeep)
                 } header: {
                     Text(L10n.t("认证（可选）"))

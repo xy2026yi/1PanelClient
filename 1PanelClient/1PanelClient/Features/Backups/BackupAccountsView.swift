@@ -801,7 +801,7 @@ struct BackupAccountEditView: View {
     private var credentialsSection: some View {
         Section {
             OutlinedTextField(label: "Access Key ID", text: $accessKeyID)
-            OutlinedTextField(label: "Secret Key", text: $secretKey, isSecure: true)
+            OutlinedPasswordField(label: "Secret Key", text: $secretKey)
             Toggle(L10n.t("记住认证信息"), isOn: $rememberAuth)
         } header: {
             Text(L10n.t("连接信息"))
@@ -877,7 +877,7 @@ struct BackupAccountEditView: View {
                           text: $webdavAddress, keyboardType: .URL)
             OutlinedUnitField(label: L10n.t("端口"), unit: "", text: webdavPortText)
             OutlinedTextField(label: L10n.t("用户名"), text: $webdavUsername)
-            OutlinedTextField(label: L10n.t("密码"), text: $webdavPassword, isSecure: true)
+            OutlinedPasswordField(label: L10n.t("密码"), text: $webdavPassword)
             Toggle(L10n.t("记住认证信息"), isOn: $rememberAuth)
         } header: {
             Text(L10n.t("连接信息"))
@@ -909,7 +909,7 @@ struct BackupAccountEditView: View {
                            selection: $sftpAuthMode) { $0.displayName }
 
             if sftpAuthMode == .password {
-                OutlinedTextField(label: L10n.t("密码"), text: $sftpPassword, isSecure: true)
+                OutlinedPasswordField(label: L10n.t("密码"), text: $sftpPassword)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L10n.t("私钥"))
@@ -929,8 +929,8 @@ struct BackupAccountEditView: View {
                             }
                         }
                 }
-                OutlinedTextField(label: L10n.t("私钥密码"), prompt: L10n.t("可选"),
-                              text: $sftpPassPhrase, isSecure: true)
+                OutlinedPasswordField(label: L10n.t("私钥密码"), prompt: L10n.t("可选"),
+                              text: $sftpPassPhrase)
             }
         } header: {
             Text(L10n.t("认证方式"))
