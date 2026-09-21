@@ -23,6 +23,8 @@ struct ApplyCertificateView: View {
     @State private var description_ = ""
     @State private var acmeAccounts: [AcmeAccount] = []
     @State private var dnsAccounts: [DNSAccount] = []
+    /// 账户加载中（空态与「没有找到」区分，加载中显示占位不闪误导文案）
+    @State private var isLoadingAccounts = true
     @State private var selectedAcmeId: Int = 0
     @State private var selectedKeyType: SSLKeyType = .EC256
     @State private var selectedProvider: SSLProvider = .dnsAccount
@@ -50,8 +52,10 @@ struct ApplyCertificateView: View {
         case 0:
             return !primaryDomain.trimmingCharacters(in: .whitespaces).isEmpty
         case 1:
-            // 验证方式为 DNS 账户时必须有可选的 DNS 账户
-            return !(selectedProvider == .dnsAccount && dnsAccounts.isEmpty)
+            // Acme 账户必选（空则提交 acmeAccountId=0 必被服务端拒绝）；
+            // 验证方式为 DNS 账户时还必须有可选的 DNS 账户
+            return !acmeAccounts.isEmpty
+                && !(selectedProvider == .dnsAccount && dnsAccounts.isEmpty)
         default:
             return true
         }
@@ -178,9 +182,28 @@ struct ApplyCertificateView: View {
 
     private var applyConfigSection: some View {
         Section(L10n.t("申请配置")) {
-            OutlinedPicker(label: L10n.t("Acme 账户"),
-                           options: acmeOptionKeys, selection: acmeBinding,
-                           optionLabels: acmeOptionLabels)
+            if acmeAccounts.isEmpty {
+                // 无可用 Acme 账户（与 DNS 账户空态同形态；下一步已被 pageReady 拦截）；
+                // 加载中显示占位而非「没有找到」，避免闪烁误导
+                OutlinedShape(label: L10n.t("Acme 账户"), isFocused: false,
+                              hasValue: isLoadingAccounts,
+                              trailing: {
+                    if isLoadingAccounts {
+                        ProgressView().font(.caption)
+                    } else {
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }) {
+                    Text(isLoadingAccounts ? "" : L10n.t("没有找到Acme账户"))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                OutlinedPicker(label: L10n.t("Acme 账户"),
+                               options: acmeOptionKeys, selection: acmeBinding,
+                               optionLabels: acmeOptionLabels)
+            }
 
             OutlinedPicker(label: L10n.t("密匙算法"), options: SSLKeyType.allCases,
                            selection: $selectedKeyType) { $0.displayName }
@@ -190,15 +213,20 @@ struct ApplyCertificateView: View {
 
             if selectedProvider == .dnsAccount {
                 if dnsAccounts.isEmpty {
-                    // 无可用 DNS 账户：保持形态 3 描边框展示占位（下一步已被 pageReady 拦截）
+                    // 无可用 DNS 账户：保持形态 3 描边框展示占位（下一步已被 pageReady 拦截）；
+                    // 加载中显示空占位，避免短暂闪现「没有找到DNS账户」
                     OutlinedShape(label: L10n.t("DNS 账户"), isFocused: false,
-                                  hasValue: true,
+                                  hasValue: isLoadingAccounts,
                                   trailing: {
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        if isLoadingAccounts {
+                            ProgressView().font(.caption)
+                        } else {
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }) {
-                        Text(L10n.t("没有找到DNS账户"))
+                        Text(isLoadingAccounts ? "" : L10n.t("没有找到DNS账户"))
                             .foregroundStyle(.secondary)
                     }
                 } else {
@@ -304,6 +332,7 @@ struct ApplyCertificateView: View {
             // 表单仍可用，仅提示账户加载失败（沿用原行为）
             vm.showAlert(message: L10n.f("加载失败：%@", error.localizedDescription))
         }
+        isLoadingAccounts = false
     }
 
     /// 编辑模式下用原证书数据回填表单
@@ -334,10 +363,10 @@ struct ApplyCertificateView: View {
         dir = cert.dir ?? ""
         execShell = cert.execShell ?? false
         shell = cert.shell ?? ""
-        // 任一高级项已启用时回填展开高级设置开关
+        // 任一高级项已启用（含仅填了推送路径/脚本内容而开关未开的残留值）时回填展开
         advancedEnabled = disableCNAME || skipDNS
             || !nameserver1.isEmpty || !nameserver2.isEmpty
-            || pushDir || execShell
+            || pushDir || execShell || !dir.isEmpty || !shell.isEmpty
     }
 
     // MARK: - 提交

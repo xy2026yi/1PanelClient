@@ -58,6 +58,8 @@ struct CreateCronjobView: View {
     @State private var showAlertMethodPicker = false
     /// 标记是否已完成编辑模式的数据预填
     @State private var hasPrefilled = false
+    /// 预填进行中（屏蔽 dbType 等程序化赋值触发的 onChange 联动重置）
+    @State private var isPrefilling = false
     /// 失败重试次数（所有任务类型通用）
     @State private var retryTimes = 3
     /// 超时时间的数值（单位由 timeoutUnit 决定）
@@ -229,8 +231,13 @@ struct CreateCronjobView: View {
         await vm.loadCreateOptions()
         if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
         if let info = editingJob, !hasPrefilled {
+            // 预填期间屏蔽 onChange 联动：dbType 程序化赋值会触发
+            // 「重置范围/清空备份参数」分支，覆盖刚回填的库名与参数
+            isPrefilling = true
             prefill(from: info)
             hasPrefilled = true
+            // onChange 在视图更新时才触发（晚于同步预填），下一轮 runloop 解除守卫
+            DispatchQueue.main.async { isPrefilling = false }
         }
         await vm.loadDBItems(dbType: dbType.rawValue)
         }
@@ -391,6 +398,9 @@ struct CreateCronjobView: View {
                 OutlinedPicker(label: L10n.t("数据库类型"), options: DBBackupType.allCases,
                                selection: $dbType) { $0.displayName }
                     .onChange(of: dbType) { _, newType in
+                        // 预填期间的程序化赋值不触发重置（编辑 mysql 以外类型时
+                        // 回填的库名/备份参数会被清成 all/空，保存即覆盖原值）
+                        guard !isPrefilling else { return }
                         dbSelection = "all"
                         dbBackupParams.removeAll()
                         Task { await vm.loadDBItems(dbType: newType.rawValue) }
@@ -539,23 +549,25 @@ struct CreateCronjobView: View {
             .filter { !$0.isEmpty }
     }
 
-    /// 内容页必填校验（目录范围 / URL 地址）
+    /// 内容页必填校验（目录范围 / URL 地址；开启告警须至少选一种方式）
     private var contentValid: Bool {
         switch type {
         case .directory:
-            return dirScopeKey == "dir"
+            guard dirScopeKey == "dir"
                 ? !nonEmptyLines(dirSourceText).isEmpty
-                : !nonEmptyLines(filesText).isEmpty
+                : !nonEmptyLines(filesText).isEmpty else { return false }
         case .curl:
-            return !nonEmptyLines(curlURLsText).isEmpty
+            guard !nonEmptyLines(curlURLsText).isEmpty else { return false }
         default:
-            return true
+            break
         }
+        if hasAlert, alertMethodIDs.isEmpty { return false }
+        return true
     }
 
-    /// 备份设置分组（无备份账号，仅保留份数）：访问 URL / 切割网站日志 / 清理日志
+    /// 任务设置分组（无备份账号，仅保留份数）：访问 URL / 切割网站日志 / 清理日志
     private var retainOnlySection: some View {
-        Section(L10n.t("备份设置")) {
+        Section(L10n.t("任务设置")) {
             OutlinedUnitField(label: L10n.t("保留份数"), unit: L10n.t("份"),
                               text: retainCopiesText, range: 1...100)
         }
@@ -838,7 +850,11 @@ struct CreateCronjobView: View {
             req.hasAlert = true
             req.alertCount = alertCount
             req.alertTitle = L10n.f("计划任务-%@「 %@ 」任务失败告警", type.displayName, name)
-            let ids = alertMethodIDs.map(String.init)
+            // 只提交现存发送方式的 id（编辑回填可能含已删除的方式）
+            let validIDs = Set(vm.alertMethods.map(\.id))
+            let ids = alertMethodIDs
+                .filter { validIDs.contains($0) || vm.alertMethods.isEmpty }
+                .map(String.init)
                 .sorted { (Int($0) ?? 0) < (Int($1) ?? 0) }
             req.alertMethod = ids.joined(separator: ",")
             req.alertMethodItems = ids
@@ -1139,90 +1155,6 @@ struct CronjobSchedulesEditorView: View {
             }
         }
         previewResults = results
-    }
-}
-
-// MARK: - 备份参数多选视图
-
-/// mysqldump 备份参数多选 Sheet。
-/// 通过勾选切换 selection 中的成员；关闭即确认，无需额外保存按钮。
-struct BackupParamsPickerView: View {
-    @Binding var selection: Set<String>
-    let dbType: CreateCronjobView.DBBackupType
-    @Environment(\.dismiss) private var dismiss
-
-    /// 当前数据库类型可用的参数选项
-    private var options: [(value: String, summary: String, detail: String)] {
-        switch dbType {
-        case .mysql:
-            return CreateCronjobView.backupParamOptions
-        case .mariadb:
-            return CreateCronjobView.backupParamOptions.filter {
-                $0.value != "--set-gtid-purged=OFF"
-            }
-        default:
-            return []
-        }
-    }
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    ForEach(options, id: \.value) { opt in
-                        Button {
-                            toggle(opt.value)
-                        } label: {
-                            HStack(alignment: .top, spacing: 12) {
-                                Image(systemName: selection.contains(opt.value) ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(selection.contains(opt.value) ? Color.accentColor : .secondary)
-                                    .font(.title3)
-                                    .padding(.top, 2)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(opt.value)
-                                        .font(.dataMonospacedCallout)
-                                        .foregroundStyle(.primary)
-                                    Text(opt.detail)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                } header: {
-                    Text(L10n.f("%@ 备份参数", dbType.displayName))
-                } footer: {
-                    Text(L10n.t("可多选；不选任何参数则使用默认方式备份。所选参数将以 args / argItems 形式提交给服务端。"))
-                }
-            }
-            .navigationTitle(L10n.t("备份参数"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("完成")) { dismiss() }
-                        .bold()
-                }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(L10n.t("清除全部")) {
-                        selection.removeAll()
-                    }
-                    .disabled(selection.isEmpty)
-                }
-            }
-        }
-        .bottomSheetDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-    }
-
-    private func toggle(_ value: String) {
-        if selection.contains(value) {
-            selection.remove(value)
-        } else {
-            selection.insert(value)
-        }
     }
 }
 

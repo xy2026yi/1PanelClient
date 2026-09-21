@@ -58,7 +58,7 @@ struct ClamRuleFormView: View {
     private var isEditing: Bool { editing != nil }
     private var needsQuarantine: Bool { strategy == "move" || strategy == "copy" }
 
-    /// UI 单位固定分钟，提交换算秒
+    /// 数值 × 当前单位 → 秒（提交时后端按单位换算）
     private var timeoutSeconds: Int {
         (Int(timeoutText) ?? 0) * Self.timeoutUnitSeconds(timeoutUnitValue)
     }
@@ -69,6 +69,16 @@ struct ClamRuleFormView: View {
         case "s": return 1
         case "h": return 3600
         default:  return 60
+        }
+    }
+
+    /// 数值范围随单位缩放（总量上限 1 年；固定小值域会把旧规则
+    /// 回填值静默钳小，保存即改写原值——4d3d203 截断问题的回归防线）
+    private var timeoutRange: ClosedRange<Int> {
+        switch timeoutUnitValue {
+        case "s": return 1...31536000
+        case "h": return 1...8760
+        default:  return 1...525600
         }
     }
 
@@ -300,7 +310,7 @@ struct ClamRuleFormView: View {
         Section {
             // 数值 + 单位菜单（提交携带单位，后端换算）
             OutlinedUnitField(label: L10n.t("超时时间"), unit: "",
-                              text: $timeoutText, range: 1...8760)
+                              text: $timeoutText, range: timeoutRange)
             OutlinedPicker(label: L10n.t("超时单位"),
                            options: timeoutUnitOptions, selection: $timeoutUnitValue,
                            optionLabels: ["s": L10n.t("秒"),

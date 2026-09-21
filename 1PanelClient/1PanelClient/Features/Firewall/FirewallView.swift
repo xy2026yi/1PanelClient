@@ -131,6 +131,9 @@ final class FirewallViewModel: ObservableObject {
         } else {
             guard !isRulesLoadingMore, inventory.count < rulesAllTotal else { return }
             isRulesLoadingMore = true
+            // defer 复位：generation 失配/取消的早退路径也必须清标志，
+            // 否则懒加载永久失效（补页循环与下拉刷新并发时必现）
+            defer { isRulesLoadingMore = false }
         }
         let generation = rulesGeneration
         var req = FirewallRuleSearchRequest(page: replacing ? 1 : rulesPage + 1,
@@ -160,7 +163,6 @@ final class FirewallViewModel: ObservableObject {
             guard generation == rulesGeneration else { return }
             errorMessage = error.localizedDescription
         }
-        if !replacing { isRulesLoadingMore = false }
     }
 
     /// 建规则（v2.3.0 统一模型：端口/IP 规则都是 FirewallRule）
@@ -972,7 +974,6 @@ struct FirewallView: View {
     @State private var editingForward: FirewallForwardRule?
     @State private var pendingDeleteForward: FirewallForwardRule?
     @State private var pendingDeleteForwardForce = false
-    // WAF 入口（与防火墙同属主机安全防护，管理列表不单列）
     // 同步 / 重置 / Docker 策略（抓包 2026-09-17 补齐）
     @State private var showSyncPreview = false
     @State private var syncSubsystem = "system"
@@ -1150,8 +1151,8 @@ struct FirewallView: View {
             Text(L10n.f("将对防火墙执行「%@」，操作期间服务可能短暂中断，是否继续？",
                         pendingLifeOp.flatMap(Self.lifeOpName) ?? ""))
         }
-        // WAF 与防火墙同属主机安全防护，入口收进本页右上角（管理列表不单列）
-                // 设置页（状态抽屉按钮进入）：禁 Ping / 白名单 / 三组防护后端下拉切换
+        // 设置页（状态抽屉按钮进入）：禁 Ping / 白名单 / 三组防护后端下拉切换
+        //（WAF 已合并为根列表常显模块，不再由本页右上角进入）
         .navigationDestination(isPresented: $showSettings) {
             FirewallSettingsPageView(vm: vm)
         }
@@ -1638,12 +1639,17 @@ struct FirewallView: View {
                 Task { await vm.adoptRule(item) }
             })
         }
-        items.append(ActionMenuItem(title: L10n.t("导出规则"),
-                                    icon: "square.and.arrow.up", color: .teal) {
-            // 仅预选长按的这条规则（与计划任务「导出任务」语义一致）
-            ruleExportPreselect = [item.id]
-            showExportPicker = true
-        })
+        // 导出入口仅对可导出规则展示（与导出页 exportable 过滤一致）：
+        // external/drifted/protected 在导出页被过滤，预选 id 落在列表外会
+        // 出现「已选 1 条」却无勾选行、点导出必弹「暂无可导出的规则」
+        if item.manageableUUID != nil && item.state != "protected" {
+            items.append(ActionMenuItem(title: L10n.t("导出规则"),
+                                        icon: "square.and.arrow.up", color: .teal) {
+                // 仅预选长按的这条规则（与计划任务「导出任务」语义一致）
+                ruleExportPreselect = [item.id]
+                showExportPicker = true
+            })
+        }
         items.append(ActionMenuItem(title: L10n.t("查看原文"),
                                     icon: "doc.text.magnifyingglass", color: .gray) {
             Task {

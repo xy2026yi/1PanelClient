@@ -242,7 +242,7 @@ struct AlertConfigItem: Decodable, Identifiable {
 
     /// 解析 Webhook 配置（type == "custom" 时有效，其余类型返回 nil）
     var webhookConfig: AlertWebhookConfig? {
-        guard let data = config?.data(using: .utf8) else { return nil }
+        guard type == "custom", let data = config?.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(AlertWebhookConfig.self, from: data)
     }
 }
@@ -462,6 +462,22 @@ struct AlertWebhookHeader: Codable, Identifiable, Equatable {
         self.value = value
         self.secret = secret
     }
+
+    /// 宽松解码：缺任一字段回落默认值（服务端字段可缺省，
+    /// 严格解码会让整个 config 解析失败、编辑表单静默回空白）
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        uid = (try? c.decodeIfPresent(String.self, forKey: .uid))?.lowercased()
+            ?? UUID().uuidString.lowercased()
+        key = (try? c.decodeIfPresent(String.self, forKey: .key)) ?? ""
+        secret = (try? c.decodeIfPresent(Bool.self, forKey: .secret)) ?? false
+        action = (try? c.decodeIfPresent(String.self, forKey: .action)) ?? "replace"
+        value = (try? c.decodeIfPresent(String.self, forKey: .value)) ?? ""
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case uid, key, secret, action, value
+    }
 }
 
 /// Form 类型的键值对（config.body.fields）
@@ -510,12 +526,14 @@ struct AlertWebhookConfig: Codable, Equatable {
         set { body?.type = newValue.rawValue }
     }
 
-    /// 提交前规范化：去掉空 key 且空值的 Header 行
+    /// 提交前规范化：丢弃 key 为空的 Header 行（空 key 是非法 HTTP 头）
     var sanitizedForSubmit: AlertWebhookConfig {
         var copy = self
         copy.schemaVersion = 1
         copy.method = "POST"
-        copy.headers = (headers ?? []).filter { !$0.key.isEmpty || !$0.value.isEmpty }
+        copy.headers = (headers ?? []).filter {
+            !$0.key.trimmingCharacters(in: .whitespaces).isEmpty
+        }
         return copy
     }
 }

@@ -32,8 +32,8 @@ final class AdvancedFeatureGate: ObservableObject {
     }
 
     /// 门禁项：高级功能分组整体 + AI 的 vLLM / 模型下载（确认整体隐藏，不拆分）。
-    /// WAF 已合并为一个模块常显（根列表「主机」分组），其内部「监控」子入口
-    /// 由 gatedAllowed 单独管控（无许可证仅 状态/黑白名单/网站设置/全局设置）
+    /// WAF 已合并为一个模块常显（根列表「高级功能」分组，GPU 监控之下），其内部
+    /// 「监控」子入口由 gatedAllowed 单独管控（无许可证仅 状态/黑白名单/网站设置/全局设置）
     static let gatedItems: Set<ManageItem> = [
         .gpuMonitor, .websiteMonitor, .nodeManage,
         .aiVllm, .aiDownloader,

@@ -174,7 +174,7 @@ struct ContainerEditView: View {
     }
 
     /// ContainerInfo → 编辑草稿：cmd/entrypoint 数组拼回空格分隔原文，
-    /// env/labels 数组拼回换行原文，内存字节换算 MB
+    /// env/labels 数组拼回换行原文，内存字节换算数值+单位（整 GiB 取 G，否则 M）
     private static func draft(from i: ContainerInfo) -> ContainerCreateDraft {
         var d = ContainerCreateDraft()
         d.name = i.name

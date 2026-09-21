@@ -246,13 +246,26 @@ struct ContainerWizardForm: View {
                               text: cpuSharesText, range: 2...262144)
             OutlinedUnitField(label: L10n.t("CPU核心数"), unit: L10n.t("核"),
                               text: cpuCoresText,
-                              hint: L10n.t("如果设置为 0，则表示没有限制"))
+                              keyboardType: .decimalPad,
+                              hint: L10n.t("如果设置为 0，则表示没有限制"),
+                              allowsDecimal: true)
             OutlinedUnitField(label: L10n.t("内存"), unit: "", prompt: "0",
                               text: memoryText,
                               hint: L10n.t("如果设置为 0，则表示没有限制"))
             OutlinedPicker(label: L10n.t("内存单位"), options: ["K", "M", "G"],
                            selection: $draft.memoryUnit,
                            optionLabels: ["K": "KB", "M": "MB", "G": "GB"])
+                // 切换单位时换算数值（可整除时），保持总量不变——
+                // 不换算会出现 512 M 切 G 即 512 GB（放大 1024 倍提交）
+                .onChange(of: draft.memoryUnit) { oldUnit, newUnit in
+                    let oldFactor = ContainerCreateDraft.memoryUnitBytes(oldUnit)
+                    let newFactor = ContainerCreateDraft.memoryUnitBytes(newUnit)
+                    guard oldFactor != newFactor, draft.memoryValue > 0 else { return }
+                    let (total, overflow) = Int64(draft.memoryValue)
+                        .multipliedReportingOverflow(by: oldFactor)
+                    guard !overflow, total > 0, total % newFactor == 0 else { return }
+                    draft.memoryValue = Int(total / newFactor)
+                }
         } header: {
             Text(L10n.t("资源限制"))
         }

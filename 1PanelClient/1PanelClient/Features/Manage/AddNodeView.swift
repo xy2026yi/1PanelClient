@@ -78,6 +78,8 @@ struct AddNodeView: View {
     @State private var groups: [NodeGroup] = []
     @State private var licenses: [LicenseOption] = []
     @State private var selectedLicenseID = 0
+    /// 许可证列表加载失败（与「确无可用许可证」区分：显示重试而非误导性的没有找到）
+    @State private var licensesLoadFailed = false
 
     // 状态
     @State private var isChecking = false
@@ -123,9 +125,14 @@ struct AddNodeView: View {
     }
 
     /// 当前版本模式下可选的许可证：
-    /// 社区版看 availableFreeCount、专业版看 availableXpackCount，余量为 0 则无数据
+    /// 社区版看 availableFreeCount、专业版看 availableXpackCount，余量为 0 则无数据；
+    /// 编辑模式下当前已绑定的许可证视为可选（其余量被本节点自身占用，不算不可用）
     private var availableLicenses: [LicenseOption] {
-        licenses.filter { isPro ? ($0.availableXpackCount ?? 0) > 0 : ($0.availableFreeCount ?? 0) > 0 }
+        let boundID = editing?.licenseID
+        return licenses.filter { option in
+            if option.id == boundID, boundID != nil { return true }
+            return isPro ? (option.availableXpackCount ?? 0) > 0 : (option.availableFreeCount ?? 0) > 0
+        }
     }
 
     private var canSubmit: Bool {
@@ -187,12 +194,11 @@ struct AddNodeView: View {
             )
         }
         .animation(.easeInOut(duration: 0.22), value: wizardPage)
-        .modifier(WizardDiscardGuard(page: wizardPage))
+        // 提交在途隐藏返回（含守卫确认）；翻页后的丢弃确认由 WizardDiscardGuard 承担
+        .modifier(WizardDiscardGuard(page: wizardPage, busy: isSubmitting))
         .navigationTitle(isEditing ? L10n.t("编辑节点") : L10n.t("添加节点"))
         .navigationBarTitleDisplayMode(.inline)
         .formWidthLimit()
-        // 提交中禁手势返回防异步被中断（翻页后的丢弃确认由 WizardDiscardGuard 承担）
-        .interactiveDismissDisabled(isSubmitting)
         .alert(L10n.t("操作失败"), isPresented: .init(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
@@ -270,8 +276,20 @@ struct AddNodeView: View {
                            selection: editionText,
                            optionLabels: ["community": L10n.t("社区版"),
                                           "pro": L10n.t("专业版")])
-            // 无可用许可证：保持形态 3 描边框展示占位文案（下一步已被 pageReady 拦截）
-            if availableLicenses.isEmpty {
+            // 无可用许可证：保持形态 3 描边框展示占位文案（下一步已被 pageReady 拦截）；
+            // 加载失败与确无可用区分——失败提供重试，避免误导性死锁
+            if licensesLoadFailed {
+                HStack {
+                    Text(L10n.t("许可证加载失败"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button(L10n.t("重新加载")) {
+                        Task { await loadLicenses() }
+                    }
+                    .font(.footnote)
+                }
+            } else if availableLicenses.isEmpty {
                 OutlinedShape(label: L10n.t("许可证"), isFocused: false,
                               hasValue: true,
                               trailing: {
@@ -403,23 +421,34 @@ struct AddNodeView: View {
             as: [NodeGroup].self
         ) {
             groups = list
-            // 添加模式默认分组：标记 isDefault 的组；选中项已不在列表（被删）时同样回落，
-            // 保持「显示的回落值 = 提交值」一致（编辑模式保持回填的原分组不强制回落）
-            if editing == nil,
-               selectedGroupID == 0 || !groups.contains(where: { $0.id == selectedGroupID }) {
+            // 默认分组：标记 isDefault 的组；选中项已不在列表（被删）时同样回落，
+            // 保持「显示的回落值 = 提交值」一致（创建与编辑同规则，
+            // 否则编辑模式展示回落分组、实际提交的是已删除分组 id）
+            if selectedGroupID == 0 || !groups.contains(where: { $0.id == selectedGroupID }) {
                 selectedGroupID = list.first(where: { $0.isDefault == true })?.id ?? list.first?.id ?? 0
             }
         }
-        if let list: [LicenseOption] = try? await client.send(
-            path: APIEndpoint.licensesOptions.path,
-            method: APIEndpoint.licensesOptions.method,
-            as: [LicenseOption].self
-        ) {
+        await loadLicenses()
+    }
+
+    /// 许可证选项加载（失败标记 licensesLoadFailed，页内提供重试）
+    private func loadLicenses() async {
+        do {
+            let list: [LicenseOption] = try await client.send(
+                path: APIEndpoint.licensesOptions.path,
+                method: APIEndpoint.licensesOptions.method,
+                as: [LicenseOption].self
+            )
             licenses = list
-            // 编辑模式回填的许可证在当前模式下不可选时，回退到首个可用项
+            licensesLoadFailed = false
+            // 编辑模式回填的许可证不在选项列表中时，回退到首个可用项
             if !availableLicenses.indices.contains(where: { availableLicenses[$0].id == selectedLicenseID }) {
                 selectedLicenseID = availableLicenses.first?.id ?? 0
             }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            licenses = []
+            licensesLoadFailed = true
         }
     }
 

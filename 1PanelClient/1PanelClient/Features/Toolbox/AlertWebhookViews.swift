@@ -33,6 +33,10 @@ struct AlertWebhookBodyView: View {
             } footer: {
                 Text(L10n.t("提示：title=告警标题，message=告警内容，type=告警类型，nodeName=节点名称，timestamp=发生时间"))
             }
+
+            if config.bodyTypeEnum == .form {
+                fieldsSection
+            }
         }
         .navigationTitle("Body")
         .navigationBarTitleDisplayMode(.inline)
@@ -48,7 +52,66 @@ struct AlertWebhookBodyView: View {
             if newType != .json {
                 config.presetEnum = .custom
             }
+            if newType == .form, config.body?.fields == nil {
+                config.body?.fields = []
+            }
         }
+    }
+
+    /// Form 类型的键值对编辑（config.body.fields，值支持模版变量）
+    private var fieldsSection: some View {
+        Group {
+            let fields = config.body?.fields ?? []
+            if fields.isEmpty {
+                Section {
+                    Text(L10n.t("暂无字段"))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            ForEach(fields.indices, id: \.self) { index in
+                Section {
+                    OutlinedTextField(label: L10n.t("名称"), text: fieldKeyBinding(at: index))
+                    OutlinedTextField(label: L10n.t("值"), text: fieldValueBinding(at: index))
+                } header: {
+                    HStack {
+                        Text(L10n.f("字段-%ld", index + 1))
+                        Spacer()
+                        Button(L10n.t("删除")) {
+                            config.body?.fields?.remove(at: index)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                    }
+                }
+            }
+
+            Section {
+                Button {
+                    if config.body?.fields == nil { config.body?.fields = [] }
+                    config.body?.fields?.append(AlertWebhookKV(key: "", value: ""))
+                } label: {
+                    Label(L10n.t("添加"), systemImage: "plus.circle")
+                        .foregroundStyle(Color.accentColor)
+                }
+            } footer: {
+                Text(L10n.t("以表单键值对提交，值支持模版变量"))
+            }
+        }
+    }
+
+    private func fieldKeyBinding(at index: Int) -> Binding<String> {
+        Binding(get: {
+            guard config.body?.fields?.indices.contains(index) == true else { return "" }
+            return config.body?.fields?[index].key ?? ""
+        }, set: { config.body?.fields?[index].key = $0 })
+    }
+
+    private func fieldValueBinding(at index: Int) -> Binding<String> {
+        Binding(get: {
+            guard config.body?.fields?.indices.contains(index) == true else { return "" }
+            return config.body?.fields?[index].value ?? ""
+        }, set: { config.body?.fields?[index].value = $0 })
     }
 
     private var presetBinding: Binding<AlertWebhookPreset> {
@@ -70,7 +133,7 @@ struct AlertWebhookBodyView: View {
 // MARK: - Headers 编辑页
 
 /// Headers 页：每个 Header 一个 Section（名称/值/敏感值），
-/// 多个 Header 时头部出现「删除」，页尾「添加」
+/// 头部「删除」可删至 0 行（空态有「暂无 Header」提示），页尾「添加」
 struct AlertWebhookHeadersView: View {
     @Binding var config: AlertWebhookConfig
 
@@ -100,13 +163,11 @@ struct AlertWebhookHeadersView: View {
                     HStack {
                         Text(L10n.f("Header-%ld", index(of: header) + 1))
                         Spacer()
-                        if headers.count > 1 {
-                            Button(L10n.t("删除")) {
-                                config.headers?.removeAll { $0.uid == header.uid }
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                        Button(L10n.t("删除")) {
+                            config.headers?.removeAll { $0.uid == header.uid }
                         }
+                        .font(.caption)
+                        .foregroundStyle(.red)
                     }
                 }
             }

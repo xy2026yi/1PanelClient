@@ -74,17 +74,19 @@ struct MonitorSettingsView: View {
             // numberPad 无回车键：失焦（onCommit）为主提交时机，onSubmit 兜底外接键盘
             OutlinedUnitField(label: L10n.t("保存天数"), unit: L10n.t("天"),
                               text: storeDaysText, range: 1...365,
-                              onCommit: { commitStoreDays() })
-                .onSubmit { commitStoreDays() }
+                              onCommit: { Task { await commitStoreDays() } })
+                .onSubmit { Task { await commitStoreDays() } }
             OutlinedUnitField(label: L10n.t("采集间隔"), unit: "",
-                              text: $intervalValueText, range: 1...86400,
-                              onCommit: { commitInterval() })
-                .onSubmit { commitInterval() }
+                              text: $intervalValueText, range: intervalRange,
+                              onCommit: { Task { await commitInterval() } })
+                .onSubmit { Task { await commitInterval() } }
             OutlinedPicker(label: L10n.t("间隔单位"),
                            options: intervalUnitOptions, selection: $intervalUnit,
                            optionLabels: ["s": L10n.t("秒"),
                                           "m": L10n.t("分钟"),
                                           "h": L10n.t("小时")])
+                // 单位单独切换也提交（该页无保存按钮，切单位后不再碰数值框时不丢改动）
+                .onChange(of: intervalUnit) { _, _ in Task { await commitInterval() } }
             OutlinedPicker(label: L10n.t("默认网卡"),
                            options: netOptions.isEmpty ? [""] : netOptions,
                            selection: Binding(
@@ -164,42 +166,62 @@ struct MonitorSettingsView: View {
         }
     }
 
+    /// 数值范围随单位缩放（总量上限 24 小时 = 原 1440 分钟上限）
+    private var intervalRange: ClosedRange<Int> {
+        switch intervalUnit {
+        case "h": return 1...24
+        case "m": return 1...1440
+        default:  return 1...86400
+        }
+    }
+
     private var intervalSeconds: Int {
-        (Int(intervalValueText) ?? 5) * Self.intervalUnitSeconds(intervalUnit)
+        // 切换单位不换算数值，组合可能超上限（如 90 切到「小时」），按 24h 钳制
+        min(max((Int(intervalValueText) ?? 5) * Self.intervalUnitSeconds(intervalUnit), 1), 86400)
     }
 
     private func submitInterval() {
         update(key: "MonitorInterval", value: String(intervalSeconds))
     }
 
-    /// 保存天数脏检查提交（失焦/回车共用）
-    private func commitStoreDays() {
+    /// 保存天数脏检查提交（失焦/回车共用；成功后才更新基线，失败可原值重试）
+    private func commitStoreDays() async {
         guard settings.storeDays != loadedStoreDays else { return }
-        loadedStoreDays = settings.storeDays
-        update(key: "MonitorStoreDays", value: String(settings.storeDays))
-    }
-
-    /// 采集间隔脏检查提交（失焦/回车共用；数值或单位变化都算脏）
-    private func commitInterval() {
-        guard intervalSeconds != loadedIntervalSeconds else { return }
-        loadedIntervalSeconds = intervalSeconds
-        submitInterval()
-    }
-
-    /// 单项设置提交（{key,value}，抓包确认）
-    private func update(key: String, value: String) {
-        Task {
-            do {
-                let _: EmptyResponse = try await client.send(
-                    path: APIEndpoint.hostsMonitorSettingUpdate.path,
-                    body: MonitorSettingUpdateRequest(key: key, value: value),
-                    as: EmptyResponse.self)
-            } catch {
-                guard !APIError.isCancellation(error) else { return }
-                errorMessage = error.localizedDescription
-                showError = true
-            }
+        let newValue = settings.storeDays
+        if await updateSetting(key: "MonitorStoreDays", value: String(newValue)) {
+            loadedStoreDays = newValue
         }
+    }
+
+    /// 采集间隔脏检查提交（失焦/回车/单位切换共用；数值或单位变化都算脏）
+    private func commitInterval() async {
+        guard intervalSeconds != loadedIntervalSeconds else { return }
+        let newValue = intervalSeconds
+        if await updateSetting(key: "MonitorInterval", value: String(newValue)) {
+            loadedIntervalSeconds = newValue
+        }
+    }
+
+    /// 单项设置提交（{key,value}，抓包确认）；返回是否成功
+    @discardableResult
+    private func updateSetting(key: String, value: String) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.hostsMonitorSettingUpdate.path,
+                body: MonitorSettingUpdateRequest(key: key, value: value),
+                as: EmptyResponse.self)
+            return true
+        } catch {
+            guard !APIError.isCancellation(error) else { return false }
+            errorMessage = error.localizedDescription
+            showError = true
+            return false
+        }
+    }
+
+    /// 单项设置提交（fire-and-forget，开关/网卡/磁盘等无需回执的调用方）
+    private func update(key: String, value: String) {
+        Task { await updateSetting(key: key, value: value) }
     }
 
     private func cleanMonitor() async {
@@ -254,9 +276,7 @@ struct DeviceSwapSettingsView: View {
                     InfoRow(L10n.t("Swap 空闲"), value: MonitorSettingsView.fmt(device.swapMemoryAvailable ?? 0))
                     ForEach(swapDetailsForDisplay) { detail in
                         NavigationLink {
-                            SwapEditView(
-                                detail: detail,
-                                maxSizeGB: device.maxSize.map { Double($0) / 1024 / 1024 / 1024 } ?? 8) { path, sizeKB in
+                            SwapEditView(detail: detail) { path, sizeKB in
                                 Task { await updateSwap(path: path, sizeKB: sizeKB) }
                             }
                         } label: {
@@ -370,7 +390,6 @@ private struct SwapDetailRow: View {
 /// 0=关闭该 Swap；服务端最小 40KB）
 struct SwapEditView: View {
     let detail: SwapDetail
-    let maxSizeGB: Double
     let onSave: (String, Int) -> Void
 
     @Environment(\.dismiss) private var dismiss

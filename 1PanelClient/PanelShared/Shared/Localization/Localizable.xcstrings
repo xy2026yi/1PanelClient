@@ -1826,17 +1826,6 @@
         }
       }
     },
-    "Hosts 行格式应为「IP 域名」：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hosts line should be in \"IP domain\" format: %@"
-          }
-        }
-      }
-    },
     "HSTS" : {
 
     },
@@ -19663,17 +19652,6 @@
         }
       }
     },
-    "无数据" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Data"
-          }
-        }
-      }
-    },
     "无法创建告警" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24976,13 +24954,13 @@
         }
       }
     },
-    "点击右上角 + 创建 MCP Server" : {
+    "点击右上角 + 创建 MCP Server 或绑定域名" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap + in the top-right corner to create an MCP server"
+            "value" : "Tap + in the top-right corner to create an MCP server or bind a domain"
           }
         }
       }
@@ -36339,13 +36317,101 @@
         }
       }
     },
-    "默认与名称一致" : {
+    "配置已修改，请重新测试" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Defaults to the instance name"
+            "value" : "Config changed, retest required"
+          }
+        }
+      }
+    },
+    "字段-%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Field-%ld"
+          }
+        }
+      }
+    },
+    "暂无字段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No fields"
+          }
+        }
+      }
+    },
+    "以表单键值对提交，值支持模版变量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Submitted as form key-value pairs; values support template variables"
+          }
+        }
+      }
+    },
+    "暂无可用备份账号，请先在「备份账号」中创建后重试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No backup accounts available. Create one in Backup Accounts first"
+          }
+        }
+      }
+    },
+    "许可证加载失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load licenses"
+          }
+        }
+      }
+    },
+    "重新加载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        }
+      }
+    },
+    "没有找到Acme账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No ACME accounts found"
+          }
+        }
+      }
+    },
+    "留空时以服务别名 vllm 访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave empty to reach via the vllm service alias"
           }
         }
       }

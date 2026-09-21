@@ -62,7 +62,11 @@ struct L10nTests {
             NotificationCenter.default.removeObserver(obs)
         }
 
-        #expect(UserDefaults.standard.string(forKey: L10n.storageKey) == "en")
+        // 语言持久化在 App Group 共享域（无 entitlements 时退化为 standard），
+        // 断言必须读同一存储——此前误读 UserDefaults.standard，在套件可用的
+        // 环境（模拟器带 App Group 授权）下写读分离恒为 nil
+        let store = AppGroup.defaults ?? .standard
+        #expect(store.string(forKey: L10n.storageKey) == "en")
         #expect(L10n.shared.language == .english)
     }
 

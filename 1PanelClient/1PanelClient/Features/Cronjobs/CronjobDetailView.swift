@@ -81,8 +81,19 @@ struct CronjobDetailView: View {
                     InfoRow(L10n.t("类型"), value: L10n.t("系统快照"))
                 }
             case .directory:
+                // 文件模式下 sourceDir 是逗号拼接的多路径，按行展示更可读
                 Section(L10n.t("备份内容")) {
-                    InfoRow(L10n.t("范围"), value: currentJob.sourceDir ?? "—")
+                    let paths = (currentJob.sourceDir ?? "")
+                        .split(separator: ",")
+                        .map { String($0).trimmingCharacters(in: .whitespaces) }
+                        .filter { !$0.isEmpty }
+                    if paths.count <= 1 {
+                        InfoRow(L10n.t("范围"), value: currentJob.sourceDir ?? "—")
+                    } else {
+                        ForEach(paths, id: \.self) { path in
+                            InfoRow(L10n.t("范围"), value: path)
+                        }
+                    }
                 }
             case .log:
                 // 备份日志：无类型特定详情

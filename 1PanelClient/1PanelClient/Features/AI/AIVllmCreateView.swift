@@ -43,8 +43,6 @@ struct AIVllmCreateView: View {
     @ObservedObject var vm: AIVllmViewModel
     /// 非空 = 编辑模式（提交 update）
     var instance: VllmInstance? = nil
-    /// 创建成功回调（taskID，供进度页轮询）
-    let onSubmit: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
@@ -86,6 +84,9 @@ struct AIVllmCreateView: View {
     @State private var isLoadingMeta = true
     /// 版本列表加载失败（与「无版本」区分，提供重试）
     @State private var metaError: String?
+    /// compose 在途请求参数（同参请求去重：首刷 loadMeta 尾部与
+    /// onChange(of: appVersion) 补拉可能并发同参触发）
+    @State private var inFlightComposeKey: String?
     @State private var isSubmitting = false
     @State private var validationMessage: String?
     /// 创建任务进度（提交成功后由表单内 push，与安装应用同模式）
@@ -102,12 +103,10 @@ struct AIVllmCreateView: View {
 
     init(server: ServerConfig,
          vm: AIVllmViewModel,
-         instance: VllmInstance? = nil,
-         onSubmit: @escaping (String) -> Void) {
+         instance: VllmInstance? = nil) {
         self.server = server
         self.vm = vm
         self.instance = instance
-        self.onSubmit = onSubmit
         self.client = APIClient.shared(for: server)
 
         if let i = instance {
@@ -140,6 +139,9 @@ struct AIVllmCreateView: View {
             _pullImage = State(initialValue: i.pullImage ?? true)
             _editCompose = State(initialValue: i.editCompose ?? false)
             _dockerCompose = State(initialValue: i.dockerCompose ?? "")
+            // 编辑态高级页默认展开：旧实现提交恒 advanced=true，
+            // 收起直接保存会把 advanced 翻转为 false（可能重置资源限制）
+            _advancedEnabled = State(initialValue: true)
         } else {
             originalImageTypeRaw = nil
         }
@@ -214,20 +216,21 @@ struct AIVllmCreateView: View {
             )
         }
         .animation(.easeInOut(duration: 0.22), value: wizardPage)
-        .modifier(WizardDiscardGuard(page: wizardPage))
+        // 提交在途隐藏返回（含守卫确认），防止请求进行中退出丢进度与列表刷新
+        .modifier(WizardDiscardGuard(page: wizardPage, busy: isSubmitting))
         .navigationTitle(isEdit ? L10n.t("编辑实例") : L10n.t("创建实例"))
         .navigationBarTitleDisplayMode(.inline)
         // 创建进度由表单内 push（与安装应用同模式）：完成后分步收栈
         .navigationDestination(isPresented: $showProgress) {
             TaskProgressView(taskID: activeTaskID,
                              title: L10n.t("创建 vLLM 实例"),
-                             latest: false, node: "local") { isDone in
-                if isDone {
-                    Task { await vm.loadInstances() }
-                    // 进度页自行 dismiss，这里稍后收创建表单（分步收栈避免同帧拆多层）
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        dismiss()
-                    }
+                             latest: false, node: "local") { _ in
+                // 完成 or 后台运行：都刷新列表并收栈回列表
+                //（后台运行后留在创建表单只会再被「放弃编辑」拦一道）
+                Task { await vm.loadInstances() }
+                // 进度页自行 dismiss，这里稍后收创建表单（分步收栈避免同帧拆多层）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    dismiss()
                 }
                 return false
             }
@@ -253,9 +256,6 @@ struct AIVllmCreateView: View {
         .sheet(isPresented: $showComposeEditor) {
             ComposeEditorSheet(compose: $dockerCompose)
         }
-        .interactiveDismissDisabled(isSubmitting)
-        .presentationDragIndicator(.visible)
-        .bottomSheetDetents([.large])
     }
 
     // MARK: 基础
@@ -400,7 +400,7 @@ struct AIVllmCreateView: View {
 
     private var advancedSection: some View {
         Section {
-            OutlinedTextField(label: L10n.t("容器名称"), prompt: L10n.t("默认与名称一致"),
+            OutlinedTextField(label: L10n.t("容器名称"), prompt: L10n.t("留空时以服务别名 vllm 访问"),
                               text: $containerName)
                 .font(.dataMonospacedBody)
                 .onChange(of: containerName) { _, _ in refreshBaseURL() }
@@ -419,7 +419,7 @@ struct AIVllmCreateView: View {
                               text: $cpuQuotaText, keyboardType: .decimalPad,
                               allowsDecimal: true)
 
-            // 数值 + 单位菜单（提交携带单位，后端换算）；MB 为整数输入
+            // 数值 + 单位菜单（提交携带单位，后端换算；数值为整数输入）
             OutlinedUnitField(label: L10n.t("内存限制"), unit: "",
                               text: $memoryLimitText, keyboardType: .numberPad)
             OutlinedPicker(label: L10n.t("内存单位"), options: ["K", "M", "G"],
@@ -461,11 +461,11 @@ struct AIVllmCreateView: View {
         URLComponents(string: server.normalizedBaseURL)?.host ?? server.baseURL
     }
 
-    /// 容器地址用的容器名：未指定容器名称时与实例名一致
-    ///（后端默认以实例名创建容器，抓包确认；Base URL 需用同名主机别名访问）
+    /// 容器地址用的容器名：留空原样传空，由 baseURL(port:…) 回退 compose 服务别名 "vllm"
+    ///（后端空容器名时生成 1Panel-vllm-随机串，实例名/随机名均不可作 DNS 主机名访问，
+    ///  网络内可达的稳定主机名是 compose 服务别名 vllm，抓包 AIVllmModelsTests 确认）
     private var effectiveContainerName: String {
-        let trimmed = containerName.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? name.trimmingCharacters(in: .whitespaces) : trimmed
+        containerName.trimmingCharacters(in: .whitespaces)
     }
 
     /// 端口/容器名/名称变化时同步 Base URL（自定义除外）
@@ -551,11 +551,9 @@ struct AIVllmCreateView: View {
                 dismiss()
             }
         } else if let taskID = await vm.submitCreate(request) {
-            // 创建进度由本表单内 push（与安装应用同模式），完成后分步收栈；
-            // onSubmit 保留兼容（调用方不再需要自行 push 进度）
+            // 创建进度由本表单内 push（与安装应用同模式），完成后分步收栈
             activeTaskID = taskID
             showProgress = true
-            onSubmit(taskID)
         }
     }
 
@@ -622,6 +620,11 @@ struct AIVllmCreateView: View {
         // appVersion 为必填：版本列表还没就绪（映射不到可用版本）时先跳过，
         // 待版本选定后由 onChange(of: appVersion) 补拉，避免必填参数空发 400
         guard !appVersion.isEmpty else { return }
+        // 同参在途请求去重（不同参数不拦，保证换版本后拿到新模板）
+        let key = "\(imageType.rawValue)|\(appVersion)"
+        guard inFlightComposeKey != key else { return }
+        inFlightComposeKey = key
+        defer { inFlightComposeKey = nil }
         do {
             let resp: VllmComposeResponse = try await client.send(
                 path: APIEndpoint.vllmCompose.path,

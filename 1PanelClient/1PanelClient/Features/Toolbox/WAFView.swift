@@ -12,6 +12,9 @@ import Combine
 // MARK: - WAF 主视图
 
 struct WAFView: View {
+    /// 门禁（许可证查询）上次刷新时间：进程级 5s 节流
+    nonisolated(unsafe) private static var lastGateRefreshAt: Double = 0
+
     @StateObject private var vm: WAFViewModel
     let server: ServerConfig
     @State private var pendingAction: String?
@@ -51,7 +54,12 @@ struct WAFView: View {
         .refreshable { await vm.loadAll() }
         .task {
             await PageVMStore.shared.autoRefresh(vm: vm) { await vm.loadAll() }
-            await gate.refresh(server: server)
+            // 许可证查询 5s 内不重复打（与 ManageTab 侧门禁刷新节流口径一致）
+            let now = Date().timeIntervalSince1970
+            if now - WAFView.lastGateRefreshAt > 5 {
+                WAFView.lastGateRefreshAt = now
+                await gate.refresh(server: server)
+            }
         }
         // 从安装入口装完 OpenResty 后自动重查，返回本页即见 WAF 内容
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in

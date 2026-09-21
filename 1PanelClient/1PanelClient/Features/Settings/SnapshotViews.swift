@@ -362,7 +362,9 @@ private struct SnapshotRecoverSheet: View {
             as: [BackupRecordSizeItem].self
         )
         diskSize = (await os)?.diskSize
+        // 列表页兜底：record/size 分页超过 500 条时匹配不到，用列表项自带 size
         snapshotFileSize = (await sizes)?.first(where: { $0.id == snapshot.id })?.size
+            ?? snapshot.size
     }
 }
 
@@ -584,9 +586,8 @@ struct SnapshotCreateView: View {
             )
         }
         .animation(.easeInOut(duration: 0.22), value: wizardPage)
-        .modifier(WizardDiscardGuard(page: wizardPage))
-        // 创建中禁手势返回防异步被中断
-        .interactiveDismissDisabled(isSubmitting)
+        // 提交在途隐藏返回（含守卫确认），防止请求进行中退出丢进度
+        .modifier(WizardDiscardGuard(page: wizardPage, busy: isSubmitting))
         // 总开关 ↔ 应用镜像双向联动：开 → 全选；直接关 → 全部取消（对齐网页端）；
         // 由叶子关闭引发的级联关（suppressMasterClear）保留其余应用的个别勾选
         .onChange(of: backupAllImage) { _, on in
@@ -600,14 +601,13 @@ struct SnapshotCreateView: View {
                 checked.subtract(imageIDs)
             }
         }
-        // 创建进度由本表单内 push（与安装应用同模式），完成后分步收栈
+        // 创建进度由本表单内 push（与安装应用同模式）：完成 or 后台运行都收栈回列表
+        //（后台运行后留在表单可再次「创建」，会产生重复快照任务）
         .navigationDestination(item: $activeTask) { target in
-            TaskProgressView(taskID: target.taskID, title: target.title) { isDone in
-                if isDone {
-                    onTaskStarted(target)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        dismiss()
-                    }
+            TaskProgressView(taskID: target.taskID, title: target.title) { _ in
+                onTaskStarted(target)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    dismiss()
                 }
                 return false
             }
@@ -625,7 +625,9 @@ struct SnapshotCreateView: View {
     private var basicDataSection: some View {
         Section {
             if accounts.isEmpty {
-                Text(L10n.t("无数据"))
+                // 无备份账号时给出指引（此前仅「无数据」，下一步全程禁用原因不明）
+                Text(L10n.t("暂无可用备份账号，请先在「备份账号」中创建后重试"))
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
                 OutlinedPicker(label: L10n.t("备份账号"),
@@ -661,8 +663,10 @@ struct SnapshotCreateView: View {
                                 nodes: data.appData ?? [], checked: $checked,
                                 onLeafToggled: { node, on in
                 // 关闭任一应用的「应用镜像」时，联动关闭「备份所有应用镜像」总开关
-                // （置 suppressMasterClear：其余应用的个别勾选不被级联清空）
-                if node.label == "appImage" && !on {
+                // （置 suppressMasterClear：其余应用的个别勾选不被级联清空）。
+                // 仅在总开关原本为开时置标志并触发关闭；总开关已关时不再置标志，
+                // 否则标志滞留会让之后「直接关」误走级联分支、不清空镜像勾选
+                if node.label == "appImage" && !on, backupAllImage {
                     suppressMasterClear = true
                     backupAllImage = false
                 }

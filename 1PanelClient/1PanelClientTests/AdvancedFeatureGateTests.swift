@@ -11,7 +11,11 @@ import Foundation
 @testable import _PanelClient
 
 @MainActor
-@Suite("高级功能门禁")
+// unlock 标记是全局 UserDefaults：用例间必须串行执行，否则
+// unlockFlag 的「置 true→defer 清除」窗口会与读取该键的用例竞态
+//（当前用例恰好都是 @MainActor 同步体不会交错，串行化是结构性保证，
+//  任一用例改 async/解除 MainActor 后依然成立）
+@Suite("高级功能门禁", .serialized)
 struct AdvancedFeatureGateTests {
 
     @Test("门禁集合：高级功能分组整体 + AI 的 vLLM/模型下载")

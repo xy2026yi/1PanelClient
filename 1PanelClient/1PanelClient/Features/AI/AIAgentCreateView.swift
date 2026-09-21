@@ -391,9 +391,9 @@ struct AIAgentCreateView: View {
                               text: cpuQuotaText, range: 0...1024)
             OutlinedUnitField(label: L10n.t("内存"), unit: "",
                               text: memoryLimitText, range: 0...9_999_999)
-                              OutlinedPicker(label: L10n.t("内存单位"), options: ["K", "M", "G"],
-                                             selection: $memoryUnit,
-                                             optionLabels: ["K": "KB", "M": "MB", "G": "GB"])
+            OutlinedPicker(label: L10n.t("内存单位"), options: ["K", "M", "G"],
+                           selection: $memoryUnit,
+                           optionLabels: ["K": "KB", "M": "MB", "G": "GB"])
         } header: {
             Text(L10n.t("资源限制"))
         } footer: {

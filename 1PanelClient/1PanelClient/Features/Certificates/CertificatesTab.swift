@@ -18,6 +18,8 @@ struct CertificatesTab: View {
     @State private var showApply = false
     /// + 号半屏菜单（申请/上传）
     @State private var showAddMenu = false
+    /// 菜单动作延迟到 sheet 收起后执行（避免 push 与 sheet 呈现竞争）
+    @State private var pendingMenuAction: (() -> Void)?
     @State private var showAcme = false
     @State private var showDns = false
     @State private var showCA = false
@@ -81,13 +83,19 @@ struct CertificatesTab: View {
                 }
             }
         }
-        .sheet(isPresented: $showAddMenu) {
+        .sheet(isPresented: $showAddMenu, onDismiss: {
+            // 菜单完全收起后再执行挂起动作，避免 push 与 sheet 收起的呈现竞争
+            if let action = pendingMenuAction {
+                pendingMenuAction = nil
+                action()
+            }
+        }) {
             ActionBottomSheet(title: L10n.t("证书"), items: [
                 .init(title: L10n.t("申请证书"), icon: "arrow.down.circle", color: .blue) {
-                    showApply = true
+                    pendingMenuAction = { showApply = true }
                 },
                 .init(title: L10n.t("上传证书"), icon: "icloud.and.arrow.up", color: .blue) {
-                    showUpload = true
+                    pendingMenuAction = { showUpload = true }
                 },
             ]) { showAddMenu = false }
             .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])

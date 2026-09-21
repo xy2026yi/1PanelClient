@@ -96,17 +96,19 @@ struct WizardBottomBar: View {
 // MARK: - 中途返回丢弃守卫
 
 /// 向导翻页后（page > 0）拦截系统返回：弹「放弃编辑」确认，
-/// 防止多页输入被返回手势静默丢弃；第 0 页保持系统返回行为
+/// 防止多页输入被返回手势静默丢弃；第 0 页保持系统返回行为；
+/// busy（提交在途）时返回整体隐藏，避免请求进行中退出丢进度
 struct WizardDiscardGuard: ViewModifier {
     let page: Int
+    var busy: Bool = false
     @Environment(\.dismiss) private var dismiss
     @State private var showConfirm = false
 
     func body(content: Content) -> some View {
         content
-            .navigationBarBackButtonHidden(page > 0)
+            .navigationBarBackButtonHidden(page > 0 || busy)
             .toolbar {
-                if page > 0 {
+                if page > 0 && !busy {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
                             showConfirm = true

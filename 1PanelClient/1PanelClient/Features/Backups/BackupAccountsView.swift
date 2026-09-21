@@ -285,8 +285,9 @@ final class BackupAccountsViewModel: ObservableObject {
 
     /// 获取存储桶列表（MINIO / 阿里云OSS）；MINIO 仅含 endpoint，OSS 另带 scType
     /// alertOnError=false 时失败不弹 VM 级 alert（桶选择页自行提示）
+    /// 拉取桶列表；出错返回 nil（与「成功且为空列表」区分，调用方按需弹窗/空态）
     func fetchBuckets(type: String, vars: BackupVarsJSON, accessKey: String, credential: String,
-                      alertOnError: Bool = true) async -> [String] {
+                      alertOnError: Bool = true) async -> [String]? {
         let req = BackupBucketsRequest(
             isPublic: false, type: type, vars: vars.jsonString,
             accessKey: accessKey, credential: credential
@@ -300,8 +301,13 @@ final class BackupAccountsViewModel: ObservableObject {
             if alertOnError {
                 showAlert(message: L10n.f("获取桶失败：%@", error.localizedDescription))
             }
-            return []
+            return nil
         }
+    }
+
+    /// 凭据 Base64（表单提交与桶拉取共用）
+    static func encodeBase64(_ text: String) -> String {
+        Data(text.utf8).base64EncodedString()
     }
 
     /// 连接测试；返回失败原因（成功返回 nil）
@@ -988,9 +994,11 @@ struct BackupAccountEditView: View {
     // MARK: 逻辑
 
     /// 表单指纹：任一输入变化都会改变，用于重置连接测试状态
+    ///（不含 bucketMode——仅切换「手动输入/自动获取」不改实际提交值，
+    ///  不应使已通过的连接测试失效）
     private var formFingerprint: String {
         [
-            name, type.rawValue, String(rememberAuth), backupPath, bucketMode,
+            name, type.rawValue, String(rememberAuth), backupPath,
             accessKeyID, secretKey, endpointProto, endpointHost, bucket,
             ossScType.rawValue,
             webdavAddress, webdavUsername, webdavPassword,
@@ -1067,10 +1075,6 @@ struct BackupAccountEditView: View {
     private static func decodeBase64(_ text: String?) -> String {
         guard let text, !text.isEmpty, let data = Data(base64Encoded: text) else { return "" }
         return String(data: data, encoding: .utf8) ?? ""
-    }
-
-    private static func encodeBase64(_ text: String) -> String {
-        Data(text.utf8).base64EncodedString()
     }
 
     /// 拆分 "https://host" → (proto, host)；无协议时 proto 为 nil
@@ -1150,16 +1154,16 @@ struct BackupAccountEditView: View {
         let secret: String
         switch type {
         case .minio, .oss:
-            userKey = Self.encodeBase64(accessKeyID)
-            secret = Self.encodeBase64(secretKey)
+            userKey = BackupAccountsViewModel.encodeBase64(accessKeyID)
+            secret = BackupAccountsViewModel.encodeBase64(secretKey)
         case .webdav:
-            userKey = Self.encodeBase64(webdavUsername)
-            secret = Self.encodeBase64(webdavPassword)
+            userKey = BackupAccountsViewModel.encodeBase64(webdavUsername)
+            secret = BackupAccountsViewModel.encodeBase64(webdavPassword)
         case .sftp:
-            userKey = Self.encodeBase64(sftpUsername)
+            userKey = BackupAccountsViewModel.encodeBase64(sftpUsername)
             secret = sftpAuthMode == .password
-                ? Self.encodeBase64(sftpPassword)
-                : Self.encodeBase64(sftpPrivateKey)
+                ? BackupAccountsViewModel.encodeBase64(sftpPassword)
+                : BackupAccountsViewModel.encodeBase64(sftpPrivateKey)
         }
         return BackupAccountOperate(
             id: existing?.id ?? 0,
@@ -1236,6 +1240,8 @@ private struct BackupBucketPickerView: View {
     @State private var isLoading = false
     /// 获取失败弹窗提示（不再渲染页内错误态；可在弹窗中重试）
     @State private var showFetchFailAlert = false
+    /// 失败原因（缺失凭证项给具体文案，请求失败为通用文案）
+    @State private var fetchFailMessage = ""
 
     var body: some View {
         List {
@@ -1288,13 +1294,24 @@ private struct BackupBucketPickerView: View {
             Button(L10n.t("重试")) { Task { await fetch() } }
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
-            Text(L10n.t("获取桶失败"))
+            Text(fetchFailMessage.isEmpty ? L10n.t("获取桶失败") : fetchFailMessage)
         }
     }
 
     private func fetch() async {
-        guard !accessKeyID.isEmpty, !secretKey.isEmpty,
-              !endpointHost.trimmingCharacters(in: .whitespaces).isEmpty else {
+        // 凭证/Endpoint 缺失时给出具体缺失项（而非泛化的「获取桶失败」）
+        if accessKeyID.isEmpty {
+            fetchFailMessage = L10n.t("请填写 Access Key ID")
+            showFetchFailAlert = true
+            return
+        }
+        if secretKey.isEmpty {
+            fetchFailMessage = L10n.t("请填写 Secret Key")
+            showFetchFailAlert = true
+            return
+        }
+        if endpointHost.trimmingCharacters(in: .whitespaces).isEmpty {
+            fetchFailMessage = L10n.t("请填写 Endpoint 地址")
             showFetchFailAlert = true
             return
         }
@@ -1309,14 +1326,15 @@ private struct BackupBucketPickerView: View {
         // 静默拉取：失败由本页弹窗提示（VM 级 alert 会在返回后才弹出）
         let list = await vm.fetchBuckets(
             type: type.rawValue, vars: vars,
-            accessKey: Self.encodeBase64(accessKeyID),
-            credential: Self.encodeBase64(secretKey),
+            accessKey: BackupAccountsViewModel.encodeBase64(accessKeyID),
+            credential: BackupAccountsViewModel.encodeBase64(secretKey),
             alertOnError: false)
-        buckets = list
-        if list.isEmpty { showFetchFailAlert = true }
-    }
-
-    private static func encodeBase64(_ text: String) -> String {
-        Data(text.utf8).base64EncodedString()
+        // nil=请求失败（弹窗可重试）；成功但空列表走页内「未获取到桶列表」空态 + 手动输入兜底
+        if let list {
+            buckets = list
+        } else {
+            fetchFailMessage = L10n.t("获取桶失败")
+            showFetchFailAlert = true
+        }
     }
 }

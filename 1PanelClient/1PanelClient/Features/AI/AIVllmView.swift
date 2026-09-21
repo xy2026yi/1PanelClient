@@ -261,14 +261,14 @@ struct AIVllmView: View {
         }
         // 创建/编辑表单改为 push 进入（与安装应用一致）；创建进度由表单内自行 push
         .navigationDestination(isPresented: $showCreate) {
-            AIVllmCreateView(server: server, vm: vm) { _ in }
+            AIVllmCreateView(server: server, vm: vm)
         }
         .navigationDestination(isPresented: Binding(
             get: { editInstance != nil },
             set: { if !$0 { editInstance = nil } }
         )) {
             if let instance = editInstance {
-                AIVllmCreateView(server: server, vm: vm, instance: instance) { _ in }
+                AIVllmCreateView(server: server, vm: vm, instance: instance)
             }
         }
         .sheet(isPresented: Binding(

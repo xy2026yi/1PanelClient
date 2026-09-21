@@ -237,7 +237,7 @@ struct AIMcpView: View {
                 ContentUnavailableView {
                     Label(L10n.t("暂无 MCP Server"), systemImage: "puzzlepiece")
                 } description: {
-                    Text(L10n.t("点击右上角 + 创建 MCP Server"))
+                    Text(L10n.t("点击右上角 + 创建 MCP Server 或绑定域名"))
                 }
             } else {
                 serverList

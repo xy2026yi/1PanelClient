@@ -557,9 +557,12 @@ nonisolated struct ContainerCreateDraft {
         }
     }
 
-    /// 内存值按当前单位换算的字节数
+    /// 内存值按当前单位换算的字节数（乘法溢出按上限饱和，
+    /// 防 G 单位下大数值输入触发 Int64 算术溢出 trap 崩溃）
     var memoryBytes: Int64 {
-        Int64(memoryValue) * Self.memoryUnitBytes(memoryUnit)
+        let (result, overflow) = Int64(memoryValue)
+            .multipliedReportingOverflow(by: Self.memoryUnitBytes(memoryUnit))
+        return overflow ? Int64.max : result
     }
     /// 1panel-network 指定 IP（其他网络忽略）
     var networkIPv4 = ""

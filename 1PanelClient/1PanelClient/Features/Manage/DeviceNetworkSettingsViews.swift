@@ -202,7 +202,6 @@ struct DeviceHostsSettingsView: View {
     /// 保存成功回调（父页更新摘要）
     var onSaved: ([DeviceHostItem]) -> Void
 
-    @State private var entries: [DeviceHostItem] = []
     @State private var isLoading = true
     @State private var loadError: String?
     /// 多行文本：一行一条「IP 域名」（域名可多个，空格分隔）
@@ -278,8 +277,8 @@ struct DeviceHostsSettingsView: View {
             let base: DeviceBaseInfo = try await client.send(
                 path: APIEndpoint.deviceBase.path, as: DeviceBaseInfo.self
             )
-            entries = base.hosts ?? []
-            hostsText = entries.map { "\($0.ip) \($0.host)" }.joined(separator: "\n")
+            hostsText = (base.hosts ?? []).map { "\($0.ip) \($0.host)" }
+                .joined(separator: "\n")
             loadedHostsText = hostsText
             loadError = nil
         } catch {
@@ -288,19 +287,18 @@ struct DeviceHostsSettingsView: View {
         }
     }
 
-    /// 解析多行文本并提交：一行一条「IP 域名」，格式/IP 不合法保留输入供修改
+    /// 解析多行文本并提交：一行一条「IP 域名」，格式/IP 不合法保留输入供修改；
+    /// 单 token（仅 IP）按无域名条目原样容忍——服务端存在 host 为空的条目，
+    /// 回填生成的裸 IP 行严格报错会阻塞整页保存
     private func save() async {
         var parsed: [DeviceHostItem] = []
         for rawLine in hostsText.split(whereSeparator: \.isNewline) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else { continue }
             let tokens = line.split(separator: " ", omittingEmptySubsequences: true)
-            guard tokens.count >= 2 else {
-                errorText = L10n.f("Hosts 行格式应为「IP 域名」：%@", line)
-                return
-            }
+            guard !tokens.isEmpty else { continue }
             let ip = String(tokens[0])
-            let host = tokens.dropFirst().joined(separator: " ")
+            let host = tokens.count == 1 ? "" : tokens.dropFirst().joined(separator: " ")
             guard Self.isValidHostsIP(ip) else {
                 errorText = L10n.f("IP 地址格式不正确：%@", ip)
                 return
@@ -332,7 +330,6 @@ struct DeviceHostsSettingsView: View {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.deviceUpdateHost.path, body: newEntries, as: EmptyResponse.self
             )
-            entries = newEntries
             onSaved(newEntries)
             toast = L10n.t("已保存")
         } catch {

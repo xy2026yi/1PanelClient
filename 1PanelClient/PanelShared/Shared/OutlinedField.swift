@@ -234,7 +234,11 @@ struct OutlinedUnitField: View {
         }
         .onChange(of: display) { _, newValue in
             if allowsDecimal {
-                text = newValue
+                // 小数路径：可解析为 Double 的中间态（含 "0."）写回模型；
+                // 过渡空/非数字不写回，失焦统一归位（与整数路径语义一致）
+                if Double(newValue) != nil {
+                    text = newValue
+                }
             } else if newValue.isEmpty {
                 // 过渡空：不写回模型，失焦归位
             } else if let parsed = Int(newValue) {

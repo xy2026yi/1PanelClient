@@ -214,8 +214,9 @@ struct DatabaseRedisPerformanceView: View {
         let memoryInput = maxmemoryMBText.trimmingCharacters(in: .whitespaces)
         let maxmemory: String
         if let value = Int(memoryInput) {
-            // 单位随菜单拼接（服务端 "Xkb/Xmb/Xgb" 格式，抓包确认）
-            maxmemory = "\(value)\(memoryUnit.lowercased())"
+            // 单位随菜单拼接，统一带 b 后缀（"Xkb/Xmb/Xgb"，抓包确认；
+            // Redis memtoll 里裸 "m"=10^6 与 "mb"=2^20 进制不同，不能丢 b）
+            maxmemory = "\(value)\(memoryUnit.lowercased())b"
         } else if !memoryInput.isEmpty {
             maxmemory = memoryInput
         } else {

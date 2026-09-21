@@ -1212,18 +1212,28 @@ struct FirewallExportPickerView: View {
             .onAppear {
                 selected = preselectedIDs ?? Set(exportable.map(\.id))
                 // 主列表懒加载只到当前滚动位置：导出前后台补齐剩余分页，
-                // 保证「全选」等于全部规则而非已加载部分
-                Task { await fillRemainingPages() }
+                // 保证「全选」等于全部规则而非已加载部分；
+                // 任务句柄随页消失取消（用户取消导出后不再后台拉页）
+                fillTask = Task { await fillRemainingPages() }
+            }
+            .onDisappear {
+                fillTask?.cancel()
             }
         }
     }
 
+    /// 补页任务句柄（页消失即取消）
+    @State private var fillTask: Task<Void, Never>?
+
     /// 补齐未加载的分页（上限 50 页防失控；完成后默认全选态同步到全量）
     private func fillRemainingPages() async {
         var pages = 0
-        while vm.inventory.count < vm.rulesAllTotal, pages < 50 {
+        while vm.inventory.count < vm.rulesAllTotal, pages < 50, !Task.isCancelled {
+            let before = vm.inventory.count
             await vm.loadRules(replacing: false)
             pages += 1
+            // 一轮下来 count 不增（早退/失败/翻页到底）：继续循环只会空转，退出
+            if vm.inventory.count == before { break }
         }
         if preselectedIDs == nil {
             selected = Set(exportable.map(\.id))

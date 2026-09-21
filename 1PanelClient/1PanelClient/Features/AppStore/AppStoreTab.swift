@@ -349,7 +349,7 @@ struct AppInstallView: View {
         Binding<String>(get: { String(cpuQuota) }, set: { cpuQuota = Int($0) ?? 0 })
     }
 
-    /// 内存限制 String ↔ Int（单位固定 MB 提交，非法输入回落 0，0 = 不限制）
+    /// 内存限制 String ↔ Int（数值为整数，单位随「内存单位」菜单提交；非法输入回落 0，0 = 不限制）
     private var memoryLimitText: Binding<String> {
         Binding<String>(get: { String(memoryLimit) }, set: { memoryLimit = Int($0) ?? 0 })
     }

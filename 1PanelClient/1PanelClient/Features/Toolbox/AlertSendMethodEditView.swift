@@ -34,6 +34,8 @@ struct AlertSendMethodEditView: View {
     @State private var enabled = true
     /// 邮箱/Webhook 测试是否已通过（创建时必须测试通过才能保存；Webhook 编辑同样要求）
     @State private var tested = false
+    /// Webhook 测试通过时的 config 快照：配置再改动即与快照不等，须重新测试才能保存
+    @State private var testedConfig: AlertWebhookConfig?
     /// Webhook 测试通过时的摘要（HTTP 状态码 · 耗时）
     @State private var webhookTestSummary = ""
     @State private var isTesting = false
@@ -64,7 +66,8 @@ struct AlertSendMethodEditView: View {
         return !name.isEmpty && !url.isEmpty
     }
 
-    /// 创建邮箱必须先测试通过；Webhook 创建/编辑均要求测试通过；编辑邮箱与 Bark 可直接保存
+    /// 创建邮箱必须先测试通过；Webhook 创建/编辑均要求测试通过且配置未被再改动；
+    /// 编辑邮箱与 Bark 可直接保存
     private var canSave: Bool {
         guard !isSaving else { return false }
         switch sendType {
@@ -75,8 +78,13 @@ struct AlertSendMethodEditView: View {
         case .bark:
             return barkFormValid
         case .custom:
-            return webhookFormValid && tested
+            return webhookFormValid && tested && testedConfig == webhook
         }
+    }
+
+    /// Webhook 测试通过后配置是否又被改动（提示重新测试）
+    private var webhookTestStale: Bool {
+        tested && testedConfig != webhook
     }
 
     var body: some View {
@@ -135,7 +143,10 @@ struct AlertSendMethodEditView: View {
                 OutlinedPicker(label: L10n.t("类型"),
                                options: AlertSendType.allCases,
                                selection: $sendType) { $0.displayName }
-                    .onChange(of: sendType) { _, _ in tested = false }
+                    .onChange(of: sendType) { _, _ in
+                        tested = false
+                        testedConfig = nil
+                    }
             }
         }
     }
@@ -267,7 +278,7 @@ struct AlertSendMethodEditView: View {
             }
             .disabled(isTesting || !webhookFormValid)
 
-            if tested {
+            if tested && !webhookTestStale {
                 Label(
                     webhookTestSummary.isEmpty
                         ? L10n.t("测试已通过")
@@ -275,13 +286,17 @@ struct AlertSendMethodEditView: View {
                     systemImage: "checkmark.circle.fill"
                 )
                 .foregroundStyle(.green)
+            } else if tested {
+                Label(L10n.t("配置已修改，请重新测试"), systemImage: "exclamationmark.circle")
+                    .foregroundStyle(.orange)
             }
         } footer: {
             Text(L10n.t("将向该地址发送一条测试告警，请求成功后才可保存"))
         }
     }
 
-    /// 发送 Webhook 测试请求（POST /alert/config/test），通过后解锁保存
+    /// 发送 Webhook 测试请求（POST /alert/config/test），通过后解锁保存；
+    /// 通过时记录 config 快照，之后任何改动都会使保存重新失效
     private func sendWebhookTest() async {
         guard let configJSON = encodedWebhookConfig() else { return }
         isTesting = true
@@ -290,6 +305,7 @@ struct AlertSendMethodEditView: View {
         guard let result else { return }
         tested = result.isPassed
         webhookTestSummary = result.isPassed ? result.summary : ""
+        testedConfig = result.isPassed ? webhook : nil
     }
 
     /// 规范化并编码 Webhook config（提交与测试共用）

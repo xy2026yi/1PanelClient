@@ -350,19 +350,6 @@ nonisolated struct RedisConfUpdateRequest: Encodable {
     let database: String
     let timeout: String
     let maxclients: String
-    /// 数字 + mb 后缀（抓包 "0mb"）
+    /// 数字 + kb/mb/gb 后缀（抓包 "0mb"；Redis memtoll 裸 m=10^6 与 mb=2^20 进制不同）
     let maxmemory: String
-
-    /// 字节字符串 → MB 整数（仅纯正数字返回；"0"/非数字/nil 返回 nil，
-    /// 由调用方原样回传原始值，避免把无法识别的服务器值静默清零）
-    static func mbFromBytes(_ raw: String?) -> Int? {
-        guard let bytes = Int(raw ?? ""), bytes > 0 else { return nil }
-        return Int((Double(bytes) / 1024 / 1024).rounded())
-    }
-
-    /// MB 整数 → "Xmb" 提交格式
-    static func mbString(_ mb: Int) -> String {
-        let value = max(0, mb)
-        return "\(value)mb"
-    }
 }

@@ -368,18 +368,16 @@ final class CronjobsViewModel: ObservableObject {
                 websiteOptions = []
             }
         }
-        // 告警方式（告警分组多选；失败静默，表单里显示空态）
-        if alertMethods.isEmpty {
-            do {
-                let items: [AlertConfigItem] = try await client.send(
-                    path: APIEndpoint.alertConfigInfo.path,
-                    body: AlertConfigSearchRequest(),
-                    as: [AlertConfigItem].self
-                )
-                alertMethods = items.filter { $0.type != "common" }
-            } catch {
-                alertMethods = []
-            }
+        // 告警方式（告警分组多选；发送方式可能新增/删除，每次进表单都刷新；失败静默，表单里显示空态）
+        do {
+            let items: [AlertConfigItem] = try await client.send(
+                path: APIEndpoint.alertConfigInfo.path,
+                body: AlertConfigSearchRequest(),
+                as: [AlertConfigItem].self
+            )
+            alertMethods = items.filter { $0.type != "common" }
+        } catch {
+            alertMethods = []
         }
     }
 

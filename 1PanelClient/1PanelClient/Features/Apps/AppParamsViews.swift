@@ -34,7 +34,7 @@ struct UpdateParamsView: View {
         Binding<String>(get: { String(cpuQuota) }, set: { cpuQuota = Int($0) ?? 0 })
     }
 
-    /// 内存限制 String ↔ Int（UI 单位固定 MB，与安装表单一致）
+    /// 内存限制 String ↔ Int（数值为整数，单位随「内存单位」菜单提交）
     private var memoryLimitText: Binding<String> {
         Binding<String>(get: { String(memoryLimit) }, set: { memoryLimit = Int($0) ?? 0 })
     }
@@ -107,7 +107,7 @@ struct UpdateParamsView: View {
                 Text(L10n.t("容器配置"))
             }
 
-            // 资源限制（单位固定 MB，与安装表单一致）
+            // 资源限制（内存单位随菜单提交）
             Section {
                 OutlinedUnitField(label: L10n.t("CPU核心数"), unit: L10n.t("核"),
                                   text: cpuQuotaText, range: 0...1024)
@@ -210,7 +210,7 @@ struct UpdateParamsView: View {
             advanced: true,
             memoryLimit: memoryLimit,
             cpuQuota: cpuQuota,
-            // UI 单位固定 MB，按 MB 语义提交 M（与安装请求一致）
+            // 数值为整数，单位随「内存单位」菜单提交（K/M/G）
             memoryUnit: memoryUnit,
             allowPort: allowPort,
             containerName: containerName,
