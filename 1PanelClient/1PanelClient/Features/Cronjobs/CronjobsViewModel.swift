@@ -41,6 +41,8 @@ final class CronjobsViewModel: ObservableObject {
     @Published var websiteOptions: [WebsiteOptionSimple] = []
     @Published var dbItems: [DBItemOption] = []
     @Published var isLoadingDBItems = false
+    /// 告警方式（告警分组多选，来自 /alert/config/info，排除全局配置 common）
+    @Published var alertMethods: [AlertConfigItem] = []
 
     /// 分组（列表筛选 + 创建表单 Picker 数据源）
     @Published var groups: [PanelGroup] = []
@@ -354,7 +356,7 @@ final class CronjobsViewModel: ObservableObject {
                 installedApps = []
             }
         }
-        // 网站列表（用于备份网站）
+        // 网站列表（用于备份网站 / 切割网站日志）
         if websiteOptions.isEmpty {
             do {
                 websiteOptions = try await client.send(
@@ -364,6 +366,19 @@ final class CronjobsViewModel: ObservableObject {
                 )
             } catch {
                 websiteOptions = []
+            }
+        }
+        // 告警方式（告警分组多选；失败静默，表单里显示空态）
+        if alertMethods.isEmpty {
+            do {
+                let items: [AlertConfigItem] = try await client.send(
+                    path: APIEndpoint.alertConfigInfo.path,
+                    body: AlertConfigSearchRequest(),
+                    as: [AlertConfigItem].self
+                )
+                alertMethods = items.filter { $0.type != "common" }
+            } catch {
+                alertMethods = []
             }
         }
     }

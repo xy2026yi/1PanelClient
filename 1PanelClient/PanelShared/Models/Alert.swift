@@ -239,6 +239,12 @@ struct AlertConfigItem: Decodable, Identifiable {
         }
         return parsed
     }
+
+    /// 解析 Webhook 配置（type == "custom" 时有效，其余类型返回 nil）
+    var webhookConfig: AlertWebhookConfig? {
+        guard let data = config?.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(AlertWebhookConfig.self, from: data)
+    }
 }
 
 /// 全局配置（type == "common" 的 config JSON：可发送时间范围）
@@ -276,36 +282,241 @@ struct AlertSendConfig: Codable {
 enum AlertSendType: String, CaseIterable, Identifiable {
     case email
     case bark
+    /// Webhook（自定义告警通道，config 为 AlertWebhookConfig）
+    case custom
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .email: return L10n.t("邮箱通知")
-        case .bark:  return "Bark"
+        case .email:  return L10n.t("邮箱通知")
+        case .bark:   return "Bark"
+        case .custom: return "Webhook"
         }
     }
 
     var icon: String {
         switch self {
-        case .email: return "envelope"
-        case .bark:  return "bell"
+        case .email:  return "envelope"
+        case .bark:   return "bell"
+        case .custom: return "arrow.triangle.branch"
         }
     }
 
     var color: Color {
         switch self {
-        case .email: return .blue
-        case .bark:  return .indigo
+        case .email:  return .blue
+        case .bark:   return .indigo
+        case .custom: return .mint
         }
     }
 
     /// 官方 i18n 标题（config/update 需要原样回传）
     var apiTitle: String {
         switch self {
-        case .email: return "xpack.alert.emailConfig"
-        case .bark:  return "xpack.alert.bark"
+        case .email:  return "xpack.alert.emailConfig"
+        case .bark:   return "xpack.alert.bark"
+        case .custom: return "xpack.alert.custom"
         }
+    }
+}
+
+// MARK: - Webhook 发送方式（type == "custom"）
+
+/// Webhook 预设（config.preset）
+enum AlertWebhookPreset: String, CaseIterable, Identifiable {
+    case genericJson
+    case slack
+    case discord
+    case teamsWorkflows
+    case custom
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .genericJson:     return L10n.t("通用 JSON")
+        case .slack:           return "Slack"
+        case .discord:         return "Discord"
+        case .teamsWorkflows:  return L10n.t("Teams Workflows")
+        case .custom:          return L10n.t("自定义")
+        }
+    }
+
+    /// 预设对应的 Body 模版（自定义预设返回 nil，由用户填写）
+    var defaultTemplate: String? {
+        switch self {
+        case .genericJson: return Self.genericJSONTemplate
+        case .slack: return Self.slackTemplate
+        case .discord: return Self.discordTemplate
+        case .teamsWorkflows: return Self.teamsWorkflowsTemplate
+        case .custom: return nil
+        }
+    }
+
+    static let genericJSONTemplate = """
+    {
+      "schema_version": "1",
+      "title": "{{title}}",
+      "message": "{{message}}",
+      "type": "{{type}}",
+      "node_name": "{{nodeName}}",
+      "timestamp": "{{timestamp}}"
+    }
+    """
+
+    static let slackTemplate = """
+    {
+      "text": "*{{title}}*\\n{{message}}"
+    }
+    """
+
+    static let discordTemplate = """
+    {
+      "content": "**{{title}}**\\n{{message}}",
+      "allowed_mentions": { "parse": [] }
+    }
+    """
+
+    static let teamsWorkflowsTemplate = """
+    {
+      "type": "message",
+      "attachments": [
+        {
+          "contentType": "application/vnd.microsoft.card.adaptive",
+          "contentUrl": null,
+          "content": {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.4",
+            "body": [
+              { "type": "TextBlock", "weight": "Bolder", "text": "{{title}}" },
+              { "type": "TextBlock", "wrap": true, "text": "{{message}}" }
+            ]
+          }
+        }
+      ]
+    }
+    """
+}
+
+/// Webhook Body 类型（config.body.type）
+enum AlertWebhookBodyType: String, CaseIterable, Identifiable {
+    case json
+    case form
+    case text
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .json:  return "JSON"
+        case .form:  return "Form"
+        case .text:  return "Text"
+        }
+    }
+}
+
+/// Webhook 地址：提交恒为 {"action":"replace","value":…}，
+/// 列表返回为纯字符串，解码兼容两种形状
+struct AlertWebhookURLValue: Codable, Equatable {
+    var action: String = "replace"
+    var value: String = ""
+
+    init(value: String) {
+        self.action = "replace"
+        self.value = value
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let plain = try? c.decode(String.self) {
+            action = "replace"
+            value = plain
+            return
+        }
+        let keyed = try decoder.container(keyedBy: CodingKeys.self)
+        action = (try? keyed.decodeIfPresent(String.self, forKey: .action)) ?? "replace"
+        value = (try? keyed.decodeIfPresent(String.self, forKey: .value)) ?? ""
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case action, value
+    }
+}
+
+/// Webhook Header 行（uid 为小写 UUID，与服务端格式一致）
+struct AlertWebhookHeader: Codable, Identifiable, Equatable {
+    var uid: String = UUID().uuidString.lowercased()
+    var key: String = ""
+    var secret: Bool = false
+    var action: String = "replace"
+    var value: String = ""
+
+    var id: String { uid }
+
+    init() {}
+
+    init(key: String, value: String, secret: Bool) {
+        self.key = key
+        self.value = value
+        self.secret = secret
+    }
+}
+
+/// Form 类型的键值对（config.body.fields）
+struct AlertWebhookKV: Codable, Equatable {
+    var key: String?
+    var value: String?
+}
+
+/// Webhook Body（config.body）
+struct AlertWebhookBody: Codable, Equatable {
+    var type: String?
+    var template: String?
+    var fields: [AlertWebhookKV]?
+
+    init(type: String = "json", template: String = "", fields: [AlertWebhookKV] = []) {
+        self.type = type
+        self.template = template
+        self.fields = fields
+    }
+}
+
+/// Webhook 发送方式 config（type == "custom" 的 config JSON）
+struct AlertWebhookConfig: Codable, Equatable {
+    var schemaVersion: Int? = 1
+    var displayName: String? = ""
+    var preset: String? = AlertWebhookPreset.genericJson.rawValue
+    var method: String? = "POST"
+    var url: AlertWebhookURLValue? = nil
+    var body: AlertWebhookBody? = AlertWebhookBody()
+    var headers: [AlertWebhookHeader]? = []
+
+    init() {
+        // 新建默认：预设 genericJson + 对应模版（预设与模版联动由表单维护）
+        body = AlertWebhookBody(type: AlertWebhookBodyType.json.rawValue,
+                                template: AlertWebhookPreset.genericJson.defaultTemplate ?? "",
+                                fields: [])
+    }
+
+    var presetEnum: AlertWebhookPreset {
+        get { AlertWebhookPreset(rawValue: preset ?? "") ?? .custom }
+        set { preset = newValue.rawValue }
+    }
+
+    var bodyTypeEnum: AlertWebhookBodyType {
+        get { AlertWebhookBodyType(rawValue: body?.type ?? "") ?? .json }
+        set { body?.type = newValue.rawValue }
+    }
+
+    /// 提交前规范化：去掉空 key 且空值的 Header 行
+    var sanitizedForSubmit: AlertWebhookConfig {
+        var copy = self
+        copy.schemaVersion = 1
+        copy.method = "POST"
+        copy.headers = (headers ?? []).filter { !$0.key.isEmpty || !$0.value.isEmpty }
+        return copy
     }
 }
 
@@ -376,6 +587,57 @@ struct AlertEmailTestRequest: Encodable {
     let encryption: String
     let status: String
     let recipient: String
+}
+
+/// 测试 Webhook 发送方式（POST /api/v2/alert/config/test，config 为 JSON 字符串）
+struct AlertWebhookTestRequest: Encodable {
+    let type = "custom"
+    let config: String
+}
+
+/// 发送方式测试结果（Webhook：{success, statusCode, duration}；邮箱为裸 bool，
+/// 解码兼容两种形状）
+struct AlertWebhookTestResult: Decodable {
+    let success: Bool?
+    let statusCode: Int?
+    let duration: Int?
+
+    private struct ObjectShape: Decodable {
+        let success: Bool?
+        let statusCode: Int?
+        let duration: Int?
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let plain = try? c.decode(Bool.self) {
+            success = plain
+            statusCode = nil
+            duration = nil
+            return
+        }
+        if let obj = try? c.decode(ObjectShape.self) {
+            success = obj.success
+            statusCode = obj.statusCode
+            duration = obj.duration
+            return
+        }
+        success = nil
+        statusCode = nil
+        duration = nil
+    }
+
+    var isPassed: Bool { success == true }
+
+    /// 测试通过时的摘要（HTTP 状态码 + 耗时）
+    var summary: String {
+        var parts: [String] = []
+        if let code = statusCode { parts.append("HTTP \(code)") }
+        if let ms = duration {
+            parts.append(ms >= 1000 ? String(format: "%.1fs", Double(ms) / 1000) : "\(ms)ms")
+        }
+        return parts.joined(separator: " · ")
+    }
 }
 
 /// 创建 / 更新发送方式（POST /api/v2/alert/config/update，config 为 JSON 字符串）

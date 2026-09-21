@@ -28,15 +28,21 @@ struct AlertSendMethodEditView: View {
     // Bark
     @State private var barkURL = ""
 
+    // Webhook（type == "custom"）
+    @State private var webhook = AlertWebhookConfig()
+
     @State private var enabled = true
-    /// 邮箱测试是否已通过（创建时必须测试通过才能保存）
+    /// 邮箱/Webhook 测试是否已通过（创建时必须测试通过才能保存；Webhook 编辑同样要求）
     @State private var tested = false
+    /// Webhook 测试通过时的摘要（HTTP 状态码 · 耗时）
+    @State private var webhookTestSummary = ""
     @State private var isTesting = false
     @State private var isSaving = false
     @State private var didFill = false
 
     private var isEditing: Bool { editing != nil }
     private var isEmail: Bool { sendType == .email }
+    private var isWebhook: Bool { sendType == .custom }
 
     /// 端口号（非法输入返回 nil）
     private var port: Int? { Int(portText) }
@@ -51,25 +57,40 @@ struct AlertSendMethodEditView: View {
         !displayName.isEmpty && !barkURL.isEmpty
     }
 
-    /// 创建邮箱必须先测试通过；编辑与 Bark 可直接保存
+    /// Webhook 必填项：名称 + 地址
+    private var webhookFormValid: Bool {
+        let name = (webhook.displayName ?? "").trimmingCharacters(in: .whitespaces)
+        let url = (webhook.url?.value ?? "").trimmingCharacters(in: .whitespaces)
+        return !name.isEmpty && !url.isEmpty
+    }
+
+    /// 创建邮箱必须先测试通过；Webhook 创建/编辑均要求测试通过；编辑邮箱与 Bark 可直接保存
     private var canSave: Bool {
         guard !isSaving else { return false }
-        if isEmail {
+        switch sendType {
+        case .email:
             guard emailFormValid else { return false }
             if !isEditing && !tested { return false }
             return true
+        case .bark:
+            return barkFormValid
+        case .custom:
+            return webhookFormValid && tested
         }
-        return barkFormValid
     }
 
     var body: some View {
         Form {
             typeSection
-            if isEmail {
+            switch sendType {
+            case .email:
                 emailSection
                 testSection
-            } else {
+            case .bark:
                 barkSection
+            case .custom:
+                webhookSection
+                webhookTestSection
             }
             if isEditing { statusSection }
         }
@@ -179,6 +200,105 @@ struct AlertSendMethodEditView: View {
         }
     }
 
+    // MARK: - Webhook 配置
+
+    /// Webhook 名称绑定（config.displayName 为可选字符串）
+    private var webhookNameText: Binding<String> {
+        Binding(get: { webhook.displayName ?? "" },
+                set: { webhook.displayName = $0 })
+    }
+
+    /// Webhook 地址绑定（config.url 为对象，此处取/写 value）
+    private var webhookURLText: Binding<String> {
+        Binding(get: { webhook.url?.value ?? "" },
+                set: { webhook.url = AlertWebhookURLValue(value: $0) })
+    }
+
+    private var webhookSection: some View {
+        Section {
+            OutlinedTextField(label: L10n.t("名称"), text: webhookNameText)
+            OutlinedTextField(label: L10n.t("Webhook 地址"), text: webhookURLText,
+                              keyboardType: .URL)
+
+            NavigationLink {
+                AlertWebhookBodyView(config: $webhook)
+            } label: {
+                HStack {
+                    Text("Body")
+                    Spacer()
+                    Text("\(webhook.presetEnum.displayName) · \(webhook.bodyTypeEnum.displayName)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            NavigationLink {
+                AlertWebhookHeadersView(config: $webhook)
+            } label: {
+                HStack {
+                    Text("Headers")
+                    Spacer()
+                    let count = webhook.headers?.count ?? 0
+                    Text(count == 0 ? L10n.t("未设置") : L10n.f("%ld 条", count))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            SectionLabel(title: "Webhook", systemImage: "arrow.triangle.branch")
+        } footer: {
+            Text(L10n.t("必须测试通过后才能保存"))
+        }
+    }
+
+    private var webhookTestSection: some View {
+        Section {
+            Button {
+                Task { await sendWebhookTest() }
+            } label: {
+                HStack {
+                    Label(L10n.t("发送测试请求"), systemImage: "paperplane")
+                    if isTesting {
+                        Spacer()
+                        ProgressView()
+                    }
+                }
+            }
+            .disabled(isTesting || !webhookFormValid)
+
+            if tested {
+                Label(
+                    webhookTestSummary.isEmpty
+                        ? L10n.t("测试已通过")
+                        : L10n.f("测试已通过 · %@", webhookTestSummary),
+                    systemImage: "checkmark.circle.fill"
+                )
+                .foregroundStyle(.green)
+            }
+        } footer: {
+            Text(L10n.t("将向该地址发送一条测试告警，请求成功后才可保存"))
+        }
+    }
+
+    /// 发送 Webhook 测试请求（POST /alert/config/test），通过后解锁保存
+    private func sendWebhookTest() async {
+        guard let configJSON = encodedWebhookConfig() else { return }
+        isTesting = true
+        let result = await vm.testWebhook(configJSON)
+        isTesting = false
+        guard let result else { return }
+        tested = result.isPassed
+        webhookTestSummary = result.isPassed ? result.summary : ""
+    }
+
+    /// 规范化并编码 Webhook config（提交与测试共用）
+    private func encodedWebhookConfig() -> String? {
+        guard let data = try? JSONEncoder().encode(webhook.sanitizedForSubmit),
+              let json = String(data: data, encoding: .utf8) else { return nil }
+        return json
+    }
+
     // MARK: - 状态（仅编辑）
 
     private var statusSection: some View {
@@ -205,8 +325,12 @@ struct AlertSendMethodEditView: View {
         if isEmail {
             sender = cfg.sender ?? ""
             recipient = cfg.recipient ?? ""
-        } else {
+        } else if sendType == .bark {
             barkURL = cfg.url ?? ""
+        } else if isWebhook, let parsed = item.webhookConfig {
+            webhook = parsed
+            if webhook.body == nil { webhook.body = AlertWebhookBody() }
+            if webhook.headers == nil { webhook.headers = [] }
         }
         enabled = item.isEnabled
     }
@@ -232,11 +356,11 @@ struct AlertSendMethodEditView: View {
     }
 
     private func buildRequest() -> AlertConfigUpdateRequest? {
-        let config: AlertSendConfig
+        let configJSON: String
         switch sendType {
         case .email:
             guard let port, emailFormValid else { return nil }
-            config = AlertSendConfig(
+            let config = AlertSendConfig(
                 displayName: displayName,
                 sender: sender,
                 userName: userName,
@@ -248,9 +372,12 @@ struct AlertSendMethodEditView: View {
                 recipient: recipient,
                 url: nil
             )
+            guard let data = try? JSONEncoder().encode(config),
+                  let json = String(data: data, encoding: .utf8) else { return nil }
+            configJSON = json
         case .bark:
             guard barkFormValid else { return nil }
-            config = AlertSendConfig(
+            let config = AlertSendConfig(
                 displayName: displayName,
                 sender: nil,
                 userName: nil,
@@ -262,16 +389,21 @@ struct AlertSendMethodEditView: View {
                 recipient: nil,
                 url: barkURL
             )
+            guard let data = try? JSONEncoder().encode(config),
+                  let json = String(data: data, encoding: .utf8) else { return nil }
+            configJSON = json
+        case .custom:
+            guard webhookFormValid, let json = encodedWebhookConfig() else { return nil }
+            configJSON = json
         }
-        guard let data = try? JSONEncoder().encode(config),
-              let configJSON = String(data: data, encoding: .utf8) else { return nil }
         return AlertConfigUpdateRequest(
             id: editing?.id,
             type: sendType.rawValue,
             title: sendType.apiTitle,
             status: enabled ? "Enable" : "Disable",
             config: configJSON,
-            displayName: displayName
+            displayName: sendType == .custom
+                ? (webhook.displayName ?? "") : displayName
         )
     }
 }

@@ -16,7 +16,12 @@ enum CronjobType: String, CaseIterable, Identifiable, Codable {
     case app        = "app"         // 备份应用
     case website    = "website"     // 备份网站
     case database   = "database"    // 备份数据库
+    case directory  = "directory"   // 备份目录或文件
+    case log        = "log"         // 备份日志
     case snapshot   = "snapshot"    // 系统快照
+    case curl       = "curl"        // 访问 URL
+    case cutWebsiteLog = "cutWebsiteLog" // 切割网站日志
+    case cleanLog   = "cleanLog"    // 清理日志
     case clean      = "clean"       // 缓存清理
     case ntp        = "ntp"         // 同步服务器时间
     case syncIpGroup = "syncIpGroup" // 同步 WAF IP 组
@@ -25,50 +30,78 @@ enum CronjobType: String, CaseIterable, Identifiable, Codable {
 
     var displayName: String {
         switch self {
-        case .shell:       return L10n.t("Shell 脚本")
-        case .app:         return L10n.t("备份应用")
-        case .website:     return L10n.t("备份网站")
-        case .database:    return L10n.t("备份数据库")
-        case .snapshot:    return L10n.t("系统快照")
-        case .clean:       return L10n.t("缓存清理")
-        case .ntp:         return L10n.t("同步服务器时间")
-        case .syncIpGroup: return L10n.t("同步 WAF IP 组")
+        case .shell:          return L10n.t("Shell 脚本")
+        case .app:            return L10n.t("备份应用")
+        case .website:        return L10n.t("备份网站")
+        case .database:       return L10n.t("备份数据库")
+        case .directory:      return L10n.t("备份目录或文件")
+        case .log:            return L10n.t("备份日志")
+        case .snapshot:       return L10n.t("系统快照")
+        case .curl:           return L10n.t("访问 URL")
+        case .cutWebsiteLog:  return L10n.t("切割网站日志")
+        case .cleanLog:       return L10n.t("清理日志")
+        case .clean:          return L10n.t("缓存清理")
+        case .ntp:            return L10n.t("同步服务器时间")
+        case .syncIpGroup:    return L10n.t("同步 WAF IP 组")
         }
     }
 
     var icon: String {
         switch self {
-        case .shell:       return "terminal"
-        case .app:         return "shippingbox"
-        case .website:     return "globe"
-        case .database:    return "cylinder"
-        case .snapshot:    return "camera.metering.center.weighted"
-        case .clean:       return "trash.circle"
-        case .ntp:         return "clock.badge"
-        case .syncIpGroup: return "shield.lefthalf.filled"
+        case .shell:          return "terminal"
+        case .app:            return "shippingbox"
+        case .website:        return "globe"
+        case .database:       return "cylinder"
+        case .directory:      return "folder"
+        case .log:            return "doc.text"
+        case .snapshot:       return "camera.metering.center.weighted"
+        case .curl:           return "point.3.connected.trianglepath.dotted"
+        case .cutWebsiteLog:  return "scissors"
+        case .cleanLog:       return "trash"
+        case .clean:          return "trash.circle"
+        case .ntp:            return "clock.badge"
+        case .syncIpGroup:    return "shield.lefthalf.filled"
         }
     }
 
     var color: Color {
         switch self {
-        case .shell:       return .primary  // 深色模式下 .black 不可见，改用自适应色（同 ManageTab 终端入口）
-        case .app:         return .blue
-        case .website:     return .green
-        case .database:    return .teal
-        case .snapshot:    return .purple
-        case .clean:       return .orange
-        case .ntp:         return .indigo
-        case .syncIpGroup: return .pink
+        case .shell:          return .primary  // 深色模式下 .black 不可见，改用自适应色（同 ManageTab 终端入口）
+        case .app:            return .blue
+        case .website:        return .green
+        case .database:       return .teal
+        case .directory:      return .yellow
+        case .log:            return .brown
+        case .snapshot:       return .purple
+        case .curl:           return .cyan
+        case .cutWebsiteLog:  return .mint
+        case .cleanLog:       return .gray
+        case .clean:          return .orange
+        case .ntp:            return .indigo
+        case .syncIpGroup:    return .pink
         }
     }
 
     /// 是否需要备份账号选择
     var needsBackupAccount: Bool {
         switch self {
-        case .app, .website, .database, .snapshot: return true
-        case .shell, .clean, .ntp, .syncIpGroup:   return false
+        case .app, .website, .database, .directory, .log, .snapshot: return true
+        case .shell, .curl, .cutWebsiteLog, .cleanLog, .clean, .ntp, .syncIpGroup: return false
         }
     }
+
+    /// 是否支持压缩密码（备份产物为压缩包的类型）
+    var supportsCompressionSecret: Bool {
+        switch self {
+        case .app, .website, .directory, .log, .snapshot: return true
+        default: return false
+        }
+    }
+}
+
+/// 备份目录或文件：文件列表项（提交形状 {"val":"/path"}）
+nonisolated struct CronjobFileItem: Codable, Hashable {
+    var val: String
 }
 
 // MARK: - 计划任务列表
@@ -291,7 +324,15 @@ nonisolated struct CronjobInfo: Decodable {
     /// 备份参数（逗号分隔字符串）
     let args: String?
 
+    let urlItems: [String]?
+    let files: [CronjobFileItem]?
+    let scopes: [String]?
+
+    let hasAlert: Bool?
     let alertCount: Int?
+    let alertTitle: String?
+    let alertMethod: String?
+    let alertMethodItems: [String]?
 
     /// 任务类型枚举
     var jobType: CronjobType {
@@ -301,6 +342,18 @@ nonisolated struct CronjobInfo: Decodable {
     /// 选中的备份参数集合（从 args 逗号分隔解析）
     var backupParamSet: Set<String> {
         Set((args ?? "").split(separator: ",").map { String($0) }.filter { !$0.isEmpty })
+    }
+
+    /// 告警方式 id 集合（alertMethodItems 优先，回退 alertMethod 逗号分隔）
+    var alertMethodIDSet: Set<Int> {
+        let items = alertMethodItems ?? (alertMethod ?? "")
+            .split(separator: ",").map(String.init).filter { !$0.isEmpty }
+        return Set(items.compactMap(Int.init))
+    }
+
+    /// 文件模式的文件路径列表（files 数组取 val）
+    var filePathList: [String] {
+        (files ?? []).map(\.val).filter { !$0.isEmpty }
     }
     // L1 加固：非可选字段容错解码（缺失/null/类型漂移回退默认值）
     enum CodingKeys: String, CodingKey {
@@ -336,7 +389,14 @@ nonisolated struct CronjobInfo: Decodable {
         case status
         case secret
         case args
+        case urlItems
+        case files
+        case scopes
+        case hasAlert
         case alertCount
+        case alertTitle
+        case alertMethod
+        case alertMethodItems
     }
 
     init(from decoder: Decoder) throws {
@@ -373,7 +433,14 @@ nonisolated struct CronjobInfo: Decodable {
         status = try c.decodeIfPresent(String.self, forKey: .status)
         secret = try c.decodeIfPresent(String.self, forKey: .secret)
         args = try c.decodeIfPresent(String.self, forKey: .args)
+        urlItems = try c.decodeIfPresent([String].self, forKey: .urlItems)
+        files = try c.decodeIfPresent([CronjobFileItem].self, forKey: .files)
+        scopes = try c.decodeIfPresent([String].self, forKey: .scopes)
+        hasAlert = try c.decodeIfPresent(Bool.self, forKey: .hasAlert)
         alertCount = try c.decodeIfPresent(Int.self, forKey: .alertCount)
+        alertTitle = try c.decodeIfPresent(String.self, forKey: .alertTitle)
+        alertMethod = try c.decodeIfPresent(String.self, forKey: .alertMethod)
+        alertMethodItems = try c.decodeIfPresent([String].self, forKey: .alertMethodItems)
     }
 }
 
@@ -557,7 +624,7 @@ nonisolated struct CronjobCreateRequest: Encodable {
     var url: String = ""
     var urlItems: [String] = [""]
     var isDir: Bool = true
-    var files: [String] = []
+    var files: [CronjobFileItem] = []
     var sourceDir: String = ""
     var snapshotRule = CronjobSnapshotRule()
     var ignoreAppIDs: [Int] = []

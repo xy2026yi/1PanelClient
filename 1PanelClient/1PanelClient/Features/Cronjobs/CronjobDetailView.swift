@@ -80,6 +80,27 @@ struct CronjobDetailView: View {
                 Section(L10n.t("备份内容")) {
                     InfoRow(L10n.t("类型"), value: L10n.t("系统快照"))
                 }
+            case .directory:
+                Section(L10n.t("备份内容")) {
+                    InfoRow(L10n.t("范围"), value: currentJob.sourceDir ?? "—")
+                }
+            case .log:
+                // 备份日志：无类型特定详情
+                EmptyView()
+            case .curl:
+                Section(L10n.t("访问内容")) {
+                    InfoRow(L10n.t("URL 地址"), value: currentJob.url ?? "—")
+                }
+            case .cutWebsiteLog:
+                Section(L10n.t("切割内容")) {
+                    InfoRow(L10n.t("网站"),
+                            value: currentJob.website == "all"
+                            ? L10n.t("全部网站") : (currentJob.website ?? "—"))
+                }
+            case .cleanLog:
+                Section(L10n.t("清理内容")) {
+                    InfoRow(L10n.t("清理类型"), value: L10n.t("网站日志"))
+                }
             case .clean, .ntp, .syncIpGroup:
                 // 缓存清理 / 同步服务器时间 / 同步 WAF IP 组：无类型特定详情
                 EmptyView()

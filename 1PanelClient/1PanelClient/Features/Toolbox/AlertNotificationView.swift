@@ -752,6 +752,32 @@ final class AlertViewModel: ObservableObject {
         }
     }
 
+    /// 测试 Webhook 配置（POST /api/v2/alert/config/test，返回 success/statusCode/duration）
+    @discardableResult
+    func testWebhook(_ configJSON: String) async -> AlertWebhookTestResult? {
+        do {
+            let result: AlertWebhookTestResult = try await client.send(
+                path: APIEndpoint.alertConfigTest.path,
+                body: AlertWebhookTestRequest(config: configJSON),
+                as: AlertWebhookTestResult.self
+            )
+            if !result.isPassed {
+                let detail = [result.statusCode.map { "HTTP \($0)" }, result.duration.map { "\($0)ms" }]
+                    .compactMap { $0 }.joined(separator: " · ")
+                showAlert(message: detail.isEmpty
+                          ? L10n.t("测试发送失败，请检查配置")
+                          : L10n.f("测试发送失败：%@", detail))
+            }
+            return result
+        } catch let err as APIError {
+            showAlert(message: L10n.f("测试失败：%@", err.errorDescription ?? L10n.t("未知错误")))
+            return nil
+        } catch {
+            showAlert(message: L10n.f("测试失败：%@", error.localizedDescription))
+            return nil
+        }
+    }
+
     @discardableResult
     func saveConfig(_ req: AlertConfigUpdateRequest, successMessage: String? = nil) async -> Bool {
         let isCreate = req.id == nil

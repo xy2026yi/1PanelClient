@@ -38,6 +38,24 @@ struct CreateCronjobView: View {
     @State private var dbBackupParams: Set<String> = []
     /// 控制备份参数多选 sheet 的弹出
     @State private var showBackupParamsPicker = false
+    // 备份目录或文件（directory）
+    /// 范围类型：dir=文件夹 file=文件
+    @State private var dirScopeKey = "dir"
+    /// 文件夹路径
+    @State private var dirSourceText = ""
+    /// 文件路径（一行一个，文件模式）
+    @State private var filesText = ""
+    /// 文件夹选择器（服务端目录浏览器）
+    @State private var showDirPicker = false
+    // 访问 URL（curl）：一行一个地址
+    @State private var curlURLsText = ""
+    // 压缩密码（备份产物压缩包，备份设置分组）
+    @State private var compressSecret = ""
+    // 告警分组（任务失败告警）
+    @State private var hasAlert = false
+    @State private var alertMethodIDs: Set<Int> = []
+    @State private var alertCount = 3
+    @State private var showAlertMethodPicker = false
     /// 标记是否已完成编辑模式的数据预填
     @State private var hasPrefilled = false
     /// 失败重试次数（所有任务类型通用）
@@ -46,6 +64,8 @@ struct CreateCronjobView: View {
     @State private var timeoutValue = 1
     /// 超时时间的单位（提交时统一换算成秒，timeoutUnit 固定为 "s"）
     @State private var timeoutUnit: TimeoutUnit = .hours
+    /// 备份目录输入框聚焦态（描边框联动）
+    @FocusState private var dirFieldFocused: Bool
 
     enum DBBackupType: String, CaseIterable, Identifiable {
         case mysql = "mysql"
@@ -178,6 +198,7 @@ struct CreateCronjobView: View {
                         scheduleSection
                     case 1:
                         contentSections
+                        alertSection
                     default:
                         timeoutSection
                     }
@@ -193,7 +214,8 @@ struct CreateCronjobView: View {
                 totalPages: wizardPageNames.count,
                 primaryTitle: isEditing ? L10n.t("保存") : L10n.t("创建"),
                 isBusy: vm.isCreating,
-                primaryDisabled: name.trimmingCharacters(in: .whitespaces).isEmpty,
+                primaryDisabled: name.trimmingCharacters(in: .whitespaces).isEmpty
+                    || (wizardPage >= 1 && !contentValid),
                 onBack: { withAnimation { wizardPage -= 1 } },
                 onNext: { withAnimation { wizardPage += 1 } },
                 onPrimary: { Task { await submit() } }
@@ -230,6 +252,17 @@ struct CreateCronjobView: View {
                         }
                     }
             }
+        }
+        // 备份目录或文件：文件夹范围选择器（服务端目录浏览器）
+        .sheet(isPresented: $showDirPicker) {
+            DirectoryPickerSheet(client: vm.client) { path in
+                dirSourceText = path
+            }
+        }
+        // 告警方式多选（勾选即回写，关闭即确认）
+        .sheet(isPresented: $showAlertMethodPicker) {
+            CronjobAlertMethodsPickerView(methods: vm.alertMethods,
+                                          selection: $alertMethodIDs)
         }
         .sheet(isPresented: $showScriptPicker) {
         NavigationStack {
@@ -398,12 +431,133 @@ struct CreateCronjobView: View {
         case .snapshot:
             backupSection
 
+        case .directory:
+            directorySection
+            backupSection
+
+        case .log:
+            // 备份日志：无类型特定字段，仅备份设置分组
+            backupSection
+
+        case .curl:
+            Section {
+                OutlinedMultiLineField(label: L10n.t("URL 地址"), lines: 4,
+                                       text: $curlURLsText)
+            } header: {
+                Text(L10n.t("访问 URL"))
+            } footer: {
+                Text(L10n.t("一行一个地址，任务执行时将依次访问"))
+            }
+            retainOnlySection
+
+        case .cutWebsiteLog:
+            Section(L10n.t("切割网站日志")) {
+                OutlinedPicker(label: L10n.t("网站"),
+                               options: websiteScopeOptions, selection: $websiteSelection,
+                               optionLabels: websiteScopeLabels)
+            }
+            retainOnlySection
+
+        case .cleanLog:
+            Section(L10n.t("清理日志")) {
+                OutlinedPicker(label: L10n.t("清理类型"),
+                               options: ["website"],
+                               selection: .constant("website"),
+                               optionLabels: ["website": L10n.t("网站日志")])
+            }
+            retainOnlySection
+
         case .clean, .ntp, .syncIpGroup:
             // 这三种类型无备份账号、无类型特定配置，仅需保留份数
             Section(L10n.t("任务设置")) {
                 OutlinedUnitField(label: L10n.t("保留份数"), unit: L10n.t("份"),
                                   text: retainCopiesText, range: 1...100)
             }
+        }
+    }
+
+    /// 备份目录或文件：范围类型 + 文件夹输入框（含文件浏览器图标）/ 文件编辑页入口
+    private var directorySection: some View {
+        Section(L10n.t("备份目录或文件")) {
+            OutlinedPicker(label: L10n.t("类型"),
+                           options: ["dir", "file"], selection: $dirScopeKey,
+                           optionLabels: [
+                            "dir": L10n.t("文件夹"),
+                            "file": L10n.t("文件")
+                           ])
+
+            if dirScopeKey == "dir" {
+                // 文件夹：输入框 + 框内右侧文件浏览器图标，选中目录后自动回填
+                OutlinedShape(label: L10n.t("范围"),
+                              isFocused: dirFieldFocused,
+                              hasValue: !dirSourceText.isEmpty,
+                              trailing: {
+                    Button {
+                        showDirPicker = true
+                    } label: {
+                        Image(systemName: "folder")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(L10n.t("选择目录"))
+                }) {
+                    TextField("", text: $dirSourceText)
+                        .keyboardType(.URL)
+                        .focused($dirFieldFocused)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+            } else {
+                // 文件：点击跳转编辑页（形态 7.1，一行一个，可从文件浏览器追加）
+                NavigationLink {
+                    CronjobFilesEditorView(server: server, text: $filesText)
+                } label: {
+                    HStack {
+                        Text(L10n.t("范围"))
+                        Spacer()
+                        Text(fileScopeSummary)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+    }
+
+    /// 文件模式范围摘要（N 个文件 / 未设置）
+    private var fileScopeSummary: String {
+        let count = nonEmptyLines(filesText).count
+        return count == 0 ? L10n.t("未设置") : L10n.f("%ld 个文件", count)
+    }
+
+    /// 多行文本取非空行
+    private func nonEmptyLines(_ text: String) -> [String] {
+        text.split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    /// 内容页必填校验（目录范围 / URL 地址）
+    private var contentValid: Bool {
+        switch type {
+        case .directory:
+            return dirScopeKey == "dir"
+                ? !nonEmptyLines(dirSourceText).isEmpty
+                : !nonEmptyLines(filesText).isEmpty
+        case .curl:
+            return !nonEmptyLines(curlURLsText).isEmpty
+        default:
+            return true
+        }
+    }
+
+    /// 备份设置分组（无备份账号，仅保留份数）：访问 URL / 切割网站日志 / 清理日志
+    private var retainOnlySection: some View {
+        Section(L10n.t("备份设置")) {
+            OutlinedUnitField(label: L10n.t("保留份数"), unit: L10n.t("份"),
+                              text: retainCopiesText, range: 1...100)
         }
     }
 
@@ -531,7 +685,64 @@ struct CreateCronjobView: View {
             OutlinedPicker(label: L10n.t("备份账号"),
                            options: backupAccountOptions, selection: backupAccountText,
                            optionLabels: backupAccountLabels)
+
+            if type.supportsCompressionSecret {
+                OutlinedPasswordField(label: L10n.t("压缩密码"), text: $compressSecret)
+            }
         }
+    }
+
+    // MARK: - 告警分组（第 2 页通用）
+
+    /// 任务失败告警：开关 + 告警方式多选 + 告警次数
+    private var alertSection: some View {
+        Section {
+            Toggle(L10n.t("告警"), isOn: $hasAlert)
+
+            if hasAlert {
+                Button {
+                    showAlertMethodPicker = true
+                } label: {
+                    HStack {
+                        Text(L10n.t("告警方式"))
+                        Spacer()
+                        Text(alertMethodSummary)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                OutlinedTextField(label: L10n.t("告警次数"),
+                                  text: alertCountText, keyboardType: .numberPad)
+            }
+        } header: {
+            Text(L10n.t("告警"))
+        } footer: {
+            Text(L10n.t("任务失败达到告警次数后，将通过所选方式发送通知"))
+        }
+    }
+
+    /// 告警方式选中摘要（已选方式名 / 未选择 / 未配置发送方式）
+    private var alertMethodSummary: String {
+        guard !vm.alertMethods.isEmpty else {
+            return L10n.t("未配置发送方式")
+        }
+        let selected = vm.alertMethods
+            .filter { alertMethodIDs.contains($0.id) }
+            .compactMap { $0.sendConfig.displayName }
+        if selected.isEmpty { return L10n.t("未选择") }
+        return selected.joined(separator: "、")
+    }
+
+    /// 告警次数 Int ↔ String（输入钳制 1...99，默认 3）
+    private var alertCountText: Binding<String> {
+        Binding<String>(get: { String(alertCount) },
+                        set: { text in clampInt(text, into: 1...99) { alertCount = $0 } })
     }
 
     /// 单个执行周期的编辑已迁移至 CronjobSchedulesEditorView（入口行进入）
@@ -567,12 +778,14 @@ struct CreateCronjobView: View {
             req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
             req.downloadAccountID = backupAccountID
             req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            req.secret = compressSecret
         case .website:
             req.website = websiteSelection
             req.websiteList = [websiteSelection]
             req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
             req.downloadAccountID = backupAccountID
             req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            req.secret = compressSecret
         case .database:
             req.dbType = dbType.rawValue
             req.dbName = dbSelection
@@ -585,9 +798,50 @@ struct CreateCronjobView: View {
             req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
             req.downloadAccountID = backupAccountID
             req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            req.secret = compressSecret
+        case .directory:
+            req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
+            req.downloadAccountID = backupAccountID
+            req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            req.secret = compressSecret
+            if dirScopeKey == "dir" {
+                req.isDir = true
+                req.files = []
+                req.sourceDir = dirSourceText.trimmingCharacters(in: .whitespaces)
+            } else {
+                let files = nonEmptyLines(filesText)
+                req.isDir = false
+                req.files = files.map { CronjobFileItem(val: $0) }
+                req.sourceDir = files.joined(separator: ",")
+            }
+        case .log:
+            req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
+            req.downloadAccountID = backupAccountID
+            req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            req.secret = compressSecret
+        case .curl:
+            let urls = nonEmptyLines(curlURLsText)
+            req.url = urls.joined(separator: ",")
+            req.urlItems = urls.isEmpty ? [""] : urls
+        case .cutWebsiteLog:
+            req.website = websiteSelection
+            req.websiteList = [websiteSelection]
+        case .cleanLog:
+            req.scopes = ["website"]
         case .clean, .ntp, .syncIpGroup:
             // 仅保留份数，无备份账号与类型特定字段
             break
+        }
+
+        // 告警分组（所有类型通用；标题格式对齐 Web 端「计划任务-类型「 任务名 」任务失败告警」）
+        if hasAlert {
+            req.hasAlert = true
+            req.alertCount = alertCount
+            req.alertTitle = L10n.f("计划任务-%@「 %@ 」任务失败告警", type.displayName, name)
+            let ids = alertMethodIDs.map(String.init)
+                .sorted { (Int($0) ?? 0) < (Int($1) ?? 0) }
+            req.alertMethod = ids.joined(separator: ",")
+            req.alertMethodItems = ids
         }
 
         if isEditing, let info = editingJob {
@@ -623,12 +877,20 @@ struct CreateCronjobView: View {
         // 备份设置
         retainCopies = info.retainCopies ?? 7
         backupAccountID = info.downloadAccountID ?? 0
+        compressSecret = info.secret ?? ""
 
         // 超时与重试
         retryTimes = info.retryTimes ?? 3
         let (unit, value) = TimeoutUnit.from(seconds: info.timeout ?? 3600)
         timeoutUnit = unit
         timeoutValue = value
+
+        // 告警分组
+        hasAlert = info.hasAlert ?? false
+        if let count = info.alertCount, count > 0 {
+            alertCount = count
+        }
+        alertMethodIDs = info.alertMethodIDSet
 
         // 各类型特定字段
         switch type {
@@ -645,6 +907,34 @@ struct CreateCronjobView: View {
             dbSelection = info.dbName ?? "all"
             dbBackupParams = info.backupParamSet
         case .snapshot:
+            break
+        case .directory:
+            let isDir = info.isDir ?? true
+            dirScopeKey = isDir ? "dir" : "file"
+            if isDir {
+                dirSourceText = info.sourceDir ?? ""
+            } else {
+                // files 数组优先，缺失时回退 sourceDir 逗号分隔
+                let list = info.filePathList
+                if list.isEmpty, let raw = info.sourceDir, !raw.isEmpty {
+                    filesText = raw.split(separator: ",").map(String.init).joined(separator: "\n")
+                } else {
+                    filesText = list.joined(separator: "\n")
+                }
+            }
+        case .log:
+            break
+        case .curl:
+            // urlItems 数组优先，缺失时回退 url 逗号分隔
+            let items = (info.urlItems ?? []).filter { !$0.isEmpty }
+            if items.isEmpty, let raw = info.url, !raw.isEmpty {
+                curlURLsText = raw.split(separator: ",").map(String.init).joined(separator: "\n")
+            } else {
+                curlURLsText = items.joined(separator: "\n")
+            }
+        case .cutWebsiteLog:
+            websiteSelection = info.website ?? "all"
+        case .cleanLog:
             break
         case .clean, .ntp, .syncIpGroup:
             break
@@ -932,6 +1222,133 @@ struct BackupParamsPickerView: View {
             selection.remove(value)
         } else {
             selection.insert(value)
+        }
+    }
+}
+
+// MARK: - 备份目录或文件：文件范围编辑页（形态 7.1）
+
+/// 文件路径多行编辑：一行一个文件，右上角文件浏览器按钮可从服务端选择文件追加
+struct CronjobFilesEditorView: View {
+    let server: ServerConfig
+    @Binding var text: String
+
+    @State private var showFileBrowser = false
+
+    var body: some View {
+        Form {
+            Section {
+                OutlinedMultiLineField(label: L10n.t("文件路径"), lines: 7, text: $text)
+            } footer: {
+                Text(L10n.t("一行一个文件路径，可通过右上角文件浏览器从服务器选择"))
+            }
+        }
+        .navigationTitle(L10n.t("选择文件"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showFileBrowser = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .accessibilityLabel(L10n.t("从服务器选择文件"))
+            }
+        }
+        .sheet(isPresented: $showFileBrowser) {
+            FileBrowserView(server: server) { path in
+                appendFile(path)
+            }
+        }
+    }
+
+    /// 追加一个文件路径（去重、去空行）
+    private func appendFile(_ path: String) {
+        var lines = nonEmptyLines()
+        if !lines.contains(path) {
+            lines.append(path)
+        }
+        text = lines.joined(separator: "\n")
+    }
+
+    private func nonEmptyLines() -> [String] {
+        text.split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+}
+
+// MARK: - 告警方式多选（告警分组入口行 → Sheet）
+
+/// 告警方式多选 Sheet：勾选即回写 selection，关闭即确认（与备份参数多选同模式）
+struct CronjobAlertMethodsPickerView: View {
+    let methods: [AlertConfigItem]
+    @Binding var selection: Set<Int>
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if methods.isEmpty {
+                    Section {
+                        ContentUnavailableView(
+                            L10n.t("暂无可用的告警方式"),
+                            systemImage: "bell.slash",
+                            description: Text(L10n.t("请先在告警通知的设置中配置发送方式"))
+                        )
+                        .padding(.vertical, 20)
+                    }
+                } else {
+                    Section {
+                        ForEach(methods) { method in
+                            Button {
+                                toggle(method.id)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: selection.contains(method.id)
+                                          ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(selection.contains(method.id)
+                                                         ? Color.accentColor : .secondary)
+                                        .font(.title3)
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(method.sendConfig.displayName
+                                             ?? method.title
+                                             ?? L10n.t("未知"))
+                                            .foregroundStyle(.primary)
+                                        Text(AlertSendType(rawValue: method.type ?? "")?.displayName
+                                             ?? (method.type ?? ""))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } footer: {
+                        Text(L10n.t("可多选；任务失败达到告警次数后将通过所选方式通知"))
+                    }
+                }
+            }
+            .navigationTitle(L10n.t("告警方式"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("完成")) { dismiss() }
+                        .bold()
+                }
+            }
+        }
+        .bottomSheetDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func toggle(_ id: Int) {
+        if selection.contains(id) {
+            selection.remove(id)
+        } else {
+            selection.insert(id)
         }
     }
 }
