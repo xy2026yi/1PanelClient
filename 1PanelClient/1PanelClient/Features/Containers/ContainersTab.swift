@@ -18,6 +18,7 @@ struct ContainersTab: View {
     @State private var showNetworks = false
     @State private var showVolumes = false
     @State private var showComposes = false
+    @State private var showDaemonSettings = false
 
 
     init(manager: ServerManager) {
@@ -95,6 +96,9 @@ struct ContainersTab: View {
         .navigationDestination(isPresented: $showComposes) {
             ContainerComposesView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
+        .navigationDestination(isPresented: $showDaemonSettings) {
+            ContainerDaemonSettingsView(server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+        }
     }
 
     private var containerList: some View {
@@ -108,6 +112,8 @@ struct ContainersTab: View {
                 showVolumes = true
             }, onShowComposes: {
                 showComposes = true
+            }, onShowSettings: {
+                showDaemonSettings = true
             })
 
             if vm.containers.isEmpty {
@@ -150,6 +156,7 @@ struct DockerStatusCard: View {
     var onShowNetworks: () -> Void = {}
     var onShowVolumes: () -> Void = {}
     var onShowComposes: () -> Void = {}
+    var onShowSettings: () -> Void = {}
     @State private var isExpanded = false
     @State private var pendingAction: String?
 
@@ -192,6 +199,9 @@ struct DockerStatusCard: View {
                         },
                         ServiceAction(title: L10n.t("编排"), icon: "square.stack.3d.up.fill", color: .brown) {
                             onShowComposes()
+                        },
+                        ServiceAction(title: L10n.t("设置"), icon: "gearshape", color: .gray) {
+                            onShowSettings()
                         }
                     ]
                 ) {

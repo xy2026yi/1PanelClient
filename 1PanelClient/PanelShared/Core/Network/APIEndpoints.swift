@@ -63,6 +63,10 @@ enum APIEndpoint {
     case containersRepoUpdate     // POST 编辑镜像仓库
     case containersRepoDelete     // POST 删除镜像仓库 {id}
     case containersRepoSync       // POST 同步镜像仓库 {id}
+    case containersDaemonjson        // GET  Docker daemon.json 概览（镜像加速/IPv6/日志切割等）
+    case containersDaemonjsonUpdate  // POST daemon.json 单项更新 {key,value}
+    case containersIpv6OptionUpdate  // POST IPv6 选项更新 {fixedCidrV6,ip6Tables,experimental}
+    case containersLogOptionUpdate   // POST 日志切割选项更新 {logMaxSize,logMaxFile}
 
     // MARK: - 网站
     case websitesSearch           // POST 分页查询网站
@@ -734,6 +738,10 @@ enum APIEndpoint {
         case .containersRepoCreate:     return "/api/v2/containers/repo"
         case .containersRepoUpdate:     return "/api/v2/containers/repo/update"
         case .containersRepoDelete:     return "/api/v2/containers/repo/del"
+        case .containersDaemonjson:       return "/api/v2/containers/daemonjson"
+        case .containersDaemonjsonUpdate: return "/api/v2/containers/daemonjson/update"
+        case .containersIpv6OptionUpdate: return "/api/v2/containers/ipv6option/update"
+        case .containersLogOptionUpdate:  return "/api/v2/containers/logoption/update"
         case .containersRepoSync:       return "/api/v2/containers/repo/status"
         case .websitesSearch:        return "/api/v2/websites/search"
         case .websitesOptions:       return "/api/v2/websites/options"
@@ -1252,7 +1260,7 @@ enum APIEndpoint {
     var method: String {
         switch self {
         case .dashboardOS, .dashboardBase, .dashboardCurrent, .dashboardTopCPU, .dashboardTopMem,
-             .monitorNetOptions, .backupAccountsClientInfo,
+             .monitorNetOptions, .backupAccountsClientInfo, .containersDaemonjson,
              .appsIgnoredList, .appsStoreDetail,
              .appsTags,
              .disksList,

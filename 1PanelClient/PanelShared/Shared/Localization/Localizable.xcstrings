@@ -36790,6 +36790,259 @@
         }
       }
     },
+    "镜像加速" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registry Mirrors"
+          }
+        }
+      }
+    },
+    "私有仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insecure Registries"
+          }
+        }
+      }
+    },
+    "镜像与仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Images & Registries"
+          }
+        }
+      }
+    },
+    "一行一个镜像加速地址，保存时以逗号拼接提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One mirror URL per line; submitted as a comma-separated list"
+          }
+        }
+      }
+    },
+    "一行一个仓库地址（主机:端口），保存时以逗号拼接提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One registry address (host:port) per line; submitted as a comma-separated list"
+          }
+        }
+      }
+    },
+    "开启后需填写 IPv6 子网并保存；关闭将从 daemon.json 移除 IPv6 配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fill in the IPv6 subnet and save to enable; disabling removes the IPv6 section from daemon.json"
+          }
+        }
+      }
+    },
+    "请填写子网" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subnet is required"
+          }
+        }
+      }
+    },
+    "保存 IPv6 配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save IPv6 Configuration"
+          }
+        }
+      }
+    },
+    "日志切割" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Rotation"
+          }
+        }
+      }
+    },
+    "文件大小" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Size"
+          }
+        }
+      }
+    },
+    "文件单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size Unit"
+          }
+        }
+      }
+    },
+    "保存日志配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Log Configuration"
+          }
+        }
+      }
+    },
+    "请填写文件大小与保留份数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File size and file count are required"
+          }
+        }
+      }
+    },
+    "当前配置只会影响新创建的容器；已经创建的容器需要重新创建使配置生效；注意，重新创建容器可能会导致数据丢失。如果你的容器中有重要数据，确保在执行重建操作之前进行备份。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This only affects newly created containers; existing containers must be recreated for it to take effect. Note that recreating containers may cause data loss — back up important data before rebuilding."
+          }
+        }
+      }
+    },
+    "关闭 iptables" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable iptables"
+          }
+        }
+      }
+    },
+    "关闭 iptables 会导致容器无法与外部网络通信。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabling iptables prevents containers from communicating with the external network."
+          }
+        }
+      }
+    },
+    "Live restore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live restore"
+          }
+        }
+      }
+    },
+    "Socket路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Socket Path"
+          }
+        }
+      }
+    },
+    "Socket 路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Socket Path"
+          }
+        }
+      }
+    },
+    "面板访问 Docker 的 Socket 地址；可从文件浏览器选择 sock 文件自动回填" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Docker socket address used by the panel; pick a sock file from the file browser to auto-fill"
+          }
+        }
+      }
+    },
+    "修改配置后需要重启 Docker 服务生效\n如果确认操作，请手动输入「立即重启」" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart the Docker service for changes to take effect.\nType \u201cRestart Now\u201d to confirm."
+          }
+        }
+      }
+    },
+    "修改配置后需要重启 Docker 服务生效\n保存设置 Socket 路径可能导致 Docker 服务不可用，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart the Docker service for changes to take effect.\nSaving an incorrect socket path may make Docker unavailable. Continue?"
+          }
+        }
+      }
+    },
+    "已保存，重启 Docker 后生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved; takes effect after Docker restarts"
+          }
+        }
+      }
+    },
     "没有找到Acme账户" : {
       "extractionState" : "manual",
       "localizations" : {
