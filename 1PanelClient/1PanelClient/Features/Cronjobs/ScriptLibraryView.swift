@@ -191,7 +191,8 @@ struct ScriptLibraryView: View {
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
-    @State private var showMenu = false
+    /// + 号半屏菜单（创建/立即同步/自动同步）
+    @State private var showCreateMenu = false
     /// 立即同步确认
     @State private var confirmSyncNow = false
     /// 关闭自动同步确认
@@ -266,44 +267,45 @@ struct ScriptLibraryView: View {
             title: L10n.t("脚本库"),
             prompt: L10n.t("搜索脚本名")
         )
-        // 右上角：搜索 + 三点菜单（立即同步 / 自动同步）
+        // 右上角仅 搜索 + 一个 + 号：+ 打开半屏菜单（创建脚本 / 立即同步 / 自动同步，
+        // 与计划任务等页「+ → 半屏菜单」全站习惯一致；原 ⋯ 菜单收编合并）
         .toolbar {
-            if !isSearching {
-                if onPick == nil {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showCreate = true
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .accessibilityLabel(L10n.t("创建脚本"))
-                    }
-                }
+            if !isSearching, onPick == nil {
                 ToolbarItem(placement: .topBarTrailing) {
-                    EllipsisMenuButton {
-                        withAnimation(Motion.fast) { showMenu.toggle() }
+                    Button {
+                        showCreateMenu = true
+                    } label: {
+                        Image(systemName: "plus")
                     }
-                    .accessibilityLabel(L10n.t("更多"))
+                    .accessibilityLabel(L10n.t("创建脚本"))
                 }
             }
         }
-        .overlay(alignment: .topTrailing) {
-            if showMenu {
-                EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("立即同步"), icon: "arrow.trianglehead.2.clockwise.rotate.90") { confirmSyncNow = true },
-                    .action(title: vm.isAutoSyncEnabled ? L10n.t("关闭自动同步") : L10n.t("开启自动同步"),
-                            icon: "exclamationmark.arrow.trianglehead.2.clockwise.rotate.90") {
+        .sheet(isPresented: $showCreateMenu) {
+            ActionBottomSheet(
+                title: L10n.t("脚本库"),
+                items: [
+                    .init(title: L10n.t("创建脚本"), icon: "plus.circle", color: .blue) {
+                        showCreate = true
+                    },
+                    .init(title: L10n.t("立即同步"), icon: "arrow.trianglehead.2.clockwise.rotate.90",
+                          color: .teal) {
+                        confirmSyncNow = true
+                    },
+                    .init(title: vm.isAutoSyncEnabled ? L10n.t("关闭自动同步") : L10n.t("开启自动同步"),
+                          icon: "exclamationmark.arrow.trianglehead.2.clockwise.rotate.90",
+                          color: .orange) {
                         if vm.isAutoSyncEnabled {
                             confirmDisableAutoSync = true
                         } else {
                             confirmEnableAutoSync = true
                         }
                     },
-                    // 分组管理入口已移至筛选条末尾「管理」chip（推页呈现）
-                ]) {
-                    withAnimation(Motion.fast) { showMenu = false }
-                }
-            }
+                ],
+                onDismiss: { showCreateMenu = false }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
+            .presentationDragIndicator(.visible)
         }
         .toastOverlay(message: $vm.toastMessage)
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
