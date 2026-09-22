@@ -356,10 +356,22 @@ nonisolated struct WAFWebsiteConfigRequest: Encodable {
 
 /// 网站配置详情（/waf/config/website 响应）：网站级各规则块当前值。
 /// cc 块用于频率限制表单回填真实参数，避免默认值覆盖服务器配置
+/// config/website 响应：除 waf/cc/strict 外，按站规则块与全局配置同构
+///（args/defaultUrlBlack/…/sql/xss/fileExt/cdn；字段缺失时为 nil，开关按关处理）
 nonisolated struct WAFWebsiteConfig: Decodable {
     let waf: WAFCore?
     let cc: WAFCcRuleConfig?
     let strict: WAFRuleItem?
+    var args: WAFRuleItem?
+    var defaultUrlBlack: WAFRuleItem?
+    var methodWhite: WAFRuleItem?
+    var cookie: WAFRuleItem?
+    var header: WAFRuleItem?
+    var defaultUaBlack: WAFRuleItem?
+    var sql: WAFRuleItem?
+    var xss: WAFRuleItem?
+    var fileExt: WAFRuleItem?
+    var cdn: WAFCdnConfig?
 }
 
 // MARK: - CDN 真实 IP 获取

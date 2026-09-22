@@ -500,7 +500,7 @@ struct ClamView: View {
                     withAnimation(Motion.fast) { showFreshClam.toggle() }
                 },
                 // 设置入口收进状态抽屉（原右上角菜单移除）
-                ServiceAction(title: L10n.t("ClamAV 设置"), icon: "gearshape", color: .purple) {
+                ServiceAction(title: L10n.t("设置"), icon: "gearshape", color: .purple) {
                     showSettings = true
                 },
             ]

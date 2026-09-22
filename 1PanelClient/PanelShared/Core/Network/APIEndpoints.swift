@@ -347,6 +347,7 @@ enum APIEndpoint {
     case alertUpdate            // POST 更新告警规则
     case alertDelete            // POST 删除告警规则 {id}
     case alertLogsSearch        // POST 分页查询告警日志
+    case alertLogsClean         // POST 清理全部告警日志
     case alertDisksList         // GET  磁盘列表（磁盘告警选择挂载目录用）
     case alertConfigSearch      // POST 分页查询发送方式（excludeTypes 排除 sms）
     case alertConfigInfo        // POST 查询全部配置（含 common 全局配置）
@@ -969,6 +970,7 @@ enum APIEndpoint {
         case .alertUpdate:           return "/api/v2/alert/update"
         case .alertDelete:           return "/api/v2/alert/del"
         case .alertLogsSearch:       return "/api/v2/alert/logs/search"
+        case .alertLogsClean:        return "/api/v2/alert/logs/clean"
         case .alertDisksList:        return "/api/v2/alert/disks/list"
         case .alertConfigSearch:     return "/api/v2/alert/config/search"
         case .alertConfigInfo:       return "/api/v2/alert/config/info"

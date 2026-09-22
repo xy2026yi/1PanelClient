@@ -33,7 +33,9 @@ nonisolated struct BackupAccount: Decodable, Identifiable {
     /// 当前客户端支持编辑表单的类型
     var isEditable: Bool { BackupAccountType(rawValue: type ?? "") != nil || isLocal }
 
-    var displayType: String { type ?? "—" }
+    var displayType: String { isLocal ? L10n.t("服务器磁盘") : (type ?? "—") }
+    /// 名称（内置本机账号中文显示「本机」）
+    var displayName: String { isLocal ? L10n.t("本机") : (name ?? "—") }
     var displayCreatedAt: String {
         guard let t = createdAt, t.count >= 10 else { return "—" }
         return String(t.prefix(10))
@@ -578,7 +580,7 @@ struct BackupAccountRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(account.name ?? "—")
+                    Text(account.displayName)
                         .font(.body.bold())
                         .lineLimit(1)
                     if account.isProtected {
@@ -896,7 +898,7 @@ struct BackupAccountEditView: View {
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }) {
-                    Text(isLocal ? "LOCAL" : type.displayName)
+                    Text(isLocal ? L10n.t("服务器磁盘") : type.displayName)
                         .lineLimit(1)
                 }
             } else {

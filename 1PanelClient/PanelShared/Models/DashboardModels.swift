@@ -141,7 +141,10 @@ nonisolated struct ProcessInfo: Decodable, Identifiable, Sendable {
 }
 
 /// 面板系统设置信息（POST /core/settings/search）
-/// 用于获取面板版本号等
+/// 用于获取面板版本号等。
+/// 容错解码（decodeDefault）：面板升级改字段口径（如字符串改数字）时仅该字段
+/// 回落空值，不再整对象 decode 失败——否则 try? 吞错后旧值长驻，
+/// 首页版本在网页升级面板后怎么刷新都不更新
 nonisolated struct SettingInfo: Decodable, Sendable {
     let systemVersion: String?
     let systemIP: String?
@@ -160,6 +163,34 @@ nonisolated struct SettingInfo: Decodable, Sendable {
     let ntpSite: String?
     /// 脚本库自动同步开关：Enable / Disable
     let scriptSync: String?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        systemVersion = c.decodeDefault(String?.self, forKey: .systemVersion, nil)
+        systemIP = c.decodeDefault(String?.self, forKey: .systemIP, nil)
+        timeZone = c.decodeDefault(String?.self, forKey: .timeZone, nil)
+        localTime = c.decodeDefault(String?.self, forKey: .localTime, nil)
+        monitorStatus = c.decodeDefault(String?.self, forKey: .monitorStatus, nil)
+        monitorInterval = c.decodeDefault(String?.self, forKey: .monitorInterval, nil)
+        monitorStoreDays = c.decodeDefault(String?.self, forKey: .monitorStoreDays, nil)
+        appStoreVersion = c.decodeDefault(String?.self, forKey: .appStoreVersion, nil)
+        appStoreSyncStatus = c.decodeDefault(String?.self, forKey: .appStoreSyncStatus, nil)
+        appStoreLastModified = c.decodeDefault(String?.self, forKey: .appStoreLastModified, nil)
+        dockerSockPath = c.decodeDefault(String?.self, forKey: .dockerSockPath, nil)
+        defaultIO = c.decodeDefault(String?.self, forKey: .defaultIO, nil)
+        defaultNetwork = c.decodeDefault(String?.self, forKey: .defaultNetwork, nil)
+        fileRecycleBin = c.decodeDefault(String?.self, forKey: .fileRecycleBin, nil)
+        ntpSite = c.decodeDefault(String?.self, forKey: .ntpSite, nil)
+        scriptSync = c.decodeDefault(String?.self, forKey: .scriptSync, nil)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case systemVersion, systemIP, timeZone, localTime
+        case monitorStatus, monitorInterval, monitorStoreDays
+        case appStoreVersion, appStoreSyncStatus, appStoreLastModified
+        case dockerSockPath, defaultIO, defaultNetwork, fileRecycleBin, ntpSite
+        case scriptSync
+    }
 }
 
 /// 面板版本更新检查结果

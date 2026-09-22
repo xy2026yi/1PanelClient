@@ -223,7 +223,6 @@ struct FTPView: View {
     @State private var isServiceExpanded = false
     @State private var pendingAction: String?
     @State private var showCreate = false
-    @State private var showMenu = false
     @State private var confirmSync = false
     /// 长按弹出的操作菜单目标（编辑 / 日志 / 删除）
     @State private var actionAccount: FTPItem?
@@ -262,14 +261,8 @@ struct FTPView: View {
         .navigationTitle("FTP")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // 未安装时不显示同步/添加入口
+            // 未安装时不显示添加入口（同步已移入状态抽屉）
             if vm.isInstalled {
-                ToolbarItem(placement: .topBarTrailing) {
-                    EllipsisMenuButton(isLoading: vm.isSyncing) {
-                        withAnimation(Motion.fast) { showMenu.toggle() }
-                    }
-                    .accessibilityLabel(L10n.t("更多操作"))
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showCreate = true
@@ -277,17 +270,6 @@ struct FTPView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel(L10n.t("添加账号"))
-                }
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if showMenu {
-                EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("同步"), icon: "arrow.trianglehead.2.clockwise.rotate.90", isDisabled: vm.isSyncing) {
-                        confirmSync = true
-                    },
-                ]) {
-                    withAnimation(Motion.fast) { showMenu = false }
                 }
             }
         }
@@ -423,6 +405,12 @@ struct FTPView: View {
                     ) { pendingAction = base.isActive ? "stop" : "start" },
                     ServiceAction(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
                         pendingAction = "restart"
+                    },
+                    // 同步服务器账号列表（原右上角 … 菜单移入；点击后确认弹窗）
+                    ServiceAction(title: L10n.t("同步"),
+                                  icon: "arrow.trianglehead.2.clockwise.rotate.90",
+                                  color: .teal, isDisabled: vm.isSyncing) {
+                        confirmSync = true
                     },
                 ]
             ) {

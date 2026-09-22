@@ -21,6 +21,8 @@ struct AlertNotificationView: View {
 
     /// 无发送方式时点击「创建告警」的提示
     @State private var showNoConfigAlert = false
+    @State private var showCleanLogsConfirm = false
+    @State private var isCleaningLogs = false
 
     init(server: ServerConfig) {
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.alert.storeKey(server: server)) {
@@ -51,6 +53,22 @@ struct AlertNotificationView: View {
         }
         .navigationTitle(L10n.t("告警通知"))
         .navigationBarTitleDisplayMode(.inline)
+        // 清理日志确认（全删不可恢复）
+        .alert(L10n.t("清理日志"), isPresented: $showCleanLogsConfirm) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("清理"), role: .destructive) {
+                Task {
+                    isCleaningLogs = true
+                    if await vm.cleanLogs() {
+                        await vm.loadLogs()
+                        vm.toastMessage = L10n.t("已清理")
+                    }
+                    isCleaningLogs = false
+                }
+            }
+        } message: {
+            Text(L10n.t("将删除全部告警日志，该操作无法回滚，是否继续？"))
+        }
         // 右上角创建入口（日志段不显示），样式与计划任务页一致
         .toolbar {
             if segment != 1 {
@@ -67,6 +85,17 @@ struct AlertNotificationView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel(segment == 2 ? L10n.t("添加发送方式") : L10n.t("创建告警"))
+                }
+            } else {
+                // 日志段：右上角清理日志（确认后全删，不可恢复）
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showCleanLogsConfirm = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .disabled(vm.isLoadingLogs || vm.logs.isEmpty)
+                    .accessibilityLabel(L10n.t("清理日志"))
                 }
             }
         }
@@ -607,6 +636,23 @@ final class AlertViewModel: ObservableObject {
             logs = resp.items ?? []
         } catch {
             // 日志加载失败不打断主流程，列表保持为空
+        }
+    }
+
+    /// 清理全部告警日志（POST /alert/logs/clean）；返回是否成功
+    func cleanLogs() async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.alertLogsClean.path,
+                body: AlertLogSearchRequest(),
+                as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            guard !APIError.isCancellation(error) else { return false }
+            alertMessage = error.localizedDescription
+            showAlert = true
+            return false
         }
     }
 

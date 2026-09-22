@@ -133,7 +133,11 @@ struct OverviewTab: View {
         // 应用升级/忽略/卸载都在管理 Tab 完成，不刷新的话角标要等下拉才更新
         .onChange(of: selectedTab) { _, tab in
             if tab == .overview {
-                Task { await vm.refreshAppUpdateCount() }
+                Task {
+                    await vm.refreshAppUpdateCount()
+                    // 版本/更新信息一并轻量重查：网页端升级面板后回到 App 即可见新版本
+                    await vm.refreshPanelInfo()
+                }
             }
         }
         // 实时监控独立轮询（审计 D1/D3）：仅首页 Tab 且处于根页面时运行——
@@ -188,6 +192,16 @@ struct OverviewTab: View {
                     .foregroundStyle(.tint)
                 Text(L10n.t("面板信息"))
                     .font(.headline)
+                Spacer()
+                if vm.upgradeInfo?.hasUpdate(comparedTo: vm.settingInfo?.systemVersion) == true {
+                    // 可更新徽标（中/英同款）：图标 + New，贴标题行右侧
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrowshape.up.circle")
+                        Text("New")
+                    }
+                    .font(.caption.bold())
+                    .foregroundStyle(.orange)
+                }
             }
             Divider()
             // 版本号行：可点击跳转版本更新日志
@@ -197,9 +211,6 @@ struct OverviewTab: View {
                 Spacer()
                 Text(vm.settingInfo?.systemVersion.flatMap { $0.isEmpty ? nil : $0 } ?? L10n.t("未知"))
                     .foregroundStyle(.primary)
-                if vm.upgradeInfo?.hasUpdate(comparedTo: vm.settingInfo?.systemVersion) == true {
-                    StatusBadge(text: L10n.t("有更新"), color: .orange)
-                }
                 if panelVersionMismatch {
                     // L0 版本感知：面板 ≠ 适配基线时温和提示（不阻断），点版本行可看更新日志
                     StatusBadge(text: L10n.f("客户端适配 %@", PanelVersionTools.adaptedBaseline), color: .secondary)
@@ -714,6 +725,20 @@ final class OverviewViewModel: ObservableObject {
         ) {
             self.currentInfo = c
         }
+    }
+
+    /// 仅刷新面板设置与更新信息（切回首页 Tab / 下拉之外的低成本路径，
+    /// 网页端升级面板后无需下拉即可见新版本）
+    func refreshPanelInfo() async {
+        async let s: SettingInfo? = try? await client.send(
+            path: APIEndpoint.settingsSearch.path, as: SettingInfo.self)
+        async let up: PanelUpgradeInfo? = try? await client.send(
+            path: APIEndpoint.settingsUpgradeCheck.path,
+            method: APIEndpoint.settingsUpgradeCheck.method,
+            as: PanelUpgradeInfo.self)
+        let (sv, uv) = await (s, up)
+        if let sv { settingInfo = sv }
+        if let uv { upgradeInfo = uv }
     }
 
     /// 仅刷新可更新应用数（供切回首页 Tab 时调用）：

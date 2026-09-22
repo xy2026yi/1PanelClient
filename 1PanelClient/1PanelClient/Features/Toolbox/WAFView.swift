@@ -146,7 +146,7 @@ struct WAFView: View {
                     entryRow(icon: "shield.lefthalf.filled", color: .red, title: L10n.t("黑白名单"))
                 }
                 NavigationLink {
-                    WAFWebsiteSettingsView(server: server)
+                    WAFWebsiteSettingsView(vm: vm, server: server)
                 } label: {
                     entryRow(icon: "at", color: .teal, title: L10n.t("网站设置"))
                 }

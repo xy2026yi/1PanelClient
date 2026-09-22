@@ -214,6 +214,23 @@ nonisolated struct AIAgentModelConfig: Decodable, Hashable {
     let accountId: Int?
     let model: String?
     let fallbacks: [String]?
+    /// 各模型能力配置（inputMode：auto/text/image；0 = 使用模型默认值）
+    let metadata: [AIAgentModelMetadata]?
+}
+
+/// 模型能力项（agents/model/update 的 metadata 数组元素，抓包 2026-09-22）
+nonisolated struct AIAgentModelMetadata: Codable, Hashable {
+    var model: String
+    var inputMode: String
+    var contextWindow: Int
+    var maxTokens: Int
+
+    init(model: String, inputMode: String = "auto", contextWindow: Int = 0, maxTokens: Int = 0) {
+        self.model = model
+        self.inputMode = inputMode
+        self.contextWindow = contextWindow
+        self.maxTokens = maxTokens
+    }
 }
 
 nonisolated struct AIAgentModelUpdateRequest: Encodable {
@@ -221,6 +238,8 @@ nonisolated struct AIAgentModelUpdateRequest: Encodable {
     let accountId: Int
     let model: String
     let fallbacks: [String]
+    /// 按账号模型池逐个携带（未设置的项传 0 = 使用模型默认值）
+    var metadata: [AIAgentModelMetadata] = []
 }
 
 // MARK: - 技能

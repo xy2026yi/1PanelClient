@@ -12,6 +12,7 @@
 import SwiftUI
 
 struct WAFWebsiteSettingsView: View {
+    @ObservedObject var vm: WAFViewModel
     let server: ServerConfig
 
     @State private var websites: [WAFWebsiteItem] = []
@@ -21,13 +22,9 @@ struct WAFWebsiteSettingsView: View {
     @State private var successMessage: String?
     /// 全局配置的 strict.state（"off" 时网站不可切严格模式）
     @State private var globalStrictOn = false
-
-    // CC 参数：默认与面板 Web 端一致起填，选中网站后经 config/website 回填真实值
-    @State private var ccMode = "uri"
-    @State private var ccDuration = "10"
-    @State private var ccThreshold = "200"
-    @State private var ccBlockTime = "600"
-    /// CC 回填竞态令牌：快速切换网站时丢弃过期响应，避免旧值覆盖新选中站
+    /// 当前站的完整配置（config/website：按站规则开关 + CC 参数回填）
+    @State private var siteConfig: WAFWebsiteConfig?
+    /// 站配置回填竞态令牌：快速切换网站时丢弃过期响应
     @State private var ccLoadToken = 0
 
     // 确认弹窗：关闭 WAF / 切观察模式
@@ -37,7 +34,8 @@ struct WAFWebsiteSettingsView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig) {
+    init(vm: WAFViewModel, server: ServerConfig) {
+        self.vm = vm
         self.server = server
         self.client = APIClient.shared(for: server)
     }
@@ -75,7 +73,10 @@ struct WAFWebsiteSettingsView: View {
             } else {
                 websiteSection
                 protectionSection
-                ccSection
+                ccLinkSection
+                defaultRulesSection
+                customRulesSection
+                otherSection
             }
         }
         .navigationTitle(L10n.t("网站设置"))
@@ -191,36 +192,94 @@ struct WAFWebsiteSettingsView: View {
         }
     }
 
-    private var ccSection: some View {
+    /// 频率限制：跳转独立配置页（开关/模式/参数/保存）
+    private var ccLinkSection: some View {
         Section {
-            Toggle(L10n.t("频率限制"), isOn: Binding(
-                get: { selected?.ccState == "on" },
-                set: { newVal in
-                    Task { await toggleCC(on: newVal) }
+            NavigationLink {
+                if let site = selected {
+                    WAFWebsiteCCPage(server: server, site: site) {
+                        Task { await reloadKeepingSelection() }
+                    }
                 }
-            ))
-            .disabled(isOperating || !wafOn)
-
-            OutlinedPicker(label: L10n.t("模式"), options: ["uri", "global"],
-                           selection: $ccMode,
-                           optionLabels: ["uri": L10n.t("URL 模式"),
-                                          "global": L10n.t("全局模式")])
-                .disabled(selected?.ccState != "on")
-
-            OutlinedUnitField(label: L10n.t("周期"), unit: L10n.t("秒"),
-                              text: $ccDuration)
-            OutlinedUnitField(label: L10n.t("频率"), unit: L10n.t("次"),
-                              text: $ccThreshold)
-            OutlinedUnitField(label: L10n.t("封禁时间"), unit: L10n.t("秒"),
-                              text: $ccBlockTime)
-
-            Button(L10n.t("保存")) {
-                Task { await saveCC() }
+            } label: {
+                HStack {
+                    Text(L10n.t("频率限制"))
+                    Spacer()
+                    Text(selected?.ccState == "on" ? L10n.t("已启用") : L10n.t("未启用"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             }
-            .disabled(selected?.ccState != "on" || isOperating)
+            .disabled(selected == nil)
         } header: {
             Text(L10n.t("频率限制"))
         }
+    }
+
+    /// 默认规则（与全局配置同款六组，按站开关；点入查看规则集）
+    private var defaultRulesSection: some View {
+        Section {
+            ruleToggleRow(title: L10n.t("参数规则"), item: siteConfig?.args, scope: "Args")
+            ruleToggleRow(title: L10n.t("URL规则"), item: siteConfig?.defaultUrlBlack, scope: "DefaultUrlBlack")
+            ruleToggleRow(title: L10n.t("HTTP规则"), item: siteConfig?.methodWhite, scope: "MethodWhite")
+            ruleToggleRow(title: L10n.t("Cookie规则"), item: siteConfig?.cookie, scope: "Cookie")
+            ruleToggleRow(title: L10n.t("Header规则"), item: siteConfig?.header, scope: "Header")
+            ruleToggleRow(title: L10n.t("User-Agent规则"), item: siteConfig?.defaultUaBlack, scope: "DefaultUaBlack")
+        } header: {
+            SectionLabel(title: L10n.t("默认规则"), systemImage: "checkmark.shield")
+        }
+    }
+
+    /// 自定义规则（与全局配置一致：文件上传限制 + CDN）
+    private var customRulesSection: some View {
+        Section {
+            NavigationLink {
+                WAFCommonRulesView(server: server, scope: "fileExt", title: L10n.t("文件上传限制"))
+            } label: {
+                ruleToggleRow(title: L10n.t("文件上传限制"), item: siteConfig?.fileExt, scope: "FileExt")
+            }
+            NavigationLink {
+                WAFCdnSettingsView(vm: vm, server: server, config: vm.config?.cdn)
+            } label: {
+                HStack {
+                    Text("CDN")
+                    Spacer()
+                    if vm.config?.cdn?.state == "on" {
+                        Text(vm.config?.cdn?.type?.uppercased() ?? "")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        } header: {
+            SectionLabel(title: L10n.t("自定义规则"), systemImage: "slider.horizontal.3")
+        }
+    }
+
+    /// 其他（与全局配置一致，但无严格模式——网站级严格模式在「防护」分区）
+    private var otherSection: some View {
+        Section {
+            ruleToggleRow(title: L10n.t("SQL注入防御"), item: siteConfig?.sql, scope: "Sql")
+            ruleToggleRow(title: L10n.t("XSS防御"), item: siteConfig?.xss, scope: "Xss")
+        } header: {
+            SectionLabel(title: L10n.t("其他"), systemImage: "ellipsis.circle")
+        }
+    }
+
+    /// 按站规则开关行（状态来自 config/website，切换走 website/state）
+    private func ruleToggleRow(title: String, item: WAFRuleItem?, scope: String) -> some View {
+        Toggle(isOn: Binding(
+            get: { item?.isOn ?? false },
+            set: { newVal in
+                Task { await setWebsiteState(scope: scope, state: newVal ? "on" : "off") }
+            }
+        )) {
+            Text(title)
+        }
+        .disabled(isOperating || !wafOn)
     }
 
     // MARK: - 数据与请求
@@ -272,8 +331,8 @@ struct WAFWebsiteSettingsView: View {
         await loadWebsiteConfig()
     }
 
-    /// 读取当前站的网站配置，回填 CC 表单真实参数。
-    /// 失败静默保持现值（表单仍可手动编辑提交）；token 防快速切换网站的过期回填
+    /// 读取当前站的完整配置（按站规则开关；CC 参数由频率限制子页自行回填）。
+    /// 失败静默保持现值；token 防快速切换网站的过期回填
     private func loadWebsiteConfig() async {
         guard let id = selectedID else { return }
         ccLoadToken += 1
@@ -285,14 +344,9 @@ struct WAFWebsiteSettingsView: View {
                 as: WAFWebsiteConfig.self
             )
             guard token == ccLoadToken else { return }
-            if let cc = cfg.cc {
-                ccMode = cc.mode ?? "uri"
-                ccDuration = String(cc.duration ?? 10)
-                ccThreshold = String(cc.threshold ?? 200)
-                ccBlockTime = String(cc.ipBlockTime ?? 600)
-            }
+            siteConfig = cfg
         } catch {
-            // 无单独错误提示：CC 表单维持默认值，避免干扰主流程
+            // 无单独错误提示：开关维持现值，避免干扰主流程
         }
     }
 
@@ -312,27 +366,134 @@ struct WAFWebsiteSettingsView: View {
         }
     }
 
+    /// 状态切换后重拉网站列表（选中不变），并同步刷新 CC 表单回填值
+    private func reloadKeepingSelection() async {
+        let keep = selectedID
+        if let all = try? await fetchAllWebsites() {
+            websites = all
+        }
+        selectedID = websites.first { $0.id == keep }?.id ?? websites.first?.id
+        await loadWebsiteConfig()
+    }
+}
+
+// MARK: - 网站级频率限制配置页（跳转进入，右上角保存）
+
+/// 开关 + 模式 + 周期/频率/封禁参数：进入时经 config/website 回填当前站真实值；
+/// 开启 = state(Cc,on) + 附带 rule/cc 全量规则；关 = 仅 state(Cc,off)；保存参数 = rule/cc
+struct WAFWebsiteCCPage: View {
+    let server: ServerConfig
+    let site: WAFWebsiteItem
+    /// 开关/保存成功后回调（父页重拉列表与配置）
+    var onChanged: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var ccMode = "uri"
+    @State private var ccDuration = "10"
+    @State private var ccThreshold = "200"
+    @State private var ccBlockTime = "600"
+    @State private var isOn: Bool
+    @State private var isOperating = false
+    @State private var successMessage: String?
+    @State private var errorMessage: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, site: WAFWebsiteItem, onChanged: @escaping () -> Void) {
+        self.server = server
+        self.site = site
+        self.onChanged = onChanged
+        self.client = APIClient.shared(for: server)
+        _isOn = State(initialValue: site.ccState == "on")
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(L10n.t("频率限制"), isOn: Binding(
+                    get: { isOn },
+                    set: { newVal in
+                        isOn = newVal
+                        Task { await toggleCC(on: newVal) }
+                    }
+                ))
+                .disabled(isOperating)
+
+                OutlinedPicker(label: L10n.t("模式"), options: ["uri", "global"],
+                               selection: $ccMode,
+                               optionLabels: ["uri": L10n.t("URL 模式"),
+                                              "global": L10n.t("全局模式")])
+                .disabled(!isOn)
+
+                OutlinedUnitField(label: L10n.t("周期"), unit: L10n.t("秒"),
+                                  text: $ccDuration)
+                OutlinedUnitField(label: L10n.t("频率"), unit: L10n.t("次"),
+                                  text: $ccThreshold)
+                OutlinedUnitField(label: L10n.t("封禁时间"), unit: L10n.t("秒"),
+                                  text: $ccBlockTime)
+            } header: {
+                Text(site.primaryDomain ?? L10n.t("频率限制"))
+            } footer: {
+                Text(L10n.t("保存后立即生效；周期内超过频率的访问将按封禁时间拦截"))
+            }
+        }
+        .navigationTitle(L10n.t("频率限制"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await saveCC() }
+                } label: {
+                    if isOperating { ProgressView() } else { Text(L10n.t("保存")).bold() }
+                }
+                .disabled(isOperating || !isOn)
+            }
+        }
+        .task { await loadParams() }
+        .localToast(message: $successMessage)
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    /// 进入时回填当前站 CC 真实参数（失败静默保持默认）
+    private func loadParams() async {
+        guard let cfg: WAFWebsiteConfig = try? await client.send(
+            path: APIEndpoint.wafConfigWebsite.path,
+            body: WAFWebsiteConfigRequest(id: site.id),
+            as: WAFWebsiteConfig.self
+        ), let cc = cfg.cc else { return }
+        ccMode = cc.mode ?? "uri"
+        ccDuration = String(cc.duration ?? 10)
+        ccThreshold = String(cc.threshold ?? 200)
+        ccBlockTime = String(cc.ipBlockTime ?? 600)
+    }
+
     /// 开频率限制 = state(Cc,on) + 附带一条 rule/cc 全量规则；关 = 仅 state(Cc,off)
     private func toggleCC(on: Bool) async {
-        guard let site = selected else { return }
         isOperating = true
         defer { isOperating = false }
         do {
-            let stateReq = WAFWebsiteStateRequest(websiteID: site.id, scope: "Cc", state: on ? "on" : "off", mode: nil)
+            let stateReq = WAFWebsiteStateRequest(websiteID: site.id, scope: "Cc",
+                                                  state: on ? "on" : "off", mode: nil)
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.wafWebsiteState.path, body: stateReq, as: EmptyResponse.self
-            )
+                path: APIEndpoint.wafWebsiteState.path, body: stateReq, as: EmptyResponse.self)
             if on {
-                let ccReq = ccRuleRequest(state: "on")
                 let _: EmptyResponse = try await client.send(
-                    path: APIEndpoint.wafWebsiteRuleCC.path, body: ccReq, as: EmptyResponse.self
-                )
+                    path: APIEndpoint.wafWebsiteRuleCC.path, body: ccRuleRequest(),
+                    as: EmptyResponse.self)
             }
-            await reloadKeepingSelection()
+            onChanged()
         } catch {
+            isOn = !on
             errorMessage = error.localizedDescription
-            // 半途失败（state 已改而 rule 未提交）也要重载，保持 UI 与服务端一致
-            await reloadKeepingSelection()
+            onChanged()
         }
     }
 
@@ -341,19 +502,18 @@ struct WAFWebsiteSettingsView: View {
         isOperating = true
         defer { isOperating = false }
         do {
-            let req = ccRuleRequest(state: "on")
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.wafWebsiteRuleCC.path, body: req, as: EmptyResponse.self
-            )
+                path: APIEndpoint.wafWebsiteRuleCC.path, body: ccRuleRequest(),
+                as: EmptyResponse.self)
             successMessage = L10n.t("已保存")
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    private func ccRuleRequest(state: String) -> WAFWebsiteCCRuleRequest {
+    private func ccRuleRequest() -> WAFWebsiteCCRuleRequest {
         WAFWebsiteCCRuleRequest(
-            state: state,
+            state: "on",
             code: 0,
             action: "deny",
             type: "cc",
@@ -363,17 +523,7 @@ struct WAFWebsiteSettingsView: View {
             threshold: Int(ccThreshold) ?? 200,
             duration: Int(ccDuration) ?? 10,
             mode: ccMode,
-            websites: selected.map { [$0.id] } ?? []
+            websites: [site.id]
         )
-    }
-
-    /// 状态切换后重拉网站列表（选中不变），并同步刷新 CC 表单回填值
-    private func reloadKeepingSelection() async {
-        let keep = selectedID
-        if let all = try? await fetchAllWebsites() {
-            websites = all
-        }
-        selectedID = websites.first { $0.id == keep }?.id ?? websites.first?.id
-        await loadWebsiteConfig()
     }
 }
