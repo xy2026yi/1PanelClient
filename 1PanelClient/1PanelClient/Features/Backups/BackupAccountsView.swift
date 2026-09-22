@@ -1033,19 +1033,11 @@ struct BackupAccountEditView: View {
                     .buttonStyle(.borderless)
                     .disabled(aliyunToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                TextEditor(text: $aliyunToken)
-                    .font(.caption.monospaced())
-                    .frame(minHeight: 88)
-                    .overlay(alignment: .topLeading) {
-                        if aliyunToken.isEmpty {
-                            Text("{ \"default_drive_id\": …, \"refresh_token\": … }")
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.tertiary)
-                                .padding(.top, 8)
-                                .padding(.leading, 4)
-                                .allowsHitTesting(false)
-                        }
-                    }
+                OutlinedMultiLineField(label: "Token",
+                                       prompt: "{ \"default_drive_id\": …, \"refresh_token\": … }",
+                                       lines: 5, fixedLines: 5,
+                                       zoomable: true, monospaced: true,
+                                       text: $aliyunToken)
             }
             OutlinedTextField(label: "Drive ID", text: $aliyunDriveID,
                               keyboardType: .URL)
@@ -1105,19 +1097,11 @@ struct BackupAccountEditView: View {
                     .buttonStyle(.borderless)
                     .disabled(oauthClientID.isEmpty || oauthRedirectURI.isEmpty)
                 }
-                TextEditor(text: $oauthCode)
-                    .font(.caption.monospaced())
-                    .frame(minHeight: 72)
-                    .overlay(alignment: .topLeading) {
-                        if oauthCode.isEmpty {
-                            Text(L10n.t("在授权页完成登录后，从跳转地址中复制 code 参数粘贴至此"))
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .padding(.top, 8)
-                                .padding(.leading, 4)
-                                .allowsHitTesting(false)
-                        }
-                    }
+                OutlinedMultiLineField(label: L10n.t("授权码"),
+                                       prompt: L10n.t("在授权页完成登录后，从跳转地址中复制 code 参数粘贴至此"),
+                                       lines: 4, fixedLines: 4,
+                                       zoomable: true, monospaced: true,
+                                       text: $oauthCode)
             }
         } header: {
             Text(L10n.t("连接信息"))
@@ -1312,24 +1296,11 @@ struct BackupAccountEditView: View {
             if sftpAuthMode == .password {
                 OutlinedPasswordField(label: L10n.t("密码"), text: $sftpPassword)
             } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(L10n.t("私钥"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    TextEditor(text: $sftpPrivateKey)
-                        .font(.caption.monospaced())
-                        .frame(minHeight: 110)
-                        .overlay(alignment: .topLeading) {
-                            if sftpPrivateKey.isEmpty {
-                                Text("-----BEGIN OPENSSH PRIVATE KEY-----")
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.tertiary)
-                                    .padding(.top, 8)
-                                    .padding(.leading, 4)
-                                    .allowsHitTesting(false)
-                            }
-                        }
-                }
+                OutlinedMultiLineField(label: L10n.t("私钥"),
+                                       prompt: "-----BEGIN OPENSSH PRIVATE KEY-----",
+                                       lines: 5, fixedLines: 5,
+                                       zoomable: true, monospaced: true,
+                                       text: $sftpPrivateKey)
                 OutlinedPasswordField(label: L10n.t("私钥密码"), prompt: L10n.t("可选"),
                               text: $sftpPassPhrase)
             }

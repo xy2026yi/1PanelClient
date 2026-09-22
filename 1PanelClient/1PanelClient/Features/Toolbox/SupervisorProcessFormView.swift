@@ -72,7 +72,8 @@ struct SupervisorProcessFormView: View {
             Section {
                 // 环境变量（形态 7.1，每行一条 KEY=value）
                 OutlinedMultiLineField(label: L10n.t("环境变量"), prompt: "KEY=value",
-                                       lines: 1, text: $environment)
+                                       lines: 3, fixedLines: 3, zoomable: true,
+                                       text: $environment)
             } header: {
                 SectionLabel(title: L10n.t("环境变量"), systemImage: "curlybraces")
             } footer: {

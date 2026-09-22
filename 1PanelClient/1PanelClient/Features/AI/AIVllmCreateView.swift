@@ -75,6 +75,8 @@ struct AIVllmCreateView: View {
     @State private var pullImage = true
     @State private var editCompose = false
     @State private var dockerCompose = ""
+    /// 服务端编排原文（「已修改」判定基线；模板随版本重载/实例保存值落库时更新）
+    @State private var composeOrigin = ""
 
     // MARK: 弹层 / 加载
 
@@ -139,6 +141,7 @@ struct AIVllmCreateView: View {
             _pullImage = State(initialValue: i.pullImage ?? true)
             _editCompose = State(initialValue: i.editCompose ?? false)
             _dockerCompose = State(initialValue: i.dockerCompose ?? "")
+            _composeOrigin = State(initialValue: i.dockerCompose ?? "")
             // 编辑态高级页默认展开：旧实现提交恒 advanced=true，
             // 收起直接保存会把 advanced 翻转为 false（可能重置资源限制）
             _advancedEnabled = State(initialValue: true)
@@ -253,8 +256,9 @@ struct AIVllmCreateView: View {
                 await loadCompose()
             }
         }
-        .sheet(isPresented: $showComposeEditor) {
-            ComposeEditorSheet(compose: $dockerCompose)
+        .fullScreenCover(isPresented: $showComposeEditor) {
+            FullscreenTextEditorSheet(title: "docker-compose.yml",
+                                      text: $dockerCompose, monospaced: true)
         }
     }
 
@@ -396,6 +400,17 @@ struct AIVllmCreateView: View {
         }
     }
 
+    /// Compose 入口行摘要：已修改/未修改 · 行数（加载中显示占位）
+    private var composeSummary: String {
+        if dockerCompose.isEmpty && composeOrigin.isEmpty {
+            return L10n.t("加载模板中…")
+        }
+        let modified = dockerCompose != composeOrigin
+        let lines = dockerCompose.split(whereSeparator: \.isNewline).count
+        return L10n.f("%@ · %ld 行",
+                      modified ? L10n.t("已修改") : L10n.t("未修改"), lines)
+    }
+
     // MARK: 高级设置
 
     private var advancedSection: some View {
@@ -434,15 +449,20 @@ struct AIVllmCreateView: View {
                 Button {
                     showComposeEditor = true
                 } label: {
-                    Label(
-                        dockerCompose.isEmpty ? L10n.t("加载模板中…") : L10n.t("查看 / 编辑 Compose"),
-                        systemImage: "chevron.right"
-                    )
-                    .frame(maxWidth: .infinity)
+                    HStack {
+                        Text("docker-compose.yml")
+                        Spacer()
+                        Text(composeSummary)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
-                .buttonStyle(.bordered)
-                .disabled(dockerCompose.isEmpty)
-                .listRowBackground(Color.clear)
+                .buttonStyle(.plain)
+                .disabled(dockerCompose.isEmpty && composeOrigin.isEmpty)
             }
         } header: {
             SectionLabel(title: L10n.t("高级设置"), systemImage: "slider.horizontal.3")
@@ -615,6 +635,7 @@ struct AIVllmCreateView: View {
         // 仅创建模式（或实例未保存过 compose）时拉取当前类型的模板
         if let saved = instance?.dockerCompose, !saved.isEmpty {
             dockerCompose = saved
+            composeOrigin = saved
             return
         }
         // appVersion 为必填：版本列表还没就绪（映射不到可用版本）时先跳过，
@@ -631,36 +652,10 @@ struct AIVllmCreateView: View {
                 body: VllmImageTypeRequest(imageType: imageType.rawValue, appVersion: appVersion),
                 as: VllmComposeResponse.self)
             dockerCompose = resp.dockerCompose ?? ""
+            composeOrigin = dockerCompose
         } catch {
             // 模板加载失败不阻塞创建（未勾选编辑 compose 时后端自行取默认模板）
         }
     }
 }
 
-// MARK: - Compose 编辑 Sheet
-
-private struct ComposeEditorSheet: View {
-    @Binding var compose: String
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                TextEditor(text: $compose)
-                    .font(.dataMonospacedCaption)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-            }
-            .navigationTitle(L10n.t("Compose 文件"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("完成")) { dismiss() }
-                }
-            }
-        }
-        .presentationDragIndicator(.visible)
-        .bottomSheetDetents([.large])
-    }
-}

@@ -334,6 +334,17 @@ struct AppInstallView: View {
     @State private var pullImage = true
     @State private var editCompose = false
     @State private var customCompose = ""
+    /// 默认编排原文（「已修改」判定基线）
+    @State private var composeOrigin = ""
+    @State private var showComposeEditor = false
+
+    /// Compose 入口行摘要：已修改/未修改 · 行数
+    private var composeSummary: String {
+        let modified = customCompose != composeOrigin
+        let lines = customCompose.split(whereSeparator: \.isNewline).count
+        return L10n.f("%@ · %ld 行",
+                      modified ? L10n.t("已修改") : L10n.t("未修改"), lines)
+    }
 
     // 安装结果（进度视图）；成功路径走任务进度页 + installCompleted 通知，
     // 此 alert 仅承载提交失败
@@ -374,6 +385,10 @@ struct AppInstallView: View {
         }
         .navigationTitle(L10n.f("安装 %@", detail.name ?? ""))
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $showComposeEditor) {
+            FullscreenTextEditorSheet(title: "docker-compose.yml",
+                                      text: $customCompose, monospaced: true)
+        }
         .task { await loadDetail() }
         .navigationDestination(isPresented: $showProgress) {
             TaskProgressView(
@@ -556,17 +571,31 @@ struct AppInstallView: View {
                         .onChange(of: editCompose) { _, isOn in
                             if isOn && customCompose.isEmpty {
                                 customCompose = appDetail.dockerCompose ?? ""
+                                composeOrigin = customCompose
                             }
                         }
                 }
 
+                // 开关只管「是否自定义」；内容编辑走入口行 → 全屏编辑器
+                //（内嵌全文会推走其余参数，且表单滚动与编辑器滚动双层嵌套）
                 if editCompose {
                     Section {
-                        TextEditor(text: $customCompose)
-                            .font(.dataMonospacedCaption)
-                            .frame(minHeight: 200)
-                    } header: {
-                        Text("docker-compose.yml")
+                        Button {
+                            showComposeEditor = true
+                        } label: {
+                            HStack {
+                                Text("docker-compose.yml")
+                                Spacer()
+                                Text(composeSummary)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .buttonStyle(.plain)
                     } footer: {
                         Text(L10n.t("编辑后将使用自定义内容覆盖默认编排文件"))
                     }

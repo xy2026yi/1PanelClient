@@ -377,21 +377,13 @@ struct SSHHostEditView: View {
                                           "key": L10n.t("私钥认证")])
 
             if isKeyAuth {
-                TextEditor(text: $privateKey)
-                    .font(.dataMonospacedFootnote)
-                    .frame(minHeight: 100)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .overlay(alignment: .topLeading) {
-                        if privateKey.isEmpty {
-                            Text(isEditing ? L10n.t("私钥（不修改请留空）") : L10n.t("私钥（粘贴 OPENSSH PRIVATE KEY）"))
-                                .font(.footnote)
-                                .foregroundStyle(.tertiary)
-                                .padding(.top, 8)
-                                .padding(.leading, 4)
-                                .allowsHitTesting(false)
-                        }
-                    }
+                OutlinedMultiLineField(
+                    label: L10n.t("私钥"),
+                    prompt: isEditing
+                        ? L10n.t("不修改请留空") : "-----BEGIN OPENSSH PRIVATE KEY-----",
+                    lines: 5, fixedLines: 5,
+                    zoomable: true, monospaced: true,
+                    text: $privateKey)
                 OutlinedPasswordField(label: L10n.t("私钥密码"), prompt: L10n.t("可选"),
                                   text: $passPhrase)
             } else {

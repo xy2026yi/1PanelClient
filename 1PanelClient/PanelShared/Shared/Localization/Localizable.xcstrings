@@ -24433,6 +24433,39 @@
         }
       }
     },
+    "已修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modified"
+          }
+        }
+      }
+    },
+    "未修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unmodified"
+          }
+        }
+      }
+    },
+    "%@ · %ld 行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %ld lines"
+          }
+        }
+      }
+    },
     "没有找到Acme账户" : {
       "extractionState" : "manual",
       "localizations" : {

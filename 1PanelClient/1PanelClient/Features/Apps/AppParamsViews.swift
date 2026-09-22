@@ -25,6 +25,16 @@ struct UpdateParamsView: View {
     /// 内存单位（K/M/G，随请求提交）
     @State private var memoryUnit = "M"
     @State private var editCompose = false
+    /// 默认编排原文（「已修改」判定基线）与全屏编辑入口
+    @State private var composeOrigin = ""
+    @State private var showComposeEditor = false
+
+    private var composeSummary: String {
+        let modified = customCompose != composeOrigin
+        let lines = customCompose.split(whereSeparator: \.isNewline).count
+        return L10n.f("%@ · %ld 行",
+                      modified ? L10n.t("已修改") : L10n.t("未修改"), lines)
+    }
     @State private var customCompose = ""
 
     private let restartPolicies = ["no", "always", "on-failure", "unless-stopped"]
@@ -68,6 +78,10 @@ struct UpdateParamsView: View {
             }
         }
         .task { await load() }
+        .fullScreenCover(isPresented: $showComposeEditor) {
+            FullscreenTextEditorSheet(title: "docker-compose.yml",
+                                      text: $customCompose, monospaced: true)
+        }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -122,24 +136,38 @@ struct UpdateParamsView: View {
                 Text(L10n.t("填 0 表示不限制"))
             }
 
-            // docker-compose
+            // docker-compose：开关 + 入口行 → 全屏编辑（与安装参数页同款）
             Section {
                 Toggle(L10n.t("编辑 docker-compose.yml"), isOn: $editCompose)
                     .onChange(of: editCompose) { _, isOn in
                         if isOn && customCompose.isEmpty {
                             customCompose = resp.dockerCompose ?? resp.rawCompose ?? ""
+                            composeOrigin = customCompose
                         }
                     }
+
+                if editCompose {
+                    Button {
+                        showComposeEditor = true
+                    } label: {
+                        HStack {
+                            Text("docker-compose.yml")
+                            Spacer()
+                            Text(composeSummary)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
             } header: {
                 Text("docker-compose")
-            }
-
-            if editCompose {
-                Section {
-                    TextEditor(text: $customCompose)
-                        .font(.dataMonospacedCaption)
-                        .frame(minHeight: 200)
-                } footer: {
+            } footer: {
+                if editCompose {
                     Text(L10n.t("编辑后将使用自定义内容覆盖默认编排文件"))
                 }
             }

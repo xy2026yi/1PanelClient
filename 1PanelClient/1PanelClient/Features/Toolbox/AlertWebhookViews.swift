@@ -28,7 +28,8 @@ struct AlertWebhookBodyView: View {
                                options: AlertWebhookBodyType.allCases,
                                selection: bodyTypeBinding) { $0.displayName }
 
-                OutlinedMultiLineField(label: L10n.t("Body 模版"), lines: 8,
+                OutlinedMultiLineField(label: L10n.t("Body 模版"), lines: 8, fixedLines: 8,
+                                       zoomable: true, monospaced: true,
                                        text: templateBinding)
             } footer: {
                 Text(L10n.t("提示：title=告警标题，message=告警内容，type=告警类型，nodeName=节点名称，timestamp=发生时间"))

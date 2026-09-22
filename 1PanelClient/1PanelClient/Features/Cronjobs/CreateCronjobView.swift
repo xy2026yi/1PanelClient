@@ -362,9 +362,11 @@ struct CreateCronjobView: View {
                     Label(L10n.t("从脚本库选择"), systemImage: "books.vertical")
                         .foregroundStyle(Color.accentColor)
                 }
-                TextEditor(text: $script)
-                    .font(.dataMonospacedCaption)
-                    .frame(minHeight: 160)
+                OutlinedMultiLineField(label: L10n.t("脚本内容"),
+                                       prompt: "#!/bin/bash",
+                                       lines: 8, fixedLines: 8,
+                                       zoomable: true, monospaced: true,
+                                       text: $script)
             } header: { Text(L10n.t("脚本内容")) }
 
             Section {
@@ -451,7 +453,8 @@ struct CreateCronjobView: View {
 
         case .curl:
             Section {
-                OutlinedMultiLineField(label: L10n.t("URL 地址"), lines: 4,
+                OutlinedMultiLineField(label: L10n.t("URL 地址"), lines: 4, fixedLines: 4,
+                                       zoomable: true,
                                        text: $curlURLsText)
             } header: {
                 Text(L10n.t("访问 URL"))

@@ -408,6 +408,9 @@ struct FullscreenTextEditorSheet: View {
     let title: String
     @Binding var text: String
     var monospaced: Bool = false
+    /// 只读查看模式：逐行渲染（行号 + 文本同行同列，天然对齐不随折行错位），
+    /// 可选中复制、不可编辑
+    var readOnly: Bool = false
 
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isFocused: Bool
@@ -416,8 +419,35 @@ struct FullscreenTextEditorSheet: View {
         max(1, text.split(whereSeparator: \.isNewline).count)
     }
 
+    private var contentLines: [Substring] {
+        text.split(omittingEmptySubsequences: false, whereSeparator: { $0.isNewline })
+    }
+
     var body: some View {
         NavigationStack {
+            if readOnly {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(contentLines.enumerated()), id: \.offset) { idx, line in
+                            HStack(alignment: .top, spacing: 10) {
+                                Text(String(idx + 1))
+                                    .font(.callout.monospacedDigit())
+                                    .foregroundStyle(.tertiary)
+                                    .frame(minWidth: 34, alignment: .trailing)
+                                Text(line.isEmpty ? " " : String(line))
+                                    .font(monospaced ? .callout.monospaced() : .callout)
+                                    .textSelection(.enabled)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.vertical, 1)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .background(Color(.systemGroupedBackground))
+            } else {
             ScrollView {
                 TextEditor(text: $text)
                     .font(monospaced ? .body.monospaced() : .body)
@@ -438,14 +468,18 @@ struct FullscreenTextEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("完成")) { isFocused = false; dismiss() }
-                        .bold()
+                    Button(readOnly ? L10n.t("关闭") : L10n.t("完成")) {
+                        isFocused = false
+                        dismiss()
+                    }
+                    .bold()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Text(L10n.f("%ld 行 · %ld 字", lineCount, text.count))
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
+            }
             }
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
