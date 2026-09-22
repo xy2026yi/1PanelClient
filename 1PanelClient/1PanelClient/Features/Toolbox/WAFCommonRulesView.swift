@@ -14,6 +14,10 @@ struct WAFCommonRulesView: View {
     /// 内置规则集模式（全局配置-默认规则）：规则只读 + 开关 + 「应用到网站」，
     /// 无创建/编辑/删除；黑白名单与文件上传限制走完整 CRUD（默认 false）
     var builtin: Bool = false
+    /// 按站过滤：0 = 全局/模板规则集（全局配置入口）；
+    /// 网站设置入口传该站 id，搜索/开关/增删均作用于该站规则
+    ///（抓包 2026-09-22：search 与 update 均携带 websiteID）
+    var websiteID: Int = 0
 
     @State private var items: [WAFCommonRuleItem] = []
     @State private var isLoading = false
@@ -29,11 +33,13 @@ struct WAFCommonRulesView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, scope: String, title: String, builtin: Bool = false) {
+    init(server: ServerConfig, scope: String, title: String,
+         builtin: Bool = false, websiteID: Int = 0) {
         self.server = server
         self.scope = scope
         self.title = title
         self.builtin = builtin
+        self.websiteID = websiteID
         self.client = APIClient.shared(for: server)
     }
 
@@ -102,12 +108,12 @@ struct WAFCommonRulesView: View {
         .refreshable { await loadItems() }
         .task { await loadItems() }
         .navigationDestination(isPresented: $showCreate) {
-            WAFCommonRuleFormView(server: server, scope: scope) {
+            WAFCommonRuleFormView(server: server, scope: scope, websiteID: websiteID) {
                 Task { await loadItems() }
             }
         }
         .navigationDestination(item: $editingItem) { item in
-            WAFCommonRuleFormView(server: server, scope: scope, editingItem: item) {
+            WAFCommonRuleFormView(server: server, scope: scope, editingItem: item, websiteID: websiteID) {
                 Task { await loadItems() }
             }
         }
@@ -193,7 +199,7 @@ struct WAFCommonRulesView: View {
 
     private func loadItems() async {
         isLoading = true
-        let req = WAFCommonRuleSearchRequest(page: 1, pageSize: 100, scope: scope, websiteID: 0)
+        let req = WAFCommonRuleSearchRequest(page: 1, pageSize: 100, scope: scope, websiteID: websiteID)
         do {
             let resp: PageResponse<WAFCommonRuleItem> = try await client.send(
                 path: APIEndpoint.wafRuleCommonSearch.path, body: req,
@@ -212,7 +218,7 @@ struct WAFCommonRulesView: View {
         let req = WAFCommonRuleUpdateRequest(
             name: item.name, state: newState, rule: item.rule,
             type: item.type ?? "", description: item.description ?? "",
-            scope: scope, websiteID: 0
+            scope: scope, websiteID: websiteID
         )
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonUpdate.path, body: req, as: EmptyResponse.self)
@@ -224,7 +230,7 @@ struct WAFCommonRulesView: View {
     }
 
     private func deleteItem(_ item: WAFCommonRuleItem) async {
-        let req = WAFCommonRuleDeleteRequest(name: item.name, scope: scope, websiteID: 0)
+        let req = WAFCommonRuleDeleteRequest(name: item.name, scope: scope, websiteID: websiteID)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonDelete.path, body: req, as: EmptyResponse.self)
             successMessage = L10n.t("已删除")
@@ -244,6 +250,8 @@ struct WAFCommonRuleFormView: View {
     let scope: String
     /// 编辑中的规则；nil = 创建
     let editingItem: WAFCommonRuleItem?
+    /// 0 = 全局；网站设置入口传该站 id
+    var websiteID: Int = 0
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -254,10 +262,12 @@ struct WAFCommonRuleFormView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, scope: String, editingItem: WAFCommonRuleItem? = nil, onSaved: @escaping () -> Void) {
+    init(server: ServerConfig, scope: String, editingItem: WAFCommonRuleItem? = nil,
+         websiteID: Int = 0, onSaved: @escaping () -> Void) {
         self.server = server
         self.scope = scope
         self.editingItem = editingItem
+        self.websiteID = websiteID
         self.onSaved = onSaved
         self.client = APIClient.shared(for: server)
         if let item = editingItem {
@@ -309,13 +319,13 @@ struct WAFCommonRuleFormView: View {
                 let req = WAFCommonRuleUpdateRequest(
                     name: item.name, state: item.state, rule: rule,
                     type: item.type ?? "", description: description,
-                    scope: scope, websiteID: 0
+                    scope: scope, websiteID: websiteID
                 )
                 let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonUpdate.path, body: req, as: EmptyResponse.self)
             } else {
                 let req = WAFCommonRuleCreateRequest(
                     name: "", state: "on", description: description,
-                    scope: scope, rule: rule, websiteID: 0
+                    scope: scope, rule: rule, websiteID: websiteID
                 )
                 let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCommonCreate.path, body: req, as: EmptyResponse.self)
             }

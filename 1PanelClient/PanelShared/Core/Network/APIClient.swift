@@ -174,7 +174,7 @@ final class APIClient {
             }
             #if DEBUG
             Logger(subsystem: "com.xy.1PanelClient.debug", category: "api")
-                .warning("[API-DEBUG] \(path, privacy: .public) \(debugBody, privacy: .public) -> \(String(data: data, encoding: .utf8) ?? "", privacy: .public)")
+                .warning("[API-DEBUG] \(path, privacy: .public) \(debugBody, privacy: .public) -> \(String(data: data.prefix(2048), encoding: .utf8) ?? "", privacy: .public)")
             #endif
             throw APIError.businessError(wrapped.code, wrapped.message ?? "")
         }
@@ -187,7 +187,7 @@ final class APIClient {
             // 直接可见原始返回，避免「静默空列表」式的排查盲区
             #if DEBUG
             Logger(subsystem: "com.xy.1PanelClient.debug", category: "api")
-                .warning("[API-DEBUG] 解码失败 \(path, privacy: .public) -> \(String(data: data, encoding: .utf8) ?? "", privacy: .public)")
+                .warning("[API-DEBUG] 解码失败 \(path, privacy: .public) -> \(String(data: data.prefix(2048), encoding: .utf8) ?? "", privacy: .public)")
             #endif
             throw APIError.decodingError(error.localizedDescription)
         }

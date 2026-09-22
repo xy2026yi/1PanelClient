@@ -223,32 +223,32 @@ struct WAFWebsiteSettingsView: View {
     private var defaultRulesSection: some View {
         Section {
             NavigationLink {
-                WAFCommonRulesView(server: server, scope: "args", title: L10n.t("参数规则"), builtin: true)
+                WAFCommonRulesView(server: server, scope: "args", title: L10n.t("参数规则"), builtin: true, websiteID: selected?.id ?? 0)
             } label: {
                 ruleToggleRow(title: L10n.t("参数规则"), item: siteConfig?.args, scope: "Args")
             }
             NavigationLink {
-                WAFCommonRulesView(server: server, scope: "defaultUrlBlack", title: L10n.t("URL规则"), builtin: true)
+                WAFCommonRulesView(server: server, scope: "defaultUrlBlack", title: L10n.t("URL规则"), builtin: true, websiteID: selected?.id ?? 0)
             } label: {
                 ruleToggleRow(title: L10n.t("URL规则"), item: siteConfig?.defaultUrlBlack, scope: "DefaultUrlBlack")
             }
             NavigationLink {
-                WAFCommonRulesView(server: server, scope: "methodWhite", title: L10n.t("HTTP规则"), builtin: true)
+                WAFCommonRulesView(server: server, scope: "methodWhite", title: L10n.t("HTTP规则"), builtin: true, websiteID: selected?.id ?? 0)
             } label: {
                 ruleToggleRow(title: L10n.t("HTTP规则"), item: siteConfig?.methodWhite, scope: "MethodWhite")
             }
             NavigationLink {
-                WAFCommonRulesView(server: server, scope: "cookie", title: L10n.t("Cookie规则"), builtin: true)
+                WAFCommonRulesView(server: server, scope: "cookie", title: L10n.t("Cookie规则"), builtin: true, websiteID: selected?.id ?? 0)
             } label: {
                 ruleToggleRow(title: L10n.t("Cookie规则"), item: siteConfig?.cookie, scope: "Cookie")
             }
             NavigationLink {
-                WAFCommonRulesView(server: server, scope: "header", title: L10n.t("Header规则"), builtin: true)
+                WAFCommonRulesView(server: server, scope: "header", title: L10n.t("Header规则"), builtin: true, websiteID: selected?.id ?? 0)
             } label: {
                 ruleToggleRow(title: L10n.t("Header规则"), item: siteConfig?.header, scope: "Header")
             }
             NavigationLink {
-                WAFCommonRulesView(server: server, scope: "defaultUaBlack", title: L10n.t("User-Agent规则"), builtin: true)
+                WAFCommonRulesView(server: server, scope: "defaultUaBlack", title: L10n.t("User-Agent规则"), builtin: true, websiteID: selected?.id ?? 0)
             } label: {
                 ruleToggleRow(title: L10n.t("User-Agent规则"), item: siteConfig?.defaultUaBlack, scope: "DefaultUaBlack")
             }
@@ -261,7 +261,7 @@ struct WAFWebsiteSettingsView: View {
     private var customRulesSection: some View {
         Section {
             NavigationLink {
-                WAFCommonRulesView(server: server, scope: "fileExt", title: L10n.t("文件上传限制"))
+                WAFCommonRulesView(server: server, scope: "fileExt", title: L10n.t("文件上传限制"), websiteID: selected?.id ?? 0)
             } label: {
                 ruleToggleRow(title: L10n.t("文件上传限制"), item: siteConfig?.fileExt, scope: "FileExt")
             }
