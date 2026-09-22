@@ -421,6 +421,9 @@ struct FullscreenTextEditorSheet: View {
             ScrollView {
                 TextEditor(text: $text)
                     .font(monospaced ? .body.monospaced() : .body)
+                    // 隐藏编辑器自带背景：文字直接铺在页面底色上，
+                    // 全屏与小框之间不再有割裂的框边界（无边全页书写）
+                    .scrollContentBackground(.hidden)
                     .frame(minHeight: 420, alignment: .topLeading)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -430,6 +433,7 @@ struct FullscreenTextEditorSheet: View {
                     .scrollDisabled(true)   // 滚动交给外层，避免嵌套滚动手势冲突
             }
             .scrollDismissesKeyboard(.interactively)
+            .background(Color(.systemGroupedBackground))
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -443,8 +447,8 @@ struct FullscreenTextEditorSheet: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .background(Color(.systemGroupedBackground))
         }
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
     }
 }
 
