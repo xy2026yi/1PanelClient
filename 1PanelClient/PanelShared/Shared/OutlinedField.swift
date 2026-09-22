@@ -283,9 +283,16 @@ struct OutlinedMultiLineField: View {
     var prompt: String? = nil
     /// 默认行数（minHeight 随之；内容超出自动增高），默认 5
     var lines: Int = 5
+    /// 固定高度（行数）：内容超出框内滚动。nil = 随内容自然增高（旧行为）
+    var fixedLines: Int? = nil
+    /// 放大按钮：点击进入全屏编辑（实时绑定，返回即最新内容）
+    var zoomable: Bool = false
+    /// 全屏编辑用等宽字体（脚本/密钥类 true，普通文本 false）
+    var monospaced: Bool = false
     @Binding var text: String
 
     @FocusState private var isFocused: Bool
+    @State private var showZoom = false
 
     // 动态字体联动（默认 5 行 ≈ 行高 22 × 5 + 上下内边距，随 body 缩放）
     @ScaledMetric(relativeTo: .caption2) private var floatFontSize: CGFloat = 11
@@ -296,6 +303,11 @@ struct OutlinedMultiLineField: View {
     /// 框高 = 浮动区 + 行数×行高 + 上下内边距（1 行约 60pt，文字不贴底边线）
     private var minHeight: CGFloat {
         floatArea + CGFloat(lines) * bodyFont * 1.45 + 24
+    }
+
+    /// 固定高度（fixedLines 锁定；TextEditor 内部为 UIScrollView，超高自动滚动）
+    private var maxHeight: CGFloat? {
+        fixedLines.map { floatArea + CGFloat($0) * bodyFont * 1.45 + 24 }
     }
 
     private var isFloating: Bool { isFocused || !text.isEmpty }
@@ -313,17 +325,41 @@ struct OutlinedMultiLineField: View {
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(borderColor, lineWidth: isFocused ? 1.5 : 1)
-                    .frame(minHeight: minHeight)
+                    .frame(minHeight: minHeight, maxHeight: maxHeight)
 
                 TextEditor(text: $text)
                     .font(.system(size: bodyFontSize))
                     .scrollContentBackground(.hidden)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 12)
-                    .frame(minHeight: minHeight, alignment: .topLeading)
+                    .frame(minHeight: minHeight, maxHeight: maxHeight, alignment: .topLeading)
                     .focused($isFocused)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+
+                // 放大按钮：框右上角，进入全屏编辑
+                if zoomable {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Button {
+                                isFocused = false
+                                showZoom = true
+                            } label: {
+                                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .padding(6)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel(L10n.t("全屏编辑"))
+                        }
+                        Spacer()
+                    }
+                    .padding(.top, 2)
+                    .padding(.trailing, 4)
+                }
 
                 // 空态标签：首行贴左（与多行输入起点一致），浮动态隐藏
                 Text(label)
@@ -356,6 +392,58 @@ struct OutlinedMultiLineField: View {
                     .allowsHitTesting(false)
             }
             .animation(.easeInOut(duration: 0.18), value: isFloating)
+        }
+        // 全屏编辑（放大按钮进入；实时绑定，返回即最新内容）
+        .fullScreenCover(isPresented: $showZoom) {
+            FullscreenTextEditorSheet(title: label, text: $text, monospaced: monospaced)
+        }
+    }
+}
+
+// MARK: - 全屏文本编辑（OutlinedMultiLineField 放大进入）
+
+/// 固定高度多行框的全屏编辑页：TextEditor 铺满 + 完成 + 行/字符统计；
+/// 与小框共享同一绑定（实时同步，无保存/取消语义），键盘避让由 ScrollView 承担
+struct FullscreenTextEditorSheet: View {
+    let title: String
+    @Binding var text: String
+    var monospaced: Bool = false
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var isFocused: Bool
+
+    private var lineCount: Int {
+        max(1, text.split(whereSeparator: \.isNewline).count)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                TextEditor(text: $text)
+                    .font(monospaced ? .body.monospaced() : .body)
+                    .frame(minHeight: 420, alignment: .topLeading)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .focused($isFocused)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .scrollDisabled(true)   // 滚动交给外层，避免嵌套滚动手势冲突
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("完成")) { isFocused = false; dismiss() }
+                        .bold()
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Text(L10n.f("%ld 行 · %ld 字", lineCount, text.count))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .background(Color(.systemGroupedBackground))
         }
     }
 }

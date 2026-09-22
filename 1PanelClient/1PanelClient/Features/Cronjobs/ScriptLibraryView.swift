@@ -50,6 +50,34 @@ final class ScriptLibraryViewModel: ObservableObject {
         }
     }
 
+    /// 删除脚本（POST core/script/del {ids}）；系统脚本由调用方拦截
+    func delete(_ script: ScriptItem) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.scriptDelete.path,
+                body: ScriptDeleteRequest(ids: [script.id]),
+                as: EmptyResponse.self)
+            toastMessage = L10n.t("已删除")
+            return true
+        } catch {
+            showAlert(message: error.localizedDescription)
+            return false
+        }
+    }
+
+    /// 创建脚本（POST core/script）
+    func create(_ req: ScriptCreateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.scriptCreate.path, body: req, as: EmptyResponse.self)
+            toastMessage = L10n.t("已创建")
+            return true
+        } catch {
+            showAlert(message: error.localizedDescription)
+            return false
+        }
+    }
+
     /// 加载脚本库分组（筛选条数据源；失败静默）
     /// - Parameter force: true 强制重查（分组管理页变更后）
     func loadGroups(force: Bool = false) async {
@@ -161,6 +189,11 @@ struct ScriptLibraryView: View {
     @State private var syncTaskID: String?
     // 分组管理入口（三点菜单；选择脚本模式下不展示）
     @State private var showGroupManage = false
+    /// 创建脚本（选择脚本模式下不展示）
+    @State private var showCreate = false
+    /// 待删除脚本（长按菜单；系统脚本不可删）
+    @State private var pendingDelete: ScriptItem?
+    @State private var actionScript: ScriptItem?
 
     private let server: ServerConfig
 
@@ -220,6 +253,16 @@ struct ScriptLibraryView: View {
         // 右上角：搜索 + 三点菜单（立即同步 / 自动同步）
         .toolbar {
             if !isSearching {
+                if onPick == nil {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showCreate = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .accessibilityLabel(L10n.t("创建脚本"))
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     EllipsisMenuButton {
                         withAnimation(Motion.fast) { showMenu.toggle() }
@@ -279,6 +322,31 @@ struct ScriptLibraryView: View {
             }
         } message: {
             Text(L10n.t("开启自动同步将在每天凌晨时段进行自动同步"))
+        }
+        // 删除确认（系统脚本不可删，入口已隐藏；此处兜底再拦一道）
+        .alert(L10n.t("删除脚本"), isPresented: Binding(
+            get: { pendingDelete != nil },
+            set: { if !$0 { pendingDelete = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
+            Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
+                if let script = pendingDelete, script.isSystem != true {
+                    Task {
+                        if await vm.delete(script) {
+                            await vm.load(query: searchText)
+                        }
+                    }
+                }
+            }
+        } message: {
+            Text(L10n.f("确定删除脚本「%@」吗？该操作不可恢复。",
+                        pendingDelete?.displayName ?? ""))
+        }
+        .navigationDestination(isPresented: $showCreate) {
+            ScriptCreateView(server: server) {
+                Task { await vm.load(query: searchText) }
+            }
         }
         .navigationDestination(isPresented: Binding(
             get: { syncTaskID != nil },
@@ -340,6 +408,15 @@ struct ScriptLibraryView: View {
                         ScriptDetailView(script: script, server: server)
                     } label: {
                         ScriptRow(script: script)
+                    }
+                    .contextMenu {
+                        if script.isSystem != true {
+                            Button(role: .destructive) {
+                                pendingDelete = script
+                            } label: {
+                                Label(L10n.t("删除脚本"), systemImage: "trash")
+                            }
+                        }
                     }
                 }
             }
@@ -445,6 +522,218 @@ struct ScriptDetailView: View {
                 target: .scriptRun(scriptID: script.id, cols: 80, rows: 24),
                 title: script.displayName
             )
+        }
+    }
+}
+
+// MARK: - 创建脚本（脚本内容固定高度 + 全屏编辑试水）
+
+struct ScriptCreateView: View {
+    let server: ServerConfig
+    var onCreated: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var isInteractive = false
+    /// 分组多选（groupList 数组 + groups 逗号串双键提交）
+    @State private var selectedGroupIDs: Set<Int> = []
+    @State private var showGroupPicker = false
+    @State private var scriptText = "#!/bin/bash\n"
+    @State private var descriptionText = ""
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+
+    /// 复用脚本库 VM：分组数据 + 创建请求
+    @StateObject private var vm: ScriptLibraryViewModel
+
+    init(server: ServerConfig, onCreated: @escaping () -> Void) {
+        self.server = server
+        self.onCreated = onCreated
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: ManageItem.scriptLibrary.storeKey(server: server)) {
+            ScriptLibraryViewModel(server: server)
+        })
+    }
+
+    private var groupSummary: String {
+        guard !vm.groups.isEmpty else { return L10n.t("未配置分组") }
+        let selected = selectedGroupIDs.sorted().compactMap { id in
+            vm.groups.first(where: { $0.id == id })?.name
+        }
+        return selected.isEmpty ? L10n.t("未选择") : selected.joined(separator: "、")
+    }
+
+    private var canSubmit: Bool {
+        !name.trimmingCharacters(in: .whitespaces).isEmpty
+            && !selectedGroupIDs.isEmpty
+            && !scriptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !isSaving
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                OutlinedTextField(label: L10n.t("名称"), text: $name)
+                Toggle(L10n.t("交互式脚本"), isOn: $isInteractive)
+            } header: {
+                Text(L10n.t("基本信息"))
+            } footer: {
+                if isInteractive {
+                    Text(L10n.t("执行时将在终端中运行，可进行交互输入"))
+                }
+            }
+
+            Section {
+                Button {
+                    showGroupPicker = true
+                } label: {
+                    HStack {
+                        Text(L10n.t("分组"))
+                        Spacer()
+                        Text(groupSummary)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
+            } header: {
+                Text(L10n.t("分组"))
+            }
+
+            // 脚本内容：固定 6 行 + 全屏编辑（新组件能力试水）
+            Section {
+                OutlinedMultiLineField(label: L10n.t("脚本内容"),
+                                       prompt: "#!/bin/bash",
+                                       lines: 6, fixedLines: 6,
+                                       zoomable: true, monospaced: true,
+                                       text: $scriptText)
+            } header: {
+                Text(L10n.t("脚本内容"))
+            }
+
+            Section {
+                OutlinedMultiLineField(label: L10n.t("描述"), prompt: L10n.t("可选"),
+                                       lines: 2, text: $descriptionText)
+            } header: {
+                Text(L10n.t("描述"))
+            }
+        }
+        .navigationTitle(L10n.t("创建脚本"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSaving { ProgressView() } else { Text(L10n.t("创建")).bold() }
+                }
+                .disabled(!canSubmit)
+            }
+        }
+        .task {
+            await vm.loadGroups()
+            // 默认勾选 Default 分组
+            if selectedGroupIDs.isEmpty, let def = vm.groups.first(where: { $0.isDefault == true }) {
+                selectedGroupIDs = [def.id]
+            }
+        }
+        .sheet(isPresented: $showGroupPicker) {
+            ScriptGroupMultiPickerView(groups: vm.groups, selection: $selectedGroupIDs)
+        }
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private func submit() async {
+        isSaving = true
+        defer { isSaving = false }
+        let ids = selectedGroupIDs.sorted()
+        let desc = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let req = ScriptCreateRequest(
+            name: name.trimmingCharacters(in: .whitespaces),
+            groupList: ids,
+            isInteractive: isInteractive ? true : nil,
+            script: scriptText,
+            description: desc.isEmpty ? nil : desc,
+            groups: ids.map(String.init).joined(separator: ","))
+        if await vm.create(req) {
+            onCreated()
+            dismiss()
+        }
+    }
+}
+
+// MARK: - 脚本分组多选（勾选即回写，关闭即确认）
+
+private struct ScriptGroupMultiPickerView: View {
+    let groups: [PanelGroup]
+    @Binding var selection: Set<Int>
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if groups.isEmpty {
+                    Section {
+                        ContentUnavailableView(
+                            L10n.t("未配置分组"),
+                            systemImage: "folder",
+                            description: Text(L10n.t("请先在分组管理中创建分组"))
+                        )
+                        .padding(.vertical, 20)
+                    }
+                } else {
+                    Section {
+                        ForEach(groups) { group in
+                            Button {
+                                if selection.contains(group.id) {
+                                    selection.remove(group.id)
+                                } else {
+                                    selection.insert(group.id)
+                                }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: selection.contains(group.id)
+                                          ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(selection.contains(group.id)
+                                                         ? Color.accentColor : .secondary)
+                                        .font(.title3)
+                                    Text(group.name ?? "#\(group.id)")
+                                        .foregroundStyle(.primary)
+                                    if group.isDefault == true {
+                                        Spacer()
+                                        Text(L10n.t("默认"))
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } footer: {
+                        Text(L10n.t("可多选"))
+                    }
+                }
+            }
+            .navigationTitle(L10n.t("分组"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("完成")) { dismiss() }
+                        .bold()
+                }
+            }
         }
     }
 }

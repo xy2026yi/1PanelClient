@@ -24312,6 +24312,127 @@
         }
       }
     },
+    "全屏编辑" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Fullscreen"
+          }
+        }
+      }
+    },
+    "交互式脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interactive Script"
+          }
+        }
+      }
+    },
+    "执行时将在终端中运行，可进行交互输入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runs in the terminal with interactive input"
+          }
+        }
+      }
+    },
+    "创建脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Script"
+          }
+        }
+      }
+    },
+    "删除脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Script"
+          }
+        }
+      }
+    },
+    "确定删除脚本「%@」吗？该操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete script “%@”? This cannot be undone."
+          }
+        }
+      }
+    },
+    "已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Created"
+          }
+        }
+      }
+    },
+    "未配置分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No groups configured"
+          }
+        }
+      }
+    },
+    "请先在分组管理中创建分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create groups in group management first"
+          }
+        }
+      }
+    },
+    "可多选" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multiple selection allowed"
+          }
+        }
+      }
+    },
+    "行 · %ld 字" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld lines · %ld chars"
+          }
+        }
+      }
+    },
     "没有找到Acme账户" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -16,6 +16,23 @@ nonisolated struct ScriptSearchRequest: Encodable {
     let pageSize: Int
 }
 
+/// 创建脚本（POST /core/script；抓包 2026-09-22）：
+/// groupList 数组与 groups 逗号串两个键都带；isInteractive 仅开时携带；
+/// description 未配置省略
+nonisolated struct ScriptCreateRequest: Encodable {
+    let name: String
+    let groupList: [Int]
+    var isInteractive: Bool? = nil
+    let script: String
+    var description: String? = nil
+    let groups: String
+}
+
+/// 删除脚本（系统脚本 isSystem=true 不可删）
+nonisolated struct ScriptDeleteRequest: Encodable {
+    let ids: [Int]
+}
+
 /// 脚本库列表项（/core/script/search 返回 items）
 nonisolated struct ScriptItem: Decodable, Identifiable, Hashable {
     let id: Int
