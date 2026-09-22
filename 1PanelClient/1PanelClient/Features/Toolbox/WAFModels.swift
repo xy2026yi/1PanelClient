@@ -354,6 +354,11 @@ nonisolated struct WAFWebsiteConfigRequest: Encodable {
     let id: Int
 }
 
+/// POST /waf/cdn 请求体（注意：键是 websiteID，与 config/website 的 {id} 不同）
+nonisolated struct WAFCdnRequest: Encodable {
+    let websiteID: Int
+}
+
 /// 网站配置详情（/waf/config/website 响应）：网站级各规则块当前值。
 /// cc 块用于频率限制表单回填真实参数，避免默认值覆盖服务器配置
 /// config/website 响应：除 waf/cc/strict 外，按站规则块与全局配置同构

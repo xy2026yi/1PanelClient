@@ -176,7 +176,7 @@ struct WAFCdnSettingsView: View {
         do {
             let cfg: WAFCdnConfig = try await client.send(
                 path: APIEndpoint.wafCdn.path,
-                body: WAFWebsiteConfigRequest(id: websiteID),
+                body: WAFCdnRequest(websiteID: websiteID),
                 as: WAFCdnConfig.self)
             siteCdnOn = cfg.state == "on"
             type = cfg.type ?? "header"
