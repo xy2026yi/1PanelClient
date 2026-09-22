@@ -315,6 +315,7 @@ struct AIAccountsView: View {
                         AIAccountRow(account: account)
                     }
                     .buttonStyle(.plain)
+                    .contentShape(Rectangle())
                     .simultaneousGesture(
                         LongPressGesture(minimumDuration: 0.5).onEnded { _ in
                             Haptic.selection()

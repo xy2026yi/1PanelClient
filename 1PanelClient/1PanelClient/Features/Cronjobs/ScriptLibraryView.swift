@@ -456,7 +456,10 @@ struct ScriptLibraryView: View {
                         ScriptRow(script: script)
                     }
                     // 行级操作收进长按半屏菜单（编辑 / 删除；系统脚本仅可查看，
-                    // 不挂长按）。simultaneousGesture 与点击进入共存
+                    // 不挂长按）。contentShape 保证整行（含空白区域）都是
+                    // 长按命中区，否则只有文字部分可长按；simultaneousGesture
+                    // 与点击进入共存
+                    .contentShape(Rectangle())
                     .simultaneousGesture(
                         LongPressGesture(minimumDuration: 0.5).onEnded { _ in
                             guard script.isSystem != true else { return }

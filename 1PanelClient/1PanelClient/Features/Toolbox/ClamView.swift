@@ -566,6 +566,7 @@ struct ClamView: View {
                     .buttonStyle(.plain)
                     // 行级操作收进长按菜单（执行 / 报告 / 编辑 / 删除）；
                     // 用 simultaneousGesture 与点击进入共存
+                    .contentShape(Rectangle())
                     .simultaneousGesture(
                         LongPressGesture(minimumDuration: 0.5).onEnded { _ in
                             Haptic.selection()

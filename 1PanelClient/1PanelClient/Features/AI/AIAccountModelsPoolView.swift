@@ -86,7 +86,8 @@ struct AIAccountModelsPoolView: View {
                             modelRow(model)
                         }
                         .buttonStyle(.plain)
-                        .simultaneousGesture(
+                        .contentShape(Rectangle())
+                    .simultaneousGesture(
                             LongPressGesture(minimumDuration: 0.5).onEnded { _ in
                                 Haptic.selection()
                                 actionModel = model

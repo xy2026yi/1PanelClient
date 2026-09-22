@@ -476,6 +476,7 @@ struct FTPView: View {
                     // 行级操作收进长按菜单（编辑 / 日志 / 删除），不再用滑动操作；
                     // 用 simultaneousGesture 与点击进入共存——onLongPressGesture
                     // 会独占手势导致点击无法进编辑
+                    .contentShape(Rectangle())
                     .simultaneousGesture(
                         LongPressGesture(minimumDuration: 0.5).onEnded { _ in
                             Haptic.selection()
