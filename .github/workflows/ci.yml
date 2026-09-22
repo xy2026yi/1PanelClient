@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    # macos-26 镜像默认 Xcode 26.6（装有 26.5/26.6），满足部署目标 iOS 26.5 的最低 SDK 要求。
+    # 本地开发用 Xcode 27，此 job 同时承担「低一档工具链仍可编译」的兼容性回归。
+    name: Build & Test（Xcode 26.6 / iOS 26.5 模拟器）
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 工具链信息
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos || true
+          xcrun simctl list runtimes | grep '^iOS' || true
+
+      - name: SPM 依赖缓存
+        uses: actions/cache@v4
+        with:
+          path: .ci-dd/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('1PanelClient/1PanelClient.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: Build & Test
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project 1PanelClient/1PanelClient.xcodeproj \
+            -scheme 1PanelClient \
+            -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -derivedDataPath .ci-dd \
+            -resultBundlePath test-results.xcresult \
+            | xcbeautify --renderer github-actions
+
+      - name: 上传测试结果（失败排查用）
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results.xcresult
+          path: test-results.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
+
+  l10n-check:
+    # L10n key 同步（L10n.t/f 运行时查表，Xcode 无法静态提取 key，靠脚本补齐该环节）
+    name: L10n key 同步检查
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 1PanelClient/scripts/sync-strings.py --check
