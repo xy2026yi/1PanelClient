@@ -629,81 +629,93 @@ private struct OutlinedMachineValue: ViewModifier {
 
 // MARK: - 代码编辑区（配置全文页共用内核）
 
-/// 配置/代码全文编辑器（二期统一组件）：
-/// - 只读态：行号 + 逐行文本（同列对齐不随折行错位）、可选中复制
-/// - 编辑态：等宽 UITextView（零内边距保证测量一致）+ 折行测量行号，
-///   行号与文本同一滚动容器天然同步；关智能引号/自动大写
-/// 页面级使用（勿嵌入 List/Form 行内——内部自持 ScrollView）
+/// 配置/代码全文编辑器（二期统一组件，横滑不折行模式）：
+/// - 只读态：行号列表（逐行 Text + fixedSize 不折行）包在横向 ScrollView 里，
+///   超屏宽的长行左右滑动查看；行号与内容同行 HStack 天然对齐、零测量零同步。
+///   纵向滚动由页面级 ScrollView 承担（与横向滚动两轴垂直、互不冲突）
+/// - 编辑态：测最长行宽将 TextEditor 钉成该宽（不折行），外包横向 ScrollView
+///   左右滑动；纵向仍由 TextEditor 自滚。宽度测量「宁大勿小」即安全——估大
+///   只是多一段空白滑动区，不影响任何对齐（与此前必须精确的折行测量性质不同）。
+///   不带行号：行号需跟随 TextEditor 内部纵向滚动，该同步机制曾在真机失效
+/// - 已知取舍：编辑态在长行末尾打字时，光标超出屏幕右侧不会自动跟随
+///   （外层滚动不感知内部光标），需手动滑过去；配置编辑场景长行续打少见
+/// - 渲染字体全用原生 SwiftUI 字体（Font(UIFont) 桥接曾出现真机不渲染）
+/// 页面级使用（勿嵌入 List/Form 行内）
 struct CodeEditorArea: View {
     @Binding var text: String
     var readOnly: Bool = false
+    /// 只读态行号开关（编辑态忽略——编辑态恒无行号）
     var showsLineNumbers: Bool = true
 
     @ScaledMetric(relativeTo: .callout) private var fontSize: CGFloat = 13
-    /// 视口宽度（PreferenceKey 回报，onPreferenceChange 在更新周期外触发，
-    /// 规避 onGeometryChange 同步写 state 的 "Modifying state during view update"）
-    @State private var viewportWidth: CGFloat = 0
+    /// 编辑区可用宽度（横向 ScrollView 背景测量回报）
+    @State private var availableWidth: CGFloat = 360
+    /// 编辑区钉宽 = max(可用宽, 最长行宽 + 裕量)；随内容增删重算
+    @State private var pinnedWidth: CGFloat = 360
 
     private let hPadding: CGFloat = 12
-    private let gutterSpacing: CGFloat = 10
-    private var gutterWidth: CGFloat { showsLineNumbers ? 34 : 0 }
+    /// TextEditor 内部左右内容边距 + 测量口径安全裕量（估大安全）
+    private let editorHAllowance: CGFloat = 48
 
-    private var uiFont: UIFont {
+    /// 渲染字体：原生 size-based 等宽
+    private var monoFont: Font { .system(size: fontSize, design: .monospaced) }
+    /// 测量基准字体（与渲染字体同为 SF Mono 族；仅测宽度，不用于渲染）
+    private var monoUIFont: UIFont {
         UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
     }
-    private var swiftUIFont: Font { Font(uiFont) }
-    private var lineHeight: CGFloat { uiFont.lineHeight }
 
     private var lines: [String] {
         text.split(omittingEmptySubsequences: false, whereSeparator: { $0.isNewline })
             .map(String.init)
     }
 
-    /// 编辑区宽度 = 视口 - 左右padding - 行号列 - 间距；宽度钉死后折行发生在
-    /// 该宽度（修左右两侧内容不可见：此前按内容理想宽布局导致横向溢出+偏移）
-    private var editorWidth: CGFloat {
-        max(0, viewportWidth - hPadding * 2 - (showsLineNumbers ? gutterWidth + gutterSpacing : 0))
-    }
-
-    /// 逻辑行在编辑宽度下占的显示行数（boundingRect 与 UITextView 同 TextKit 底座）
-    private func displayRows(for line: String) -> Int {
-        let width = editorWidth
-        guard !line.isEmpty, width > 0 else { return 1 }
-        let bounds = (line as NSString).boundingRect(
-            with: CGSize(width: width, height: .greatestFiniteMagnitude),
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
-            attributes: [.font: uiFont], context: nil)
-        return max(1, Int((bounds.height / lineHeight).rounded(.up)))
-    }
-
-    /// 内容总高（行号与编辑器同源计算；+6 底部余量防末行贴边裁切）
-    private var contentHeight: CGFloat {
-        let rows = lines.reduce(0) { $0 + displayRows(for: $1) }
-        return max(CGFloat(rows), 1) * lineHeight + 6
-    }
-
     var body: some View {
-        ScrollView {
+        Group {
             if readOnly {
-                readonlyBody.padding(.vertical, 8)
+                ScrollView(.horizontal, showsIndicators: true) {
+                    readonlyBody.padding(.vertical, 8)
+                }
             } else {
-                editBody.padding(.vertical, 8)
+                ScrollView(.horizontal, showsIndicators: true) {
+                    TextEditor(text: $text)
+                        .font(monoFont)
+                        .scrollContentBackground(.hidden)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .scrollDismissesKeyboard(.interactively)
+                        .frame(width: pinnedWidth, alignment: .topLeading)
+                        .frame(maxHeight: .infinity, alignment: .topLeading)
+                }
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(key: CodeEditorWidthKey.self,
+                                               value: geo.size.width)
+                    })
+                .onPreferenceChange(CodeEditorWidthKey.self) { w in
+                    if abs(w - availableWidth) > 0.5 {
+                        availableWidth = w
+                        recomputePinnedWidth()
+                    }
+                }
             }
         }
-        .scrollDismissesKeyboard(.interactively)
         .background(Color(.systemGroupedBackground))
-        // 视口宽度测量挂在 ScrollView 背景（与内容无关，避免循环依赖）
-        .background(
-            GeometryReader { geo in
-                Color.clear.preference(key: CodeViewportWidthKey.self,
-                                       value: geo.size.width)
-            })
-        .onPreferenceChange(CodeViewportWidthKey.self) { w in
-            if abs(w - viewportWidth) > 0.5 { viewportWidth = w }
-        }
+        .onAppear { recomputePinnedWidth() }
+        .onChange(of: text) { _, _ in recomputePinnedWidth() }
     }
 
-    // MARK: 只读（行号 + 逐行文本，天然对齐）
+    /// 重算编辑区钉宽：所有逻辑行的最大单行宽度（逐行 size 测量，配置文件
+    /// 通常一两百行，每次编辑全量重测开销可忽略；如遇超大文件再按行缓存）
+    private func recomputePinnedWidth() {
+        let attrs: [NSAttributedString.Key: Any] = [.font: monoUIFont]
+        var widest: CGFloat = 0
+        for line in lines {
+            widest = max(widest, (line as NSString).size(withAttributes: attrs).width)
+        }
+        pinnedWidth = max(availableWidth, widest + editorHAllowance)
+    }
+
+    // MARK: 只读（行号 + 逐行文本，不折行，天然对齐）
 
     private var readonlyBody: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -716,93 +728,22 @@ struct CodeEditorArea: View {
                             .frame(minWidth: 34, alignment: .trailing)
                     }
                     Text(line.isEmpty ? " " : line)
-                        .font(swiftUIFont)
+                        .font(monoFont)
+                        // 不折行：按内容理想宽渲染，超屏宽交给横向滚动
+                        .fixedSize(horizontal: true, vertical: false)
                         .textSelection(.enabled)
-                    Spacer(minLength: 0)
                 }
                 .padding(.vertical, 1)
             }
         }
         .padding(.horizontal, hPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    // MARK: 编辑（宽度钉死 + 折行测量行号，行号与文本同容器滚动天然同步）
-
-    private var editBody: some View {
-        HStack(alignment: .top, spacing: showsLineNumbers ? gutterSpacing : 0) {
-            if showsLineNumbers {
-                VStack(alignment: .trailing, spacing: 0) {
-                    ForEach(Array(lines.indices), id: \.self) { idx in
-                        Text(String(idx + 1))
-                            .font(swiftUIFont.monospacedDigit())
-                            .foregroundStyle(.tertiary)
-                            .frame(height: CGFloat(displayRows(for: lines[idx])) * lineHeight,
-                                   alignment: .topLeading)
-                    }
-                }
-                .frame(width: gutterWidth, alignment: .trailing)
-            }
-
-            PinnedMonoTextEditor(text: $text, font: uiFont)
-                .frame(width: editorWidth, height: contentHeight)
-        }
-        .frame(width: viewportWidth, alignment: .leading)
-        .padding(.horizontal, hPadding)
     }
 }
 
-/// 视口宽度 PreferenceKey
-private struct CodeViewportWidthKey: PreferenceKey {
+/// 编辑区可用宽度 PreferenceKey（横向 ScrollView 背景测量）
+private struct CodeEditorWidthKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
-    }
-}
-
-// MARK: - 钉宽等宽 UITextView（零状态回写）
-
-/// 等宽代码编辑器（UIKit 底座）：宽度/高度由 SwiftUI frame 钉死（宽度钉死是
-/// 折行与行号测量一致性的根基），textContainerInset/lineFragmentPadding 归零，
-/// isScrollEnabled=false 由外层 ScrollView 滚动；关智能引号/自动大写/纠错。
-/// 不向 SwiftUI 回写任何状态（高度由行号同源计算给出）
-private struct PinnedMonoTextEditor: UIViewRepresentable {
-    @Binding var text: String
-    let font: UIFont
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    func makeUIView(context: Context) -> UITextView {
-        let tv = UITextView()
-        tv.font = font
-        tv.backgroundColor = .clear
-        tv.textContainerInset = .zero
-        tv.textContainer.lineFragmentPadding = 0
-        tv.textContainer.widthTracksTextView = true
-        tv.isScrollEnabled = false
-        tv.isEditable = true
-        tv.autocorrectionType = .no
-        tv.autocapitalizationType = .none
-        tv.smartQuotesType = .no
-        tv.smartDashesType = .no
-        tv.smartInsertDeleteType = .no
-        tv.delegate = context.coordinator
-        tv.text = text
-        return tv
-    }
-
-    func updateUIView(_ tv: UITextView, context: Context) {
-        context.coordinator.parent = self
-        if tv.font !== font { tv.font = font }
-        if tv.text != text { tv.text = text }
-    }
-
-    final class Coordinator: NSObject, UITextViewDelegate {
-        var parent: PinnedMonoTextEditor
-        init(_ parent: PinnedMonoTextEditor) { self.parent = parent }
-
-        func textViewDidChange(_ textView: UITextView) {
-            parent.text = textView.text
-        }
     }
 }

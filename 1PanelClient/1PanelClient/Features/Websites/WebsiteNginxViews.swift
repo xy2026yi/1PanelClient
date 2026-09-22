@@ -44,44 +44,64 @@ struct WebsiteNginxView: View {
         .task {
             await load()
         }
-        .refreshable { await load() }
     }
 
+    @ViewBuilder
     private var configEditor: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                if let cfg = config {
-                    HStack {
-                        Image(systemName: "doc.text")
-                            .foregroundStyle(.secondary)
-                        Text(cfg.name ?? "nginx.conf")
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                }
-
-                // 统一代码编辑区：只读带行号 / 编辑带折行测量行号
-                CodeEditorArea(text: $content, readOnly: !isEditing)
+        // 按模式选择页面结构（全 App 标准模式，避免「VStack 包自滚动编辑器」
+        // 的嵌套滚动/手势冲突）：
+        // - 只读：页面级 ScrollView + 内嵌行号列表（CodeEditorArea 只读态无内部滚动）
+        // - 编辑：TextEditor 自滚动独占剩余空间，页面不再另加滚动容器
+        if isEditing {
+            VStack(spacing: 12) {
+                fileHeader
+                CodeEditorArea(text: $content)
                     .clipShape(RoundedRectangle(cornerRadius: Radius.small))
-                    .padding(.horizontal)
-
-                Button {
-                    isEditing.toggle()
-                    if !isEditing {
-                        // 取消编辑时还原
-                        content = config?.content ?? content
-                    }
-                } label: {
-                    Label(isEditing ? L10n.t("取消编辑") : L10n.t("编辑配置"), systemImage: isEditing ? "xmark" : "pencil")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .padding(.horizontal)
+                editToggleButton
             }
             .padding(.vertical)
+        } else {
+            ScrollView {
+                VStack(spacing: 12) {
+                    fileHeader
+                    CodeEditorArea(text: $content, readOnly: true)
+                    editToggleButton
+                }
+                .padding(.vertical)
+            }
+            .background(Color(.systemGroupedBackground))
         }
+    }
+
+    private var fileHeader: some View {
+        Group {
+            if let cfg = config {
+                HStack {
+                    Image(systemName: "doc.text")
+                        .foregroundStyle(.secondary)
+                    Text(cfg.name ?? "nginx.conf")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+
+    private var editToggleButton: some View {
+        Button {
+            isEditing.toggle()
+            if !isEditing {
+                // 取消编辑时还原
+                content = config?.content ?? content
+            }
+        } label: {
+            Label(isEditing ? L10n.t("取消编辑") : L10n.t("编辑配置"), systemImage: isEditing ? "xmark" : "pencil")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .padding(.horizontal)
     }
 
     private func load() async {
@@ -147,7 +167,6 @@ struct OpenRestyConfigView: View {
             }
         }
         .task { await loadConfig() }
-        .refreshable { await loadConfig() }
         .alert(L10n.t("还原默认配置"), isPresented: $showResetConfirm) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("确认还原"), role: .destructive) {

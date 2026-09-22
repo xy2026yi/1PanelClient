@@ -33,3 +33,6 @@ __pycache__/
 .mimosa/
 
 docs/
+
+# ZCode 临时验证工程（编辑器视觉回归用，不进仓库）
+.zcode-scratch/

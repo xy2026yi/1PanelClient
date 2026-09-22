@@ -1661,6 +1661,9 @@
         }
       }
     },
+    "editor-demo" : {
+
+    },
     "Email（可选）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2470,6 +2473,9 @@
           }
         }
       }
+    },
+    "mode" : {
+
     },
     "NameCheap 凭证" : {
       "extractionState" : "manual",
@@ -24405,17 +24411,6 @@
         }
       }
     },
-    "编辑脚本" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Script"
-          }
-        }
-      }
-    },
     "没有找到Acme账户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29835,6 +29830,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Website"
+          }
+        }
+      }
+    },
+    "编辑脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Script"
           }
         }
       }
