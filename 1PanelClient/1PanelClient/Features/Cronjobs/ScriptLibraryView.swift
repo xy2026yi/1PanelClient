@@ -50,6 +50,19 @@ final class ScriptLibraryViewModel: ObservableObject {
         }
     }
 
+    /// 编辑脚本（POST core/script/update 全量回传）
+    func update(_ req: ScriptUpdateRequest) async -> Bool {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.scriptUpdate.path, body: req, as: EmptyResponse.self)
+            toastMessage = L10n.t("已保存")
+            return true
+        } catch {
+            showAlert(message: error.localizedDescription)
+            return false
+        }
+    }
+
     /// 删除脚本（POST core/script/del {ids}）；系统脚本由调用方拦截
     func delete(_ script: ScriptItem) async -> Bool {
         do {
@@ -193,7 +206,10 @@ struct ScriptLibraryView: View {
     @State private var showCreate = false
     /// 待删除脚本（长按菜单；系统脚本不可删）
     @State private var pendingDelete: ScriptItem?
+    /// 长按半屏菜单目标（编辑 / 删除）
     @State private var actionScript: ScriptItem?
+    /// 长按「编辑」推入的编辑页目标
+    @State private var editingScript: ScriptItem?
 
     private let server: ServerConfig
 
@@ -323,6 +339,34 @@ struct ScriptLibraryView: View {
         } message: {
             Text(L10n.t("开启自动同步将在每天凌晨时段进行自动同步"))
         }
+        // 长按行级操作半屏菜单（编辑 / 删除）
+        .sheet(item: $actionScript) { script in
+            ActionBottomSheet(
+                title: script.displayName,
+                items: [
+                    .init(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        editingScript = script
+                    },
+                    .init(title: L10n.t("删除脚本"), icon: "trash", color: .red,
+                          role: .destructive) {
+                        pendingDelete = script
+                    },
+                ],
+                onDismiss: { actionScript = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
+        .navigationDestination(isPresented: Binding(
+            get: { editingScript != nil },
+            set: { if !$0 { editingScript = nil } }
+        )) {
+            if let target = editingScript {
+                ScriptCreateView(server: server, editing: target) {
+                    Task { await vm.load(query: searchText) }
+                }
+            }
+        }
         // 删除确认（系统脚本不可删，入口已隐藏；此处兜底再拦一道）
         .alert(L10n.t("删除脚本"), isPresented: Binding(
             get: { pendingDelete != nil },
@@ -409,15 +453,15 @@ struct ScriptLibraryView: View {
                     } label: {
                         ScriptRow(script: script)
                     }
-                    .contextMenu {
-                        if script.isSystem != true {
-                            Button(role: .destructive) {
-                                pendingDelete = script
-                            } label: {
-                                Label(L10n.t("删除脚本"), systemImage: "trash")
-                            }
+                    // 行级操作收进长按半屏菜单（编辑 / 删除；系统脚本仅可查看，
+                    // 不挂长按）。simultaneousGesture 与点击进入共存
+                    .simultaneousGesture(
+                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                            guard script.isSystem != true else { return }
+                            Haptic.selection()
+                            actionScript = script
                         }
-                    }
+                    )
                 }
             }
         }
@@ -530,6 +574,8 @@ struct ScriptDetailView: View {
 
 struct ScriptCreateView: View {
     let server: ServerConfig
+    /// 非空 = 编辑模式（表单同创建，名称不可改；仅 isSystem=false 可编辑）
+    var editing: ScriptItem? = nil
     var onCreated: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -547,8 +593,12 @@ struct ScriptCreateView: View {
     /// 复用脚本库 VM：分组数据 + 创建请求
     @StateObject private var vm: ScriptLibraryViewModel
 
-    init(server: ServerConfig, onCreated: @escaping () -> Void) {
+    private var isEditing: Bool { editing != nil }
+
+    init(server: ServerConfig, editing: ScriptItem? = nil,
+         onCreated: @escaping () -> Void) {
         self.server = server
+        self.editing = editing
         self.onCreated = onCreated
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
             key: ManageItem.scriptLibrary.storeKey(server: server)) {
@@ -574,7 +624,20 @@ struct ScriptCreateView: View {
     var body: some View {
         Form {
             Section {
-                OutlinedTextField(label: L10n.t("名称"), text: $name)
+                if isEditing {
+                    // 编辑模式名称不可修改（update 原样回传）
+                    OutlinedShape(label: L10n.t("名称"), isFocused: false,
+                                  hasValue: true,
+                                  trailing: {
+                        Image(systemName: "lock.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }) {
+                        Text(name).lineLimit(1)
+                    }
+                } else {
+                    OutlinedTextField(label: L10n.t("名称"), text: $name)
+                }
                 Toggle(L10n.t("交互式脚本"), isOn: $isInteractive)
             } header: {
                 Text(L10n.t("基本信息"))
@@ -623,23 +686,34 @@ struct ScriptCreateView: View {
                 Text(L10n.t("描述"))
             }
         }
-        .navigationTitle(L10n.t("创建脚本"))
+        .navigationTitle(isEditing ? L10n.t("编辑脚本") : L10n.t("创建脚本"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { await submit() }
                 } label: {
-                    if isSaving { ProgressView() } else { Text(L10n.t("创建")).bold() }
+                    if isSaving { ProgressView() } else { Text(isEditing ? L10n.t("保存") : L10n.t("创建")).bold() }
                 }
                 .disabled(!canSubmit)
             }
         }
         .task {
+            if let e = editing {
+                name = e.name
+                isInteractive = e.isInteractive == true
+                scriptText = e.script ?? ""
+                descriptionText = e.description ?? ""
+            }
             await vm.loadGroups()
-            // 默认勾选 Default 分组
-            if selectedGroupIDs.isEmpty, let def = vm.groups.first(where: { $0.isDefault == true }) {
-                selectedGroupIDs = [def.id]
+            if selectedGroupIDs.isEmpty {
+                // 编辑态回填原分组；创建态默认勾选 Default 分组
+                let ids = editing?.groupList ?? []
+                if !ids.isEmpty {
+                    selectedGroupIDs = Set(ids)
+                } else if let def = vm.groups.first(where: { $0.isDefault == true }) {
+                    selectedGroupIDs = [def.id]
+                }
             }
         }
         .sheet(isPresented: $showGroupPicker) {
@@ -660,6 +734,26 @@ struct ScriptCreateView: View {
         defer { isSaving = false }
         let ids = selectedGroupIDs.sorted()
         let desc = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let e = editing {
+            // 全量回传（抓包形状）：lable/createdAt/groupBelong/isSystem 原样
+            let req = ScriptUpdateRequest(
+                id: e.id,
+                name: e.name,
+                isInteractive: isInteractive,
+                lable: e.lable ?? "",
+                script: scriptText,
+                groupList: ids,
+                groupBelong: e.groupBelong ?? [],
+                isSystem: false,
+                description: desc,
+                createdAt: e.createdAt ?? "",
+                groups: ids.map(String.init).joined(separator: ","))
+            if await vm.update(req) {
+                onCreated()
+                dismiss()
+            }
+            return
+        }
         let req = ScriptCreateRequest(
             name: name.trimmingCharacters(in: .whitespaces),
             groupList: ids,

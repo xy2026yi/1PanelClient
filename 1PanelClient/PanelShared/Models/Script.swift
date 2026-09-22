@@ -33,6 +33,22 @@ nonisolated struct ScriptDeleteRequest: Encodable {
     let ids: [Int]
 }
 
+/// 编辑脚本（POST core/script/update；全量回传抓包 2026-09-22：
+/// isInteractive 恒携带 bool、lable/createdAt/groupBelong 原样回传）
+nonisolated struct ScriptUpdateRequest: Encodable {
+    let id: Int
+    let name: String
+    let isInteractive: Bool
+    let lable: String
+    let script: String
+    let groupList: [Int]
+    let groupBelong: [String]
+    let isSystem: Bool
+    let description: String
+    let createdAt: String
+    let groups: String
+}
+
 /// 脚本库列表项（/core/script/search 返回 items）
 nonisolated struct ScriptItem: Decodable, Identifiable, Hashable {
     let id: Int
@@ -43,6 +59,9 @@ nonisolated struct ScriptItem: Decodable, Identifiable, Hashable {
     let isSystem: Bool?
     let description: String?
     let createdAt: String?
+    /// 所属分组（id 数组与名称数组；编辑全量回传用，列表未返回时为 nil）
+    let groupList: [Int]?
+    let groupBelong: [String]?
 
     /// name/description 可能是 1Panel i18n 映射字符串（"{en:..., zh-hant:...}"），解析为中文
     var displayName: String { resolveI18n(name) }

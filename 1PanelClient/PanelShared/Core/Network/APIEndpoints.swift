@@ -191,6 +191,7 @@ enum APIEndpoint {
     case cronjobsImport           // POST 导入计划任务 {cronjobs:[…]}
     case scriptSearch             // POST 脚本库搜索（core/script/search）
     case scriptCreate             // POST 创建脚本（core/script）
+    case scriptUpdate             // POST 编辑脚本（core/script/update 全量回传）
     case scriptDelete             // POST 删除脚本（core/script/del {ids}）
     case scriptSync               // POST 立即同步系统脚本库（异步任务）
     case coreSettingsUpdate       // POST 更新面板设置项（core/settings/update）
@@ -852,6 +853,7 @@ enum APIEndpoint {
         case .cronjobsImport:        return "/api/v2/cronjobs/import"
         case .scriptSearch:          return "/api/v2/core/script/search"
         case .scriptCreate:          return "/api/v2/core/script"
+        case .scriptUpdate:          return "/api/v2/core/script/update"
         case .scriptDelete:          return "/api/v2/core/script/del"
         case .scriptSync:            return "/api/v2/core/script/sync"
         case .coreSettingsUpdate:    return "/api/v2/core/settings/update"
