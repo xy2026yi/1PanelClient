@@ -799,10 +799,7 @@ struct Fail2banFullConfigView: View {
                 if isLoading {
                     LoadingStateView()
                 } else {
-                    TextEditor(text: $configText)
-                        .font(.dataMonospacedCaption)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    CodeEditorArea(text: $configText)
                 }
             }
             .navigationTitle(L10n.t("配置"))

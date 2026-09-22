@@ -62,25 +62,10 @@ struct WebsiteNginxView: View {
                     .padding(.horizontal)
                 }
 
-                if isEditing {
-                    TextEditor(text: $content)
-                        .font(.panelScaled(12, design: .monospaced))
-                        .frame(minHeight: 480)
-                        .padding(8)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: Radius.small))
-                        .padding(.horizontal)
-                } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        Text(content)
-                            .font(.panelScaled(12, design: .monospaced))
-                            .padding()
-                            .textSelection(.enabled)
-                    }
-                    .background(Color(.secondarySystemBackground))
+                // 统一代码编辑区：只读带行号 / 编辑带折行测量行号
+                CodeEditorArea(text: $content, readOnly: !isEditing)
                     .clipShape(RoundedRectangle(cornerRadius: Radius.small))
                     .padding(.horizontal)
-                }
 
                 Button {
                     isEditing.toggle()
@@ -134,10 +119,7 @@ struct OpenRestyConfigView: View {
             if isLoading {
                 LoadingStateView()
             } else {
-                TextEditor(text: $configText)
-                    .font(.dataMonospacedCaption)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
+                CodeEditorArea(text: $configText)
             }
         }
         .navigationTitle("nginx.conf")

@@ -95,10 +95,7 @@ struct ClamConfigEditView: View {
                     .buttonStyle(.borderedProminent)
                 }
             } else {
-                TextEditor(text: $configText)
-                    .font(.dataMonospacedCaption)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
+                CodeEditorArea(text: $configText)
             }
         }
         .navigationTitle(title)

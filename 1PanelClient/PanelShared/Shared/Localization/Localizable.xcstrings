@@ -18,9 +18,6 @@
     "-" : {
 
     },
-    "-----BEGIN OPENSSH PRIVATE KEY-----" : {
-
-    },
     "—" : {
 
     },
@@ -108,9 +105,6 @@
     "[%@]" : {
 
     },
-    "{ \"default_drive_id\": …, \"refresh_token\": … }" : {
-
-    },
     "「%@」已加入下载队列" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -147,6 +141,17 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · %2$@ · %3$@"
+          }
+        }
+      }
+    },
+    "%@ · %ld 行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %ld lines"
           }
         }
       }
@@ -1230,6 +1235,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The CDN writes the client's real IP into this header, which WAF reads from."
+          }
+        }
+      }
+    },
+    "CDN回源IP组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CDN Origin IP Groups"
           }
         }
       }
@@ -4292,6 +4308,17 @@
         }
       }
     },
+    "交互式脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interactive Script"
+          }
+        }
+      }
+    },
     "交换分区" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4354,6 +4381,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Key-only login"
+          }
+        }
+      }
+    },
+    "仅允许所选 IP 组内的回源请求访问源站；未选择时保存不生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only origin requests from the selected IP groups can reach the origin; saving has no effect when none is selected"
           }
         }
       }
@@ -6162,6 +6200,17 @@
         }
       }
     },
+    "全屏编辑" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Fullscreen"
+          }
+        }
+      }
+    },
     "全球" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7966,6 +8015,17 @@
         }
       }
     },
+    "创建脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Script"
+          }
+        }
+      }
+    },
     "创建规则" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8820,6 +8880,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Network"
+          }
+        }
+      }
+    },
+    "删除脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Script"
           }
         }
       }
@@ -10507,6 +10578,17 @@
         }
       }
     },
+    "可多选" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multiple selection allowed"
+          }
+        }
+      }
+    },
     "可多选；不选任何参数则使用默认方式备份。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10536,6 +10618,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Multiple selection; notifications go through the selected methods once failures reach the alert count"
+          }
+        }
+      }
+    },
+    "可多选；所选 IP 组内的回源请求将被放行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multiple selection allowed; origin requests from the selected IP groups will be allowed"
           }
         }
       }
@@ -14973,6 +15066,17 @@
         }
       }
     },
+    "已修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modified"
+          }
+        }
+      }
+    },
     "已停止" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15046,6 +15150,17 @@
           "stringUnit" : {
             "state" : "new",
             "value" : ""
+          }
+        }
+      }
+    },
+    "已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Created"
           }
         }
       }
@@ -17697,6 +17812,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Run Logs"
+          }
+        }
+      }
+    },
+    "执行时将在终端中运行，可进行交互输入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runs in the terminal with interactive input"
           }
         }
       }
@@ -22255,6 +22381,17 @@
         }
       }
     },
+    "未修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unmodified"
+          }
+        }
+      }
+    },
     "未关联应用备份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22735,6 +22872,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "None"
+          }
+        }
+      }
+    },
+    "未配置分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No groups configured"
           }
         }
       }
@@ -24257,215 +24405,6 @@
         }
       }
     },
-    "源站保护" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Origin Protection"
-          }
-        }
-      }
-    },
-    "CDN回源IP组" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CDN Origin IP Groups"
-          }
-        }
-      }
-    },
-    "请先在 WAF 的 IP 组管理中创建" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create IP groups in WAF IP group management first"
-          }
-        }
-      }
-    },
-    "可多选；所选 IP 组内的回源请求将被放行" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Multiple selection allowed; origin requests from the selected IP groups will be allowed"
-          }
-        }
-      }
-    },
-    "仅允许所选 IP 组内的回源请求访问源站；未选择时保存不生效" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Only origin requests from the selected IP groups can reach the origin; saving has no effect when none is selected"
-          }
-        }
-      }
-    },
-    "全屏编辑" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Fullscreen"
-          }
-        }
-      }
-    },
-    "交互式脚本" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interactive Script"
-          }
-        }
-      }
-    },
-    "执行时将在终端中运行，可进行交互输入" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runs in the terminal with interactive input"
-          }
-        }
-      }
-    },
-    "创建脚本" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create Script"
-          }
-        }
-      }
-    },
-    "删除脚本" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Script"
-          }
-        }
-      }
-    },
-    "确定删除脚本「%@」吗？该操作不可恢复。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete script “%@”? This cannot be undone."
-          }
-        }
-      }
-    },
-    "已创建" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Created"
-          }
-        }
-      }
-    },
-    "未配置分组" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No groups configured"
-          }
-        }
-      }
-    },
-    "请先在分组管理中创建分组" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create groups in group management first"
-          }
-        }
-      }
-    },
-    "可多选" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Multiple selection allowed"
-          }
-        }
-      }
-    },
-    "行 · %ld 字" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld lines · %ld chars"
-          }
-        }
-      }
-    },
-    "已修改" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modified"
-          }
-        }
-      }
-    },
-    "未修改" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unmodified"
-          }
-        }
-      }
-    },
-    "%@ · %ld 行" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · %ld lines"
-          }
-        }
-      }
-    },
     "没有找到Acme账户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25496,6 +25435,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Source file saved"
+          }
+        }
+      }
+    },
+    "源站保护" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origin Protection"
           }
         }
       }
@@ -27366,6 +27316,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete network \"%@\"?"
+          }
+        }
+      }
+    },
+    "确定删除脚本「%@」吗？该操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete script “%@”? This cannot be undone."
           }
         }
       }
@@ -31143,6 +31104,17 @@
         }
       }
     },
+    "行 · %ld 字" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld lines · %ld chars"
+          }
+        }
+      }
+    },
     "行数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32551,6 +32523,17 @@
         }
       }
     },
+    "请先在 WAF 的 IP 组管理中创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create IP groups in WAF IP group management first"
+          }
+        }
+      }
+    },
     "请先在「告警通知」中配置发送方式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32591,6 +32574,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fill in Access Key ID / Secret Key / Endpoint on the previous page first"
+          }
+        }
+      }
+    },
+    "请先在分组管理中创建分组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create groups in group management first"
           }
         }
       }

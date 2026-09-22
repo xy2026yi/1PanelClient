@@ -593,16 +593,20 @@ struct UploadCertificateView: View {
             switch mode {
             case .paste:
                 Section {
-                    TextEditor(text: $privateKey)
-                        .font(.dataMonospacedCaption)
-                        .frame(minHeight: 120)
+                    OutlinedMultiLineField(label: L10n.t("私钥（PRIVATE KEY）"),
+                                           prompt: "-----BEGIN PRIVATE KEY-----",
+                                           lines: 6, fixedLines: 6,
+                                           zoomable: true, monospaced: true,
+                                           text: $privateKey)
                 } header: { Text(L10n.t("私钥（PRIVATE KEY）")) }
                 footer: { Text(L10n.t("粘贴以 -----BEGIN PRIVATE KEY----- 开头的完整内容")) }
 
                 Section {
-                    TextEditor(text: $certificate)
-                        .font(.dataMonospacedCaption)
-                        .frame(minHeight: 120)
+                    OutlinedMultiLineField(label: L10n.t("证书（CERTIFICATE）"),
+                                           prompt: "-----BEGIN CERTIFICATE-----",
+                                           lines: 6, fixedLines: 6,
+                                           zoomable: true, monospaced: true,
+                                           text: $certificate)
                 } header: { Text(L10n.t("证书（CERTIFICATE）")) }
                 footer: { Text(L10n.t("粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容")) }
 

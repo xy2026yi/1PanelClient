@@ -610,9 +610,10 @@ struct WebsiteRewriteView: View {
             }
 
             Section {
-                TextEditor(text: $content)
-                    .font(.dataMonospacedCaption)
-                    .frame(minHeight: 240)
+                OutlinedMultiLineField(label: L10n.t("源文"),
+                                       lines: 10, fixedLines: 10,
+                                       zoomable: true, monospaced: true,
+                                       text: $content)
             } header: {
                 Text(L10n.t("源文"))
             }

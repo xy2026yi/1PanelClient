@@ -494,21 +494,11 @@ struct SSHCertCreateView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            TextEditor(text: text)
-                .font(.dataMonospacedCaption)
-                .frame(minHeight: 110)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .overlay(alignment: .topLeading) {
-                    if text.wrappedValue.isEmpty {
-                        Text(L10n.t("粘贴密钥内容…"))
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .padding(.top, 8)
-                            .padding(.leading, 4)
-                            .allowsHitTesting(false)
-                    }
-                }
+            OutlinedMultiLineField(label: title,
+                                   prompt: L10n.t("粘贴密钥内容…"),
+                                   lines: 5, fixedLines: 5,
+                                   zoomable: true, monospaced: true,
+                                   text: text)
         }
     }
 
@@ -808,50 +798,20 @@ struct SSHCertEditView: View {
 
     /// 私钥编辑器（必填）：等宽字体 + placeholder 浮层
     private var privateKeyEditor: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(L10n.t("私钥"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            TextEditor(text: $privateKeyText)
-                .font(.dataMonospacedCaption)
-                .frame(minHeight: 110)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .overlay(alignment: .topLeading) {
-                    if privateKeyText.isEmpty {
-                        Text(L10n.t("粘贴密钥内容…"))
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .padding(.top, 8)
-                            .padding(.leading, 4)
-                            .allowsHitTesting(false)
-                    }
-                }
-        }
+        OutlinedMultiLineField(label: L10n.t("私钥"),
+                               prompt: L10n.t("粘贴密钥内容…"),
+                               lines: 5, fixedLines: 5,
+                               zoomable: true, monospaced: true,
+                               text: $privateKeyText)
     }
 
     /// 公钥编辑器（可选）
     private var publicKeyEditor: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(L10n.t("公钥（可选）"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            TextEditor(text: $publicKeyText)
-                .font(.dataMonospacedCaption)
-                .frame(minHeight: 80)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .overlay(alignment: .topLeading) {
-                    if publicKeyText.isEmpty {
-                        Text(L10n.t("粘贴密钥内容…"))
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .padding(.top, 8)
-                            .padding(.leading, 4)
-                            .allowsHitTesting(false)
-                    }
-                }
-        }
+        OutlinedMultiLineField(label: L10n.t("公钥（可选）"),
+                               prompt: L10n.t("粘贴密钥内容…"),
+                               lines: 4, fixedLines: 4,
+                               zoomable: true, monospaced: true,
+                               text: $publicKeyText)
     }
 
     /// 未修改的字段回传服务端原值；修改过的重新 base64 编码

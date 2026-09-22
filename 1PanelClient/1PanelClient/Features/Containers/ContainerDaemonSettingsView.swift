@@ -433,13 +433,16 @@ private struct DaemonListEditorPage: View {
     @State private var isSaving = false
 
     var body: some View {
-        Form {
-            Section {
-                OutlinedMultiLineField(label: title, prompt: placeholder,
-                                       lines: 6, text: $text)
-            } footer: {
-                Text(footerText)
-            }
+        VStack(spacing: 0) {
+            CodeEditorArea(text: $text)
+            // 页脚提示常驻底部（编辑区滚动时不跟随）
+            Text(footerText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(.bar)
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)

@@ -280,12 +280,10 @@ struct DatabaseMySQLConfView: View {
                 }
             } else {
                 Section {
-                    TextEditor(text: $content)
-                        .font(.dataMonospacedCaption)
-                        .frame(minHeight: 360)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .scrollContentBackground(.hidden)
+                    OutlinedMultiLineField(label: system.displayName,
+                                           lines: 12, fixedLines: 12,
+                                           zoomable: true, monospaced: true,
+                                           text: $content)
                 } header: {
                     SectionLabel(title: system.displayName, systemImage: "doc.plaintext")
                 } footer: {

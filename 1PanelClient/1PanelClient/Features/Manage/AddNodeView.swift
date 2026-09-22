@@ -245,16 +245,11 @@ struct AddNodeView: View {
             if authMode == "password" {
                 OutlinedPasswordField(label: L10n.t("密码"), text: $password)
             } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(L10n.t("私钥"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    TextEditor(text: $privateKey)
-                        .font(.dataMonospacedCaption)
-                        .frame(minHeight: 120)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
+                OutlinedMultiLineField(label: L10n.t("私钥"),
+                                       prompt: "-----BEGIN OPENSSH PRIVATE KEY-----",
+                                       lines: 5, fixedLines: 5,
+                                       zoomable: true, monospaced: true,
+                                       text: $privateKey)
             }
             Toggle(L10n.t("记住认证信息"), isOn: $rememberPassword)
         }

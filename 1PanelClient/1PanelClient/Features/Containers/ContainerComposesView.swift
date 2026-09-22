@@ -565,12 +565,10 @@ struct ContainerComposeEditView: View {
     var body: some View {
         Form {
             Section {
-                TextEditor(text: $content)
-                    .font(.dataMonospacedCaption)
-                    .frame(minHeight: 280)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .scrollContentBackground(.hidden)
+                OutlinedMultiLineField(label: "docker-compose.yml",
+                                       lines: 12, fixedLines: 12,
+                                       zoomable: true, monospaced: true,
+                                       text: $content)
             } header: {
                 SectionLabel(title: "docker-compose.yml", systemImage: "doc.text")
             }
@@ -765,12 +763,10 @@ struct ContainerComposeCreateView: View {
 
                 if from != "path" {
                     Section {
-                        TextEditor(text: $file)
-                            .font(.dataMonospacedCaption)
-                            .frame(minHeight: 240)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .scrollContentBackground(.hidden)
+                        OutlinedMultiLineField(label: "docker-compose.yml",
+                                               lines: 10, fixedLines: 10,
+                                               zoomable: true, monospaced: true,
+                                               text: $file)
                     } header: {
                         SectionLabel(title: "docker-compose.yml", systemImage: "doc.text")
                     }
@@ -1064,12 +1060,10 @@ private struct ContainerTemplateEditSheet: View {
                     SectionLabel(title: L10n.t("基本信息"), systemImage: "doc.on.doc")
                 }
                 Section {
-                    TextEditor(text: $content)
-                        .font(.dataMonospacedCaption)
-                        .frame(minHeight: 240)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .scrollContentBackground(.hidden)
+                    OutlinedMultiLineField(label: "docker-compose.yml",
+                                           lines: 10, fixedLines: 10,
+                                           zoomable: true, monospaced: true,
+                                           text: $content)
                 } header: {
                     SectionLabel(title: "docker-compose.yml", systemImage: "doc.text")
                 }

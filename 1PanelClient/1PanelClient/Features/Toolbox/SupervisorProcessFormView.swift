@@ -189,10 +189,7 @@ struct SupervisorProcessFileView: View {
                     .buttonStyle(.borderedProminent)
                 }
             } else {
-                TextEditor(text: $content)
-                    .font(.dataMonospacedCaption)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
+                CodeEditorArea(text: $content)
             }
         }
         .navigationTitle(L10n.t("源文件"))

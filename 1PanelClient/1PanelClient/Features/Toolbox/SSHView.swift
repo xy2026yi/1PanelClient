@@ -405,10 +405,7 @@ struct SSHFullConfigView: View {
             if isLoading {
                 LoadingStateView()
             } else {
-                TextEditor(text: $configText)
-                    .font(.dataMonospacedCaption)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
+                CodeEditorArea(text: $configText)
             }
         }
         .navigationTitle("sshd_config")

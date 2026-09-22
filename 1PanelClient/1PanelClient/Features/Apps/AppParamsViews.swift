@@ -431,11 +431,10 @@ struct ComposeEditorView: View {
             // 新版本（对比模式：可按块采用旧配置；自定义模式：文本编辑）
             Section {
                 if useCustom {
-                    TextEditor(text: $editedCompose)
-                        .font(.dataMonospacedCaption)
-                        .frame(minHeight: 240)
-                        .scrollContentBackground(.hidden)
-                        .background(Color(.secondarySystemBackground))
+                    OutlinedMultiLineField(label: "docker-compose.yml",
+                                           lines: 10, fixedLines: 10,
+                                           zoomable: true, monospaced: true,
+                                           text: $editedCompose)
                 } else if newCompose.isEmpty {
                     ContentUnavailableView(
                         L10n.t("未获取到新版本配置"),
@@ -507,11 +506,7 @@ struct ComposeEditorView: View {
     private var newComposeFullScreen: some View {
         Group {
             if useCustom {
-                TextEditor(text: $editedCompose)
-                    .font(.dataMonospacedCaption)
-                    .scrollContentBackground(.hidden)
-                    .background(Color(.secondarySystemBackground))
-                    .padding(.horizontal, 8)
+                CodeEditorArea(text: $editedCompose)
             } else {
                 DiffNewComposeView(diff: diff, adopted: $adoptedHunks)
                     .safeAreaInset(edge: .top, spacing: 0) {

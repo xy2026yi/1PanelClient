@@ -30,15 +30,7 @@ struct WebsiteDefaultDocView: View {
                     Task { await load() }
                 }
             } else {
-                VStack(spacing: 0) {
-                    TextEditor(text: $docText)
-                        .font(.panelScaled(13, design: .monospaced))
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .frame(maxHeight: .infinity, alignment: .topLeading)
-                        .padding(.horizontal, 4)
-                }
-                .background(Color(.secondarySystemBackground))
+                CodeEditorArea(text: $docText)
             }
         }
         .navigationTitle(L10n.t("默认文档"))
@@ -643,12 +635,7 @@ struct WebsiteRedirectSourceView: View {
     private var hasChanges: Bool { content != originalContent }
 
     var body: some View {
-        TextEditor(text: $content)
-            .font(.panelScaled(12, design: .monospaced))
-            .autocorrectionDisabled()
-            .textInputAutocapitalization(.never)
-            .padding(.horizontal, 4)
-            .background(Color(.secondarySystemBackground))
+        CodeEditorArea(text: $content)
         .navigationTitle(L10n.f("源文：%@", redirect.displayName))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

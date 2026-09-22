@@ -344,12 +344,7 @@ struct WebsiteLbsSourceView: View {
     private var hasChanges: Bool { content != originalContent }
 
     var body: some View {
-        TextEditor(text: $content)
-            .font(.panelScaled(12, design: .monospaced))
-            .autocorrectionDisabled()
-            .textInputAutocapitalization(.never)
-            .padding(.horizontal, 4)
-            .background(Color(.secondarySystemBackground))
+        CodeEditorArea(text: $content)
             .navigationTitle(L10n.f("源文：%@", item.name ?? ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

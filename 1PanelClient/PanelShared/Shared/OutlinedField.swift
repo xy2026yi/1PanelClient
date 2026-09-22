@@ -626,3 +626,163 @@ private struct OutlinedMachineValue: ViewModifier {
         }
     }
 }
+
+// MARK: - 代码编辑区（配置全文页共用内核）
+
+/// 配置/代码全文编辑器（二期统一组件）：
+/// - 只读态：行号 + 逐行文本（同列对齐不随折行错位）、可选中复制
+/// - 编辑态：等宽 UITextView（零内边距保证测量一致）+ 折行测量行号，
+///   行号与文本同一滚动容器天然同步；关智能引号/自动大写
+/// 页面级使用（勿嵌入 List/Form 行内——内部自持 ScrollView）
+struct CodeEditorArea: View {
+    @Binding var text: String
+    var readOnly: Bool = false
+    var showsLineNumbers: Bool = true
+
+    @ScaledMetric(relativeTo: .callout) private var fontSize: CGFloat = 13
+    @State private var editorWidth: CGFloat = 0
+    @State private var editorHeight: CGFloat = 0
+
+    private var uiFont: UIFont {
+        UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+    }
+    private var swiftUIFont: Font { Font(uiFont) }
+    private var lineHeight: CGFloat { uiFont.lineHeight }
+
+    private var lines: [String] {
+        text.split(omittingEmptySubsequences: false, whereSeparator: { $0.isNewline })
+            .map(String.init)
+    }
+
+    /// 逻辑行在给定宽度下占的显示行数（boundingRect 与 UITextView 同底座，测量一致）
+    private func displayRows(for line: String, width: CGFloat) -> Int {
+        guard !line.isEmpty, width > 0 else { return 1 }
+        let bounds = (line as NSString).boundingRect(
+            with: CGSize(width: width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: uiFont], context: nil)
+        return max(1, Int((bounds.height / lineHeight).rounded(.up)))
+    }
+
+    var body: some View {
+        ScrollView {
+            if readOnly {
+                readonlyBody.padding(.vertical, 8)
+            } else {
+                editBody.padding(.vertical, 8)
+            }
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(Color(.systemGroupedBackground))
+    }
+
+    // MARK: 只读（行号 + 逐行文本，天然对齐）
+
+    private var readonlyBody: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
+                HStack(alignment: .top, spacing: 10) {
+                    if showsLineNumbers {
+                        Text(String(idx + 1))
+                            .font(.callout.monospacedDigit())
+                            .foregroundStyle(.tertiary)
+                            .frame(minWidth: 34, alignment: .trailing)
+                    }
+                    Text(line.isEmpty ? " " : line)
+                        .font(swiftUIFont)
+                        .textSelection(.enabled)
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 1)
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: 编辑（折行测量行号 + 零内边距等宽 UITextView）
+
+    private var editBody: some View {
+        HStack(alignment: .top, spacing: 10) {
+            if showsLineNumbers {
+                VStack(alignment: .trailing, spacing: 0) {
+                    ForEach(Array(lines.indices), id: \.self) { idx in
+                        let rows = displayRows(for: lines[idx], width: editorWidth)
+                        Text(String(idx + 1))
+                            .font(swiftUIFont.monospacedDigit())
+                            .foregroundStyle(.tertiary)
+                            .frame(height: CGFloat(rows) * lineHeight, alignment: .topLeading)
+                    }
+                }
+            }
+
+            AutoSizeMonoTextEditor(text: $text, font: uiFont) { height in
+                if height != editorHeight { editorHeight = height }
+            }
+            .frame(height: max(editorHeight, lineHeight))
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
+                if abs(w - editorWidth) > 0.5 { editorWidth = w }
+            }
+        }
+        .padding(.horizontal, 12)
+    }
+}
+
+// MARK: - 零内边距自增高 UITextView（行号测量一致性的根基）
+
+/// 等宽代码编辑器（UIKit 底座）：textContainerInset/lineFragmentPadding 归零，
+/// 测量宽度与渲染宽度严格一致；isScrollEnabled=false 由外层 ScrollView 滚动，
+/// sizeThatFits 回报内容高度驱动 SwiftUI 布局；关闭智能引号/自动大写/纠错
+private struct AutoSizeMonoTextEditor: UIViewRepresentable {
+    @Binding var text: String
+    let font: UIFont
+    var onHeight: (CGFloat) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.font = font
+        tv.backgroundColor = .clear
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.isScrollEnabled = false
+        tv.isEditable = true
+        tv.autocorrectionType = .no
+        tv.autocapitalizationType = .none
+        tv.smartQuotesType = .no
+        tv.smartDashesType = .no
+        tv.smartInsertDeleteType = .no
+        tv.delegate = context.coordinator
+        context.coordinator.syncHeight(tv)
+        return tv
+    }
+
+    func updateUIView(_ tv: UITextView, context: Context) {
+        context.coordinator.parent = self
+        if tv.font !== font { tv.font = font }
+        if tv.text != text {
+            tv.text = text
+            context.coordinator.syncHeight(tv)
+        } else {
+            // 宽度/字号变化后的重测（布局完成后异步回身高，避免布局中改布局）
+            DispatchQueue.main.async { context.coordinator.syncHeight(tv) }
+        }
+    }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var parent: AutoSizeMonoTextEditor
+        init(_ parent: AutoSizeMonoTextEditor) { self.parent = parent }
+
+        func textViewDidChange(_ textView: UITextView) {
+            parent.text = textView.text
+            syncHeight(textView)
+        }
+
+        func syncHeight(_ tv: UITextView) {
+            let fitting = tv.sizeThatFits(
+                CGSize(width: max(tv.bounds.width, 1), height: .greatestFiniteMagnitude)).height
+            parent.onHeight(fitting)
+        }
+    }
+}

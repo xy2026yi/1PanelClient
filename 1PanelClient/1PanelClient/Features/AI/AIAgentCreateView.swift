@@ -410,9 +410,10 @@ struct AIAgentCreateView: View {
 
     private var composeSection: some View {
         Section {
-            TextEditor(text: $customCompose)
-                .font(.dataMonospacedCaption)
-                .frame(minHeight: 200)
+            OutlinedMultiLineField(label: "docker-compose.yml",
+                                   lines: 10, fixedLines: 10,
+                                   zoomable: true, monospaced: true,
+                                   text: $customCompose)
         } header: {
             Text("docker-compose.yml")
         } footer: {

@@ -59,10 +59,7 @@ struct SSHAuthKeysView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 8)
                     }
-                    TextEditor(text: $keysText)
-                        .font(.dataMonospacedCaption)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    CodeEditorArea(text: $keysText)
                 }
             }
         }
