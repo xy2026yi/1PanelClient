@@ -71,7 +71,8 @@ struct ContainerDaemonSettingsView: View {
     @State private var isOperating = false
     @State private var toast: String?
     @State private var errorMessage: String?
-    @State private var showError = false
+    /// Socket 输入框聚焦态（描边框标签浮线联动）
+    @FocusState private var sockFieldFocused: Bool
 
     private let client: APIClient
 
@@ -120,7 +121,6 @@ struct ContainerDaemonSettingsView: View {
             } options: {
                 EmptyView()
             }
-            .presentationDetents([.medium])
         }
         .sheet(isPresented: $showSockPicker) {
             DirectoryPickerSheet(client: client, fileExtensions: ["sock", "socket"]) { path in
@@ -150,8 +150,11 @@ struct ContainerDaemonSettingsView: View {
     // MARK: 数据加载
 
     private func load() async {
-        isLoading = true
-        defer { isLoading = false }
+        // 软刷新：仅首次（无数据）显示全页 loading；操作后重载静默更新，
+        // 下拉刷新自带指示器也不需要全页转圈
+        let isFirstLoad = daemon == nil
+        if isFirstLoad { isLoading = true }
+        defer { if isFirstLoad { isLoading = false } }
         do {
             async let daemonResult = try await client.send(
                 path: APIEndpoint.containersDaemonjson.path,
@@ -272,11 +275,13 @@ struct ContainerDaemonSettingsView: View {
                     on ? nil : L10n.t("关闭 iptables 会导致容器无法与外部网络通信。")
                 },
                 key: "IPtables"))
+                .disabled(isOperating)
 
             Toggle(L10n.t("Live restore"), isOn: toggleBinding(
                 current: daemon.liveRestore ?? false,
                 title: { _ in L10n.t("配置修改") },
                 key: "LiveRestore"))
+                .disabled(isOperating)
 
             OutlinedPicker(label: "Cgroup Driver", options: ["cgroupfs", "systemd"],
                            selection: Binding(
@@ -291,8 +296,9 @@ struct ContainerDaemonSettingsView: View {
                                            toast = L10n.t("已保存，重启 Docker 后生效")
                                            await load()
                                        }
-                                   }
+                                       }
                                }))
+                .disabled(isOperating)
         } header: {
             Text(L10n.t("基础配置"))
         }
@@ -327,7 +333,7 @@ struct ContainerDaemonSettingsView: View {
     /// Socket 路径：输入框（文件浏览器回填加 unix:// 前缀）+ 保存（普通确认）
     private var sockSection: some View {
         Section {
-            OutlinedShape(label: L10n.t("Socket路径"), isFocused: false,
+            OutlinedShape(label: L10n.t("Socket路径"), isFocused: sockFieldFocused,
                           hasValue: !sockPath.isEmpty,
                           trailing: {
                 Button {
@@ -344,6 +350,7 @@ struct ContainerDaemonSettingsView: View {
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .focused($sockFieldFocused)
             }
             Button {
                 showSockConfirm = true
@@ -352,7 +359,6 @@ struct ContainerDaemonSettingsView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .listRowBackground(Color.clear)
             .disabled(sockPath == loadedSockPath || isOperating)
         } header: {
             Text(L10n.t("Socket路径"))
@@ -375,7 +381,6 @@ struct ContainerDaemonSettingsView: View {
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
-            showError = true
         }
     }
 
@@ -395,7 +400,6 @@ struct ContainerDaemonSettingsView: View {
         } catch {
             guard !APIError.isCancellation(error) else { return false }
             errorMessage = error.localizedDescription
-            showError = true
             return false
         }
     }
@@ -473,7 +477,6 @@ private struct DaemonListEditorPage: View {
             } options: {
                 EmptyView()
             }
-            .presentationDetents([.medium])
         }
     }
 
@@ -503,12 +506,10 @@ private struct DaemonListEditorPage: View {
             // sheet 已关闭，错误经延迟 alert 提示（sheet 期间 alert 会被遮挡）
             try? await Task.sleep(nanoseconds: 400_000_000)
             errorMessageText = error.localizedDescription
-            showError = true
         }
     }
 
     @State private var errorMessageText: String?
-    @State private var showError = false
 }
 
 
@@ -532,7 +533,6 @@ private struct DaemonIPv6Page: View {
     @State private var showConfirm = false
     @State private var isSaving = false
     @State private var errorMessage: String?
-    @State private var showError = false
     @State private var didInit = false
 
     private var isDirty: Bool {
@@ -585,7 +585,6 @@ private struct DaemonIPv6Page: View {
             } options: {
                 EmptyView()
             }
-            .presentationDetents([.medium])
         }
         .alert(L10n.t("提示"), isPresented: Binding(
             get: { errorMessage != nil },
@@ -602,8 +601,7 @@ private struct DaemonIPv6Page: View {
             let trimmed = cidr.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty else {
                 errorMessage = L10n.t("请填写子网")
-                showError = true
-                return
+                    return
             }
         }
         showConfirm = true
@@ -633,7 +631,6 @@ private struct DaemonIPv6Page: View {
             guard !APIError.isCancellation(error) else { return }
             try? await Task.sleep(nanoseconds: 400_000_000)
             errorMessage = error.localizedDescription
-            showError = true
         }
     }
 }
@@ -658,7 +655,6 @@ private struct DaemonLogPage: View {
     @State private var showConfirm = false
     @State private var isSaving = false
     @State private var errorMessage: String?
-    @State private var showError = false
     @State private var didInit = false
 
     private var isDirty: Bool {
@@ -714,7 +710,6 @@ private struct DaemonLogPage: View {
             } options: {
                 EmptyView()
             }
-            .presentationDetents([.medium])
         }
         .alert(L10n.t("提示"), isPresented: Binding(
             get: { errorMessage != nil },
@@ -730,8 +725,7 @@ private struct DaemonLogPage: View {
         if enabled {
             guard (Int(sizeText) ?? 0) >= 1, (Int(filesText) ?? 0) >= 1 else {
                 errorMessage = L10n.t("请填写文件大小与保留份数")
-                showError = true
-                return
+                    return
             }
         }
         showConfirm = true
@@ -760,7 +754,6 @@ private struct DaemonLogPage: View {
             guard !APIError.isCancellation(error) else { return }
             try? await Task.sleep(nanoseconds: 400_000_000)
             errorMessage = error.localizedDescription
-            showError = true
         }
     }
 }
