@@ -322,6 +322,29 @@ nonisolated struct WAFWebsiteSearchRequest: Encodable {
     let name: String
 }
 
+/// 分页拉全量 WAF 网站列表（网站设置页与规则应用弹层共用）。
+/// 面板对 WebsiteConfigSearch.PageSize 有 max 校验（实测 200 报
+/// 「Field validation for 'PageSize' on the 'max' tag」），
+/// 沿用 Web 端每页 20 的实证安全值翻页取全
+func fetchAllWAFWebsites(client: APIClient) async throws -> [WAFWebsiteItem] {
+    var result: [WAFWebsiteItem] = []
+    var page = 1
+    let pageSize = 20
+    while page <= 50 {
+        let resp: PageResponse<WAFWebsiteItem> = try await client.send(
+            path: APIEndpoint.wafWebsitesSearch.path,
+            body: WAFWebsiteSearchRequest(page: page, pageSize: pageSize, name: ""),
+            as: PageResponse<WAFWebsiteItem>.self
+        )
+        let items = resp.items ?? []
+        result += items
+        let total = resp.total ?? 0
+        if items.isEmpty || items.count < pageSize || result.count >= total { break }
+        page += 1
+    }
+    return result
+}
+
 /// 网站级开关/模式切换（scope: Waf / Cc / Strict；mode 仅 Waf scope 携带
 /// protection/observation，其余传 nil 省略）
 nonisolated struct WAFWebsiteStateRequest: Encodable {

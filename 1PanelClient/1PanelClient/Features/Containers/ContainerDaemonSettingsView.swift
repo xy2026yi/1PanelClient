@@ -170,7 +170,13 @@ struct ContainerDaemonSettingsView: View {
             loadedSockPath = sockPath
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            loadError = error.localizedDescription
+            // 已有数据时刷新失败仅弹提示保留旧值（与备份账号页约定一致），
+            // 不整页替换为错误态
+            if daemon != nil {
+                errorMessage = error.localizedDescription
+            } else {
+                loadError = error.localizedDescription
+            }
         }
     }
 
@@ -370,7 +376,12 @@ struct ContainerDaemonSettingsView: View {
     private func saveSockPath() async {
         isOperating = true
         defer { isOperating = false }
-        let value = sockPath.trimmingCharacters(in: .whitespaces)
+        var value = sockPath.trimmingCharacters(in: .whitespaces)
+        // 对齐网页端：裸路径强制补 unix:// 前缀（裸路径会导致面板连不上 Docker）；
+        // 已带协议（unix:// / tcp:// 等）不重复补
+        if !value.isEmpty, !value.contains("://") {
+            value = "unix://\(value)"
+        }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.settingsUpdate.path,
@@ -604,7 +615,7 @@ private struct DaemonIPv6Page: View {
             let trimmed = cidr.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty else {
                 errorMessage = L10n.t("请填写子网")
-                    return
+                return
             }
         }
         showConfirm = true
@@ -641,7 +652,7 @@ private struct DaemonIPv6Page: View {
 // MARK: - 日志切割配置页（跳转进入，右上角保存）
 
 /// 日志切割：开关 + 文件大小/单位/保留份数；保存「立即重启」确认——
-/// 开启走 logoption/update，关闭（服务端已开启时）走 {key:LogOption,value:disable}
+/// 开启走 logoption/update，关闭（服务端已开启时）走 daemonjson/update LogOption=disable
 private struct DaemonLogPage: View {
     let client: APIClient
     let initialEnabled: Bool
@@ -728,7 +739,7 @@ private struct DaemonLogPage: View {
         if enabled {
             guard (Int(sizeText) ?? 0) >= 1, (Int(filesText) ?? 0) >= 1 else {
                 errorMessage = L10n.t("请填写文件大小与保留份数")
-                    return
+                return
             }
         }
         showConfirm = true
@@ -746,8 +757,11 @@ private struct DaemonLogPage: View {
                         logMaxFile: filesText),
                     as: EmptyResponse.self)
             } else {
+                // 关闭走 daemonjson/update {key:LogOption,value:disable}（服务端
+                // UpdateConf 会整键删除 log-opts）；logoption/update 只认
+                // logMaxSize/logMaxFile，发 key/value 会被丢弃导致 log-opts 残留
                 let _: EmptyResponse = try await client.send(
-                    path: APIEndpoint.containersLogOptionUpdate.path,
+                    path: APIEndpoint.containersDaemonjsonUpdate.path,
                     body: DockerDaemonKeyUpdateRequest(key: "LogOption", value: "disable"),
                     as: EmptyResponse.self)
             }

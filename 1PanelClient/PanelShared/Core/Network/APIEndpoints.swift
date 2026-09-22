@@ -1147,7 +1147,8 @@ enum APIEndpoint {
         case .backupAccountsCreate:  return "/api/v2/backups"
         case .backupAccountsUpdate:  return "/api/v2/backups/update"
         case .backupAccountsDelete:  return "/api/v2/backups/del"
-        case .backupAccountsClientInfo: return "/api/v2/backups/client/:type"
+        // 该路由挂在 core 侧（agent 无 /client 路由），漏 /core 会 404 且被静默吞掉
+        case .backupAccountsClientInfo: return "/api/v2/core/backups/client/:type"
         case .logsOperation:         return "/api/v2/core/logs/operation"
         case .logsLogin:             return "/api/v2/core/logs/login"
         case .logsSystemFiles:       return "/api/v2/logs/system/files"

@@ -217,6 +217,9 @@ struct UpdateParamsView: View {
         let u = (resp.memoryUnit ?? "MB").uppercased().first.map(String.init) ?? "M"
         memoryUnit = ["K", "M", "G"].contains(u) ? u : "M"
         customCompose = resp.dockerCompose ?? resp.rawCompose ?? ""
+        // 服务端原值即「未修改」基线（load 先填满 customCompose，onChange 里的
+        // 基线赋值被 isEmpty 守卫挡死，不同步则开关一开就误报「已修改」）
+        composeOrigin = customCompose
         isLoading = false
     }
 

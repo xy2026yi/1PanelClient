@@ -408,9 +408,6 @@ struct FullscreenTextEditorSheet: View {
     let title: String
     @Binding var text: String
     var monospaced: Bool = false
-    /// 只读查看模式：逐行渲染（行号 + 文本同行同列，天然对齐不随折行错位），
-    /// 可选中复制、不可编辑
-    var readOnly: Bool = false
 
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isFocused: Bool
@@ -419,35 +416,8 @@ struct FullscreenTextEditorSheet: View {
         max(1, text.split(whereSeparator: \.isNewline).count)
     }
 
-    private var contentLines: [Substring] {
-        text.split(omittingEmptySubsequences: false, whereSeparator: { $0.isNewline })
-    }
-
     var body: some View {
         NavigationStack {
-            if readOnly {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(contentLines.enumerated()), id: \.offset) { idx, line in
-                            HStack(alignment: .top, spacing: 10) {
-                                Text(String(idx + 1))
-                                    .font(.callout.monospacedDigit())
-                                    .foregroundStyle(.tertiary)
-                                    .frame(minWidth: 34, alignment: .trailing)
-                                Text(line.isEmpty ? " " : String(line))
-                                    .font(monospaced ? .callout.monospaced() : .callout)
-                                    .textSelection(.enabled)
-                                Spacer(minLength: 0)
-                            }
-                            .padding(.vertical, 1)
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .background(Color(.systemGroupedBackground))
-            } else {
             ScrollView {
                 TextEditor(text: $text)
                     .font(monospaced ? .body.monospaced() : .body)
@@ -468,7 +438,7 @@ struct FullscreenTextEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(readOnly ? L10n.t("关闭") : L10n.t("完成")) {
+                    Button(L10n.t("完成")) {
                         isFocused = false
                         dismiss()
                     }
@@ -479,7 +449,6 @@ struct FullscreenTextEditorSheet: View {
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
-            }
             }
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
@@ -644,14 +613,16 @@ private struct OutlinedMachineValue: ViewModifier {
 struct CodeEditorArea: View {
     @Binding var text: String
     var readOnly: Bool = false
-    /// 只读态行号开关（编辑态忽略——编辑态恒无行号）
-    var showsLineNumbers: Bool = true
 
     @ScaledMetric(relativeTo: .callout) private var fontSize: CGFloat = 13
     /// 编辑区可用宽度（横向 ScrollView 背景测量回报）
     @State private var availableWidth: CGFloat = 360
     /// 编辑区钉宽 = max(可用宽, 最长行宽 + 裕量)；随内容增删重算
     @State private var pinnedWidth: CGFloat = 360
+
+    /// 全量逐行测量的行数上限：超过后放弃钉宽、按视口宽折行。
+    /// 逐键全量测量 O(行数)，大配置文件（数百上千行）会造成可感知的输入延迟
+    private static let maxMeasuredLines = 400
 
     private let hPadding: CGFloat = 12
     /// TextEditor 内部左右内容边距 + 测量口径安全裕量（估大安全）
@@ -702,14 +673,22 @@ struct CodeEditorArea: View {
         .background(Color(.systemGroupedBackground))
         .onAppear { recomputePinnedWidth() }
         .onChange(of: text) { _, _ in recomputePinnedWidth() }
+        // 动态字体/系统字号实时调整后最长行测量值变化，钉宽需随字号重算
+        .onChange(of: fontSize) { _, _ in recomputePinnedWidth() }
     }
 
     /// 重算编辑区钉宽：所有逻辑行的最大单行宽度（逐行 size 测量，配置文件
-    /// 通常一两百行，每次编辑全量重测开销可忽略；如遇超大文件再按行缓存）
+    /// 通常一两百行，每次编辑全量重测开销可忽略；超过 maxMeasuredLines 的
+    /// 大文件放弃测量按视口宽折行）
     private func recomputePinnedWidth() {
+        let all = lines
+        guard all.count <= Self.maxMeasuredLines else {
+            pinnedWidth = availableWidth
+            return
+        }
         let attrs: [NSAttributedString.Key: Any] = [.font: monoUIFont]
         var widest: CGFloat = 0
-        for line in lines {
+        for line in all {
             widest = max(widest, (line as NSString).size(withAttributes: attrs).width)
         }
         pinnedWidth = max(availableWidth, widest + editorHAllowance)
@@ -717,16 +696,22 @@ struct CodeEditorArea: View {
 
     // MARK: 只读（行号 + 逐行文本，不折行，天然对齐）
 
+    /// 行号列宽 = 位数 × 等宽数字宽 + 余量：按总行数位数计算，整列统一宽、
+    /// 右对齐（逐行 minWidth 到 4 位数会撑爆错位）；字号与正文一致防撑行高
+    private var lineNumberWidth: CGFloat {
+        let digits = max(2, String(max(lines.count, 1)).count)
+        let digitWidth = ("0" as NSString).size(withAttributes: [.font: monoUIFont]).width
+        return CGFloat(digits) * digitWidth + 8
+    }
+
     private var readonlyBody: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
                 HStack(alignment: .top, spacing: 10) {
-                    if showsLineNumbers {
-                        Text(String(idx + 1))
-                            .font(.callout.monospacedDigit())
-                            .foregroundStyle(.tertiary)
-                            .frame(minWidth: 34, alignment: .trailing)
-                    }
+                    Text(String(idx + 1))
+                        .font(monoFont)
+                        .foregroundStyle(.tertiary)
+                        .frame(width: lineNumberWidth, alignment: .trailing)
                     Text(line.isEmpty ? " " : line)
                         .font(monoFont)
                         // 不折行：按内容理想宽渲染，超屏宽交给横向滚动

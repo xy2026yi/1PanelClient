@@ -27,6 +27,8 @@ struct WAFCdnSettingsView: View {
     /// 源站保护（网站级）
     @State private var originProtection = WAFOriginProtection()
     @State private var ipGroups: [WAFIPGroupItem] = []
+    /// 站级 /cdn 响应带回的 rules（保存时优先于传入 config，防止把全局 rules 写给单站）
+    @State private var siteRules: [String]? = nil
     @State private var showIPGroupPicker = false
     @State private var didLoadSite = false
     @State private var isSaving = false
@@ -183,6 +185,7 @@ struct WAFCdnSettingsView: View {
             let h = cfg.header ?? ""
             header = h.isEmpty ? "x-real-ip" : h
             originProtection = cfg.originProtection ?? WAFOriginProtection()
+            siteRules = cfg.rules
             didLoadSite = true
         } catch {
             // 读取失败保持传入 config 的初值，页面仍可保存
@@ -219,7 +222,8 @@ struct WAFCdnSettingsView: View {
     private func save() async {
         isSaving = true
         defer { isSaving = false }
-        let rules = (config?.rules?.isEmpty == false) ? config!.rules! : Self.defaultHeaders
+        let rules = (siteRules?.isEmpty == false) ? siteRules!
+            : ((config?.rules?.isEmpty == false) ? config!.rules! : Self.defaultHeaders)
         let h = header.trimmingCharacters(in: .whitespaces)
         let req = WAFCdnUpdateRequest(
             rules: rules,

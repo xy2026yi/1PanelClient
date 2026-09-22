@@ -49,6 +49,9 @@ struct AIAgentModelConfigView: View {
     /// Hermes 专属判断（与详情页 isHermesAgent 同一取值）
     private var isHermes: Bool { agentType == "hermes-agent" }
 
+    /// 模型能力配置（metadata）仅 OpenClaw 抓包验证过，其他类型隐藏入口防误提交
+    private var isOpenClaw: Bool { agentType == "openclaw" }
+
     private var selectedAccount: AIAccount? {
         accounts.first { $0.id == selectedAccountId }
     }
@@ -98,7 +101,8 @@ struct AIAgentModelConfigView: View {
                                        options: (selectedAccount?.models ?? []).map(\.id),
                                        selection: $selectedModel)
 
-                        if let account = selectedAccount,
+                        if isOpenClaw,
+                           let account = selectedAccount,
                            let models = account.models, !models.isEmpty {
                             NavigationLink {
                                 AIAgentModelCapabilityPage(
@@ -222,6 +226,13 @@ struct AIAgentModelConfigView: View {
                 fallbacks = config?.fallbacks ?? []
             }
             fallbackCandidate = ""
+            // 模型能力镜像同备用模型处理：切走不携带原账号能力值（防止账号间
+            // 同名模型串台写入），切回配置账号时还原服务端值
+            if newValue != config?.accountId {
+                metadata = []
+            } else {
+                metadata = config?.metadata ?? []
+            }
         }
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}

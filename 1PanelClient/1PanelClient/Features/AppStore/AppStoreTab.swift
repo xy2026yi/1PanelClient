@@ -688,9 +688,10 @@ struct AppInstallView: View {
                     }
                 }
             }
-            // 初始化自定义 compose 为默认值
+            // 初始化自定义 compose 为默认值（同时记录未修改基线，防开关一开误报已修改）
             if customCompose.isEmpty {
                 customCompose = resp.dockerCompose ?? ""
+                composeOrigin = customCompose
             }
         } catch let err as APIError {
             loadError = err.errorDescription ?? L10n.t("服务器返回错误，该应用可能尚未同步安装文件")

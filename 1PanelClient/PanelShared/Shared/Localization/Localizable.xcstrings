@@ -18,8 +18,30 @@
     "-" : {
 
     },
+    "ClamAV 设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ClamAV Settings"
+          }
+        }
+      }
+    },
     "—" : {
 
+    },
+    "保存后立即生效；周期内超过频率的访问将按封禁时间拦截" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takes effect immediately after saving; requests exceeding the rate limit within a cycle will be blocked for the ban duration"
+          }
+        }
+      }
     },
     "，内存 %@" : {
       "extractionState" : "manual",
@@ -636,6 +658,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld s"
+          }
+        }
+      }
+    },
+    "%ld 行 · %ld 字" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld lines · %ld chars"
           }
         }
       }
@@ -25852,13 +25885,13 @@
         }
       }
     },
-    "点击右上角 + 添加 MINIO / 阿里云OSS / WebDAV / SFTP 备份账号" : {
+    "点击右上角 + 添加对象存储 / 网盘 / WebDAV / SFTP 等备份账号" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap + at the top right to add a MINIO / Alibaba OSS / WebDAV / SFTP account"
+            "value" : "Tap + at the top right to add an object storage / cloud drive / WebDAV / SFTP account"
           }
         }
       }
@@ -31117,17 +31150,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spider Allowlist"
-          }
-        }
-      }
-    },
-    "行 · %ld 字" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld lines · %ld chars"
           }
         }
       }

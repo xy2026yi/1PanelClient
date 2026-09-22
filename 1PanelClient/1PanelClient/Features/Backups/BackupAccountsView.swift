@@ -34,8 +34,14 @@ nonisolated struct BackupAccount: Decodable, Identifiable {
     var isEditable: Bool { BackupAccountType(rawValue: type ?? "") != nil || isLocal }
 
     var displayType: String { isLocal ? L10n.t("服务器磁盘") : (type ?? "—") }
-    /// 名称（内置本机账号中文显示「本机」）
-    var displayName: String { isLocal ? L10n.t("本机") : (name ?? "—") }
+    /// 名称（内置本机账号默认名显示「本机」；改名后显示真实名称，便于确认改名生效）
+    var displayName: String {
+        if isLocal {
+            if let n = name, !n.isEmpty, n != "localhost" { return n }
+            return L10n.t("本机")
+        }
+        return name ?? "—"
+    }
     var displayCreatedAt: String {
         guard let t = createdAt, t.count >= 10 else { return "—" }
         return String(t.prefix(10))
@@ -456,7 +462,7 @@ struct BackupAccountsView: View {
                 ContentUnavailableView(
                     L10n.t("暂无备份账号"),
                     systemImage: "externaldrive.badge.icloud",
-                    description: Text(L10n.t("点击右上角 + 添加 MINIO / 阿里云OSS / WebDAV / SFTP 备份账号"))
+                    description: Text(L10n.t("点击右上角 + 添加对象存储 / 网盘 / WebDAV / SFTP 等备份账号"))
                 )
             } else {
                 accountList
@@ -688,6 +694,9 @@ struct BackupAccountEditView: View {
     @State private var oneDriveIsCN = false
     /// 服务端默认客户端信息（OneDrive 创建态预填，切回国际版时恢复）
     @State private var defaultClientInfo: BackupClientInfo?
+    /// 切「世纪互联」前暂存的凭证（编辑态无服务端默认值，切回国际版时还原，
+    /// 否则一次误切就会把已保存的凭证清空且无法恢复）
+    @State private var stashedOAuthCredentials: (id: String, secret: String, redirect: String)?
     /// 阿里云盘 token 解析结果提示
     @State private var aliyunParseHint: String?
     @State private var aliyunParseOK = false
@@ -1064,8 +1073,11 @@ struct BackupAccountEditView: View {
                                optionLabels: ["global": L10n.t("国际版"),
                                               "cn": L10n.t("世纪互联")])
                     .onChange(of: oneDriveIsCN) { _, cn in
-                        // 世纪互联需自填自有应用信息；切回国际版恢复服务端默认值
+                        // 世纪互联需自填自有应用信息；切回国际版恢复服务端默认值，
+                        // 编辑态（defaultClientInfo 恒 nil）还原切走前暂存的凭证
                         if cn {
+                            stashedOAuthCredentials = (oauthClientID, oauthClientSecret,
+                                                       oauthRedirectURI)
                             oauthClientID = ""
                             oauthClientSecret = ""
                             oauthRedirectURI = ""
@@ -1073,6 +1085,10 @@ struct BackupAccountEditView: View {
                             oauthClientID = info.client_id ?? ""
                             oauthClientSecret = info.client_secret ?? ""
                             oauthRedirectURI = info.redirect_uri ?? ""
+                        } else if let stashed = stashedOAuthCredentials {
+                            oauthClientID = stashed.id
+                            oauthClientSecret = stashed.secret
+                            oauthRedirectURI = stashed.redirect
                         }
                     }
             }

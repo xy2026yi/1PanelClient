@@ -477,31 +477,11 @@ private struct WAFRuleApplySheet: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            websites = try await fetchAllWebsites()
+            websites = try await fetchAllWAFWebsites(client: client)
             loadError = nil
         } catch {
             loadError = error.localizedDescription
         }
-    }
-
-    /// 分页拉全量网站列表（与 WAFWebsiteSettingsView 一致）
-    private func fetchAllWebsites() async throws -> [WAFWebsiteItem] {
-        var result: [WAFWebsiteItem] = []
-        var page = 1
-        let pageSize = 20
-        while page <= 50 {
-            let resp: PageResponse<WAFWebsiteItem> = try await client.send(
-                path: APIEndpoint.wafWebsitesSearch.path,
-                body: WAFWebsiteSearchRequest(page: page, pageSize: pageSize, name: ""),
-                as: PageResponse<WAFWebsiteItem>.self
-            )
-            let items = resp.items ?? []
-            result += items
-            let total = resp.total ?? 0
-            if items.isEmpty || items.count < pageSize || result.count >= total { break }
-            page += 1
-        }
-        return result
     }
 
     private func apply() async {

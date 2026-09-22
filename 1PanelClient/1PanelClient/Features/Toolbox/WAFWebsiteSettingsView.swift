@@ -138,6 +138,8 @@ struct WAFWebsiteSettingsView: View {
             },
             set: { newValue in
                 selectedID = Int(newValue)
+                // 立即失效旧站配置：加载在途/失败时不把上一个站的开关标在新站名下
+                siteConfig = nil
                 Task { await loadWebsiteConfig() }
             }
         )
@@ -266,8 +268,10 @@ struct WAFWebsiteSettingsView: View {
                 ruleToggleRow(title: L10n.t("文件上传限制"), item: siteConfig?.fileExt, scope: "FileExt")
             }
             NavigationLink {
+                // 站级不回落全局 config 兜底：缺失/加载中按关处理（子页 loadSiteCDN
+                // 会拉真实值），回落会把全局状态误当站级展示并随保存回写
                 WAFCdnSettingsView(vm: vm, server: server,
-                                   config: siteConfig?.cdn ?? vm.config?.cdn,
+                                   config: siteConfig?.cdn,
                                    websiteID: selected?.id ?? 0) {
                     Task { await loadWebsiteConfig() }
                 }
@@ -275,7 +279,7 @@ struct WAFWebsiteSettingsView: View {
                 HStack {
                     Text("CDN")
                     Spacer()
-                    let cdn = siteConfig?.cdn ?? vm.config?.cdn
+                    let cdn = siteConfig?.cdn
                     if cdn?.state == "on" {
                         Text(cdn?.type?.uppercased() ?? "")
                             .font(.caption)
@@ -313,28 +317,6 @@ struct WAFWebsiteSettingsView: View {
 
     // MARK: - 数据与请求
 
-    /// 分页拉全量网站。面板对 WebsiteConfigSearch.PageSize 有 max 校验
-    ///（实测 200 报「Field validation for 'PageSize' on the 'max' tag」），
-    /// 沿用 Web 端每页 20 的实证安全值翻页取全
-    private func fetchAllWebsites() async throws -> [WAFWebsiteItem] {
-        var result: [WAFWebsiteItem] = []
-        var page = 1
-        let pageSize = 20
-        while page <= 50 {
-            let resp: PageResponse<WAFWebsiteItem> = try await client.send(
-                path: APIEndpoint.wafWebsitesSearch.path,
-                body: WAFWebsiteSearchRequest(page: page, pageSize: pageSize, name: ""),
-                as: PageResponse<WAFWebsiteItem>.self
-            )
-            let items = resp.items ?? []
-            result += items
-            let total = resp.total ?? 0
-            if items.isEmpty || items.count < pageSize || result.count >= total { break }
-            page += 1
-        }
-        return result
-    }
-
     private func load() async {
         isLoading = true
         defer { isLoading = false }
@@ -343,7 +325,7 @@ struct WAFWebsiteSettingsView: View {
             struct StrictState: Decodable { let state: String? }
         }
         do {
-            websites = try await fetchAllWebsites()
+            websites = try await fetchAllWAFWebsites(client: client)
             if selectedID == nil { selectedID = websites.first?.id }
             errorMessage = nil
         } catch {
@@ -398,7 +380,7 @@ struct WAFWebsiteSettingsView: View {
     /// 状态切换后重拉网站列表（选中不变），并同步刷新 CC 表单回填值
     private func reloadKeepingSelection() async {
         let keep = selectedID
-        if let all = try? await fetchAllWebsites() {
+        if let all = try? await fetchAllWAFWebsites(client: client) {
             websites = all
         }
         selectedID = websites.first { $0.id == keep }?.id ?? websites.first?.id
@@ -415,8 +397,6 @@ struct WAFWebsiteCCPage: View {
     let site: WAFWebsiteItem
     /// 开关/保存成功后回调（父页重拉列表与配置）
     var onChanged: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
 
     @State private var ccMode = "uri"
     @State private var ccDuration = "10"
@@ -504,7 +484,9 @@ struct WAFWebsiteCCPage: View {
         ccBlockTime = String(cc.ipBlockTime ?? 600)
     }
 
-    /// 开频率限制 = state(Cc,on) + 附带一条 rule/cc 全量规则；关 = 仅 state(Cc,off)
+    /// 开频率限制 = state(Cc,on) + 附带一条 rule/cc 全量规则；关 = 仅 state(Cc,off)。
+    /// 两段请求分开容错：第一段（state）失败服务端未变，开关回滚；第二段（rule/cc）
+    /// 失败时服务端 cc 已是目标态，开关保持不回滚（翻回会造成页内与父页行标相反）
     private func toggleCC(on: Bool) async {
         isOperating = true
         defer { isOperating = false }
@@ -513,17 +495,26 @@ struct WAFWebsiteCCPage: View {
                                                   state: on ? "on" : "off", mode: nil)
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.wafWebsiteState.path, body: stateReq, as: EmptyResponse.self)
-            if on {
-                let _: EmptyResponse = try await client.send(
-                    path: APIEndpoint.wafWebsiteRuleCC.path, body: ccRuleRequest(),
-                    as: EmptyResponse.self)
-            }
-            onChanged()
         } catch {
+            guard !APIError.isCancellation(error) else { return }
             isOn = !on
             errorMessage = error.localizedDescription
             onChanged()
+            return
         }
+        if on {
+            do {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.wafWebsiteRuleCC.path, body: ccRuleRequest(),
+                    as: EmptyResponse.self)
+            } catch {
+                guard !APIError.isCancellation(error) else { return }
+                errorMessage = error.localizedDescription
+                onChanged()
+                return
+            }
+        }
+        onChanged()
     }
 
     /// 保存 CC 参数（rule/cc 全量规则）

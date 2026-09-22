@@ -75,7 +75,7 @@ struct _PanelClientApp: App {
 }
 
 // MARK: - CodeEditorArea 视觉回归宿主（DEBUG -editorDemo 直达）
-
+#if DEBUG
 struct EditorDemoHost: View {
     @State private var text = """
 location / {
@@ -156,3 +156,4 @@ location / {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+#endif

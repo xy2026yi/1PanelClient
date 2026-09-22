@@ -592,8 +592,6 @@ struct ScriptCreateView: View {
     @State private var scriptText = "#!/bin/bash\n"
     @State private var descriptionText = ""
     @State private var isSaving = false
-    @State private var errorMessage: String?
-    @State private var showError = false
 
     /// 复用脚本库 VM：分组数据 + 创建请求
     @StateObject private var vm: ScriptLibraryViewModel
@@ -723,14 +721,6 @@ struct ScriptCreateView: View {
         }
         .sheet(isPresented: $showGroupPicker) {
             ScriptGroupMultiPickerView(groups: vm.groups, selection: $selectedGroupIDs)
-        }
-        .alert(L10n.t("提示"), isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )) {
-            Button(L10n.t("好的"), role: .cancel) {}
-        } message: {
-            Text(errorMessage ?? "")
         }
     }
 

@@ -94,7 +94,7 @@ struct AlertNotificationView: View {
                     } label: {
                         Image(systemName: "trash")
                     }
-                    .disabled(vm.isLoadingLogs || vm.logs.isEmpty)
+                    .disabled(vm.isLoadingLogs || vm.logs.isEmpty || isCleaningLogs)
                     .accessibilityLabel(L10n.t("清理日志"))
                 }
             }
