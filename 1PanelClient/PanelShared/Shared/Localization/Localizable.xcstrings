@@ -2477,6 +2477,9 @@
         }
       }
     },
+    "New" : {
+
+    },
     "nginx.conf" : {
 
     },
@@ -3306,6 +3309,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back"
+          }
+        }
+      }
+    },
+    "上下文窗口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context Window"
           }
         }
       }
@@ -4388,6 +4402,17 @@
         }
       }
     },
+    "仅文本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text Only"
+          }
+        }
+      }
+    },
     "仅显示类型为「网站」且未被使用的已安装应用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5220,6 +5245,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Use Passcode"
+          }
+        }
+      }
+    },
+    "使用模型默认值" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use model default"
           }
         }
       }
@@ -14277,6 +14313,17 @@
         }
       }
     },
+    "将删除全部告警日志，该操作无法回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes all alert logs and cannot be undone. Continue?"
+          }
+        }
+      }
+    },
     "将删除服务器上的模型目录「%@」及其文件，不可恢复。请输入模型名称以确认删除。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15439,6 +15486,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld schedules added — each runs on its own."
+          }
+        }
+      }
+    },
+    "已清理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleaned"
           }
         }
       }
@@ -19744,6 +19802,17 @@
         }
       }
     },
+    "文本和图片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text and Image"
+          }
+        }
+      }
+    },
     "文档" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22109,6 +22178,17 @@
         }
       }
     },
+    "服务器磁盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local Disk"
+          }
+        }
+      }
+    },
     "服务器返回了无法解析的响应" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23682,6 +23762,17 @@
         }
       }
     },
+    "模型能力配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model Capabilities"
+          }
+        }
+      }
+    },
     "模型账号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24162,116 +24253,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No files to move"
-          }
-        }
-      }
-    },
-    "模型能力配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Model Capabilities"
-          }
-        }
-      }
-    },
-    "输入类型" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Input Type"
-          }
-        }
-      }
-    },
-    "自动识别" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto Detect"
-          }
-        }
-      }
-    },
-    "仅文本" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Text Only"
-          }
-        }
-      }
-    },
-    "文本和图片" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Text and Image"
-          }
-        }
-      }
-    },
-    "使用模型默认值" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use model default"
-          }
-        }
-      }
-    },
-    "上下文窗口" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Context Window"
-          }
-        }
-      }
-    },
-    "服务器磁盘" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local Disk"
-          }
-        }
-      }
-    },
-    "将删除全部告警日志，该操作无法回滚，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This deletes all alert logs and cannot be undone. Continue?"
-          }
-        }
-      }
-    },
-    "已清理" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cleaned"
           }
         }
       }
@@ -30447,6 +30428,17 @@
         }
       }
     },
+    "自动识别" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Detect"
+          }
+        }
+      }
+    },
     "自动重启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33886,6 +33878,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter New Passcode"
+          }
+        }
+      }
+    },
+    "输入类型" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input Type"
           }
         }
       }

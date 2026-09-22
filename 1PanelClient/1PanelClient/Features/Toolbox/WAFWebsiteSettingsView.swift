@@ -72,6 +72,7 @@ struct WAFWebsiteSettingsView: View {
                 }
             } else {
                 websiteSection
+                wafSection
                 protectionSection
                 ccLinkSection
                 defaultRulesSection
@@ -142,7 +143,8 @@ struct WAFWebsiteSettingsView: View {
         )
     }
 
-    private var protectionSection: some View {
+    /// WAF 总开关：独立分组（与「选择网站」同级，不与策略混排）
+    private var wafSection: some View {
         Section {
             Toggle("WAF", isOn: Binding(
                 get: { wafOn },
@@ -155,7 +157,13 @@ struct WAFWebsiteSettingsView: View {
                 }
             ))
             .disabled(isOperating)
+        } header: {
+            Text("WAF")
+        }
+    }
 
+    private var protectionSection: some View {
+        Section {
             OutlinedPicker(label: L10n.t("执行策略"),
                            options: ["protection", "observation"],
                            selection: Binding(
@@ -202,16 +210,8 @@ struct WAFWebsiteSettingsView: View {
                     }
                 }
             } label: {
-                HStack {
-                    Text(L10n.t("频率限制"))
-                    Spacer()
-                    Text(selected?.ccState == "on" ? L10n.t("已启用") : L10n.t("未启用"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
+                LabeledContent(L10n.t("频率限制"), value: selected?.ccState == "on"
+                               ? L10n.t("已启用") : L10n.t("未启用"))
             }
             .disabled(selected == nil)
         } header: {
@@ -219,15 +219,39 @@ struct WAFWebsiteSettingsView: View {
         }
     }
 
-    /// 默认规则（与全局配置同款六组，按站开关；点入查看规则集）
+    /// 默认规则（与全局配置同款：按站开关 + 点入查看规则集）
     private var defaultRulesSection: some View {
         Section {
-            ruleToggleRow(title: L10n.t("参数规则"), item: siteConfig?.args, scope: "Args")
-            ruleToggleRow(title: L10n.t("URL规则"), item: siteConfig?.defaultUrlBlack, scope: "DefaultUrlBlack")
-            ruleToggleRow(title: L10n.t("HTTP规则"), item: siteConfig?.methodWhite, scope: "MethodWhite")
-            ruleToggleRow(title: L10n.t("Cookie规则"), item: siteConfig?.cookie, scope: "Cookie")
-            ruleToggleRow(title: L10n.t("Header规则"), item: siteConfig?.header, scope: "Header")
-            ruleToggleRow(title: L10n.t("User-Agent规则"), item: siteConfig?.defaultUaBlack, scope: "DefaultUaBlack")
+            NavigationLink {
+                WAFCommonRulesView(server: server, scope: "args", title: L10n.t("参数规则"), builtin: true)
+            } label: {
+                ruleToggleRow(title: L10n.t("参数规则"), item: siteConfig?.args, scope: "Args")
+            }
+            NavigationLink {
+                WAFCommonRulesView(server: server, scope: "defaultUrlBlack", title: L10n.t("URL规则"), builtin: true)
+            } label: {
+                ruleToggleRow(title: L10n.t("URL规则"), item: siteConfig?.defaultUrlBlack, scope: "DefaultUrlBlack")
+            }
+            NavigationLink {
+                WAFCommonRulesView(server: server, scope: "methodWhite", title: L10n.t("HTTP规则"), builtin: true)
+            } label: {
+                ruleToggleRow(title: L10n.t("HTTP规则"), item: siteConfig?.methodWhite, scope: "MethodWhite")
+            }
+            NavigationLink {
+                WAFCommonRulesView(server: server, scope: "cookie", title: L10n.t("Cookie规则"), builtin: true)
+            } label: {
+                ruleToggleRow(title: L10n.t("Cookie规则"), item: siteConfig?.cookie, scope: "Cookie")
+            }
+            NavigationLink {
+                WAFCommonRulesView(server: server, scope: "header", title: L10n.t("Header规则"), builtin: true)
+            } label: {
+                ruleToggleRow(title: L10n.t("Header规则"), item: siteConfig?.header, scope: "Header")
+            }
+            NavigationLink {
+                WAFCommonRulesView(server: server, scope: "defaultUaBlack", title: L10n.t("User-Agent规则"), builtin: true)
+            } label: {
+                ruleToggleRow(title: L10n.t("User-Agent规则"), item: siteConfig?.defaultUaBlack, scope: "DefaultUaBlack")
+            }
         } header: {
             SectionLabel(title: L10n.t("默认规则"), systemImage: "checkmark.shield")
         }

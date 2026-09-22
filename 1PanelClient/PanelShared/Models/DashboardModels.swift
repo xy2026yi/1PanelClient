@@ -215,10 +215,11 @@ nonisolated struct PanelUpgradeInfo: Decodable {
 /// 上游保持月度发版，客户端适配策略见 docs/1panel-upstream-adaptation-roadmap-2026-09.md
 enum PanelVersionTools {
     /// 客户端当前适配的面板基线（README 对外承诺同一版本；升级适配流程完成后改此值）。
+    /// v2.3.1（2026-09-22）：小版本修复，无 API 变更（经核实兼容）；
     /// v2.3.0（2026-09-17 M1）：防火墙模块已对齐 v2.3.0 重构后 API（旧面板访问防火墙页
     /// 会提示升级）；其余模块经源码 diff 证实 v2.2.5→v2.3.0 无 API 变更。
     /// nonisolated：nonisolated 模型（PanelUpgradeInfo.hasUpdate）与视图层都会访问
-    nonisolated static let adaptedBaseline = "v2.3.0"
+    nonisolated static let adaptedBaseline = "v2.3.1"
 
     /// a > b → orderedDescending；任一无法解析视为相同（不提示），
     /// a 可解析而 b 缺失/无法解析 → orderedDescending（维持旧语义：当前版本未知即提示更新）
