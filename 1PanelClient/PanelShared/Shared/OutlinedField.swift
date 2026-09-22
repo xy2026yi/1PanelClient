@@ -640,8 +640,13 @@ struct CodeEditorArea: View {
     var showsLineNumbers: Bool = true
 
     @ScaledMetric(relativeTo: .callout) private var fontSize: CGFloat = 13
-    @State private var editorWidth: CGFloat = 0
-    @State private var editorHeight: CGFloat = 0
+    /// 视口宽度（PreferenceKey 回报，onPreferenceChange 在更新周期外触发，
+    /// 规避 onGeometryChange 同步写 state 的 "Modifying state during view update"）
+    @State private var viewportWidth: CGFloat = 0
+
+    private let hPadding: CGFloat = 12
+    private let gutterSpacing: CGFloat = 10
+    private var gutterWidth: CGFloat { showsLineNumbers ? 34 : 0 }
 
     private var uiFont: UIFont {
         UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
@@ -654,14 +659,27 @@ struct CodeEditorArea: View {
             .map(String.init)
     }
 
-    /// 逻辑行在给定宽度下占的显示行数（boundingRect 与 UITextView 同底座，测量一致）
-    private func displayRows(for line: String, width: CGFloat) -> Int {
+    /// 编辑区宽度 = 视口 - 左右padding - 行号列 - 间距；宽度钉死后折行发生在
+    /// 该宽度（修左右两侧内容不可见：此前按内容理想宽布局导致横向溢出+偏移）
+    private var editorWidth: CGFloat {
+        max(0, viewportWidth - hPadding * 2 - (showsLineNumbers ? gutterWidth + gutterSpacing : 0))
+    }
+
+    /// 逻辑行在编辑宽度下占的显示行数（boundingRect 与 UITextView 同 TextKit 底座）
+    private func displayRows(for line: String) -> Int {
+        let width = editorWidth
         guard !line.isEmpty, width > 0 else { return 1 }
         let bounds = (line as NSString).boundingRect(
             with: CGSize(width: width, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
             attributes: [.font: uiFont], context: nil)
         return max(1, Int((bounds.height / lineHeight).rounded(.up)))
+    }
+
+    /// 内容总高（行号与编辑器同源计算；+6 底部余量防末行贴边裁切）
+    private var contentHeight: CGFloat {
+        let rows = lines.reduce(0) { $0 + displayRows(for: $1) }
+        return max(CGFloat(rows), 1) * lineHeight + 6
     }
 
     var body: some View {
@@ -674,6 +692,15 @@ struct CodeEditorArea: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Color(.systemGroupedBackground))
+        // 视口宽度测量挂在 ScrollView 背景（与内容无关，避免循环依赖）
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(key: CodeViewportWidthKey.self,
+                                       value: geo.size.width)
+            })
+        .onPreferenceChange(CodeViewportWidthKey.self) { w in
+            if abs(w - viewportWidth) > 0.5 { viewportWidth = w }
+        }
     }
 
     // MARK: 只读（行号 + 逐行文本，天然对齐）
@@ -696,47 +723,52 @@ struct CodeEditorArea: View {
                 .padding(.vertical, 1)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, hPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: 编辑（折行测量行号 + 零内边距等宽 UITextView）
+    // MARK: 编辑（宽度钉死 + 折行测量行号，行号与文本同容器滚动天然同步）
 
     private var editBody: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: showsLineNumbers ? gutterSpacing : 0) {
             if showsLineNumbers {
                 VStack(alignment: .trailing, spacing: 0) {
                     ForEach(Array(lines.indices), id: \.self) { idx in
-                        let rows = displayRows(for: lines[idx], width: editorWidth)
                         Text(String(idx + 1))
                             .font(swiftUIFont.monospacedDigit())
                             .foregroundStyle(.tertiary)
-                            .frame(height: CGFloat(rows) * lineHeight, alignment: .topLeading)
+                            .frame(height: CGFloat(displayRows(for: lines[idx])) * lineHeight,
+                                   alignment: .topLeading)
                     }
                 }
+                .frame(width: gutterWidth, alignment: .trailing)
             }
 
-            AutoSizeMonoTextEditor(text: $text, font: uiFont) { height in
-                if height != editorHeight { editorHeight = height }
-            }
-            .frame(height: max(editorHeight, lineHeight))
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-                if abs(w - editorWidth) > 0.5 { editorWidth = w }
-            }
+            PinnedMonoTextEditor(text: $text, font: uiFont)
+                .frame(width: editorWidth, height: contentHeight)
         }
-        .padding(.horizontal, 12)
+        .frame(width: viewportWidth, alignment: .leading)
+        .padding(.horizontal, hPadding)
     }
 }
 
-// MARK: - 零内边距自增高 UITextView（行号测量一致性的根基）
+/// 视口宽度 PreferenceKey
+private struct CodeViewportWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
 
-/// 等宽代码编辑器（UIKit 底座）：textContainerInset/lineFragmentPadding 归零，
-/// 测量宽度与渲染宽度严格一致；isScrollEnabled=false 由外层 ScrollView 滚动，
-/// sizeThatFits 回报内容高度驱动 SwiftUI 布局；关闭智能引号/自动大写/纠错
-private struct AutoSizeMonoTextEditor: UIViewRepresentable {
+// MARK: - 钉宽等宽 UITextView（零状态回写）
+
+/// 等宽代码编辑器（UIKit 底座）：宽度/高度由 SwiftUI frame 钉死（宽度钉死是
+/// 折行与行号测量一致性的根基），textContainerInset/lineFragmentPadding 归零，
+/// isScrollEnabled=false 由外层 ScrollView 滚动；关智能引号/自动大写/纠错。
+/// 不向 SwiftUI 回写任何状态（高度由行号同源计算给出）
+private struct PinnedMonoTextEditor: UIViewRepresentable {
     @Binding var text: String
     let font: UIFont
-    var onHeight: (CGFloat) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -746,6 +778,7 @@ private struct AutoSizeMonoTextEditor: UIViewRepresentable {
         tv.backgroundColor = .clear
         tv.textContainerInset = .zero
         tv.textContainer.lineFragmentPadding = 0
+        tv.textContainer.widthTracksTextView = true
         tv.isScrollEnabled = false
         tv.isEditable = true
         tv.autocorrectionType = .no
@@ -754,35 +787,22 @@ private struct AutoSizeMonoTextEditor: UIViewRepresentable {
         tv.smartDashesType = .no
         tv.smartInsertDeleteType = .no
         tv.delegate = context.coordinator
-        context.coordinator.syncHeight(tv)
+        tv.text = text
         return tv
     }
 
     func updateUIView(_ tv: UITextView, context: Context) {
         context.coordinator.parent = self
         if tv.font !== font { tv.font = font }
-        if tv.text != text {
-            tv.text = text
-            context.coordinator.syncHeight(tv)
-        } else {
-            // 宽度/字号变化后的重测（布局完成后异步回身高，避免布局中改布局）
-            DispatchQueue.main.async { context.coordinator.syncHeight(tv) }
-        }
+        if tv.text != text { tv.text = text }
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {
-        var parent: AutoSizeMonoTextEditor
-        init(_ parent: AutoSizeMonoTextEditor) { self.parent = parent }
+        var parent: PinnedMonoTextEditor
+        init(_ parent: PinnedMonoTextEditor) { self.parent = parent }
 
         func textViewDidChange(_ textView: UITextView) {
             parent.text = textView.text
-            syncHeight(textView)
-        }
-
-        func syncHeight(_ tv: UITextView) {
-            let fitting = tv.sizeThatFits(
-                CGSize(width: max(tv.bounds.width, 1), height: .greatestFiniteMagnitude)).height
-            parent.onHeight(fitting)
         }
     }
 }

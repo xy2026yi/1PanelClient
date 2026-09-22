@@ -21,6 +21,8 @@ struct WebsiteLbsView: View {
     @State private var editingItem: WebsiteLbsItem?
     @State private var sourceItem: WebsiteLbsItem?
     @State private var pendingDelete: WebsiteLbsItem?
+    /// 长按半屏菜单目标（编辑 / 源文 / 删除；左滑操作保留）
+    @State private var actionLbs: WebsiteLbsItem?
 
     var body: some View {
         Group {
@@ -52,6 +54,26 @@ struct WebsiteLbsView: View {
             WebsiteLbsEditView(websiteId: websiteId, editing: nil, vm: vm) {
                 Task { await load() }
             }
+        }
+        .sheet(item: $actionLbs) { item in
+            ActionBottomSheet(
+                title: item.name ?? "",
+                items: [
+                    .init(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        editingItem = item
+                    },
+                    .init(title: L10n.t("源文"), icon: "doc.text", color: .teal) {
+                        sourceItem = item
+                    },
+                    .init(title: L10n.t("删除"), icon: "trash", color: .red,
+                          role: .destructive) {
+                        pendingDelete = item
+                    },
+                ],
+                onDismiss: { actionLbs = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
+            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: Binding(
             get: { editingItem != nil },
@@ -138,6 +160,13 @@ struct WebsiteLbsView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { editingItem = item }
+        // 长按整行弹半屏菜单（源文入口原仅左滑，可发现性差）
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                Haptic.selection()
+                actionLbs = item
+            }
+        )
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
                 pendingDelete = item
