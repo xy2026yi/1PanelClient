@@ -266,13 +266,18 @@ struct WAFWebsiteSettingsView: View {
                 ruleToggleRow(title: L10n.t("文件上传限制"), item: siteConfig?.fileExt, scope: "FileExt")
             }
             NavigationLink {
-                WAFCdnSettingsView(vm: vm, server: server, config: vm.config?.cdn)
+                WAFCdnSettingsView(vm: vm, server: server,
+                                   config: siteConfig?.cdn ?? vm.config?.cdn,
+                                   websiteID: selected?.id ?? 0) {
+                    Task { await loadWebsiteConfig() }
+                }
             } label: {
                 HStack {
                     Text("CDN")
                     Spacer()
-                    if vm.config?.cdn?.state == "on" {
-                        Text(vm.config?.cdn?.type?.uppercased() ?? "")
+                    let cdn = siteConfig?.cdn ?? vm.config?.cdn
+                    if cdn?.state == "on" {
+                        Text(cdn?.type?.uppercased() ?? "")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

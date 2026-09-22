@@ -384,6 +384,24 @@ nonisolated struct WAFCdnConfig: Decodable {
     /// type=header 时自定义的 Header 名（默认 x-real-ip）
     let header: String?
     let rules: [String]?
+    /// 源站保护（网站级 /cdn 响应携带；全局配置块无此字段）
+    let originProtection: WAFOriginProtection?
+}
+
+/// CDN 源站保护：开关 + 回源 IP 组（名称来自 ip/group/search）
+nonisolated struct WAFOriginProtection: Codable, Hashable {
+    var state: String = "off"
+    var ipGroups: [String] = []
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        state = c.decodeDefault(String.self, forKey: .state, "off")
+        ipGroups = c.decodeDefault([String].self, forKey: .ipGroups, [])
+    }
+
+    enum CodingKeys: String, CodingKey { case state, ipGroups }
 }
 
 /// CDN 获取方式更新请求（/waf/cdn/update；rules 为固定 Header 列表回传）
@@ -393,4 +411,6 @@ nonisolated struct WAFCdnUpdateRequest: Encodable {
     let type: String
     let header: String
     let websiteID: Int
+    /// 网站级携带（抓包 2026-09-22）；全局提交省略该键（encodeIfPresent）
+    var originProtection: WAFOriginProtection? = nil
 }

@@ -24257,6 +24257,61 @@
         }
       }
     },
+    "源站保护" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origin Protection"
+          }
+        }
+      }
+    },
+    "CDN回源IP组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CDN Origin IP Groups"
+          }
+        }
+      }
+    },
+    "请先在 WAF 的 IP 组管理中创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create IP groups in WAF IP group management first"
+          }
+        }
+      }
+    },
+    "可多选；所选 IP 组内的回源请求将被放行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multiple selection allowed; origin requests from the selected IP groups will be allowed"
+          }
+        }
+      }
+    },
+    "仅允许所选 IP 组内的回源请求访问源站；未选择时保存不生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only origin requests from the selected IP groups can reach the origin; saving has no effect when none is selected"
+          }
+        }
+      }
+    },
     "没有找到Acme账户" : {
       "extractionState" : "manual",
       "localizations" : {

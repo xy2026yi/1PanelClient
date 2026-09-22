@@ -88,14 +88,16 @@ struct WAFCommonRulesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if builtin {
+                // 「应用规则」仅全局配置的内置规则集有（模板→网站）；
+                // 网站设置进入时查改的就是该站规则，无应用概念
+                if builtin && websiteID == 0 {
                     Button {
                         showApply = true
                     } label: {
                         Text(L10n.t("应用规则"))
                     }
                     .accessibilityLabel(L10n.t("应用到网站"))
-                } else {
+                } else if !builtin {
                     Button {
                         showCreate = true
                     } label: {
