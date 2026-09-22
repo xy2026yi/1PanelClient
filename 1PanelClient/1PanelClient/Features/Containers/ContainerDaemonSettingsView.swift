@@ -107,15 +107,6 @@ struct ContainerDaemonSettingsView: View {
         }
         .navigationTitle(L10n.t("设置"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if let v = daemon?.version, !v.isEmpty {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Text("v\(v)")
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
         .task { await load() }
         .refreshable { await load() }
         // 「立即重启」输入确认（daemon 项共用）

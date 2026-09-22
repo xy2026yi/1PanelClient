@@ -169,6 +169,9 @@ struct DockerStatusCard: View {
             } else if vm.dockerStatus != nil {
                 ServiceStatusCard(
                     title: "Docker",
+                    subtitle: vm.daemonVersion.flatMap {
+                        $0.isEmpty || $0 == "-" ? nil : "v\($0)"
+                    },
                     statusText: statusText,
                     statusColor: isRunning ? .green : .gray,
                     isOperating: vm.dockerOperating,

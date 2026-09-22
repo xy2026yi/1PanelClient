@@ -12,6 +12,8 @@ import Combine
 final class ContainersViewModel: ObservableObject {
     @Published var containers: [Container] = []
     @Published var dockerStatus: DockerStatus?
+    /// Docker 版本（daemonjson.version，状态卡副标题展示；失败静默不显示）
+    @Published var daemonVersion: String?
     @Published var images: [ContainerImage] = []
     @Published var imageOptions: [String] = []
 
@@ -171,6 +173,13 @@ final class ContainersViewModel: ObservableObject {
                 path: APIEndpoint.containersDockerStatus.path,
                 method: "GET", as: DockerStatus.self
             )
+            // 版本来自 daemon.json（与具体应用状态卡副标题同款展示；失败静默）
+            if let daemon: DockerDaemonJSON = try? await client.send(
+                path: APIEndpoint.containersDaemonjson.path,
+                method: APIEndpoint.containersDaemonjson.method,
+                as: DockerDaemonJSON.self) {
+                daemonVersion = daemon.version
+            }
         } catch {
             // 页面退出取消不是失败：保留原状态
             guard !APIError.isCancellation(error) else {
