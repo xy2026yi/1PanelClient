@@ -20,6 +20,7 @@ struct WebsiteProxiesView: View {
     @State private var showSourceSheet = false
     @State private var sourceProxy: WebsiteProxy?
     @State private var togglingProxyId: String?
+    /// 长按半屏菜单目标（启停/编辑/源文/删除；左滑删除保留）
     @State private var actionProxy: WebsiteProxy?
     @State private var pendingDeleteProxy: WebsiteProxy?
 
@@ -150,9 +151,17 @@ struct WebsiteProxiesView: View {
                 }
                 .padding(.vertical, 2)
                 .contentShape(Rectangle())
+                // 单击直达编辑（与负载均衡/脚本库一致），长按弹半屏操作菜单
                 .onTapGesture {
-                    actionProxy = p
+                    editingProxy = p
+                    showEditSheet = true
                 }
+                .simultaneousGesture(
+                    LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                        Haptic.selection()
+                        actionProxy = p
+                    }
+                )
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         pendingDeleteProxy = p

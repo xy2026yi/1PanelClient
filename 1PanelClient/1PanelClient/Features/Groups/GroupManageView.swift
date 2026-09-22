@@ -138,7 +138,7 @@ struct GroupManageView: View {
     @State private var showCreate = false
     @State private var renamingGroup: PanelGroup?
     @State private var deletingGroup: PanelGroup?
-    /// 点击分组行弹出的操作菜单目标（重命名 / 设为默认 / 删除）
+    /// 长按分组行弹出的操作菜单目标（重命名 / 设为默认 / 删除）
     @State private var actionGroup: PanelGroup?
 
     init(server: ServerConfig, scope: GroupScope, onChanged: (() -> Void)? = nil) {
@@ -231,10 +231,10 @@ struct GroupManageView: View {
         }
     }
 
-    /// 分组行：点击弹出操作菜单（重命名 / 设为默认 / 删除）
+    /// 分组行：单击直达重命名，长按弹操作菜单（重命名 / 设为默认 / 删除）
     private func groupRow(_ group: PanelGroup) -> some View {
         Button {
-            actionGroup = group
+            renamingGroup = group
         } label: {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -254,6 +254,12 @@ struct GroupManageView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                Haptic.selection()
+                actionGroup = group
+            }
+        )
     }
 
     /// 操作菜单项：默认组不可设默认/删除，仅可重命名

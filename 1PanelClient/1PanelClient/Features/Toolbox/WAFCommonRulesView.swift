@@ -29,6 +29,7 @@ struct WAFCommonRulesView: View {
     /// 列表加载失败（区别于操作失败 errorMessage：本状态渲染页内错误态 + 重试）
     @State private var loadError: String?
     @State private var pendingDeleteRule: WAFCommonRuleItem?
+    /// 长按半屏菜单目标（编辑/删除）
     @State private var actionItem: WAFCommonRuleItem?
 
     private let client: APIClient
@@ -66,12 +67,19 @@ struct WAFCommonRulesView: View {
                         if builtin {
                             ruleLabel(item)
                         } else {
+                            // 单击直达编辑，长按弹半屏操作菜单（编辑/删除）
                             Button {
-                                actionItem = item
+                                editingItem = item
                             } label: {
                                 ruleLabel(item)
                             }
                             .buttonStyle(.plain)
+                            .simultaneousGesture(
+                                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                    Haptic.selection()
+                                    actionItem = item
+                                }
+                            )
                         }
 
                         Toggle(isOn: Binding(
