@@ -108,6 +108,9 @@
     "[%@]" : {
 
     },
+    "{ \"default_drive_id\": …, \"refresh_token\": … }" : {
+
+    },
     "「%@」已加入下载队列" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1675,9 +1678,6 @@
         }
       }
     },
-    "Endpoint" : {
-
-    },
     "Endpoint 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1688,6 +1688,9 @@
           }
         }
       }
+    },
+    "experimental" : {
+
     },
     "ext4" : {
 
@@ -2330,6 +2333,12 @@
         }
       }
     },
+    "ip6tables" : {
+
+    },
+    "iptables" : {
+
+    },
     "IPv4" : {
 
     },
@@ -2409,6 +2418,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "KB"
+          }
+        }
+      }
+    },
+    "Live restore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live restore"
           }
         }
       }
@@ -2672,6 +2692,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SNI Settings"
+          }
+        }
+      }
+    },
+    "Socket 路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Socket Path"
+          }
+        }
+      }
+    },
+    "Socket路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Socket Path"
           }
         }
       }
@@ -2955,6 +2997,9 @@
     "TLSv1.3" : {
 
     },
+    "Token" : {
+
+    },
     "Token 由系统自动生成，用于 OpenClaw 控制台接入" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2966,7 +3011,21 @@
         }
       }
     },
+    "Token 解析失败：需包含 default_drive_id 与 refresh_token" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to parse token: it must contain default_drive_id and refresh_token"
+          }
+        }
+      }
+    },
     "TTY" : {
+
+    },
+    "unix:///var/run/docker.sock" : {
 
     },
     "URL" : {
@@ -3152,6 +3211,17 @@
         }
       }
     },
+    "一行一个仓库地址（主机:端口），保存时以逗号拼接提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One registry address (host:port) per line; submitted as a comma-separated list"
+          }
+        }
+      }
+    },
     "一行一个地址，任务执行时将依次访问" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3207,6 +3277,17 @@
         }
       }
     },
+    "一行一个镜像加速地址，保存时以逗号拼接提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One mirror URL per line; submitted as a comma-separated list"
+          }
+        }
+      }
+    },
     "一键部署" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3214,6 +3295,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quick Deploy"
+          }
+        }
+      }
+    },
+    "七牛云Kodo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qiniu Kodo"
           }
         }
       }
@@ -3313,6 +3405,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upload Certificate"
+          }
+        }
+      }
+    },
+    "上传请求过期时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload Request Expiry"
           }
         }
       }
@@ -3779,6 +3882,17 @@
         }
       }
     },
+    "世纪互联" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "21Vianet"
+          }
+        }
+      }
+    },
     "业务错误（%ld）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4160,6 +4274,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to generate QR code"
+          }
+        }
+      }
+    },
+    "亚马逊S3云存储" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amazon S3"
           }
         }
       }
@@ -4644,6 +4769,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "These become the default checkboxes when upgrading / uninstalling / installing apps and can be changed per operation."
+          }
+        }
+      }
+    },
+    "以表单键值对提交，值支持模版变量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Submitted as form key-value pairs; values support template variables"
           }
         }
       }
@@ -5242,6 +5378,17 @@
         }
       }
     },
+    "保存 IPv6 配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save IPv6 Configuration"
+          }
+        }
+      }
+    },
     "保存中…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5348,6 +5495,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saved"
+          }
+        }
+      }
+    },
+    "保存日志配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Log Configuration"
           }
         }
       }
@@ -5634,6 +5792,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Access"
+          }
+        }
+      }
+    },
+    "修改配置后需要重启 Docker 服务生效\n保存设置 Socket 路径可能导致 Docker 服务不可用，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart the Docker service for changes to take effect.\nSaving an incorrect socket path may make Docker unavailable. Continue?"
+          }
+        }
+      }
+    },
+    "修改配置后需要重启 Docker 服务生效\n如果确认操作，请手动输入「立即重启」" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart the Docker service for changes to take effect.\nType “Restart Now” to confirm."
           }
         }
       }
@@ -6371,6 +6551,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Close"
+          }
+        }
+      }
+    },
+    "关闭 iptables" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable iptables"
+          }
+        }
+      }
+    },
+    "关闭 iptables 会导致容器无法与外部网络通信。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabling iptables prevents containers from communicating with the external network."
           }
         }
       }
@@ -9862,6 +10064,17 @@
         }
       }
     },
+    "又拍云" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UPYUN"
+          }
+        }
+      }
+    },
     "反向代理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11732,6 +11945,17 @@
         }
       }
     },
+    "国际版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global"
+          }
+        }
+      }
+    },
     "图标接口返回 JSON" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11794,6 +12018,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search and install skills from the market"
+          }
+        }
+      }
+    },
+    "在授权页完成登录后，从跳转地址中复制 code 参数粘贴至此" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After signing in on the authorization page, copy the code parameter from the redirected URL and paste it here"
           }
         }
       }
@@ -11893,6 +12128,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Address Family"
+          }
+        }
+      }
+    },
+    "地域" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Region"
           }
         }
       }
@@ -12744,6 +12990,17 @@
         }
       }
     },
+    "字段-%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Field-%ld"
+          }
+        }
+      }
+    },
     "字符集" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13081,6 +13338,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The Base URL is written to model accounts after creation, ready for agents and other modules"
+          }
+        }
+      }
+    },
+    "客户端 ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client ID"
+          }
+        }
+      }
+    },
+    "客户端密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client Secret"
           }
         }
       }
@@ -13664,6 +13943,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Target"
+          }
+        }
+      }
+    },
+    "寻址模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Addressing Mode"
           }
         }
       }
@@ -14592,6 +14882,17 @@
         }
       }
     },
+    "已保存，重启 Docker 后生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved; takes effect after Docker restarts"
+          }
+        }
+      }
+    },
     "已保存，重启后生效" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15494,6 +15795,17 @@
         }
       }
     },
+    "常用地域" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Common regions"
+          }
+        }
+      }
+    },
     "平台" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15934,6 +16246,17 @@
         }
       }
     },
+    "开启后需填写 IPv6 子网并保存；关闭将从 daemon.json 移除 IPv6 配置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fill in the IPv6 subnet and save to enable; disabling removes the IPv6 section from daemon.json"
+          }
+        }
+      }
+    },
     "开启自动同步" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16128,6 +16451,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Archive"
+          }
+        }
+      }
+    },
+    "归档存储的文件无法直接下载，需先在云服务商网站恢复，请谨慎使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archived files cannot be downloaded directly and must be restored on the cloud provider's site first; use with caution"
           }
         }
       }
@@ -16385,6 +16719,17 @@
         }
       }
     },
+    "当前配置只会影响新创建的容器；已经创建的容器需要重新创建使配置生效；注意，重新创建容器可能会导致数据丢失。如果你的容器中有重要数据，确保在执行重建操作之前进行备份。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This only affects newly created containers; existing containers must be recreated for it to take effect. Note that recreating containers may cause data loss — back up important data before rebuilding."
+          }
+        }
+      }
+    },
     "待同步条目" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16425,6 +16770,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "WeChat is enabled by scanning; to disable, delete the pairing"
+          }
+        }
+      }
+    },
+    "微软 OneDrive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft OneDrive"
           }
         }
       }
@@ -17195,6 +17551,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "From Phone"
+          }
+        }
+      }
+    },
+    "打开授权页" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Authorization Page"
           }
         }
       }
@@ -18101,6 +18468,17 @@
         }
       }
     },
+    "授权码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authorization Code"
+          }
+        }
+      }
+    },
     "排序" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18614,6 +18992,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Operating on an http registry requires restarting the Docker service.\nTo confirm, type 'Restart Now'"
+          }
+        }
+      }
+    },
+    "操作员" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operator"
           }
         }
       }
@@ -19223,6 +19612,17 @@
         }
       }
     },
+    "文件单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size Unit"
+          }
+        }
+      }
+    },
     "文件名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19252,6 +19652,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "File Name"
+          }
+        }
+      }
+    },
+    "文件大小" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Size"
           }
         }
       }
@@ -19839,6 +20250,17 @@
         }
       }
     },
+    "日志切割" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Rotation"
+          }
+        }
+      }
+    },
     "日志文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20356,6 +20778,17 @@
         }
       }
     },
+    "暂无可用备份账号，请先在「备份账号」中创建后重试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No backup accounts available. Create one in Backup Accounts first"
+          }
+        }
+      }
+    },
     "暂无可用应用，请先在应用页面安装一个网站类应用（如 WordPress）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20517,6 +20950,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No fallback models"
+          }
+        }
+      }
+    },
+    "暂无字段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No fields"
           }
         }
       }
@@ -23733,6 +24177,17 @@
         }
       }
     },
+    "没有找到Acme账户" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No ACME accounts found"
+          }
+        }
+      }
+    },
     "没有找到DNS账户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23938,6 +24393,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pass the connection test before saving"
+          }
+        }
+      }
+    },
+    "测试通过后服务端将以授权码换取令牌；编辑已有账号且令牌仍有效时可留空授权码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After the test passes, the server exchanges the code for a token; leave it empty when editing an account whose token is still valid"
           }
         }
       }
@@ -25878,6 +26344,17 @@
         }
       }
     },
+    "留空时以服务别名 vllm 访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave empty to reach via the vllm service alias"
+          }
+        }
+      }
+    },
     "病毒库刷新日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27330,6 +27807,17 @@
         }
       }
     },
+    "私有仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insecure Registries"
+          }
+        }
+      }
+    },
     "私聊白名单" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28085,6 +28573,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paste key content…"
+          }
+        }
+      }
+    },
+    "粘贴整个 token 内容自动解析；阿里云盘非客户端下载单文件限 100 MB" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste the entire token to auto-parse; Aliyun Drive limits non-client downloads to 100 MB per file"
           }
         }
       }
@@ -29728,6 +30227,17 @@
         }
       }
     },
+    "腾讯云COS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tencent COS"
+          }
+        }
+      }
+    },
     "腾讯云凭证" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30542,6 +31052,17 @@
         }
       }
     },
+    "解析" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parse"
+          }
+        }
+      }
+    },
     "解析失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30549,6 +31070,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to parse: %@"
+          }
+        }
+      }
+    },
+    "解析成功：已填入 Drive ID 与 Refresh Token" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parsed: Drive ID and Refresh Token filled in"
           }
         }
       }
@@ -30846,6 +31378,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Licenses (%ld)"
+          }
+        }
+      }
+    },
+    "许可证加载失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load licenses"
           }
         }
       }
@@ -31862,6 +32405,17 @@
         }
       }
     },
+    "请填写 Drive ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drive ID is required"
+          }
+        }
+      }
+    },
     "请填写 Endpoint 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31869,6 +32423,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Endpoint URL is required"
+          }
+        }
+      }
+    },
+    "请填写 Refresh Token" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh Token is required"
           }
         }
       }
@@ -31928,6 +32493,17 @@
         }
       }
     },
+    "请填写地域" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Region is required"
+          }
+        }
+      }
+    },
     "请填写域名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31935,6 +32511,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Domain is required"
+          }
+        }
+      }
+    },
+    "请填写子网" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subnet is required"
           }
         }
       }
@@ -31961,6 +32548,28 @@
         }
       }
     },
+    "请填写客户端 ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client ID is required"
+          }
+        }
+      }
+    },
+    "请填写客户端密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client Secret is required"
+          }
+        }
+      }
+    },
     "请填写密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31972,6 +32581,17 @@
         }
       }
     },
+    "请填写授权码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authorization code is required"
+          }
+        }
+      }
+    },
     "请填写推送目录路径" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31979,6 +32599,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Push directory path is required"
+          }
+        }
+      }
+    },
+    "请填写操作员" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operator is required"
+          }
+        }
+      }
+    },
+    "请填写文件大小与保留份数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File size and file count are required"
+          }
+        }
+      }
+    },
+    "请填写服务名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service name is required"
           }
         }
       }
@@ -32034,6 +32687,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Email is required"
+          }
+        }
+      }
+    },
+    "请填写重定向 Url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect URL is required"
           }
         }
       }
@@ -32375,6 +33039,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Google"
+          }
+        }
+      }
+    },
+    "谷歌云盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Drive"
           }
         }
       }
@@ -34579,6 +35254,17 @@
         }
       }
     },
+    "配置已修改，请重新测试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Config changed, retest required"
+          }
+        }
+      }
+    },
     "配置已更新" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34843,6 +35529,17 @@
         }
       }
     },
+    "重定向 Url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect URL"
+          }
+        }
+      }
+    },
     "重定向到首页" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34861,6 +35558,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rebuild"
+          }
+        }
+      }
+    },
+    "重新加载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
           }
         }
       }
@@ -35118,6 +35826,17 @@
         }
       }
     },
+    "镜像与仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Images & Registries"
+          }
+        }
+      }
+    },
     "镜像与编排" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35136,6 +35855,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Registries"
+          }
+        }
+      }
+    },
+    "镜像加速" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registry Mirrors"
           }
         }
       }
@@ -35433,6 +36163,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alibaba Cloud Credentials"
+          }
+        }
+      }
+    },
+    "阿里云盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aliyun Drive"
           }
         }
       }
@@ -35910,6 +36651,17 @@
         }
       }
     },
+    "面板访问 Docker 的 Socket 地址；可从文件浏览器选择 sock 文件自动回填" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Docker socket address used by the panel; pick a sock file from the file browser to auto-fill"
+          }
+        }
+      }
+    },
     "面板超时时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36317,754 +37069,6 @@
         }
       }
     },
-    "配置已修改，请重新测试" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Config changed, retest required"
-          }
-        }
-      }
-    },
-    "字段-%ld" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Field-%ld"
-          }
-        }
-      }
-    },
-    "暂无字段" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No fields"
-          }
-        }
-      }
-    },
-    "以表单键值对提交，值支持模版变量" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Submitted as form key-value pairs; values support template variables"
-          }
-        }
-      }
-    },
-    "暂无可用备份账号，请先在「备份账号」中创建后重试" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No backup accounts available. Create one in Backup Accounts first"
-          }
-        }
-      }
-    },
-    "许可证加载失败" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to load licenses"
-          }
-        }
-      }
-    },
-    "重新加载" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retry"
-          }
-        }
-      }
-    },
-    "腾讯云COS" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tencent COS"
-          }
-        }
-      }
-    },
-    "亚马逊S3云存储" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Amazon S3"
-          }
-        }
-      }
-    },
-    "七牛云Kodo" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qiniu Kodo"
-          }
-        }
-      }
-    },
-    "又拍云" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "UPYUN"
-          }
-        }
-      }
-    },
-    "阿里云盘" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aliyun Drive"
-          }
-        }
-      }
-    },
-    "微软 OneDrive" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Microsoft OneDrive"
-          }
-        }
-      }
-    },
-    "谷歌云盘" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Google Drive"
-          }
-        }
-      }
-    },
-    "地域" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Region"
-          }
-        }
-      }
-    },
-    "常用地域" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Common regions"
-          }
-        }
-      }
-    },
-    "请填写地域" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Region is required"
-          }
-        }
-      }
-    },
-    "操作员" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Operator"
-          }
-        }
-      }
-    },
-    "请填写操作员" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Operator is required"
-          }
-        }
-      }
-    },
-    "请填写服务名称" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Service name is required"
-          }
-        }
-      }
-    },
-    "解析" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Parse"
-          }
-        }
-      }
-    },
-    "客户端 ID" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Client ID"
-          }
-        }
-      }
-    },
-    "客户端密钥" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Client Secret"
-          }
-        }
-      }
-    },
-    "重定向 Url" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redirect URL"
-          }
-        }
-      }
-    },
-    "请填写客户端 ID" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Client ID is required"
-          }
-        }
-      }
-    },
-    "请填写客户端密钥" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Client Secret is required"
-          }
-        }
-      }
-    },
-    "请填写重定向 Url" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redirect URL is required"
-          }
-        }
-      }
-    },
-    "授权码" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Authorization Code"
-          }
-        }
-      }
-    },
-    "请填写授权码" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Authorization code is required"
-          }
-        }
-      }
-    },
-    "打开授权页" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Authorization Page"
-          }
-        }
-      }
-    },
-    "在授权页完成登录后，从跳转地址中复制 code 参数粘贴至此" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "After signing in on the authorization page, copy the code parameter from the redirected URL and paste it here"
-          }
-        }
-      }
-    },
-    "测试通过后服务端将以授权码换取令牌；编辑已有账号且令牌仍有效时可留空授权码" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "After the test passes, the server exchanges the code for a token; leave it empty when editing an account whose token is still valid"
-          }
-        }
-      }
-    },
-    "国际版" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Global"
-          }
-        }
-      }
-    },
-    "世纪互联" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "21Vianet"
-          }
-        }
-      }
-    },
-    "默认存储（轻量）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Default (Lighthouse)"
-          }
-        }
-      }
-    },
-    "归档存储的文件无法直接下载，需先在云服务商网站恢复，请谨慎使用" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Archived files cannot be downloaded directly and must be restored on the cloud provider's site first; use with caution"
-          }
-        }
-      }
-    },
-    "寻址模式" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Addressing Mode"
-          }
-        }
-      }
-    },
-    "上传请求过期时间" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Upload Request Expiry"
-          }
-        }
-      }
-    },
-    "粘贴整个 token 内容自动解析；阿里云盘非客户端下载单文件限 100 MB" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paste the entire token to auto-parse; Aliyun Drive limits non-client downloads to 100 MB per file"
-          }
-        }
-      }
-    },
-    "请填写 Drive ID" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Drive ID is required"
-          }
-        }
-      }
-    },
-    "请填写 Refresh Token" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Refresh Token is required"
-          }
-        }
-      }
-    },
-    "Token 解析失败：需包含 default_drive_id 与 refresh_token" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to parse token: it must contain default_drive_id and refresh_token"
-          }
-        }
-      }
-    },
-    "解析成功：已填入 Drive ID 与 Refresh Token" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Parsed: Drive ID and Refresh Token filled in"
-          }
-        }
-      }
-    },
-    "镜像加速" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registry Mirrors"
-          }
-        }
-      }
-    },
-    "私有仓库" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insecure Registries"
-          }
-        }
-      }
-    },
-    "镜像与仓库" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Images & Registries"
-          }
-        }
-      }
-    },
-    "一行一个镜像加速地址，保存时以逗号拼接提交" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "One mirror URL per line; submitted as a comma-separated list"
-          }
-        }
-      }
-    },
-    "一行一个仓库地址（主机:端口），保存时以逗号拼接提交" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "One registry address (host:port) per line; submitted as a comma-separated list"
-          }
-        }
-      }
-    },
-    "开启后需填写 IPv6 子网并保存；关闭将从 daemon.json 移除 IPv6 配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fill in the IPv6 subnet and save to enable; disabling removes the IPv6 section from daemon.json"
-          }
-        }
-      }
-    },
-    "请填写子网" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Subnet is required"
-          }
-        }
-      }
-    },
-    "保存 IPv6 配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save IPv6 Configuration"
-          }
-        }
-      }
-    },
-    "日志切割" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Log Rotation"
-          }
-        }
-      }
-    },
-    "文件大小" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File Size"
-          }
-        }
-      }
-    },
-    "文件单位" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Size Unit"
-          }
-        }
-      }
-    },
-    "保存日志配置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save Log Configuration"
-          }
-        }
-      }
-    },
-    "请填写文件大小与保留份数" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File size and file count are required"
-          }
-        }
-      }
-    },
-    "当前配置只会影响新创建的容器；已经创建的容器需要重新创建使配置生效；注意，重新创建容器可能会导致数据丢失。如果你的容器中有重要数据，确保在执行重建操作之前进行备份。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This only affects newly created containers; existing containers must be recreated for it to take effect. Note that recreating containers may cause data loss — back up important data before rebuilding."
-          }
-        }
-      }
-    },
-    "关闭 iptables" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disable iptables"
-          }
-        }
-      }
-    },
-    "关闭 iptables 会导致容器无法与外部网络通信。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disabling iptables prevents containers from communicating with the external network."
-          }
-        }
-      }
-    },
-    "Live restore" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Live restore"
-          }
-        }
-      }
-    },
-    "Socket路径" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Socket Path"
-          }
-        }
-      }
-    },
-    "Socket 路径" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Socket Path"
-          }
-        }
-      }
-    },
-    "面板访问 Docker 的 Socket 地址；可从文件浏览器选择 sock 文件自动回填" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The Docker socket address used by the panel; pick a sock file from the file browser to auto-fill"
-          }
-        }
-      }
-    },
-    "修改配置后需要重启 Docker 服务生效\n如果确认操作，请手动输入「立即重启」" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restart the Docker service for changes to take effect.\nType \u201cRestart Now\u201d to confirm."
-          }
-        }
-      }
-    },
-    "修改配置后需要重启 Docker 服务生效\n保存设置 Socket 路径可能导致 Docker 服务不可用，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restart the Docker service for changes to take effect.\nSaving an incorrect socket path may make Docker unavailable. Continue?"
-          }
-        }
-      }
-    },
-    "已保存，重启 Docker 后生效" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saved; takes effect after Docker restarts"
-          }
-        }
-      }
-    },
-    "没有找到Acme账户" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No ACME accounts found"
-          }
-        }
-      }
-    },
-    "留空时以服务别名 vllm 访问" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leave empty to reach via the vllm service alias"
-          }
-        }
-      }
-    },
     "默认从 Endpoint 拉取桶列表；开启手动输入可直接填写桶名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37105,6 +37109,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Defaults to the database name"
+          }
+        }
+      }
+    },
+    "默认存储（轻量）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default (Lighthouse)"
           }
         }
       }

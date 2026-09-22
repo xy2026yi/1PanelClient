@@ -63,16 +63,6 @@ struct ContainerDaemonSettingsView: View {
     @State private var isLoading = true
     @State private var loadError: String?
 
-    // IPv6 / 日志切割的本地展开态（开启不立即提交，字段配好后按「保存」提交）
-    @State private var ipv6UI = false
-    @State private var ipv6Cidr = ""
-    @State private var ipv6Ip6Tables = false
-    @State private var ipv6Experimental = true
-    @State private var logUI = false
-    @State private var logSizeText = "10"
-    @State private var logUnit = "m"
-    @State private var logFileText = "3"
-
     /// 输入「立即重启」的确认操作（Daemon 配置修改）
     @State private var pendingOp: DaemonPendingOp?
     /// Socket 路径保存确认（是否继续，无输入确认）
@@ -90,7 +80,6 @@ struct ContainerDaemonSettingsView: View {
         self.client = APIClient.shared(for: server)
     }
 
-    private var serverIPv6On: Bool { daemon?.ipv6 == true }
     private var serverLogOn: Bool { !(daemon?.logMaxSize ?? "").isEmpty }
 
     var body: some View {
@@ -111,8 +100,7 @@ struct ContainerDaemonSettingsView: View {
                 }
             } else if let daemon {
                 repoSection
-                ipv6Section
-                logSection
+                toggleLinkSection
                 basicSection(daemon)
                 sockSection
             }
@@ -184,7 +172,6 @@ struct ContainerDaemonSettingsView: View {
             let s = await settingsResult
             daemon = d
             loadError = nil
-            syncLocalUI(from: d)
             sockPath = s?.dockerSockPath ?? ""
             loadedSockPath = sockPath
         } catch {
@@ -192,32 +179,6 @@ struct ContainerDaemonSettingsView: View {
             loadError = error.localizedDescription
         }
     }
-
-    /// 服务端态 → 本地展开态（IPv6/日志切割的开关与字段初值）
-    private func syncLocalUI(from d: DockerDaemonJSON) {
-        ipv6UI = d.ipv6 == true
-        ipv6Cidr = d.fixedCidrV6 ?? ""
-        ipv6Ip6Tables = d.ip6Tables ?? false
-        ipv6Experimental = d.experimental ?? true
-
-        logUI = !(d.logMaxSize ?? "").isEmpty
-        if let size = d.logMaxSize, !size.isEmpty {
-            // "10m" → 数值 + 单位（k/m/g）
-            let unit = String(size.suffix(1)).lowercased()
-            if ["k", "m", "g"].contains(unit) {
-                logUnit = unit
-                logSizeText = String(size.dropLast(1))
-            } else {
-                logSizeText = size
-            }
-        } else {
-            logSizeText = "10"
-            logUnit = "m"
-        }
-        logFileText = (d.logMaxFile ?? "").isEmpty ? "3" : (d.logMaxFile ?? "3")
-    }
-
-    // MARK: 分区
 
     /// 镜像加速 / 私有仓库（形态 7.1：推入多行编辑页，一行一个，提交逗号拼接）
     private var repoSection: some View {
@@ -256,126 +217,57 @@ struct ContainerDaemonSettingsView: View {
         return n == 0 ? L10n.t("未设置") : L10n.f("%ld 条", n)
     }
 
-    /// IPv6：开关（关→提交 disable）+ 子网/ip6tables/experimental + 保存
-    private var ipv6Section: some View {
+    /// IPv6 / 日志切割：状态行 → 跳转独立配置页（右上角保存）
+    private var toggleLinkSection: some View {
         Section {
-            Toggle(L10n.t("IPv6"), isOn: Binding(
-                get: { ipv6UI },
-                set: { on in
-                    if on {
-                        ipv6UI = true
-                    } else if serverIPv6On {
-                        confirmDaemon(title: L10n.t("配置修改"), key: "Ipv6", value: "disable")
-                    } else {
-                        ipv6UI = false
-                    }
-                }))
-
-            if ipv6UI {
-                OutlinedTextField(label: L10n.t("子网"), prompt: "fe81::0/80",
-                                  text: $ipv6Cidr, keyboardType: .URL)
-                Toggle("ip6tables", isOn: $ipv6Ip6Tables)
-                Toggle("experimental", isOn: $ipv6Experimental)
-                Button {
-                    saveIPv6()
-                } label: {
-                    Label(L10n.t("保存 IPv6 配置"), systemImage: "checkmark.circle")
-                        .frame(maxWidth: .infinity)
+            NavigationLink {
+                DaemonIPv6Page(
+                    client: client,
+                    initialEnabled: daemon?.ipv6 == true,
+                    initialCidr: daemon?.fixedCidrV6 ?? "",
+                    initialIP6Tables: daemon?.ip6Tables ?? false,
+                    initialExperimental: daemon?.experimental ?? true) {
+                    Task { await load() }
                 }
-                .buttonStyle(.bordered)
-                .listRowBackground(Color.clear)
+            } label: {
+                LabeledContent("IPv6", value: daemon?.ipv6 == true
+                               ? L10n.t("已启用") : L10n.t("未启用"))
             }
-        } header: {
-            Text("IPv6")
-        } footer: {
-            Text(L10n.t("开启后需填写 IPv6 子网并保存；关闭将从 daemon.json 移除 IPv6 配置"))
-        }
-    }
-
-    private func saveIPv6() {
-        let cidr = ipv6Cidr.trimmingCharacters(in: .whitespaces)
-        guard !cidr.isEmpty else {
-            errorMessage = L10n.t("请填写子网")
-            showError = true
-            return
-        }
-        pendingOp = DaemonPendingOp(
-            title: L10n.t("配置修改"),
-            message: standardDaemonMessage) {
-            let req = DockerIPv6OptionRequest(
-                fixedCidrV6: cidr, ip6Tables: ipv6Ip6Tables, experimental: ipv6Experimental)
-            if await post(req, path: APIEndpoint.containersIpv6OptionUpdate.path) {
-                toast = L10n.t("已保存，重启 Docker 后生效")
-                await load()
-            }
-        }
-    }
-
-    /// 日志切割：开关（关→提交 disable）+ 大小/单位/份数 + 保存
-    private var logSection: some View {
-        Section {
-            Toggle(L10n.t("日志切割"), isOn: Binding(
-                get: { logUI },
-                set: { on in
-                    if on {
-                        logUI = true
-                    } else if serverLogOn {
-                        pendingOp = DaemonPendingOp(
-                            title: L10n.t("配置修改"),
-                            message: standardDaemonMessage) {
-                            if await post(DockerDaemonKeyUpdateRequest(key: "LogOption", value: "disable"),
-                                          path: APIEndpoint.containersLogOptionUpdate.path) {
-                                toast = L10n.t("已保存，重启 Docker 后生效")
-                                await load()
-                            }
-                        }
-                    } else {
-                        logUI = false
-                    }
-                }))
-
-            if logUI {
-                OutlinedUnitField(label: L10n.t("文件大小"), unit: "",
-                                  text: $logSizeText, range: 1...1024)
-                OutlinedPicker(label: L10n.t("文件单位"), options: ["k", "m", "g"],
-                               selection: $logUnit,
-                               optionLabels: ["k": "KB", "m": "MB", "g": "GB"])
-                OutlinedUnitField(label: L10n.t("保留份数"), unit: L10n.t("份"),
-                                  text: $logFileText, range: 1...100)
-                Button {
-                    saveLog()
-                } label: {
-                    Label(L10n.t("保存日志配置"), systemImage: "checkmark.circle")
-                        .frame(maxWidth: .infinity)
+            NavigationLink {
+                DaemonLogPage(
+                    client: client,
+                    initialEnabled: serverLogOn,
+                    initialSize: logInitial.size, initialUnit: logInitial.unit,
+                    initialFiles: logInitial.files) {
+                    Task { await load() }
                 }
-                .buttonStyle(.bordered)
-                .listRowBackground(Color.clear)
+            } label: {
+                LabeledContent(L10n.t("日志切割"), value: serverLogOn
+                               ? "\(logInitial.size)\(logUnitLabel(logInitial.unit)) · \(logInitial.files)\(L10n.t("份"))"
+                               : L10n.t("未启用"))
             }
-        } header: {
-            Text(L10n.t("日志切割"))
-        } footer: {
-            Text(L10n.t("当前配置只会影响新创建的容器；已经创建的容器需要重新创建使配置生效；注意，重新创建容器可能会导致数据丢失。如果你的容器中有重要数据，确保在执行重建操作之前进行备份。"))
         }
     }
 
-    private func saveLog() {
-        let size = Int(logSizeText) ?? 0
-        let files = Int(logFileText) ?? 0
-        guard size >= 1, files >= 1 else {
-            errorMessage = L10n.t("请填写文件大小与保留份数")
-            showError = true
-            return
-        }
-        pendingOp = DaemonPendingOp(
-            title: L10n.t("配置修改"),
-            message: standardDaemonMessage) {
-            let req = DockerLogOptionRequest(logMaxSize: "\(size)\(logUnit)",
-                                             logMaxFile: String(files))
-            if await post(req, path: APIEndpoint.containersLogOptionUpdate.path) {
-                toast = L10n.t("已保存，重启 Docker 后生效")
-                await load()
+    private func logUnitLabel(_ u: String) -> String {
+        ["k": "KB", "m": "MB", "g": "GB"][u] ?? u.uppercased()
+    }
+
+    /// 服务端 logMaxSize/logMaxFile → 页面初值（"10m"/"3" → (10, m, 3)）
+    private var logInitial: (size: String, unit: String, files: String) {
+        let raw = daemon?.logMaxSize ?? ""
+        var size = "10", unit = "m"
+        if !raw.isEmpty {
+            let u = String(raw.suffix(1)).lowercased()
+            if ["k", "m", "g"].contains(u) {
+                unit = u
+                size = String(raw.dropLast(1))
+            } else {
+                size = raw
             }
         }
+        let files = (daemon?.logMaxFile ?? "").isEmpty ? "3" : (daemon?.logMaxFile ?? "3")
+        return (size, unit, files)
     }
 
     /// iptables / Live restore / Cgroup Driver
@@ -439,17 +331,6 @@ struct ContainerDaemonSettingsView: View {
                     }
                 }
             })
-    }
-
-    /// daemon 项开关确认（取消即维持服务端态，无需本地回滚）
-    private func confirmDaemon(title: String, key: String, value: String) {
-        pendingOp = DaemonPendingOp(title: title, message: standardDaemonMessage) {
-            if await post(DockerDaemonKeyUpdateRequest(key: key, value: value),
-                          path: APIEndpoint.containersDaemonjsonUpdate.path) {
-                toast = L10n.t("已保存，重启 Docker 后生效")
-                await load()
-            }
-        }
     }
 
     /// Socket 路径：输入框（文件浏览器回填加 unix:// 前缀）+ 保存（普通确认）
@@ -637,4 +518,258 @@ private struct DaemonListEditorPage: View {
 
     @State private var errorMessageText: String?
     @State private var showError = false
+}
+
+
+// MARK: - IPv6 配置页（跳转进入，右上角保存）
+
+/// IPv6：开关 + 子网/ip6tables/experimental；保存时「立即重启」确认——
+/// 开启走 ipv6option/update，关闭（服务端已开启时）走 daemonjson/update disable
+private struct DaemonIPv6Page: View {
+    let client: APIClient
+    let initialEnabled: Bool
+    let initialCidr: String
+    let initialIP6Tables: Bool
+    let initialExperimental: Bool
+    var onSaved: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var enabled = false
+    @State private var cidr = ""
+    @State private var ip6Tables = false
+    @State private var experimental = true
+    @State private var showConfirm = false
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+    @State private var didInit = false
+
+    private var isDirty: Bool {
+        enabled != initialEnabled || cidr != initialCidr
+            || ip6Tables != initialIP6Tables || experimental != initialExperimental
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(L10n.t("启用"), isOn: $enabled)
+                if enabled {
+                    OutlinedTextField(label: L10n.t("子网"), prompt: "fe81::0/80",
+                                      text: $cidr, keyboardType: .URL)
+                    Toggle("ip6tables", isOn: $ip6Tables)
+                    Toggle("experimental", isOn: $experimental)
+                }
+            } footer: {
+                Text(L10n.t("开启后需填写 IPv6 子网并保存；关闭将从 daemon.json 移除 IPv6 配置"))
+            }
+        }
+        .navigationTitle("IPv6")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    save()
+                } label: {
+                    if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
+                }
+                .disabled(isSaving || !isDirty)
+            }
+        }
+        .onAppear {
+            if !didInit {
+                didInit = true
+                enabled = initialEnabled
+                cidr = initialCidr
+                ip6Tables = initialIP6Tables
+                experimental = initialExperimental
+            }
+        }
+        .sheet(isPresented: $showConfirm) {
+            TextInputConfirmSheet(
+                title: L10n.t("配置修改"),
+                message: L10n.t("修改配置后需要重启 Docker 服务生效\n如果确认操作，请手动输入「立即重启」"),
+                expectedText: L10n.t("立即重启"),
+                confirmTitle: L10n.t("确认")) {
+                await submit()
+            } options: {
+                EmptyView()
+            }
+            .presentationDetents([.medium])
+        }
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private func save() {
+        if enabled {
+            let trimmed = cidr.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else {
+                errorMessage = L10n.t("请填写子网")
+                showError = true
+                return
+            }
+        }
+        showConfirm = true
+    }
+
+    private func submit() async {
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            if enabled {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.containersIpv6OptionUpdate.path,
+                    body: DockerIPv6OptionRequest(
+                        fixedCidrV6: cidr.trimmingCharacters(in: .whitespaces),
+                        ip6Tables: ip6Tables, experimental: experimental),
+                    as: EmptyResponse.self)
+            } else {
+                // 服务端本就未开启时关闭无变化（脏检查已拦），此处仅覆盖关闭路径
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.containersDaemonjsonUpdate.path,
+                    body: DockerDaemonKeyUpdateRequest(key: "Ipv6", value: "disable"),
+                    as: EmptyResponse.self)
+            }
+            dismiss()
+            onSaved()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+}
+
+// MARK: - 日志切割配置页（跳转进入，右上角保存）
+
+/// 日志切割：开关 + 文件大小/单位/保留份数；保存「立即重启」确认——
+/// 开启走 logoption/update，关闭（服务端已开启时）走 {key:LogOption,value:disable}
+private struct DaemonLogPage: View {
+    let client: APIClient
+    let initialEnabled: Bool
+    let initialSize: String
+    let initialUnit: String
+    let initialFiles: String
+    var onSaved: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var enabled = false
+    @State private var sizeText = "10"
+    @State private var unit = "m"
+    @State private var filesText = "3"
+    @State private var showConfirm = false
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+    @State private var didInit = false
+
+    private var isDirty: Bool {
+        enabled != initialEnabled || sizeText != initialSize
+            || unit != initialUnit || filesText != initialFiles
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(L10n.t("启用"), isOn: $enabled)
+                if enabled {
+                    OutlinedUnitField(label: L10n.t("文件大小"), unit: "",
+                                      text: $sizeText, range: 1...1024)
+                    OutlinedPicker(label: L10n.t("文件单位"), options: ["k", "m", "g"],
+                                   selection: $unit,
+                                   optionLabels: ["k": "KB", "m": "MB", "g": "GB"])
+                    OutlinedUnitField(label: L10n.t("保留份数"), unit: L10n.t("份"),
+                                      text: $filesText, range: 1...100)
+                }
+            } footer: {
+                Text(L10n.t("当前配置只会影响新创建的容器；已经创建的容器需要重新创建使配置生效；注意，重新创建容器可能会导致数据丢失。如果你的容器中有重要数据，确保在执行重建操作之前进行备份。"))
+            }
+        }
+        .navigationTitle(L10n.t("日志切割"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    save()
+                } label: {
+                    if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
+                }
+                .disabled(isSaving || !isDirty)
+            }
+        }
+        .onAppear {
+            if !didInit {
+                didInit = true
+                enabled = initialEnabled
+                sizeText = initialSize
+                unit = initialUnit
+                filesText = initialFiles
+            }
+        }
+        .sheet(isPresented: $showConfirm) {
+            TextInputConfirmSheet(
+                title: L10n.t("配置修改"),
+                message: L10n.t("修改配置后需要重启 Docker 服务生效\n如果确认操作，请手动输入「立即重启」"),
+                expectedText: L10n.t("立即重启"),
+                confirmTitle: L10n.t("确认")) {
+                await submit()
+            } options: {
+                EmptyView()
+            }
+            .presentationDetents([.medium])
+        }
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private func save() {
+        if enabled {
+            guard (Int(sizeText) ?? 0) >= 1, (Int(filesText) ?? 0) >= 1 else {
+                errorMessage = L10n.t("请填写文件大小与保留份数")
+                showError = true
+                return
+            }
+        }
+        showConfirm = true
+    }
+
+    private func submit() async {
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            if enabled {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.containersLogOptionUpdate.path,
+                    body: DockerLogOptionRequest(
+                        logMaxSize: "\(sizeText)\(unit)",
+                        logMaxFile: filesText),
+                    as: EmptyResponse.self)
+            } else {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.containersLogOptionUpdate.path,
+                    body: DockerDaemonKeyUpdateRequest(key: "LogOption", value: "disable"),
+                    as: EmptyResponse.self)
+            }
+            dismiss()
+            onSaved()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
 }
