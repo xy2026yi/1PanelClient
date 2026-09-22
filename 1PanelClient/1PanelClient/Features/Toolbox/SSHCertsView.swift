@@ -171,10 +171,7 @@ final class SSHCertsViewModel: ObservableObject {
 struct SSHCertsView: View {
     @StateObject private var vm: SSHCertsViewModel
     @State private var showCreate = false
-    @State private var showMenu = false
     @State private var confirmSync = false
-    /// 授权密钥（authorized_keys）推页入口（右上角菜单）
-    @State private var showAuthKeys = false
     /// 长按弹出的操作菜单目标（编辑 / 删除）
     @State private var actionCert: SSHCertItem?
     /// 长按「编辑」推入的编辑页目标
@@ -217,11 +214,19 @@ struct SSHCertsView: View {
         .navigationTitle(L10n.t("SSH 密钥"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // 右上角仅 创建 + 同步（原三点菜单已拆：授权密钥移至 SSH-服务管理）
             ToolbarItem(placement: .topBarTrailing) {
-                EllipsisMenuButton(isLoading: vm.isSyncing) {
-                    withAnimation(Motion.fast) { showMenu.toggle() }
+                Button {
+                    confirmSync = true
+                } label: {
+                    if vm.isSyncing {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+                    }
                 }
-                .accessibilityLabel(L10n.t("更多操作"))
+                .disabled(vm.isSyncing)
+                .accessibilityLabel(L10n.t("同步密钥"))
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -230,20 +235,6 @@ struct SSHCertsView: View {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel(L10n.t("新建密钥"))
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if showMenu {
-                EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("同步密钥"), icon: "arrow.trianglehead.2.clockwise.rotate.90", isDisabled: vm.isSyncing) {
-                        confirmSync = true
-                    },
-                    .action(title: L10n.t("授权密钥"), icon: "checkmark.seal") {
-                        showAuthKeys = true
-                    },
-                ]) {
-                    withAnimation(Motion.fast) { showMenu = false }
-                }
             }
         }
         .alert(L10n.t("同步密钥"), isPresented: $confirmSync) {
@@ -256,9 +247,6 @@ struct SSHCertsView: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             SSHCertCreateView(vm: vm)
-        }
-        .navigationDestination(isPresented: $showAuthKeys) {
-            SSHAuthKeysView(server: server)
         }
         .navigationDestination(isPresented: Binding(
             get: { editingCert != nil },

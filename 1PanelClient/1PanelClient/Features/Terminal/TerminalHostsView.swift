@@ -24,7 +24,6 @@ struct TerminalHostsView: View {
     @State private var showSettings = false
     @State private var showMenu = false
     // SSH 服务管理相关的三个入口（自 SSH 服务管理页移入）
-    @State private var showCerts = false
     @State private var showSessions = false
     @State private var showPanelSessions = false
     @State private var showServiceManage = false
@@ -62,7 +61,7 @@ struct TerminalHostsView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("密钥"), icon: "key") { showCerts = true },
+                    // 密钥入口已移至 SSH-服务管理 的三点菜单
                     .action(title: L10n.t("会话"), icon: "person.2") { showSessions = true },
                     .action(title: L10n.t("面板会话"), icon: "rectangle.on.rectangle") { showPanelSessions = true },
                     .action(title: L10n.t("服务管理"), icon: "gearshape.2") { showServiceManage = true },
@@ -101,9 +100,6 @@ struct TerminalHostsView: View {
         }
         .navigationDestination(isPresented: $showSettings) {
             TerminalSettingsView(server: server)
-        }
-        .navigationDestination(isPresented: $showCerts) {
-            SSHCertsView(server: server)
         }
         .navigationDestination(isPresented: $showPanelSessions) {
             PanelTerminalSessionsView(server: server)

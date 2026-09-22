@@ -47,6 +47,8 @@ struct SSHFileUpdateRequest: Encodable {
 
 @MainActor
 final class SSHViewModel: ObservableObject {
+    /// 所属服务器（密钥/授权密钥推页入口用）
+    let server: ServerConfig
     @Published var config: SSHConfig?
     @Published var isLoading = true
     @Published var isOperating = false
@@ -56,6 +58,7 @@ final class SSHViewModel: ObservableObject {
     private let client: APIClient
 
     init(server: ServerConfig) {
+        self.server = server
         self.client = APIClient.shared(for: server)
     }
 
@@ -112,7 +115,10 @@ struct SSHView: View {
     @State private var editingField: SSHField?
     @State private var pendingAction: String?
     @State private var showFullConfig = false
-    /// 密钥 / 会话管理入口已移至「SSH」页（终端）三点菜单
+    /// 右上角三点菜单：密钥 / 授权密钥（自终端 SSH 页三点菜单移入）
+    @State private var showMenu = false
+    @State private var showCerts = false
+    @State private var showAuthKeys = false
 
     enum SSHField: Identifiable {
         case port, listenAddress
@@ -143,6 +149,30 @@ struct SSHView: View {
         }
         .navigationTitle(L10n.t("服务管理"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                EllipsisMenuButton {
+                    withAnimation(Motion.fast) { showMenu.toggle() }
+                }
+                .accessibilityLabel(L10n.t("更多操作"))
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: L10n.t("密钥"), icon: "key") { showCerts = true },
+                    .action(title: L10n.t("授权密钥"), icon: "checkmark.seal") { showAuthKeys = true },
+                ]) {
+                    withAnimation(Motion.fast) { showMenu = false }
+                }
+            }
+        }
+        .navigationDestination(isPresented: $showCerts) {
+            SSHCertsView(server: vm.server)
+        }
+        .navigationDestination(isPresented: $showAuthKeys) {
+            SSHAuthKeysView(server: vm.server)
+        }
         .refreshable { await vm.loadConfig() }
         .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.loadConfig() } }
         .localToast(message: $vm.successMessage)
