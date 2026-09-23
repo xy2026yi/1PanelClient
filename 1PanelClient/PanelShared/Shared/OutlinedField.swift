@@ -643,14 +643,14 @@ struct CodeEditorArea: View {
     var body: some View {
         Group {
             if readOnly {
+                // 右侧让位槽必须是「收窄滚动器自身 frame」：safeAreaInset 空槽
+                // 不裁剪内容，文字横滑时仍从槽下滑过、纵向滚动条照旧压字；
+                // 收窄 frame 后最右 20pt 物理上不属于滚动区，指示条落在永久无字区
                 ScrollView(.horizontal, showsIndicators: true) {
                     readonlyBody.padding(.vertical, 8)
                 }
-                // 固定右侧让位槽：页面级纵向滚动条不再压在文字上
-                // （槽不随横向滚动移动；横滑到最右时末字符停靠在槽左侧）
-                .safeAreaInset(edge: .trailing, spacing: 0) {
-                    Color.clear.frame(width: 20)
-                }
+                .padding(.trailing, 20)
+                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView(.horizontal, showsIndicators: true) {
                     TextEditor(text: $text)
@@ -662,6 +662,10 @@ struct CodeEditorArea: View {
                         .frame(width: pinnedWidth, alignment: .topLeading)
                         .frame(maxHeight: .infinity, alignment: .topLeading)
                 }
+                // 同只读态：收窄 frame 留右侧指示条让位槽（TextEditor 纵向滚动条
+                // 不压字；availableWidth 随之少 20，钉宽测量口径同步）
+                .padding(.trailing, 20)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     GeometryReader { geo in
                         Color.clear.preference(key: CodeEditorWidthKey.self,
