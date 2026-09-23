@@ -15,9 +15,9 @@ struct WebsiteProxiesView: View {
     @State private var isLoading = false
     /// 列表加载失败（渲染页内错误态 + 重试）
     @State private var loadError: String?
+    /// 创建 push（isPresented 仅承担创建；编辑走 item 路由避免目标视图捕获旧值）
     @State private var showEditSheet = false
     @State private var editingProxy: WebsiteProxy?
-    @State private var showSourceSheet = false
     @State private var sourceProxy: WebsiteProxy?
     @State private var togglingProxyId: String?
     /// 长按半屏菜单目标（启停/编辑/源文/删除；左滑删除保留）
@@ -61,16 +61,21 @@ struct WebsiteProxiesView: View {
         .navigationDestination(isPresented: $showEditSheet) {
             WebsiteProxyEditView(
                 websiteId: websiteId,
-                proxy: editingProxy,
+                proxy: nil,
                 vm: vm
             ) {
                 Task { await load() }
             }
         }
-        .navigationDestination(isPresented: $showSourceSheet) {
-            if let p = sourceProxy {
-                WebsiteProxySourceView(websiteId: websiteId, proxy: p, vm: vm)
+        // 编辑/源文走 item 路由：isPresented 目标视图会捕获推送前的旧状态，
+        // 编辑时拿到 nil 代理（表单空白 + 标题显示创建）、源文推空白页
+        .navigationDestination(item: $editingProxy) { p in
+            WebsiteProxyEditView(websiteId: websiteId, proxy: p, vm: vm) {
+                Task { await load() }
             }
+        }
+        .navigationDestination(item: $sourceProxy) { p in
+            WebsiteProxySourceView(websiteId: websiteId, proxy: p, vm: vm)
         }
         .sheet(isPresented: Binding(
             get: { actionProxy != nil },
@@ -89,11 +94,9 @@ struct WebsiteProxiesView: View {
                     },
                     ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
                         editingProxy = actionProxy
-                        showEditSheet = true
                     },
                     ActionMenuItem(title: L10n.t("源文"), icon: "doc.text", color: .teal) {
                         sourceProxy = actionProxy
-                        showSourceSheet = true
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         pendingDeleteProxy = actionProxy
@@ -154,7 +157,6 @@ struct WebsiteProxiesView: View {
                 // 单击直达编辑（与负载均衡/脚本库一致），长按弹半屏操作菜单
                 .onTapGesture {
                     editingProxy = p
-                    showEditSheet = true
                 }
                 .simultaneousGesture(
                     LongPressGesture(minimumDuration: 0.5).onEnded { _ in
@@ -315,6 +317,12 @@ struct WebsiteProxyEditView: View {
             }
         }
         .onAppear(perform: fillFromProxy)
+        // 保存失败/成功提示在当前页呈现（此前只在列表页挂载，退回后才弹）
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
     }
 
     private var canSubmit: Bool {

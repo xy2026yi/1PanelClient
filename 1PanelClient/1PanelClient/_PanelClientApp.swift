@@ -7,8 +7,6 @@ import SwiftUI
 
 @main
 struct _PanelClientApp: App {
-    /// 全局外观主题（设置页可改），nil = 跟随系统
-    @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
 
     init() {
         // ADR-0002：MetricKit 本地诊断（仅落盘，零上报）
@@ -21,11 +19,14 @@ struct _PanelClientApp: App {
             //   -chartDemo        图表示例页
             //   -wafDemo          WAF 监控页（指向本机 mock 面板，复现封锁记录空数据等问题）
             //   （-installFormDemo/-pendingFormsDemo 原型页已归档至 archive/debug-prototypes/）
-            rootContent
-                .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
-                // 注入呈现方尺寸类：sheet 内环境恒为 compact，bottomSheetDetents
-                // 依赖它区分 iPad（见 Adaptive.swift PresenterSizeClassKey）
-                .hostingPresenterSizeClass()
+            // 外观经 ThemeApplier（内部视图）读取：@AppStorage 挂在 App(Scene) 上
+            // 不会因变化可靠地重求值 Scene body，切换暗色不生效
+            ThemeApplier {
+                rootContent
+                    // 注入呈现方尺寸类：sheet 内环境恒为 compact，bottomSheetDetents
+                    // 依赖它区分 iPad（见 Adaptive.swift PresenterSizeClassKey）
+                    .hostingPresenterSizeClass()
+            }
         }
         // iPad 外接键盘：Cmd+1/2/3 切换三 Tab（MainTabView 监听 .selectAppTab 通知）
         .commands {
@@ -157,3 +158,15 @@ location / {
     }
 }
 #endif
+
+/// 全局外观包装视图：@AppStorage 在真实视图内随变化重渲染（App Scene 不可靠）
+private struct ThemeApplier<Content: View>: View {
+    @ViewBuilder let content: Content
+    /// 全局外观主题（设置页可改），nil = 跟随系统
+    @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
+
+    var body: some View {
+        content
+            .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
+    }
+}

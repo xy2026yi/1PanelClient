@@ -279,7 +279,13 @@ struct WebsiteLbsEditView: View {
         }
         .navigationTitle(isEdit ? L10n.t("编辑负载均衡") : L10n.t("创建负载均衡"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
+
+        // 保存失败/成功提示在当前页呈现（此前只在列表页挂载，退回后才弹）
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }        .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(isSaving ? L10n.t("保存中…") : L10n.t("保存")) {
                     Task { await save() }

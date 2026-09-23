@@ -278,10 +278,10 @@ struct WebsiteRedirectView: View {
     @State private var isLoading = false
     /// 列表加载失败（渲染页内错误态 + 重试）
     @State private var loadError: String?
+    /// 创建 push（isPresented 仅承担创建；编辑/源文走 item 路由避免目标视图捕获旧值）
     @State private var editingRedirect: WebsiteRedirect?
     @State private var showEdit = false
     @State private var sourceRedirect: WebsiteRedirect?
-    @State private var showSource = false
     /// 长按半屏菜单目标（启停/编辑/源文/删除；左滑删除保留）
     @State private var actionRedirect: WebsiteRedirect?
     @State private var pendingDelete: WebsiteRedirect?
@@ -319,14 +319,19 @@ struct WebsiteRedirectView: View {
         }
         .task { await load() }
         .navigationDestination(isPresented: $showEdit) {
-            WebsiteRedirectEditView(websiteId: websiteId, redirect: editingRedirect, vm: vm) {
+            WebsiteRedirectEditView(websiteId: websiteId, redirect: nil, vm: vm) {
                 Task { await load() }
             }
         }
-        .navigationDestination(isPresented: $showSource) {
-            if let r = sourceRedirect {
-                WebsiteRedirectSourceView(websiteId: websiteId, redirect: r, vm: vm)
+        // 编辑/源文走 item 路由：isPresented 目标视图会捕获推送前的旧状态，
+        // 编辑时拿到 nil（表单空白 + 标题显示创建）、源文推空白页
+        .navigationDestination(item: $editingRedirect) { r in
+            WebsiteRedirectEditView(websiteId: websiteId, redirect: r, vm: vm) {
+                Task { await load() }
             }
+        }
+        .navigationDestination(item: $sourceRedirect) { r in
+            WebsiteRedirectSourceView(websiteId: websiteId, redirect: r, vm: vm)
         }
         .sheet(isPresented: Binding(
             get: { actionRedirect != nil },
@@ -345,11 +350,9 @@ struct WebsiteRedirectView: View {
                     },
                     ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
                         editingRedirect = actionRedirect
-                        showEdit = true
                     },
                     ActionMenuItem(title: L10n.t("源文"), icon: "doc.text", color: .teal) {
                         sourceRedirect = actionRedirect
-                        showSource = true
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         pendingDelete = actionRedirect
@@ -410,7 +413,6 @@ struct WebsiteRedirectView: View {
                 // 单击直达编辑（与负载均衡/脚本库一致），长按弹半屏操作菜单
                 .onTapGesture {
                     editingRedirect = r
-                    showEdit = true
                 }
                 .simultaneousGesture(
                     LongPressGesture(minimumDuration: 0.5).onEnded { _ in
@@ -549,7 +551,13 @@ struct WebsiteRedirectEditView: View {
         }
         .navigationTitle(isEdit ? L10n.t("编辑重定向") : L10n.t("创建重定向"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
+
+        // 保存失败/成功提示在当前页呈现（此前只在列表页挂载，退回后才弹）
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }        .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(isEdit ? L10n.t("保存") : L10n.t("创建")) {
                     Task { await save() }
@@ -729,7 +737,13 @@ struct WebsiteAuthsView: View {
         .task { await load() }
         .refreshable { await load() }
         .navigationDestination(isPresented: $showEdit) {
-            WebsiteAuthEditView(websiteId: websiteId, item: editingItem, vm: vm) {
+            WebsiteAuthEditView(websiteId: websiteId, item: nil, vm: vm) {
+                Task { await load() }
+            }
+        }
+        // 编辑走 item 路由：isPresented 目标视图会捕获推送前的旧状态（编辑拿到 nil → 表单空白）
+        .navigationDestination(item: $editingItem) { item in
+            WebsiteAuthEditView(websiteId: websiteId, item: item, vm: vm) {
                 Task { await load() }
             }
         }
@@ -781,7 +795,6 @@ struct WebsiteAuthsView: View {
                 ForEach(items) { item in
                     Button {
                         editingItem = item
-                        showEdit = true
                     } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 3) {

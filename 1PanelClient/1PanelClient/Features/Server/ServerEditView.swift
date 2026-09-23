@@ -18,6 +18,8 @@ struct ServerEditView: View {
     @State private var apiKey: String = ""
     @State private var testing = false
     @State private var testResult: TestResult?
+    @State private var showHTTPSBlockAlert = false
+    @State private var httpsBlockMessage: String?
     @State private var showPlainHTTPWarning = false
     @AppStorage(SecurityGate.httpsOnlyKey) private var httpsOnly = false
 
@@ -96,6 +98,11 @@ struct ServerEditView: View {
             }
         }
         .onAppear { loadIfEditing() }
+        .alert(L10n.t("无法保存"), isPresented: $showHTTPSBlockAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(httpsBlockMessage ?? "")
+        }
         .alert(L10n.t("该面板使用 HTTP 明文连接"), isPresented: $showPlainHTTPWarning) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("仍然保存"), role: .destructive) { Haptic.warning(); performSave() }
@@ -114,10 +121,10 @@ struct ServerEditView: View {
     private func save() {
         if draftIsPlainHTTP {
             if httpsOnly {
-                testResult = TestResult(
-                    success: false,
-                    message: L10n.t("已开启「仅允许 HTTPS 连接」：请在 设置 → 安全 关闭该限制，或改用 https:// 地址")
-                )
+                // 显式弹窗提示（行内结果行小字在键盘弹起/滚动时易被忽略）
+                httpsBlockMessage = L10n.t("已开启「仅允许 HTTPS 连接」：请在 设置 → 安全 关闭该限制，或改用 https:// 地址")
+                showHTTPSBlockAlert = true
+                testResult = TestResult(success: false, message: httpsBlockMessage ?? "")
                 return
             }
             showPlainHTTPWarning = true

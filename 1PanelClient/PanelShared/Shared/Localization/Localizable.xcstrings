@@ -698,6 +698,8 @@
     "*" : {},
     "-" : {},
     ".." : {},
+    "/home/user/fullchain.pem" : {},
+    "/home/user/privkey.pem" : {},
     "/var/log/auth.log" : {},
     "1 CPU，2.0 Ghz+" : {
       "extractionState" : "manual",
@@ -12101,6 +12103,17 @@
         }
       }
     },
+    "域名（同时支持 IP）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domains (IP supported)"
+          }
+        }
+      }
+    },
     "基本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20094,6 +20107,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Results"
+          }
+        }
+      }
+    },
+    "无法保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot Save"
           }
         }
       }

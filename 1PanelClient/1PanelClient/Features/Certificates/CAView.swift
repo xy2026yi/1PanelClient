@@ -435,8 +435,9 @@ struct IssueCertificateView: View {
     var body: some View {
         Form {
             Section {
-                OutlinedMultiLineField(label: L10n.t("域名（一行一个）"), text: $domains)
-                    .lineLimit(3, reservesSpace: true)
+                OutlinedMultiLineField(label: L10n.t("域名（同时支持 IP）"),
+                                       lines: 3, fixedLines: 3,
+                                       text: $domains)
             } header: {
                 Text(L10n.t("基本信息"))
             } footer: {
@@ -489,8 +490,9 @@ struct IssueCertificateView: View {
             Section {
                 Toggle(L10n.t("申请证书之后执行脚本"), isOn: $execShell.animation())
                 if execShell {
-                    OutlinedMultiLineField(label: L10n.t("脚本内容"), text: $shell)
-                        .lineLimit(5, reservesSpace: true)
+                    OutlinedMultiLineField(label: L10n.t("脚本内容"),
+                                           lines: 5, fixedLines: 5, zoomable: true,
+                                           text: $shell)
                 }
             }
 
