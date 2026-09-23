@@ -140,6 +140,13 @@ struct CronjobDetailView: View {
                 } label: {
                     Label(L10n.t("执行记录"), systemImage: "list.bullet.rectangle")
                 }
+                if currentJob.jobType.producesBackupRecords {
+                    NavigationLink {
+                        CronjobBackupRecordsView(job: currentJob)
+                    } label: {
+                        Label(L10n.t("备份记录"), systemImage: "externaldrive.badge.timemachine")
+                    }
+                }
                 Button {
                     Task { await loadEditInfo() }
                 } label: {

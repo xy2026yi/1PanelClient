@@ -139,10 +139,13 @@ nonisolated struct SnapshotItem: Decodable, Identifiable, Hashable {
     let size: Int64?
     let version: String?
     let lastRecoveredAt: String?
+    /// 创建任务 ID（重新制作复用原任务，跳任务进度用）
+    let taskID: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name, description, sourceAccounts, downloadAccount
         case status, message, createdAt, size, version, lastRecoveredAt
+        case taskID
     }
 
     init(from decoder: Decoder) throws {
@@ -158,6 +161,25 @@ nonisolated struct SnapshotItem: Decodable, Identifiable, Hashable {
         size = try c.decodeIfPresent(Int64.self, forKey: .size)
         version = try c.decodeIfPresent(String.self, forKey: .version)
         lastRecoveredAt = try c.decodeIfPresent(String.self, forKey: .lastRecoveredAt)
+        taskID = try c.decodeIfPresent(String.self, forKey: .taskID)
+    }
+
+    /// 描述回写用的逐字段初始化（自定义 init(from:) 会抑制 memberwise 合成）
+    init(id: Int, name: String?, description: String?, sourceAccounts: [String]?,
+         downloadAccount: String?, status: String?, message: String?, createdAt: String?,
+         size: Int64?, version: String?, lastRecoveredAt: String?, taskID: String?) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.sourceAccounts = sourceAccounts
+        self.downloadAccount = downloadAccount
+        self.status = status
+        self.message = message
+        self.createdAt = createdAt
+        self.size = size
+        self.version = version
+        self.lastRecoveredAt = lastRecoveredAt
+        self.taskID = taskID
     }
 
     var displayName: String { name ?? "#\(id)" }
@@ -166,6 +188,27 @@ nonisolated struct SnapshotItem: Decodable, Identifiable, Hashable {
         return String(t.prefix(19)).replacingOccurrences(of: "T", with: " ")
     }
     var isOK: Bool { (status ?? "").lowercased() == "success" }
+
+    /// 返回替换描述后的副本（描述修改成功后本地回写）
+    func withDescription(_ newDescription: String) -> SnapshotItem {
+        SnapshotItem(id: id, name: name, description: newDescription,
+                     sourceAccounts: sourceAccounts, downloadAccount: downloadAccount,
+                     status: status, message: message, createdAt: createdAt,
+                     size: size, version: version, lastRecoveredAt: lastRecoveredAt,
+                     taskID: taskID)
+    }
+}
+
+/// 快照重新制作（沿用原任务与配置）—— POST /settings/snapshot/recreate
+nonisolated struct SnapshotRecreateRequest: Encodable {
+    let id: Int
+}
+
+/// 快照导入（从备份账号拉取）—— POST /settings/snapshot/import
+nonisolated struct SnapshotImportRequest: Encodable {
+    let backupAccountID: Int
+    let names: [String]
+    let description: String
 }
 
 // MARK: - 监控设置

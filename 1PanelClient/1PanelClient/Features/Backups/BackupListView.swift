@@ -174,6 +174,23 @@ final class BackupViewModel: ObservableObject {
         }
     }
 
+    /// 修改备份记录描述（成功后本地回写，返回 nil；失败返回错误文案由 Sheet 展示）
+    func updateRecordDescription(_ record: BackupRecord, _ newText: String) async -> String? {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.backupsRecordDescriptionUpdate.path,
+                body: DescriptionUpdateRequest(id: record.id, description: newText),
+                as: EmptyResponse.self
+            )
+            if let idx = records.firstIndex(where: { $0.id == record.id }) {
+                records[idx] = record.withDescription(newText)
+            }
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     // MARK: - 下载
 
     /// 开始下载（同一记录重复点击忽略；不同记录可并行）
@@ -323,6 +340,7 @@ struct BackupListView: View {
     @State private var route: BackupRoute?
     @State private var recoveringRecord: BackupRecord?
     @State private var deletingRecord: BackupRecord?
+    @State private var editingRecord: BackupRecord?
     /// 恢复 sheet 关闭后待跳转的任务进度（创建走 route 原位替换，无需此中转）
     @State private var pendingProgress: BackupProgressState?
 
@@ -414,6 +432,16 @@ struct BackupListView: View {
         .onChange(of: recoveringRecord) { old, new in
             if old != nil && new == nil { pushPendingProgressAfterTransition() }
         }
+        .sheet(item: $editingRecord) { record in
+            DescriptionEditSheet(
+                title: L10n.t("修改描述"),
+                initial: record.description ?? ""
+            ) { newText in
+                await vm.updateRecordDescription(record, newText)
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
         .alert(
             L10n.t("删除备份"),
             isPresented: Binding(
@@ -480,6 +508,7 @@ struct BackupListView: View {
                         onDownload: { vm.startDownload(record) },
                         onCancelDownload: { vm.cancelDownload(record) },
                         onRecover: { recoveringRecord = record },
+                        onEditDescription: { editingRecord = record },
                         onDelete: { deletingRecord = record }
                     )
                 }
@@ -511,6 +540,7 @@ private struct BackupRecordCard: View {
     let onDownload: () -> Void
     let onCancelDownload: () -> Void
     let onRecover: () -> Void
+    let onEditDescription: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -559,7 +589,7 @@ private struct BackupRecordCard: View {
                 Spacer(minLength: 0)
             }
 
-            // 操作：下载（进行中可取消）/ 恢复 / 删除
+            // 操作：下载（进行中可取消）/ 恢复 / 描述 / 删除
             HStack(spacing: 8) {
                 if isDownloading {
                     cardButton(title: L10n.t("取消"), icon: "stop.circle.fill", color: .red, loading: false, action: onCancelDownload)
@@ -567,6 +597,7 @@ private struct BackupRecordCard: View {
                     cardButton(title: L10n.t("下载"), icon: "arrow.down.circle", color: .blue, loading: false, action: onDownload)
                 }
                 cardButton(title: L10n.t("恢复"), icon: "arrow.counterclockwise", color: .green, loading: false, action: onRecover)
+                cardButton(title: L10n.t("描述"), icon: "pencil.line", color: .teal, loading: false, action: onEditDescription)
                 cardButton(title: L10n.t("删除"), icon: "trash", color: .red, loading: isDeleting, action: onDelete)
             }
             .padding(.top, 2)

@@ -28,6 +28,16 @@ enum CronjobType: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
+    /// 备份类任务：会产生备份记录（计划任务详情「备份记录」入口按此显示）
+    var producesBackupRecords: Bool {
+        switch self {
+        case .app, .website, .database, .directory, .log, .snapshot:
+            return true
+        default:
+            return false
+        }
+    }
+
     var displayName: String {
         switch self {
         case .shell:          return L10n.t("Shell 脚本")

@@ -18,12 +18,16 @@ struct SnapshotListView: View {
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var showCreate = false
+    @State private var showImport = false
+    @State private var showAddMenu = false
     @State private var toastMessage: String?
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var pendingDelete: SnapshotItem?
     @State private var deleteWithFile = false
     @State private var recoveringItem: SnapshotItem?
+    @State private var editingSnapshot: SnapshotItem?
+    @State private var pendingRecreate: SnapshotItem?
     /// 创建/恢复任务（taskID → 任务进度页）
     @State private var progressTask: SnapshotTaskTarget?
 
@@ -62,12 +66,26 @@ struct SnapshotListView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    showCreate = true
+                    showAddMenu = true
                 } label: {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel(L10n.t("创建快照"))
             }
+        }
+        .sheet(isPresented: $showAddMenu) {
+            ActionBottomSheet(title: L10n.t("快照"), items: [
+                ActionMenuItem(title: L10n.t("创建快照"), icon: "plus.circle", color: .accentColor) {
+                    showCreate = true
+                },
+                ActionMenuItem(title: L10n.t("导入快照"), icon: "square.and.arrow.down", color: .blue) {
+                    showImport = true
+                },
+            ]) {
+                showAddMenu = false
+            }
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
         }
         .task { await load() }
         .refreshable { await load() }
@@ -111,6 +129,37 @@ struct SnapshotListView: View {
                     if target.title.hasPrefix(L10n.t("恢复快照")) { toastMessage = L10n.t("快照已恢复") }
                 }
                 return false
+            }
+        }
+        .navigationDestination(isPresented: $showImport) {
+            SnapshotImportView(server: server) {
+                Task { await load() }
+            }
+        }
+        .sheet(item: $editingSnapshot) { snapshot in
+            DescriptionEditSheet(
+                title: L10n.t("修改描述"),
+                initial: snapshot.description ?? ""
+            ) { newText in
+                await submitSnapshotDescription(snapshot, newText)
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+        .alert(L10n.t("重新制作快照"), isPresented: Binding(
+            get: { pendingRecreate != nil },
+            set: { if !$0 { pendingRecreate = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingRecreate = nil }
+            Button(L10n.t("重新制作"), role: .destructive) {
+                if let snapshot = pendingRecreate {
+                    Task { await recreate(snapshot) }
+                }
+                pendingRecreate = nil
+            }
+        } message: {
+            if let snapshot = pendingRecreate {
+                Text(L10n.f("确定重新制作快照「%@」吗？将沿用原有配置并复用原任务进度。", snapshot.displayName))
             }
         }
     }
@@ -167,6 +216,18 @@ struct SnapshotListView: View {
                 Label(L10n.t("恢复"), systemImage: "arrow.counterclockwise")
             }
             .tint(.blue)
+            Button {
+                editingSnapshot = snapshot
+            } label: {
+                Label(L10n.t("修改描述"), systemImage: "pencil.line")
+            }
+            .tint(.teal)
+            Button {
+                pendingRecreate = snapshot
+            } label: {
+                Label(L10n.t("重新制作"), systemImage: "hammer")
+            }
+            .tint(.indigo)
         }
     }
 
@@ -212,6 +273,42 @@ struct SnapshotListView: View {
                 as: EmptyResponse.self)
             progressTask = SnapshotTaskTarget(
                 taskID: taskID, title: L10n.f("恢复快照 %@", snapshot.displayName))
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    /// 修改快照描述；返回 nil 表示成功（Sheet 自动收起），非 nil 为错误文案
+    private func submitSnapshotDescription(_ snapshot: SnapshotItem, _ newText: String) async -> String? {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.settingsSnapshotDescriptionUpdate.path,
+                body: DescriptionUpdateRequest(id: snapshot.id, description: newText),
+                as: EmptyResponse.self)
+            if let idx = snapshots.firstIndex(where: { $0.id == snapshot.id }) {
+                snapshots[idx] = snapshot.withDescription(newText)
+            }
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    /// 重新制作快照：服务端沿用原任务 ID 续跑，成功后进入任务进度页
+    private func recreate(_ snapshot: SnapshotItem) async {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.settingsSnapshotRecreate.path,
+                body: SnapshotRecreateRequest(id: snapshot.id),
+                as: EmptyResponse.self)
+            if let taskID = snapshot.taskID, !taskID.isEmpty {
+                progressTask = SnapshotTaskTarget(
+                    taskID: taskID, title: L10n.f("重新制作快照 %@", snapshot.displayName))
+            } else {
+                toastMessage = L10n.t("已提交重新制作")
+            }
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription

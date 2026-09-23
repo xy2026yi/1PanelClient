@@ -54,6 +54,30 @@ struct SnapshotAndMonitorModelsTests {
         #expect(s.isOK == true)
         #expect(s.version == "v2.2.5")
         #expect(s.displayCreatedAt == "2026-09-13 02:30:00")
+        #expect(s.taskID == "da6f769e")
+        // 描述回写副本：仅描述变化，其余字段原样保留
+        let rewritten = s.withDescription("每周快照")
+        #expect(rewritten.description == "每周快照")
+        #expect(rewritten.taskID == s.taskID)
+        #expect(rewritten.name == s.name)
+    }
+
+    @Test("快照进阶请求编码（重新制作 / 导入 / 描述修改，上游 v2.3.0 DTO 对齐）")
+    func snapshotAdvancedRequests() throws {
+        let recreate = try encode(SnapshotRecreateRequest(id: 241))
+        #expect(recreate["id"] as? Int == 241)
+
+        let importReq = try encode(SnapshotImportRequest(
+            backupAccountID: 3,
+            names: ["snapshot-1panel-core-v2.2.5-linux-aarch64-202609130230008tw3m"],
+            description: "迁移导入"))
+        #expect(importReq["backupAccountID"] as? Int == 3)
+        #expect((importReq["names"] as? [String])?.count == 1)
+        #expect(importReq["description"] as? String == "迁移导入")
+
+        let desc = try encode(DescriptionUpdateRequest(id: 241, description: "每周快照"))
+        #expect(desc["id"] as? Int == 241)
+        #expect(desc["description"] as? String == "每周快照")
     }
 
     @Test("快照数据树解码（load 响应：应用父子/禁用项，抓包样本节选）")

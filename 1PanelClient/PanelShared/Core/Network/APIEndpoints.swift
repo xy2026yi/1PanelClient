@@ -474,6 +474,9 @@ enum APIEndpoint {
     case settingsSnapshotCreate  // POST 创建快照（全量字段 + 任务进度）
     case settingsSnapshotDelete  // POST 删除快照 {ids, deleteWithFile}
     case settingsSnapshotRecover // POST 恢复快照 {id, taskID, isNew, reDownload, secret}
+    case settingsSnapshotRecreate // POST 快照重新制作（沿用原任务与配置） {id}
+    case settingsSnapshotImport   // POST 快照导入（从备份账号拉取） {backupAccountID, names, description}
+    case settingsSnapshotDescriptionUpdate // POST 快照描述修改 {id, description}
 
     // MARK: - 监控设置 / 虚拟内存（同上抓包）
     case hostsMonitorSettingUpdate  // POST 监控单项设置 {key,value}
@@ -534,6 +537,9 @@ enum APIEndpoint {
     // MARK: - 备份（应用 / 网站 / 数据库）
     case backupsLocal              // GET  备份存放目录
     case backupsRecordSearch       // POST 备份记录分页查询
+    case backupsRecordSearchByCronjob // POST 备份记录分页查询（按计划任务过滤）
+    case backupsRecordDescriptionUpdate // POST 备份记录描述修改 {id, description}
+    case backupsSearchFiles        // POST 备份账号内快照文件列表 {id}
     case backupsRecordSize         // POST 备份文件大小批量查询
     case backupsBackup             // POST 创建备份（压缩密码/描述/参数）
     case backupsRecover            // POST 恢复备份（超时/清空库等参数）
@@ -1075,6 +1081,9 @@ enum APIEndpoint {
         case .settingsSnapshotCreate:  return "/api/v2/settings/snapshot"
         case .settingsSnapshotDelete:  return "/api/v2/settings/snapshot/del"
         case .settingsSnapshotRecover: return "/api/v2/settings/snapshot/recover"
+        case .settingsSnapshotRecreate: return "/api/v2/settings/snapshot/recreate"
+        case .settingsSnapshotImport:   return "/api/v2/settings/snapshot/import"
+        case .settingsSnapshotDescriptionUpdate: return "/api/v2/settings/snapshot/description/update"
         case .hostsMonitorSettingUpdate: return "/api/v2/hosts/monitor/setting/update"
         case .hostsMonitorSettingGet:    return "/api/v2/hosts/monitor/setting"
         case .hostsMonitorClean:         return "/api/v2/hosts/monitor/clean"
@@ -1136,6 +1145,9 @@ enum APIEndpoint {
         case .logsTaskSearch:        return "/api/v2/logs/tasks/search"
         case .backupsLocal:          return "/api/v2/backups/local?operateNode=local"
         case .backupsRecordSearch:   return "/api/v2/backups/record/search?operateNode=local"
+        case .backupsRecordSearchByCronjob: return "/api/v2/backups/record/search/bycronjob?operateNode=local"
+        case .backupsRecordDescriptionUpdate: return "/api/v2/backups/record/description/update"
+        case .backupsSearchFiles:    return "/api/v2/backups/search/files?operateNode=local"
         case .backupsRecordSize:     return "/api/v2/backups/record/size?operateNode=local"
         case .backupsBackup:         return "/api/v2/backups/backup?operateNode=local"
         case .backupsRecover:        return "/api/v2/backups/recover?operateNode=local"

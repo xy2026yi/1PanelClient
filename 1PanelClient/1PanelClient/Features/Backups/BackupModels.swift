@@ -73,6 +73,14 @@ nonisolated struct BackupRecord: Decodable, Identifiable, Equatable {
         return dir.hasSuffix("/") ? dir + file : dir + "/" + file
     }
 
+    /// 返回替换描述后的副本（描述修改成功后本地回写）
+    func withDescription(_ newDescription: String) -> BackupRecord {
+        BackupRecord(id: id, createdAt: createdAt, accountType: accountType,
+                     accountName: accountName, downloadAccountID: downloadAccountID,
+                     fileDir: fileDir, fileName: fileName, taskID: taskID,
+                     status: status, message: message, description: newDescription)
+    }
+
     var statusColor: Color {
         switch (status ?? "").lowercased() {
         case "success": return .statusRunning
@@ -95,6 +103,21 @@ nonisolated struct BackupRecordSearchRequest: Encodable {
 nonisolated struct BackupRecordListResponse: Decodable {
     let total: Int
     let items: [BackupRecord]?
+}
+
+/// 按计划任务过滤的备份记录分页查询
+/// POST /backups/record/search/bycronjob（计划任务详情「备份记录」页）
+nonisolated struct BackupRecordByCronjobRequest: Encodable {
+    let page: Int
+    let pageSize: Int
+    let cronjobID: Int
+}
+
+/// 描述修改共用请求体（≤256 字符）
+/// POST /backups/record/description/update 与 /settings/snapshot/description/update
+nonisolated struct DescriptionUpdateRequest: Encodable {
+    let id: Int
+    let description: String
 }
 
 /// 备份文件大小项（POST /backups/record/size 返回）
