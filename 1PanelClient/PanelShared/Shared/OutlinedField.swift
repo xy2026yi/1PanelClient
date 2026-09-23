@@ -649,7 +649,7 @@ struct CodeEditorArea: View {
                 // 固定右侧让位槽：页面级纵向滚动条不再压在文字上
                 // （槽不随横向滚动移动；横滑到最右时末字符停靠在槽左侧）
                 .safeAreaInset(edge: .trailing, spacing: 0) {
-                    Color.clear.frame(width: 14)
+                    Color.clear.frame(width: 20)
                 }
             } else {
                 ScrollView(.horizontal, showsIndicators: true) {

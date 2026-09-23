@@ -495,17 +495,35 @@ struct WebsiteRedirectEditView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var name = ""
-    @State private var type = "domain"
-    @State private var method = "301"
+    // 编辑回填走 init 初值（不依赖 .task/onAppear 时序）
+    @State private var name: String
+    @State private var type: String
+    @State private var method: String
     @State private var domains: [WebsiteDomainItem] = []
-    @State private var selectedDomain = ""
-    @State private var path = ""
-    @State private var target = ""
-    @State private var keepPath = true
-    @State private var redirectRoot = false
-    @State private var enable = true
+    @State private var selectedDomain: String
+    @State private var path: String
+    @State private var target: String
+    @State private var keepPath: Bool
+    @State private var redirectRoot: Bool
+    @State private var enable: Bool
     @State private var isSaving = false
+
+    init(websiteId: Int, redirect: WebsiteRedirect?, vm: WebsitesViewModel,
+         onDone: @escaping () -> Void) {
+        self.websiteId = websiteId
+        self.redirect = redirect
+        self.vm = vm
+        self.onDone = onDone
+        _name = State(initialValue: redirect?.name ?? "")
+        _type = State(initialValue: redirect?.type ?? "domain")
+        _method = State(initialValue: redirect?.redirect ?? "301")
+        _selectedDomain = State(initialValue: redirect?.domains?.first ?? "")
+        _path = State(initialValue: redirect?.path ?? "")
+        _target = State(initialValue: redirect?.target ?? "")
+        _keepPath = State(initialValue: redirect?.keepPath ?? true)
+        _redirectRoot = State(initialValue: redirect?.redirectRoot ?? false)
+        _enable = State(initialValue: redirect?.enable ?? true)
+    }
 
     private var isEdit: Bool { redirect != nil }
     private var is404: Bool { type == "404" }
@@ -571,7 +589,6 @@ struct WebsiteRedirectEditView: View {
         }
         .task {
             await loadDomains()
-            fillFromRedirect()
         }
         .onChange(of: type) { _, newType in
             // 404 类型名称固定为 404
@@ -593,19 +610,6 @@ struct WebsiteRedirectEditView: View {
 
     private func loadDomains() async {
         domains = await vm.loadWebsiteDomains(websiteId: websiteId)
-    }
-
-    private func fillFromRedirect() {
-        guard let r = redirect else { return }
-        name = r.name ?? ""
-        type = r.type ?? "domain"
-        method = r.redirect ?? "301"
-        selectedDomain = r.domains?.first ?? ""
-        path = r.path ?? ""
-        target = r.target ?? ""
-        keepPath = r.keepPath ?? true
-        redirectRoot = r.redirectRoot ?? false
-        enable = r.enable ?? true
     }
 
     private func save() async {
@@ -659,7 +663,13 @@ struct WebsiteRedirectSourceView: View {
         CodeEditorArea(text: $content)
         .navigationTitle(L10n.f("源文：%@", redirect.displayName))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
+
+        // 保存失败在当前页提示（此前只在列表页挂载，退回后才弹）
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }        .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { await save() }

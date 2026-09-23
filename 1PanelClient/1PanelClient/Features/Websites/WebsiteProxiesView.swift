@@ -238,18 +238,51 @@ struct WebsiteProxyEditView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var name = ""
-    @State private var match = "/"
-    @State private var modifier = ""
-    @State private var proxyProtocol = "http://"
-    @State private var proxyAddress = ""
-    @State private var proxyHost = "$host"
-    @State private var enable = true
+    // 编辑回填走 init 初值（不依赖 onAppear 时序）；
+    // proxyPass 拆 协议/地址、SNI 缺省回填与 fillFromProxy 口径一致
+    @State private var name: String
+    @State private var match: String
+    @State private var modifier: String
+    @State private var proxyProtocol: String
+    @State private var proxyAddress: String
+    @State private var proxyHost: String
+    @State private var enable: Bool
     // SNI（仅 HTTPS 后端）
-    @State private var sni = false
-    @State private var proxySSLName = "$proxy_host"
-    @State private var sslVerify = false
+    @State private var sni: Bool
+    @State private var proxySSLName: String
+    @State private var sslVerify: Bool
     @State private var isSaving = false
+
+    init(websiteId: Int, proxy: WebsiteProxy?, vm: WebsitesViewModel,
+         onDone: @escaping () -> Void) {
+        self.websiteId = websiteId
+        self.proxy = proxy
+        self.vm = vm
+        self.onDone = onDone
+        let pass = proxy?.proxyPass ?? ""
+        let proto: String
+        var address = pass
+        if pass.hasPrefix("https://") {
+            proto = "https://"
+            address = String(pass.dropFirst("https://".count))
+        } else if pass.hasPrefix("http://") {
+            proto = "http://"
+            address = String(pass.dropFirst("http://".count))
+        } else {
+            proto = "http://"
+        }
+        _name = State(initialValue: proxy?.name ?? "")
+        _match = State(initialValue: proxy?.match ?? "/")
+        _modifier = State(initialValue: proxy?.modifier ?? "")
+        _proxyProtocol = State(initialValue: proto)
+        _proxyAddress = State(initialValue: address)
+        _proxyHost = State(initialValue: proxy?.proxyHost ?? "$host")
+        _enable = State(initialValue: proxy?.enable ?? true)
+        _sni = State(initialValue: proxy?.sni ?? false)
+        _proxySSLName = State(initialValue: (proxy?.proxySSLName?.isEmpty == false)
+                                ? proxy!.proxySSLName! : "$proxy_host")
+        _sslVerify = State(initialValue: proxy?.sslVerify ?? false)
+    }
 
     private var isEdit: Bool { proxy != nil }
 
@@ -320,7 +353,6 @@ struct WebsiteProxyEditView: View {
                 .disabled(!canSubmit || isSaving)
             }
         }
-        .onAppear(perform: fillFromProxy)
         // 保存失败/成功提示在当前页呈现（此前只在列表页挂载，退回后才弹）
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
@@ -331,28 +363,6 @@ struct WebsiteProxyEditView: View {
 
     private var canSubmit: Bool {
         !name.isEmpty && !match.isEmpty && !proxyAddress.isEmpty
-    }
-
-    private func fillFromProxy() {
-        guard let p = proxy else { return }
-        name = p.name ?? ""
-        match = p.match ?? "/"
-        modifier = p.modifier ?? ""
-        enable = p.enable ?? true
-        proxyHost = p.proxyHost ?? "$host"
-        sni = p.sni ?? false
-        proxySSLName = (p.proxySSLName?.isEmpty == false) ? p.proxySSLName! : "$proxy_host"
-        sslVerify = p.sslVerify ?? false
-        let pass = p.proxyPass ?? ""
-        if pass.hasPrefix("https://") {
-            proxyProtocol = "https://"
-            proxyAddress = String(pass.dropFirst("https://".count))
-        } else if pass.hasPrefix("http://") {
-            proxyProtocol = "http://"
-            proxyAddress = String(pass.dropFirst("http://".count))
-        } else {
-            proxyAddress = pass
-        }
     }
 
     private func save() async {
@@ -399,7 +409,13 @@ struct WebsiteProxySourceView: View {
         CodeEditorArea(text: $content)
         .navigationTitle(L10n.f("源文：%@", proxy.displayName))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
+
+        // 保存失败在当前页提示（此前只在列表页挂载，退回后才弹）
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }        .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { await save() }
