@@ -29,11 +29,19 @@ struct CreateCronjobView: View {
     @State private var showScriptPicker = false
     // 备份
     @State private var retainCopies = 7
-    @State private var backupAccountID = 0
-    @State private var appSelection = "all"
-    @State private var websiteSelection = "all"
+    /// 备份账号（有序多选；提交 sourceAccountIDs 逗号串 + sourceAccountItems 数组）
+    @State private var sourceAccountIDs: [Int] = []
+    /// 默认下载地址（单选；备份账号变化时自动带入首个所选，仍可手动修改）
+    @State private var downloadAccountID = 0
+    @State private var appSelections: [String] = ["all"]
+    @State private var websiteSelections: [String] = ["all"]
     @State private var dbType: DBBackupType = .mysql
-    @State private var dbSelection = "all"
+    @State private var dbSelections: [String] = ["all"]
+    /// 多选 Sheet 开关（账号 / 应用 / 网站 / 数据库范围）
+    @State private var showSourceAccountPicker = false
+    @State private var showAppPicker = false
+    @State private var showWebsitePicker = false
+    @State private var showDBPicker = false
     /// 选中的 mysqldump 备份参数（多选）。仅 MySQL / MariaDB 使用。
     @State private var dbBackupParams: Set<String> = []
     /// 控制备份参数多选 sheet 的弹出
@@ -231,10 +239,11 @@ struct CreateCronjobView: View {
         await vm.loadCreateOptions()
         if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
         // 备份账号默认选中第一个（与网页端一致，localhost 恒在首位）：
-        // 选择器的显示回落不落状态，用户未手动切换时提交会带空账号，
-        // 服务端执行备份时报「获取备份账号连接失败」。编辑态随后由 prefill 覆盖。
-        if backupAccountID == 0, let first = vm.backupAccounts.first {
-            backupAccountID = first.id
+        // 空账号提交会导致服务端执行备份时报「获取备份账号连接失败」。
+        // 编辑态随后由 prefill 覆盖。
+        if sourceAccountIDs.isEmpty, let first = vm.backupAccounts.first {
+            sourceAccountIDs = [first.id]
+            downloadAccountID = first.id
         }
         if let info = editingJob, !hasPrefilled {
             // 预填期间屏蔽 onChange 联动：dbType 程序化赋值会触发
@@ -276,6 +285,36 @@ struct CreateCronjobView: View {
         .sheet(isPresented: $showAlertMethodPicker) {
             CronjobAlertMethodsPickerView(methods: vm.alertMethods,
                                           selection: $alertMethodIDs)
+        }
+        .sheet(isPresented: $showSourceAccountPicker) {
+            CronjobMultiPickerSheet(
+                title: L10n.t("备份账号"),
+                options: sourceAccountOptions,
+                selection: Binding(
+                    get: { sourceAccountSelectionIDs },
+                    set: { sourceAccountIDs = $0.compactMap(Int.init) }),
+                footer: L10n.t("可多选；备份将上传到所选的全部账号"))
+        }
+        .sheet(isPresented: $showAppPicker) {
+            CronjobMultiPickerSheet(title: L10n.t("备份应用"), options: appPickerOptions,
+                                    selection: $appSelections,
+                                    footer: L10n.t("可多选；不选任何应用时等效于全部应用"))
+        }
+        .sheet(isPresented: $showWebsitePicker) {
+            CronjobMultiPickerSheet(title: L10n.t("备份网站"), options: websitePickerOptions,
+                                    selection: $websiteSelections,
+                                    footer: L10n.t("可多选"))
+        }
+        .sheet(isPresented: $showDBPicker) {
+            CronjobMultiPickerSheet(title: L10n.t("数据库范围"), options: dbPickerOptions,
+                                    selection: $dbSelections,
+                                    footer: L10n.t("可多选"))
+        }
+        // 备份账号变化时默认下载地址自动带入首个所选（与网页端一致，仍可手动修改）
+        .onChange(of: sourceAccountIDs) { _, ids in
+            if let first = ids.first {
+                downloadAccountID = first
+            }
         }
         .sheet(isPresented: $showScriptPicker) {
         NavigationStack {
@@ -387,17 +426,21 @@ struct CreateCronjobView: View {
 
         case .app:
             Section(L10n.t("备份应用")) {
-                OutlinedPicker(label: L10n.t("范围"),
-                               options: appScopeOptions, selection: $appSelection,
-                               optionLabels: appScopeLabels)
+                multiSelectEntryRow(label: L10n.t("范围"),
+                                    summary: appSelectionSummary,
+                                    empty: appSelections.isEmpty) {
+                    showAppPicker = true
+                }
             }
             backupSection
 
         case .website:
             Section(L10n.t("备份网站")) {
-                OutlinedPicker(label: L10n.t("范围"),
-                               options: websiteScopeOptions, selection: $websiteSelection,
-                               optionLabels: websiteScopeLabels)
+                multiSelectEntryRow(label: L10n.t("范围"),
+                                    summary: websiteSelectionSummary,
+                                    empty: websiteSelections.isEmpty) {
+                    showWebsitePicker = true
+                }
             }
             backupSection
 
@@ -409,14 +452,16 @@ struct CreateCronjobView: View {
                         // 预填期间的程序化赋值不触发重置（编辑 mysql 以外类型时
                         // 回填的库名/备份参数会被清成 all/空，保存即覆盖原值）
                         guard !isPrefilling else { return }
-                        dbSelection = "all"
+                        dbSelections = ["all"]
                         dbBackupParams.removeAll()
                         Task { await vm.loadDBItems(dbType: newType.rawValue) }
                     }
 
-                OutlinedPicker(label: L10n.t("范围"),
-                               options: dbScopeOptions, selection: $dbSelection,
-                               optionLabels: dbScopeLabels)
+                multiSelectEntryRow(label: L10n.t("范围"),
+                                    summary: dbSelectionSummary,
+                                    empty: dbSelections.isEmpty) {
+                    showDBPicker = true
+                }
             }
 
             if dbType.supportsBackupParams {
@@ -471,9 +516,11 @@ struct CreateCronjobView: View {
 
         case .cutWebsiteLog:
             Section(L10n.t("切割网站日志")) {
-                OutlinedPicker(label: L10n.t("网站"),
-                               options: websiteScopeOptions, selection: $websiteSelection,
-                               optionLabels: websiteScopeLabels)
+                multiSelectEntryRow(label: L10n.t("网站"),
+                                    summary: websiteSelectionSummary,
+                                    empty: websiteSelections.isEmpty) {
+                    showWebsitePicker = true
+                }
             }
             retainOnlySection
 
@@ -626,58 +673,95 @@ struct CreateCronjobView: View {
     }
 
 
-    /// 备份应用范围选项（"all"=全部应用）
-    private var appScopeOptions: [String] {
-        ["all"] + vm.installedApps.compactMap { $0.key }
-    }
-    private var appScopeLabels: [String: String] {
-        var labels = ["all": L10n.t("全部应用")]
-        for app in vm.installedApps {
-            if let key = app.key { labels[key] = app.name ?? "—" }
+    /// 备份应用范围选项（"all"=全部应用；有序多选，顺序即提交顺序）
+    private var appPickerOptions: [CronjobMultiOption] {
+        [CronjobMultiOption(id: "all", title: L10n.t("全部应用"), subtitle: nil)]
+        + vm.installedApps.compactMap { app in
+            guard let key = app.key else { return nil }
+            return CronjobMultiOption(id: key, title: app.name ?? "—", subtitle: nil)
         }
-        return labels
+    }
+    private var appSelectionSummary: String {
+        scopeSummary(appSelections) { id in
+            id == "all" ? L10n.t("全部应用")
+                : (vm.installedApps.first { $0.key == id }?.name ?? id)
+        }
     }
 
-    /// 备份网站范围选项（"all"=全部网站）
-    private var websiteScopeOptions: [String] {
-        ["all"] + vm.websiteOptions.map { String($0.id) }
-    }
-    private var websiteScopeLabels: [String: String] {
-        var labels = ["all": L10n.t("全部网站")]
-        for site in vm.websiteOptions {
-            labels[String(site.id)] = site.alias ?? site.primaryDomain ?? "—"
+    /// 备份网站范围选项（"all"=全部网站；切割网站日志共用）
+    private var websitePickerOptions: [CronjobMultiOption] {
+        [CronjobMultiOption(id: "all", title: L10n.t("全部网站"), subtitle: nil)]
+        + vm.websiteOptions.map { site in
+            CronjobMultiOption(id: String(site.id),
+                               title: site.alias ?? site.primaryDomain ?? "—",
+                               subtitle: site.alias != nil ? site.primaryDomain : nil)
         }
-        return labels
+    }
+    private var websiteSelectionSummary: String {
+        scopeSummary(websiteSelections) { id in
+            id == "all" ? L10n.t("全部网站")
+                : (vm.websiteOptions.first { String($0.id) == id }?.alias
+                   ?? vm.websiteOptions.first { String($0.id) == id }?.primaryDomain ?? id)
+        }
     }
 
     /// 数据库范围选项（"all"=全部数据库）
-    private var dbScopeOptions: [String] {
-        ["all"] + vm.dbItems.map { String($0.id) }
-    }
-    private var dbScopeLabels: [String: String] {
-        var labels = ["all": L10n.t("全部数据库")]
-        for item in vm.dbItems {
-            labels[String(item.id)] = item.name ?? "—"
+    private var dbPickerOptions: [CronjobMultiOption] {
+        [CronjobMultiOption(id: "all", title: L10n.t("全部数据库"), subtitle: nil)]
+        + vm.dbItems.map { item in
+            CronjobMultiOption(id: String(item.id), title: item.name ?? "—", subtitle: nil)
         }
-        return labels
+    }
+    private var dbSelectionSummary: String {
+        scopeSummary(dbSelections) { id in
+            id == "all" ? L10n.t("全部数据库")
+                : (vm.dbItems.first { String($0.id) == id }?.name ?? id)
+        }
     }
 
-    /// 备份账号选项与 Int ↔ String 绑定（描边菜单用）
-    private var backupAccountOptions: [String] {
+    /// 多选摘要：未选择 / 单项显示名称 / 多项「首项 + 等 N 项」
+    private func scopeSummary(_ ids: [String], display: (String) -> String) -> String {
+        if ids.isEmpty { return L10n.t("未选择") }
+        if ids.count == 1 { return display(ids[0]) }
+        return L10n.f("%@ 等 %ld 项", display(ids[0]), ids.count - 1)
+    }
+
+    /// 备份账号选项（多选；subtitle 为账号类型）
+    private var sourceAccountOptions: [CronjobMultiOption] {
+        vm.backupAccounts.map { acc in
+            CronjobMultiOption(id: String(acc.id),
+                               title: acc.name ?? "—",
+                               subtitle: acc.type)
+        }
+    }
+    private var sourceAccountSelectionIDs: [String] {
+        sourceAccountIDs.map { String($0) }
+    }
+    private var sourceAccountSummary: String {
+        let names = sourceAccountIDs.compactMap { id in
+            vm.backupAccounts.first { $0.id == id }?.name
+        }
+        if names.isEmpty { return L10n.t("未选择") }
+        if names.count == 1 { return names[0] }
+        return L10n.f("%@ 等 %ld 项", names[0], names.count - 1)
+    }
+
+    /// 默认下载地址选项与 Int ↔ String 绑定（描边菜单用）
+    private var downloadAccountOptions: [String] {
         vm.backupAccounts.map { String($0.id) }
     }
-    private var backupAccountLabels: [String: String] {
+    private var downloadAccountLabels: [String: String] {
         var labels: [String: String] = [:]
         for acc in vm.backupAccounts {
             labels[String(acc.id)] = acc.name ?? "—"
         }
         return labels
     }
-    private var backupAccountText: Binding<String> {
+    private var downloadAccountText: Binding<String> {
         Binding<String>(
-            get: { vm.backupAccounts.contains(where: { $0.id == backupAccountID })
-                ? String(backupAccountID) : String(vm.backupAccounts.first?.id ?? 0) },
-            set: { backupAccountID = Int($0) ?? 0 })
+            get: { downloadAccountID > 0 ? String(downloadAccountID)
+                    : String(vm.backupAccounts.first?.id ?? 0) },
+            set: { downloadAccountID = Int($0) ?? 0 })
     }
 
     /// 执行用户选项（""=默认（不指定））
@@ -699,18 +783,47 @@ struct CreateCronjobView: View {
 
     @ViewBuilder
     private var backupSection: some View {
-        Section(L10n.t("备份设置")) {
+        Section {
             OutlinedUnitField(label: L10n.t("保留份数"), unit: L10n.t("份"),
                               text: retainCopiesText, range: 1...100)
 
-            OutlinedPicker(label: L10n.t("备份账号"),
-                           options: backupAccountOptions, selection: backupAccountText,
-                           optionLabels: backupAccountLabels)
+            multiSelectEntryRow(label: L10n.t("备份账号"),
+                                summary: sourceAccountSummary,
+                                empty: sourceAccountIDs.isEmpty) {
+                showSourceAccountPicker = true
+            }
+
+            OutlinedPicker(label: L10n.t("默认下载地址"),
+                           options: downloadAccountOptions, selection: downloadAccountText,
+                           optionLabels: downloadAccountLabels)
 
             if type.supportsCompressionSecret {
                 OutlinedPasswordField(label: L10n.t("压缩密码"), text: $compressSecret)
             }
+        } header: {
+            Text(L10n.t("备份设置"))
+        } footer: {
+            Text(L10n.t("备份账号可多选，选择后默认下载地址自动带入第一个，可修改。"))
         }
+    }
+
+    /// 多选入口行：标签 + 摘要（未选择标红）+ chevron，点击进入多选 Sheet
+    private func multiSelectEntryRow(label: String, summary: String, empty: Bool,
+                                      action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(label)
+                Spacer()
+                Text(summary)
+                    .foregroundStyle(empty ? Color.red : Color.secondary)
+                    .lineLimit(1)
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - 告警分组（第 2 页通用）
@@ -794,36 +907,26 @@ struct CreateCronjobView: View {
             req.script = script
             req.user = user
         case .app:
-            req.appID = appSelection
-            req.appIdList = [appSelection]
-            req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
-            req.downloadAccountID = backupAccountID
-            req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            req.appID = appSelections.joined(separator: ",")
+            req.appIdList = appSelections
+            applyBackupAccounts(to: &req)
             req.secret = compressSecret
         case .website:
-            req.website = websiteSelection
-            req.websiteList = [websiteSelection]
-            req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
-            req.downloadAccountID = backupAccountID
-            req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            req.website = websiteSelections.joined(separator: ",")
+            req.websiteList = websiteSelections
+            applyBackupAccounts(to: &req)
             req.secret = compressSecret
         case .database:
             req.dbType = dbType.rawValue
-            req.dbName = dbSelection
-            req.dbNameList = [dbSelection]
+            req.dbName = dbSelections.joined(separator: ",")
+            req.dbNameList = dbSelections
             req.setBackupArgs(from: Array(dbBackupParams))
-            req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
-            req.downloadAccountID = backupAccountID
-            req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            applyBackupAccounts(to: &req)
         case .snapshot:
-            req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
-            req.downloadAccountID = backupAccountID
-            req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            applyBackupAccounts(to: &req)
             req.secret = compressSecret
         case .directory:
-            req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
-            req.downloadAccountID = backupAccountID
-            req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            applyBackupAccounts(to: &req)
             req.secret = compressSecret
             if dirScopeKey == "dir" {
                 req.isDir = true
@@ -836,17 +939,15 @@ struct CreateCronjobView: View {
                 req.sourceDir = files.joined(separator: ",")
             }
         case .log:
-            req.sourceAccountIDs = backupAccountID > 0 ? String(backupAccountID) : ""
-            req.downloadAccountID = backupAccountID
-            req.sourceAccountItems = backupAccountID > 0 ? [backupAccountID] : []
+            applyBackupAccounts(to: &req)
             req.secret = compressSecret
         case .curl:
             let urls = nonEmptyLines(curlURLsText)
             req.url = urls.joined(separator: ",")
             req.urlItems = urls.isEmpty ? [""] : urls
         case .cutWebsiteLog:
-            req.website = websiteSelection
-            req.websiteList = [websiteSelection]
+            req.website = websiteSelections.joined(separator: ",")
+            req.websiteList = websiteSelections
         case .cleanLog:
             req.scopes = ["website"]
         case .clean, .ntp, .syncIpGroup:
@@ -881,6 +982,14 @@ struct CreateCronjobView: View {
         }
     }
 
+    /// 备份账号多选与默认下载地址写入请求体（逗号串 + 数组双写，与网页端抓包一致）：
+    /// sourceAccountIDs="1,4" / sourceAccountItems=[1,4] / downloadAccountID=1
+    private func applyBackupAccounts(to req: inout CronjobCreateRequest) {
+        req.sourceAccountIDs = sourceAccountIDs.map(String.init).joined(separator: ",")
+        req.sourceAccountItems = sourceAccountIDs
+        req.downloadAccountID = downloadAccountID
+    }
+
     /// 从已有任务详情预填表单字段
     private func prefill(from info: CronjobInfo) {
         name = info.name ?? ""
@@ -901,7 +1010,11 @@ struct CreateCronjobView: View {
 
         // 备份设置
         retainCopies = info.retainCopies ?? 7
-        backupAccountID = info.downloadAccountID ?? 0
+        // 备份账号（"1,4" → [1,4]，顺序保留）；下载地址回退首个所选
+        sourceAccountIDs = (info.sourceAccountIDs ?? "")
+            .split(separator: ",")
+            .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+        downloadAccountID = info.downloadAccountID ?? sourceAccountIDs.first ?? 0
         compressSecret = info.secret ?? ""
 
         // 超时与重试
@@ -917,19 +1030,19 @@ struct CreateCronjobView: View {
         }
         alertMethodIDs = info.alertMethodIDSet
 
-        // 各类型特定字段
+        // 各类型特定字段（多值字段 "2,1" → 逗号拆分数组，顺序保留）
         switch type {
         case .shell:
             break
         case .app:
-            appSelection = info.appID ?? "all"
+            appSelections = splitMulti(info.appID)
         case .website:
-            websiteSelection = info.website ?? "all"
+            websiteSelections = splitMulti(info.website)
         case .database:
             if let dt = CreateCronjobView.DBBackupType(rawValue: info.dbType ?? "mysql") {
                 dbType = dt
             }
-            dbSelection = info.dbName ?? "all"
+            dbSelections = splitMulti(info.dbName)
             dbBackupParams = info.backupParamSet
         case .snapshot:
             break
@@ -958,12 +1071,21 @@ struct CreateCronjobView: View {
                 curlURLsText = items.joined(separator: "\n")
             }
         case .cutWebsiteLog:
-            websiteSelection = info.website ?? "all"
+            websiteSelections = splitMulti(info.website)
         case .cleanLog:
             break
         case .clean, .ntp, .syncIpGroup:
             break
         }
+    }
+
+    /// 逗号拼接的多值字段拆为有序数组（"2,1" → ["2","1"]；空 → ["all"]）
+    private func splitMulti(_ raw: String?) -> [String] {
+        let parts = (raw ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        return parts.isEmpty ? ["all"] : parts
     }
 
     /// 将 spec 字符串（可能包含多个以 && 连接的 cron 表达式）解析为周期数组。

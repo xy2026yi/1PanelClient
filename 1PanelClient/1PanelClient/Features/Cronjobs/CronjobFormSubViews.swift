@@ -7,6 +7,92 @@
 
 import SwiftUI
 
+// MARK: - 通用多选 Sheet（备份账号 / 备份应用 / 备份网站 / 数据库范围共用）
+
+/// 多选项（id 即提交值；title 主显示；subtitle 次行说明，如账号类型）
+struct CronjobMultiOption: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let subtitle: String?
+}
+
+/// 有序多选列表：选择顺序保留（服务端 appID/website/dbName 按逗号拼接，顺序即选择顺序）
+struct CronjobMultiPickerSheet: View {
+    let title: String
+    let options: [CronjobMultiOption]
+    /// 空 = 未选择（调用方保证至少选一项后再提交）
+    @Binding var selection: [String]
+    var footer: String? = nil
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if options.isEmpty {
+                    Section {
+                        ContentUnavailableView(
+                            L10n.t("暂无可选项"),
+                            systemImage: "list.bullet",
+                            description: Text(L10n.t("请稍后重试或检查服务端数据"))
+                        )
+                        .padding(.vertical, 20)
+                    }
+                } else {
+                    Section {
+                        ForEach(options) { option in
+                            Button {
+                                toggle(option.id)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: selection.contains(option.id)
+                                          ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(selection.contains(option.id)
+                                                         ? Color.accentColor : .secondary)
+                                        .font(.title3)
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(option.title)
+                                            .foregroundStyle(.primary)
+                                        if let sub = option.subtitle, !sub.isEmpty {
+                                            Text(sub)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } footer: {
+                        if let footer {
+                            Text(footer)
+                        }
+                    }
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("完成")) { dismiss() }
+                        .bold()
+                }
+            }
+        }
+        .bottomSheetDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func toggle(_ id: String) {
+        if let idx = selection.firstIndex(of: id) {
+            selection.remove(at: idx)
+        } else {
+            selection.append(id)
+        }
+    }
+}
+
 // MARK: - 执行周期编辑页（入口行进入，形态 8：每周期一个 Section + 底部添加）
 
 /// 周期列表编辑：每周期一个 Section（类型/小时/分钟，每月加日期、每周加星期），
