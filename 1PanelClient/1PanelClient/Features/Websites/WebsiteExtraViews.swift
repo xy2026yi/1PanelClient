@@ -528,6 +528,7 @@ struct WebsiteLeechView: View {
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: { Text(vm.alertMessage) }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private var form: some View {
@@ -658,6 +659,7 @@ struct WebsiteRewriteView: View {
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: { Text(vm.alertMessage) }
+        .toastOverlay(message: $vm.toastMessage)
         .sheet(isPresented: $showTemplateSheet) {
             NavigationStack {
                 Form {
@@ -773,6 +775,7 @@ struct WebsiteRealIPView: View {
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: { Text(vm.alertMessage) }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private var form: some View {
