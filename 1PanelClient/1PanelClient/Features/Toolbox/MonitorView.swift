@@ -123,7 +123,11 @@ final class MonitorViewModel: ObservableObject {
 
     /// 长时间范围降采样：每条曲线最多保留约 cap 个点，末尾点始终保留。
     /// 7 天全量约 2000 点/条，降采样后曲线在 160pt 高度内足够平滑且不卡顿。
-    private static func decimate(_ points: [MonitorPoint], cap: Int = 480) -> [MonitorPoint] {
+    /// 抽稀上限 240：10 系列摊平后约 2400 个 LineMark——Swift Charts 超过约
+    /// 2000 标记即明显吃力（24h 档实测 CPU 持续 60% 卡顿的根因）；
+    /// 240 点/系列对趋势曲线视觉无损，且页面每 3s 实时数值刷新会连带图表重建，
+    /// 单次重建成本必须压低
+    private static func decimate(_ points: [MonitorPoint], cap: Int = 240) -> [MonitorPoint] {
         guard points.count > cap else { return points }
         let step = Int((Double(points.count) / Double(cap)).rounded(.up))
         var result = stride(from: 0, to: points.count, by: step).map { points[$0] }
