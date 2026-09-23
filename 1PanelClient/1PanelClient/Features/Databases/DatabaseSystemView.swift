@@ -53,6 +53,8 @@ struct DatabaseSystemView: View {
     }
 
     @State private var pendingDeleteUser: DatabaseUser?
+    /// 删除前记录的相邻用户 id：usersReloadToken 整节重建后回滚列表位置
+    @State private var usersAnchorID: String?
     @State private var searchText = ""
     @State private var isSearching = false
 
@@ -74,7 +76,18 @@ struct DatabaseSystemView: View {
     }
 
     var body: some View {
+        ScrollViewReader { scroller in
         List {
+            if vm.isWaitingService {
+                Section {
+                    HStack(spacing: 10) {
+                        ProgressView().controlSize(.small)
+                        Text(L10n.t("等待服务就绪…"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
             statusSection
             // 容器已停止：库表/用户等容器内数据不可用（也不再请求），
             // 仅保留状态卡与启动入口，避免空态误导
@@ -111,6 +124,13 @@ struct DatabaseSystemView: View {
             }
         }
         .refreshable { await vm.refresh() }
+        .onChange(of: vm.usersReloadToken) { _, _ in
+            // 整节身份重建会丢滚动位置：回滚到删除项的相邻行
+            if let anchor = usersAnchorID {
+                scroller.scrollTo(anchor, anchor: .top)
+                usersAnchorID = nil
+            }
+        }
         .task { await vm.refresh() }
         .sheet(isPresented: $showAddMenu) {
             ActionBottomSheet(title: vm.system.displayName, items: addMenuItems) {
@@ -213,9 +233,16 @@ struct DatabaseSystemView: View {
                 fieldLabel: L10n.t("确认用户名"),
                 fieldPlaceholder: L10n.t("用户名@主机")
             ) {
+                // 整节重建回滚锚点：记录被删项的前一行（无前则后一行）
+                let idx = vm.users.firstIndex(where: { $0.id == user.id }) ?? 0
+                if !vm.users.isEmpty {
+                    let neighbor = idx > 0 ? vm.users[idx - 1] : vm.users.last
+                    usersAnchorID = neighbor?.id
+                }
                 Task { await vm.deleteUser(user) }
             }
         }
+        } // ScrollViewReader
     }
 
     private func dbActionDisplayName(_ action: String) -> String {

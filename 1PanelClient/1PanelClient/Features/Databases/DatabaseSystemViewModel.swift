@@ -22,6 +22,8 @@ final class DatabaseSystemViewModel: ObservableObject {
     /// 增量 diff——UICollectionView 的 invalid number of items 断言只发生在
     /// 批量增删路径上，重建路径可彻底绕开（四轮时序修复未除根后的釜底抽薪）
     @Published var usersReloadToken = UUID()
+    /// 启动/重启后的服务就绪等待中（宽限重试期间页面显示提示行）
+    @Published var isWaitingService = false
     @Published var isLoading = false
     @Published var isOperating = false
     @Published var errorMessage: String?
@@ -210,6 +212,8 @@ final class DatabaseSystemViewModel: ObservableObject {
                 // 宽限重试补拉容器内数据（refresh 每轮全量重拉，含远程开关回显）；
                 // MySQL 冷启动 socket 就绪可达 20s+：间隔 2s 最多 12 轮（约 24s），
                 // 全部失败才提示
+                isWaitingService = true
+                defer { isWaitingService = false }
                 for attempt in 0..<12 {
                     graceError = nil
                     postStartGrace = true
@@ -300,7 +304,7 @@ final class DatabaseSystemViewModel: ObservableObject {
             let resp: [DatabaseUser] = try await client.send(
                 path: APIEndpoint.databasesUsersSearch.path, body: req, as: [DatabaseUser].self
             )
-            users = resp.filter { !($0.isDelete ?? false) && $0.id != justDeletedUserID }
+            users = resp.filter { !($0.isDelete ?? false) }
             await loadGrants()
         } catch {
             // 页面退出取消不是失败：不写错误态
@@ -348,9 +352,6 @@ final class DatabaseSystemViewModel: ObservableObject {
             return false
         }
     }
-
-    /// 刚删除用户的 id：loadUsers 结果过滤（最终一致期间列表可能仍返回该用户）
-    private var justDeletedUserID: String?
 
     func deleteUser(_ user: DatabaseUser) async {
         guard let username = user.username, let host = user.host else { return }

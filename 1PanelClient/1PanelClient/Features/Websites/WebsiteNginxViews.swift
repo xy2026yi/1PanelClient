@@ -40,6 +40,24 @@ struct WebsiteNginxView: View {
                     .disabled(isSaving)
                 }
             }
+            // 与 OpenResty nginx.conf 页同款 ⋯ 菜单：编辑/取消（取消还原未保存修改）
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        isEditing.toggle()
+                        if !isEditing {
+                            // 取消编辑时还原
+                            content = config?.content ?? content
+                        }
+                    } label: {
+                        Label(isEditing ? L10n.t("取消") : L10n.t("编辑"),
+                              systemImage: isEditing ? "xmark" : "pencil")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel(L10n.t("更多操作"))
+            }
         }
         .task {
             await load()
@@ -57,7 +75,6 @@ struct WebsiteNginxView: View {
                 fileHeader
                 CodeEditorArea(text: $content)
                     .clipShape(RoundedRectangle(cornerRadius: Radius.small))
-                editToggleButton
             }
             .padding(.vertical)
         } else {
@@ -65,7 +82,6 @@ struct WebsiteNginxView: View {
                 VStack(spacing: 12) {
                     fileHeader
                     CodeEditorArea(text: $content, readOnly: true)
-                    editToggleButton
                 }
                 .padding(.vertical)
             }
@@ -87,21 +103,6 @@ struct WebsiteNginxView: View {
                 .padding(.horizontal)
             }
         }
-    }
-
-    private var editToggleButton: some View {
-        Button {
-            isEditing.toggle()
-            if !isEditing {
-                // 取消编辑时还原
-                content = config?.content ?? content
-            }
-        } label: {
-            Label(isEditing ? L10n.t("取消编辑") : L10n.t("编辑配置"), systemImage: isEditing ? "xmark" : "pencil")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .padding(.horizontal)
     }
 
     private func load() async {
@@ -198,22 +199,6 @@ struct OpenRestyConfigView: View {
         } message: {
             Text(L10n.t("将用默认配置覆盖当前内容，是否继续？"))
         }
-    }
-
-    private var editToggleButton: some View {
-        Button {
-            if isEditing, configText != originalText {
-                // 取消编辑时还原
-                configText = originalText
-            }
-            isEditing.toggle()
-        } label: {
-            Label(isEditing ? L10n.t("取消编辑") : L10n.t("编辑配置"),
-                  systemImage: isEditing ? "xmark" : "pencil")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .padding(.horizontal)
     }
 
     private func loadConfig() async {

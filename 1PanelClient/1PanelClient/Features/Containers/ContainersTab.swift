@@ -83,6 +83,7 @@ struct ContainersTab: View {
                                  ("paused", L10n.t("已暂停")), ("exited", L10n.t("已停止"))], id: \.0) { key, label in
                             Button {
                                 stateFilter = key
+                                Task { await vm.applyStateFilter(key) }
                             } label: {
                                 if stateFilter == key {
                                     Label(label, systemImage: "checkmark")
@@ -149,7 +150,7 @@ struct ContainersTab: View {
                 }
             } else {
                 Section {
-                    ForEach(vm.containers.filter { stateFilter == "all" || $0.state.lowercased() == stateFilter }) { c in
+                    ForEach(vm.containers) { c in
                         NavigationLink(value: c) {
                             ContainerRow(container: c)
                         }

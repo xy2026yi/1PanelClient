@@ -510,6 +510,8 @@ struct ContainerLogView: View {
     @State private var lines: [String] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    /// 追底去抖任务：流式逐行 append 时每行都滚一次是无谓开销，250ms 合并
+    @State private var followDebounce: Task<Void, Never>?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -565,7 +567,11 @@ struct ContainerLogView: View {
                 // 推迟到下一主线程周期：更新帧内同步 scrollTo 会与布局竞争，
                 // 造成内容偏移（下移约三分之一）与 onChange multiple times 噪音
                 guard count > 0 else { return }
-                Task { @MainActor in
+                // 250ms 去抖：流式逐行 append 合并为一次滚动
+                followDebounce?.cancel()
+                followDebounce = Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    guard !Task.isCancelled else { return }
                     proxy.scrollTo(count - 1, anchor: .bottom)
                 }
             }

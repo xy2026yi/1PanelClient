@@ -25,7 +25,7 @@ struct MonitorPoint: Identifiable {
 }
 
 /// 带类型标签的图表点（多系列折线用：foregroundStyle(by:) 按类型分系列）
-struct LoadSeriesPoint: Identifiable {
+struct LoadSeriesPoint: Identifiable, Equatable {
     let date: Date
     let value: Double
     let kind: String   // "1分钟" / "5分钟" / "15分钟"
@@ -728,7 +728,7 @@ struct MonitorView: View {
 /// - fill：单系列（CPU/内存）线下面积填充；双系列不填充；
 /// - 派生数据（时间轴/系列摊平/Y 轴形态）由 body 构建一次经 Model 逐层传递——
 ///   拖动选中期间 body 每帧求值，避免计算属性在单帧内重复构建字典/数组
-struct MonitorHistoryChart: View {
+struct MonitorHistoryChart: View, Equatable {
     let points: [LoadSeriesPoint]
     let styles: KeyValuePairs<String, Color>
     let unit: String
@@ -1114,4 +1114,14 @@ struct MonitorHistoryChart: View {
         }
         return parts.isEmpty ? L10n.t("监控折线图，暂无数据") : L10n.t("监控折线图：") + parts.joined(separator: "，")
     }
+    /// 数据与样式不变时相等：历史曲线 60s 才变，但页面每 3s 实时数值刷新会
+    /// 连带图表 body 重算（Swift Charts 重建成本高）——Equatable 让 SwiftUI
+    /// 跳过未变图表的重算
+    static func == (lhs: MonitorHistoryChart, rhs: MonitorHistoryChart) -> Bool {
+        lhs.points == rhs.points && lhs.unit == rhs.unit
+            && lhs.fixedYDomain == rhs.fixedYDomain && lhs.fixedDecimals == rhs.fixedDecimals
+            && lhs.fill == rhs.fill && lhs.height == rhs.height
+            && lhs.labelFormatter === rhs.labelFormatter
+    }
 }
+

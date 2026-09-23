@@ -61,27 +61,36 @@ final class ContainersViewModel: ObservableObject {
     func refresh() async {
         if dockerStatus == nil { isLoadingDocker = true }
         // 并行加载容器列表和 Docker 状态，避免串行等待
-        async let listTask = load(query: "")
+        async let listTask = load(query: "", state: lastState)
         async let dockerTask = loadDockerStatus(force: false)
         _ = await (listTask, dockerTask)
     }
 
     func search(query: String) async {
-        await load(query: query)
+        await load(query: query, state: lastState)
     }
 
     // MARK: - 容器列表 + 运行时指标
 
-    private func load(query: String) async {
+    /// 当前状态筛选（all/running/paused/exited；随请求提交，服务端过滤）
+    private(set) var lastState = "all"
+
+    func applyStateFilter(_ state: String) async {
+        guard state != lastState else { return }
+        await load(query: lastQuery, state: state)
+    }
+
+    private func load(query: String, state: String) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         loadGeneration += 1
         lastQuery = query
+        lastState = state
         page = 1
 
         let req = ContainerSearchRequest(
-            page: 1, pageSize: Self.pageSize, name: query, state: "all",
+            page: 1, pageSize: Self.pageSize, name: query, state: state,
             orderBy: "createdAt", order: "null"
         )
         do {
@@ -114,7 +123,7 @@ final class ContainersViewModel: ObservableObject {
         let next = page + 1
         let gen = loadGeneration
         let req = ContainerSearchRequest(
-            page: next, pageSize: Self.pageSize, name: lastQuery, state: "all",
+            page: next, pageSize: Self.pageSize, name: lastQuery, state: lastState,
             orderBy: "createdAt", order: "null"
         )
         do {
@@ -208,7 +217,7 @@ final class ContainersViewModel: ObservableObject {
             )
             try? await Task.sleep(for: .seconds(1))
             await loadDockerStatus(force: true)
-            await load(query: "")
+            await load(query: "", state: lastState)
         } catch {
             showAlert(message: L10n.f("%@ Docker 失败：%@", opName, error.localizedDescription))
         }
@@ -228,7 +237,7 @@ final class ContainersViewModel: ObservableObject {
                 body: req, as: EmptyResponse.self
             )
             try? await Task.sleep(for: .seconds(1))
-            await load(query: "")
+            await load(query: "", state: lastState)
             showToast(L10n.t("清理容器任务已提交"))
         } catch {
             showAlert(message: L10n.f("清理容器失败：%@", error.localizedDescription))
@@ -246,7 +255,7 @@ final class ContainersViewModel: ObservableObject {
                 body: ContainerRenameRequest(name: name, newName: newName),
                 as: EmptyResponse.self
             )
-            await load(query: "")
+            await load(query: "", state: lastState)
             showToast(L10n.f("已重命名为「%@」", newName))
             return true
         } catch {
@@ -276,7 +285,7 @@ final class ContainersViewModel: ObservableObject {
                 body: req, as: EmptyResponse.self
             )
             try? await Task.sleep(for: .seconds(1))
-            await load(query: "")
+            await load(query: "", state: lastState)
             showToast(L10n.f("%@容器「%@」任务已提交", opName, name))
             return true
         } catch {
@@ -321,7 +330,7 @@ final class ContainersViewModel: ObservableObject {
                 body: req, as: EmptyResponse.self
             )
             try? await Task.sleep(for: .seconds(1))
-            await load(query: "")
+            await load(query: "", state: lastState)
             showToast(L10n.f("升级容器「%@」任务已提交", name))
             return true
         } catch {
@@ -470,7 +479,7 @@ final class ContainersViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.containersCreate.path, body: req, as: EmptyResponse.self
             )
-            await load(query: "")
+            await load(query: "", state: lastState)
             return req.taskID
         } catch {
             showAlert(message: L10n.f("创建容器失败：%@", error.localizedDescription))
@@ -557,7 +566,7 @@ final class ContainersViewModel: ObservableObject {
                 body: req, as: EmptyResponse.self
             )
             try? await Task.sleep(for: .seconds(1))
-            await load(query: "")
+            await load(query: "", state: lastState)
             showToast(L10n.f("更新容器「%@」任务已提交", info.name))
             return true
         } catch {
