@@ -133,13 +133,33 @@ struct OpenRestyConfigView: View {
     @State private var isSaving = false
     @State private var showResetConfirm = false
     @State private var showMenu = false
+    @State private var isEditing = false
 
     var body: some View {
         Group {
             if isLoading {
                 LoadingStateView()
+            } else if isEditing {
+                // 编辑：TextEditor 自滚动独占（其内部滚动指示条已在
+                // CodeEditorArea 内隐藏——钉宽内容右缘的指示条横滑后会
+                // 悬在文字中间，是此前压字截图的来源）
+                VStack(spacing: 12) {
+                    CodeEditorArea(text: $configText)
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.small))
+                    editToggleButton
+                }
+                .padding(.vertical)
             } else {
-                CodeEditorArea(text: $configText)
+                // 查看默认态：行号 + 页面级纵向滚动 + 右侧让位槽，
+                // 与站点 nginx 页同一结构
+                ScrollView {
+                    VStack(spacing: 12) {
+                        CodeEditorArea(text: $configText, readOnly: true)
+                        editToggleButton
+                    }
+                    .padding(.vertical)
+                }
+                .background(Color(.systemGroupedBackground))
             }
         }
         .navigationTitle("nginx.conf")
@@ -176,6 +196,22 @@ struct OpenRestyConfigView: View {
         } message: {
             Text(L10n.t("将用默认配置覆盖当前内容，是否继续？"))
         }
+    }
+
+    private var editToggleButton: some View {
+        Button {
+            if isEditing, configText != originalText {
+                // 取消编辑时还原
+                configText = originalText
+            }
+            isEditing.toggle()
+        } label: {
+            Label(isEditing ? L10n.t("取消编辑") : L10n.t("编辑配置"),
+                  systemImage: isEditing ? "xmark" : "pencil")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .padding(.horizontal)
     }
 
     private func loadConfig() async {

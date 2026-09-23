@@ -664,7 +664,7 @@ struct AIDownloaderSettingsSheet: View {
                 Section {
                     OutlinedTextField(label: "https://hf-mirror.com", text: $hfEndpoint, keyboardType: .URL)
                         .font(.dataMonospacedBody)
-                    OutlinedPasswordField(label: L10n.t("令牌（可选）"), text: $hfToken)
+                    OutlinedPasswordField(label: L10n.t("令牌"), prompt: L10n.t("可选"), text: $hfToken)
                 } header: {
                     SectionLabel(title: "HuggingFace", systemImage: "hare")
                 } footer: {
@@ -674,7 +674,7 @@ struct AIDownloaderSettingsSheet: View {
                 Section {
                     OutlinedTextField(label: "https://www.modelscope.cn", text: $modelScopeEndpoint, keyboardType: .URL)
                         .font(.dataMonospacedBody)
-                    OutlinedPasswordField(label: L10n.t("令牌（可选）"), text: $modelScopeToken)
+                    OutlinedPasswordField(label: L10n.t("令牌"), prompt: L10n.t("可选"), text: $modelScopeToken)
                 } header: {
                     SectionLabel(title: "ModelScope", systemImage: "sparkles.rectangle.stack")
                 }

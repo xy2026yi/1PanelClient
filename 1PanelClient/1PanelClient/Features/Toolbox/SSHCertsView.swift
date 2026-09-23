@@ -807,7 +807,7 @@ struct SSHCertEditView: View {
 
     /// 公钥编辑器（可选）
     private var publicKeyEditor: some View {
-        OutlinedMultiLineField(label: L10n.t("公钥（可选）"),
+        OutlinedMultiLineField(label: L10n.t("公钥"),
                                prompt: L10n.t("粘贴密钥内容…"),
                                lines: 4, fixedLines: 4,
                                zoomable: true, monospaced: true,

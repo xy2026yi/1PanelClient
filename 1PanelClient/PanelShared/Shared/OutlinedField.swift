@@ -659,6 +659,10 @@ struct CodeEditorArea: View {
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .scrollDismissesKeyboard(.interactively)
+                        // TextEditor 自带的纵向滚动条画在钉宽内容右缘（非视口
+                        // 右缘），横滑后悬浮于文字中间——隐藏之，纵向位置感知
+                        // 交给光标/键盘跟踪
+                        .scrollIndicators(.hidden)
                         .frame(width: pinnedWidth, alignment: .topLeading)
                         .frame(maxHeight: .infinity, alignment: .topLeading)
                 }

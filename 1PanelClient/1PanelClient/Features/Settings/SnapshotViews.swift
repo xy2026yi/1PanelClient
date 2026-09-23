@@ -322,7 +322,7 @@ private struct SnapshotRecoverSheet: View {
                     }
                 }
                 Section {
-                    OutlinedPasswordField(label: L10n.t("压缩密码（可选）"), text: $secret)
+                    OutlinedPasswordField(label: L10n.t("压缩密码"), prompt: L10n.t("可选"), text: $secret)
                 } header: {
                     SectionLabel(title: L10n.t("恢复选项"), systemImage: "key")
                 }
@@ -653,7 +653,7 @@ struct SnapshotCreateView: View {
                                optionLabels: Dictionary(uniqueKeysWithValues:
                                    accounts.map { (String($0.id), $0.name ?? "#\($0.id)") }))
             }
-            OutlinedTextField(label: L10n.t("压缩密码（可选）"), text: $secret)
+            OutlinedTextField(label: L10n.t("压缩密码"), prompt: L10n.t("可选"), text: $secret)
             // 超时：数值 + 单位下拉（形态 3）
             OutlinedUnitField(label: L10n.t("超时时间"), unit: "",
                               text: timeoutText, range: 1...8760)

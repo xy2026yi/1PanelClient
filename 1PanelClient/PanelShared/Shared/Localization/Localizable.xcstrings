@@ -3083,6 +3083,17 @@
         }
       }
     },
+    "一行一个" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "一行一个仓库地址（主机:端口），保存时以逗号拼接提交" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4674,6 +4685,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Text Segment"
+          }
+        }
+      }
+    },
+    "令牌" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -6632,6 +6654,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Other Domains"
+          }
+        }
+      }
+    },
+    "其他域名一行一个" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -10339,6 +10372,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Multiple selection allowed"
+          }
+        }
+      }
+    },
+    "可多选；「全部应用」与单项互斥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "可多选；「全部数据库」与单项互斥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "可多选；「全部网站」与单项互斥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -16778,6 +16844,17 @@
         }
       }
     },
+    "必填" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "必应" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18633,6 +18710,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Push Certificate to Local Directory"
+          }
+        }
+      }
+    },
+    "推送路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -20756,6 +20844,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Sessions"
+          }
+        }
+      }
+    },
+    "暂无内容（证书未签发或申请失败）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -24170,6 +24269,17 @@
         }
       }
     },
+    "此操作不可恢复。请输入「%@」以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "此操作不可恢复。请输入任务名称「%@」以确认删除。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26282,6 +26392,17 @@
         }
       }
     },
+    "状态筛选" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "状态详情" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26421,6 +26542,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Username"
+          }
+        }
+      }
+    },
+    "用户名@主机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }
@@ -32218,6 +32350,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No logs for this task"
+          }
+        }
+      }
+    },
+    "该任务没有可结束的执行记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
           }
         }
       }

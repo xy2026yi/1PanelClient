@@ -309,15 +309,15 @@ struct CreateCAView: View {
             Section {
                 OutlinedTextField(label: L10n.t("证书主体名称(CN)"), text: $commonName)
                 OutlinedTextField(label: L10n.t("公司/组织"), text: $organization, machineValue: false)
-                OutlinedTextField(label: L10n.t("部门（可选）"), text: $organizationUint, machineValue: false)
+                OutlinedTextField(label: L10n.t("部门"), prompt: L10n.t("可选"), text: $organizationUint, machineValue: false)
             } header: {
                 Text(L10n.t("组织信息"))
             }
 
             Section {
                 OutlinedTextField(label: L10n.t("国家代号"), text: $country)
-                OutlinedTextField(label: L10n.t("省份（可选）"), text: $province, machineValue: false)
-                OutlinedTextField(label: L10n.t("城市（可选）"), text: $city, machineValue: false)
+                OutlinedTextField(label: L10n.t("省份"), prompt: L10n.t("可选"), text: $province, machineValue: false)
+                OutlinedTextField(label: L10n.t("城市"), prompt: L10n.t("可选"), text: $city, machineValue: false)
             } header: {
                 Text(L10n.t("地区信息"))
             }

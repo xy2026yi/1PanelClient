@@ -603,21 +603,21 @@ struct UploadCertificateView: View {
             switch mode {
             case .paste:
                 Section {
-                    OutlinedMultiLineField(label: L10n.t("私钥（PRIVATE KEY）"),
+                    OutlinedMultiLineField(label: L10n.t("私钥"),
                                            prompt: "-----BEGIN PRIVATE KEY-----",
                                            lines: 6, fixedLines: 6,
                                            zoomable: true, monospaced: true,
                                            text: $privateKey)
-                } header: { Text(L10n.t("私钥（PRIVATE KEY）")) }
+                } header: { Text(L10n.t("私钥")) }
                 footer: { Text(L10n.t("粘贴以 -----BEGIN PRIVATE KEY----- 开头的完整内容")) }
 
                 Section {
-                    OutlinedMultiLineField(label: L10n.t("证书（CERTIFICATE）"),
+                    OutlinedMultiLineField(label: L10n.t("证书"),
                                            prompt: "-----BEGIN CERTIFICATE-----",
                                            lines: 6, fixedLines: 6,
                                            zoomable: true, monospaced: true,
                                            text: $certificate)
-                } header: { Text(L10n.t("证书（CERTIFICATE）")) }
+                } header: { Text(L10n.t("证书")) }
                 footer: { Text(L10n.t("粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容")) }
 
             case .local:
