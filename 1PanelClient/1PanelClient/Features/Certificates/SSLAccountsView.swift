@@ -200,10 +200,6 @@ struct CreateAcmeAccountView: View {
                 }
             }
 
-            Section {
-            } header: {
-                Text(L10n.t("网络"))
-            }
         }
         .navigationTitle(L10n.t("创建 Acme 账户"))
         .navigationBarTitleDisplayMode(.inline)
@@ -508,15 +504,18 @@ struct CreateDNSAccountView: View {
             Section {
                 OutlinedTextField(label: "Access Key", text: $accessKey)
                 OutlinedPasswordField(label: "Secret Key", text: $secretKey)
-                OutlinedTextField(label: L10n.t("Region（可选）"), text: $region)
+                OutlinedTextField(label: "Region", prompt: L10n.t("可选"),
+                                  text: $region)
             } header: {
                 Text(L10n.t("华为云凭证"))
             }
 
         case .CloudDns:
             Section {
-                OutlinedTextField(label: L10n.t("Client ID（可选）"), text: $clientID)
-                OutlinedTextField(label: L10n.t("Email（可选）"), text: $email)
+                OutlinedTextField(label: "Client ID", prompt: L10n.t("可选"),
+                                  text: $clientID)
+                OutlinedTextField(label: "Email", prompt: L10n.t("可选"),
+                                  text: $email, keyboardType: .emailAddress)
                     .keyboardType(.emailAddress)
                 OutlinedPasswordField(label: "Password", text: $password)
             } header: {

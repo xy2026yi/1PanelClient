@@ -545,8 +545,9 @@ struct ContainerLogView: View {
                 .contentWidthLimit(860)
             }
             .background(Color(.secondarySystemBackground))
-            // 进入页面即定位到底部（最新日志），内容增长时保持贴底
-            .defaultScrollAnchor(.bottom)
+            // 定位到底部全部走 onChange 显式滚动：defaultScrollAnchor(.bottom) 与
+            // LazyVStack 的高度估算不合，首帧锚在估算底部、行实体化后视口
+            // 停在离底约三分之一处（显示下移的根因）
             .navigationTitle(L10n.t("日志"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

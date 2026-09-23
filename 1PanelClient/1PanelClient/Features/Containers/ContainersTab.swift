@@ -69,19 +69,18 @@ struct ContainersTab: View {
         .toastOverlay(message: $vm.toastMessage)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 2) {
-                    // 状态筛选（与网页端状态下拉对齐；本地过滤）
+                // 右上角合并为单一菜单（原 筛选+创建 两个按钮与搜索并排过挤）：
+                // 创建容器为主项，状态筛选为切换组；搜索按钮由 searchIconMode 提供
+                Menu {
+                    Button {
+                        showCreate = true
+                    } label: {
+                        Label(L10n.t("创建容器"), systemImage: "plus.circle")
+                    }
+                    Divider()
                     Menu {
-                        Button {
-                            stateFilter = "all"
-                        } label: {
-                            if stateFilter == "all" {
-                                Label(L10n.t("全部"), systemImage: "checkmark")
-                            } else {
-                                Text(L10n.t("全部"))
-                            }
-                        }
-                        ForEach([("running", L10n.t("运行中")), ("paused", L10n.t("已暂停")), ("exited", L10n.t("已停止"))], id: \.0) { key, label in
+                        ForEach([("all", L10n.t("全部")), ("running", L10n.t("运行中")),
+                                 ("paused", L10n.t("已暂停")), ("exited", L10n.t("已停止"))], id: \.0) { key, label in
                             Button {
                                 stateFilter = key
                             } label: {
@@ -93,17 +92,12 @@ struct ContainersTab: View {
                             }
                         }
                     } label: {
-                        Image(systemName: stateFilter == "all" ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                        Label(L10n.t("状态筛选"), systemImage: "line.3.horizontal.decrease.circle")
                     }
-                    .accessibilityLabel(L10n.t("状态筛选"))
-
-                    Button {
-                        showCreate = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel(L10n.t("创建容器"))
+                } label: {
+                    Image(systemName: stateFilter == "all" ? "ellipsis.circle" : "line.3.horizontal.decrease.circle.fill")
                 }
+                .accessibilityLabel(L10n.t("更多操作"))
             }
         }
         .onChange(of: searchText) { _, newValue in
