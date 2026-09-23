@@ -143,21 +143,15 @@ struct OpenRestyConfigView: View {
                 // 编辑：TextEditor 自滚动独占（其内部滚动指示条已在
                 // CodeEditorArea 内隐藏——钉宽内容右缘的指示条横滑后会
                 // 悬在文字中间，是此前压字截图的来源）
-                VStack(spacing: 12) {
-                    CodeEditorArea(text: $configText)
-                        .clipShape(RoundedRectangle(cornerRadius: Radius.small))
-                    editToggleButton
-                }
-                .padding(.vertical)
+                CodeEditorArea(text: $configText)
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.small))
+                    .padding(.vertical)
             } else {
                 // 查看默认态：行号 + 页面级纵向滚动 + 右侧让位槽，
                 // 与站点 nginx 页同一结构
                 ScrollView {
-                    VStack(spacing: 12) {
-                        CodeEditorArea(text: $configText, readOnly: true)
-                        editToggleButton
-                    }
-                    .padding(.vertical)
+                    CodeEditorArea(text: $configText, readOnly: true)
+                        .padding(.vertical)
                 }
                 .background(Color(.systemGroupedBackground))
             }
@@ -175,7 +169,15 @@ struct OpenRestyConfigView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("保存"), isDisabled: isSaving || isLoading || configText == originalText) {
+                    .action(title: isEditing ? L10n.t("取消") : L10n.t("编辑"),
+                            isDisabled: isSaving || isLoading) {
+                        if isEditing, configText != originalText {
+                            // 取消编辑时还原未保存的修改
+                            configText = originalText
+                        }
+                        isEditing.toggle()
+                    },
+                    .action(title: L10n.t("保存"), isDisabled: isSaving || isLoading || !isEditing || configText == originalText) {
                         Task { await save() }
                     },
                     .action(title: L10n.t("还原默认"), role: .destructive, isDisabled: isSaving || isLoading) {
