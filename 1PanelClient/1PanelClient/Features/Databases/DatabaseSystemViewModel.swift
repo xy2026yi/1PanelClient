@@ -345,8 +345,7 @@ final class DatabaseSystemViewModel: ObservableObject {
         }
     }
 
-    /// 刚删除用户的 id：reload 结果中过滤（服务端删除最终一致期间列表可能仍返回
-    /// 该用户，数量不减会触发 List diff invalid update 崩溃）
+    /// 刚删除用户的 id：loadUsers 结果过滤（最终一致期间列表可能仍返回该用户）
     private var justDeletedUserID: String?
 
     func deleteUser(_ user: DatabaseUser) async {
@@ -361,10 +360,21 @@ final class DatabaseSystemViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.databasesUsersDelete.path, body: req, as: EmptyResponse.self
             )
-            grants.removeAll { $0.username == username && $0.host == host }
-            justDeletedUserID = user.id
-            await loadUsers()
-            justDeletedUserID = nil
+            // 请求先行，用户与授权一次性同步赋值：多个 @Published 在多个 await
+            // 之间分开赋值会形成多波列表更新，删除动画应用期间叠加下一波即触发
+            // UICollectionView invalid update 崩溃（数波交错是前两轮修复未除根的原因）
+            let usersReq = DBUsersRequest(database: system.database)
+            async let usersFetch: [DatabaseUser] = client.send(
+                path: APIEndpoint.databasesUsersSearch.path, body: usersReq, as: [DatabaseUser].self)
+            async let grantsFetch: [DatabaseGrant] = client.send(
+                path: APIEndpoint.databasesGrantsSearch.path, body: usersReq, as: [DatabaseGrant].self)
+            let newUsers = try await usersFetch
+            let newGrants = try await grantsFetch
+            withTransaction(Transaction(animation: nil)) {
+                // 过滤刚删用户：服务端删除最终一致期间列表可能仍返回该用户
+                users = newUsers.filter { !($0.isDelete ?? false) && $0.id != user.id }
+                grants = newGrants.filter { !($0.username == username && $0.host == host) }
+            }
         } catch { errorMessage = error.localizedDescription }
     }
 }
