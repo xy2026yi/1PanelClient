@@ -43,8 +43,10 @@ nonisolated struct DatabaseSystem: Decodable, Identifiable, Hashable {
         case "postgresql-cluster": return "PostgreSQL Cluster"
         case "redis":           return "Redis"
         case "redis-cluster":   return "Redis Cluster"
+        case "mongodb":         return "MongoDB"
+        case "mongodb-cluster": return "MongoDB Cluster"
         default:                return database
-        }
+    }
     }
 
     var systemIcon: String {

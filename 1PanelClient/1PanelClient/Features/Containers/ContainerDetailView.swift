@@ -115,6 +115,54 @@ struct ContainerDetailView: View {
         .refreshable {
             await refreshContainer()
         }
+        // 右上角 ⋯ 菜单：终端/升级/编辑/重命名/详情/删除（原状态抽屉按钮收敛至此，
+        // 抽屉只保留 启停/重启/关闭/暂停恢复 生命周期操作）
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        showTerminalCommandPicker = true
+                    } label: {
+                        Label(L10n.t("终端"), systemImage: "terminal")
+                    }
+                    Button {
+                        showUpgrade = true
+                    } label: {
+                        Label(L10n.t("升级"), systemImage: "arrow.up.circle")
+                    }
+                    Button {
+                        showEdit = true
+                    } label: {
+                        Label(L10n.t("编辑"), systemImage: "pencil")
+                    }
+                    if canRename {
+                        Button {
+                            showRename = true
+                        } label: {
+                            Label(L10n.t("重命名"), systemImage: "pencil.line")
+                        }
+                    }
+                    Button {
+                        showInspect = true
+                    } label: {
+                        Label(L10n.t("详情"), systemImage: "info.circle")
+                    }
+                    Button(role: .destructive) {
+                        if current.isFromApp == true {
+                            menuAlertMessage = L10n.t("该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。")
+                            showMenuAlert = true
+                        } else {
+                            pendingDelete = true
+                        }
+                    } label: {
+                        Label(L10n.t("删除"), systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel(L10n.t("更多操作"))
+            }
+        }
         .navigationDestination(isPresented: $showUpgrade) {
             ContainerUpgradeView(container: current, vm: vm)
         }
@@ -223,8 +271,6 @@ struct ContainerDetailView: View {
                     .padding(.top, 4)
                 operationsRow2
                     .padding(.top, 4)
-                operationsRow3
-                    .padding(.top, 4)
                     .padding(.bottom, 2)
             }
         }
@@ -287,13 +333,6 @@ struct ContainerDetailView: View {
             ) {
                 pendingAction = "kill"
             }
-            actionButton(
-                title: L10n.t("终端"),
-                icon: "terminal",
-                color: .teal
-            ) {
-                showTerminalCommandPicker = true
-            }
         }
     }
 
@@ -308,54 +347,6 @@ struct ContainerDetailView: View {
                 ) {
                     pendingAction = isPaused ? "unpause" : "pause"
                 }
-            }
-            actionButton(
-                title: L10n.t("升级"),
-                icon: "arrow.up.circle",
-                color: .purple
-            ) {
-                showUpgrade = true
-            }
-            actionButton(
-                title: L10n.t("编辑"),
-                icon: "pencil",
-                color: .cyan
-            ) {
-                showEdit = true
-            }
-            actionButton(
-                title: L10n.t("删除"),
-                icon: "trash",
-                color: .red
-            ) {
-                if current.isFromApp == true {
-                    menuAlertMessage = L10n.t("该容器由应用程序创建，无法直接删除。请进入「应用」删除对应应用，容器会随之移除。")
-                    showMenuAlert = true
-                } else {
-                    pendingDelete = true
-                }
-            }
-        }
-    }
-
-    /// 第三行：重命名（应用/编排创建的容器不可改名）+ inspect 详情
-    private var operationsRow3: some View {
-        HStack(spacing: 8) {
-            if canRename {
-                actionButton(
-                    title: L10n.t("重命名"),
-                    icon: "pencil",
-                    color: .indigo
-                ) {
-                    showRename = true
-                }
-            }
-            actionButton(
-                title: L10n.t("详情"),
-                icon: "info.circle",
-                color: .gray
-            ) {
-                showInspect = true
             }
         }
     }

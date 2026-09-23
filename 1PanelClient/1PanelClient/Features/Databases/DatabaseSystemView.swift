@@ -94,9 +94,14 @@ struct DatabaseSystemView: View {
             if !isSearching && vm.isContainerRunning
                 && (vm.supportsDatabaseList || vm.supportsUserManagement) {
                 ToolbarItem(placement: .topBarTrailing) {
-                    // 半屏菜单呈现（与网站列表统一），按系统能力显示可用项
+                    // 单项能力（仅创建数据库，如 PG/MongoDB）直接进入创建页；
+                    // 两项能力（MySQL 系）保留半屏菜单
                     Button {
-                        showAddMenu = true
+                        if addMenuItems.count == 1, let only = addMenuItems.first {
+                            only.action()
+                        } else {
+                            showAddMenu = true
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -202,10 +207,10 @@ struct DatabaseSystemView: View {
         .sheet(item: $pendingDeleteUser) { user in
             TextInputConfirmSheet(
                 title: L10n.t("删除用户"),
-                message: L10n.f("此操作不可恢复。请输入用户名「%@」以确认删除。", user.username ?? ""),
-                expectedText: user.username ?? "",
+                message: L10n.f("此操作不可恢复。请输入「%@」以确认删除。", user.displayName),
+                expectedText: user.displayName,
                 fieldLabel: L10n.t("确认用户名"),
-                fieldPlaceholder: L10n.t("用户名")
+                fieldPlaceholder: L10n.t("用户名@主机")
             ) {
                 Task { await vm.deleteUser(user) }
             }
@@ -260,7 +265,8 @@ struct DatabaseSystemView: View {
                 title: L10n.t("终端"),
                 icon: "terminal",
                 color: .teal,
-                isDisabled: vm.isMongoDB && (check.containerName?.isEmpty ?? true)
+                // 容器内操作：停止态禁用（MongoDB 另加容器名缺失判定）
+                isDisabled: !check.isRunning || (vm.isMongoDB && (check.containerName?.isEmpty ?? true))
             ) {
                 if vm.isRedis {
                     showRedisTerminal = true
@@ -270,29 +276,36 @@ struct DatabaseSystemView: View {
                     showDatabaseTerminal = true
                 }
             },
-            ServiceAction(title: L10n.t("连接信息"), icon: "link", color: .cyan) {
+            ServiceAction(title: L10n.t("连接信息"), icon: "link", color: .cyan,
+                          isDisabled: !check.isRunning) {
                 showConnInfo = true
             },
         ]
         if ["mysql", "mariadb"].contains(vm.system.type.lowercased()) {
-            actions.append(ServiceAction(title: L10n.t("状态"), icon: "speedometer", color: .purple) {
+            actions.append(ServiceAction(title: L10n.t("状态"), icon: "speedometer", color: .purple,
+                                          isDisabled: !check.isRunning) {
                 showMySQLStatus = true
             })
-            actions.append(ServiceAction(title: L10n.t("参数"), icon: "slider.horizontal.3", color: .indigo) {
+            actions.append(ServiceAction(title: L10n.t("参数"), icon: "slider.horizontal.3", color: .indigo,
+                                          isDisabled: !check.isRunning) {
                 showMySQLVariables = true
             })
-            actions.append(ServiceAction(title: L10n.t("性能调整"), icon: "wand.and.stars", color: .mint) {
+            actions.append(ServiceAction(title: L10n.t("性能调整"), icon: "wand.and.stars", color: .mint,
+                                          isDisabled: !check.isRunning) {
                 showMySQLPerformance = true
             })
-            actions.append(ServiceAction(title: L10n.t("配置修改"), icon: "doc.plaintext", color: .brown) {
+            actions.append(ServiceAction(title: L10n.t("配置修改"), icon: "doc.plaintext", color: .brown,
+                                          isDisabled: !check.isRunning) {
                 showMySQLConf = true
             })
         }
         if vm.system.type.lowercased() == "redis" {
-            actions.append(ServiceAction(title: L10n.t("状态"), icon: "speedometer", color: .purple) {
+            actions.append(ServiceAction(title: L10n.t("状态"), icon: "speedometer", color: .purple,
+                                          isDisabled: !check.isRunning) {
                 showRedisStatus = true
             })
-            actions.append(ServiceAction(title: L10n.t("性能调整"), icon: "wand.and.stars", color: .mint) {
+            actions.append(ServiceAction(title: L10n.t("性能调整"), icon: "wand.and.stars", color: .mint,
+                                          isDisabled: !check.isRunning) {
                 showRedisPerformance = true
             })
         }
@@ -391,7 +404,7 @@ struct DatabaseConnInfoView: View {
                     if let port = ci.port { CopyableInfoRow(key: L10n.t("端口"), value: "\(port)", monospaced: true) }
                     CopyableInfoRow(key: L10n.t("外部地址"), value: "127.0.0.1", monospaced: true)
                     if let user = ci.username, !user.isEmpty {
-                        InfoRow(key: L10n.t("用户名"), value: user)
+                        CopyableInfoRow(key: L10n.t("用户名"), value: user, monospaced: false)
                     }
 
                     if vm.supportsRemoteAccess {

@@ -162,7 +162,8 @@ struct DatabaseRedisPerformanceView: View {
                 message: L10n.f("保存后需要重启 %@ 才能生效，期间连接将短暂中断。", system.displayName),
                 expectedText: L10n.t("立即重启"),
                 fieldLabel: L10n.t("确认重启"),
-                fieldPlaceholder: L10n.t("请输入「立即重启」")
+                fieldPlaceholder: L10n.t("请输入「立即重启」"),
+                confirmTitle: L10n.t("确认")
             ) {
                 Task { await save() }
             }

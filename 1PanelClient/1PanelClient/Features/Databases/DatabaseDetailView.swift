@@ -238,9 +238,7 @@ struct DatabaseDetailView: View {
             if supportsBackup {
                 backupSection
             }
-            if isMySQL {
-                accessSection
-            }
+            // MySQL 单库「访问权限」节已移除：网页端仅用户级有权限设置（2026-09-23 测试确认）
             if vm.isPostgreSQL || vm.isMongoDB {
                 privilegesSection
             }
@@ -365,19 +363,6 @@ struct DatabaseDetailView: View {
     }
 
     // MARK: 访问权限 (MySQL)
-
-    private var accessSection: some View {
-        Section {
-            InfoRow(key: L10n.t("当前权限"), value: vm.database.permissionDisplay)
-            Button {
-                activeSheet = .changeAccess
-            } label: {
-                Label(L10n.t("修改访问权限"), systemImage: "network")
-            }
-        } header: {
-            SectionLabel(title: L10n.t("访问权限"), systemImage: "lock.shield")
-        }
-    }
 
     // MARK: 权限 (PostgreSQL 超级用户 / MongoDB 角色)
 

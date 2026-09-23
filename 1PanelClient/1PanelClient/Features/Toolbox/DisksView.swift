@@ -661,7 +661,7 @@ struct DirectoryPickerSheet: View {
                 }
                 if !isFileMode {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(L10n.t("选择此目录")) {
+                        Button(L10n.t("确定")) {
                             onPick(currentPath)
                             dismiss()
                         }

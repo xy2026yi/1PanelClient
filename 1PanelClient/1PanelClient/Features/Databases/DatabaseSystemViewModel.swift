@@ -132,6 +132,7 @@ final class DatabaseSystemViewModel: ObservableObject {
             connInfo = try await client.send(path: APIEndpoint.appsInstalledConnInfo.path, body: req, as: ConnInfo.self)
         } catch {
             guard !APIError.isCancellation(error) else { return }
+            if postStartGrace { graceError = error.localizedDescription; return }
             errorMessage = error.localizedDescription
         }
     }
@@ -157,6 +158,7 @@ final class DatabaseSystemViewModel: ObservableObject {
             dbGeneration += 1
         } catch {
             guard !APIError.isCancellation(error) else { return }
+            if postStartGrace { graceError = error.localizedDescription; return }
             errorMessage = error.localizedDescription
         }
     }
@@ -188,6 +190,11 @@ final class DatabaseSystemViewModel: ObservableObject {
         }
     }
 
+    /// 启动/重启后的就绪宽限：应用层状态先行、容器内服务（mysqld 等）
+    /// socket 可能尚未就绪，此期间容器内接口 500 不弹错、按间隔重试
+    private var postStartGrace = false
+    private var graceError: String?
+
     func operate(_ op: String) async {
         guard let installId = check?.appInstallId else { return }
         isOperating = true
@@ -195,9 +202,22 @@ final class DatabaseSystemViewModel: ObservableObject {
         let req = AppOpRequest(installId: installId, operate: op)
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.appsInstalledOperate.path, body: req, as: EmptyResponse.self)
-            // 启动/重启后补拉容器内数据（refresh 内部会先重查运行状态）；
-            // 停止后 refresh 只重查状态、不再请求容器内接口
-            await refresh()
+            if op == "start" || op == "restart" {
+                // 宽限重试补拉容器内数据（refresh 每轮全量重拉，含远程开关回显）；
+                // 连续失败间隔 1.5s，最多 4 轮，全部失败才提示
+                for attempt in 0..<4 {
+                    graceError = nil
+                    postStartGrace = true
+                    await refresh()
+                    postStartGrace = false
+                    if graceError == nil { break }
+                    if attempt < 3 { try? await Task.sleep(for: .seconds(1.5)) }
+                }
+                if let err = graceError { errorMessage = err }
+            } else {
+                // 停止后 refresh 只重查状态、不再请求容器内接口
+                await refresh()
+            }
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -280,6 +300,7 @@ final class DatabaseSystemViewModel: ObservableObject {
         } catch {
             // 页面退出取消不是失败：不写错误态
             guard !APIError.isCancellation(error) else { return }
+            if postStartGrace { graceError = error.localizedDescription; return }
             errorMessage = error.localizedDescription
         }
     }
@@ -332,7 +353,8 @@ final class DatabaseSystemViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.databasesUsersDelete.path, body: req, as: EmptyResponse.self
             )
-            users.removeAll { $0.id == user.id }
+            // 不做本地 removeAll：与紧随的 loadUsers 整表替换构成同一更新事务内的
+            // 双重变更，SwiftUI List diff 会报 invalid number of items 并卡死
             grants.removeAll { $0.username == username && $0.host == host }
             await loadUsers()
         } catch { errorMessage = error.localizedDescription }
