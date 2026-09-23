@@ -112,10 +112,12 @@ struct ApplyCertificateView: View {
             }
 
             Section {
-                OutlinedMultiLineField(label: L10n.t("其他域名（一行一个）"), text: $otherDomains)
-                    .lineLimit(3, reservesSpace: true)
+                OutlinedMultiLineField(label: L10n.t("其他域名"), prompt: L10n.t("可选"),
+                                       lines: 3, fixedLines: 3, text: $otherDomains)
             } header: {
                 Text(L10n.t("其他域名"))
+            } footer: {
+                Text(L10n.t("一行一个"))
             }
 
             Section {
@@ -173,10 +175,15 @@ struct ApplyCertificateView: View {
     }
 
     private var domainSection: some View {
-        Section(L10n.t("域名")) {
-            OutlinedTextField(label: L10n.t("主域名（必填）"), text: $primaryDomain)
-            OutlinedMultiLineField(label: L10n.t("其他域名（可选，一行一个）"), text: $otherDomains)
-                .lineLimit(3, reservesSpace: true)
+        Section {
+            OutlinedTextField(label: L10n.t("主域名"), prompt: L10n.t("必填"),
+                              text: $primaryDomain, keyboardType: .URL)
+            OutlinedMultiLineField(label: L10n.t("其他域名"), prompt: L10n.t("可选"),
+                                   lines: 3, fixedLines: 3, text: $otherDomains)
+        } header: {
+            Text(L10n.t("域名"))
+        } footer: {
+            Text(L10n.t("其他域名一行一个"))
         }
     }
 
@@ -186,7 +193,7 @@ struct ApplyCertificateView: View {
                 // 无可用 Acme 账户（与 DNS 账户空态同形态；下一步已被 pageReady 拦截）；
                 // 加载中显示占位而非「没有找到」，避免闪烁误导
                 OutlinedShape(label: L10n.t("Acme 账户"), isFocused: false,
-                              hasValue: isLoadingAccounts,
+                              hasValue: true,
                               trailing: {
                     if isLoadingAccounts {
                         ProgressView().font(.caption)
@@ -214,9 +221,10 @@ struct ApplyCertificateView: View {
             if selectedProvider == .dnsAccount {
                 if dnsAccounts.isEmpty {
                     // 无可用 DNS 账户：保持形态 3 描边框展示占位（下一步已被 pageReady 拦截）；
+                    // hasValue 恒真让占位居于框内（false 时浮动标签与占位同位重叠）；
                     // 加载中显示空占位，避免短暂闪现「没有找到DNS账户」
                     OutlinedShape(label: L10n.t("DNS 账户"), isFocused: false,
-                                  hasValue: isLoadingAccounts,
+                                  hasValue: true,
                                   trailing: {
                         if isLoadingAccounts {
                             ProgressView().font(.caption)
@@ -265,12 +273,14 @@ struct ApplyCertificateView: View {
                 OutlinedTextField(label: L10n.t("DNS 服务器 2"), text: $nameserver2)
                 Toggle(L10n.t("推送证书到本地"), isOn: $pushDir)
                 if pushDir {
-                    OutlinedTextField(label: L10n.t("推送路径（如 /tmp）"), text: $dir)
+                    OutlinedTextField(label: L10n.t("推送路径"), prompt: "/tmp",
+                                  text: $dir, keyboardType: .URL)
                 }
                 Toggle(L10n.t("申请证书之后执行脚本"), isOn: $execShell)
                 if execShell {
-                    OutlinedMultiLineField(label: L10n.t("脚本内容"), text: $shell)
-                        .lineLimit(5, reservesSpace: true)
+                    OutlinedMultiLineField(label: L10n.t("脚本内容"),
+                                           lines: 5, fixedLines: 5, zoomable: true,
+                                           text: $shell)
                 }
             }
         } header: {

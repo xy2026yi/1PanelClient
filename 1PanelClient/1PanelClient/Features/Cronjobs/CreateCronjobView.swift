@@ -286,30 +286,10 @@ struct CreateCronjobView: View {
             CronjobAlertMethodsPickerView(methods: vm.alertMethods,
                                           selection: $alertMethodIDs)
         }
-        .sheet(isPresented: $showSourceAccountPicker) {
-            CronjobMultiPickerSheet(
-                title: L10n.t("备份账号"),
-                options: sourceAccountOptions,
-                selection: Binding(
-                    get: { sourceAccountSelectionIDs },
-                    set: { sourceAccountIDs = $0.compactMap(Int.init) }),
-                footer: L10n.t("可多选；备份将上传到所选的全部账号"))
-        }
-        .sheet(isPresented: $showAppPicker) {
-            CronjobMultiPickerSheet(title: L10n.t("备份应用"), options: appPickerOptions,
-                                    selection: $appSelections,
-                                    footer: L10n.t("可多选；不选任何应用时等效于全部应用"))
-        }
-        .sheet(isPresented: $showWebsitePicker) {
-            CronjobMultiPickerSheet(title: L10n.t("备份网站"), options: websitePickerOptions,
-                                    selection: $websiteSelections,
-                                    footer: L10n.t("可多选"))
-        }
-        .sheet(isPresented: $showDBPicker) {
-            CronjobMultiPickerSheet(title: L10n.t("数据库范围"), options: dbPickerOptions,
-                                    selection: $dbSelections,
-                                    footer: L10n.t("可多选"))
-        }
+        .sheet(isPresented: $showSourceAccountPicker) { sourceAccountPickerSheet }
+        .sheet(isPresented: $showAppPicker) { appPickerSheet }
+        .sheet(isPresented: $showWebsitePicker) { websitePickerSheet }
+        .sheet(isPresented: $showDBPicker) { dbPickerSheet }
         // 备份账号变化时默认下载地址自动带入首个所选（与网页端一致，仍可手动修改）
         .onChange(of: sourceAccountIDs) { _, ids in
             if let first = ids.first {
@@ -737,6 +717,13 @@ struct CreateCronjobView: View {
     private var sourceAccountSelectionIDs: [String] {
         sourceAccountIDs.map { String($0) }
     }
+    /// 多选 Sheet 的 [String] ↔ [Int] 绑定（拆出计算属性：内联闭包链过长会触发
+    /// 编译器类型推断超时）
+    private var sourceAccountSelectionBinding: Binding<[String]> {
+        Binding(
+            get: { sourceAccountSelectionIDs },
+            set: { sourceAccountIDs = $0.compactMap(Int.init) })
+    }
     private var sourceAccountSummary: String {
         let names = sourceAccountIDs.compactMap { id in
             vm.backupAccounts.first { $0.id == id }?.name
@@ -779,6 +766,36 @@ struct CreateCronjobView: View {
             return L10n.t("默认（无）")
         }
         return dbBackupParams.sorted().joined(separator: ", ")
+    }
+
+    // 多选 Sheet 内容抽为计算属性：内联进 body 修饰链会触发编译器类型推断超时
+    private var sourceAccountPickerSheet: some View {
+        CronjobMultiPickerSheet(
+            title: L10n.t("备份账号"),
+            options: sourceAccountOptions,
+            selection: sourceAccountSelectionBinding,
+            footer: L10n.t("可多选；备份将上传到所选的全部账号"))
+    }
+
+    private var appPickerSheet: some View {
+        CronjobMultiPickerSheet(title: L10n.t("备份应用"), options: appPickerOptions,
+                                selection: $appSelections,
+                                footer: L10n.t("可多选；「全部应用」与单项互斥"),
+                                exclusiveAllKey: "all")
+    }
+
+    private var websitePickerSheet: some View {
+        CronjobMultiPickerSheet(title: L10n.t("备份网站"), options: websitePickerOptions,
+                                selection: $websiteSelections,
+                                footer: L10n.t("可多选；「全部网站」与单项互斥"),
+                                exclusiveAllKey: "all")
+    }
+
+    private var dbPickerSheet: some View {
+        CronjobMultiPickerSheet(title: L10n.t("数据库范围"), options: dbPickerOptions,
+                                selection: $dbSelections,
+                                footer: L10n.t("可多选；「全部数据库」与单项互斥"),
+                                exclusiveAllKey: "all")
     }
 
     @ViewBuilder

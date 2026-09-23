@@ -19,6 +19,8 @@ struct ContainersTab: View {
     @State private var showVolumes = false
     @State private var showComposes = false
     @State private var showDaemonSettings = false
+    /// 状态筛选（all/running/paused/exited，本地过滤）
+    @State private var stateFilter = "all"
 
 
     init(manager: ServerManager) {
@@ -67,12 +69,41 @@ struct ContainersTab: View {
         .toastOverlay(message: $vm.toastMessage)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showCreate = true
-                } label: {
-                    Image(systemName: "plus")
+                HStack(spacing: 2) {
+                    // 状态筛选（与网页端状态下拉对齐；本地过滤）
+                    Menu {
+                        Button {
+                            stateFilter = "all"
+                        } label: {
+                            if stateFilter == "all" {
+                                Label(L10n.t("全部"), systemImage: "checkmark")
+                            } else {
+                                Text(L10n.t("全部"))
+                            }
+                        }
+                        ForEach([("running", L10n.t("运行中")), ("paused", L10n.t("已暂停")), ("exited", L10n.t("已停止"))], id: \.0) { key, label in
+                            Button {
+                                stateFilter = key
+                            } label: {
+                                if stateFilter == key {
+                                    Label(label, systemImage: "checkmark")
+                                } else {
+                                    Text(label)
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: stateFilter == "all" ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                    }
+                    .accessibilityLabel(L10n.t("状态筛选"))
+
+                    Button {
+                        showCreate = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(L10n.t("创建容器"))
                 }
-                .accessibilityLabel(L10n.t("创建容器"))
             }
         }
         .onChange(of: searchText) { _, newValue in
@@ -124,7 +155,7 @@ struct ContainersTab: View {
                 }
             } else {
                 Section {
-                    ForEach(vm.containers) { c in
+                    ForEach(vm.containers.filter { stateFilter == "all" || $0.state.lowercased() == stateFilter }) { c in
                         NavigationLink(value: c) {
                             ContainerRow(container: c)
                         }

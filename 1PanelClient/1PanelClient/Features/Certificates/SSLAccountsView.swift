@@ -151,7 +151,6 @@ struct CreateAcmeAccountView: View {
     @State private var useEAB = false
     @State private var eabKid = ""
     @State private var eabHmacKey = ""
-    @State private var useProxy = false
     @State private var isSubmitting = false
     @State private var showValidationAlert = false
 
@@ -202,7 +201,6 @@ struct CreateAcmeAccountView: View {
             }
 
             Section {
-                Toggle(L10n.t("使用代理"), isOn: $useProxy)
             } header: {
                 Text(L10n.t("网络"))
             }
@@ -241,7 +239,7 @@ struct CreateAcmeAccountView: View {
             eabKid: eabKid,
             eabHmacKey: eabHmacKey,
             keyType: keyType.rawValue,
-            useProxy: useProxy,
+            useProxy: false,
             caDirURL: caDirURL,
             useEAB: useEAB
         )
@@ -490,7 +488,8 @@ struct CreateDNSAccountView: View {
 
         case .CloudFlare:
             Section {
-                OutlinedTextField(label: L10n.t("EMAIL（可选）"), text: $email)
+                OutlinedTextField(label: "EMAIL", prompt: L10n.t("可选"),
+                                  text: $email, keyboardType: .emailAddress)
                     .keyboardType(.emailAddress)
                 OutlinedTextField(label: "API Token", text: $apiKey)
             } header: {

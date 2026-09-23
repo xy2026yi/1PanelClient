@@ -235,7 +235,12 @@ struct CronjobsTab: View {
                     NavigationLink(value: job) {
                         CronjobRow(job: job)
                     }
-                    .onLongPressGesture { actionJob = job }
+                    .simultaneousGesture(
+                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                            Haptic.selection()
+                            actionJob = job
+                        }
+                    )
                     // VoiceOver 无长按手势：以自定义操作暴露同一菜单
                     .accessibilityAction(named: L10n.t("更多操作")) { actionJob = job }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {

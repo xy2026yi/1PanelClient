@@ -470,6 +470,11 @@ struct CertificateDetailView: View {
                 Text(content)
                     .font(.dataMonospacedCaption)
                     .textSelection(.enabled)
+            } else if !isLoading {
+                // 详情已加载但无内容（申请失败/未签发）：不再显示加载中转圈
+                Label(L10n.t("暂无内容（证书未签发或申请失败）"), systemImage: "doc.questionmark")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             } else {
                 LoadingStateView(compact: true)
             }

@@ -174,6 +174,12 @@ struct CronjobDetailView: View {
             }
         }
         .navigationTitle(currentJob.name ?? L10n.t("任务详情"))
+        // 停止/操作错误在当前页提示（此前只在列表页挂载，返回一层才弹）
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showDeleteSheet) {
             TextInputConfirmSheet(

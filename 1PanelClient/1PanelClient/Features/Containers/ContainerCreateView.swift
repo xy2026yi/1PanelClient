@@ -48,8 +48,9 @@ struct ContainerCreateView: View {
             TaskProgressView(taskID: createTaskID,
                              title: L10n.f("创建容器 %@", draft.name)) { isDone in
                 createTaskFinished = true
-                // 返回 true：进度页自行 dismiss，onDisappear 收向导
-                return true
+                // 返回 false：进度页自行 dismiss（返回 true 时无人收起进度页，
+                // 点「完成」无反应）；随后 onDisappear 收起整个向导
+                return false
             }
             .onDisappear {
                 if createTaskFinished { dismiss() }

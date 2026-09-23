@@ -131,11 +131,38 @@ final class CronjobsViewModel: ObservableObject {
     }
 
     /// 手动结束执行中的任务（POST /cronjobs/stop {id}，抓包 2026-09-14）
+    /// 手动结束执行中的任务（抓包 2026-09-23 确认）：
+    /// stop 传的是「执行记录 id」而非 cronjobID——先查该任务的执行记录，
+    /// 取最新一条（Waiting/Executing 优先），无记录则提示
     func stop(job: Cronjob) async {
+        let df = ISO8601DateFormatter()
+        df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let now = Date()
+        let start = Calendar.current.date(byAdding: .month, value: -3, to: now) ?? now
+        let req = CronjobRecordSearchRequest(
+            page: 1, pageSize: 10,
+            cronjobID: job.id,
+            startTime: df.string(from: start), endTime: df.string(from: now),
+            status: ""
+        )
         do {
+            let resp: CronjobRecordListResponse = try await client.send(
+                path: APIEndpoint.cronjobsRecords.path, body: req,
+                as: CronjobRecordListResponse.self
+            )
+            // 服务端按时间倒序返回；优先取进行中的记录，其次取最新一条
+            let items = resp.items ?? []
+            let running = items.first {
+                let st = ($0.status ?? "").lowercased()
+                return st == "waiting" || st == "executing"
+            } ?? items.first
+            guard let record = running else {
+                showAlert(message: L10n.t("该任务没有可结束的执行记录"))
+                return
+            }
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.cronjobsStop.path,
-                body: CronjobStopRequest(id: job.id),
+                body: CronjobStopRequest(id: record.id ?? 0),
                 as: EmptyResponse.self
             )
             showToast(L10n.f("任务「%@」停止请求已提交", job.name ?? ""))

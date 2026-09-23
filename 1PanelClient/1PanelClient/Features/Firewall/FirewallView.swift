@@ -744,9 +744,12 @@ struct FirewallView: View {
                                 }
                             }
                             // 长按弹半屏操作菜单（编辑/删除/上移下移/导出规则/查看原文，或纳管）
-                            .onLongPressGesture {
-                                actionItem = item
-                            }
+                            .simultaneousGesture(
+                                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                    Haptic.selection()
+                                    actionItem = item
+                                }
+                            )
                             // VoiceOver 无长按手势：以自定义操作暴露同一菜单
                             .accessibilityAction(named: L10n.t("更多操作")) {
                                 actionItem = item
@@ -862,7 +865,12 @@ struct FirewallView: View {
                             .contentShape(Rectangle())
                             .onTapGesture { editingForward = rule }
                             // 长按弹半屏操作菜单（编辑/删除/导出规则）
-                            .onLongPressGesture { actionForward = rule }
+                            .simultaneousGesture(
+                                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                    Haptic.selection()
+                                    actionForward = rule
+                                }
+                            )
                             // VoiceOver 无长按手势：以自定义操作暴露同一菜单
                             .accessibilityAction(named: L10n.t("更多操作")) { actionForward = rule }
                             .onAppear {

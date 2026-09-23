@@ -23,6 +23,9 @@ struct CronjobMultiPickerSheet: View {
     /// 空 = 未选择（调用方保证至少选一项后再提交）
     @Binding var selection: [String]
     var footer: String? = nil
+    /// 「全部」项的 id（如 "all"）：非 nil 时启用互斥——选「全部」清空单项、
+    /// 选单项移除「全部」；非「全部」项全选时自动折算为「全部」
+    var exclusiveAllKey: String? = nil
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -87,9 +90,22 @@ struct CronjobMultiPickerSheet: View {
     private func toggle(_ id: String) {
         if let idx = selection.firstIndex(of: id) {
             selection.remove(at: idx)
-        } else {
-            selection.append(id)
+            return
         }
+        if let all = exclusiveAllKey {
+            if id == all {
+                // 选「全部」：清空单项，仅保留 all
+                selection = [all]
+                return
+            }
+            // 选单项：移除 all；全部单项选中时折算为 all
+            var picked = selection.filter { $0 != all }
+            picked.append(id)
+            let nonAllOptions = options.map(\.id).filter { $0 != all }
+            selection = Set(picked) == Set(nonAllOptions) ? [all] : picked
+            return
+        }
+        selection.append(id)
     }
 }
 

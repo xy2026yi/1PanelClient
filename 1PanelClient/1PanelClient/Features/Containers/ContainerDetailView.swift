@@ -560,9 +560,13 @@ struct ContainerLogView: View {
                 }
             }
             .onChange(of: lines.count) { _, count in
-                // 兜底追底；不用动画，日志突发时连续动画滚动会被合并打断
+                // 兜底追底；不用动画，日志突发时连续动画滚动会被合并打断。
+                // 推迟到下一主线程周期：更新帧内同步 scrollTo 会与布局竞争，
+                // 造成内容偏移（下移约三分之一）与 onChange multiple times 噪音
                 guard count > 0 else { return }
-                proxy.scrollTo(count - 1, anchor: .bottom)
+                Task { @MainActor in
+                    proxy.scrollTo(count - 1, anchor: .bottom)
+                }
             }
         }
         .task {
