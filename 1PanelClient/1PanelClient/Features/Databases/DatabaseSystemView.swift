@@ -84,6 +84,7 @@ struct DatabaseSystemView: View {
                 }
                 if vm.supportsUserManagement {
                     userListSection
+                        .id(vm.usersReloadToken)
                 }
             }
         }

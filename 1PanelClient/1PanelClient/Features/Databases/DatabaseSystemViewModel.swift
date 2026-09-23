@@ -18,6 +18,10 @@ final class DatabaseSystemViewModel: ObservableObject {
     @Published var databases: [DatabaseItem] = []
     @Published var users: [DatabaseUser] = []
     @Published var grants: [DatabaseGrant] = []
+    /// 用户列表身份令牌：删除用户时一并刷新，强制 List 整节重建（reload）而非
+    /// 增量 diff——UICollectionView 的 invalid number of items 断言只发生在
+    /// 批量增删路径上，重建路径可彻底绕开（四轮时序修复未除根后的釜底抽薪）
+    @Published var usersReloadToken = UUID()
     @Published var isLoading = false
     @Published var isOperating = false
     @Published var errorMessage: String?
@@ -374,6 +378,7 @@ final class DatabaseSystemViewModel: ObservableObject {
                 // 过滤刚删用户：服务端删除最终一致期间列表可能仍返回该用户
                 users = newUsers.filter { !($0.isDelete ?? false) && $0.id != user.id }
                 grants = newGrants.filter { !($0.username == username && $0.host == host) }
+                usersReloadToken = UUID()
             }
         } catch { errorMessage = error.localizedDescription }
     }
