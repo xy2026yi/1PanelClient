@@ -136,14 +136,16 @@ struct WAFCommonRulesView: View {
             get: { actionItem != nil },
             set: { if !$0 { actionItem = nil } }
         )) {
+            // 呈现时捕获：动作在 onDismiss 清空后才执行，晚读拿到 nil
+            let target = actionItem
             ActionBottomSheet(
-                title: actionItem?.rule ?? L10n.t("规则"),
+                title: target?.rule ?? L10n.t("规则"),
                 items: [
                     ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
-                        editingItem = actionItem
+                        editingItem = target
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                        pendingDeleteRule = actionItem
+                        pendingDeleteRule = target
                     },
                 ],
                 onDismiss: { actionItem = nil }

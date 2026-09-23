@@ -337,25 +337,29 @@ struct WebsiteRedirectView: View {
             get: { actionRedirect != nil },
             set: { if !$0 { actionRedirect = nil } }
         )) {
+            // 呈现时捕获目标：动作在 onDismiss（清空 actionRedirect）之后才执行，
+            // 项闭包晚读状态会拿到 nil（点击无反应）
+            let target = actionRedirect
             ActionBottomSheet(
-                title: actionRedirect?.displayName ?? L10n.t("重定向"),
+                title: target?.displayName ?? L10n.t("重定向"),
                 items: [
                     ActionMenuItem(
-                        title: actionRedirect?.enable == true ? L10n.t("关闭") : L10n.t("开启"),
-                        icon: actionRedirect?.enable == true ? "stop.fill" : "play.fill",
-                        color: actionRedirect?.enable == true ? .orange : .green
+                        title: target?.enable == true ? L10n.t("关闭") : L10n.t("开启"),
+                        icon: target?.enable == true ? "stop.fill" : "play.fill",
+                        color: target?.enable == true ? .orange : .green
                     ) {
-                        let r = actionRedirect
-                        Task { if let r { await toggle(r) } }
+                        if let r = target {
+                            Task { await toggle(r) }
+                        }
                     },
                     ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
-                        editingRedirect = actionRedirect
+                        editingRedirect = target
                     },
                     ActionMenuItem(title: L10n.t("源文"), icon: "doc.text", color: .teal) {
-                        sourceRedirect = actionRedirect
+                        sourceRedirect = target
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                        pendingDelete = actionRedirect
+                        pendingDelete = target
                     },
                 ],
                 onDismiss: { actionRedirect = nil }

@@ -267,9 +267,7 @@ struct ContainerDetailView: View {
             headerRow
 
             if isStatusExpanded {
-                operationsRow1
-                    .padding(.top, 4)
-                operationsRow2
+                operationsRow
                     .padding(.top, 4)
                     .padding(.bottom, 2)
             }
@@ -310,7 +308,9 @@ struct ContainerDetailView: View {
         .padding(.vertical, 2)
     }
 
-    private var operationsRow1: some View {
+    /// 一行四个：停止/启动 · 重启 · 关闭 · 暂停/恢复（运行/暂停态才有第四个；
+    /// 其余操作在右上角 ⋯ 菜单）
+    private var operationsRow: some View {
         HStack(spacing: 8) {
             actionButton(
                 title: isRunning ? L10n.t("停止") : L10n.t("启动"),
@@ -333,12 +333,6 @@ struct ContainerDetailView: View {
             ) {
                 pendingAction = "kill"
             }
-        }
-    }
-
-    private var operationsRow2: some View {
-        HStack(spacing: 8) {
-            // 运行中可暂停，已暂停可恢复，其余状态不显示
             if isRunning || isPaused {
                 actionButton(
                     title: isPaused ? L10n.t("恢复") : L10n.t("暂停"),

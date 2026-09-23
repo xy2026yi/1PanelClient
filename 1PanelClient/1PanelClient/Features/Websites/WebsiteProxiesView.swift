@@ -81,25 +81,29 @@ struct WebsiteProxiesView: View {
             get: { actionProxy != nil },
             set: { if !$0 { actionProxy = nil } }
         )) {
+            // 呈现时捕获目标：ActionBottomSheet 的动作在 onDismiss（清空 actionProxy）
+            // 之后才执行，项闭包晚读状态会拿到 nil（点击无反应）
+            let target = actionProxy
             ActionBottomSheet(
-                title: actionProxy?.displayName ?? L10n.t("反向代理"),
+                title: target?.displayName ?? L10n.t("反向代理"),
                 items: [
                     ActionMenuItem(
-                        title: actionProxy?.enable == true ? L10n.t("关闭") : L10n.t("开启"),
-                        icon: actionProxy?.enable == true ? "stop.fill" : "play.fill",
-                        color: actionProxy?.enable == true ? .orange : .green
+                        title: target?.enable == true ? L10n.t("关闭") : L10n.t("开启"),
+                        icon: target?.enable == true ? "stop.fill" : "play.fill",
+                        color: target?.enable == true ? .orange : .green
                     ) {
-                        let proxy = actionProxy
-                        Task { if let proxy { await toggleProxy(proxy) } }
+                        if let proxy = target {
+                            Task { await toggleProxy(proxy) }
+                        }
                     },
                     ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
-                        editingProxy = actionProxy
+                        editingProxy = target
                     },
                     ActionMenuItem(title: L10n.t("源文"), icon: "doc.text", color: .teal) {
-                        sourceProxy = actionProxy
+                        sourceProxy = target
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                        pendingDeleteProxy = actionProxy
+                        pendingDeleteProxy = target
                     },
                 ],
                 onDismiss: { actionProxy = nil }

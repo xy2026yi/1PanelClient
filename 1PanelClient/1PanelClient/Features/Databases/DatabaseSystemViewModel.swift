@@ -204,14 +204,15 @@ final class DatabaseSystemViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.appsInstalledOperate.path, body: req, as: EmptyResponse.self)
             if op == "start" || op == "restart" {
                 // 宽限重试补拉容器内数据（refresh 每轮全量重拉，含远程开关回显）；
-                // 连续失败间隔 1.5s，最多 4 轮，全部失败才提示
-                for attempt in 0..<4 {
+                // MySQL 冷启动 socket 就绪可达 20s+：间隔 2s 最多 12 轮（约 24s），
+                // 全部失败才提示
+                for attempt in 0..<12 {
                     graceError = nil
                     postStartGrace = true
                     await refresh()
                     postStartGrace = false
                     if graceError == nil { break }
-                    if attempt < 3 { try? await Task.sleep(for: .seconds(1.5)) }
+                    if attempt < 11 { try? await Task.sleep(for: .seconds(2)) }
                 }
                 if let err = graceError { errorMessage = err }
             } else {
@@ -295,7 +296,7 @@ final class DatabaseSystemViewModel: ObservableObject {
             let resp: [DatabaseUser] = try await client.send(
                 path: APIEndpoint.databasesUsersSearch.path, body: req, as: [DatabaseUser].self
             )
-            users = resp.filter { !($0.isDelete ?? false) }
+            users = resp.filter { !($0.isDelete ?? false) && $0.id != justDeletedUserID }
             await loadGrants()
         } catch {
             // 页面退出取消不是失败：不写错误态
@@ -344,8 +345,15 @@ final class DatabaseSystemViewModel: ObservableObject {
         }
     }
 
+    /// 刚删除用户的 id：reload 结果中过滤（服务端删除最终一致期间列表可能仍返回
+    /// 该用户，数量不减会触发 List diff invalid update 崩溃）
+    private var justDeletedUserID: String?
+
     func deleteUser(_ user: DatabaseUser) async {
         guard let username = user.username, let host = user.host else { return }
+        // 等 TextInputConfirmSheet 收起动画完成再改列表：确认弹窗关闭与列表
+        // 变更同一事务并发是已知崩溃窗口
+        try? await Task.sleep(for: .milliseconds(500))
         isOperating = true
         defer { isOperating = false }
         let req = DeleteDBUserRequest(database: system.database, username: username, host: host)
@@ -353,10 +361,10 @@ final class DatabaseSystemViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.databasesUsersDelete.path, body: req, as: EmptyResponse.self
             )
-            // 不做本地 removeAll：与紧随的 loadUsers 整表替换构成同一更新事务内的
-            // 双重变更，SwiftUI List diff 会报 invalid number of items 并卡死
             grants.removeAll { $0.username == username && $0.host == host }
+            justDeletedUserID = user.id
             await loadUsers()
+            justDeletedUserID = nil
         } catch { errorMessage = error.localizedDescription }
     }
 }

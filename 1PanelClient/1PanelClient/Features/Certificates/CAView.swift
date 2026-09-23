@@ -435,7 +435,7 @@ struct IssueCertificateView: View {
     var body: some View {
         Form {
             Section {
-                OutlinedMultiLineField(label: L10n.t("域名（同时支持 IP）"),
+                OutlinedMultiLineField(label: L10n.t("域名"),
                                        lines: 3, fixedLines: 3,
                                        text: $domains)
             } header: {
