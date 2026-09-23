@@ -11,33 +11,29 @@ import SwiftUI
 // MARK: - 备份记录（按计划任务过滤）
 
 struct CronjobBackupRecordsView: View {
-    let job: Cronjob
+    /// 数据态与网络动作（@Observable 样板：导航/弹窗呈现态留在视图）
+    @State private var vm: CronjobBackupRecordsViewModel
 
-    @State private var records: [BackupRecord] = []
-    @State private var isLoading = true
-    @State private var loadError: String?
     @State private var editingRecord: BackupRecord?
-    @State private var toastMessage: String?
-
-    private let client: APIClient
 
     init(job: Cronjob) {
-        self.job = job
-        self.client = APIClient.shared(for: ServerManager.shared.current
-                                        ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+        _vm = State(initialValue: CronjobBackupRecordsViewModel(
+            job: job,
+            client: APIClient.shared(for: ServerManager.shared.current
+                                      ?? ServerConfig(name: "", baseURL: "", apiKey: ""))))
     }
 
     var body: some View {
         List {
-            if isLoading {
+            if vm.isLoading {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = loadError {
+            } else if let err = vm.loadError {
                 LoadErrorStateView(message: err) {
-                    Task { await load() }
+                    Task { await vm.load() }
                 }
                 .listRowBackground(Color.clear)
-            } else if records.isEmpty {
+            } else if vm.records.isEmpty {
                 ContentUnavailableView(
                     L10n.t("暂无备份记录"),
                     systemImage: "externaldrive.badge.timemachine",
@@ -45,7 +41,7 @@ struct CronjobBackupRecordsView: View {
                 )
                 .listRowBackground(Color.clear)
             } else {
-                ForEach(records) { record in
+                ForEach(vm.records) { record in
                     recordRow(record)
                 }
             }
@@ -53,15 +49,15 @@ struct CronjobBackupRecordsView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(L10n.t("备份记录"))
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
-        .refreshable { await load() }
-        .toastOverlay(message: $toastMessage)
+        .task { await vm.load() }
+        .refreshable { await vm.load() }
+        .toastOverlay(message: $vm.toastMessage)
         .sheet(item: $editingRecord) { record in
             DescriptionEditSheet(
                 title: L10n.t("修改描述"),
                 initial: record.description ?? ""
             ) { newText in
-                await submitDescription(record: record, newText: newText)
+                await vm.submitDescription(record, newText)
             }
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
@@ -101,51 +97,6 @@ struct CronjobBackupRecordsView: View {
                 Label(L10n.t("修改描述"), systemImage: "pencil.line")
             }
             .tint(.teal)
-        }
-    }
-
-    private func load() async {
-        do {
-            let pageSize = 100
-            var all: [BackupRecord] = []
-            var page = 1
-            var total = Int.max
-            while all.count < total && page <= 20 {
-                let resp: BackupRecordListResponse = try await client.send(
-                    path: APIEndpoint.backupsRecordSearchByCronjob.path,
-                    body: BackupRecordByCronjobRequest(page: page, pageSize: pageSize, cronjobID: job.id),
-                    as: BackupRecordListResponse.self
-                )
-                let items = resp.items ?? []
-                all.append(contentsOf: items)
-                total = resp.total
-                if items.count < pageSize { break }
-                page += 1
-            }
-            records = all
-            loadError = nil
-        } catch {
-            guard !APIError.isCancellation(error) else { return }
-            loadError = error.localizedDescription
-        }
-        isLoading = false
-    }
-
-    /// 提交描述修改；返回 nil 表示成功，非 nil 为错误文案（Sheet 内展示）
-    private func submitDescription(record: BackupRecord, newText: String) async -> String? {
-        do {
-            _ = try await client.send(
-                path: APIEndpoint.backupsRecordDescriptionUpdate.path,
-                body: DescriptionUpdateRequest(id: record.id, description: newText),
-                as: EmptyResponse.self
-            )
-            if let idx = records.firstIndex(where: { $0.id == record.id }) {
-                records[idx] = record.withDescription(newText)
-            }
-            toastMessage = L10n.t("描述已更新")
-            return nil
-        } catch {
-            return error.localizedDescription
         }
     }
 }
