@@ -300,10 +300,14 @@ nonisolated struct AppFormField: Decodable, Hashable, Sendable {
     let random: Bool?                   // 是否支持随机生成（密码、用户名等）
     let rule: String?                   // 验证规则名（paramPort / paramCommon 等）
 
-    /// 显示标签（优先中文）
+    /// 显示标签（优先中文；服务端个别标签过长时按映射精简，与 InstalledParamField 同规则）
     var displayLabel: String {
-        labelZh ?? labelEn ?? envKey ?? L10n.t("参数")
+        let raw = labelZh ?? labelEn ?? envKey ?? L10n.t("参数")
+        return Self.labelRenames[raw] ?? Self.labelRenames[raw.lowercased()] ?? raw
     }
+
+    /// 服务端标签 → 展示名（如 root用户密码 → Root密码）
+    static let labelRenames: [String: String] = ["root用户密码": L10n.t("Root密码")]
 }
 
 /// apps 类型字段的关联子字段（如数据库应用选择后需要填充 DB_HOST）

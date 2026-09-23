@@ -401,21 +401,35 @@ struct IssueCertificateView: View {
     @State private var domains = ""
     @State private var description_ = ""
     @State private var keyType: SSLKeyType = .EC256
-    /// 有效期（天，原 10 年默认 → 3650；年/天切换已取消）
-    @State private var expireDays = 3650
+    /// 有效期数值（单位见 expireUnit；默认 10 年）
+    @State private var expireValue = 10
+    /// 有效期单位（year / day，随请求提交）
+    @State private var expireUnit = "year"
     @State private var autoRenew = true
     @State private var pushDir = false
     @State private var dir = ""
+    @State private var showDirPicker = false
     @State private var execShell = false
     @State private var shell = ""
 
     @State private var isSubmitting = false
     @State private var showValidationAlert = false
     @State private var validationMessage = ""
+    @FocusState private var dirFieldFocused: Bool
 
-    /// 有效期 String ↔ Int（描边框接收 String；非法输入回落 1 天下限由提交侧校验）
-    private var expireDaysText: Binding<String> {
-        Binding<String>(get: { String(expireDays) }, set: { expireDays = Int($0) ?? expireDays })
+    /// 有效期单位选项与显示名（年默认；天用于精确天数）
+    private let expireUnits = ["year", "day"]
+    private var expireUnitLabels: [String: String] {
+        ["year": L10n.t("年"), "day": L10n.t("天")]
+    }
+
+    /// 有效期 String ↔ Int（描边框接收 String；非法输入保留原值，范围随单位切换）
+    private var expireValueText: Binding<String> {
+        Binding<String>(get: { String(expireValue) }, set: { expireValue = Int($0) ?? expireValue })
+    }
+    /// 有效期数值范围（年 1...100，天 1...36500）
+    private var expireRange: ClosedRange<Int> {
+        expireUnit == "year" ? 1...100 : 1...36500
     }
 
     var body: some View {
@@ -433,8 +447,12 @@ struct IssueCertificateView: View {
                 OutlinedPicker(label: L10n.t("密钥算法"), options: SSLKeyType.allCases,
                                selection: $keyType) { $0.displayName }
 
-                OutlinedUnitField(label: L10n.t("有效期"), unit: L10n.t("天"),
-                                  text: expireDaysText, range: 1...9999)
+                OutlinedUnitField(label: L10n.t("有效期"),
+                                  unit: expireUnitLabels[expireUnit] ?? expireUnit,
+                                  text: expireValueText, range: expireRange)
+
+                OutlinedPicker(label: L10n.t("单位"), options: expireUnits,
+                               selection: $expireUnit, optionLabels: expireUnitLabels)
 
                 Toggle(L10n.t("自动续签"), isOn: $autoRenew)
             } header: {
@@ -444,7 +462,27 @@ struct IssueCertificateView: View {
             Section {
                 Toggle(L10n.t("推送证书到本地目录"), isOn: $pushDir.animation())
                 if pushDir {
-                    OutlinedTextField(label: L10n.t("目录路径"), text: $dir)
+                    // 目录路径：输入框 + 框内右侧文件浏览器图标，选中目录后自动回填
+                    OutlinedShape(label: L10n.t("目录路径"),
+                                  isFocused: dirFieldFocused,
+                                  hasValue: !dir.isEmpty,
+                                  trailing: {
+                        Button {
+                            showDirPicker = true
+                        } label: {
+                            Image(systemName: "folder")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.t("选择目录"))
+                    }) {
+                        TextField("", text: $dir)
+                            .keyboardType(.URL)
+                            .focused($dirFieldFocused)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
                 }
             }
 
@@ -482,6 +520,11 @@ struct IssueCertificateView: View {
         } message: {
         Text(validationMessage)
         }
+        .sheet(isPresented: $showDirPicker) {
+            DirectoryPickerSheet(client: vm.client) { path in
+                dir = path
+            }
+        }
     }
 
     private func submit() async {
@@ -504,8 +547,8 @@ struct IssueCertificateView: View {
             keyType: keyType.rawValue,
             domains: trimmedDomains,
             id: ca.id,
-            time: expireDays,
-            unit: "day",
+            time: expireValue,
+            unit: expireUnit,
             pushDir: pushDir,
             dir: pushDir ? dir.trimmingCharacters(in: .whitespacesAndNewlines) : "",
             autoRenew: autoRenew,

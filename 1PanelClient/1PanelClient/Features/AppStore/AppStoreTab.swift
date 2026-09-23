@@ -678,7 +678,12 @@ struct AppInstallView: View {
             if let fields = resp.params?.formFields {
                 for f in fields {
                     if let key = f.envKey, let def = f.default {
-                        paramValues[key] = def.stringValue
+                        // random=true 的字段在表单加载时即生成「默认值_6位随机」并回填可见
+                        // （对齐网页端：真实值所见即所得；原先提交时静默拼接会导致
+                        // 眼睛看到的密码与实际创建的不一致）
+                        paramValues[key] = f.random == true
+                            ? def.stringValue + "_" + randomSuffix()
+                            : def.stringValue
                     }
                 }
                 // 对 apps 类型字段（数据库服务选择），自动获取服务并填充子字段
@@ -726,14 +731,8 @@ struct AppInstallView: View {
         // 判断是否为数据库关联应用（包含 type=apps 字段）
         let hasDbField = (appDetail.params?.formFields ?? []).contains { ($0.type ?? "") == "apps" }
 
-        // 对 random=true 的字段生成随机后缀（数据库用户名/密码/库名需要唯一性）
-        if let fields = appDetail.params?.formFields {
-            for f in fields where f.random == true {
-                if let key = f.envKey, let val = paramValues[key], !val.isEmpty {
-                    paramValues[key] = val + "_" + randomSuffix()
-                }
-            }
-        }
+        // random=true 的字段已在表单加载时生成「默认值_随机后缀」并回填可见，
+        // 提交按表单值原样发送（对齐网页端；不再提交时二次拼接避免双重后缀）
 
         // 构建 params：保留原始类型（number → Int，text → String）
         var params: [String: AnyCodableValue] = [:]

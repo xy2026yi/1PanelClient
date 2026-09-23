@@ -10,7 +10,7 @@ import SwiftUI
 
 // MARK: - 域名设置
 
-/// 域名列表：域名/端口/SSL（端口 80 不可开）/删除（仅剩一个不可删）
+/// 域名列表：域名/端口/SSL（端口 80 不可开）/删除（仅剩一个不可删）+ 新增域名
 struct WebsiteDomainsView: View {
     let websiteId: Int
     @ObservedObject var vm: WebsitesViewModel
@@ -20,6 +20,7 @@ struct WebsiteDomainsView: View {
     @State private var loadError: String?
     @State private var pendingDelete: WebsiteDomainItem?
     @State private var switchingID: Int?
+    @State private var showAdd = false
 
     var body: some View {
         Group {
@@ -33,6 +34,21 @@ struct WebsiteDomainsView: View {
         }
         .navigationTitle(L10n.t("域名设置"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showAdd = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("新增域名"))
+            }
+        }
+        .navigationDestination(isPresented: $showAdd) {
+            WebsiteDomainAddView(websiteId: websiteId, vm: vm) {
+                Task { await load() }
+            }
+        }
         .task { await load() }
         .refreshable { await load() }
         .alert(L10n.t("删除域名"), isPresented: Binding(
@@ -116,6 +132,82 @@ struct WebsiteDomainsView: View {
         guard let domainID = d.id else { return }
         if await vm.deleteDomain(id: domainID) {
             await load()
+        }
+    }
+}
+
+// MARK: - 新增域名
+
+/// 新增域名表单：域名（主机名自动带入、不可改）/ 端口（默认 80）/ SSL（默认关）
+/// POST /websites/domains {websiteID, domains[], domainStr:""}（抓包 2026-09-23）
+struct WebsiteDomainAddView: View {
+    let websiteId: Int
+    @ObservedObject var vm: WebsitesViewModel
+    var onDone: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var domain = ""
+    @State private var port = 80
+    @State private var ssl = false
+    @State private var isSubmitting = false
+
+    /// 主机名 = 域名（去端口后缀），与提交的 host 一致；域名输入自动带入、不可修改
+    private var host: String {
+        domain.split(separator: ":").first.map(String.init) ?? domain
+    }
+
+    /// 端口 String ↔ Int（描边框接收 String；非法输入保留原值）
+    private var portText: Binding<String> {
+        Binding<String>(get: { String(port) }, set: { port = Int($0) ?? port })
+    }
+
+    private var canSubmit: Bool {
+        !domain.trimmingCharacters(in: .whitespaces).isEmpty && !isSubmitting
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                OutlinedTextField(label: L10n.t("域名"), prompt: "example.com",
+                                  text: $domain, keyboardType: .URL)
+
+                OutlinedTextField(label: L10n.t("主机名"), text: .constant(host),
+                                  disabled: true)
+
+                OutlinedUnitField(label: L10n.t("端口"), unit: "",
+                                  text: portText, range: 1...65535,
+                                  keyboardType: .numberPad)
+
+                Toggle(L10n.t("SSL"), isOn: $ssl)
+            } footer: {
+                Text(L10n.t("端口为 80 的域名不可开启 SSL"))
+            }
+        }
+        .navigationTitle(L10n.t("新增域名"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button(L10n.t("添加")) {
+                    Task { await submit() }
+                }
+                .disabled(!canSubmit)
+            }
+        }
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: { Text(vm.alertMessage) }
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        // 端口 80 不允许开 SSL（服务端约束，提前按表单联动收口）
+        let effectiveSSL = (port == 80) ? false : ssl
+        if await vm.addWebsiteDomain(websiteId: websiteId, domain: domain,
+                                     port: port, ssl: effectiveSSL) {
+            onDone()
+            dismiss()
         }
     }
 }

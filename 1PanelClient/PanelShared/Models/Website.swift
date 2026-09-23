@@ -341,6 +341,14 @@ nonisolated struct WebsiteDomainBody: Encodable {
     var ssl: Bool
 }
 
+/// 新增域名请求 —— POST /websites/domains（抓包 2026-09-23：
+/// domains 为新增项数组，domainStr 恒空串；响应返回更新后的域名全量列表）
+nonisolated struct WebsiteDomainsAddRequest: Encodable {
+    let websiteID: Int
+    let domains: [WebsiteDomainBody]
+    let domainStr: String
+}
+
 /// 创建前检查的空请求体
 nonisolated struct WebsiteCheckRequest: Encodable {}
 

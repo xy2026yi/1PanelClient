@@ -2620,6 +2620,17 @@
         }
       }
     },
+    "SSL" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
     "SSL 协议" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19856,6 +19867,17 @@
         }
       }
     },
+    "新增域名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Domain"
+          }
+        }
+      }
+    },
     "新增备份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24861,6 +24883,17 @@
         }
       }
     },
+    "添加失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to add: %@"
+          }
+        }
+      }
+    },
     "添加密码访问" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28476,6 +28509,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Port cannot be empty"
+          }
+        }
+      }
+    },
+    "端口为 80 的域名不可开启 SSL" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSL cannot be enabled for a domain on port 80"
           }
         }
       }

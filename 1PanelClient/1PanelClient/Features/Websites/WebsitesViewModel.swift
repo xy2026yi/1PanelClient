@@ -1014,6 +1014,28 @@ final class WebsitesViewModel: ObservableObject {
             return []
         }
     }
+
+    /// 新增域名（POST /websites/domains，抓包 2026-09-23；响应为更新后的全量列表）
+    func addWebsiteDomain(websiteId: Int, domain: String, port: Int, ssl: Bool) async -> Bool {
+        let trimmed = domain.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            showAlert(message: L10n.t("请填写域名"))
+            return false
+        }
+        do {
+            let _: [WebsiteDomainItem] = try await client.send(
+                path: APIEndpoint.websitesDomainsOperate.path,
+                body: WebsiteDomainsAddRequest(
+                    websiteID: websiteId,
+                    domains: [WebsiteDomainBody(domain: trimmed, host: trimmed, port: port, ssl: ssl)],
+                    domainStr: ""),
+                as: [WebsiteDomainItem].self)
+            return true
+        } catch {
+            showAlert(message: L10n.f("添加失败：%@", error.localizedDescription))
+            return false
+        }
+    }
 }
 
 /// 重定向列表响应包装（data 可能是 null 或数组）

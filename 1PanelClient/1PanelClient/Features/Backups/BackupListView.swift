@@ -471,7 +471,9 @@ struct BackupListView: View {
             L10n.t("下载完成"),
             isPresented: Binding(
                 get: { vm.downloadedFileName != nil },
-                set: { if !$0 { vm.downloadedFileName = nil } }
+                // 关闭发生在视图更新事务内：同步清 @Published 会触发
+                // "Publishing changes from within view updates"，推迟到下一周期
+                set: { if !$0 { Task { @MainActor in vm.downloadedFileName = nil } } }
             )
         ) {
             Button(L10n.t("好的"), role: .cancel) {}

@@ -95,6 +95,7 @@ enum APIEndpoint {
     case websitesAuths            // POST 获取密码访问配置
     case websitesAuthsUpdate      // POST 创建/编辑/删除/启停密码访问账号
     case websitesDomains          // GET  获取网站域名列表（:id 路径参数）
+    case websitesDomainsOperate   // POST 新增域名（{websiteID, domains[], domainStr}）
     case websitesDomainsUpdate    // POST 域名启停 SSL（{id, ssl}）
     case websitesDomainsDelete    // POST 删除域名（{id}）
     case websitesLeech            // POST 获取防盗链配置（{websiteID}）
@@ -771,6 +772,7 @@ enum APIEndpoint {
         case .websitesAuths:         return "/api/v2/websites/auths"
         case .websitesAuthsUpdate:   return "/api/v2/websites/auths/update"
         case .websitesDomains:       return "/api/v2/websites/domains/:id"
+        case .websitesDomainsOperate: return "/api/v2/websites/domains"
         case .websitesDomainsUpdate: return "/api/v2/websites/domains/update"
         case .websitesDomainsDelete: return "/api/v2/websites/domains/del"
         case .websitesLeech:         return "/api/v2/websites/leech"

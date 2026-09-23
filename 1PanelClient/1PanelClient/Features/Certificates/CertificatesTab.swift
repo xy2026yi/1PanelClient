@@ -556,6 +556,11 @@ struct UploadCertificateView: View {
     /// 换选文件读取失败的提示（必须显式报错：静默失败时界面仍显示旧文件名，
     /// 用户会误以为已换选、实际提交的是旧内容）
     @State private var loadFileError: String?
+    // 服务器文件：文件浏览器（选择目标 + 两个路径框的焦点态）
+    @State private var showServerFilePicker = false
+    @State private var serverFilePickTarget: PickTarget?
+    @FocusState private var privateKeyFieldFocused: Bool
+    @FocusState private var certificateFieldFocused: Bool
 
     private enum UploadMode: String, CaseIterable, Identifiable {
         case paste = "粘贴内容"
@@ -612,13 +617,53 @@ struct UploadCertificateView: View {
 
             case .local:
                 Section {
-                    OutlinedTextField(label: L10n.t("私钥文件路径"), prompt: "/home/user/privkey.pem",
-                                  text: $privateKeyPath)
+                    // 私钥路径：输入框 + 框内右侧文件浏览器图标，选中文件后自动回填
+                    OutlinedShape(label: L10n.t("私钥文件路径"),
+                                  isFocused: privateKeyFieldFocused,
+                                  hasValue: !privateKeyPath.isEmpty,
+                                  trailing: {
+                        Button {
+                            showServerFilePicker = true
+                            serverFilePickTarget = .privateKey
+                        } label: {
+                            Image(systemName: "folder")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.t("选择文件"))
+                    }) {
+                        TextField("", text: $privateKeyPath, prompt: Text("/home/user/privkey.pem"))
+                            .keyboardType(.URL)
+                            .focused($privateKeyFieldFocused)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
                 } header: { Text(L10n.t("私钥文件路径")) }
 
                 Section {
-                    OutlinedTextField(label: L10n.t("证书文件路径"), prompt: "/home/user/fullchain.pem",
-                                  text: $certificatePath)
+                    // 证书路径：同上，文件浏览器选中回填
+                    OutlinedShape(label: L10n.t("证书文件路径"),
+                                  isFocused: certificateFieldFocused,
+                                  hasValue: !certificatePath.isEmpty,
+                                  trailing: {
+                        Button {
+                            showServerFilePicker = true
+                            serverFilePickTarget = .certificate
+                        } label: {
+                            Image(systemName: "folder")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.t("选择文件"))
+                    }) {
+                        TextField("", text: $certificatePath, prompt: Text("/home/user/fullchain.pem"))
+                            .keyboardType(.URL)
+                            .focused($certificateFieldFocused)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
                 } header: { Text(L10n.t("证书文件路径")) }
 
             case .phone:
@@ -655,6 +700,20 @@ struct UploadCertificateView: View {
         ) { result in
             guard case .success(let urls) = result, let url = urls.first else { return }
             loadPickedFile(url)
+        }
+        // 服务器文件：面板侧文件浏览器（按目标回填对应路径框）
+        .sheet(isPresented: $showServerFilePicker) {
+            DirectoryPickerSheet(
+                client: vm.client,
+                fileExtensions: serverFilePickTarget == .privateKey
+                    ? ["key", "pem"] : ["pem", "crt", "cer"]
+            ) { path in
+                switch serverFilePickTarget {
+                case .privateKey:  privateKeyPath = path
+                case .certificate: certificatePath = path
+                default: break
+                }
+            }
         }
         .alert(L10n.t("提示"), isPresented: Binding(
             get: { loadFileError != nil },
