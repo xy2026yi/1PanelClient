@@ -30,4 +30,5 @@ cd 1PanelClient
 
 ## License
 
-MIT
+本项目基于 [GPL-3.0](LICENSE) 许可发布。
+1Panel 本体（[1Panel-dev/1Panel](https://github.com/1Panel-dev/1Panel)）同样采用 GPL-3.0。

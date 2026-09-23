@@ -153,4 +153,4 @@ API Key 在 1Panel 面板端「面板设置 → 接口」中创建，存储在 i
 
 ## License
 
-MIT
+本项目基于 [GPL-3.0](../LICENSE) 许可发布。

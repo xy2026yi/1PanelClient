@@ -153,4 +153,4 @@ Create the API Key on the 1Panel panel under "Panel Settings → API"; it is sto
 
 ## License
 
-MIT
+This project is licensed under [GPL-3.0](../LICENSE).

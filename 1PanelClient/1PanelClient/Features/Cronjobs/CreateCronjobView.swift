@@ -230,6 +230,12 @@ struct CreateCronjobView: View {
         .task {
         await vm.loadCreateOptions()
         if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
+        // 备份账号默认选中第一个（与网页端一致，localhost 恒在首位）：
+        // 选择器的显示回落不落状态，用户未手动切换时提交会带空账号，
+        // 服务端执行备份时报「获取备份账号连接失败」。编辑态随后由 prefill 覆盖。
+        if backupAccountID == 0, let first = vm.backupAccounts.first {
+            backupAccountID = first.id
+        }
         if let info = editingJob, !hasPrefilled {
             // 预填期间屏蔽 onChange 联动：dbType 程序化赋值会触发
             // 「重置范围/清空备份参数」分支，覆盖刚回填的库名与参数

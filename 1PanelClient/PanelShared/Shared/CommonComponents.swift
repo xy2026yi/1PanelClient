@@ -777,9 +777,10 @@ struct ActionBottomSheet: View {
                     // 先收 sheet，动作推迟到下一主线程周期再触发：动作常是再弹
                     // alert/sheet，与 sheet 关闭在同一事务并发是已知的偶发丢呈现
                     // 场景（与 EllipsisMenuPopup 的 onDismiss-先-执行 模式一致）
+                    // Task 继承 MainActor（非发送任务），闭包捕获免 Sendable 检查
                     let act = item.action
                     onDismiss()
-                    DispatchQueue.main.async(execute: act)
+                    Task { @MainActor in act() }
                 } label: {
                     HStack(spacing: 14) {
                         if let icon = item.icon {
