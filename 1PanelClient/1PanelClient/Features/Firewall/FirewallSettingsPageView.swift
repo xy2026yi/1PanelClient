@@ -29,39 +29,36 @@ struct FirewallSettingsContent: View {
     }
 
     var body: some View {
-        Section {
-            Toggle(L10n.t("禁 Ping"), isOn: Binding(
-                get: { vm.settings?.pingBlocked ?? vm.systemStatus?.pingBlocked ?? false },
-                set: { on in
-                    Task {
-                        await vm.operateFirewall(on ? "disableBanPing" : "enableBanPing")
+        Group {
+            // 加载失败：明确展示原因 + 重试（此前静默吞错，设置段只能看到
+            // 白名单 0 / 后端选择器空置，无从分辨是请求失败还是解码失败）
+            if vm.settings == nil, let err = vm.settingsErrorMessage {
+                Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(L10n.t("设置加载失败"), systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(Color.semanticWarning)
+                        Text(err)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                        Button {
+                            Task { await vm.loadSettings() }
+                        } label: {
+                            Label(L10n.t("重试"), systemImage: "arrow.clockwise")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
                     }
+                    .padding(.vertical, 8)
                 }
-            ))
-            .disabled(vm.isOperating)
-            NavigationLink {
-                FirewallWhitelistView(vm: vm)
-            } label: {
-                HStack {
-                    Text(L10n.t("面板端口白名单"))
-                        .foregroundStyle(.primary)
-                    Spacer()
-                    Text("\(parseFirewallWhitelistEntries(vm.settings?.portWhiteList).count)")
-                        .foregroundStyle(.secondary)
-                }
+            } else {
+                settingsSections
             }
-        } header: {
-            SectionLabel(title: L10n.t("基础设置"), systemImage: "gearshape")
-        } footer: {
-            Text(L10n.t("禁 Ping 后服务器不再响应 ICMP 探测；端口白名单外的高校验规则见任务日志。"))
         }
-
-        backendPickerSection(title: L10n.t("系统防火墙"), subsystem: "system",
-                             group: vm.settings?.system)
-        backendPickerSection(title: L10n.t("端口转发"), subsystem: "forwarding",
-                             group: vm.settings?.forwarding)
-        backendPickerSection(title: L10n.t("容器端口防护"), subsystem: "docker",
-                             group: vm.settings?.docker)
+        // 切入设置段自愈：正常随 refresh 预载，缺失（如加载竞态/失败后未重试）时补拉
+        .task { if vm.settings == nil && vm.settingsErrorMessage == nil {
+            await vm.loadSettings()
+        } }
         // 下拉切换后端：弹窗确认（确认后 select，取消回弹为当前后端）
         .alert(L10n.t("确认"), isPresented: Binding(
             get: { pendingSwitch != nil },
@@ -89,6 +86,44 @@ struct FirewallSettingsContent: View {
         } message: {
             Text(L10n.f("当前后端 %@ 仍存在 1Panel 运行时规则，请先重置该后端，再切换到 %@。重置仅清理运行时规则，数据库策略会保留，切换后可以重新初始化或同步。", blockedSwitch?.current ?? "", blockedSwitch?.target ?? ""))
         }
+    }
+
+    /// 设置段正常内容（settings 已加载时）
+    @ViewBuilder
+    private var settingsSections: some View {
+        Section {
+            Toggle(L10n.t("禁 Ping"), isOn: Binding(
+                get: { vm.settings?.pingBlocked ?? vm.systemStatus?.pingBlocked ?? false },
+                set: { on in
+                    Task {
+                        await vm.operateFirewall(on ? "disableBanPing" : "enableBanPing")
+                    }
+                }
+            ))
+            .disabled(vm.isOperating)
+            NavigationLink {
+                FirewallWhitelistView(vm: vm)
+            } label: {
+                HStack {
+                    Text(L10n.t("面板端口白名单"))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("\(vm.settings?.portWhiteList?.count ?? 0)")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            SectionLabel(title: L10n.t("基础设置"), systemImage: "gearshape")
+        } footer: {
+            Text(L10n.t("禁 Ping 后服务器不再响应 ICMP 探测；端口白名单外的高校验规则见任务日志。"))
+        }
+
+        backendPickerSection(title: L10n.t("系统防火墙"), subsystem: "system",
+                             group: vm.settings?.system)
+        backendPickerSection(title: L10n.t("端口转发"), subsystem: "forwarding",
+                             group: vm.settings?.forwarding)
+        backendPickerSection(title: L10n.t("容器端口防护"), subsystem: "docker",
+                             group: vm.settings?.docker)
     }
 
     /// 单组防护后端：形态 3 描边菜单（未安装 / 不支持的选项不展示，

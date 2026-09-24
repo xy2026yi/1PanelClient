@@ -102,7 +102,7 @@ struct FirewallV2ModelsTests {
         #expect(rule?.isDesired == true)
     }
 
-    @Test("设置（三组后端 + ping + 白名单原始串）")
+    @Test("设置（三组后端 + ping + 白名单 v2.3.1 数组）")
     func settings() throws {
         let json = """
         {"system":{"selected":"ufw","current":"ufw","options":[
@@ -112,14 +112,15 @@ struct FirewallV2ModelsTests {
              "bound":false,"supported":true,"supportReason":"not installed"}]},
          "forwarding":{"selected":"iptables","options":[]},
          "docker":{"selected":"iptables","options":[]},
-         "pingStatus":"Disable","portWhiteList":"80/tcp,443/tcp"}
+         "pingStatus":"Disable","portWhiteList":[{"port":"80","protocol":"tcp"},{"port":"443","protocol":"tcp"}]}
         """
         let settings = try JSONDecoder().decode(FirewallSettings.self, from: Data(json.utf8))
         #expect(settings.system?.selected == "ufw")
         #expect(settings.system?.options?.count == 2)
         #expect(settings.system?.options?[1].installed == false)
         #expect(settings.pingBlocked == false)
-        #expect(parseFirewallPortWhitelist(settings.portWhiteList) == ["80/tcp", "443/tcp"])
+        #expect(settings.portWhiteList?.count == 2)
+        #expect(settings.portWhiteList?.map(\.display) == ["80/tcp", "443/tcp"])
     }
 
     @Test("Docker 端口守护总览（容器/端口组/孤立策略）")
@@ -208,27 +209,25 @@ struct FirewallV2CaptureRegressionTests {
         #expect(text.contains(#""targetPort":"21""#))
     }
 
-    @Test("白名单双格式：逗号串与 JSON 数组串都可解析，编码为 JSON 数组（抓包形态）")
-    func whitelistDualFormat() {
-        // 初始形态（逗号串）
-        let fromComma = parseFirewallWhitelistEntries("80/tcp,443/tcp,443/udp")
-        #expect(fromComma.count == 3)
-        #expect(fromComma[0] == FirewallPortWhitelistEntry(family: "ipv4", protocolField: "tcp", port: "80"))
-        #expect(fromComma[2].protocolField == "udp")
+    @Test("白名单 v2.3.1 数组形态：解码缺省 family/protocol，提交编码不含 family（上游 json:\"-\"）")
+    func whitelistArrayFormat() throws {
+        // v2.3.1 线上形态：对象数组（无 family 字段）
+        let json = #"[{"port":"8444","protocol":"tcp","type":"port","sources":[]},{"port":"22"},{"port":"443","protocol":"udp"}]"#
+        let entries = try JSONDecoder().decode([FirewallPortWhitelistEntry].self, from: Data(json.utf8))
+        #expect(entries.count == 3)
+        #expect(entries[0].port == "8444")
+        #expect(entries[0].type == "port")
+        #expect(entries[0].sources == [])
+        #expect(entries[1].protocolField == "tcp")   // 缺省 tcp
+        #expect(entries[1].family == "ipv4")          // 上游不序列化，解码缺省
+        #expect(entries[2].protocolField == "udp")
 
-        // 编辑后形态（JSON 数组字符串，抓包原文）
-        let jsonForm = #"[{"family":"ipv4","port":"8444","protocol":"tcp"},{"family":"ipv4","port":"22","protocol":"tcp"},{"family":"ipv4","port":"443","protocol":"udp"}]"#
-        let fromJSON = parseFirewallWhitelistEntries(jsonForm)
-        #expect(fromJSON.count == 3)
-        #expect(fromJSON[0].port == "8444")
-        #expect(fromJSON[2].protocolField == "udp")
-
-        // 提交编码：JSON 数组字符串（与 Web 端提交一致），往返稳定
-        let encoded = encodeFirewallWhitelistEntries(fromJSON)
-        #expect(encoded.hasPrefix("["))
-        #expect(parseFirewallWhitelistEntries(encoded) == fromJSON)
-        #expect(encoded.contains(#""family":"ipv4""#))
-        #expect(encoded.contains(#""protocol":"tcp""#))
+        // 提交编码（create/update 请求体里的 rule）：不带 family，与上游一致
+        let data = try JSONEncoder().encode(FirewallWhitelistRuleRequest(rule: entries[0]))
+        let text = String(decoding: data, as: UTF8.self)
+        #expect(text.contains(#""port":"8444""#))
+        #expect(text.contains(#""protocol":"tcp""#))
+        #expect(!text.contains("family"))
     }
 
     @Test("设置真实样本（三组后端 + guard_chain_missing reason）")
@@ -245,13 +244,16 @@ struct FirewallV2CaptureRegressionTests {
            "supported":true,
            "ipv4":{"available":true,"initialized":false,"bound":false,"reason":"guard_chain_missing"},
            "ipv6":{"available":true,"initialized":false,"bound":false,"reason":"guard_chain_missing"}}]},
-         "pingStatus":"Disable","portWhiteList":"80/tcp,443/tcp,443/udp"}
+         "pingStatus":"Disable","panelPort":"17331","sshPort":"22",
+         "portWhiteList":[{"port":"80","protocol":"tcp"},{"port":"443","protocol":"tcp"},{"port":"443","protocol":"udp"}]}
         """
         let settings = try JSONDecoder().decode(FirewallSettings.self, from: Data(json.utf8))
         #expect(settings.system?.selected == "iptables")
         #expect(settings.pingBlocked == false)
         #expect(settings.docker?.options?.first?.ipv4?.reason == "guard_chain_missing")
-        #expect(parseFirewallWhitelistEntries(settings.portWhiteList).count == 3)
+        #expect(settings.portWhiteList?.count == 3)
+        #expect(settings.portWhiteList?[2].protocolField == "udp")
+        #expect(settings.panelPort == "17331")
     }
 
     @Test("转发列表真实样本（iptables-forward，isActive=false 但 isInit=true）")

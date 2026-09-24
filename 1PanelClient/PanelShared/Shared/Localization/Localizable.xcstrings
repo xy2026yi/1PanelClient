@@ -79,6 +79,17 @@
         }
       }
     },
+    "设置加载失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to Load Settings"
+          }
+        }
+      }
+    },
     "面板创建" : {
       "extractionState" : "manual",
       "localizations" : {

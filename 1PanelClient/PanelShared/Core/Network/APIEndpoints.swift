@@ -228,7 +228,9 @@ enum APIEndpoint {
     case firewallForwardEnable    // POST 启用转发子系统（任务式 {taskID?}）
     case firewallSettings         // GET  三组后端设置 + ping + 端口白名单
     case firewallSettingsOperate  // POST 后端操作 {subsystem,backend,operation: select|initialize|cleanup}
-    case firewallSettingsWhitelist // POST 更新面板端口白名单（任务式 {value}）
+    case firewallSettingsWhitelist // POST 白名单新增 {rule}（v2.3.1 逐条写）
+    case firewallSettingsWhitelistUpdate // POST 白名单更新 {oldRule, rule}
+    case firewallSettingsWhitelistDelete // POST 白名单删除 {rule}
     case firewallDockerPorts      // GET  Docker 端口守护总览（base+containers+orphan）
     case firewallDockerOperate    // POST Docker 守护操作 {operation: initialize|bind|unbind}
     case firewallDockerSync       // POST 同步 Docker 守护规则（对账）
@@ -885,6 +887,8 @@ enum APIEndpoint {
         case .firewallSettings:      return "/api/v2/hosts/firewall/settings"
         case .firewallSettingsOperate: return "/api/v2/hosts/firewall/settings/operate"
         case .firewallSettingsWhitelist: return "/api/v2/hosts/firewall/settings/whitelist"
+        case .firewallSettingsWhitelistUpdate: return "/api/v2/hosts/firewall/settings/whitelist/update"
+        case .firewallSettingsWhitelistDelete: return "/api/v2/hosts/firewall/settings/whitelist/delete"
         case .firewallDockerPorts:   return "/api/v2/hosts/firewall/docker/ports"
         case .firewallDockerOperate: return "/api/v2/hosts/firewall/docker/operate"
         case .firewallDockerSync:    return "/api/v2/hosts/firewall/docker/sync"

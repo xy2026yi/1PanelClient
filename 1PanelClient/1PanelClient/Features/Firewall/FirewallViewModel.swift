@@ -47,6 +47,8 @@ final class FirewallViewModel: ObservableObject {
 
     // MARK: 设置段
     @Published var settings: FirewallSettings?
+    /// 设置加载失败原因（设置段内展示 + 重试入口）
+    @Published var settingsErrorMessage: String?
 
     // MARK: 通用
     @Published var isLoading = false
@@ -818,8 +820,12 @@ final class FirewallViewModel: ObservableObject {
                 path: APIEndpoint.firewallSettings.path, method: "GET",
                 as: FirewallSettings.self
             )
+            settingsErrorMessage = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
+            // 不再静默吞错：失败原因暴露到设置段（白名单 0/后端不可选这类症状
+            // 的唯一线索），否则真机上无从排查
+            settingsErrorMessage = "\(APIEndpoint.firewallSettings.path)：\(error.localizedDescription)"
         }
     }
 
@@ -845,22 +851,42 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    /// 面板端口白名单（任务式）
-    func updatePortWhitelist(_ value: String) async -> Bool {
+    /// 面板端口白名单（v2.3.1 逐条写）：按 id 对比编辑前后差异——
+    /// 删除→/delete、新增→/whitelist、同 id 变更→/whitelist/update
+    func savePortWhitelist(
+        original: [FirewallPortWhitelistEntry],
+        entries: [FirewallPortWhitelistEntry]
+    ) async -> Bool {
         isOperating = true
         defer { isOperating = false }
         do {
-            let resp: FirewallTaskResponse = try await client.send(
-                path: APIEndpoint.firewallSettingsWhitelist.path,
-                body: FirewallPortWhitelistRequest(value: value),
-                as: FirewallTaskResponse.self
-            )
-            await loadSettings()
-            if let taskID = resp.taskID, !taskID.isEmpty {
-                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("更新端口白名单"))
-            } else {
-                toastMessage = L10n.t("白名单已提交")
+            let origByID = Dictionary(original.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            let newIDs = Set(entries.map(\.id))
+            for old in original where !newIDs.contains(old.id) {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.firewallSettingsWhitelistDelete.path,
+                    body: FirewallWhitelistRuleRequest(rule: old),
+                    as: EmptyResponse.self
+                )
             }
+            for entry in entries {
+                if let old = origByID[entry.id] {
+                    guard old != entry else { continue }
+                    let _: EmptyResponse = try await client.send(
+                        path: APIEndpoint.firewallSettingsWhitelistUpdate.path,
+                        body: FirewallWhitelistRuleUpdateRequest(oldRule: old, rule: entry),
+                        as: EmptyResponse.self
+                    )
+                } else {
+                    let _: EmptyResponse = try await client.send(
+                        path: APIEndpoint.firewallSettingsWhitelist.path,
+                        body: FirewallWhitelistRuleRequest(rule: entry),
+                        as: EmptyResponse.self
+                    )
+                }
+            }
+            await loadSettings()
+            toastMessage = L10n.t("白名单已提交")
             return true
         } catch {
             guard !APIError.isCancellation(error) else { return false }

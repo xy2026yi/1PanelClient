@@ -282,6 +282,8 @@ struct FirewallWhitelistView: View {
     /// 编辑中的条目 id（nil = 添加）
     @State private var editingID: String?
     @State private var showEntryForm = false
+    /// 长按弹出的操作目标（半屏操作弹窗，与规则/转发行一致）
+    @State private var actionEntry: FirewallPortWhitelistEntry?
 
     private var isDirty: Bool { entries != original }
 
@@ -315,7 +317,7 @@ struct FirewallWhitelistView: View {
                         editingID = nil
                         showEntryForm = true
                     } label: {
-                        Image(systemName: "plus.circle")
+                        Image(systemName: "plus")
                     }
                     .accessibilityLabel(L10n.t("添加"))
                 }
@@ -330,13 +332,45 @@ struct FirewallWhitelistView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
+        // 长按行：半屏操作弹窗（编辑/删除，与规则/转发行一致；添加走右上角 ＋，
+        // 删除为本地标记，随右上角「保存」按 diff 提交）
+        .sheet(isPresented: Binding(
+            get: { actionEntry != nil },
+            set: { if !$0 { actionEntry = nil } }
+        )) {
+            ActionBottomSheet(
+                title: actionEntry?.display ?? L10n.t("面板端口白名单"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        let entry = actionEntry
+                        actionEntry = nil
+                        if let entry {
+                            editingID = entry.id
+                            showEntryForm = true
+                        }
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red,
+                                   role: .destructive) {
+                        Haptic.warning()
+                        let entry = actionEntry
+                        actionEntry = nil
+                        if let entry {
+                            entries.removeAll { $0.id == entry.id }
+                        }
+                    },
+                ],
+                onDismiss: { actionEntry = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
         .interactiveDismissDisabled(isSubmitting)
         .onAppear {
             if original.isEmpty {
-                // 双格式解析：初始逗号串 / 编辑后的 JSON 数组字符串
-                let parsed = parseFirewallWhitelistEntries(vm.settings?.portWhiteList)
-                entries = parsed
-                original = parsed
+                // v2.3.1 上游即为对象数组，直接取用
+                let loaded = vm.settings?.portWhiteList ?? []
+                entries = loaded
+                original = loaded
             }
         }
     }
@@ -357,24 +391,17 @@ struct FirewallWhitelistView: View {
                         Spacer()
                     }
                     .contentShape(Rectangle())
-                    .contextMenu {
-                        Button {
-                            editingID = entry.id
-                            showEntryForm = true
-                        } label: {
-                            Label(L10n.t("编辑"), systemImage: "pencil")
+                    // 长按弹半屏操作菜单（编辑/删除/添加）
+                    .simultaneousGesture(
+                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                            Haptic.selection()
+                            actionEntry = entry
                         }
-                        Button {
-                            editingID = nil
-                            showEntryForm = true
-                        } label: {
-                            Label(L10n.t("添加"), systemImage: "plus.circle")
-                        }
+                    )
+                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                    .accessibilityAction(named: L10n.t("更多操作")) {
+                        actionEntry = entry
                     }
-                }
-                .onDelete { offsets in
-                    let doomed = offsets.map { items[$0].id }
-                    entries.removeAll { doomed.contains($0.id) }
                 }
             }
         } header: {
@@ -386,11 +413,15 @@ struct FirewallWhitelistView: View {
         }
     }
 
-    /// 编辑/添加结果落库：按原 id 替换或追加
+    /// 编辑/添加结果落库：按原 id 替换或追加（表单只改 family/协议/端口，
+    /// 替换时保留上游扩展字段 type/sources，避免误判为变更多发 update）
     private func applyResult(_ result: FirewallPortWhitelistEntry) {
         if let id = editingID,
            let idx = entries.firstIndex(where: { $0.id == id }) {
-            entries[idx] = result
+            var merged = result
+            merged.type = entries[idx].type
+            merged.sources = entries[idx].sources
+            entries[idx] = merged
         } else {
             entries.append(result)
         }
@@ -404,15 +435,7 @@ struct FirewallWhitelistView: View {
         }
         isSubmitting = true
         defer { isSubmitting = false }
-        let value = encodeFirewallWhitelistEntries(
-            entries.map { entry in
-                FirewallPortWhitelistEntry(
-                    family: entry.family,
-                    protocolField: entry.protocolField,
-                    port: entry.port.trimmingCharacters(in: .whitespaces))
-            }
-        )
-        if await vm.updatePortWhitelist(value) {
+        if await vm.savePortWhitelist(original: original, entries: entries) {
             dismiss()
         }
     }

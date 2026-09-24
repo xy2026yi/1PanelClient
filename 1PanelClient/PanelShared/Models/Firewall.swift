@@ -498,7 +498,10 @@ nonisolated struct FirewallSettings: Decodable, Sendable {
     let forwarding: FirewallBackendGroup?
     let docker: FirewallBackendGroup?
     let pingStatus: String?
-    let portWhiteList: String?
+    /// v2.3.1 上游为对象数组（[]filter.PortWhitelist）；曾误建为 String 触发解码回退
+    let portWhiteList: [FirewallPortWhitelistEntry]?
+    let panelPort: String?
+    let sshPort: String?
 
     /// 当前是否禁 ping（与 FirewallSubsystemStatus.pingBlocked 同一口径）
     var pingBlocked: Bool {
@@ -515,24 +518,51 @@ nonisolated struct FirewallBackendOperationRequest: Encodable, Sendable {
     let operation: String
 }
 
-nonisolated struct FirewallPortWhitelistRequest: Encodable, Sendable {
-    let value: String
-}
+// MARK: - 端口白名单条目（v2.3.1 上游 filter.PortWhitelist）
 
-// MARK: - 端口白名单条目（双格式，抓包 2026-09-17）
-
-/// 白名单条目：{family, protocol, port}。
-/// 面板存在两种存储形态：初始为逗号串（"80/tcp,443/tcp"），
-/// 编辑保存后为 JSON 数组字符串（"[{\"family\":…,\"port\":…,\"protocol\":…}]"）。
-/// 读取兼容两种；提交统一用 JSON 数组字符串（Web 端形态）
+/// 白名单条目：上游 {port, protocol, type, sources}；Family 在上游 json:"-"
+/// 不上线（App 侧缺省 ipv4，仅用于本地分组展示），提交时不序列化。
+/// 旧版本误按「逗号串 / JSON 数组字符串」建 String 模型，与线上数组类型
+/// 不匹配导致信封解码失败→裸解码回退→全字段 nil 的空对象（白名单恒 0）
 nonisolated struct FirewallPortWhitelistEntry: Codable, Equatable, Identifiable, Sendable {
+    /// 本地展示用地址族（上游不序列化；解码缺省 ipv4）
     var family: String
     var protocolField: String
     var port: String
+    /// 上游附加维度（类型/来源），App 目前仅回显，编辑表单不涉及
+    var type: String?
+    var sources: [String]?
+
+    init(family: String = "ipv4", protocolField: String = "tcp", port: String,
+         type: String? = nil, sources: [String]? = nil) {
+        self.family = family
+        self.protocolField = protocolField
+        self.port = port
+        self.type = type
+        self.sources = sources
+    }
 
     enum CodingKeys: String, CodingKey {
-        case family, port
+        case port
         case protocolField = "protocol"
+        case type, sources
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        family = "ipv4"
+        protocolField = try c.decodeIfPresent(String.self, forKey: .protocolField) ?? "tcp"
+        port = try c.decodeIfPresent(String.self, forKey: .port) ?? ""
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        sources = try c.decodeIfPresent([String].self, forKey: .sources)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(port, forKey: .port)
+        try c.encode(protocolField, forKey: .protocolField)
+        try c.encodeIfPresent(type, forKey: .type)
+        try c.encodeIfPresent(sources, forKey: .sources)
     }
 
     var id: String { "\(family)|\(protocolField)|\(port)" }
@@ -541,25 +571,6 @@ nonisolated struct FirewallPortWhitelistEntry: Codable, Equatable, Identifiable,
     var display: String {
         let proto = protocolField.isEmpty ? "" : "/\(protocolField)"
         return "\(port)\(proto)"
-    }
-}
-
-/// 解析白名单原始串：JSON 数组格式优先，回落逗号/换行分隔（family/protocol 缺省 ipv4/tcp）
-nonisolated func parseFirewallWhitelistEntries(_ raw: String?) -> [FirewallPortWhitelistEntry] {
-    guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
-        return []
-    }
-    if raw.hasPrefix("["),
-       let data = raw.data(using: .utf8),
-       let entries = try? JSONDecoder().decode([FirewallPortWhitelistEntry].self, from: data) {
-        return entries
-    }
-    // 旧格式："80/tcp,443/tcp,443/udp"
-    return parseFirewallPortWhitelist(raw).map { item in
-        let parts = item.split(separator: "/", maxSplits: 1).map(String.init)
-        let port = parts.first ?? item
-        let proto = parts.count > 1 ? parts[1] : "tcp"
-        return FirewallPortWhitelistEntry(family: "ipv4", protocolField: proto, port: port)
     }
 }
 
@@ -573,10 +584,16 @@ nonisolated func parseFirewallPortWhitelist(_ raw: String?) -> [String] {
         .filter { !$0.isEmpty }
 }
 
-/// 白名单条目数组 → 提交串（JSON 数组字符串，Web 端形态）
-nonisolated func encodeFirewallWhitelistEntries(_ entries: [FirewallPortWhitelistEntry]) -> String {
-    guard let data = try? JSONEncoder().encode(entries) else { return "[]" }
-    return String(decoding: data, as: UTF8.self)
+/// v2.3.1 白名单逐条写接口：POST /settings/whitelist {rule} 与
+/// /settings/whitelist/delete {rule}
+nonisolated struct FirewallWhitelistRuleRequest: Encodable, Sendable {
+    let rule: FirewallPortWhitelistEntry
+}
+
+/// v2.3.1 白名单更新：POST /settings/whitelist/update {oldRule, rule}
+nonisolated struct FirewallWhitelistRuleUpdateRequest: Encodable, Sendable {
+    let oldRule: FirewallPortWhitelistEntry
+    let rule: FirewallPortWhitelistEntry
 }
 
 // MARK: - Docker 端口守护（/firewall/docker/*）
