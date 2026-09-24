@@ -309,24 +309,16 @@ struct AIAccountsView: View {
         List {
             Section {
                 ForEach(vm.accounts) { account in
-                    Button {
-                        poolAccount = account
-                    } label: {
-                        AIAccountRow(account: account)
-                    }
-                    .buttonStyle(.plain)
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                            Haptic.selection()
-                            actionAccount = account
+                    AIAccountRow(account: account)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .rowTapAndLongPress(
+                            onTap: { poolAccount = account },
+                            onLongPress: { actionAccount = account })
+                        .onAppear {
+                            if account.id == vm.accounts.last?.id {
+                                Task { await vm.loadMore(name: searchText) }
+                            }
                         }
-                    )
-                    .onAppear {
-                        if account.id == vm.accounts.last?.id {
-                            Task { await vm.loadMore(name: searchText) }
-                        }
-                    }
                 }
 
                 if vm.accounts.count < vm.total || vm.isLoadingMore {

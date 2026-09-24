@@ -43,6 +43,12 @@ struct AIAgentFeishuChannelView: View {
     private var isOpenClaw: Bool { agentType == "openclaw" }
     /// Hermes：未配置频道启用开关默认开；网页核对无 会话设置、私聊策略无禁用
     private var isHermes: Bool { agentType == "hermes-agent" }
+    /// 已配置（快照里任一 Bot 凭证非空）才显示删除入口；未配置只有保存
+    private var isConfigured: Bool {
+        (savedC.bots ?? []).contains {
+            !($0.appId ?? "").isEmpty || !($0.appSecret ?? "").isEmpty
+        }
+    }
 
     /// @机器人三态：需要@ / 无需@ / 按群组配置（抓包取值 true/false/open）
     private let mentionModes: [(value: String, label: String)] = [
@@ -165,7 +171,8 @@ struct AIAgentFeishuChannelView: View {
         .task { await load() }
         .refreshable { await load() }
         .modifier(HermesChannelDeleteModifier(
-            client: client, agentId: agentId, type: "feishu", isEnabled: isHermes))
+            client: client, agentId: agentId, type: "feishu",
+            isEnabled: isHermes && isConfigured))
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {

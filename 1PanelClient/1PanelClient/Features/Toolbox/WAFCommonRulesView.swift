@@ -67,19 +67,15 @@ struct WAFCommonRulesView: View {
                         if builtin {
                             ruleLabel(item)
                         } else {
-                            // 单击直达编辑，长按弹半屏操作菜单（编辑/删除）
-                            Button {
-                                editingItem = item
-                            } label: {
-                                ruleLabel(item)
-                            }
-                            .buttonStyle(.plain)
-                            .simultaneousGesture(
-                                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                                    Haptic.selection()
+                            // 单击直达编辑，长按弹半屏操作菜单（编辑/删除）；
+                            // 长按松手不触发单击（rowTapAndLongPress 统一抑制）
+                            ruleLabel(item)
+                                .rowTapAndLongPress(
+                                    onTap: { editingItem = item },
+                                    onLongPress: { actionItem = item })
+                                .accessibilityAction(named: L10n.t("更多操作")) {
                                     actionItem = item
                                 }
-                            )
                         }
 
                         Toggle(isOn: Binding(

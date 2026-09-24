@@ -572,24 +572,16 @@ struct AIOllamaView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(vm.models) { model in
-                    Button {
-                        runModel = model
-                    } label: {
-                        AIOllamaModelRow(model: model)
-                    }
-                    .buttonStyle(.plain)
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                            Haptic.selection()
-                            actionModel = model
+                    AIOllamaModelRow(model: model)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .rowTapAndLongPress(
+                            onTap: { runModel = model },
+                            onLongPress: { actionModel = model })
+                        .onAppear {
+                            if model.id == vm.models.last?.id {
+                                Task { await vm.loadMoreModels() }
+                            }
                         }
-                    )
-                    .onAppear {
-                        if model.id == vm.models.last?.id {
-                            Task { await vm.loadMoreModels() }
-                        }
-                    }
                 }
 
                 if vm.models.count < vm.total || vm.isLoadingMore {

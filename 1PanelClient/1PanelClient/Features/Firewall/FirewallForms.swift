@@ -11,72 +11,70 @@ import UniformTypeIdentifiers
 
 // MARK: - 规则表单（创建 / 编辑；v2.3.0 统一模型）
 
+/// Web 端同款精简表单：策略 / 协议 / IP / 端口 / 描述（无源/目标之分，
+/// 无地址族选择——按 IP 是否含「:」自动判定；编辑态多一个优先级）
 struct FirewallRuleFormView: View {
     @ObservedObject var vm: FirewallViewModel
     /// 编辑模式的既有规则与操作键（创建时均为 nil）
     let editing: FirewallRule?
     let editingUUID: String?
+    /// 编辑中规则的链内当前位置（observed.locator.position；表单回显）
+    var editingPosition: Int? = nil
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var proto = "tcp"
-    @State private var sourceAddress = ""
-    @State private var sourcePort = ""
-    @State private var destAddress = ""
-    @State private var destPort = ""
+    /// 来源 IP / CIDR（留空 = 全部来源）
+    @State private var address = ""
+    @State private var port = ""
     @State private var action = "accept"
-    @State private var family = "ipv4"
     @State private var descriptionText = ""
-    /// 优先级（编辑态可选；抓包 2026-09-17：rules/update 支持 orderIndex 单改）
+    /// 优先级（编辑态可选；rules/update 支持 orderIndex 单改）
     @State private var priority = ""
+    /// 编辑保持原作用域的地址族（表单不再提供选择，仅随 IP 自动判定）
+    @State private var family = "ipv4"
     @State private var isSubmitting = false
 
-    /// 抓包 2026-09-17：Web 端创建仅 TCP/UDP/TCP-UDP/ALL 四档（ALL 不带端口）
+    /// Web 端创建仅 TCP/UDP/TCP-UDP/ALL 四档（ALL 不带端口）
     private static let protocols = ["tcp", "udp", "tcp/udp", "all"]
     private var isEdit: Bool { editing != nil }
 
     var body: some View {
         Form {
             Section {
+                OutlinedPicker(label: L10n.t("策略"), options: ["accept", "drop"],
+                               selection: $action,
+                               optionLabels: ["accept": L10n.t("允许"),
+                                              "drop": L10n.t("拒绝")])
                 OutlinedPicker(label: L10n.t("协议"), options: Self.protocols,
                                selection: $proto,
                                optionLabels: Dictionary(uniqueKeysWithValues:
                                    Self.protocols.map { ($0, $0.uppercased()) }))
-                if proto == "all" {
-                    // ALL 无端口概念（抓包：destinationPort 留空）
-                } else {
-                    OutlinedTextField(label: L10n.t("源地址"), prompt: "192.168.1.0/24",
-                                      text: $sourceAddress)
-                    OutlinedTextField(label: L10n.t("源端口"), prompt: "8000-8009",
-                                      text: $sourcePort, keyboardType: .numbersAndPunctuation)
-                    OutlinedTextField(label: L10n.t("目标地址"), prompt: "10.0.0.1",
-                                      text: $destAddress)
-                    OutlinedTextField(label: L10n.t("目标端口"), prompt: "80",
-                                      text: $destPort, keyboardType: .numbersAndPunctuation)
+                if proto != "all" {
+                    OutlinedTextField(label: L10n.t("端口"), prompt: "80 或 8000-8099",
+                                      text: $port, keyboardType: .numbersAndPunctuation)
+                    OutlinedTextField(label: "IP", prompt: "192.168.1.0/24",
+                                      text: $address)
                 }
-                OutlinedPicker(label: L10n.t("地址族"), options: ["ipv4", "ipv6"],
-                               selection: $family,
-                               optionLabels: ["ipv4": "IPv4", "ipv6": "IPv6"])
+                OutlinedTextField(label: L10n.t("描述"), prompt: L10n.t("可选"),
+                                  text: $descriptionText)
             } header: {
                 SectionLabel(title: L10n.t("规则内容"), systemImage: "shield")
             } footer: {
-                Text(L10n.t("源地址支持 CIDR（如 192.168.1.0/24）；端口支持 8000-8009 区间；留空源地址表示全部来源。"))
+                Text(L10n.t("端口支持 8000-8099 区间；IP 支持 IP 或 CIDR，留空表示全部来源。"))
             }
 
-            Section {
-                OutlinedPicker(label: L10n.t("策略"), options: ["accept", "drop", "reject"],
-                               selection: $action,
-                               optionLabels: ["accept": L10n.t("放行"),
-                                              "drop": L10n.t("拒绝"),
-                                              "reject": L10n.t("驳回")])
-                if isEdit {
-                    OutlinedTextField(label: L10n.t("优先级"), prompt: L10n.t("留空不变"),
+            if isEdit {
+                Section {
+                    OutlinedTextField(label: L10n.t("优先级"), prompt: priorityPrompt,
                                       text: $priority, keyboardType: .numberPad)
+                } header: {
+                    SectionLabel(title: L10n.t("优先级"), systemImage: "list.number")
+                } footer: {
+                    if !priorityPrompt.isEmpty {
+                        Text(L10n.f("可设置范围 %@，留空保持不变。", priorityPrompt))
+                    }
                 }
-                OutlinedTextField(label: L10n.t("备注"), prompt: L10n.t("可选"),
-                                  text: $descriptionText)
-            } header: {
-                SectionLabel(title: L10n.t("策略与备注"), systemImage: "slider.horizontal.3")
             }
         }
         .navigationTitle(isEdit ? L10n.t("编辑规则") : L10n.t("创建规则"))
@@ -99,24 +97,33 @@ struct FirewallRuleFormView: View {
         .onAppear { fillIfEditing() }
     }
 
+    /// 优先级可设范围提示（ipvxRange；如「1 ～ 4」），未知时不提示
+    private var priorityPrompt: String {
+        guard let range = vm.positionRange(family: family),
+              let min = range.min, let max = range.max else { return "" }
+        return "\(min) ～ \(max)"
+    }
+
     private var canSubmit: Bool {
         if proto == "all" { return true }
-        // 端口规则：目标端口必填；纯 IP 规则：源地址必填
-        return !destPort.trimmingCharacters(in: .whitespaces).isEmpty
-            || !sourceAddress.trimmingCharacters(in: .whitespaces).isEmpty
+        // 端口规则：端口必填；纯 IP 规则：IP 必填
+        return !port.trimmingCharacters(in: .whitespaces).isEmpty
+            || !address.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private func fillIfEditing() {
-        guard let rule = editing, sourceAddress.isEmpty, destPort.isEmpty else { return }
+        guard let rule = editing, port.isEmpty, address.isEmpty else { return }
         proto = rule.protocolField ?? "tcp"
-        sourceAddress = rule.sourceAddress ?? ""
-        sourcePort = rule.sourcePort ?? ""
-        destAddress = rule.destinationAddress ?? ""
-        destPort = rule.destinationPort ?? ""
-        action = rule.action ?? "accept"
-        family = rule.scope?.family == "ipv6" ? "ipv6" : (rule.scope?.family == "inet" ? "ipv4" : (rule.scope?.family ?? "ipv4"))
+        address = rule.sourceAddress ?? ""
+        port = rule.destinationPort ?? ""
+        action = (rule.action == "drop" || rule.action == "reject") ? "drop" : "accept"
         descriptionText = rule.descriptionText ?? ""
-        if let idx = rule.orderIndex {
+        family = rule.scope?.family == "ipv6" ? "ipv6"
+            : (rule.scope?.family == "inet" ? "ipv4" : (rule.scope?.family ?? "ipv4"))
+        // 当前优先级：链内位置优先，缺失回落规则自带 orderIndex
+        if let position = editingPosition {
+            priority = String(position)
+        } else if let idx = rule.orderIndex {
             priority = String(idx)
         }
     }
@@ -125,9 +132,9 @@ struct FirewallRuleFormView: View {
         isSubmitting = true
         defer { isSubmitting = false }
 
+        // 地址族自动判定：IPv6 字面量含「:」，否则维持原族（默认 ipv4）
         var effectiveFamily = family
-        if !sourceAddress.isEmpty, sourceAddress.contains(":") { effectiveFamily = "ipv6" }
-        if !destAddress.isEmpty, destAddress.contains(":") { effectiveFamily = "ipv6" }
+        if !address.isEmpty, address.contains(":") { effectiveFamily = "ipv6" }
 
         var scope = FirewallViewModel.scopeForCreate(
             backend: vm.systemStatus?.backend, family: effectiveFamily)
@@ -141,10 +148,8 @@ struct FirewallRuleFormView: View {
         rule.scope = scope
         rule.nativeKind = editing?.nativeKind ?? "rule"
         rule.protocolField = proto
-        rule.sourceAddress = sourceAddress.trimmingCharacters(in: .whitespaces)
-        rule.sourcePort = sourcePort.trimmingCharacters(in: .whitespaces)
-        rule.destinationAddress = destAddress.trimmingCharacters(in: .whitespaces)
-        rule.destinationPort = destPort.trimmingCharacters(in: .whitespaces)
+        rule.sourceAddress = address.trimmingCharacters(in: .whitespaces)
+        rule.destinationPort = port.trimmingCharacters(in: .whitespaces)
         rule.action = action
         rule.descriptionText = descriptionText
         let trimmedPriority = priority.trimmingCharacters(in: .whitespaces)
@@ -287,13 +292,9 @@ struct FirewallWhitelistView: View {
 
     private var isDirty: Bool { entries != original }
 
-    private var ipv4Entries: [FirewallPortWhitelistEntry] { entries.filter { $0.family != "ipv6" } }
-    private var ipv6Entries: [FirewallPortWhitelistEntry] { entries.filter { $0.family == "ipv6" } }
-
     var body: some View {
         Form {
-            familySection("IPv4", items: ipv4Entries, footer: false)
-            familySection("IPv6", items: ipv6Entries, footer: true)
+            whitelistSection
         }
         .navigationTitle(L10n.t("面板端口白名单"))
         .navigationBarTitleDisplayMode(.inline)
@@ -323,14 +324,14 @@ struct FirewallWhitelistView: View {
                 }
             }
         }
-        .sheet(isPresented: $showEntryForm) {
+        // 条目表单以 push 进入（不再 sheet）
+        .navigationDestination(isPresented: $showEntryForm) {
             FirewallWhitelistEntryFormView(
+                vm: vm,
                 editing: editingID.flatMap { id in entries.first { $0.id == id } }
             ) { result in
                 applyResult(result)
             }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
         }
         // 长按行：半屏操作弹窗（编辑/删除，与规则/转发行一致；添加走右上角 ＋，
         // 删除为本地标记，随右上角「保存」按 diff 提交）
@@ -375,53 +376,60 @@ struct FirewallWhitelistView: View {
         }
     }
 
-    /// 按 IP 版本分组的列表（行内不带地址族后缀）；长按行弹 编辑 / 添加 菜单
-    private func familySection(_ title: String, items: [FirewallPortWhitelistEntry],
-                               footer: Bool) -> some View {
+    /// 白名单列表（不分 IPv4/IPv6——来源已含 v4/v6；行尾显示允许来源）
+    private var whitelistSection: some View {
         Section {
-            if items.isEmpty {
+            if entries.isEmpty {
                 Text(L10n.t("未设置"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(items) { entry in
-                    HStack {
-                        Text(entry.display)
-                            .font(.dataMonospacedBody)
-                        Spacer()
-                    }
-                    .contentShape(Rectangle())
-                    // 长按弹半屏操作菜单（编辑/删除/添加）
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                            Haptic.selection()
-                            actionEntry = entry
-                        }
-                    )
-                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
-                    .accessibilityAction(named: L10n.t("更多操作")) {
-                        actionEntry = entry
-                    }
+                ForEach(entries) { entry in
+                    entryRow(entry)
                 }
             }
-        } header: {
-            Text(title)
         } footer: {
-            if footer {
-                Text(L10n.t("支持 IPv4/IPv6、TCP/UDP、单端口及 8000-8100 格式的端口范围；保存为全量覆盖。"))
-            }
+            Text(L10n.t("支持 TCP/UDP、单端口及 8000-8100 格式的端口范围；保存为全量覆盖。"))
         }
     }
 
-    /// 编辑/添加结果落库：按原 id 替换或追加（表单只改 family/协议/端口，
-    /// 替换时保留上游扩展字段 type/sources，避免误判为变更多发 update）
+    private func entryRow(_ entry: FirewallPortWhitelistEntry) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 8) {
+                Text(entry.display)
+                    .font(.dataMonospacedBody)
+                if let label = entry.typeLabel {
+                    StatusBadge(text: label, color: .blue)
+                }
+                Spacer()
+            }
+            if let sources = entry.sources, !sources.isEmpty {
+                Text(L10n.f("允许来源：%@", sources.joined(separator: ", ")))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        }
+        .contentShape(Rectangle())
+        // 长按弹半屏操作菜单（编辑/删除/添加）
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                Haptic.selection()
+                actionEntry = entry
+            }
+        )
+        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+        .accessibilityAction(named: L10n.t("更多操作")) {
+            actionEntry = entry
+        }
+    }
+
+    /// 编辑/添加结果落库：按原 id 替换或追加（类型与来源均随表单结果，
+    /// 其他扩展字段以表单产出为准）
     private func applyResult(_ result: FirewallPortWhitelistEntry) {
         if let id = editingID,
            let idx = entries.firstIndex(where: { $0.id == id }) {
-            var merged = result
-            merged.type = entries[idx].type
-            merged.sources = entries[idx].sources
-            entries[idx] = merged
+            entries[idx] = result
         } else {
             entries.append(result)
         }
@@ -441,60 +449,94 @@ struct FirewallWhitelistView: View {
     }
 }
 
-// MARK: - 端口白名单条目表单（编辑 / 添加）
+// MARK: - 端口白名单条目表单（编辑 / 添加；push 进入）
 
-/// IP 版本 / 协议（形态 3）+ 端口范围（形态 1）
+/// 类型 / 协议（形态 3）+ 端口范围（形态 1，类型联动自动填端口）+
+/// 允许来源（形态 7.1，默认 0.0.0.0/0, ::/0）
 struct FirewallWhitelistEntryFormView: View {
+    @ObservedObject var vm: FirewallViewModel
     /// nil = 添加
     let editing: FirewallPortWhitelistEntry?
     let onSave: (FirewallPortWhitelistEntry) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var family = "ipv4"
+    /// "" = 其他 / "ssh" / "panel"
+    @State private var type = ""
     @State private var proto = "tcp"
     @State private var port = ""
+    @State private var sourcesText = "0.0.0.0/0, ::/0"
+
+    private static let typeOptions = ["", "ssh", "panel"]
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    OutlinedPicker(label: L10n.t("IP版本"), options: ["ipv4", "ipv6"],
-                                   selection: $family,
-                                   optionLabels: ["ipv4": "IPv4", "ipv6": "IPv6"])
-                    OutlinedPicker(label: L10n.t("协议"), options: ["tcp", "udp"],
-                                   selection: $proto,
-                                   optionLabels: ["tcp": "TCP", "udp": "UDP"])
-                    OutlinedTextField(label: L10n.t("端口范围"), prompt: "8080 或 8000-8100",
-                                      text: $port, keyboardType: .numbersAndPunctuation)
-                } footer: {
-                    Text(L10n.t("支持单端口及 8000-8100 格式的端口范围"))
-                }
+        Form {
+            Section {
+                OutlinedPicker(label: L10n.t("类型"), options: Self.typeOptions,
+                               selection: $type,
+                               optionLabels: ["": L10n.t("其他"),
+                                              "ssh": "SSH",
+                                              "panel": "1Panel"])
+                    .disabled(editing != nil)
+                OutlinedPicker(label: L10n.t("协议"), options: ["tcp", "udp"],
+                               selection: $proto,
+                               optionLabels: ["tcp": "TCP", "udp": "UDP"])
+                OutlinedTextField(label: L10n.t("端口范围"), prompt: "80 或 8000-8100",
+                                  text: $port, keyboardType: .numbersAndPunctuation)
+            } footer: {
+                Text(L10n.t("支持单个端口（如 80）或端口范围（如 8000-8100），端口取值为 1-65535。"))
             }
-            .navigationTitle(editing == nil ? L10n.t("添加") : L10n.t("编辑"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("保存")) {
-                        onSave(FirewallPortWhitelistEntry(
-                            family: family,
-                            protocolField: proto,
-                            port: port.trimmingCharacters(in: .whitespaces)))
-                        dismiss()
-                    }
-                    .disabled(port.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
-            .onAppear {
-                if let e = editing {
-                    family = e.family
-                    proto = e.protocolField
-                    port = e.port
-                }
+
+            Section {
+                OutlinedMultiLineField(label: L10n.t("允许来源"), prompt: "0.0.0.0/0, ::/0",
+                                       lines: 2, text: $sourcesText)
+            } footer: {
+                Text(L10n.t("支持 IP 或 CIDR，多个以逗号或换行分隔。留空默认允许所有 IPv4 和 IPv6 来源。"))
             }
         }
+        .navigationTitle(editing == nil ? L10n.t("添加") : L10n.t("编辑"))
+        .navigationBarTitleDisplayMode(.inline)
+        .formWidthLimit()
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button(L10n.t("保存")) {
+                    onSave(FirewallPortWhitelistEntry(
+                        protocolField: proto,
+                        port: port.trimmingCharacters(in: .whitespaces),
+                        type: type.isEmpty ? nil : type,
+                        sources: sourceLines))
+                    dismiss()
+                }
+                .disabled(port.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .onChange(of: type) { _, newType in
+            // SSH / 1Panel 端口跟随面板设置自动填入（端口框同步锁定）
+            switch newType {
+            case "ssh":
+                if let p = vm.settings?.sshPort, !p.isEmpty { port = p }
+            case "panel":
+                if let p = vm.settings?.panelPort, !p.isEmpty { port = p }
+            default: break
+            }
+        }
+        .onAppear {
+            if let e = editing {
+                type = e.type ?? ""
+                proto = e.protocolField
+                port = e.port
+                let stored = (e.sources ?? []).filter { !$0.isEmpty }
+                sourcesText = stored.isEmpty ? "0.0.0.0/0, ::/0" : stored.joined(separator: "\n")
+            }
+        }
+    }
+
+    /// 允许来源原文 → 数组（逗号/换行分隔；空值回落默认全放行）
+    private var sourceLines: [String] {
+        let lines = sourcesText
+            .split(whereSeparator: { $0 == "," || $0.isNewline })
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        return lines.isEmpty ? ["0.0.0.0/0", "::/0"] : lines
     }
 }
 
@@ -515,10 +557,11 @@ struct FirewallSyncPreviewView: View {
             Form {
                 if let p = preview {
                     Section {
+                        statRow(L10n.t("数据库规则"), p.total ?? 0, color: .blue)
                         statRow(L10n.t("可同步"), p.ready ?? 0, color: .statusRunning)
-                        statRow(L10n.t("已一致"), p.existing ?? 0, color: .secondary)
-                        statRow(L10n.t("将移除"), p.removed ?? 0, color: .statusError)
-                        statRow(L10n.t("受阻"), p.blocked ?? 0, color: .semanticWarning)
+                        statRow(L10n.t("已存在"), p.existing ?? 0, color: .secondary)
+                        statRow(L10n.t("待删除"), p.removed ?? 0, color: .statusError)
+                        statRow(L10n.t("不可同步"), p.blocked ?? 0, color: .semanticWarning)
                     } header: {
                         SectionLabel(title: L10n.t("同步预览"), systemImage: "arrow.triangle.2.circlepath")
                     }
@@ -639,16 +682,14 @@ struct DockerPolicyFormView: View {
                                    selection: $mode,
                                    optionLabels: Dictionary(uniqueKeysWithValues:
                                        modeOptions.map { ($0.0, $0.1) }))
-                    if mode != "deny_all" {
-                        OutlinedMultiLineField(label: L10n.t("来源"), prompt: "172.29.0.0/24",
-                                               lines: 1, text: $sourcesText)
-                    }
+                    OutlinedMultiLineField(label: L10n.t("来源"), prompt: "172.29.0.0/24",
+                                           lines: 1, text: $sourcesText)
                     OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"),
                                            lines: 1, text: $descriptionText)
                 } header: {
                     SectionLabel(title: L10n.t("防护策略"), systemImage: "shield.lefthalf.filled")
                 } footer: {
-                    Text(L10n.t("禁止指定来源：拦截列出的来源；仅允许指定来源：只放行列出的来源；禁止所有访问：拦截全部访问。"))
+                    Text(L10n.t("禁止指定来源：拦截列出的来源；仅允许指定来源：只放行列出的来源；禁止所有访问：拦截全部来源（0.0.0.0/0 与 ::/0）。"))
                 }
             }
             .navigationTitle(L10n.t("设置端口防护"))
@@ -687,24 +728,39 @@ struct DockerPolicyFormView: View {
             .filter { !$0.isEmpty }
     }
 
+    /// 禁止所有访问的固定来源（v4/v6 全量；服务端按此存储，回显同值）
+    private static let denyAllSourcesText = "0.0.0.0/0\n::/0"
+
     private func fill() {
         if let m = endpoint.mode, !m.isEmpty {
             mode = m
         }
-        sourcesText = (endpoint.sources ?? []).filter { !$0.isEmpty }.joined(separator: "\n")
+        let stored = (endpoint.sources ?? []).filter { !$0.isEmpty }
+        if stored.isEmpty && (endpoint.mode ?? "deny_all") == "deny_all" {
+            sourcesText = Self.denyAllSourcesText
+        } else {
+            sourcesText = stored.joined(separator: "\n")
+        }
         descriptionText = endpoint.descriptionText ?? ""
     }
 
     private func submit() async {
         isSubmitting = true
         defer { isSubmitting = false }
+        // deny_all 且未改动时按固定来源提交（与 Web 端一致），避免落库空数组
+        let sources: [String]
+        if mode == "deny_all" && sourceLines.isEmpty {
+            sources = ["0.0.0.0/0", "::/0"]
+        } else {
+            sources = sourceLines
+        }
         let policy = DockerGuardPolicy(
             family: endpoint.family ?? "ipv4",
             hostIP: endpoint.hostIP ?? "0.0.0.0",
             hostPort: endpoint.hostPort ?? 0,
             protocolField: endpoint.protocolField ?? "tcp",
             mode: mode,
-            sources: mode == "deny_all" ? [] : sourceLines,
+            sources: sources,
             descriptionText: descriptionText
         )
         if await vm.upsertDockerPolicy(policy) {

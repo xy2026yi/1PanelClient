@@ -39,6 +39,12 @@ struct AIAgentQQChannelView: View {
     private var isOpenClaw: Bool { agentType == "openclaw" }
     /// Hermes 网页端频道无启用开关（核对隐藏），保存恒传 enabled:true（抓包确认）
     private var isHermes: Bool { agentType == "hermes-agent" }
+    /// 已配置（快照里任一 Bot 凭证非空）才显示删除入口；未配置只有保存
+    private var isConfigured: Bool {
+        (savedC.bots ?? []).contains {
+            !($0.appId ?? "").isEmpty || !($0.clientSecret ?? "").isEmpty
+        }
+    }
 
     init(server: ServerConfig, agentId: Int, agentType: String? = nil) {
         self.server = server
@@ -117,7 +123,8 @@ struct AIAgentQQChannelView: View {
         .task { await load() }
         .refreshable { await load() }
         .modifier(HermesChannelDeleteModifier(
-            client: client, agentId: agentId, type: "qqbot", isEnabled: isHermes))
+            client: client, agentId: agentId, type: "qqbot",
+            isEnabled: isHermes && isConfigured))
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {

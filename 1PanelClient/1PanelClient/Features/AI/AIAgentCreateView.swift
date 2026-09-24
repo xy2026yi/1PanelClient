@@ -316,9 +316,21 @@ struct AIAgentCreateView: View {
         agentType.key == "openclaw" || agentType.key == "hermes-agent"
     }
 
+    /// 各类型的 WebUI 默认端口（切换类型时用于判断当前值是否仍为默认、可重置）：
+    /// OpenClaw 18789 / Hermes 9119 / QwenPaw 8088
+    private static let knownDefaultPorts: Set<String> = ["18789", "9119", "8088"]
+
+    /// 当前类型的 WebUI 默认端口（输入框提示）
+    private var webUIDefaultPort: String {
+        if agentType.usesToken { return "18789" }
+        if agentType.key == "hermes-agent" { return "9119" }
+        if agentType.key == "copaw" { return "8088" }
+        return ""
+    }
+
     private var webUISection: some View {
         Section {
-            OutlinedTextField(label: "WebUI " + L10n.t("端口"), prompt: "18789",
+            OutlinedTextField(label: "WebUI " + L10n.t("端口"), prompt: webUIDefaultPort,
                               text: $webUIPort, keyboardType: .numberPad)
 
             if agentType.usesToken {
@@ -459,7 +471,9 @@ struct AIAgentCreateView: View {
             password = PasswordInputRow.randomPassword()
             if key == "hermes-agent" {
                 webUIPort = "9119"
-            } else if webUIPort == "18789" || webUIPort == "9119" || webUIPort.isEmpty {
+            } else if key == "copaw" {
+                webUIPort = "8088"
+            } else if Self.knownDefaultPorts.contains(webUIPort) || webUIPort.isEmpty {
                 webUIPort = ""
             }
             allowedOrigin = ""

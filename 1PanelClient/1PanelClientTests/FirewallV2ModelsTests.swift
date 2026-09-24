@@ -209,9 +209,9 @@ struct FirewallV2CaptureRegressionTests {
         #expect(text.contains(#""targetPort":"21""#))
     }
 
-    @Test("白名单 v2.3.1 数组形态：解码缺省 family/protocol，提交编码不含 family（上游 json:\"-\"）")
+    @Test("白名单 v2.3.1 数组形态：解码缺省 protocol，提交编码不含本地扩展字段")
     func whitelistArrayFormat() throws {
-        // v2.3.1 线上形态：对象数组（无 family 字段）
+        // v2.3.1 线上形态：对象数组（无地址族维度，v4/v6 由 sources 覆盖）
         let json = #"[{"port":"8444","protocol":"tcp","type":"port","sources":[]},{"port":"22"},{"port":"443","protocol":"udp"}]"#
         let entries = try JSONDecoder().decode([FirewallPortWhitelistEntry].self, from: Data(json.utf8))
         #expect(entries.count == 3)
@@ -219,15 +219,17 @@ struct FirewallV2CaptureRegressionTests {
         #expect(entries[0].type == "port")
         #expect(entries[0].sources == [])
         #expect(entries[1].protocolField == "tcp")   // 缺省 tcp
-        #expect(entries[1].family == "ipv4")          // 上游不序列化，解码缺省
         #expect(entries[2].protocolField == "udp")
+        // 同端口同协议不同类型的条目 id 不冲突（列表 ForEach 唯一键）
+        let ssh = FirewallPortWhitelistEntry(protocolField: "tcp", port: "22", type: "ssh")
+        #expect(entries[1].id != ssh.id)
+        #expect(ssh.typeLabel == "SSH")
 
-        // 提交编码（create/update 请求体里的 rule）：不带 family，与上游一致
+        // 提交编码（create/update 请求体里的 rule）：不带本地扩展，与上游一致
         let data = try JSONEncoder().encode(FirewallWhitelistRuleRequest(rule: entries[0]))
         let text = String(decoding: data, as: UTF8.self)
         #expect(text.contains(#""port":"8444""#))
         #expect(text.contains(#""protocol":"tcp""#))
-        #expect(!text.contains("family"))
     }
 
     @Test("设置真实样本（三组后端 + guard_chain_missing reason）")

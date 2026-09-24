@@ -422,7 +422,7 @@ struct SupervisorView: View {
             }
 
             NavigationLink {
-                ScriptLibraryView(server: server)
+                ToolboxScriptInstallView(server: server, keyword: "supervisor", title: "Supervisor")
             } label: {
                 Label(L10n.f("安装 %@", "Supervisor"), systemImage: "arrow.down.circle.fill")
                     .frame(maxWidth: .infinity)
@@ -533,19 +533,12 @@ struct SupervisorView: View {
                 }
             } else {
                 ForEach(vm.processes) { process in
-                    Button {
-                        editingProcess = process
-                    } label: {
-                        SupervisorProcessRow(process: process)
-                    }
-                    .buttonStyle(.plain)
-                    // 行级操作收进长按菜单；simultaneousGesture 与点击进入共存
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                            Haptic.selection()
-                            actionProcess = process
-                        }
-                    )
+                    SupervisorProcessRow(process: process)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        // 行级操作收进长按菜单；长按松手不触发点击进入
+                        .rowTapAndLongPress(
+                            onTap: { editingProcess = process },
+                            onLongPress: { actionProcess = process })
                 }
             }
         } header: {

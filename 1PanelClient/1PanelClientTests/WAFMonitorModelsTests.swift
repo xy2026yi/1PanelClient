@@ -16,6 +16,27 @@ struct WAFMonitorModelTests {
         #expect(WAFStatDayItem(day: "2026-08-15", reqCount: 1, attackCount: 0).shortDay == "08-15")
     }
 
+    @Test("WAFCommonRuleItem：同名条目（抓包 000004×2）id 不冲突，开关/内容各自独立")
+    func commonRuleDuplicateNameIdentity() throws {
+        // 抓包 2026-09-24 网站设置-参数规则：同一 type 下两条同名 000004，
+        // 仅按 name 作 id 会 ForEach 冲突——java\.lang 行串显为 etc/passwd
+        let json = #"""
+        [
+          {"name":"000004","state":"on","rule":"(?:etc\\/\\W*passwd)","type":"dirFilter","description":""},
+          {"name":"000004","state":"off","rule":"java\\.lang","type":"dirFilter","description":""}
+        ]
+        """#
+        let items = try JSONDecoder().decode([WAFCommonRuleItem].self, from: Data(json.utf8))
+        #expect(items.count == 2)
+        #expect(items[0].rule == "(?:etc\\/\\W*passwd)")
+        #expect(items[1].rule == "java\\.lang")
+        #expect(items[0].id != items[1].id)
+        // name 为空的内置规则同样按内容区分
+        let builtin = try JSONDecoder().decode([WAFCommonRuleItem].self, from: Data(
+            #"[{"name":"","state":"on","rule":"a\\.b"},{"name":"","state":"off","rule":"c\\.d"}]"#.utf8))
+        #expect(builtin[0].id != builtin[1].id)
+    }
+
     @Test("WAFTime.short：纳秒/毫秒/无小数 ISO 均解出 MM-dd HH:mm:ss，非法串原样返回")
     func timeShort() {
         let pattern = "^\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"

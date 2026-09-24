@@ -231,35 +231,27 @@ struct GroupManageView: View {
         }
     }
 
-    /// 分组行：单击直达重命名，长按弹操作菜单（重命名 / 设为默认 / 删除）
+    /// 分组行：单击直达重命名，长按弹操作菜单（重命名 / 设为默认 / 删除）；
+    /// 长按松手不触发单击
     private func groupRow(_ group: PanelGroup) -> some View {
-        Button {
-            renamingGroup = group
-        } label: {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(group.displayName)
-                        .font(.body.bold())
-                        .foregroundStyle(.primary)
-                    if group.isDefault == true {
-                        StatusBadge(text: L10n.t("默认"), color: .blue, icon: "star.fill")
-                    }
-                }
-                Spacer()
-                if vm.operatingGroupID == group.id {
-                    ProgressView()
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(group.displayName)
+                    .font(.body.bold())
+                    .foregroundStyle(.primary)
+                if group.isDefault == true {
+                    StatusBadge(text: L10n.t("默认"), color: .blue, icon: "star.fill")
                 }
             }
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
+            Spacer()
+            if vm.operatingGroupID == group.id {
+                ProgressView()
+            }
         }
-        .buttonStyle(.plain)
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                Haptic.selection()
-                actionGroup = group
-            }
-        )
+        .padding(.vertical, 4)
+        .rowTapAndLongPress(
+            onTap: { renamingGroup = group },
+            onLongPress: { actionGroup = group })
     }
 
     /// 操作菜单项：默认组不可设默认/删除，仅可重命名

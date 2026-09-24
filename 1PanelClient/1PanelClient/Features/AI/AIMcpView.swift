@@ -353,24 +353,16 @@ struct AIMcpView: View {
         List {
             Section {
                 ForEach(vm.servers) { s in
-                    Button {
-                        editingServer = s
-                    } label: {
-                        McpServerRow(server: s)
-                    }
-                    .buttonStyle(.plain)
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                            Haptic.selection()
-                            actionServer = s
+                    McpServerRow(server: s)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .rowTapAndLongPress(
+                            onTap: { editingServer = s },
+                            onLongPress: { actionServer = s })
+                        .onAppear {
+                            if s.id == vm.servers.last?.id {
+                                Task { await vm.loadMore() }
+                            }
                         }
-                    )
-                    .onAppear {
-                        if s.id == vm.servers.last?.id {
-                            Task { await vm.loadMore(name: searchText) }
-                        }
-                    }
                 }
 
                 if vm.servers.count < vm.total || vm.isLoadingMore {

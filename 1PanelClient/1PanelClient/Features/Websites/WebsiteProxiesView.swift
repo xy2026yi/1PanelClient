@@ -157,17 +157,11 @@ struct WebsiteProxiesView: View {
                     }
                 }
                 .padding(.vertical, 2)
-                .contentShape(Rectangle())
                 // 单击直达编辑（与负载均衡/脚本库一致），长按弹半屏操作菜单
-                .onTapGesture {
-                    editingProxy = p
-                }
-                .simultaneousGesture(
-                    LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                        Haptic.selection()
-                        actionProxy = p
-                    }
-                )
+                // （长按松手不触发单击）
+                .rowTapAndLongPress(
+                    onTap: { editingProxy = p },
+                    onLongPress: { actionProxy = p })
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         pendingDeleteProxy = p

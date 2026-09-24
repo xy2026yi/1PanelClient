@@ -183,6 +183,8 @@ nonisolated struct FirewallInventoryItem: Decodable, Identifiable, Sendable {
         guard let u = desired?.uuid ?? rule?.uuid, !u.isEmpty else { return nil }
         return u
     }
+    /// 系统保护规则（服务端保护面板自身）：不可编辑/删除
+    var isProtected: Bool { state == "protected" }
 }
 
 nonisolated struct FirewallPositionRange: Decodable, Sendable {
@@ -520,22 +522,19 @@ nonisolated struct FirewallBackendOperationRequest: Encodable, Sendable {
 
 // MARK: - 端口白名单条目（v2.3.1 上游 filter.PortWhitelist）
 
-/// 白名单条目：上游 {port, protocol, type, sources}；Family 在上游 json:"-"
-/// 不上线（App 侧缺省 ipv4，仅用于本地分组展示），提交时不序列化。
+/// 白名单条目：上游 {port, protocol, type, sources}；无地址族维度
+/// （sources 内 0.0.0.0/0 与 ::/0 已同时覆盖 v4/v6，App 不再分组展示）。
 /// 旧版本误按「逗号串 / JSON 数组字符串」建 String 模型，与线上数组类型
 /// 不匹配导致信封解码失败→裸解码回退→全字段 nil 的空对象（白名单恒 0）
 nonisolated struct FirewallPortWhitelistEntry: Codable, Equatable, Identifiable, Sendable {
-    /// 本地展示用地址族（上游不序列化；解码缺省 ipv4）
-    var family: String
     var protocolField: String
     var port: String
-    /// 上游附加维度（类型/来源），App 目前仅回显，编辑表单不涉及
+    /// 条目类型：ssh / panel；其他（用户自建）不序列化
     var type: String?
     var sources: [String]?
 
-    init(family: String = "ipv4", protocolField: String = "tcp", port: String,
+    init(protocolField: String = "tcp", port: String,
          type: String? = nil, sources: [String]? = nil) {
-        self.family = family
         self.protocolField = protocolField
         self.port = port
         self.type = type
@@ -550,7 +549,6 @@ nonisolated struct FirewallPortWhitelistEntry: Codable, Equatable, Identifiable,
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        family = "ipv4"
         protocolField = try c.decodeIfPresent(String.self, forKey: .protocolField) ?? "tcp"
         port = try c.decodeIfPresent(String.self, forKey: .port) ?? ""
         type = try c.decodeIfPresent(String.self, forKey: .type)
@@ -565,12 +563,21 @@ nonisolated struct FirewallPortWhitelistEntry: Codable, Equatable, Identifiable,
         try c.encodeIfPresent(sources, forKey: .sources)
     }
 
-    var id: String { "\(family)|\(protocolField)|\(port)" }
+    var id: String { "\(type ?? "")|\(protocolField)|\(port)" }
 
     /// 展示文本（80/tcp，不带地址族后缀）
     var display: String {
         let proto = protocolField.isEmpty ? "" : "/\(protocolField)"
         return "\(port)\(proto)"
+    }
+
+    /// 类型徽标（ssh / panel；其他为 nil）
+    var typeLabel: String? {
+        switch type {
+        case "ssh": return "SSH"
+        case "panel": return "1Panel"
+        default: return nil
+        }
     }
 }
 
@@ -619,7 +626,7 @@ nonisolated struct DockerGuardBase: Decodable, Sendable {
 }
 
 /// Docker 发布端口的一个守护点（hostIP:hostPort/protocol → container）
-nonisolated struct DockerGuardEndpoint: Decodable, Identifiable, Sendable {
+nonisolated struct DockerGuardEndpoint: Decodable, Identifiable, Hashable, Sendable {
     let family: String?
     let hostIP: String?
     let hostPort: Int?
@@ -654,7 +661,7 @@ nonisolated struct DockerGuardEndpoint: Decodable, Identifiable, Sendable {
     var id: String { policyUUID ?? "\(family ?? "")|\(hostIP ?? "")|\(hostPort ?? 0)|\(protocolField ?? "")|\(containerID ?? "")" }
 }
 
-nonisolated struct DockerGuardPortGroup: Decodable, Identifiable, Sendable {
+nonisolated struct DockerGuardPortGroup: Decodable, Identifiable, Hashable, Sendable {
     let key: String?
     let label: String?
     let endpoint: DockerGuardEndpoint?
@@ -663,7 +670,7 @@ nonisolated struct DockerGuardPortGroup: Decodable, Identifiable, Sendable {
     var id: String { key ?? endpoint?.id ?? UUID().uuidString }
 }
 
-nonisolated struct DockerGuardContainer: Decodable, Identifiable, Sendable {
+nonisolated struct DockerGuardContainer: Decodable, Identifiable, Hashable, Sendable {
     let key: String?
     let name: String?
     let compose: String?

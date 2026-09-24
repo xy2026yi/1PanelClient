@@ -53,6 +53,10 @@ struct AIAgentTelegramChannelView: View {
     private var isHermes: Bool { agentType == "hermes-agent" }
     /// OpenClaw：内置连接器（plugin/check 的 Type oneof 不含本类型，无插件区）；网页核对无群聊需@机器人
     private var isOpenClaw: Bool { agentType == "openclaw" }
+    /// 已配置（快照里任一 Bot Token 非空）才显示删除入口；未配置只有保存
+    private var isConfigured: Bool {
+        (savedC.bots ?? []).contains { !($0.botToken ?? "").isEmpty }
+    }
 
     /// 批准配对携带的账户：defaultAccount 空串（基础版 get）回退默认 Bot；
     /// 基础类型抓包 approve 不携带 accountId，仅 OpenClaw 传
@@ -157,7 +161,8 @@ struct AIAgentTelegramChannelView: View {
         .task { await load() }
         .refreshable { await load() }
         .modifier(HermesChannelDeleteModifier(
-            client: client, agentId: agentId, type: "telegram", isEnabled: isHermes))
+            client: client, agentId: agentId, type: "telegram",
+            isEnabled: isHermes && isConfigured))
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {

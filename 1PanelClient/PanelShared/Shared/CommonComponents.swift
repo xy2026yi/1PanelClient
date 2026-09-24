@@ -842,3 +842,51 @@ extension View {
         modifier(AdaptiveMenuSizingModifier())
     }
 }
+
+// MARK: - 行单击/长按互斥手势
+
+/// 行交互手势：单击与长按互不误触（全站统一口径）。
+/// Button/NavigationLink 在触摸抬起时仍会激活——长按触发半屏菜单后松手，
+/// 菜单之上会再叠一次点击进入（导航/编辑），表现为误触。这里统一改为
+/// tap 手势 + 抑制标记：长按触发后吞掉紧随的松手 tap；标记 0.6 秒自愈
+/// （松手未产生 tap 时复位），避免吞掉下一次正常点击。
+struct RowTapLongPressModifier: ViewModifier {
+    var onTap: () -> Void
+    var onLongPress: () -> Void
+    /// 长按触发时是否带 selection 触觉（默认带，与全站长按菜单一致）
+    var longPressHaptic: Bool = true
+
+    @State private var suppressNextTap = false
+
+    func body(content: Content) -> some View {
+        content
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard !suppressNextTap else {
+                    suppressNextTap = false
+                    return
+                }
+                onTap()
+            }
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                    if longPressHaptic { Haptic.selection() }
+                    suppressNextTap = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        if suppressNextTap { suppressNextTap = false }
+                    }
+                    onLongPress()
+                }
+            )
+    }
+}
+
+extension View {
+    /// 行单击 + 长按（长按后松手不触发单击；见 RowTapLongPressModifier）
+    func rowTapAndLongPress(onTap: @escaping () -> Void,
+                            onLongPress: @escaping () -> Void,
+                            longPressHaptic: Bool = true) -> some View {
+        modifier(RowTapLongPressModifier(onTap: onTap, onLongPress: onLongPress,
+                                         longPressHaptic: longPressHaptic))
+    }
+}

@@ -26,6 +26,8 @@ struct CronjobsTab: View {
     @State private var exportPreselect: Set<Int>? = nil
     /// 行长按操作菜单（立即执行/停启用/编辑/导出/删除）
     @State private var actionJob: Cronjob?
+    /// 点击行编程式推入的详情页目标
+    @State private var pushedJob: Cronjob?
     /// 长按菜单「编辑任务」：加载详情后推入编辑表单
     @State private var editingInfo: CronjobInfo?
     @State private var showEditView = false
@@ -144,6 +146,10 @@ struct CronjobsTab: View {
         .navigationDestination(for: Cronjob.self) { job in
             CronjobDetailView(job: job, vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
+        // 行点击进入任务详情（编程式推入；与上方 for 版共存，各自独立触发）
+        .navigationDestination(item: $pushedJob) { job in
+            CronjobDetailView(job: job, vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
+        }
         .navigationDestination(isPresented: $showCreate) {
             CreateCronjobView(vm: vm, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
         }
@@ -232,31 +238,29 @@ struct CronjobsTab: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(filteredCronjobs) { job in
-                    NavigationLink(value: job) {
-                        CronjobRow(job: job)
-                    }
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                            Haptic.selection()
-                            actionJob = job
-                        }
-                    )
-                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
-                    .accessibilityAction(named: L10n.t("更多操作")) { actionJob = job }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button {
-                            Task { await vm.handle(job: job) }
-                        } label: {
-                            Label(L10n.t("执行"), systemImage: "play.fill")
-                        }
-                        .tint(.blue)
+                    // tap 手势 + 编程式推入（原 NavigationLink(value:) + 长按共存，
+                    // 松手仍会误触导航进详情）
+                    CronjobRow(job: job)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .rowTapAndLongPress(
+                            onTap: { pushedJob = job },
+                            onLongPress: { actionJob = job })
+                        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                        .accessibilityAction(named: L10n.t("更多操作")) { actionJob = job }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button {
+                                Task { await vm.handle(job: job) }
+                            } label: {
+                                Label(L10n.t("执行"), systemImage: "play.fill")
+                            }
+                            .tint(.blue)
 
-                        Button(role: .destructive) {
-                            vm.pendingDeleteJob = job
-                        } label: {
-                            Label(L10n.t("删除"), systemImage: "trash")
+                            Button(role: .destructive) {
+                                vm.pendingDeleteJob = job
+                            } label: {
+                                Label(L10n.t("删除"), systemImage: "trash")
+                            }
                         }
-                    }
                 }
             }
         }

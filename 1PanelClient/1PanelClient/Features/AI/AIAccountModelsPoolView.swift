@@ -80,19 +80,11 @@ struct AIAccountModelsPoolView: View {
                     .listRowBackground(Color.clear)
                 } else {
                     ForEach(models) { model in
-                        Button {
-                            editingModel = model
-                        } label: {
-                            modelRow(model)
-                        }
-                        .buttonStyle(.plain)
-                        .contentShape(Rectangle())
-                        .simultaneousGesture(
-                            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                                Haptic.selection()
-                                actionModel = model
-                            }
-                        )
+                        modelRow(model)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .rowTapAndLongPress(
+                                onTap: { editingModel = model },
+                                onLongPress: { actionModel = model })
                     }
                 }
             } header: {

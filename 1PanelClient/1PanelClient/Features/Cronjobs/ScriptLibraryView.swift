@@ -211,6 +211,8 @@ struct ScriptLibraryView: View {
     @State private var actionScript: ScriptItem?
     /// 长按「编辑」推入的编辑页目标
     @State private var editingScript: ScriptItem?
+    /// 点击行编程式推入的详情页目标
+    @State private var pushedScript: ScriptItem?
 
     private let server: ServerConfig
 
@@ -369,6 +371,10 @@ struct ScriptLibraryView: View {
                 }
             }
         }
+        // 行点击进入脚本详情（编程式推入）
+        .navigationDestination(item: $pushedScript) { script in
+            ScriptDetailView(script: script, server: server)
+        }
         // 删除确认（系统脚本不可删，入口已隐藏；此处兜底再拦一道）
         .alert(L10n.t("删除脚本"), isPresented: Binding(
             get: { pendingDelete != nil },
@@ -450,23 +456,21 @@ struct ScriptLibraryView: View {
                     }
                     .buttonStyle(.plain)
                 } else {
-                    NavigationLink {
-                        ScriptDetailView(script: script, server: server)
-                    } label: {
-                        ScriptRow(script: script)
-                    }
-                    // 行级操作收进长按半屏菜单（编辑 / 删除；系统脚本仅可查看，
-                    // 不挂长按）。contentShape 保证整行（含空白区域）都是
-                    // 长按命中区，否则只有文字部分可长按；simultaneousGesture
-                    // 与点击进入共存
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                            guard script.isSystem != true else { return }
-                            Haptic.selection()
-                            actionScript = script
+                    // tap 手势 + 编程式推入（原 NavigationLink + 长按共存，松手仍会误触导航）。
+                    // 系统脚本仅可查看，不挂长按菜单（触觉随菜单出现才给）
+                    ScriptRow(script: script)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .rowTapAndLongPress(
+                            onTap: { pushedScript = script },
+                            onLongPress: {
+                                guard script.isSystem != true else { return }
+                                Haptic.selection()
+                                actionScript = script
+                            },
+                            longPressHaptic: false)
+                        .accessibilityAction(named: L10n.t("更多操作")) {
+                            if script.isSystem != true { actionScript = script }
                         }
-                    )
                 }
             }
         }
@@ -572,6 +576,106 @@ struct ScriptDetailView: View {
                 title: script.displayName
             )
         }
+    }
+}
+
+// MARK: - 工具箱安装脚本直达页
+
+/// 工具箱未安装页「安装 XX」直达：按关键词在脚本库定位安装脚本，命中后原地
+/// 呈现脚本详情（右上角安装按钮直接执行，省去先进列表再点行的一次点击）；
+/// 未命中/加载失败提供重试与进入脚本库手动查找的入口
+struct ToolboxScriptInstallView: View {
+    let server: ServerConfig
+    /// 名称匹配关键词（忽略大小写）：fail2ban / ftp / clam / supervisor
+    let keyword: String
+    /// 加载中/未找到时的占位标题（如 Fail2ban）
+    var title: String = ""
+
+    @State private var script: ScriptItem?
+    @State private var isLoading = true
+    @State private var loadError: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, keyword: String, title: String = "") {
+        self.server = server
+        self.keyword = keyword
+        self.title = title
+        self.client = APIClient.shared(for: server)
+    }
+
+    var body: some View {
+        Group {
+            if let script {
+                // 命中：直接呈现脚本详情（自带标题与右上角安装按钮）
+                ScriptDetailView(script: script, server: server)
+            } else if isLoading {
+                LoadingStateView()
+                    .navigationTitle(title)
+            } else {
+                notFoundView
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+    }
+
+    /// 未找到/加载失败：重试 + 进脚本库手动查找
+    private var notFoundView: some View {
+        ContentUnavailableView {
+            Label(L10n.f("未找到 %@ 的安装脚本", title), systemImage: "questionmark.circle")
+        } description: {
+            Text(loadError ?? L10n.t("脚本库中没有匹配的安装脚本，可先同步脚本库后重试。"))
+        } actions: {
+            Button(L10n.t("重试")) {
+                Task { await load() }
+            }
+            .buttonStyle(.borderedProminent)
+            NavigationLink {
+                ScriptLibraryView(server: server)
+            } label: {
+                Text(L10n.t("进入脚本库"))
+            }
+            .buttonStyle(.bordered)
+        }
+        .navigationTitle(title)
+    }
+
+    private func load() async {
+        isLoading = true
+        loadError = nil
+        defer { isLoading = false }
+        do {
+            let req = ScriptSearchRequest(info: "", groupID: 0, page: 1, pageSize: 100)
+            let resp: PageResponse<ScriptItem> = try await client.send(
+                path: APIEndpoint.scriptSearch.path, body: req,
+                as: PageResponse<ScriptItem>.self)
+            let kw = keyword.lowercased()
+            let candidates = (resp.items ?? []).filter { item in
+                item.name.lowercased().contains(kw)
+                    || item.displayName.lowercased().contains(kw)
+            }
+            // 定位排序：系统脚本优先、名称含「安装/install」优先、名称短优先
+            script = candidates
+                .map { ($0, matchRank($0, keyword: kw)) }
+                .sorted { a, b in
+                    a.1 != b.1 ? a.1 > b.1 : a.0.name.count < b.0.name.count
+                }
+                .first?.0
+        } catch {
+            // 页面退出取消不是失败：保留原状态
+            guard !APIError.isCancellation(error) else { return }
+            loadError = error.localizedDescription
+        }
+    }
+
+    private func matchRank(_ item: ScriptItem, keyword: String) -> Int {
+        var score = 0
+        if item.isSystem == true { score += 4 }
+        let raw = item.name.lowercased()
+        if raw.contains("安装") || raw.contains("install") { score += 2 }
+        if raw.hasPrefix(keyword) { score += 1 }
+        return score
     }
 }
 

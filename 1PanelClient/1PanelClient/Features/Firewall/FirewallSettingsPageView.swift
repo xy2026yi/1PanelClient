@@ -96,7 +96,8 @@ struct FirewallSettingsContent: View {
                 get: { vm.settings?.pingBlocked ?? vm.systemStatus?.pingBlocked ?? false },
                 set: { on in
                     Task {
-                        await vm.operateFirewall(on ? "disableBanPing" : "enableBanPing")
+                        // 开 = 启用禁 ping（enableBanPing），关 = 停用（disableBanPing）
+                        await vm.operateFirewall(on ? "enableBanPing" : "disableBanPing")
                     }
                 }
             ))

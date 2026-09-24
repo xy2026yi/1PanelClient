@@ -48,12 +48,7 @@ struct WAFIPGroupsView: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(item.name).font(.body)
-                                    if let content = item.content, !content.isEmpty {
-                                        Text(content.replacingOccurrences(of: "\n", with: ", "))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(2)
-                                    }
+                                    // 配置内容不外显：点击进入即可完整查看
                                     if let source = item.source, !source.isEmpty {
                                         StatusBadge(text: source == "imported" ? L10n.t("手动") : L10n.t("远程"), color: .blue)
                                     }

@@ -158,15 +158,11 @@ struct WebsiteLbsView: View {
                 }
             }
         }
-        .contentShape(Rectangle())
-        .onTapGesture { editingItem = item }
-        // 长按整行弹半屏菜单（源文入口原仅左滑，可发现性差）
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                Haptic.selection()
-                actionLbs = item
-            }
-        )
+        // 单击直达编辑；长按整行弹半屏菜单（源文入口原仅左滑，可发现性差；
+        // 长按松手不触发单击）
+        .rowTapAndLongPress(
+            onTap: { editingItem = item },
+            onLongPress: { actionLbs = item })
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
                 pendingDelete = item

@@ -188,7 +188,11 @@ nonisolated struct WAFCommonRuleItem: Decodable, Identifiable, Hashable {
     let type: String?
     let description: String?
 
-    var id: String { name }
+    /// 行唯一键：上游 name 只在各自 type 内自增，跨条目会重名（实测同一
+    /// type 下也有两条同为 000004），仅按 name 会 ForEach id 冲突——内容
+    /// 互相串显、开关联动（关一条另一条也关）。name+type+rule 组合保证
+    /// 稳定唯一且不受 state 变更影响；增删改请求仍用 name 字段
+    var id: String { "\(name)|\(type ?? "")|\(rule)" }
 }
 
 nonisolated struct WAFCommonRuleCreateRequest: Encodable {

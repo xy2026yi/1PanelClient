@@ -266,9 +266,10 @@ struct ChannelPolicyPicker: View {
 struct HermesChannelDeleteModifier: ViewModifier {
     let client: APIClient
     let agentId: Int
-    /// 频道类型（qqbot / wecom / dingtalk / feishu / telegram）
+    /// 频道类型（qqbot / wecom / dingtalk / feishu / telegram / discord）
     let type: String
-    /// false 时不显示删除入口（非 Hermes 智能体不挂删除）
+    /// false 时不显示删除入口：非 Hermes 智能体不挂删除；
+    /// Hermes 也须已配置（凭证非空）才显示——未配置的频道只有保存
     var isEnabled: Bool = true
 
     @Environment(\.dismiss) private var dismiss

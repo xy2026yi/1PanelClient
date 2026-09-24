@@ -372,7 +372,7 @@ struct FTPView: View {
             }
 
             NavigationLink {
-                ScriptLibraryView(server: server)
+                ToolboxScriptInstallView(server: server, keyword: "ftp", title: "Pure-FTPd")
             } label: {
                 Label(L10n.f("安装 %@", "Pure-FTPd"), systemImage: "arrow.down.circle.fill")
                     .frame(maxWidth: .infinity)
@@ -467,27 +467,18 @@ struct FTPView: View {
                 }
             } else {
                 ForEach(vm.accounts) { account in
-                    Button {
-                        editingAccount = account
-                    } label: {
-                        FTPAccountRow(account: account)
-                    }
-                    .buttonStyle(.plain)
-                    // 行级操作收进长按菜单（编辑 / 日志 / 删除），不再用滑动操作；
-                    // 用 simultaneousGesture 与点击进入共存——onLongPressGesture
-                    // 会独占手势导致点击无法进编辑
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                            Haptic.selection()
-                            actionAccount = account
+                    FTPAccountRow(account: account)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        // 行级操作收进长按菜单（编辑 / 日志 / 删除），不再用滑动操作；
+                        // 长按松手不触发点击进入
+                        .rowTapAndLongPress(
+                            onTap: { editingAccount = account },
+                            onLongPress: { actionAccount = account })
+                        .onAppear {
+                            if account.id == vm.accounts.last?.id {
+                                Task { await vm.loadMoreAccounts() }
+                            }
                         }
-                    )
-                    .onAppear {
-                        if account.id == vm.accounts.last?.id {
-                            Task { await vm.loadMoreAccounts() }
-                        }
-                    }
                 }
 
                 if vm.accounts.count < vm.total || vm.isLoadingMore {

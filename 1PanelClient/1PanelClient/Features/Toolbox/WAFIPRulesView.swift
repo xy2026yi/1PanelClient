@@ -48,30 +48,26 @@ struct WAFIPRulesView: View {
             } else {
                 ForEach(items) { item in
                     HStack {
-                        // 单击直达编辑，长按弹半屏操作菜单（编辑/删除）
-                        Button {
-                            editingItem = item
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(item.displayValue)
-                                    .font(.dataMonospacedBody)
-                                HStack(spacing: 8) {
-                                    StatusBadge(text: item.typeLabel, color: .blue)
-                                    if let desc = item.description, !desc.isEmpty {
-                                        Text(desc).font(.caption).foregroundStyle(.secondary)
-                                    }
+                        // 单击直达编辑，长按弹半屏操作菜单（编辑/删除）；
+                        // 长按松手不触发单击（rowTapAndLongPress 统一抑制）
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.displayValue)
+                                .font(.dataMonospacedBody)
+                            HStack(spacing: 8) {
+                                StatusBadge(text: item.typeLabel, color: .blue)
+                                if let desc = item.description, !desc.isEmpty {
+                                    Text(desc).font(.caption).foregroundStyle(.secondary)
                                 }
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
-                        .simultaneousGesture(
-                            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                                Haptic.selection()
-                                actionItem = item
-                            }
-                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .rowTapAndLongPress(
+                            onTap: { editingItem = item },
+                            onLongPress: { actionItem = item })
+                        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                        .accessibilityAction(named: L10n.t("更多操作")) {
+                            actionItem = item
+                        }
 
                         Toggle(isOn: Binding(
                             get: { item.state == "on" },

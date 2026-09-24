@@ -413,17 +413,11 @@ struct WebsiteRedirectView: View {
                     }
                 }
                 .padding(.vertical, 2)
-                .contentShape(Rectangle())
                 // 单击直达编辑（与负载均衡/脚本库一致），长按弹半屏操作菜单
-                .onTapGesture {
-                    editingRedirect = r
-                }
-                .simultaneousGesture(
-                    LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                        Haptic.selection()
-                        actionRedirect = r
-                    }
-                )
+                // （长按松手不触发单击）
+                .rowTapAndLongPress(
+                    onTap: { editingRedirect = r },
+                    onLongPress: { actionRedirect = r })
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         pendingDelete = r

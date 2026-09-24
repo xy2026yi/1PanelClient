@@ -369,7 +369,7 @@ struct ClamView: View {
             minimumRequirementsCard
 
             NavigationLink {
-                ScriptLibraryView(server: server)
+                ToolboxScriptInstallView(server: server, keyword: "clam", title: "ClamAV")
             } label: {
                 Label(L10n.f("安装 %@", "ClamAV"), systemImage: "arrow.down.circle.fill")
                     .frame(maxWidth: .infinity)
@@ -558,26 +558,18 @@ struct ClamView: View {
                 }
             } else {
                 ForEach(vm.rules) { rule in
-                    Button {
-                        editingRule = rule
-                    } label: {
-                        ClamRuleRow(rule: rule)
-                    }
-                    .buttonStyle(.plain)
-                    // 行级操作收进长按菜单（执行 / 报告 / 编辑 / 删除）；
-                    // 用 simultaneousGesture 与点击进入共存
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                            Haptic.selection()
-                            actionRule = rule
+                    ClamRuleRow(rule: rule)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        // 行级操作收进长按菜单（执行 / 报告 / 编辑 / 删除）；
+                        // 长按松手不触发点击进入
+                        .rowTapAndLongPress(
+                            onTap: { editingRule = rule },
+                            onLongPress: { actionRule = rule })
+                        .onAppear {
+                            if rule.id == vm.rules.last?.id {
+                                Task { await vm.loadMoreRules() }
+                            }
                         }
-                    )
-                    .onAppear {
-                        if rule.id == vm.rules.last?.id {
-                            Task { await vm.loadMoreRules() }
-                        }
-                    }
                 }
 
                 if vm.rules.count < vm.total || vm.isLoadingMore {

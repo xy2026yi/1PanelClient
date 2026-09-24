@@ -184,10 +184,12 @@ struct Fail2banView: View {
     @State private var activeSheet: Fail2banSheet?
     @State private var isServiceExpanded = false
     @State private var pendingAction: String?
+    /// 完整配置编辑（push 进入；不再 sheet）
+    @State private var showFullConfig = false
 
     enum Fail2banSheet: Identifiable {
         case port, maxRetry, banTime, findTime, banAction, logPath
-        case whitelist, blacklist, fullConfig
+        case whitelist, blacklist
         var id: Self { self }
     }
 
@@ -216,7 +218,7 @@ struct Fail2banView: View {
             }
 
             NavigationLink {
-                ScriptLibraryView(server: server)
+                ToolboxScriptInstallView(server: server, keyword: "fail2ban", title: "Fail2ban")
             } label: {
                 Label(L10n.f("安装 %@", "Fail2ban"), systemImage: "arrow.down.circle.fill")
                     .frame(maxWidth: .infinity)
@@ -304,9 +306,11 @@ struct Fail2banView: View {
                 Fail2banIPListView(title: L10n.t("白名单"), status: "ignore", vm: vm)
             case .blacklist:
                 Fail2banIPListView(title: L10n.t("黑名单"), status: "banned", vm: vm)
-            case .fullConfig:
-                Fail2banFullConfigView(server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
             }
+        }
+        // 完整配置编辑（push；返回即取消，保存留在页内 toast）
+        .navigationDestination(isPresented: $showFullConfig) {
+            Fail2banFullConfigView(server: server)
         }
     }
 
@@ -344,7 +348,7 @@ struct Fail2banView: View {
                     activeSheet = .blacklist
                 },
                 ServiceAction(title: L10n.t("配置"), icon: "doc.text", color: .indigo) {
-                    activeSheet = .fullConfig
+                    showFullConfig = true
                 }
             ]
         ) {
@@ -456,24 +460,26 @@ struct Fail2banTimeSheet: View {
     @State private var amount: String = ""
     @State private var unit: String = ""
 
-    private let units = [L10n.t("秒"): "s", L10n.t("分钟"): "m", L10n.t("小时"): "h", L10n.t("天"): "d", L10n.t("年"): "y"]
+    /// 单位选项（形态 3）：值与展示分离，秒为缺省
+    private let units: [(value: String, label: String)] = [
+        ("s", L10n.t("秒")),
+        ("m", L10n.t("分钟")),
+        ("h", L10n.t("小时")),
+        ("d", L10n.t("天")),
+        ("y", L10n.t("年")),
+    ]
 
     var body: some View {
         NavigationStack {
             Form {
                 Section(title) {
-                    HStack {
-                        TextField(L10n.t("数值"), text: $amount)
-                            .keyboardType(.numberPad)
-                            .textFieldStyle(.roundedBorder)
-                        Picker(L10n.t("单位"), selection: $unit) {
-                            ForEach(Array(units.keys), id: \.self) { label in
-                                Text(label).tag(units[label]!)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                    }
-                    .onAppear { parseRaw() }
+                    OutlinedTextField(label: L10n.t("数值"), prompt: "600",
+                                      text: $amount, keyboardType: .numberPad)
+                    OutlinedPicker(label: L10n.t("单位"),
+                                   options: units.map(\.value),
+                                   selection: $unit,
+                                   optionLabels: Dictionary(uniqueKeysWithValues:
+                                       units.map { ($0.value, $0.label) }))
                 }
             }
             .navigationTitle(title)
@@ -492,6 +498,7 @@ struct Fail2banTimeSheet: View {
             }
         }
         .bottomSheetDetents([.medium])
+        .onAppear { parseRaw() }
     }
 
     private func parseRaw() {
@@ -507,7 +514,8 @@ struct Fail2banTimeSheet: View {
         }
         if numPart.isEmpty { numPart = rawValue }
         amount = numPart
-        unit = unitPart
+        // 未知单位回落秒，避免 Picker selection 落在选项外
+        unit = units.contains(where: { $0.value == unitPart }) ? unitPart : "s"
     }
 }
 
@@ -774,12 +782,11 @@ struct Fail2banIPListView: View {
     }
 }
 
-// MARK: - 完整配置编辑
+// MARK: - 完整配置编辑（push 进入；返回即取消）
 
 struct Fail2banFullConfigView: View {
     let server: ServerConfig
 
-    @Environment(\.dismiss) private var dismiss
     @State private var configText = ""
     @State private var isLoading = false
     @State private var isSaving = false
@@ -794,30 +801,25 @@ struct Fail2banFullConfigView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if isLoading {
-                    LoadingStateView()
-                } else {
-                    CodeEditorArea(text: $configText)
-                }
+        Group {
+            if isLoading {
+                LoadingStateView()
+            } else {
+                CodeEditorArea(text: $configText)
             }
-            .navigationTitle(L10n.t("配置"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("保存")) {
-                        Task { await save() }
-                    }
-                    .disabled(isLoading || isSaving)
-                }
-            }
-            .localToast(message: $successMessage)
-            .task { await load() }
         }
+        .navigationTitle(L10n.t("配置"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button(L10n.t("保存")) {
+                    Task { await save() }
+                }
+                .disabled(isLoading || isSaving)
+            }
+        }
+        .localToast(message: $successMessage)
+        .task { await load() }
     }
 
     private func load() async {

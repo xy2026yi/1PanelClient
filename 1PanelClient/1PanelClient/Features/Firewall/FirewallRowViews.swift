@@ -2,7 +2,7 @@
 //  FirewallRowViews.swift
 //  1PanelClient
 //
-//  规则行 / 转发行（自 FirewallView.swift 拆出，内容未改动）
+//  规则行 / 转发行（自 FirewallView.swift 拆出）
 //
 
 import SwiftUI
@@ -13,21 +13,34 @@ import Combine
 struct FirewallRuleRowView: View {
     let item: FirewallInventoryItem
     var processName: String?
+    /// 链内优先级（observed.locator.position；external 规则可能缺失）
+    var priority: Int?
 
     private var rule: FirewallRule? { item.rule ?? item.desired?.rule }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 8) {
-                // 端口（端口规则）或 源地址（IP 规则）为主标识
+                // 行格式对齐 Web 端：优先级 端口 协议 地址族 使用方 策略
+                if let priority {
+                    Text(String(priority))
+                        .font(.dataMonospacedBody.bold())
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 18, alignment: .trailing)
+                }
                 Text(mainToken)
                     .font(.dataMonospacedBody.bold())
                     .lineLimit(1)
                 if let proto = rule?.protocolField, !proto.isEmpty {
                     StatusBadge(text: proto.uppercased(), color: .blue)
                 }
+                if let family = familyLabel {
+                    StatusBadge(text: family.label, color: family.color)
+                }
                 Spacer()
-                stateBadge
+                // 使用方：占用该端口的监听进程（/process/listening），无进程显示未使用
+                StatusBadge(text: processName?.isEmpty == false ? processName! : L10n.t("未使用"),
+                            color: processName?.isEmpty == false ? .blue : .secondary)
                 actionBadge
             }
             if !secondaryLine.isEmpty {
@@ -38,6 +51,15 @@ struct FirewallRuleRowView: View {
             }
         }
         .padding(.vertical, 2)
+    }
+
+    /// 地址族徽标（scope.family；ipv6 → IPv6，其余非空 → IPv4）
+    private var familyLabel: (label: String, color: Color)? {
+        switch rule?.scope?.family {
+        case "ipv6": return ("IPv6", .indigo)
+        case "ipv4", "inet": return ("IPv4", .secondary)
+        default: return nil
+        }
     }
 
     private var mainToken: String {
@@ -52,34 +74,13 @@ struct FirewallRuleRowView: View {
            rule?.destinationPort?.isEmpty == false {
             parts.append(L10n.f("来源：%@", addr))
         }
-        if let sport = rule?.sourcePort, !sport.isEmpty {
-            parts.append(L10n.f("源端口：%@", sport))
-        }
         if let dest = rule?.destinationAddress, !dest.isEmpty {
             parts.append(L10n.f("目标：%@", dest))
-        }
-        if let pn = processName, !pn.isEmpty {
-            parts.append(pn)
         }
         if let desc = rule?.descriptionText, !desc.isEmpty {
             parts.append(desc)
         }
         return parts.joined(separator: " · ")
-    }
-
-    @ViewBuilder
-    private var stateBadge: some View {
-        let mapping: [(String, String, Color)] = [
-            ("managed", L10n.t("面板创建"), .statusRunning),
-            ("adopted", L10n.t("外部纳管"), .blue),
-            ("external", L10n.t("外部"), .secondary),
-            ("drifted", L10n.t("异常"), .semanticWarning),
-            ("protected", L10n.t("系统保护"), .purple),
-        ]
-        if let state = item.state,
-           let entry = mapping.first(where: { $0.0 == state }) {
-            StatusBadge(text: entry.1, color: entry.2)
-        }
     }
 
     @ViewBuilder
@@ -113,10 +114,11 @@ struct FirewallForwardRowView: View {
                     .font(.dataMonospaced)
                     .lineLimit(1)
                 Spacer()
-                if rule.strategy?.lowercased() == "accept" || rule.strategy == nil {
-                    StatusBadge(text: L10n.t("放行"), color: .statusRunning)
+                // 转发无策略概念：状态只看 isRuntime（已生效/未生效）
+                if rule.isRuntime == true {
+                    StatusBadge(text: L10n.t("已生效"), color: .statusRunning)
                 } else {
-                    StatusBadge(text: L10n.t("拒绝"), color: .statusError)
+                    StatusBadge(text: L10n.t("未生效"), color: .secondary)
                 }
             }
             if !secondaryLine.isEmpty {
@@ -146,4 +148,3 @@ struct FirewallForwardRowView: View {
         return parts.joined(separator: " · ")
     }
 }
-

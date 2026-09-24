@@ -25,6 +25,9 @@ final class FirewallViewModel: ObservableObject {
     /// 当前筛选+搜索的结果总数（接口 total；头部计数与分页停止条件都用它，
     /// 否则筛空后头部仍显示全量数、分页会多发空页请求）
     @Published private(set) var rulesResultTotal = 0
+    /// 链内优先级可设范围（搜索响应 ipv4Range/ipv6Range；编辑表单提示用）
+    @Published var rulesIPv4Range: FirewallPositionRange?
+    @Published var rulesIPv6Range: FirewallPositionRange?
     @Published private(set) var rulesManagedTotal = 0
     @Published private(set) var isRulesLoadingMore = false
     @Published var ruleStateFilter: String?      // nil = 全部状态
@@ -57,8 +60,10 @@ final class FirewallViewModel: ObservableObject {
     @Published var toastMessage: String?
     /// 任务式操作的进度页目标（init-base / forward enable / 白名单 / Docker 初始化）
     @Published var activeTask: FirewallTaskTarget?
-    /// 端口号 → 监听进程名（规则行补全；process/listening 端点 v2.3.0 未变）
+    /// 端口+协议 → 监听进程名（键 "端口|tcp" / "端口|udp"；process/listening 裸数组）
     @Published var portProcessNames: [String: String] = [:]
+    /// 端口 → 监听进程名（无协议维度兜底；协议未命中时使用）
+    @Published var portAnyProcessNames: [String: String] = [:]
     /// 网卡列表（转发表单网口选择）
     @Published var netOptions: [String] = []
 
@@ -153,15 +158,24 @@ final class FirewallViewModel: ObservableObject {
                 as: FirewallRuleInventoryResponse.self
             )
             guard generation == rulesGeneration else { return }
+            // 刚删除的规则在服务端运行时摘除完成前会短暂回显（drifted/external
+            // 残影），窗口期内本地过滤（见 deleteRule）
+            pruneExpiredDeletedRuleUUIDs()
+            let filtered = (resp.items ?? []).filter { item in
+                guard let uuid = item.manageableUUID else { return true }
+                return recentlyDeletedRuleUUIDs[uuid] == nil
+            }
             if replacing {
-                inventory = resp.items ?? []
+                inventory = filtered
             } else {
-                inventory += resp.items ?? []
+                inventory += filtered
             }
             rulesPage = req.page
             rulesAllTotal = resp.allTotal ?? resp.total ?? inventory.count
             rulesResultTotal = resp.total ?? resp.allTotal ?? inventory.count
             rulesManagedTotal = resp.managedTotal ?? 0
+            rulesIPv4Range = resp.ipv4Range
+            rulesIPv6Range = resp.ipv6Range
             errorMessage = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -229,11 +243,25 @@ final class FirewallViewModel: ObservableObject {
                 body: FirewallRuleDeleteRequest(uuids: [uuid]),
                 as: FirewallRuleDeleteResponse.self
             )
+            // rules/delete 的运行时摘除是异步任务：立即重拉会短暂回显残影
+            // （显示为「异常」，下拉刷新才消失）。先本地移除整行，再在窗口期
+            // 内把该 uuid 从后续搜索结果中滤掉，直到服务端状态收敛
+            recentlyDeletedRuleUUIDs[uuid] = Date().addingTimeInterval(Self.deletedRuleFilterWindow)
+            inventory.removeAll { $0.manageableUUID == uuid }
             await loadRules(replacing: true)
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// 刚删除规则的 uuid → 过滤截止时间
+    private var recentlyDeletedRuleUUIDs: [String: Date] = [:]
+    private static let deletedRuleFilterWindow: TimeInterval = 60
+
+    private func pruneExpiredDeletedRuleUUIDs() {
+        let now = Date()
+        recentlyDeletedRuleUUIDs = recentlyDeletedRuleUUIDs.filter { $0.value > now }
     }
 
     // MARK: 转发段
@@ -707,6 +735,11 @@ final class FirewallViewModel: ObservableObject {
             )
             toastMessage = L10n.t("操作已提交")
             await loadSystemStatus()
+            // 禁 Ping 开关读的是 settings.pingStatus：不重拉设置段，
+            // 开关会被旧值弹回（systemStatus 与 settings 各有一份 pingStatus）
+            if operation == "enableBanPing" || operation == "disableBanPing" {
+                await loadSettings()
+            }
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
@@ -897,26 +930,62 @@ final class FirewallViewModel: ObservableObject {
 
     // MARK: 辅助
 
-    private func loadListening() async {
-        struct ListeningReq: Encodable { let info: String; let page: Int; let pageSize: Int }
-        struct ListeningResp: Decodable { let items: [ListeningItem]? }
-        struct ListeningItem: Decodable {
-            let port: String?
-            let processNames: String?
+    /// /process/listening 响应元素：data 为裸数组（无分页信封），
+    /// Port 是「端口号 → 空对象」映射，Protocol 1=tcp 2=udp（3/4 为 v6 同义）
+    private struct ListeningProcessItem: Decodable {
+        struct EmptyObject: Decodable {}
+        let pid: Int?
+        let port: [String: EmptyObject]?
+        let protocolField: Int?
+        let name: String?
+
+        enum CodingKeys: String, CodingKey {
+            case pid = "PID"
+            case port = "Port"
+            case protocolField = "Protocol"
+            case name = "Name"
         }
+    }
+
+    private func loadListening() async {
         do {
-            let resp: ListeningResp = try await client.send(
+            let resp: [ListeningProcessItem] = try await client.send(
                 path: APIEndpoint.processListening.path,
-                body: ListeningReq(info: "", page: 1, pageSize: 200),
-                as: ListeningResp.self
+                body: EmptyRequest(),
+                as: [ListeningProcessItem].self
             )
-            var map: [String: String] = [:]
-            for item in resp.items ?? [] {
-                guard let port = item.port, !port.isEmpty else { continue }
-                map[port] = item.processNames
+            var keyed: [String: String] = [:]
+            var anyByPort: [String: String] = [:]
+            for process in resp {
+                guard let name = process.name, !name.isEmpty else { continue }
+                let proto = process.protocolField == 2 ? "udp" : "tcp"
+                let ports: [String] = process.port.map { Array($0.keys) } ?? []
+                for port in ports where !port.isEmpty {
+                    keyed["\(port)|\(proto)"] = name
+                    if anyByPort[port] == nil { anyByPort[port] = name }
+                }
             }
-            portProcessNames = map
+            portProcessNames = keyed
+            portAnyProcessNames = anyByPort
         } catch { /* 静默：行内进程名缺失不影响功能 */ }
+    }
+
+    /// 规则行使用方：按端口+协议精确命中，协议缺失/未命中时回落任意协议
+    func processName(port: String?, proto: String?) -> String? {
+        guard let port, !port.isEmpty else { return nil }
+        let p = (proto ?? "").lowercased()
+        if p.isEmpty || p == "tcp" || p == "tcp/udp" || p == "all" {
+            if let n = portProcessNames["\(port)|tcp"] { return n }
+        }
+        if p.isEmpty || p == "udp" || p == "tcp/udp" || p == "all" {
+            if let n = portProcessNames["\(port)|udp"] { return n }
+        }
+        return portAnyProcessNames[port]
+    }
+
+    /// 编辑表单的优先级可设范围（按地址族取 ipv4Range / ipv6Range）
+    func positionRange(family: String?) -> FirewallPositionRange? {
+        family == "ipv6" ? rulesIPv6Range : rulesIPv4Range
     }
 
     private func loadNetOptions() async {

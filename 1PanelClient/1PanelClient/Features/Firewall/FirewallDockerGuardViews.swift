@@ -15,6 +15,8 @@ struct DockerGuardContainerSection: View {
     var onEditPolicy: (DockerGuardEndpoint) -> Void = { _ in }
     /// 长按「导出规则」入口
     var onExport: () -> Void = {}
+    /// 点击行进入容器端口规则页（编程式推入；NavigationLink 与长按共存会误触）
+    var onOpen: () -> Void = {}
 
     /// 容器下平铺 endpoints（ipv4/ipv6 各一条）；portGroups 为 DTO 保留形态，
     /// 两者并集、按 id 去重（抓包 2026-09-17）
@@ -26,35 +28,32 @@ struct DockerGuardContainerSection: View {
 
     var body: some View {
         Section {
-            NavigationLink {
-                DockerGuardEndpointsView(container: container, onEditPolicy: onEditPolicy)
-            } label: {
-                HStack(alignment: .center, spacing: 8) {
-                    Image(systemName: "shippingbox.fill")
-                        .foregroundStyle(.blue)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(container.name ?? "—")
-                            .font(.subheadline.bold())
-                        // 第二行：应用名（缺省回落 compose）
-                        Text(container.application?.isEmpty == false
-                             ? container.application! : (container.compose ?? ""))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if endpoints.isEmpty {
-                        Text(L10n.t("未发布端口"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text(L10n.f("%ld 条", endpoints.count))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+            HStack(alignment: .center, spacing: 8) {
+                Image(systemName: "shippingbox.fill")
+                    .foregroundStyle(.blue)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(container.name ?? "—")
+                        .font(.subheadline.bold())
+                    // 第二行：应用名（缺省回落 compose）
+                    Text(container.application?.isEmpty == false
+                         ? container.application! : (container.compose ?? ""))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if endpoints.isEmpty {
+                    Text(L10n.t("未发布端口"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(L10n.f("%ld 条", endpoints.count))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
-            // 长按弹半屏菜单（导出规则）
-            .onLongPressGesture { onExport() }
+            .padding(.vertical, 2)
+            // 单击进入端口规则页；长按弹半屏菜单（导出规则），松手不误触进入
+            .rowTapAndLongPress(onTap: onOpen, onLongPress: onExport)
             // VoiceOver 无长按手势：以自定义操作暴露同一菜单
             .accessibilityAction(named: L10n.t("更多操作")) { onExport() }
         }
@@ -141,10 +140,16 @@ struct DockerGuardEndpointsView: View {
         return L10n.t("未设置")
     }
 
-    /// 防护模式内容 = sources（每行一条）；空（deny_all 或未配置）显示未设置
+    /// 防护模式内容 = sources（每行一条）；deny_all 无存储来源时显示固定全量
+    /// 来源（0.0.0.0/0 与 ::/0），与策略表单同口径
     private func sourcesText(_ endpoint: DockerGuardEndpoint) -> String {
         let list = (endpoint.sources ?? []).filter { !$0.isEmpty }
-        return list.isEmpty ? L10n.t("未设置") : list.joined(separator: "\n")
+        if list.isEmpty {
+            return endpoint.mode == "deny_all"
+                ? "0.0.0.0/0\n::/0"
+                : L10n.t("未设置")
+        }
+        return list.joined(separator: "\n")
     }
 }
 

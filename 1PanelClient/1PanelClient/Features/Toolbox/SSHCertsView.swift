@@ -176,6 +176,8 @@ struct SSHCertsView: View {
     @State private var actionCert: SSHCertItem?
     /// 长按「编辑」推入的编辑页目标
     @State private var editingCert: SSHCertItem?
+    /// 点击行编程式推入的详情页目标
+    @State private var pushedCert: SSHCertItem?
     /// 授权密钥页所需服务器配置（init 时固定）
     private let server: ServerConfig
 
@@ -268,24 +270,21 @@ struct SSHCertsView: View {
     private var certList: some View {
         List {
             ForEach(vm.certs) { cert in
-                NavigationLink {
-                    SSHCertDetailView(cert: cert, vm: vm)
-                } label: {
-                    SSHCertRow(cert: cert)
-                }
-                // 行级操作收进长按菜单（编辑 / 删除），不再用滑动操作；
-                // 用 simultaneousGesture 与 NavigationLink 共存——onLongPressGesture
-                // 会独占手势导致点击无法进详情
-                .simultaneousGesture(
-                    LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                        Haptic.selection()
-                        actionCert = cert
-                    }
-                )
+                SSHCertRow(cert: cert)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    // 行级操作收进长按菜单（编辑 / 删除），不再用滑动操作；
+                    // tap 手势 + 编程式推入（长按松手不触发进入详情）
+                    .rowTapAndLongPress(
+                        onTap: { pushedCert = cert },
+                        onLongPress: { actionCert = cert })
             }
         }
         .listStyle(.insetGrouped)
         .refreshable { await vm.load() }
+        // 详情改为编程式推入（原 NavigationLink + 长按手势共存，松手仍会误触导航）
+        .navigationDestination(item: $pushedCert) { cert in
+            SSHCertDetailView(cert: cert, vm: vm)
+        }
         .sheet(item: $actionCert) { cert in
             ActionBottomSheet(
                 title: cert.name ?? "—",
