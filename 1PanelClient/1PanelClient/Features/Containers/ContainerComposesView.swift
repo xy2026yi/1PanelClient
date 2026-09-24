@@ -728,6 +728,8 @@ struct ContainerComposeCreateView: View {
                 .interactiveDismissDisabled(isSubmitting)
             } else {
                 form
+                    // 提交中禁止侧滑返回：失败 alert 挂在本页，被 pop 后错误会被吞
+                    .navigationBarBackButtonHidden(isSubmitting)
             }
         }
     }
@@ -854,7 +856,9 @@ struct ContainerComposeCreateView: View {
     /// 两段提交：compose/test 校验通过（data=true）后才真正提交 compose
     private func submit() async {
         isSubmitting = true
-        defer { isSubmitting = false }
+        // 成功路径交由延迟收栈回调复位；其余路径 defer 兜底
+        var progressHandoff = false
+        defer { if !progressHandoff { isSubmitting = false } }
         let name = nameValue
         let dirNameValue = from == "path" ? "" : dirName.trimmingCharacters(in: .whitespaces)
         let nameField = from == "path" ? name : ""
@@ -882,9 +886,16 @@ struct ContainerComposeCreateView: View {
             createReq.name = nameField
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.containersComposeCreate.path, body: createReq, as: EmptyResponse.self)
-            // 提交成功即交回列表页（由其 push 任务进度并刷新）
+            // 提交成功即交回列表页（由其 push 任务进度并刷新）。同帧「pop 自己 +
+            // 父页 push 进度页」会被导航合并丢弃其一（同文件 440/612 行的分步
+            // 收栈即为避开此问题）：先让父页完成 push，再延迟收栈；期间保持
+            // isSubmitting 防重复提交
+            progressHandoff = true
             onCreated(name, taskID)
-            dismiss()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                dismiss()
+                isSubmitting = false
+            }
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
@@ -1086,6 +1097,8 @@ private struct ContainerTemplateEditSheet: View {
                 .interactiveDismissDisabled(isSubmitting)
             } else {
                 form
+                    // 提交中禁止侧滑返回：失败 alert 挂在本页，被 pop 后错误会被吞
+                    .navigationBarBackButtonHidden(isSubmitting)
             }
         }
     }

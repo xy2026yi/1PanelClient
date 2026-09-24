@@ -39,6 +39,12 @@ jobs:
           # tag（v1.2.3 → 1.2.3）写入 MARKETING_VERSION；非 tag 触发（手动/分支）
           # 不是合法版本号，回落 0.0.0 仅为占位
           VER="${GITHUB_REF_NAME#v}"
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" && ! "$VER" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+            # tag 触发却非纯数字版本（如 v1.2.3-rc1）：静默降级 0.0.0 会把
+            # 错误版本号发到 release，直接失败让打 tag 的人看见
+            echo "::error::tag ${GITHUB_REF_NAME} 不是合法版本号（应为 v1.2.3 纯数字形态）"
+            exit 1
+          fi
           if [[ ! "$VER" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then VER="0.0.0"; fi
           xcodebuild archive \
             -project 1PanelClient/1PanelClient.xcodeproj \
@@ -59,9 +65,15 @@ jobs:
           # 小组件与主 App 仅编译期共享 PanelShared 源码，运行时无依赖；
           # 剔除后仅 iOS 桌面小组件不可用，App 功能不受影响
           rm -rf Payload/*.app/PlugIns/PanelWidgets.appex
-          zip -qry "1PanelClient-${GITHUB_REF_NAME}.ipa" Payload
-          shasum -a 256 "1PanelClient-${GITHUB_REF_NAME}.ipa" \
-            > "1PanelClient-${GITHUB_REF_NAME}.ipa.sha256"
+          # PlugIns 残留空目录会让部分侧载工具（AltStore/Sideloadly）装机失败：
+          # 目录已空则一并移除（rmdir 只删空目录，未来新增其他扩展不受影响）
+          rmdir Payload/*.app/PlugIns 2>/dev/null || true
+          # 分支名可含斜杠（feature/x），直接当文件名会让 zip 构建失败：替换为 -
+          REF="${GITHUB_REF_NAME//\//-}"
+          zip -qry "1PanelClient-${REF}.ipa" Payload
+          shasum -a 256 "1PanelClient-${REF}.ipa" \
+            > "1PanelClient-${REF}.ipa.sha256"
+          echo "IPA_REF=${REF}" >> "$GITHUB_ENV"
 
       # tag 触发：建（或更新）该 tag 的 pre-release 并附上 IPA
       - name: 附到 tag 的 pre-release
@@ -70,6 +82,8 @@ jobs:
         with:
           prerelease: true
           generate_release_notes: true
+          # 附件缺失（上游步骤失败/产物名漂移）时让步骤失败，不静默发空 release
+          fail_on_unmatched_files: true
           files: |
             build/1PanelClient-*.ipa
             build/*.ipa.sha256
@@ -79,6 +93,6 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: 1PanelClient-ipa-${{ github.ref_name }}
+          name: 1PanelClient-ipa-${{ env.IPA_REF }}
           path: build/*.ipa*
           retention-days: 14

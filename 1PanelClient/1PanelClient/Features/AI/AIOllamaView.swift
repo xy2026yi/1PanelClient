@@ -713,6 +713,8 @@ struct AIOllamaAddModelSheet: View {
                 NavigationStack {
                     form
                 }
+                .presentationDragIndicator(.visible)
+                .bottomSheetDetents([.medium, .large])
             } else {
                 form
             }

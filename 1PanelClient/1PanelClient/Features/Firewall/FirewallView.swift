@@ -120,7 +120,10 @@ struct FirewallView: View {
                 isSearching: $isSearching,
                 title: L10n.t("防火墙"),
                 prompt: L10n.t("搜索端口 / 地址"),
-                onSubmit: { commitSearch() }
+                onSubmit: { commitSearch() },
+                // 搜索只作用于规则段（服务端过滤）：其他段提交会改不可见的
+                // 规则数据；切段时自动收起并经取消回调恢复全量
+                searchAvailable: segment == 0
             )
             .onChange(of: isSearching) { _, active in
                 // 取消搜索（文本已被 searchIconMode 清空）：同步回 VM 恢复全量列表

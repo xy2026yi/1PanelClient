@@ -18,6 +18,8 @@ struct CronjobDetailView: View {
     @State private var showDeleteSheet = false
     /// 快照任务详情（load/info；仅 snapshot 类型加载，用于展示镜像开关与排除应用）
     @State private var snapshotInfo: CronjobInfo?
+    /// 快照详情加载失败（「—」占位不可永久残留，给重试入口）
+    @State private var snapshotLoadFailed = false
     /// 删除确认弹窗中的「同时删除备份文件」选项（传入共享 TextInputConfirmSheet）
     @State private var deleteCleanDataOption = false
 
@@ -79,17 +81,27 @@ struct CronjobDetailView: View {
                     }
                 }
             case .snapshot:
-                Section(L10n.t("备份内容")) {
-                    InfoRow(L10n.t("类型"), value: L10n.t("系统快照"))
-                    InfoRow(L10n.t("备份所有应用镜像"),
-                            value: withImageDisplay)
-                }
-                // 排除应用：形态 7.1 只读展示（应用名一行一个，默认 3 行）
-                Section {
-                    OutlinedMultiLineField(label: L10n.t("排除应用"),
-                                           lines: 3,
-                                           text: .constant(excludedAppsText))
-                        .disabled(true)
+                if snapshotInfo == nil && snapshotLoadFailed {
+                    // load/info 失败：给出可重试的错误态，不让「—」占位永久残留
+                    Section {
+                        LoadErrorStateView(message: L10n.t("快照详情加载失败")) {
+                            Task { await loadSnapshotInfo() }
+                        }
+                        .listRowBackground(Color.clear)
+                    }
+                } else {
+                    Section(L10n.t("备份内容")) {
+                        InfoRow(L10n.t("类型"), value: L10n.t("系统快照"))
+                        InfoRow(L10n.t("备份所有应用镜像"),
+                                value: withImageDisplay)
+                    }
+                    // 排除应用：形态 7.1 只读展示（应用名一行一个，默认 3 行）
+                    Section {
+                        OutlinedMultiLineField(label: L10n.t("排除应用"),
+                                               lines: 3,
+                                               text: .constant(excludedAppsText))
+                            .disabled(true)
+                    }
                 }
             case .directory:
                 // 文件模式下 sourceDir 是逗号拼接的多路径，按行展示更可读
@@ -221,13 +233,10 @@ struct CronjobDetailView: View {
             }
         }
         // 快照任务：详情接口含镜像开关/排除应用（列表模型无这些字段），
-        // 与应用列表并行加载（排除应用按 id 解析应用名）
+        // 与已装应用列表并行加载（排除应用按 id 解析应用名）
         .task(id: currentJob.id) {
             guard currentJob.jobType == .snapshot, snapshotInfo == nil else { return }
-            if vm.installedApps.isEmpty {
-                await vm.loadCreateOptions()
-            }
-            snapshotInfo = await vm.loadCronjobInfo(id: currentJob.id)
+            await loadSnapshotInfo()
         }
     }
 
@@ -256,6 +265,18 @@ struct CronjobDetailView: View {
         if let info = info {
             editingInfo = info
             showEditView = true
+        }
+    }
+
+    /// 快照详情加载：load/info + 排除应用名解析所需的已装应用（轻量拉取，
+    /// 不随 createOptions 全套请求）；失败置位供错误态重试
+    private func loadSnapshotInfo() async {
+        await vm.loadInstalledApps()
+        if let info = await vm.loadCronjobInfo(id: currentJob.id) {
+            snapshotInfo = info
+            snapshotLoadFailed = false
+        } else {
+            snapshotLoadFailed = true
         }
     }
 }

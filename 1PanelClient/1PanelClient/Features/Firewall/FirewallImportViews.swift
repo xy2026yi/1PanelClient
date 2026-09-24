@@ -54,7 +54,8 @@ struct FirewallImportView: View {
                                         .foregroundStyle(selected.contains(rule.id) ? Color.accentColor : .secondary)
                                     FirewallRuleRowView(
                                         item: FirewallImportPreview.item(for: rule),
-                                        processName: nil)
+                                        processName: nil,
+                                        showsUsage: false)
                                 }
                             }
                             .buttonStyle(.plain)
@@ -471,7 +472,7 @@ struct FirewallExportPickerView: View {
                                 }
                             } label: {
                                 HStack {
-                                    FirewallRuleRowView(item: item, processName: nil)
+                                    FirewallRuleRowView(item: item, processName: nil, showsUsage: false)
                                     Image(systemName: selected.contains(item.id)
                                           ? "checkmark.circle.fill" : "circle")
                                         .foregroundStyle(selected.contains(item.id)

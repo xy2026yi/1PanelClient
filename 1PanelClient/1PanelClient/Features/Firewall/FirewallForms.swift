@@ -61,7 +61,16 @@ struct FirewallRuleFormView: View {
             } header: {
                 SectionLabel(title: L10n.t("规则内容"), systemImage: "shield")
             } footer: {
-                Text(L10n.t("端口支持 8000-8099 区间；IP 支持 IP 或 CIDR，留空表示全部来源。"))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L10n.t("端口支持 8000-8099 区间；IP 支持 IP 或 CIDR，留空表示全部来源。"))
+                    if !preservedFieldNotes.isEmpty {
+                        // 精简表单不提供这些字段的编辑：原样回传，避免整规则替换时
+                        // 被置空——drop 规则丢掉源端口限定等于悄然放宽拦截范围
+                        Text(L10n.f("该规则还含表单未提供的字段（%@），保存时保持原值不变。",
+                                    preservedFieldNotes.joined(separator: "、")))
+                            .foregroundStyle(Color.semanticWarning)
+                    }
+                }
             }
 
             if isEdit {
@@ -80,6 +89,8 @@ struct FirewallRuleFormView: View {
         .navigationTitle(isEdit ? L10n.t("编辑规则") : L10n.t("创建规则"))
         .navigationBarTitleDisplayMode(.inline)
         .formWidthLimit()
+        // 提交中禁止侧滑返回：避免请求在途时 pop 造成重复提交/状态错位
+        .navigationBarBackButtonHidden(isSubmitting)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button {
@@ -102,6 +113,25 @@ struct FirewallRuleFormView: View {
         guard let range = vm.positionRange(family: family),
               let min = range.min, let max = range.max else { return "" }
         return "\(min) ～ \(max)"
+    }
+
+    /// 编辑态规则里表单不提供编辑、提交时须原样回传的字段（有为值才列出）
+    private var preservedFieldNotes: [String] {
+        guard let r = editing else { return [] }
+        var parts: [String] = []
+        if let v = r.sourcePort?.trimmingCharacters(in: .whitespaces), !v.isEmpty {
+            parts.append(L10n.f("源端口 %@", v))
+        }
+        if let v = r.destinationAddress?.trimmingCharacters(in: .whitespaces), !v.isEmpty {
+            parts.append(L10n.f("目标地址 %@", v))
+        }
+        if let v = r.interface?.trimmingCharacters(in: .whitespaces), !v.isEmpty {
+            parts.append(L10n.f("网卡 %@", v))
+        }
+        if let v = r.connectionStates, !v.isEmpty {
+            parts.append(L10n.f("连接状态 %@", v.joined(separator: "/")))
+        }
+        return parts
     }
 
     private var canSubmit: Bool {
@@ -156,6 +186,12 @@ struct FirewallRuleFormView: View {
         rule.orderIndex = isEdit && !trimmedPriority.isEmpty ? Int64(trimmedPriority) : nil
         if isEdit {
             rule.uuid = editing?.uuid ?? editingUUID
+            // 表单未覆盖的字段原样回传（见 preservedFieldNotes）：
+            // rules/update 是整规则替换，置 nil 提交会清掉它们
+            rule.sourcePort = editing?.sourcePort
+            rule.destinationAddress = editing?.destinationAddress
+            rule.interface = editing?.interface
+            rule.connectionStates = editing?.connectionStates
         }
 
         let ok: Bool
@@ -216,6 +252,8 @@ struct FirewallForwardFormView: View {
         .navigationTitle(isEdit ? L10n.t("编辑转发") : L10n.t("创建转发"))
         .navigationBarTitleDisplayMode(.inline)
         .formWidthLimit()
+        // 提交中禁止侧滑返回：编辑 = 同请求内删旧建新，在途 pop 会留下半程状态
+        .navigationBarBackButtonHidden(isSubmitting)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button {
@@ -366,6 +404,10 @@ struct FirewallWhitelistView: View {
             .presentationDragIndicator(.visible)
         }
         .interactiveDismissDisabled(isSubmitting)
+        // 提交中禁止侧滑返回：先删后写在途 pop 后，本地基线与服务器分叉
+        .navigationBarBackButtonHidden(isSubmitting)
+        // 本页是 push 页：父页的 toast 被盖住，查重提示须本页自挂
+        .toastOverlay(message: $vm.toastMessage)
         .onAppear {
             if original.isEmpty {
                 // v2.3.1 上游即为对象数组，直接取用
@@ -389,7 +431,7 @@ struct FirewallWhitelistView: View {
                 }
             }
         } footer: {
-            Text(L10n.t("支持 TCP/UDP、单端口及 8000-8100 格式的端口范围；保存为全量覆盖。"))
+            Text(L10n.t("支持 TCP/UDP、单端口及 8000-8100 格式的端口范围；更改按差异逐条提交。"))
         }
     }
 
@@ -424,11 +466,18 @@ struct FirewallWhitelistView: View {
         }
     }
 
-    /// 编辑/添加结果落库：按原 id 替换或追加（类型与来源均随表单结果，
-    /// 其他扩展字段以表单产出为准）
+    /// 编辑/添加结果落库：与其他条目全等（类型/协议/端口/来源均同）视为
+    /// 重复拒绝落库——否则 ForEach 会出现重号行；合法差异（同端口不同来源）不受影响
     private func applyResult(_ result: FirewallPortWhitelistEntry) {
-        if let id = editingID,
-           let idx = entries.firstIndex(where: { $0.id == id }) {
+        let editingIdx = editingID.flatMap { id in entries.firstIndex { $0.id == id } }
+        if entries.enumerated().contains(where: { offset, entry in
+            offset != editingIdx && entry == result
+        }) {
+            vm.toastMessage = L10n.t("相同条目已存在")
+            editingID = nil
+            return
+        }
+        if let idx = editingIdx {
             entries[idx] = result
         } else {
             entries.append(result)
@@ -445,6 +494,10 @@ struct FirewallWhitelistView: View {
         defer { isSubmitting = false }
         if await vm.savePortWhitelist(original: original, entries: entries) {
             dismiss()
+        } else {
+            // 保存失败：先删后写可能已部分生效，以 VM 重拉结果重建基线；
+            // 用户编辑保留在列表中，重试时按新基线重新 diff（不重放已生效的 delete）
+            original = vm.settings?.portWhiteList ?? []
         }
     }
 }
@@ -510,7 +563,10 @@ struct FirewallWhitelistEntryFormView: View {
             }
         }
         .onChange(of: type) { _, newType in
-            // SSH / 1Panel 端口跟随面板设置自动填入（端口框同步锁定）
+            // SSH / 1Panel 端口跟随面板设置自动填入（端口框同步锁定）；
+            // 仅添加态联动——编辑回显时程序化赋值 type 也会触发本 onChange，
+            // 不加守卫会覆写刚回显的条目端口
+            guard editing == nil else { return }
             switch newType {
             case "ssh":
                 if let p = vm.settings?.sshPort, !p.isEmpty { port = p }

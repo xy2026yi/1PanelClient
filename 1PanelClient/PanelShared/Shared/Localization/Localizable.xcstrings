@@ -12619,6 +12619,17 @@
         }
       }
     },
+    "响应缺少防火墙设置字段" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Response is missing firewall settings fields"
+          }
+        }
+      }
+    },
     "响应资源" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17822,6 +17833,17 @@
         }
       }
     },
+    "快照详情加载失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load snapshot details"
+          }
+        }
+      }
+    },
     "快速命令" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20117,6 +20139,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "TCP/UDP, single ports or ranges like 8000-8100; saving overwrites the whole list."
+          }
+        }
+      }
+    },
+    "支持 TCP/UDP、单端口及 8000-8100 格式的端口范围；更改按差异逐条提交。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supports TCP/UDP, single ports, and ranges like 8000-8100; changes are submitted per-entry by diff."
           }
         }
       }
@@ -26578,6 +26611,17 @@
         }
       }
     },
+    "源端口 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "source port %@"
+          }
+        }
+      }
+    },
     "源端口与目标端口支持端口范围，如: 8080-8089；目标 IP 可留空。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28074,6 +28118,17 @@
         }
       }
     },
+    "目标地址 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "destination address %@"
+          }
+        }
+      }
+    },
     "目标地址 (host:port)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28158,6 +28213,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Links"
+          }
+        }
+      }
+    },
+    "相同条目已存在" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An identical entry already exists"
           }
         }
       }
@@ -31198,6 +31264,17 @@
         }
       }
     },
+    "网卡 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "interface %@"
+          }
+        }
+      }
+    },
     "网卡：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33651,6 +33728,17 @@
         }
       }
     },
+    "该规则还含表单未提供的字段（%@），保存时保持原值不变。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This rule also has fields not shown in the form (%@); they are kept unchanged when saving."
+          }
+        }
+      }
+    },
     "该记录没有关联的任务日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36100,6 +36188,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connection test passed"
+          }
+        }
+      }
+    },
+    "连接状态 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "connection states %@"
           }
         }
       }

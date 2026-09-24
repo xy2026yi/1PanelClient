@@ -563,7 +563,12 @@ nonisolated struct FirewallPortWhitelistEntry: Codable, Equatable, Identifiable,
         try c.encodeIfPresent(sources, forKey: .sources)
     }
 
-    var id: String { "\(type ?? "")|\(protocolField)|\(port)" }
+    /// 列表行唯一键：上游匹配键含 sources——同端口同协议不同来源是合法数据
+    /// （如 80/tcp 分别放行两个 IP），不并入则 ForEach 重号（串显/编辑错行/
+    /// 删一条实际删两条/Dictionary 建索引静默丢一条，与 WAF 重名 id 同型问题）
+    var id: String {
+        "\(type ?? "")|\(protocolField)|\(port)|\((sources ?? []).joined(separator: ","))"
+    }
 
     /// 展示文本（80/tcp，不带地址族后缀）
     var display: String {

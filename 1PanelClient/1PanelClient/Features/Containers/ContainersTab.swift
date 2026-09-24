@@ -26,9 +26,14 @@ struct ContainersTab: View {
     init(manager: ServerManager) {
         self.manager = manager
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
-        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.containers.storeKey(server: server)) {
+        let vm = PageVMStore.shared.vm(key: ManageItem.containers.storeKey(server: server)) {
             ContainersViewModel(server: server)
-        })
+        }
+        _vm = StateObject(wrappedValue: vm)
+        // VM 经 PageVMStore 常驻（lastState 保留），而 @State 随页面重建重置：
+        // 不回填则 chips 高亮「全部」但列表仍按旧状态过滤，且选中项被
+        // ChipsFilterBar 的 guard 吞掉，用户卡在错误筛选里切不回去
+        _stateFilter = State(initialValue: vm.lastState)
     }
 
     var body: some View {

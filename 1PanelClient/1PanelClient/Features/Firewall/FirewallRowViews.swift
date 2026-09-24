@@ -15,6 +15,9 @@ struct FirewallRuleRowView: View {
     var processName: String?
     /// 链内优先级（observed.locator.position；external 规则可能缺失）
     var priority: Int?
+    /// 是否显示使用方徽标：导入/导出预览行没有监听数据（processName 恒
+    /// nil），不传 false 会整列误显「未使用」
+    var showsUsage: Bool = true
 
     private var rule: FirewallRule? { item.rule ?? item.desired?.rule }
 
@@ -38,9 +41,12 @@ struct FirewallRuleRowView: View {
                     StatusBadge(text: family.label, color: family.color)
                 }
                 Spacer()
-                // 使用方：占用该端口的监听进程（/process/listening），无进程显示未使用
-                StatusBadge(text: processName?.isEmpty == false ? processName! : L10n.t("未使用"),
-                            color: processName?.isEmpty == false ? .blue : .secondary)
+                // 使用方：占用该端口的监听进程（/process/listening 按端口匹配）。
+                // 纯 IP 规则无端口、匹配不适用，不显示徽标（否则恒显「未使用」）
+                if showsUsage, rule?.destinationPort?.isEmpty == false {
+                    StatusBadge(text: processName?.isEmpty == false ? processName! : L10n.t("未使用"),
+                                color: processName?.isEmpty == false ? .blue : .secondary)
+                }
                 actionBadge
             }
             if !secondaryLine.isEmpty {

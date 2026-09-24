@@ -334,6 +334,8 @@ private struct AIAgentRoleCreateSheet: View {
                 .interactiveDismissDisabled(isSubmitting)
             } else {
                 form
+                    // 提交中禁止侧滑返回：失败 alert 挂在本页，被 pop 后错误会被吞
+                    .navigationBarBackButtonHidden(isSubmitting)
             }
         }
     }

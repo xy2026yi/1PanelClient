@@ -224,6 +224,18 @@ struct FirewallV2CaptureRegressionTests {
         let ssh = FirewallPortWhitelistEntry(protocolField: "tcp", port: "22", type: "ssh")
         #expect(entries[1].id != ssh.id)
         #expect(ssh.typeLabel == "SSH")
+        // 同端口同协议不同来源是合法数据（上游匹配键含 sources）：
+        // id 不并入 sources 会 ForEach 重号（串显/编辑错行/删一条实际删两条）
+        let srcA = FirewallPortWhitelistEntry(protocolField: "tcp", port: "80",
+                                              type: nil, sources: ["1.2.3.4"])
+        let srcB = FirewallPortWhitelistEntry(protocolField: "tcp", port: "80",
+                                              type: nil, sources: ["5.6.7.8"])
+        #expect(srcA.id != srcB.id)
+        #expect(srcA != srcB)
+        // 来源一致的同一规则 id 稳定（跨次解码不闪行）
+        let srcACopy = FirewallPortWhitelistEntry(protocolField: "tcp", port: "80",
+                                                  type: nil, sources: ["1.2.3.4"])
+        #expect(srcA.id == srcACopy.id)
 
         // 提交编码（create/update 请求体里的 rule）：不带本地扩展，与上游一致
         let data = try JSONEncoder().encode(FirewallWhitelistRuleRequest(rule: entries[0]))

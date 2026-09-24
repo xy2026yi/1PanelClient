@@ -550,7 +550,11 @@ struct CreateCronjobView: View {
 
         case .directory:
             directorySection
-            exclusionRulesSection
+            if dirScopeKey == "dir" {
+                // 排除规则仅文件夹模式展示（网页端文件模式无此入口，表单
+                // 不做超集）：文件模式逐个列举文件，无通配排除的概念
+                exclusionRulesSection
+            }
             backupSection
 
         case .log:

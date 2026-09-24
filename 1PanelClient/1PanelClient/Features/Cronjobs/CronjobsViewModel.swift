@@ -344,6 +344,21 @@ final class CronjobsViewModel: ObservableObject {
         }
     }
 
+    /// 已安装应用选项：单独抽出——快照详情页解析排除应用名时只需这一份，
+    /// 不必随 loadCreateOptions 拉分组/用户/账号/网站/告警全套
+    func loadInstalledApps() async {
+        guard installedApps.isEmpty else { return }
+        do {
+            installedApps = try await client.send(
+                path: APIEndpoint.appsInstalledListOptions.path,
+                method: "GET",
+                as: [InstalledAppOption].self
+            )
+        } catch {
+            installedApps = []
+        }
+    }
+
     func loadCreateOptions() async {
         // 分组（创建任务必须指定 groupID，否则任务会显示在「-」分组；已加载则秒回）
         await loadGroups()
@@ -372,17 +387,7 @@ final class CronjobsViewModel: ObservableObject {
             }
         }
         // 已安装应用（用于备份应用）
-        if installedApps.isEmpty {
-            do {
-                installedApps = try await client.send(
-                    path: APIEndpoint.appsInstalledListOptions.path,
-                    method: "GET",
-                    as: [InstalledAppOption].self
-                )
-            } catch {
-                installedApps = []
-            }
-        }
+        await loadInstalledApps()
         // 网站列表（用于备份网站 / 切割网站日志）
         if websiteOptions.isEmpty {
             do {

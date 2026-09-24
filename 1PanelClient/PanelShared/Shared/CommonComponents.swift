@@ -481,13 +481,16 @@ struct SearchIconModifier: ViewModifier {
     let prompt: String
     /// 键盘「搜索」提交回调（服务端搜索语义的页面用；本地实时过滤的页面不传）
     var onSubmit: (() -> Void)? = nil
+    /// false = 不提供搜索入口（如防火墙仅规则段可搜索；搜索态下变为 false
+    /// 会自动收起并清空文本，配合调用方的取消回调恢复全量数据）
+    var searchAvailable: Bool = true
 
     func body(content: Content) -> some View {
         content
             .navigationTitle(isSearching ? "" : title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if isSearching {
+                if isSearching && searchAvailable {
                     ToolbarItem(placement: .principal) {
                         TextField(prompt, text: $text)
                             .textFieldStyle(.plain)
@@ -503,7 +506,7 @@ struct SearchIconModifier: ViewModifier {
                             Text(L10n.t("取消"))
                         }
                     }
-                } else {
+                } else if searchAvailable {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             isSearching = true
@@ -512,6 +515,9 @@ struct SearchIconModifier: ViewModifier {
                         }
                     }
                 }
+            }
+            .onChange(of: searchAvailable) { _, available in
+                if !available && isSearching { endSearch() }
             }
     }
 
@@ -528,14 +534,16 @@ extension View {
         isSearching: Binding<Bool>,
         title: String,
         prompt: String,
-        onSubmit: (() -> Void)? = nil
+        onSubmit: (() -> Void)? = nil,
+        searchAvailable: Bool = true
     ) -> some View {
         modifier(SearchIconModifier(
             text: text,
             isSearching: isSearching,
             title: title,
             prompt: prompt,
-            onSubmit: onSubmit
+            onSubmit: onSubmit,
+            searchAvailable: searchAvailable
         ))
     }
 }
@@ -848,8 +856,10 @@ extension View {
 /// 行交互手势：单击与长按互不误触（全站统一口径）。
 /// Button/NavigationLink 在触摸抬起时仍会激活——长按触发半屏菜单后松手，
 /// 菜单之上会再叠一次点击进入（导航/编辑），表现为误触。这里统一改为
-/// tap 手势 + 抑制标记：长按触发后吞掉紧随的松手 tap；标记 0.6 秒自愈
-/// （松手未产生 tap 时复位），避免吞掉下一次正常点击。
+/// tap 手势 + 抑制标记：长按触发后吞掉松手 tap；标记在新触摸落下时复位
+/// （而非定时自愈——0.6s 后手指仍按住再松手，tap 照样穿透，长按不弹层
+/// 的路径如脚本库真实可达）。新触摸由 minimumDistance 0 的拖拽起始事件
+/// 识别（translation 近零；长按后的手指微动 translation 非零，不会误复位）。
 struct RowTapLongPressModifier: ViewModifier {
     var onTap: () -> Void
     var onLongPress: () -> Void
@@ -872,11 +882,19 @@ struct RowTapLongPressModifier: ViewModifier {
                 LongPressGesture(minimumDuration: 0.5).onEnded { _ in
                     if longPressHaptic { Haptic.selection() }
                     suppressNextTap = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                        if suppressNextTap { suppressNextTap = false }
-                    }
                     onLongPress()
                 }
+            )
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        // 仅新触摸的起始事件（translation 近零）复位；
+                        // 静止按住不会产生事件，微动事件的 translation 非零
+                        if suppressNextTap,
+                           abs(value.translation.width) < 2, abs(value.translation.height) < 2 {
+                            suppressNextTap = false
+                        }
+                    }
             )
     }
 }

@@ -200,8 +200,11 @@ struct QuickCommandEditView: View {
                 }
                 .bottomSheetDetents([.large])
                 .presentationDragIndicator(.visible)
+                .interactiveDismissDisabled(isSaving)
             } else {
                 form
+                    // 提交中禁止侧滑返回：避免半途 pop 造成重复提交/状态错位
+                    .navigationBarBackButtonHidden(isSaving)
             }
         }
     }

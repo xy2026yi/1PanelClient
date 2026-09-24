@@ -849,10 +849,19 @@ final class FirewallViewModel: ObservableObject {
     func loadSettings() async {
         guard !unsupportedPanel else { return }
         do {
-            settings = try await client.send(
+            let loaded = try await client.send(
                 path: APIEndpoint.firewallSettings.path, method: "GET",
                 as: FirewallSettings.self
             )
+            // 健全性校验：信封解码失败会静默回落裸 JSON 解码，全字段可选的
+            // 模型解出全 nil 也算「成功」（「防火墙设置全空」事故的完整症状
+            // 链）。关键字段全空视为失败报错，宁可暴露问题也不展示假数据
+            if loaded.system == nil, loaded.forwarding == nil, loaded.docker == nil,
+               loaded.pingStatus == nil, loaded.panelPort == nil, loaded.sshPort == nil,
+               loaded.portWhiteList == nil {
+                throw APIError.decodingError(L10n.t("响应缺少防火墙设置字段"))
+            }
+            settings = loaded
             settingsErrorMessage = nil
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -884,8 +893,11 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    /// 面板端口白名单（v2.3.1 逐条写）：按 id 对比编辑前后差异——
-    /// 删除→/delete、新增→/whitelist、同 id 变更→/whitelist/update
+    /// 面板端口白名单（v2.3.1 逐条写）。差异配对不按含 sources 的行 id：
+    /// id 含 sources 后「仅改来源」会退化成删+建，对 ssh/panel 条目
+    /// （服务端按 type 键控）有风险。改为：全等条目跳过；剩余按
+    /// type|协议|端口 配对走 /update（改来源/改端口均覆盖）；配不上
+    /// 的旧条目 /delete、新条目 /whitelist
     func savePortWhitelist(
         original: [FirewallPortWhitelistEntry],
         entries: [FirewallPortWhitelistEntry]
@@ -893,30 +905,43 @@ final class FirewallViewModel: ObservableObject {
         isOperating = true
         defer { isOperating = false }
         do {
-            let origByID = Dictionary(original.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-            let newIDs = Set(entries.map(\.id))
-            for old in original where !newIDs.contains(old.id) {
+            var pendingOld = original
+            var updates: [(old: FirewallPortWhitelistEntry, new: FirewallPortWhitelistEntry)] = []
+            var creates: [FirewallPortWhitelistEntry] = []
+            for entry in entries {
+                if let idx = pendingOld.firstIndex(of: entry) {
+                    pendingOld.remove(at: idx)
+                    continue
+                }
+                if let idx = pendingOld.firstIndex(where: {
+                    $0.type == entry.type && $0.protocolField == entry.protocolField && $0.port == entry.port
+                }) {
+                    updates.append((pendingOld[idx], entry))
+                    pendingOld.remove(at: idx)
+                } else {
+                    creates.append(entry)
+                }
+            }
+            for old in pendingOld {
                 let _: EmptyResponse = try await client.send(
                     path: APIEndpoint.firewallSettingsWhitelistDelete.path,
                     body: FirewallWhitelistRuleRequest(rule: old),
                     as: EmptyResponse.self
                 )
             }
-            for entry in entries {
-                if let old = origByID[entry.id] {
-                    guard old != entry else { continue }
-                    let _: EmptyResponse = try await client.send(
-                        path: APIEndpoint.firewallSettingsWhitelistUpdate.path,
-                        body: FirewallWhitelistRuleUpdateRequest(oldRule: old, rule: entry),
-                        as: EmptyResponse.self
-                    )
-                } else {
-                    let _: EmptyResponse = try await client.send(
-                        path: APIEndpoint.firewallSettingsWhitelist.path,
-                        body: FirewallWhitelistRuleRequest(rule: entry),
-                        as: EmptyResponse.self
-                    )
-                }
+            for update in updates {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.firewallSettingsWhitelistUpdate.path,
+                    body: FirewallWhitelistRuleUpdateRequest(oldRule: update.old, rule: update.new),
+                    as: EmptyResponse.self
+                )
+            }
+            for entry in creates {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.firewallSettingsWhitelist.path,
+                    body: FirewallWhitelistRuleRequest(rule: entry),
+                    as: EmptyResponse.self
+                )
             }
             await loadSettings()
             toastMessage = L10n.t("白名单已提交")
@@ -924,6 +949,9 @@ final class FirewallViewModel: ObservableObject {
         } catch {
             guard !APIError.isCancellation(error) else { return false }
             errorMessage = error.localizedDescription
+            // 先删后写中途失败：本地与服务器已分叉，重拉对齐（调用方以重拉
+            // 结果重建基线），否则下次保存会重放已生效的 delete 永远失败
+            await loadSettings()
             return false
         }
     }
