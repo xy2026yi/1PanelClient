@@ -82,8 +82,9 @@ struct ContainerComposesView: View {
         .task { await load() }
         .refreshable { await load() }
         .toastOverlay(message: $toastMessage)
-        .sheet(isPresented: $showCreate) {
-            ContainerComposeCreateView(server: server) { name, taskID in
+        // 创建编排改为 push（返回即取消；表单带 push 模式参数）
+        .navigationDestination(isPresented: $showCreate) {
+            ContainerComposeCreateView(server: server, presentedAsSheet: false) { name, taskID in
                 toastMessage = L10n.f("创建编排 %@ 已提交", name)
                 progressTask = ComposeTaskTarget(
                     taskID: taskID, title: L10n.f("创建编排 %@", name))
@@ -665,6 +666,8 @@ struct ContainerComposeCreateView: View {
     let server: ServerConfig
     /// 提交成功回调（名称 + taskID；进度页由列表页 push，避免 Sheet 内嵌跳转不生效）
     let onCreated: (String, String) -> Void
+    /// true = 以 sheet 弹出（自带 NavigationStack + 取消按钮）；false = 页面推入（返回即取消）
+    var presentedAsSheet: Bool = true
 
     @Environment(\.dismiss) private var dismiss
     /// edit / path / template
@@ -685,8 +688,10 @@ struct ContainerComposeCreateView: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, onCreated: @escaping (String, String) -> Void) {
+    init(server: ServerConfig, presentedAsSheet: Bool = true,
+         onCreated: @escaping (String, String) -> Void) {
         self.server = server
+        self.presentedAsSheet = presentedAsSheet
         self.onCreated = onCreated
         self.client = APIClient.shared(for: server)
     }
@@ -713,8 +718,22 @@ struct ContainerComposeCreateView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Group {
+            if presentedAsSheet {
+                NavigationStack {
+                    form
+                }
+                .presentationDragIndicator(.visible)
+                .bottomSheetDetents([.large])
+                .interactiveDismissDisabled(isSubmitting)
+            } else {
+                form
+            }
+        }
+    }
+
+    private var form: some View {
+        Form {
                 Section {
                     OutlinedPicker(label: L10n.t("来源"),
                                    options: ["edit", "path", "template"],
@@ -784,9 +803,11 @@ struct ContainerComposeCreateView: View {
             .navigationTitle(L10n.t("创建编排"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                        .disabled(isSubmitting)
+                if presentedAsSheet {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(L10n.t("取消")) { dismiss() }
+                            .disabled(isSubmitting)
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.t("创建")) {
@@ -801,10 +822,6 @@ struct ContainerComposeCreateView: View {
                 Text(errorMessage ?? "")
             }
             .task { await loadTemplates() }
-        }
-        .presentationDragIndicator(.visible)
-        .bottomSheetDetents([.large])
-        .interactiveDismissDisabled(isSubmitting)
     }
 
     private func loadTemplates() async {
@@ -977,13 +994,16 @@ struct ContainerTemplatesView: View {
         } message: {
             Text(L10n.f("确定删除模板「%@」吗？", pendingDelete?.name ?? ""))
         }
-        .sheet(isPresented: $showCreate) {
-            ContainerTemplateEditSheet(server: server, template: nil) {
+        // 模板新建/编辑改为 push（返回即取消；表单带 push 模式参数）
+        .navigationDestination(isPresented: $showCreate) {
+            ContainerTemplateEditSheet(server: server, template: nil,
+                                       presentedAsSheet: false) {
                 Task { await load() }
             }
         }
-        .sheet(item: $editingTemplate) { template in
-            ContainerTemplateEditSheet(server: server, template: template) {
+        .navigationDestination(item: $editingTemplate) { template in
+            ContainerTemplateEditSheet(server: server, template: template,
+                                       presentedAsSheet: false) {
                 Task { await load() }
             }
         }
@@ -1027,6 +1047,8 @@ private struct ContainerTemplateEditSheet: View {
     let server: ServerConfig
     /// nil = 创建
     let template: ContainerTemplate?
+    /// true = 以 sheet 弹出（自带 NavigationStack + 取消按钮）；false = 页面推入（返回即取消）
+    var presentedAsSheet: Bool = true
     let onSaved: () async -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -1039,9 +1061,11 @@ private struct ContainerTemplateEditSheet: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, template: ContainerTemplate?, onSaved: @escaping () async -> Void) {
+    init(server: ServerConfig, template: ContainerTemplate?,
+         presentedAsSheet: Bool = true, onSaved: @escaping () async -> Void) {
         self.server = server
         self.template = template
+        self.presentedAsSheet = presentedAsSheet
         self.onSaved = onSaved
         self.client = APIClient.shared(for: server)
     }
@@ -1052,8 +1076,22 @@ private struct ContainerTemplateEditSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Group {
+            if presentedAsSheet {
+                NavigationStack {
+                    form
+                }
+                .presentationDragIndicator(.visible)
+                .bottomSheetDetents([.large])
+                .interactiveDismissDisabled(isSubmitting)
+            } else {
+                form
+            }
+        }
+    }
+
+    private var form: some View {
+        Form {
                 Section {
                     OutlinedTextField(label: L10n.t("名称"), text: $name,
                                       disabled: template != nil)
@@ -1077,9 +1115,11 @@ private struct ContainerTemplateEditSheet: View {
             .navigationTitle(template == nil ? L10n.t("创建模板") : L10n.t("编辑模板"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                        .disabled(isSubmitting)
+                if presentedAsSheet {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(L10n.t("取消")) { dismiss() }
+                            .disabled(isSubmitting)
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.t("保存")) {
@@ -1100,10 +1140,6 @@ private struct ContainerTemplateEditSheet: View {
                     content = template.content ?? ""
                 }
             }
-        }
-        .presentationDragIndicator(.visible)
-        .bottomSheetDetents([.large])
-        .interactiveDismissDisabled(isSubmitting)
     }
 
     private func submit() async {

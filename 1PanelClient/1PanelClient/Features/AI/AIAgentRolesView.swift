@@ -102,9 +102,11 @@ struct AIAgentRolesView: View {
         } message: {
             Text(L10n.f("确定删除角色「%@」吗？其工作区与绑定将一并移除。", pendingDelete?.name ?? ""))
         }
-        .sheet(isPresented: $showCreate) {
+        // 创建角色改为 push（返回即取消；表单带 push 模式参数）
+        .navigationDestination(isPresented: $showCreate) {
             AIAgentRoleCreateSheet(client: client, agentId: agentId,
-                                   channels: channels, modelOptions: modelOptions) {
+                                   channels: channels, modelOptions: modelOptions,
+                                   presentedAsSheet: false) {
                 Task { await load() }
             }
         }
@@ -304,6 +306,8 @@ private struct AIAgentRoleCreateSheet: View {
     let agentId: Int
     let channels: [AIAgentRoleChannel]
     let modelOptions: [String]
+    /// true = 以 sheet 弹出（自带 NavigationStack + 取消按钮）；false = 页面推入（返回即取消）
+    var presentedAsSheet: Bool = true
     let onCreated: () async -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -320,68 +324,80 @@ private struct AIAgentRoleCreateSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    OutlinedTextField(label: L10n.t("名称"), text: $name)
-                    OutlinedPicker(label: L10n.t("模型"),
-                                   options: [""] + modelOptions,
-                                   selection: $model,
-                                   optionLabels: ["": L10n.t("请选择")])
-                } header: {
-                    SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
+        Group {
+            if presentedAsSheet {
+                NavigationStack {
+                    form
                 }
-
-                Section {
-                    ForEach(Array(bindings.enumerated()), id: \.offset) { idx, binding in
-                        HStack {
-                            Text("\(binding.channel ?? "-"):\(binding.accountId ?? "-")")
-                                .font(.dataMonospaced)
-                            Spacer()
-                            Button {
-                                bindings.remove(at: idx)
-                            } label: {
-                                Image(systemName: "minus.circle")
-                                    .foregroundStyle(.red)
-                            }
-                            .buttonStyle(.borderless)
-                            .accessibilityLabel(L10n.t("删除"))
-                        }
-                    }
-                    RoleBindRow(channels: channels) { channel, account in
-                        // 同频道同账号不重复添加
-                        guard !bindings.contains(where: { $0.channel == channel && $0.accountId == account }) else { return }
-                        bindings.append(AIAgentRoleBinding(channel: channel, accountId: account))
-                    }
-                } header: {
-                    SectionLabel(title: L10n.t("频道绑定"), systemImage: "link")
-                } footer: {
-                    Text(L10n.t("可选；创建后也可在角色卡片内添加或取消绑定"))
-                }
+                .presentationDragIndicator(.visible)
+                .bottomSheetDetents([.large])
+                .interactiveDismissDisabled(isSubmitting)
+            } else {
+                form
             }
-            .navigationTitle(L10n.t("创建角色"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+        }
+    }
+
+    private var form: some View {
+        Form {
+            Section {
+                OutlinedTextField(label: L10n.t("名称"), text: $name)
+                OutlinedPicker(label: L10n.t("模型"),
+                               options: [""] + modelOptions,
+                               selection: $model,
+                               optionLabels: ["": L10n.t("请选择")])
+            } header: {
+                SectionLabel(title: L10n.t("基本信息"), systemImage: "info.circle")
+            }
+
+            Section {
+                ForEach(Array(bindings.enumerated()), id: \.offset) { idx, binding in
+                    HStack {
+                        Text("\(binding.channel ?? "-"):\(binding.accountId ?? "-")")
+                            .font(.dataMonospaced)
+                        Spacer()
+                        Button {
+                            bindings.remove(at: idx)
+                        } label: {
+                            Image(systemName: "minus.circle")
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.t("删除"))
+                    }
+                }
+                RoleBindRow(channels: channels) { channel, account in
+                    // 同频道同账号不重复添加
+                    guard !bindings.contains(where: { $0.channel == channel && $0.accountId == account }) else { return }
+                    bindings.append(AIAgentRoleBinding(channel: channel, accountId: account))
+                }
+            } header: {
+                SectionLabel(title: L10n.t("频道绑定"), systemImage: "link")
+            } footer: {
+                Text(L10n.t("可选；创建后也可在角色卡片内添加或取消绑定"))
+            }
+        }
+        .navigationTitle(L10n.t("创建角色"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if presentedAsSheet {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
                         .disabled(isSubmitting)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("创建")) {
-                        Task { await submit() }
-                    }
-                    .disabled(!canSubmit)
-                }
             }
-            .alert(L10n.t("提示"), isPresented: $showError) {
-                Button(L10n.t("好的"), role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "")
+            ToolbarItem(placement: .confirmationAction) {
+                Button(L10n.t("创建")) {
+                    Task { await submit() }
+                }
+                .disabled(!canSubmit)
             }
         }
-        .presentationDragIndicator(.visible)
-        .bottomSheetDetents([.large])
-        .interactiveDismissDisabled(isSubmitting)
+        .alert(L10n.t("提示"), isPresented: $showError) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
     }
 
     private func submit() async {

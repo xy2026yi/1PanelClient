@@ -172,15 +172,17 @@ struct GroupManageView: View {
                 .accessibilityLabel(L10n.t("新建分组"))
             }
         }
-        .sheet(isPresented: $showCreate) {
-            GroupNameSheet(title: L10n.t("新建分组")) { name in
+        // 新建/重命名改为 push（返回即取消；表单带 push 模式参数）
+        .navigationDestination(isPresented: $showCreate) {
+            GroupNameSheet(title: L10n.t("新建分组"), presentedAsSheet: false) { name in
                 Task {
                     if await vm.create(name: name) { onChanged?() }
                 }
             }
         }
-        .sheet(item: $renamingGroup) { group in
-            GroupNameSheet(title: L10n.t("重命名"), initialText: group.name ?? "") { name in
+        .navigationDestination(item: $renamingGroup) { group in
+            GroupNameSheet(title: L10n.t("重命名"), initialText: group.name ?? "",
+                           presentedAsSheet: false) { name in
                 Task {
                     if await vm.rename(group, to: name) { onChanged?() }
                 }
@@ -280,6 +282,8 @@ struct GroupManageView: View {
 struct GroupNameSheet: View {
     let title: String
     var initialText: String = ""
+    /// true = 以 sheet 弹出（自带 NavigationStack + 取消按钮）；false = 页面推入（返回即取消）
+    var presentedAsSheet: Bool = true
     let onSave: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -291,34 +295,46 @@ struct GroupNameSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField(L10n.t("分组名称"), text: $name)
-                        .focused($focused)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .onSubmit { submit() }
+        Group {
+            if presentedAsSheet {
+                NavigationStack {
+                    form
                 }
+                .bottomSheetDetents([.medium])
+                .presentationDragIndicator(.visible)
+            } else {
+                form
             }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                name = initialText
-                focused = true
+        }
+    }
+
+    private var form: some View {
+        Form {
+            Section {
+                TextField(L10n.t("分组名称"), text: $name)
+                    .focused($focused)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .onSubmit { submit() }
             }
-            .toolbar {
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            name = initialText
+            focused = true
+        }
+        .toolbar {
+            if presentedAsSheet {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("保存")) { submit() }
-                        .disabled(trimmedName.isEmpty)
-                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button(L10n.t("保存")) { submit() }
+                    .disabled(trimmedName.isEmpty)
             }
         }
-        .bottomSheetDetents([.medium])
-        .presentationDragIndicator(.visible)
     }
 
     private func submit() {

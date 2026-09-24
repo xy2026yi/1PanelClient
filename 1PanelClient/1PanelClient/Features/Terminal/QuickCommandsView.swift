@@ -71,11 +71,12 @@ struct QuickCommandsView: View {
         } message: {
             Text(L10n.f("确定删除命令「%@」吗？", vm.pendingDelete?.name ?? ""))
         }
-        .sheet(isPresented: $showCreate) {
-            QuickCommandEditView(vm: vm, editing: nil)
+        // 新建/编辑命令改为 push（返回即取消；表单带 push 模式参数）
+        .navigationDestination(isPresented: $showCreate) {
+            QuickCommandEditView(vm: vm, editing: nil, presentedAsSheet: false)
         }
-        .sheet(item: $editing) { cmd in
-            QuickCommandEditView(vm: vm, editing: cmd)
+        .navigationDestination(item: $editing) { cmd in
+            QuickCommandEditView(vm: vm, editing: cmd, presentedAsSheet: false)
         }
         .task { await vm.loadAll() }
         .refreshable { await vm.loadAll(force: true) }
@@ -154,6 +155,8 @@ struct QuickCommandEditView: View {
     @ObservedObject var vm: QuickCommandsViewModel
     /// 编辑模式传入已有命令；创建模式传 nil
     let editing: QuickCommand?
+    /// true = 以 sheet 弹出（自带 NavigationStack + 取消按钮）；false = 页面推入（返回即取消）
+    var presentedAsSheet: Bool = true
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
@@ -190,8 +193,21 @@ struct QuickCommandEditView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Group {
+            if presentedAsSheet {
+                NavigationStack {
+                    form
+                }
+                .bottomSheetDetents([.large])
+                .presentationDragIndicator(.visible)
+            } else {
+                form
+            }
+        }
+    }
+
+    private var form: some View {
+        Form {
                 Section {
                     OutlinedTextField(label: L10n.t("名称"), text: $name)
                 } header: {
@@ -218,8 +234,10 @@ struct QuickCommandEditView: View {
             .navigationTitle(isEditing ? L10n.t("编辑命令") : L10n.t("创建命令"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
+                if presentedAsSheet {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(L10n.t("取消")) { dismiss() }
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -247,9 +265,6 @@ struct QuickCommandEditView: View {
             .onChange(of: vm.groups) { _, _ in
                 if groupID == 0 { groupID = vm.defaultGroupID }
             }
-        }
-        .bottomSheetDetents([.large])
-        .presentationDragIndicator(.visible)
     }
 
     private func fillIfEditing() {

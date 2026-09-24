@@ -345,12 +345,11 @@ struct AIOllamaView: View {
                 }
             )
         }
-        .sheet(isPresented: $showAdd) {
-            AIOllamaAddModelSheet(server: server) { name in
+        // 添加模型改为 push（返回即取消；表单带 push 模式参数）
+        .navigationDestination(isPresented: $showAdd) {
+            AIOllamaAddModelSheet(server: server, presentedAsSheet: false) { name in
                 Task { await pull(name: name) }
             }
-            .presentationDragIndicator(.visible)
-            .bottomSheetDetents([.medium])
         }
         .sheet(isPresented: $showPullLog) {
             NavigationStack {
@@ -697,6 +696,8 @@ struct AIOllamaModelRow: View {
 
 struct AIOllamaAddModelSheet: View {
     let server: ServerConfig
+    /// true = 以 sheet 弹出（自带 NavigationStack + 取消按钮）；false = 页面推入（返回即取消）
+    var presentedAsSheet: Bool = true
     let onSubmit: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -707,32 +708,44 @@ struct AIOllamaAddModelSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    OutlinedTextField(label: L10n.t("模型名称"), text: $name)
-                        .font(.dataMonospacedBody)
-                } header: {
-                    SectionLabel(title: L10n.t("拉取模型"), systemImage: "arrow.down.circle")
-                } footer: {
-                    Text(L10n.t("输入 Ollama 模型名称（如 llama3.2、deepseek-v4-flash），拉取进度将在任务中展示"))
+        Group {
+            if presentedAsSheet {
+                NavigationStack {
+                    form
                 }
+            } else {
+                form
             }
-            .navigationTitle(L10n.t("添加模型"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+        }
+    }
+
+    private var form: some View {
+        Form {
+            Section {
+                OutlinedTextField(label: L10n.t("模型名称"), text: $name)
+                    .font(.dataMonospacedBody)
+            } header: {
+                SectionLabel(title: L10n.t("拉取模型"), systemImage: "arrow.down.circle")
+            } footer: {
+                Text(L10n.t("输入 Ollama 模型名称（如 llama3.2、deepseek-v4-flash），拉取进度将在任务中展示"))
+            }
+        }
+        .navigationTitle(L10n.t("添加模型"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if presentedAsSheet {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("拉取")) {
-                        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !trimmed.isEmpty else { return }
-                        dismiss()
-                        onSubmit(trimmed)
-                    }
-                    .disabled(!canSubmit)
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button(L10n.t("拉取")) {
+                    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else { return }
+                    dismiss()
+                    onSubmit(trimmed)
                 }
+                .disabled(!canSubmit)
             }
         }
     }
