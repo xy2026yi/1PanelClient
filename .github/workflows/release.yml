@@ -1,0 +1,84 @@
+name: Release IPA
+
+# 发布路径：push v* tag → 打未签名 IPA（剔除小组件）→ 附到该 tag 的 pre-release。
+# 手动触发（workflow_dispatch）用于试跑流水线：只上传 artifact，不建 release。
+# 注意：未签名 IPA 不能直接装机，需 Apple Developer 证书重签
+# （AltStore / Sideloadly / fastlane resign）；接入正式签名后改造本文件即可。
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-ipa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ipa:
+    name: 打包 IPA（未签名 · 剔除小组件）
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SPM 依赖缓存
+        uses: actions/cache@v4
+        with:
+          path: .ci-dd/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('1PanelClient/1PanelClient.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: 归档（不签名，tag 写入版本号）
+        run: |
+          set -o pipefail
+          # tag（v1.2.3 → 1.2.3）写入 MARKETING_VERSION；非 tag 触发（手动/分支）
+          # 不是合法版本号，回落 0.0.0 仅为占位
+          VER="${GITHUB_REF_NAME#v}"
+          if [[ ! "$VER" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then VER="0.0.0"; fi
+          xcodebuild archive \
+            -project 1PanelClient/1PanelClient.xcodeproj \
+            -scheme 1PanelClient \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/App.xcarchive \
+            -derivedDataPath .ci-dd \
+            MARKETING_VERSION="$VER" \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            | xcbeautify --renderer github-actions
+
+      - name: 组 IPA（剔除小组件 appex）并生成校验和
+        run: |
+          cd build
+          mkdir Payload
+          cp -r App.xcarchive/Products/Applications/*.app Payload/
+          # 小组件与主 App 仅编译期共享 PanelShared 源码，运行时无依赖；
+          # 剔除后仅 iOS 桌面小组件不可用，App 功能不受影响
+          rm -rf Payload/*.app/PlugIns/PanelWidgets.appex
+          zip -qry "1PanelClient-${GITHUB_REF_NAME}.ipa" Payload
+          shasum -a 256 "1PanelClient-${GITHUB_REF_NAME}.ipa" \
+            > "1PanelClient-${GITHUB_REF_NAME}.ipa.sha256"
+
+      # tag 触发：建（或更新）该 tag 的 pre-release 并附上 IPA
+      - name: 附到 tag 的 pre-release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          generate_release_notes: true
+          files: |
+            build/1PanelClient-*.ipa
+            build/*.ipa.sha256
+
+      # 手动触发：只传 artifact（无 tag 可挂 release）
+      - name: 上传 artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: 1PanelClient-ipa-${{ github.ref_name }}
+          path: build/*.ipa*
+          retention-days: 14
