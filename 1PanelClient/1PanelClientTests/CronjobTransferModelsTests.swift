@@ -38,6 +38,60 @@ struct CronjobTransferModelsTests {
         #expect(item.apps == nil && item.dbName == nil && item.sourceAccounts == nil)
     }
 
+    @Test("快照任务提交：snapshotRule 与顶层 withImage/ignoreAppIDs 双写（抓包形状）")
+    func encodeSnapshotDoubleWrite() throws {
+        var req = CronjobCreateRequest()
+        req.type = "snapshot"
+        req.withImage = true
+        req.ignoreAppIDs = [1, 2]
+        req.snapshotRule = CronjobSnapshotRule(withImage: true, ignoreAppIDs: [1, 2])
+        req.ignoreFiles = ["*.log", "*.log*"]
+        req.exclusionRules = "*.log,*.log*"
+
+        let obj = try JSONSerialization.jsonObject(with: JSONEncoder().encode(req)) as? [String: Any]
+        #expect(obj?["withImage"] as? Bool == true)
+        #expect(obj?["ignoreAppIDs"] as? [Int] == [1, 2])
+        let rule = obj?["snapshotRule"] as? [String: Any]
+        #expect(rule?["withImage"] as? Bool == true)
+        #expect(rule?["ignoreAppIDs"] as? [Int] == [1, 2])
+        #expect(obj?["ignoreFiles"] as? [String] == ["*.log", "*.log*"])
+        #expect(obj?["exclusionRules"] as? String == "*.log,*.log*")
+    }
+
+    @Test("load/info 快照字段解码：snapshotRule 优先，顶层双写兜底")
+    func decodeSnapshotInfo() throws {
+        let json = """
+        {"id":1,"name":"123124","type":"snapshot","spec":"30 1 * * 1",
+         "exclusionRules":"*.log,*.log*","snapshotRule":{"withImage":true,"ignoreAppIDs":[1,2]},
+         "ignoreAppIDs":[1,2],"withImage":true}
+        """
+        let info = try JSONDecoder().decode(CronjobInfo.self, from: Data(json.utf8))
+        #expect(info.snapshotRule?.withImage == true)
+        #expect(info.snapshotRule?.ignoreAppIDs == [1, 2])
+        #expect(info.withImage == true)
+        #expect(info.ignoreAppIDs == [1, 2])
+        #expect((info.exclusionRules ?? "").split(separator: ",").count == 2)
+    }
+
+    @Test("各类型默认执行周期（对齐网页端；cronSpec 小时/分钟补零为既有格式）")
+    func defaultSchedules() {
+        // Shell：每月 3 日 01:30
+        let shell = CreateCronjobView.defaultSchedule(for: .shell)
+        #expect(shell.cronSpec == "30 01 3 * *")
+        // 备份网站/备份日志/访问 URL/缓存清理/系统快照：每周一 01:30
+        for t in [CronjobType.website, .log, .curl, .clean, .snapshot] {
+            #expect(CreateCronjobView.defaultSchedule(for: t).cronSpec == "30 01 * * 1")
+        }
+        // 备份目录/切割日志/同步时间/同步 IP 组/清理日志：每天 01:30
+        for t in [CronjobType.directory, .cutWebsiteLog, .ntp, .syncIpGroup, .cleanLog] {
+            #expect(CreateCronjobView.defaultSchedule(for: t).cronSpec == "30 01 * * *")
+        }
+        // 备份应用/备份数据库：每天 02:30
+        for t in [CronjobType.app, .database] {
+            #expect(CreateCronjobView.defaultSchedule(for: t).cronSpec == "30 02 * * *")
+        }
+    }
+
     @Test("形状透传：字符串/数组/整数形状均不阻断解码，编码按原形状回传")
     func passthroughShapes() throws {
         let json = """

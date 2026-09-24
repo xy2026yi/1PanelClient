@@ -3896,6 +3896,17 @@
         }
       }
     },
+    "一行一条，支持通配符（如 *.log）；备份时跳过命中的文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One rule per line, wildcards supported (e.g. *.log); matched files are skipped during backup"
+          }
+        }
+      }
+    },
     "一键部署" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7357,6 +7368,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disabling iptables prevents containers from communicating with the external network."
+          }
+        }
+      }
+    },
+    "关闭后快照仅包含面板数据与配置，不含应用镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, the snapshot contains only panel data and config, without app images"
           }
         }
       }
@@ -11229,6 +11251,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Multi-select; backups will be uploaded to all selected accounts"
+          }
+        }
+      }
+    },
+    "可多选；快照将跳过所选应用的镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multi-select; the snapshot skips the selected apps' images"
           }
         }
       }
@@ -19457,6 +19490,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Excluded IPs"
+          }
+        }
+      }
+    },
+    "排除应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excluded apps"
           }
         }
       }

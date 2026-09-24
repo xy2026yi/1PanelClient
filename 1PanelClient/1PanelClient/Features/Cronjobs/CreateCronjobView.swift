@@ -21,8 +21,9 @@ struct CreateCronjobView: View {
     @State private var name = ""
     /// 所属分组（0 = 未初始化，加载后回落默认分组）
     @State private var selectedGroupID = 0
-    // 周期（支持多个；编辑入口见 CronjobSchedulesEditorView）
-    @State private var schedules: [ScheduleItem] = [ScheduleItem()]
+    // 周期（支持多个；编辑入口见 CronjobSchedulesEditorView；
+    // 初值 = Shell 类型的网页端默认周期 每月 3 日 01:30，切换类型时跟随）
+    @State private var schedules: [ScheduleItem] = [CreateCronjobView.defaultSchedule(for: .shell)]
     // Shell
     @State private var script = "#!/bin/bash\n"
     @State private var user = ""           // 默认不选（空字符串 = 服务器默认）
@@ -57,6 +58,13 @@ struct CreateCronjobView: View {
     @State private var showDirPicker = false
     // 访问 URL（curl）：一行一个地址
     @State private var curlURLsText = ""
+    // 系统快照：备份应用镜像 + 排除应用（两项独立控制；snapshotRule 与顶层双写）
+    @State private var withImage = false
+    @State private var ignoreAppIDs: [Int] = []
+    @State private var showIgnoreAppPicker = false
+    // 排除规则（备份应用/网站/目录、系统快照；一行一条，提交 ignoreFiles 数组 +
+    // exclusionRules 逗号串双写）
+    @State private var exclusionRulesText = ""
     // 压缩密码（备份产物压缩包，备份设置分组）
     @State private var compressSecret = ""
     // 告警分组（任务失败告警）
@@ -193,6 +201,36 @@ struct CreateCronjobView: View {
         }
     }
 
+    /// 各类型的默认执行周期（对齐网页端）：
+    /// Shell 脚本 每月 3 日 01:30；备份应用 / 备份数据库 每天 02:30；
+    /// 备份网站 / 备份日志 / 访问 URL / 缓存清理 / 系统快照 每周一 01:30；
+    /// 备份目录或文件 / 切割网站日志 / 同步服务器时间 / 同步 WAF IP 组 / 清理日志
+    /// 每天 01:30
+    static func defaultSchedule(for type: CronjobType) -> ScheduleItem {
+        var item = ScheduleItem()
+        switch type {
+        case .shell:
+            item.specType = .perMonth
+            item.day = 3
+            item.hour = 1
+            item.minute = 30
+        case .website, .log, .curl, .clean, .snapshot:
+            item.specType = .perWeek
+            item.week = 1
+            item.hour = 1
+            item.minute = 30
+        case .directory, .cutWebsiteLog, .ntp, .syncIpGroup, .cleanLog:
+            item.specType = .perDay
+            item.hour = 1
+            item.minute = 30
+        default:
+            item.specType = .perDay
+            item.hour = 2
+            item.minute = 30
+        }
+        return item
+    }
+
     /// 向导分页：0 基础（信息/周期） 1 内容（类型特定） 2 高级（超时重试）
     @State private var wizardPage = 0
     private let wizardPageNames = [L10n.t("基础"), L10n.t("内容"), L10n.t("高级")]
@@ -290,11 +328,19 @@ struct CreateCronjobView: View {
         .sheet(isPresented: $showAppPicker) { appPickerSheet }
         .sheet(isPresented: $showWebsitePicker) { websitePickerSheet }
         .sheet(isPresented: $showDBPicker) { dbPickerSheet }
+        .sheet(isPresented: $showIgnoreAppPicker) { ignoreAppPickerSheet }
         // 备份账号变化时默认下载地址自动带入首个所选（与网页端一致，仍可手动修改）
         .onChange(of: sourceAccountIDs) { _, ids in
             if let first = ids.first {
                 downloadAccountID = first
             }
+        }
+        // 切换任务类型：周期仍是旧类型默认值时跟随切换到新类型默认（用户改过则保留）
+        .onChange(of: type) { oldType, newType in
+            guard !isPrefilling else { return }
+            guard schedules.count == 1,
+                  schedules[0].cronSpec == Self.defaultSchedule(for: oldType).cronSpec else { return }
+            schedules = [Self.defaultSchedule(for: newType)]
         }
         .sheet(isPresented: $showScriptPicker) {
         NavigationStack {
@@ -412,6 +458,7 @@ struct CreateCronjobView: View {
                     showAppPicker = true
                 }
             }
+            exclusionRulesSection
             backupSection
 
         case .website:
@@ -422,6 +469,7 @@ struct CreateCronjobView: View {
                     showWebsitePicker = true
                 }
             }
+            exclusionRulesSection
             backupSection
 
         case .database:
@@ -472,10 +520,37 @@ struct CreateCronjobView: View {
             backupSection
 
         case .snapshot:
+            Section {
+                Toggle(L10n.t("备份所有应用镜像"), isOn: $withImage)
+                // 排除应用与镜像开关独立：不受 withImage 控制
+                Button {
+                    showIgnoreAppPicker = true
+                } label: {
+                    HStack {
+                        Text(L10n.t("排除应用"))
+                        Spacer()
+                        Text(ignoreAppSummary)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } header: {
+                Text(L10n.t("系统快照"))
+            } footer: {
+                Text(L10n.t("关闭后快照仅包含面板数据与配置，不含应用镜像"))
+            }
+            exclusionRulesSection
             backupSection
 
         case .directory:
             directorySection
+            exclusionRulesSection
             backupSection
 
         case .log:
@@ -609,6 +684,16 @@ struct CreateCronjobView: View {
         }
     }
 
+    /// 排除规则（备份应用/网站/目录、系统快照共用；形态 7.1 一行一条）
+    private var exclusionRulesSection: some View {
+        Section {
+            OutlinedMultiLineField(label: L10n.t("排除规则"), prompt: "*.log",
+                                   lines: 2, text: $exclusionRulesText)
+        } footer: {
+            Text(L10n.t("一行一条，支持通配符（如 *.log）；备份时跳过命中的文件"))
+        }
+    }
+
     /// 超时与重试（所有任务类型通用，放在各类型设置之后）
     private var timeoutSection: some View {
         Section(L10n.t("超时与重试")) {
@@ -666,6 +751,26 @@ struct CreateCronjobView: View {
             id == "all" ? L10n.t("全部应用")
                 : (vm.installedApps.first { $0.key == id }?.name ?? id)
         }
+    }
+
+    /// 系统快照排除应用选项（按应用 id 提交 ignoreAppIDs）
+    private var ignoreAppOptions: [CronjobMultiOption] {
+        vm.installedApps.map { app in
+            CronjobMultiOption(id: String(app.id), title: app.name ?? "—", subtitle: nil)
+        }
+    }
+    private var ignoreAppSelectionBinding: Binding<[String]> {
+        Binding(
+            get: { ignoreAppIDs.map(String.init) },
+            set: { ignoreAppIDs = $0.compactMap(Int.init) })
+    }
+    private var ignoreAppSummary: String {
+        let names = ignoreAppIDs.compactMap { id in
+            vm.installedApps.first { $0.id == id }?.name
+        }
+        if names.isEmpty { return L10n.t("无") }
+        if names.count == 1 { return names[0] }
+        return L10n.f("%@ 等 %ld 项", names[0], names.count - 1)
     }
 
     /// 备份网站范围选项（"all"=全部网站；切割网站日志共用）
@@ -798,6 +903,12 @@ struct CreateCronjobView: View {
                                 exclusiveAllKey: "all")
     }
 
+    private var ignoreAppPickerSheet: some View {
+        CronjobMultiPickerSheet(title: L10n.t("排除应用"), options: ignoreAppOptions,
+                                selection: ignoreAppSelectionBinding,
+                                footer: L10n.t("可多选；快照将跳过所选应用的镜像"))
+    }
+
     @ViewBuilder
     private var backupSection: some View {
         Section {
@@ -926,11 +1037,13 @@ struct CreateCronjobView: View {
         case .app:
             req.appID = appSelections.joined(separator: ",")
             req.appIdList = appSelections
+            applyExclusionRules(to: &req)
             applyBackupAccounts(to: &req)
             req.secret = compressSecret
         case .website:
             req.website = websiteSelections.joined(separator: ",")
             req.websiteList = websiteSelections
+            applyExclusionRules(to: &req)
             applyBackupAccounts(to: &req)
             req.secret = compressSecret
         case .database:
@@ -940,9 +1053,16 @@ struct CreateCronjobView: View {
             req.setBackupArgs(from: Array(dbBackupParams))
             applyBackupAccounts(to: &req)
         case .snapshot:
+            // 快照规则：snapshotRule 与顶层 withImage/ignoreAppIDs 双写（抓包形状）
+            req.withImage = withImage
+            req.ignoreAppIDs = ignoreAppIDs
+            req.snapshotRule = CronjobSnapshotRule(withImage: withImage,
+                                                   ignoreAppIDs: ignoreAppIDs)
+            applyExclusionRules(to: &req)
             applyBackupAccounts(to: &req)
             req.secret = compressSecret
         case .directory:
+            applyExclusionRules(to: &req)
             applyBackupAccounts(to: &req)
             req.secret = compressSecret
             if dirScopeKey == "dir" {
@@ -1007,6 +1127,14 @@ struct CreateCronjobView: View {
         req.downloadAccountID = downloadAccountID
     }
 
+    /// 排除规则写入请求体（数组 + 逗号串双写，与网页端抓包一致）：
+    /// ignoreFiles=["*.log"] / exclusionRules="*.log"
+    private func applyExclusionRules(to req: inout CronjobCreateRequest) {
+        let rules = nonEmptyLines(exclusionRulesText)
+        req.ignoreFiles = rules
+        req.exclusionRules = rules.joined(separator: ",")
+    }
+
     /// 从已有任务详情预填表单字段
     private func prefill(from info: CronjobInfo) {
         name = info.name ?? ""
@@ -1033,6 +1161,13 @@ struct CreateCronjobView: View {
             .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
         downloadAccountID = info.downloadAccountID ?? sourceAccountIDs.first ?? 0
         compressSecret = info.secret ?? ""
+
+        // 排除规则（备份应用/网站/目录、系统快照；逗号串 → 一行一条）
+        exclusionRulesText = (info.exclusionRules ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
 
         // 超时与重试
         retryTimes = info.retryTimes ?? 3
@@ -1062,7 +1197,10 @@ struct CreateCronjobView: View {
             dbSelections = splitMulti(info.dbName)
             dbBackupParams = info.backupParamSet
         case .snapshot:
-            break
+            // 快照规则回填：snapshotRule 优先，缺失回落顶层同值双写字段；
+            // withImage 默认关（两项独立控制，互不联动）
+            withImage = info.snapshotRule?.withImage ?? info.withImage ?? false
+            ignoreAppIDs = info.snapshotRule?.ignoreAppIDs ?? info.ignoreAppIDs ?? []
         case .directory:
             let isDir = info.isDir ?? true
             dirScopeKey = isDir ? "dir" : "file"

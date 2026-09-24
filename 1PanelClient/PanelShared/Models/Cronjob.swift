@@ -338,6 +338,11 @@ nonisolated struct CronjobInfo: Decodable {
     let files: [CronjobFileItem]?
     let scopes: [String]?
 
+    /// 快照规则（load/info 返回；顶层 withImage/ignoreAppIDs 为同值双写）
+    let snapshotRule: CronjobSnapshotRuleInfo?
+    let withImage: Bool?
+    let ignoreAppIDs: [Int]?
+
     let hasAlert: Bool?
     let alertCount: Int?
     let alertTitle: String?
@@ -402,6 +407,9 @@ nonisolated struct CronjobInfo: Decodable {
         case urlItems
         case files
         case scopes
+        case snapshotRule
+        case withImage
+        case ignoreAppIDs
         case hasAlert
         case alertCount
         case alertTitle
@@ -446,6 +454,9 @@ nonisolated struct CronjobInfo: Decodable {
         urlItems = try c.decodeIfPresent([String].self, forKey: .urlItems)
         files = try c.decodeIfPresent([CronjobFileItem].self, forKey: .files)
         scopes = try c.decodeIfPresent([String].self, forKey: .scopes)
+        snapshotRule = try c.decodeIfPresent(CronjobSnapshotRuleInfo.self, forKey: .snapshotRule)
+        withImage = try c.decodeIfPresent(Bool.self, forKey: .withImage)
+        ignoreAppIDs = try c.decodeIfPresent([Int].self, forKey: .ignoreAppIDs)
         hasAlert = try c.decodeIfPresent(Bool.self, forKey: .hasAlert)
         alertCount = try c.decodeIfPresent(Int.self, forKey: .alertCount)
         alertTitle = try c.decodeIfPresent(String.self, forKey: .alertTitle)
@@ -690,6 +701,12 @@ nonisolated struct CronjobSpecObj: Encodable {
 nonisolated struct CronjobSnapshotRule: Encodable {
     var withImage: Bool = false
     var ignoreAppIDs: [Int] = []
+}
+
+/// 快照规则（load/info 返回侧；字段全可选容错）
+nonisolated struct CronjobSnapshotRuleInfo: Decodable {
+    let withImage: Bool?
+    let ignoreAppIDs: [Int]?
 }
 
 // MARK: - 导入导出（cronjobs/export · import，可选增加-2 抓包 2026-09-16）
