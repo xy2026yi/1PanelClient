@@ -20,7 +20,11 @@ final class FirewallViewModel: ObservableObject {
 
     // MARK: 规则段
     @Published var inventory: [FirewallInventoryItem] = []
+    /// 全量规则总数（接口 allTotal，不随筛选/搜索变化；用于无筛选时的「共 N 条」）
     @Published private(set) var rulesAllTotal = 0
+    /// 当前筛选+搜索的结果总数（接口 total；头部计数与分页停止条件都用它，
+    /// 否则筛空后头部仍显示全量数、分页会多发空页请求）
+    @Published private(set) var rulesResultTotal = 0
     @Published private(set) var rulesManagedTotal = 0
     @Published private(set) var isRulesLoadingMore = false
     @Published var ruleStateFilter: String?      // nil = 全部状态
@@ -126,7 +130,7 @@ final class FirewallViewModel: ObservableObject {
             rulesGeneration += 1
             rulesPage = 1
         } else {
-            guard !isRulesLoadingMore, inventory.count < rulesAllTotal else { return }
+            guard !isRulesLoadingMore, inventory.count < rulesResultTotal else { return }
             isRulesLoadingMore = true
         }
         // 函数级 defer 复位（不能放在上面的 else 块尾——块尾 defer 在块结束时
@@ -154,6 +158,7 @@ final class FirewallViewModel: ObservableObject {
             }
             rulesPage = req.page
             rulesAllTotal = resp.allTotal ?? resp.total ?? inventory.count
+            rulesResultTotal = resp.total ?? resp.allTotal ?? inventory.count
             rulesManagedTotal = resp.managedTotal ?? 0
             errorMessage = nil
         } catch {

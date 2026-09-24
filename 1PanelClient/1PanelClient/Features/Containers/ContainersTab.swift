@@ -52,7 +52,20 @@ struct ContainersTab: View {
                     description: Text(L10n.t("这台服务器上没有容器"))
                 )
             } else {
-                containerList
+                // 状态筛选 chips 钉在列表外常驻（与网站/计划任务页同款）：
+                // 滚动不消失、筛空后仍可切回「全部」；选中即触发服务端过滤
+                VStack(spacing: 0) {
+                    ChipsFilterBar(
+                        items: [
+                            .init(id: "running", title: L10n.t("运行中")),
+                            .init(id: "paused", title: L10n.t("已暂停")),
+                            .init(id: "exited", title: L10n.t("已停止")),
+                        ],
+                        allID: "all",
+                        selectedID: $stateFilter
+                    )
+                    containerList
+                }
             }
         }
         .searchIconMode(
@@ -69,40 +82,21 @@ struct ContainersTab: View {
         .toastOverlay(message: $vm.toastMessage)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                // 右上角合并为单一菜单（原 筛选+创建 两个按钮与搜索并排过挤）：
-                // 创建容器为主项，状态筛选为切换组；搜索按钮由 searchIconMode 提供
-                Menu {
-                    Button {
-                        showCreate = true
-                    } label: {
-                        Label(L10n.t("创建容器"), systemImage: "plus.circle")
-                    }
-                    Divider()
-                    Menu {
-                        ForEach([("all", L10n.t("全部")), ("running", L10n.t("运行中")),
-                                 ("paused", L10n.t("已暂停")), ("exited", L10n.t("已停止"))], id: \.0) { key, label in
-                            Button {
-                                stateFilter = key
-                                Task { await vm.applyStateFilter(key) }
-                            } label: {
-                                if stateFilter == key {
-                                    Label(label, systemImage: "checkmark")
-                                } else {
-                                    Text(label)
-                                }
-                            }
-                        }
-                    } label: {
-                        Label(L10n.t("状态筛选"), systemImage: "line.3.horizontal.decrease.circle")
-                    }
+                // 右上角两按钮：搜索（searchIconMode 提供）+ 创建；
+                // 状态筛选已下放为列表上方 chips
+                Button {
+                    showCreate = true
                 } label: {
-                    Image(systemName: stateFilter == "all" ? "ellipsis.circle" : "line.3.horizontal.decrease.circle.fill")
+                    Image(systemName: "plus")
                 }
-                .accessibilityLabel(L10n.t("更多操作"))
+                .accessibilityLabel(L10n.t("创建容器"))
             }
         }
         .onChange(of: searchText) { _, newValue in
             Task { await vm.search(query: newValue) }
+        }
+        .onChange(of: stateFilter) { _, newValue in
+            Task { await vm.applyStateFilter(newValue) }
         }
         .navigationDestination(for: Container.self) { c in
             ContainerDetailView(container: c, server: manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""), vm: vm)

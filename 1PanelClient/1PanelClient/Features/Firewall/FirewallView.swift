@@ -18,11 +18,13 @@ struct FirewallView: View {
     let server: ServerConfig
 
     @State private var statusExpanded = false
-    /// 内容段：0=规则 1=转发 2=容器端口防护（设置经状态抽屉按钮进入独立页）
+    /// 内容段：0=规则 1=转发 2=容器端口防护 3=设置（与 Web 端四页一一对应）
     @State private var segment = 0
-    @State private var showSettings = false
     // 规则段交互
     @State private var showAddRule = false
+    // 规则搜索（右上角搜索态；服务端过滤，提交/取消时同步 VM 并重载）
+    @State private var searchText = ""
+    @State private var isSearching = false
     @State private var editingRule: FirewallRule?
     @State private var editingRuleUUID: String?
     @State private var pendingDeleteItem: FirewallInventoryItem?
@@ -79,6 +81,7 @@ struct FirewallView: View {
                     Text(L10n.t("规则")).tag(0)
                     Text(L10n.t("转发")).tag(1)
                     Text("Docker").tag(2)
+                    Text(L10n.t("设置")).tag(3)
                 }
                 .pickerStyle(.segmented)
                 .segmentedPickerRow()
@@ -87,12 +90,22 @@ struct FirewallView: View {
                 switch segment {
                 case 0: rulesSection
                 case 1: forwardSection
-                default: dockerSection
+                case 2: dockerSection
+                default: FirewallSettingsContent(vm: vm)
                 }
             }
         }
-        .navigationTitle(L10n.t("防火墙"))
-        .navigationBarTitleDisplayMode(.inline)
+        .searchIconMode(
+            text: $searchText,
+            isSearching: $isSearching,
+            title: L10n.t("防火墙"),
+            prompt: L10n.t("搜索端口 / 地址"),
+            onSubmit: { commitSearch() }
+        )
+        .onChange(of: isSearching) { _, active in
+            // 取消搜索（文本已被 searchIconMode 清空）：同步回 VM 恢复全量列表
+            if !active && vm.ruleSearchText != searchText { commitSearch() }
+        }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 if !vm.unsupportedPanel {
@@ -100,13 +113,13 @@ struct FirewallView: View {
                     // 状态抽屉，规则与转发都只剩创建，直接点击不经菜单）
                     if segment == 0 && !needsRulesInit {
                         Button { showAddRule = true } label: {
-                            Image(systemName: "plus.circle")
+                            Image(systemName: "plus")
                         }
                         .accessibilityLabel(L10n.t("创建规则"))
                         .id(segment)
                     } else if segment == 1 && !needsForwardInit {
                         Button { showAddForward = true } label: {
-                            Image(systemName: "plus.circle")
+                            Image(systemName: "plus")
                         }
                         .accessibilityLabel(L10n.t("创建转发"))
                         .id(segment)
@@ -208,11 +221,6 @@ struct FirewallView: View {
         } message: {
             Text(L10n.f("将对防火墙执行「%@」，操作期间服务可能短暂中断，是否继续？",
                         pendingLifeOp.flatMap(Self.lifeOpName) ?? ""))
-        }
-        // 设置页（状态抽屉按钮进入）：禁 Ping / 白名单 / 三组防护后端下拉切换
-        //（WAF 已合并为根列表常显模块，不再由本页右上角进入）
-        .navigationDestination(isPresented: $showSettings) {
-            FirewallSettingsPageView(vm: vm)
         }
         // 同步预览（规则段 / 转发段共用）
         .sheet(isPresented: $showSyncPreview) {
@@ -531,9 +539,9 @@ struct FirewallView: View {
 
     private var operationsRow: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                // iptables/nftables 无服务生命周期概念，不提供停止/重启
-                if vm.systemStatus?.backend != "iptables", vm.systemStatus?.backend != "nftables" {
+            // iptables/nftables 无服务生命周期概念 → 整行隐藏（否则按钮孤行）
+            if vm.systemStatus?.backend != "iptables", vm.systemStatus?.backend != "nftables" {
+                HStack(spacing: 8) {
                     CardActionButton(
                         title: vm.systemStatus?.isActive == true ? L10n.t("停止") : L10n.t("启动"),
                         icon: vm.systemStatus?.isActive == true ? "stop.fill" : "play.fill",
@@ -546,11 +554,6 @@ struct FirewallView: View {
                                      color: .orange, busy: vm.isOperating) {
                         pendingLifeOp = "restart"
                     }
-                }
-                // 禁 Ping 开关移入设置页；设置入口以按钮形式收进状态抽屉
-                CardActionButton(title: L10n.t("设置"), icon: "gearshape",
-                                 color: .purple, busy: false) {
-                    showSettings = true
                 }
             }
             // 随段变化的上下文操作：同名按钮（解绑/绑定、同步规则、重置）按段传对应参数
@@ -602,7 +605,7 @@ struct FirewallView: View {
                     }
                 }
             }
-        default:
+        case 2:
             // Docker 段：端口守护解绑/绑定 + 同步 + 重置 + 导入/导出（未初始化/不可用不提供）
             if let base = vm.dockerGuard?.base,
                base.isExist == true, base.initialized == true {
@@ -630,6 +633,9 @@ struct FirewallView: View {
                     }
                 }
             }
+        default:
+            // 设置段：无段级操作（配置项都在段内容里）
+            EmptyView()
         }
     }
 
@@ -721,102 +727,150 @@ struct FirewallView: View {
     }
 
     private var rulesListContent: some View {
-        Group {
-            Section {
-                filterBar
-            }
+        // 单一 Section：头部 = 计数 + 筛选漏斗 Menu；空态与列表共用同一头部，
+        // 保证筛空后（如某状态 0 条）筛选入口仍在，可一键切回
+        Section {
             if vm.inventory.isEmpty && !vm.isRulesLoadingMore {
-                Section {
-                    ContentUnavailableView(L10n.t("暂无规则"), systemImage: "shield")
-                        .frame(maxWidth: .infinity, minHeight: 120)
-                        .listRowBackground(Color.clear)
-                }
+                ContentUnavailableView(L10n.t("暂无规则"), systemImage: "shield")
+                    .frame(maxWidth: .infinity, minHeight: 120)
+                    .listRowBackground(Color.clear)
             } else {
-                Section {
-                    ForEach(vm.inventory) { item in
-                        FirewallRuleRowView(item: item, processName: processName(for: item))
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                guard item.manageableUUID != nil else { return }
-                                if let uuid = item.manageableUUID, let rule = item.rule {
-                                    editingRuleUUID = uuid
-                                    editingRule = rule
-                                }
+                ForEach(vm.inventory) { item in
+                    FirewallRuleRowView(item: item, processName: processName(for: item))
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            guard item.manageableUUID != nil else { return }
+                            if let uuid = item.manageableUUID, let rule = item.rule {
+                                editingRuleUUID = uuid
+                                editingRule = rule
                             }
-                            // 长按弹半屏操作菜单（编辑/删除/上移下移/导出规则/查看原文，或纳管）
-                            .simultaneousGesture(
-                                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                                    Haptic.selection()
-                                    actionItem = item
-                                }
-                            )
-                            // VoiceOver 无长按手势：以自定义操作暴露同一菜单
-                            .accessibilityAction(named: L10n.t("更多操作")) {
+                        }
+                        // 长按弹半屏操作菜单（编辑/删除/上移下移/导出规则/查看原文，或纳管）
+                        .simultaneousGesture(
+                            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                Haptic.selection()
                                 actionItem = item
                             }
-                            .onAppear {
-                                if item.id == vm.inventory.last?.id,
-                                   vm.inventory.count < vm.rulesAllTotal {
-                                    Task { await vm.loadRules(replacing: false) }
-                                }
+                        )
+                        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                        .accessibilityAction(named: L10n.t("更多操作")) {
+                            actionItem = item
+                        }
+                        .onAppear {
+                            if item.id == vm.inventory.last?.id,
+                               vm.inventory.count < vm.rulesResultTotal {
+                                Task { await vm.loadRules(replacing: false) }
                             }
-                    }
-                    // 加载指示行仅在仍有更多页时出现（已加载全量时不再多占一行）
-                    if vm.isRulesLoadingMore && vm.inventory.count < vm.rulesAllTotal {
-                        HStack { Spacer(); ProgressView(); Spacer() }
-                    }
-                } header: {
-                    Text(L10n.f("共 %ld 条（面板管理 %ld 条）", vm.rulesAllTotal, vm.rulesManagedTotal))
+                        }
                 }
+                // 加载指示行仅在仍有更多页时出现（已加载全量时不再多占一行）
+                if vm.isRulesLoadingMore && vm.inventory.count < vm.rulesResultTotal {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                }
+            }
+        } header: {
+            rulesHeader
+        }
+    }
+
+    /// 规则段头部：筛选结果计数 + 筛选入口（Apple Notes「x 个备忘录 + ⋯」同款
+    /// 模式）。计数本来就是筛选后的结果数，筛选值直接并入文案，图标做激活态提示
+    private var rulesHeader: some View {
+        HStack {
+            Text(rulesHeaderText)
+            Spacer()
+            rulesFilterMenu
+        }
+    }
+
+    private var rulesHeaderText: String {
+        var parts: [String] = []
+        if let state = vm.ruleStateFilter,
+           let label = Self.ruleStates.first(where: { $0.0 == state })?.1 {
+            parts.append(label)
+        }
+        if let family = vm.ruleFamilyFilter {
+            parts.append(family.uppercased())
+        }
+        // 筛选/搜索生效时计数取结果总数（rulesResultTotal），
+        // 与下方列表一致——筛空时显示「共 0 条」而非全量数
+        if !parts.isEmpty || !vm.ruleSearchText.isEmpty {
+            let suffix = parts.joined(separator: " · ")
+            return suffix.isEmpty
+                ? L10n.f("共 %ld 条", vm.rulesResultTotal)
+                : L10n.f("共 %ld 条 · %@", vm.rulesResultTotal, suffix)
+        }
+        // 无筛选：面板创建为 0 时不显示括号（纯外部规则的机器上恒为 0，无信息量）
+        if vm.rulesManagedTotal > 0 {
+            return L10n.f("共 %ld 条（面板创建 %ld 条）", vm.rulesAllTotal, vm.rulesManagedTotal)
+        }
+        return L10n.f("共 %ld 条", vm.rulesAllTotal)
+    }
+
+    /// 状态/族两组合一的漏斗菜单；任一维度生效时图标实心高亮
+    private var rulesFilterMenu: some View {
+        Menu {
+            stateMenuButton(nil, L10n.t("全部状态"))
+            ForEach(Self.ruleStates, id: \.0) { state, label in
+                stateMenuButton(state, label)
+            }
+            Divider()
+            familyMenuButton(nil, L10n.t("全部族"))
+            familyMenuButton("ipv4", "IPv4")
+            familyMenuButton("ipv6", "IPv6")
+        } label: {
+            Image(systemName: filterActive
+                  ? "line.3.horizontal.decrease.circle.fill"
+                  : "line.3.horizontal.decrease.circle")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(filterActive ? Color.accentColor : Color.secondary)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(L10n.t("状态筛选"))
+    }
+
+    private var filterActive: Bool {
+        vm.ruleStateFilter != nil || vm.ruleFamilyFilter != nil
+    }
+
+    private func stateMenuButton(_ state: String?, _ label: String) -> some View {
+        Button {
+            guard vm.ruleStateFilter != state else { return }
+            vm.ruleStateFilter = state
+            reloadRules()
+        } label: {
+            if vm.ruleStateFilter == state {
+                Label(label, systemImage: "checkmark")
+            } else {
+                Text(label)
             }
         }
     }
 
-    private var filterBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .foregroundStyle(.secondary)
-            Menu {
-                Button(L10n.t("全部状态")) { vm.ruleStateFilter = nil; reloadRules() }
-                ForEach(Self.ruleStates, id: \.0) { state, label in
-                    Button(label) { vm.ruleStateFilter = state; reloadRules() }
-                }
-            } label: {
-                StatusBadge(
-                    text: vm.ruleStateFilter.flatMap { state in
-                        Self.ruleStates.first { $0.0 == state }?.1
-                    } ?? L10n.t("全部状态"),
-                    color: .secondary
-                )
+    private func familyMenuButton(_ family: String?, _ label: String) -> some View {
+        Button {
+            guard vm.ruleFamilyFilter != family else { return }
+            vm.ruleFamilyFilter = family
+            reloadRules()
+        } label: {
+            if vm.ruleFamilyFilter == family {
+                Label(label, systemImage: "checkmark")
+            } else {
+                Text(label)
             }
-            .buttonStyle(.plain)
-            Menu {
-                Button(L10n.t("全部族")) { vm.ruleFamilyFilter = nil; reloadRules() }
-                Button("IPv4") { vm.ruleFamilyFilter = "ipv4"; reloadRules() }
-                Button("IPv6") { vm.ruleFamilyFilter = "ipv6"; reloadRules() }
-            } label: {
-                StatusBadge(text: vm.ruleFamilyFilter?.uppercased() ?? L10n.t("全部族"),
-                            color: .secondary)
-            }
-            .buttonStyle(.plain)
-            Spacer()
-            TextField(L10n.t("搜索端口 / 地址"), text: $vm.ruleSearchText)
-                .textFieldStyle(.roundedBorder)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .submitLabel(.search)
-                .onSubmit { reloadRules() }
-            Button {
-                reloadRules()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
-            .buttonStyle(.borderless)
         }
     }
 
     private func reloadRules() {
         Task { await vm.loadRules(replacing: true) }
+    }
+
+    /// 搜索提交/取消：同步搜索词到 VM 并整段重载（服务端过滤）
+    private func commitSearch() {
+        guard !vm.unsupportedPanel else { return }
+        vm.ruleSearchText = searchText
+        reloadRules()
     }
 
     private func processName(for item: FirewallInventoryItem) -> String? {
@@ -825,11 +879,11 @@ struct FirewallView: View {
     }
 
     private static let ruleStates: [(String, String)] = [
-        ("managed", L10n.t("面板管理")),
-        ("adopted", L10n.t("已纳管")),
+        ("managed", L10n.t("面板创建")),
+        ("adopted", L10n.t("外部纳管")),
         ("external", L10n.t("外部规则")),
-        ("drifted", L10n.t("已漂移")),
-        ("protected", L10n.t("受保护")),
+        ("drifted", L10n.t("异常")),
+        ("protected", L10n.t("系统保护")),
     ]
 
     // MARK: 转发段

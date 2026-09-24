@@ -2,17 +2,19 @@
 //  FirewallSettingsPageView.swift
 //  1PanelClient
 //
-//  设置页（状态抽屉按钮进入）（自 FirewallView.swift 拆出，内容未改动）
+//  防火墙「设置」段内容（嵌入 FirewallView 第四段；原独立推页已并入，
+//  Form 外壳与导航栏由外层 List 提供）
 //
 
 import SwiftUI
 import Combine
 
-// MARK: - 设置页（状态抽屉按钮进入）
+// MARK: - 设置段（防火墙第四段）
 
 /// 防火墙设置：禁 Ping / 面板端口白名单 / 三组防护后端。
-/// 后端（系统防火墙 / 端口转发 / 容器端口防护）用下拉选择，切换需弹窗确认
-struct FirewallSettingsPageView: View {
+/// 后端（系统防火墙 / 端口转发 / 容器端口防护）用下拉选择，切换需弹窗确认；
+/// 错误提示与 toast 复用外层 FirewallView 的弹窗，不在此重复挂载
+struct FirewallSettingsContent: View {
     @ObservedObject var vm: FirewallViewModel
 
     /// 待确认的后端切换（弹窗确认后才下发 select）
@@ -27,53 +29,39 @@ struct FirewallSettingsPageView: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                Toggle(L10n.t("禁 Ping"), isOn: Binding(
-                    get: { vm.settings?.pingBlocked ?? vm.systemStatus?.pingBlocked ?? false },
-                    set: { on in
-                        Task {
-                            await vm.operateFirewall(on ? "disableBanPing" : "enableBanPing")
-                        }
-                    }
-                ))
-                .disabled(vm.isOperating)
-                NavigationLink {
-                    FirewallWhitelistView(vm: vm)
-                } label: {
-                    HStack {
-                        Text(L10n.t("面板端口白名单"))
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Text("\(parseFirewallWhitelistEntries(vm.settings?.portWhiteList).count)")
-                            .foregroundStyle(.secondary)
+        Section {
+            Toggle(L10n.t("禁 Ping"), isOn: Binding(
+                get: { vm.settings?.pingBlocked ?? vm.systemStatus?.pingBlocked ?? false },
+                set: { on in
+                    Task {
+                        await vm.operateFirewall(on ? "disableBanPing" : "enableBanPing")
                     }
                 }
-            } header: {
-                SectionLabel(title: L10n.t("基础设置"), systemImage: "gearshape")
-            } footer: {
-                Text(L10n.t("禁 Ping 后服务器不再响应 ICMP 探测；端口白名单外的高校验规则见任务日志。"))
+            ))
+            .disabled(vm.isOperating)
+            NavigationLink {
+                FirewallWhitelistView(vm: vm)
+            } label: {
+                HStack {
+                    Text(L10n.t("面板端口白名单"))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("\(parseFirewallWhitelistEntries(vm.settings?.portWhiteList).count)")
+                        .foregroundStyle(.secondary)
+                }
             }
+        } header: {
+            SectionLabel(title: L10n.t("基础设置"), systemImage: "gearshape")
+        } footer: {
+            Text(L10n.t("禁 Ping 后服务器不再响应 ICMP 探测；端口白名单外的高校验规则见任务日志。"))
+        }
 
-            backendPickerSection(title: L10n.t("系统防火墙"), subsystem: "system",
-                                 group: vm.settings?.system)
-            backendPickerSection(title: L10n.t("端口转发"), subsystem: "forwarding",
-                                 group: vm.settings?.forwarding)
-            backendPickerSection(title: L10n.t("容器端口防护"), subsystem: "docker",
-                                 group: vm.settings?.docker)
-        }
-        .navigationTitle(L10n.t("设置"))
-        .navigationBarTitleDisplayMode(.inline)
-        .formWidthLimit()
-        .toastOverlay(message: $vm.toastMessage)
-        .alert(L10n.t("提示"), isPresented: Binding(
-            get: { vm.errorMessage != nil },
-            set: { if !$0 { vm.errorMessage = nil } }
-        )) {
-            Button(L10n.t("好的"), role: .cancel) { vm.errorMessage = nil }
-        } message: {
-            Text(vm.errorMessage ?? "")
-        }
+        backendPickerSection(title: L10n.t("系统防火墙"), subsystem: "system",
+                             group: vm.settings?.system)
+        backendPickerSection(title: L10n.t("端口转发"), subsystem: "forwarding",
+                             group: vm.settings?.forwarding)
+        backendPickerSection(title: L10n.t("容器端口防护"), subsystem: "docker",
+                             group: vm.settings?.docker)
         // 下拉切换后端：弹窗确认（确认后 select，取消回弹为当前后端）
         .alert(L10n.t("确认"), isPresented: Binding(
             get: { pendingSwitch != nil },
@@ -173,4 +161,3 @@ struct FirewallSettingsPageView: View {
         return reason.isEmpty ? nil : L10n.f("%@：%@", selected.uppercased(), reason)
     }
 }
-

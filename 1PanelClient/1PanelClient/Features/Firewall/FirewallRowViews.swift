@@ -70,11 +70,11 @@ struct FirewallRuleRowView: View {
     @ViewBuilder
     private var stateBadge: some View {
         let mapping: [(String, String, Color)] = [
-            ("managed", L10n.t("面板管理"), .statusRunning),
-            ("adopted", L10n.t("已纳管"), .blue),
+            ("managed", L10n.t("面板创建"), .statusRunning),
+            ("adopted", L10n.t("外部纳管"), .blue),
             ("external", L10n.t("外部"), .secondary),
-            ("drifted", L10n.t("漂移"), .semanticWarning),
-            ("protected", L10n.t("受保护"), .purple),
+            ("drifted", L10n.t("异常"), .semanticWarning),
+            ("protected", L10n.t("系统保护"), .purple),
         ]
         if let state = item.state,
            let entry = mapping.first(where: { $0.0 == state }) {

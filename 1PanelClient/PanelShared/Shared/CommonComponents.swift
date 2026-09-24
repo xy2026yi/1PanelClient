@@ -479,6 +479,8 @@ struct SearchIconModifier: ViewModifier {
     @Binding var isSearching: Bool
     let title: String
     let prompt: String
+    /// 键盘「搜索」提交回调（服务端搜索语义的页面用；本地实时过滤的页面不传）
+    var onSubmit: (() -> Void)? = nil
 
     func body(content: Content) -> some View {
         content
@@ -492,6 +494,7 @@ struct SearchIconModifier: ViewModifier {
                             .submitLabel(.search)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
+                            .onSubmit { onSubmit?() }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
@@ -524,13 +527,15 @@ extension View {
         text: Binding<String>,
         isSearching: Binding<Bool>,
         title: String,
-        prompt: String
+        prompt: String,
+        onSubmit: (() -> Void)? = nil
     ) -> some View {
         modifier(SearchIconModifier(
             text: text,
             isSearching: isSearching,
             title: title,
-            prompt: prompt
+            prompt: prompt,
+            onSubmit: onSubmit
         ))
     }
 }
