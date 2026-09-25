@@ -858,8 +858,10 @@ extension View {
 /// 菜单之上会再叠一次点击进入（导航/编辑），表现为误触。这里统一改为
 /// tap 手势 + 抑制标记：长按触发后吞掉松手 tap；标记在新触摸落下时复位
 /// （而非定时自愈——0.6s 后手指仍按住再松手，tap 照样穿透，长按不弹层
-/// 的路径如脚本库真实可达）。新触摸由 minimumDistance 0 的拖拽起始事件
-/// 识别（translation 近零；长按后的手指微动 translation 非零，不会误复位）。
+/// 的路径如脚本库真实可达）。新触摸由长按手势的按压起始回调识别
+/// （onPressingChanged(true)，触摸落下即回调）。不可用
+/// DragGesture(minimumDistance: 0) 识别新触摸——零距离拖拽会抢走
+/// List 的滚动手势，列表将无法上下滑动。
 struct RowTapLongPressModifier: ViewModifier {
     var onTap: () -> Void
     var onLongPress: () -> Void
@@ -878,24 +880,15 @@ struct RowTapLongPressModifier: ViewModifier {
                 }
                 onTap()
             }
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                    if longPressHaptic { Haptic.selection() }
-                    suppressNextTap = true
-                    onLongPress()
-                }
-            )
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        // 仅新触摸的起始事件（translation 近零）复位；
-                        // 静止按住不会产生事件，微动事件的 translation 非零
-                        if suppressNextTap,
-                           abs(value.translation.width) < 2, abs(value.translation.height) < 2 {
-                            suppressNextTap = false
-                        }
-                    }
-            )
+            .onLongPressGesture(minimumDuration: 0.5) {
+                if longPressHaptic { Haptic.selection() }
+                suppressNextTap = true
+                onLongPress()
+            } onPressingChanged: { pressing in
+                // 新触摸落下即复位；静止按住期间无事件，长按后的松手
+                // tap 仍会被吞掉一次（移动超程的按压失败不会触发 tap）
+                if pressing { suppressNextTap = false }
+            }
     }
 }
 

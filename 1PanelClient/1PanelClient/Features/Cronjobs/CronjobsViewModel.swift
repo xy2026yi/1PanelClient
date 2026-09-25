@@ -207,21 +207,83 @@ final class CronjobsViewModel: ObservableObject {
         }
     }
 
+    /// 批量启用/停用（多选）：服务端无批量端点，选中 N 个依次发 N 条
+    /// POST /cronjobs/status；中途失败即停（重查后列表反映实际状态）
+    func batchUpdateStatus(jobs: [Cronjob], enabled: Bool) async -> Bool {
+        for job in jobs {
+            do {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.cronjobsStatus.path,
+                    body: CronjobUpdateStatusRequest(
+                        id: job.id, status: enabled ? "Enable" : "Disable"),
+                    as: EmptyResponse.self
+                )
+            } catch let err as APIError {
+                guard !APIError.isCancellation(err) else { return false }
+                showAlert(message: L10n.f(enabled ? "任务「%@」启用失败：%@": "任务「%@」停用失败：%@",
+                                          job.name ?? "",
+                                          err.errorDescription ?? L10n.t("未知错误")))
+                await refresh()
+                return false
+            } catch {
+                guard !APIError.isCancellation(error) else { return false }
+                showAlert(message: L10n.f(enabled ? "任务「%@」启用失败：%@" : "任务「%@」停用失败：%@",
+                                          job.name ?? "",
+                                          error.localizedDescription))
+                await refresh()
+                return false
+            }
+        }
+        await refresh()
+        showToast(L10n.f(enabled ? "已启用 %ld 个任务" : "已停用 %ld 个任务", jobs.count))
+        return true
+    }
+
     @discardableResult
     func delete(job: Cronjob) async -> Bool {
         pendingDeleteJob = nil
+        // 「同时删除备份文件」仅备份类任务有效：非备份类无备份记录，
+        // 残留的开关状态不随请求提交
+        let cleanData = job.jobType.producesBackupRecords && deleteCleanData
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.cronjobsDelete.path,
                 body: CronjobDeleteRequest(
                     ids: [job.id],
-                    cleanData: deleteCleanData,
-                    cleanRemoteData: deleteCleanData
+                    cleanData: cleanData,
+                    cleanRemoteData: cleanData
                 ),
                 as: EmptyResponse.self
             )
             deleteCleanData = false
             showToast(L10n.f("任务「%@」已删除", job.name ?? ""))
+            await refresh()
+            return true
+        } catch let err as APIError {
+            showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
+            return false
+        } catch {
+            showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
+    /// 批量删除（多选）：POST /cronjobs/del 一次提交全部 id；
+    /// cleanData/cleanRemoteData 仅选中含备份类任务时生效（与单个删除同守卫）
+    @discardableResult
+    func batchDelete(jobs: [Cronjob], cleanData: Bool, cleanRemoteData: Bool) async -> Bool {
+        let clean = jobs.contains { $0.jobType.producesBackupRecords } && cleanData
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.cronjobsDelete.path,
+                body: CronjobDeleteRequest(
+                    ids: jobs.map(\.id),
+                    cleanData: clean,
+                    cleanRemoteData: clean && cleanRemoteData
+                ),
+                as: EmptyResponse.self
+            )
+            showToast(L10n.f("已删除 %ld 个任务", jobs.count))
             await refresh()
             return true
         } catch let err as APIError {
@@ -359,6 +421,21 @@ final class CronjobsViewModel: ObservableObject {
         }
     }
 
+    /// 网站简表：单独抽出——任务详情页解析备份对象（网站 id → primaryDomain）
+    /// 时只需这一份，不必随 loadCreateOptions 拉分组/用户/账号/应用/告警全套
+    func loadWebsiteOptions() async {
+        guard websiteOptions.isEmpty else { return }
+        do {
+            websiteOptions = try await client.send(
+                path: APIEndpoint.websitesOptions.path,
+                body: EmptyRequest(),
+                as: [WebsiteOptionSimple].self
+            )
+        } catch {
+            websiteOptions = []
+        }
+    }
+
     func loadCreateOptions() async {
         // 分组（创建任务必须指定 groupID，否则任务会显示在「-」分组；已加载则秒回）
         await loadGroups()
@@ -389,17 +466,7 @@ final class CronjobsViewModel: ObservableObject {
         // 已安装应用（用于备份应用）
         await loadInstalledApps()
         // 网站列表（用于备份网站 / 切割网站日志）
-        if websiteOptions.isEmpty {
-            do {
-                websiteOptions = try await client.send(
-                    path: APIEndpoint.websitesOptions.path,
-                    body: EmptyRequest(),
-                    as: [WebsiteOptionSimple].self
-                )
-            } catch {
-                websiteOptions = []
-            }
-        }
+        await loadWebsiteOptions()
         // 告警方式（告警分组多选；发送方式可能新增/删除，每次进表单都刷新；失败静默，表单里显示空态）
         do {
             let items: [AlertConfigItem] = try await client.send(

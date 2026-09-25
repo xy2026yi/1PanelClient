@@ -237,7 +237,7 @@ struct GroupManageView: View {
     /// 长按松手不触发单击
     private func groupRow(_ group: PanelGroup) -> some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
                 Text(group.displayName)
                     .font(.body.bold())
                     .foregroundStyle(.primary)

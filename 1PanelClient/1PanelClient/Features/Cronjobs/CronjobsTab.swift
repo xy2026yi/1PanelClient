@@ -26,6 +26,11 @@ struct CronjobsTab: View {
     @State private var exportPreselect: Set<Int>? = nil
     /// 行长按操作菜单（立即执行/停启用/编辑/导出/删除）
     @State private var actionJob: Cronjob?
+    // 多选模式（长按菜单「多选」进入；批量启用/停用/删除）
+    @State private var isSelecting = false
+    @State private var selectedIDs: Set<Int> = []
+    @State private var isBatchOperating = false
+    @State private var showBatchDelete = false
     /// 点击行编程式推入的详情页目标
     @State private var pushedJob: Cronjob?
     /// 长按菜单「编辑任务」：加载详情后推入编辑表单
@@ -105,17 +110,27 @@ struct CronjobsTab: View {
         }
         .navigationTitle(L10n.t("计划任务"))
         .navigationBarTitleDisplayMode(.inline)
-        // 脚本库入口已上移至 管理-计划任务 Hub；右上角留 搜索 + 创建/导入 两键
+        // 脚本库入口已上移至 管理-计划任务 Hub；右上角留 搜索 + 创建/导入 两键；
+        // 多选时为退出按钮（与网站/文件页一致），多选入口在行长按菜单
         .toolbar {
             if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
-                    // 创建/导入合并进 + 号半屏菜单（呈现方式与网站列表统一）
-                    Button {
-                        showAddMenu = true
-                    } label: {
-                        Image(systemName: "plus")
+                    if isSelecting {
+                        Button {
+                            exitSelecting()
+                        } label: {
+                            Image(systemName: "xmark.circle")
+                        }
+                        .accessibilityLabel(L10n.t("退出多选"))
+                    } else {
+                        // 创建/导入合并进 + 号半屏菜单（呈现方式与网站列表统一）
+                        Button {
+                            showAddMenu = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .accessibilityLabel(L10n.t("创建计划任务"))
                     }
-                    .accessibilityLabel(L10n.t("创建计划任务"))
                 }
             }
         }
@@ -169,6 +184,15 @@ struct CronjobsTab: View {
                 .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionMenuItems.count))])
                 .presentationDragIndicator(.visible)
         }
+        // 批量删除确认（含备份文件/远程备份文件选项）
+        .sheet(isPresented: $showBatchDelete) {
+            CronjobBatchDeleteSheet(
+                count: selectedIDs.count,
+                showsBackupOptions: selectedJobs.contains { $0.jobType.producesBackupRecords }
+            ) { cleanData, cleanRemoteData in
+                await runBatchDelete(cleanData: cleanData, cleanRemoteData: cleanRemoteData)
+            }
+        }
         .navigationDestination(isPresented: $showGroupManage) {
             GroupManageView(server: server, scope: .cronjob) {
                 Task {
@@ -188,10 +212,16 @@ struct CronjobsTab: View {
         return vm.cronjobs.filter { ($0.name ?? "").localizedCaseInsensitiveContains(keyword) }
     }
 
-    /// 长按行菜单项：立即执行 / 停用·启用 / 编辑 / 导出（进入多选）/ 删除
+    /// 长按行菜单项：多选 / 立即执行 / 停用·启用 / 编辑 / 导出 / 删除
     private var actionMenuItems: [ActionMenuItem] {
         guard let job = actionJob else { return [] }
         var items: [ActionMenuItem] = []
+        items.append(ActionMenuItem(title: L10n.t("多选"), icon: "checkmark.circle", color: .blue) {
+            withAnimation(Motion.standard) {
+                isSelecting = true
+                selectedIDs = [job.id]
+            }
+        })
         items.append(ActionMenuItem(title: L10n.t("立即执行"), icon: "play.fill", color: .blue) {
             Task { await vm.handle(job: job) }
         })
@@ -238,35 +268,59 @@ struct CronjobsTab: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(filteredCronjobs) { job in
-                    // tap 手势 + 编程式推入（原 NavigationLink(value:) + 长按共存，
-                    // 松手仍会误触导航进详情）
-                    CronjobRow(job: job)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .rowTapAndLongPress(
-                            onTap: { pushedJob = job },
-                            onLongPress: { actionJob = job })
-                        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
-                        .accessibilityAction(named: L10n.t("更多操作")) { actionJob = job }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button {
-                                Task { await vm.handle(job: job) }
-                            } label: {
-                                Label(L10n.t("执行"), systemImage: "play.fill")
-                            }
-                            .tint(.blue)
+                    if isSelecting {
+                        selectingRow(job)
+                    } else {
+                        // tap 手势 + 编程式推入（原 NavigationLink(value:) + 长按共存，
+                        // 松手仍会误触导航进详情）
+                        CronjobRow(job: job)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .rowTapAndLongPress(
+                                onTap: { pushedJob = job },
+                                onLongPress: { actionJob = job })
+                            // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                            .accessibilityAction(named: L10n.t("更多操作")) { actionJob = job }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button {
+                                    Task { await vm.handle(job: job) }
+                                } label: {
+                                    Label(L10n.t("执行"), systemImage: "play.fill")
+                                }
+                                .tint(.blue)
 
-                            Button(role: .destructive) {
-                                vm.pendingDeleteJob = job
-                            } label: {
-                                Label(L10n.t("删除"), systemImage: "trash")
+                                Button(role: .destructive) {
+                                    vm.pendingDeleteJob = job
+                                } label: {
+                                    Label(L10n.t("删除"), systemImage: "trash")
+                                }
                             }
-                        }
+                    }
                 }
             }
         }
         .listStyle(.insetGrouped)
         .refreshable {
             await vm.refresh()
+        }
+        // 多选模式底部批量操作栏（退出在右上角工具栏）
+        .safeAreaInset(edge: .bottom) {
+            if isSelecting {
+                CronjobBatchBar(
+                    selectedCount: selectedIDs.count,
+                    totalCount: filteredCronjobs.count,
+                    isOperating: isBatchOperating,
+                    onSelectAll: {
+                        if selectedIDs.count >= filteredCronjobs.count {
+                            selectedIDs.removeAll()
+                        } else {
+                            selectedIDs = Set(filteredCronjobs.map(\.id))
+                        }
+                    },
+                    onEnable: { Task { await batchUpdateStatus(enabled: true) } },
+                    onDisable: { Task { await batchUpdateStatus(enabled: false) } },
+                    onDelete: { showBatchDelete = true }
+                )
+            }
         }
         .sheet(item: $vm.pendingDeleteJob) { job in
             TextInputConfirmSheet(
@@ -278,11 +332,180 @@ struct CronjobsTab: View {
             ) {
                 Task { await vm.delete(job: job) }
             } options: {
-                Section(L10n.t("选项")) {
-                    Toggle(L10n.t("同时删除备份文件"), isOn: $vm.deleteCleanData)
+                // 同时删除备份文件仅备份类任务展示（与「备份记录」入口同判据）
+                if job.jobType.producesBackupRecords {
+                    Section(L10n.t("选项")) {
+                        Toggle(L10n.t("同时删除备份文件"), isOn: $vm.deleteCleanData)
+                    }
                 }
             }
         }
+    }
+
+    // MARK: - 批量操作（多选）
+
+    /// 多选行：勾选圈 + 原行内容
+    private func selectingRow(_ job: Cronjob) -> some View {
+        Button {
+            if selectedIDs.contains(job.id) {
+                selectedIDs.remove(job.id)
+            } else {
+                selectedIDs.insert(job.id)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: selectedIDs.contains(job.id) ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selectedIDs.contains(job.id) ? Color.accentColor : Color.secondary)
+                CronjobRow(job: job)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func exitSelecting() {
+        withAnimation(Motion.standard) {
+            isSelecting = false
+            selectedIDs.removeAll()
+        }
+    }
+
+    /// 当前筛选下选中的任务（按列表顺序）
+    private var selectedJobs: [Cronjob] {
+        filteredCronjobs.filter { selectedIDs.contains($0.id) }
+    }
+
+    /// 批量启用/停用：选中 N 个依次发 N 条 /cronjobs/status（见 VM）
+    private func batchUpdateStatus(enabled: Bool) async {
+        let jobs = selectedJobs
+        guard !jobs.isEmpty else { return }
+        isBatchOperating = true
+        defer { isBatchOperating = false }
+        if await vm.batchUpdateStatus(jobs: jobs, enabled: enabled) {
+            exitSelecting()
+        }
+    }
+
+    /// 批量删除：一次 /cronjobs/del 提交全部 id（选项来自确认弹窗）
+    private func runBatchDelete(cleanData: Bool, cleanRemoteData: Bool) async {
+        let jobs = selectedJobs
+        guard !jobs.isEmpty else { return }
+        isBatchOperating = true
+        defer { isBatchOperating = false }
+        if await vm.batchDelete(jobs: jobs, cleanData: cleanData, cleanRemoteData: cleanRemoteData) {
+            exitSelecting()
+        }
+    }
+}
+
+// MARK: - 批量操作栏（多选模式底部）
+
+/// 全选/计数 + 批量操作菜单（启用/停用/删除），与网站页 WebsiteBatchBar 同款
+struct CronjobBatchBar: View {
+    let selectedCount: Int
+    let totalCount: Int
+    let isOperating: Bool
+    let onSelectAll: () -> Void
+    let onEnable: () -> Void
+    let onDisable: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button {
+                onSelectAll()
+            } label: {
+                Label(
+                    selectedCount >= totalCount ? L10n.t("取消全选") : L10n.t("全选"),
+                    systemImage: selectedCount >= totalCount ? "circle" : "checkmark.circle"
+                )
+                .font(.subheadline)
+            }
+            .disabled(totalCount == 0)
+
+            Spacer()
+
+            Text(L10n.f("已选 %ld 项", selectedCount))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Menu {
+                Button { onEnable() } label: {
+                    Label(L10n.t("启用"), systemImage: "checkmark.circle.fill")
+                }
+                Button { onDisable() } label: {
+                    Label(L10n.t("停用"), systemImage: "pause.fill")
+                }
+                Button(role: .destructive) { onDelete() } label: {
+                    Label(L10n.t("删除"), systemImage: "trash")
+                }
+            } label: {
+                Label(L10n.t("批量操作"), systemImage: "ellipsis.circle")
+                    .font(.subheadline.bold())
+            }
+            .disabled(selectedCount == 0 || isOperating)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider() }
+    }
+}
+
+// MARK: - 批量删除确认（含备份文件选项）
+
+/// 批量删除确认弹窗：N 个任务无单一任务名可输入确认，以选项 + 明确计数确认；
+/// 「删除远程备份文件」仅在「同时删除备份文件」打开时出现（默认开）
+struct CronjobBatchDeleteSheet: View {
+    let count: Int
+    /// 选中含备份类任务才展示备份文件选项（与单个删除同判据）
+    let showsBackupOptions: Bool
+    /// (cleanData, cleanRemoteData) → 执行删除
+    let onDelete: (Bool, Bool) async -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var cleanData = false
+    @State private var cleanRemoteData = true
+    @State private var isSubmitting = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    if showsBackupOptions {
+                        Toggle(L10n.t("同时删除备份文件"), isOn: $cleanData)
+                        if cleanData {
+                            Toggle(L10n.t("删除远程备份文件"), isOn: $cleanRemoteData)
+                        }
+                    }
+                } header: {
+                    if showsBackupOptions { Text(L10n.t("选项")) }
+                } footer: {
+                    Text(L10n.f("将删除选中的 %ld 个任务，该操作不可恢复。", count))
+                }
+            }
+            .navigationTitle(L10n.t("批量删除任务"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isSubmitting)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("删除"), role: .destructive) {
+                        Task {
+                            isSubmitting = true
+                            await onDelete(cleanData, cleanRemoteData)
+                            dismiss()
+                        }
+                    }
+                    .disabled(isSubmitting)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.medium])
+        .interactiveDismissDisabled(isSubmitting)
     }
 }
 

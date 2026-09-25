@@ -14,7 +14,6 @@ struct CronjobDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var editingInfo: CronjobInfo?
     @State private var showEditView = false
-    @State private var isLoadingEditInfo = false
     @State private var showDeleteSheet = false
     /// 快照任务详情（load/info；仅 snapshot 类型加载，用于展示镜像开关与排除应用）
     @State private var snapshotInfo: CronjobInfo?
@@ -65,21 +64,19 @@ struct CronjobDetailView: View {
                     } header: { Text(L10n.t("脚本内容")) }
                 }
             case .app:
-                Section(L10n.t("备份内容")) {
-                    InfoRow(L10n.t("备份对象"), value: currentJob.appID == "all" ? L10n.t("全部应用") : (currentJob.appID ?? "—"))
-                }
+                readonlyTargetsSection(label: L10n.t("备份对象"),
+                                       text: backupTargetsText(currentJob.appID,
+                                                               allLabel: L10n.t("全部应用")))
             case .website:
-                Section(L10n.t("备份内容")) {
-                    InfoRow(L10n.t("备份对象"), value: currentJob.website == "all" ? L10n.t("全部网站") : (currentJob.website ?? "—"))
-                }
+                readonlyTargetsSection(label: L10n.t("备份对象"), text: websiteTargetsText)
             case .database:
                 Section(L10n.t("备份内容")) {
                     InfoRow(L10n.t("数据库类型"), value: currentJob.dbTypeDisplay)
-                    InfoRow(L10n.t("备份对象"), value: currentJob.dbName == "all" ? L10n.t("全部数据库") : (currentJob.dbName ?? "—"))
                     if currentJob.dbTypeDisplay == "MySQL" || currentJob.dbTypeDisplay == "MariaDB" {
                         InfoRow(L10n.t("备份参数"), value: currentJob.dbBackupParamsDisplay)
                     }
                 }
+                readonlyTargetsSection(label: L10n.t("备份对象"), text: dbTargetsText)
             case .snapshot:
                 if snapshotInfo == nil && snapshotLoadFailed {
                     // load/info 失败：给出可重试的错误态，不让「—」占位永久残留
@@ -126,11 +123,8 @@ struct CronjobDetailView: View {
                     InfoRow(L10n.t("URL 地址"), value: currentJob.url ?? "—")
                 }
             case .cutWebsiteLog:
-                Section(L10n.t("切割内容")) {
-                    InfoRow(L10n.t("网站"),
-                            value: currentJob.website == "all"
-                            ? L10n.t("全部网站") : (currentJob.website ?? "—"))
-                }
+                // website 存网站 id 串：与备份网站同款解析（id → primaryDomain）
+                readonlyTargetsSection(label: L10n.t("网站"), text: websiteTargetsText)
             case .cleanLog:
                 Section(L10n.t("清理内容")) {
                     InfoRow(L10n.t("清理类型"), value: L10n.t("网站日志"))
@@ -140,24 +134,8 @@ struct CronjobDetailView: View {
                 EmptyView()
             }
 
-            // 操作
+            // 记录入口（立即执行/结束任务/停用启用/编辑/删除已收进右上角三点菜单）
             Section {
-                Button {
-                    Task { await vm.handle(job: currentJob) }
-                } label: {
-                    Label(L10n.t("立即执行"), systemImage: "play.fill")
-                }
-                Button(role: .destructive) {
-                    Task { await vm.stop(job: currentJob) }
-                } label: {
-                    Label(L10n.t("结束任务"), systemImage: "stop.fill")
-                }
-                Button {
-                    Task { await vm.updateStatus(job: currentJob, enabled: !currentJob.isEnabled) }
-                } label: {
-                    Label(currentJob.isEnabled ? L10n.t("停用任务") : L10n.t("启用任务"),
-                          systemImage: currentJob.isEnabled ? "pause.fill" : "checkmark.circle.fill")
-                }
                 NavigationLink {
                     CronjobRecordsView(job: currentJob, vm: vm)
                 } label: {
@@ -170,30 +148,6 @@ struct CronjobDetailView: View {
                         Label(L10n.t("备份记录"), systemImage: "externaldrive.badge.timemachine")
                     }
                 }
-                Button {
-                    Task { await loadEditInfo() }
-                } label: {
-                    HStack {
-                        Label(L10n.t("编辑任务"), systemImage: "pencil")
-                        if isLoadingEditInfo {
-                            Spacer()
-                            ProgressView()
-                        }
-                    }
-                }
-            }
-
-            // 危险操作
-            Section {
-                Button(role: .destructive) {
-                    showDeleteSheet = true
-                } label: {
-                    Label(L10n.t("删除任务"), systemImage: "trash")
-                }
-            } header: {
-                Text(L10n.t("危险操作"))
-            } footer: {
-                Text(L10n.t("删除后不可恢复，可选择是否同时删除已生成的备份文件"))
             }
         }
         .navigationTitle(currentJob.name ?? L10n.t("任务详情"))
@@ -204,6 +158,44 @@ struct CronjobDetailView: View {
             Text(vm.alertMessage)
         }
         .navigationBarTitleDisplayMode(.inline)
+        // 右上角三点菜单：任务操作（立即执行/结束任务/停用启用/编辑/删除）
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        Task { await vm.handle(job: currentJob) }
+                    } label: {
+                        Label(L10n.t("立即执行"), systemImage: "play.fill")
+                    }
+                    Button {
+                        Task { await vm.stop(job: currentJob) }
+                    } label: {
+                        Label(L10n.t("结束任务"), systemImage: "stop.fill")
+                    }
+                    Button {
+                        Task { await vm.updateStatus(job: currentJob, enabled: !currentJob.isEnabled) }
+                    } label: {
+                        Label(currentJob.isEnabled ? L10n.t("停用任务") : L10n.t("启用任务"),
+                              systemImage: currentJob.isEnabled ? "pause.fill" : "checkmark.circle.fill")
+                    }
+                    Divider()
+                    Button {
+                        Task { await loadEditInfo() }
+                    } label: {
+                        Label(L10n.t("编辑任务"), systemImage: "pencil")
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                        showDeleteSheet = true
+                    } label: {
+                        Label(L10n.t("删除任务"), systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel(L10n.t("更多操作"))
+            }
+        }
         .sheet(isPresented: $showDeleteSheet) {
             TextInputConfirmSheet(
                 title: L10n.t("删除任务"),
@@ -221,8 +213,11 @@ struct CronjobDetailView: View {
                     }
                 }
             } options: {
-                Section(L10n.t("选项")) {
-                    Toggle(L10n.t("同时删除备份文件"), isOn: $deleteCleanDataOption)
+                // 同时删除备份文件仅备份类任务展示（与「备份记录」入口同判据）
+                if currentJob.jobType.producesBackupRecords {
+                    Section(L10n.t("选项")) {
+                        Toggle(L10n.t("同时删除备份文件"), isOn: $deleteCleanDataOption)
+                    }
                 }
             }
         }
@@ -233,10 +228,65 @@ struct CronjobDetailView: View {
             }
         }
         // 快照任务：详情接口含镜像开关/排除应用（列表模型无这些字段），
-        // 与已装应用列表并行加载（排除应用按 id 解析应用名）
+        // 与已装应用列表并行加载（排除应用按 id 解析应用名）；
+        // 备份网站/切割网站日志：拉网站简表解析 id → primaryDomain；
+        // 备份数据库：按任务类型拉实例列表解析 id → 库名
         .task(id: currentJob.id) {
-            guard currentJob.jobType == .snapshot, snapshotInfo == nil else { return }
-            await loadSnapshotInfo()
+            switch currentJob.jobType {
+            case .snapshot:
+                guard snapshotInfo == nil else { return }
+                await loadSnapshotInfo()
+            case .website, .cutWebsiteLog:
+                await vm.loadWebsiteOptions()
+            case .database:
+                await vm.loadDBItems(dbType: currentJob.dbType ?? "mysql")
+            default:
+                break
+            }
+        }
+    }
+
+    /// 备份对象/网站：形态 7.1 只读展示（一项一行，默认 1 行自动增高；
+    /// 与快照「排除应用」同款只读描边框）
+    private func readonlyTargetsSection(label: String, text: String) -> some View {
+        Section {
+            OutlinedMultiLineField(label: label,
+                                   lines: 1,
+                                   text: .constant(text))
+                .disabled(true)
+        }
+    }
+
+    /// 备份对象展示文本："all" → 全部标签，逗号串 → 一行一项，空 → —；
+    /// resolve 非空时逐项解析（如 id → primaryDomain），解析失败回落原始值
+    private func backupTargetsText(_ raw: String?, allLabel: String,
+                                    resolve: ((String) -> String?)? = nil) -> String {
+        guard let raw, !raw.isEmpty else { return "—" }
+        if raw == "all" { return allLabel }
+        let items = raw.split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        if items.isEmpty { return "—" }
+        guard let resolve else { return items.joined(separator: "\n") }
+        return items.map { resolve($0) ?? $0 }.joined(separator: "\n")
+    }
+
+    /// 备份对象（网站）：website 存网站 id 串，解析为 primaryDomain
+    /// （缺失回落 alias，再回落原始 id；列表异步加载完成后自动刷新）
+    private var websiteTargetsText: String {
+        backupTargetsText(currentJob.website, allLabel: L10n.t("全部网站")) { id in
+            guard let site = vm.websiteOptions.first(where: { String($0.id) == id }) else {
+                return nil
+            }
+            return site.primaryDomain ?? site.alias
+        }
+    }
+
+    /// 备份对象（数据库）：dbName 存数据库 id 串，解析为实例列表的 name
+    /// （dbItems 按任务类型异步加载，完成后自动刷新）
+    private var dbTargetsText: String {
+        backupTargetsText(currentJob.dbName, allLabel: L10n.t("全部数据库")) { id in
+            vm.dbItems.first(where: { String($0.id) == id })?.name
         }
     }
 
@@ -258,11 +308,9 @@ struct CronjobDetailView: View {
     }
 
     /// 加载编辑所需的任务详情，加载成功后跳转到编辑表单
+    /// （失败由 loadCronjobInfo 内部弹 alert）
     private func loadEditInfo() async {
-        isLoadingEditInfo = true
-        let info = await vm.loadCronjobInfo(id: job.id)
-        isLoadingEditInfo = false
-        if let info = info {
+        if let info = await vm.loadCronjobInfo(id: job.id) {
             editingInfo = info
             showEditView = true
         }

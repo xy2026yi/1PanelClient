@@ -5480,6 +5480,28 @@
         }
       }
     },
+    "任务「%@」停用失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to disable task \"%@\": %@"
+          }
+        }
+      }
+    },
+    "任务「%@」启用失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to enable task \"%@\": %@"
+          }
+        }
+      }
+    },
     "任务「%@」已%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9546,6 +9568,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Process"
+          }
+        }
+      }
+    },
+    "删除远程备份文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete remote backup files"
           }
         }
       }
@@ -15149,6 +15182,17 @@
         }
       }
     },
+    "将删除选中的 %ld 个任务，该操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will delete the %ld selected tasks. This action cannot be undone."
+          }
+        }
+      }
+    },
     "将删除选中的 %ld 个网站及其配置，该操作无法回滚，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15820,6 +15864,17 @@
         }
       }
     },
+    "已停用 %ld 个任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled %ld tasks"
+          }
+        }
+      }
+    },
     "已停用「%@」" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15904,6 +15959,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deleted"
+          }
+        }
+      }
+    },
+    "已删除 %ld 个任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted %ld tasks"
           }
         }
       }
@@ -16003,6 +16069,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enabled"
+          }
+        }
+      }
+    },
+    "已启用 %ld 个任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enabled %ld tasks"
           }
         }
       }
@@ -18885,6 +18962,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Batch Delete"
+          }
+        }
+      }
+    },
+    "批量删除任务" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batch delete tasks"
           }
         }
       }
