@@ -208,7 +208,7 @@ enum APIEndpoint {
     case coreGroupsDelete         // POST 删除计划任务/脚本分组
 
     // MARK: - 防火墙
-    // MARK: 防火墙（v2.3.0 重构后 API；对照表见 docs/v2.3.0-upstream-diff.md §2.1）
+    // MARK: 防火墙（v2.3.0 重构后 API；对照表见 doc/references/v2.3.0-upstream-diff.md §2.1）
     case firewallBase             // POST 子系统状态 {name: base|docker}（v2.2.5 契约已废弃）
     case firewallOperate          // POST 生命周期（start/stop/restart/disableBanPing/enableBanPing）
     case firewallFilterOperate    // POST 基础链操作（init-base/bind-base/unbind-base，幸存端点）

@@ -7,7 +7,7 @@
 //  - 聚焦或有值：标签缩小为小字、中心横跨描边框顶线（背景截断边框线）；
 //  - 结构为「顶部 13pt 缓冲 + 52pt 描边框」：标签始终在组件 bounds 内绘制，
 //    Menu/列表按 bounds 裁剪不会截到标签（原型踩坑：offset 溢出绘制会被 Menu 裁掉）。
-//  适用：新建流向导页（见 docs/outlined-form-adoption-assessment-2026-09.md）。
+//  适用：新建流向导页（见 doc/references/outlined-form-adoption-assessment-2026-09.md）。
 //
 
 import SwiftUI

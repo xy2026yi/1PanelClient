@@ -4,7 +4,7 @@
 //
 //  分页向导公共骨架：步骤指示条（页名居中）+ 底部固定导航（返回/下一步/主操作）。
 //  与描边表单组件（OutlinedField）配套用于多段新建流，见
-//  docs/outlined-form-adoption-assessment-2026-09.md 的向导适用清单。
+//  doc/references/outlined-form-adoption-assessment-2026-09.md 的向导适用清单。
 //
 
 import SwiftUI

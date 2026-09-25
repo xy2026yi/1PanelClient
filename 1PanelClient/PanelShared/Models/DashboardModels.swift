@@ -212,7 +212,7 @@ nonisolated struct PanelUpgradeInfo: Decodable {
 }
 
 /// 面板版本号解析与比较（v/V 前缀、rc/beta 预发布后缀容忍）。
-/// 上游保持月度发版，客户端适配策略见 docs/1panel-upstream-adaptation-roadmap-2026-09.md
+/// 上游保持月度发版，客户端适配策略见 doc/references/1panel-upstream-adaptation-roadmap-2026-09.md
 enum PanelVersionTools {
     /// 客户端当前适配的面板基线（README 对外承诺同一版本；升级适配流程完成后改此值）。
     /// v2.3.1（2026-09-22）：小版本修复，无 API 变更（经核实兼容）；

@@ -2,7 +2,7 @@
 //  FirewallView.swift
 //  1PanelClient
 //
-//  防火墙 v2.3.0（上游 2026-09 整体重构后的 API，docs/v2.3.0-upstream-diff.md）：
+//  防火墙 v2.3.0（上游 2026-09 整体重构后的 API，doc/references/v2.3.0-upstream-diff.md）：
 //  状态卡（系统子系统生命周期 + 基础链初始化/绑定）+ 四段内容——
 //  规则（统一规则清单）/ 转发（forward 子域）/ Docker 端口守护 / 设置（三组后端）。
 //  旧 v2.2.5 端口/IP/链规则三段模型已被上游「rules 统一命名空间 + states 五态」取代。

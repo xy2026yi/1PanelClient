@@ -2,7 +2,7 @@
 
 - 日期：2026-09-06
 - 状态：已接受（含一项待人工执行：面板侧轮换密钥，见下）
-- 关联：`docs/project-audit-report-2026-09.md` §6-E8、§7-P0
+- 关联：`doc/references/project-audit-report-2026-09.md` §6-E8、§7-P0
 
 ## 背景
 
@@ -38,7 +38,7 @@
 
 - 轮换完成前，任何能读到本仓库的人仍可用旧密钥操作该测试面板（仅限该 VM，无生产数据）。
 - 轮换后，历史中的密钥字符串成为无害死数据；后续审计以「密钥是否已轮换」为本 ADR 的
-  唯一遗留检查项（并入 `docs/manual-verification-checklist-2026-09.md`）。
+  唯一遗留检查项（并入 `doc/references/manual-verification-checklist-2026-09.md`）。
 - 归档脚本若需重新运行，先 `export 1PANEL_API_KEY=<新密钥>`。
 
 ## 教训

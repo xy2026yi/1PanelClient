@@ -126,4 +126,4 @@ struct CronjobTransferModelsTests {
     }
 }
 // 旧「iptables 链规则模型」套件已随 v2.3.0 防火墙重构移除
-// （上游删除 filter/rule 系列端点与链规则模型，见 docs/v2.3.0-upstream-diff.md §2.1）
+// （上游删除 filter/rule 系列端点与链规则模型，见 doc/references/v2.3.0-upstream-diff.md §2.1）

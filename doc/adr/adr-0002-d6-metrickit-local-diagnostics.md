@@ -2,7 +2,7 @@
 
 - 日期：2026-09-06
 - 状态：已接受（随 P2 实施）
-- 关联：`docs/project-audit-report-2026-09.md` §5-D6、§7-P2；`docs/audit-fix-log-2026-09.md`
+- 关联：`doc/references/project-audit-report-2026-09.md` §5-D6、§7-P2；`doc/references/audit-fix-log-2026-09.md`
 
 ## 背景
 

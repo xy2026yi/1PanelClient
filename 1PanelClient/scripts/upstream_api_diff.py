@@ -11,7 +11,7 @@ upstream_api_diff.py —— 1Panel 上游版本 API 变更 diff（三源之法·
     3. diff agent/app/dto/*.go —— DTO 层变更规模与类型增删
     4. 产出 Markdown 报告，供适配分诊
 
-这是 docs/1panel-upstream-adaptation-roadmap-2026-09.md 月度 SOP 的工具化；
+这是 doc/references/1panel-upstream-adaptation-roadmap-2026-09.md 月度 SOP 的工具化；
 抓包验证与 Swagger 对比为另外两源，需面板环境。
 """
 

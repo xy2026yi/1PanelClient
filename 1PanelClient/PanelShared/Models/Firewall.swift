@@ -5,7 +5,7 @@
 //  防火墙 v2.3.0 契约（2026-09 上游整体重构后的 API）
 //  形状来源：1Panel v2.3.0 agent/app/dto/firewall.go + forwarding.go +
 //  agent/utils/firewall/filter/{model,inventory}.go 的 json tag 全量映射
-//  （docs/v2.3.0-upstream-diff.md §2）。L1 标准：字段全可选、宽松解码，
+//  （doc/references/v2.3.0-upstream-diff.md §2）。L1 标准：字段全可选、宽松解码，
 //  上游字段口径漂移不整页失败。抓包验证待做（M1 收尾项）。
 //
 
