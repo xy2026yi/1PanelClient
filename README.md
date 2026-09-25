@@ -7,11 +7,11 @@ iOS client for [1Panel](https://1panel.cn) — the open-source Linux server mana
 
 ## 面板版本适配 / Panel Version Compatibility
 
-当前适配的 1Panel 面板版本为 **v2.3.0 – v2.3.1**（防火墙模块基于 v2.3.0 重构后 API，旧版面板进入防火墙页会提示升级）。原则上支持 **v2.3.x** 系列：上游后续 v2.3.x 小版本若无模块级大改动即直接兼容；遇到显示 / 功能问题时，请先确认服务端面板版本在 v2.3.x 范围内。
+当前适配的 1Panel 面板版本为 v2.3.1 **（防火墙模块基于 v2.3.0 重构后 API，旧版面板进入防火墙页会提示升级）**。
 
 接口请求与页面显示均基于该版本抓包对齐；面板版本过高或过低时，接口字段口径可能不一致，导致数据显示异常或部分功能不可用。遇到显示 / 功能问题时，请先确认服务端面板版本是否为适配版本。
 
-This client is currently aligned with 1Panel **v2.3.0 – v2.3.1** (the firewall module targets the v2.3.0 rebuilt API; older panels are prompted to upgrade). The whole **v2.3.x** series is supported in principle — later v2.3.x patch releases are expected to work as long as upstream makes no module-level breaking changes. If something looks wrong, first check that your panel version is within v2.3.x.
+This client is currently aligned with 1Panel ** v2.3.1** (the firewall module targets the v2.3.0 rebuilt API; older panels are prompted to upgrade). 
 
 ## 文档 / Documentation
 
@@ -22,8 +22,7 @@ This client is currently aligned with 1Panel **v2.3.0 – v2.3.1** (the firewall
 
 ## 测试状态 / Testing Status
 
-> **假设声明（2026-09）：本项目当前仅完成了开发，全部功能尚未经过任何真机 / 模拟器的测试验证。**
-> 单元测试（323 项）已全绿并接入 GitHub Actions CI，但 UI 与真实面板交互尚待人工验收——请按 [功能测试清单](doc/TEST-CHECKLIST.md) 逐项测试标记；清单中也列出了建议的测试环境与重点模块。
+> **声明（2026-09）：本项目当前仅完成了开发，全部功能尚未经过任何真机 / 模拟器的c测试验证。**
 
 ## 快速开始
 
