@@ -23,6 +23,8 @@ __pycache__/
 # Sensitive
 *.env
 *.key
+# 面板登录凭据（get-doc-json.py 本地配置，含密码/公钥/接口密钥）
+1PanelClient/scripts/.panel_env
 
 # 归档目录（历史开发文档/抓包/旧产物，本地保留、不入库）
 /archive/
