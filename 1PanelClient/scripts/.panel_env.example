@@ -1,0 +1,26 @@
+# 1Panel 面板连接配置示例
+# 使用方法：复制本文件为 .panel_env 并填写实际值：
+#   cp .panel_env.example .panel_env
+# 注意：.panel_env 含敏感信息（密码、接口密钥、令牌），请勿提交到版本库或分享给他人。
+# 已设置的同名环境变量优先于本文件，可用于临时覆盖。
+
+# 面板地址（协议 + IP + 端口，不含路径）
+PANEL_URL=http://192.168.50.20:17331
+
+# 登录用户名
+PANEL_USER=admin
+
+# 登录密码
+PANEL_PASSWORD=your-password-here
+
+# API Token：面板 API 接口密钥（面板设置 - 接口），仅 get_version() 使用
+PANEL_API_TOKEN=api-token
+
+# 安全入口码（同时用于 SecurityEntrance Cookie 和 EntranceCode 请求头）
+PANEL_ENTRANCE_CODE=entrance-code
+
+# 面板 RSA 公钥（Base64 编码的 PEM，浏览器 F12 -> Application -> Cookies -> panel_public_key）
+PANEL_PUBLIC_KEY_B64=panel-public-key-b64
+
+# 可选：已登录会话的 hermes 刷新令牌 Cookie，留空或不配置则不携带
+PANEL_HERMES_SESSION_RT=hermes-session-rt
