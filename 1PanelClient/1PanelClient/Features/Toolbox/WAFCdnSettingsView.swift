@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import os
 
 struct WAFCdnSettingsView: View {
     @ObservedObject var vm: WAFViewModel
@@ -54,6 +55,10 @@ struct WAFCdnSettingsView: View {
         self.onStateChanged = onStateChanged
         self.client = APIClient.shared(for: server)
         _siteCdnOn = State(initialValue: config?.state == "on")
+        // 先用父页快照即时回填（不闪默认值），.task 再拉服务端最新覆盖
+        _type = State(initialValue: config?.type ?? "header")
+        let h = config?.header ?? ""
+        _header = State(initialValue: h.isEmpty ? "x-real-ip" : h)
     }
 
     private var isOn: Bool { websiteID != 0 ? siteCdnOn : (vm.config?.cdn?.state == "on") }
@@ -138,10 +143,11 @@ struct WAFCdnSettingsView: View {
         .navigationTitle("CDN")
         .navigationBarTitleDisplayMode(.inline)
         .formWidthLimit()
-        .onAppear { loadConfig() }
-        .task { if websiteID != 0 { await loadSiteCDN() } }
+        // 父页快照不随保存/外部改动刷新，进入与下拉都以服务端最新为准
+        .task { await refresh() }
+        .refreshable { await refresh() }
         .sheet(isPresented: $showIPGroupPicker) {
-            IPGroupMultiPickerView(groups: ipGroups, selection: $originProtection.ipGroups)
+            IPGroupMultiPickerView(groups: $ipGroups, selection: $originProtection.ipGroups)
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -161,20 +167,15 @@ struct WAFCdnSettingsView: View {
         }
     }
 
-    private func loadConfig() {
-        type = config?.type ?? "header"
-        let h = config?.header ?? ""
-        header = h.isEmpty ? "x-real-ip" : h
+    /// 进入 / 下拉刷新：读当前 CDN 配置。权威读取是 POST /cdn（websiteID=0
+    /// 即全局，抓包 2026-09-26：config/global 的 cdn 块不随 cdn/update 更新，
+    /// 网页端同样走此接口）；网站级另拉回源 IP 组候选
+    private func refresh() async {
+        await loadCDNConfig()
+        if websiteID != 0 { await loadIPGroups() }
     }
 
-    /// CDN回源IP组 已选摘要（组名顿号连接 / 未选择）
-    private var ipGroupSummary: String {
-        originProtection.ipGroups.isEmpty
-            ? L10n.t("未选择") : originProtection.ipGroups.joined(separator: "、")
-    }
-
-    /// 网站级：POST /cdn {websiteID} 读当前站配置（含源站保护），并拉 IP 组列表
-    private func loadSiteCDN() async {
+    private func loadCDNConfig() async {
         do {
             let cfg: WAFCdnConfig = try await client.send(
                 path: APIEndpoint.wafCdn.path,
@@ -186,18 +187,35 @@ struct WAFCdnSettingsView: View {
             header = h.isEmpty ? "x-real-ip" : h
             originProtection = cfg.originProtection ?? WAFOriginProtection()
             siteRules = cfg.rules
+            if websiteID == 0 { vm.cdnType = cfg.type }
             didLoadSite = true
         } catch {
             // 读取失败保持传入 config 的初值，页面仍可保存
             didLoadSite = true
         }
-        // 回源 IP 组候选（all:true 返回裸数组，抓包 2026-09-22）
-        if let groups: [WAFIPGroupItem] = try? await client.send(
-            path: APIEndpoint.wafIPGroupSearch.path,
-            body: WAFIPGroupSearchRequest(page: 1, pageSize: 100, type: "", name: "", all: true),
-            as: [WAFIPGroupItem].self) {
+    }
+
+    /// 回源 IP 组候选（all:true 返回裸数组，抓包 2026-09-22；仅网站级展示）
+    private func loadIPGroups() async {
+        do {
+            let groups: [WAFIPGroupItem] = try await client.send(
+                path: APIEndpoint.wafIPGroupSearch.path,
+                body: WAFIPGroupSearchRequest(page: 1, pageSize: 100, type: "", name: "", all: true),
+                as: [WAFIPGroupItem].self)
             ipGroups = groups
+        } catch {
+            // 候选拉取失败不阻断主流程，但打 DEBUG 日志定位「静默空列表」
+            #if DEBUG
+            Logger(subsystem: "com.xy.1PanelClient.debug", category: "waf")
+                .warning("[WAF-DEBUG] 回源IP组候选拉取失败: \(error.localizedDescription, privacy: .public)")
+            #endif
         }
+    }
+
+    /// CDN回源IP组 已选摘要（组名顿号连接 / 未选择）
+    private var ipGroupSummary: String {
+        originProtection.ipGroups.isEmpty
+            ? L10n.t("未选择") : originProtection.ipGroups.joined(separator: "、")
     }
 
     /// 开关：全局走 config/global/state；网站级走 config/website/state {scope:Cdn}
@@ -243,8 +261,8 @@ struct WAFCdnSettingsView: View {
                 // 父页重拉网站配置：返回时 CDN 行的开关/类型徽章显示新值
                 onStateChanged?()
             } else {
-                // 刷新全局配置：返回上级时 CDN 行的类型徽章显示新值
-                await vm.loadAll()
+                // 轻量刷新全局配置：返回上级时 CDN 行的类型徽标显示新值
+                await vm.loadConfig()
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -256,7 +274,10 @@ struct WAFCdnSettingsView: View {
 // MARK: - CDN 回源 IP 组多选（勾选即回写，关闭即确认）
 
 private struct IPGroupMultiPickerView: View {
-    let groups: [WAFIPGroupItem]
+    /// 用 Binding 而非值传入：.sheet 内容闭包捕获的是旧 body 的值快照
+    ///（实测 iOS 26：进入页面时 ipGroups 已拉到 2 组，弹层仍渲染空列表），
+    /// Binding 在渲染时从活状态解引用，弹层恒读到最新候选
+    @Binding var groups: [WAFIPGroupItem]
     @Binding var selection: [String]
     @Environment(\.dismiss) private var dismiss
 

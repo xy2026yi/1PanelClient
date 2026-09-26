@@ -12,6 +12,9 @@ import Combine
 final class WAFViewModel: ObservableObject {
     @Published var status: WAFStatus?
     @Published var config: WAFConfig?
+    /// CDN 类型角标回显：config/global 的 cdn 块不随 cdn/update 更新（抓包
+    /// 2026-09-26），列表行以 POST /cdn {websiteID:0} 读到的为准
+    @Published var cdnType: String?
     @Published var isLoading = true
     @Published var isOperating = false
     @Published var errorMessage: String?
@@ -52,6 +55,24 @@ final class WAFViewModel: ObservableObject {
             } else {
                 errorMessage = nil
             }
+        }
+    }
+
+    /// 轻量刷新全局配置（单 GET）：全局配置列表页进入/从子页返回时回显用——
+    /// 子页（恶意 IP 组 / 蜘蛛 IP 池等）改开关不经 vm，快照会停在进入前。
+    /// 静默失败保持旧快照，不设 isLoading（不打扰、无加载态）
+    func loadConfig() async {
+        guard let cfg: WAFConfig = try? await client.send(
+            path: APIEndpoint.wafConfigGlobal.path, method: "GET", as: WAFConfig.self
+        ) else { return }
+        config = cfg
+        // cdn 块在 config/global 里不随 cdn/update 变化，角标另经 /cdn 读取
+        if let cdn: WAFCdnConfig = try? await client.send(
+            path: APIEndpoint.wafCdn.path,
+            body: WAFCdnRequest(websiteID: 0),
+            as: WAFCdnConfig.self
+        ) {
+            cdnType = cdn.type
         }
     }
 

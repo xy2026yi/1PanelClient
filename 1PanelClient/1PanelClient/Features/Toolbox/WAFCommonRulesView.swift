@@ -124,8 +124,13 @@ struct WAFCommonRulesView: View {
             }
         }
         .sheet(isPresented: $showApply) {
-            WAFRuleApplySheet(server: server, scope: scope) {
+            WAFWebsiteApplySheet(server: server) {
                 successMessage = L10n.t("应用成功")
+            } apply: { ids in
+                let req = WAFCommonRuleApplyRequest(scope: scope, websites: ids)
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.wafRuleCommonApply.path, body: req, as: EmptyResponse.self
+                )
             }
         }
         .sheet(isPresented: Binding(
@@ -345,14 +350,16 @@ struct WAFCommonRuleFormView: View {
     }
 }
 
-// MARK: - 应用到网站（内置规则集）
+// MARK: - 应用到网站（网站多选弹层）
 
-/// 内置规则「应用到网站」选择器：多选网站（含全选，全部网站 = 传入所有网站 ID，
-/// 与面板 Web 端一致），确认后提交 rule/common/apply
-private struct WAFRuleApplySheet: View {
+/// 「应用到网站」网站多选弹层：多选网站（含全选，全部网站 = 传入所有网站 ID，
+/// 与面板 Web 端一致），确认后执行 apply 闭包，成功回调 onApplied 并自动关闭，
+/// 失败在弹层内提示。默认规则应用（rule/common/apply）与 CC 频率限制应用
+///（rule/cc，applyWebsite=true + websites）共用
+struct WAFWebsiteApplySheet: View {
     let server: ServerConfig
-    let scope: String
     let onApplied: () -> Void
+    let apply: (_ websites: [Int]) async throws -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var websites: [WAFWebsiteItem] = []
@@ -364,10 +371,11 @@ private struct WAFRuleApplySheet: View {
 
     private let client: APIClient
 
-    init(server: ServerConfig, scope: String, onApplied: @escaping () -> Void) {
+    init(server: ServerConfig, onApplied: @escaping () -> Void,
+         apply: @escaping (_ websites: [Int]) async throws -> Void) {
         self.server = server
-        self.scope = scope
         self.onApplied = onApplied
+        self.apply = apply
         self.client = APIClient.shared(for: server)
     }
 
@@ -448,7 +456,7 @@ private struct WAFRuleApplySheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        Task { await apply() }
+                        Task { await applySelection() }
                     } label: {
                         if isApplying {
                             ProgressView()
@@ -482,14 +490,11 @@ private struct WAFRuleApplySheet: View {
         }
     }
 
-    private func apply() async {
+    private func applySelection() async {
         isApplying = true
         defer { isApplying = false }
-        let req = WAFCommonRuleApplyRequest(scope: scope, websites: Array(selected))
         do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.wafRuleCommonApply.path, body: req, as: EmptyResponse.self
-            )
+            try await apply(Array(selected))
             onApplied()
             dismiss()
         } catch {

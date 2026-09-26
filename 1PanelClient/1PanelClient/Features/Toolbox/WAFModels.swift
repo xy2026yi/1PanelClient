@@ -274,9 +274,12 @@ nonisolated struct WAFCcRuleSaveRequest: Encodable {
     let mode: String
     let scope: String
     let applyWebsite: Bool?
+    /// applyWebsite=true 时所选网站 ID（抓包 2026-09-26：单站 [1]、多站 [1,3]）；
+    /// nil 省略该键，面板按全部网站处理
+    let websites: [Int]?
 
     enum CodingKeys: String, CodingKey {
-        case state, code, action, type, res, ipBlock, ipBlockTime, threshold, duration, mode, scope, applyWebsite
+        case state, code, action, type, res, ipBlock, ipBlockTime, threshold, duration, mode, scope, applyWebsite, websites
     }
 
     func encode(to encoder: Encoder) throws {
@@ -293,6 +296,7 @@ nonisolated struct WAFCcRuleSaveRequest: Encodable {
         try c.encode(mode, forKey: .mode)
         try c.encode(scope, forKey: .scope)
         try c.encodeIfPresent(applyWebsite, forKey: .applyWebsite)
+        try c.encodeIfPresent(websites, forKey: .websites)
     }
 }
 

@@ -21,6 +21,10 @@ struct WAFCcSettingsView: View {
     @State private var successMessage: String?
     @State private var errorMessage: String?
     @State private var showMenu = false
+    /// 「应用到网站」多选弹层（与默认规则-参数规则的应用规则一致）
+    @State private var showApply = false
+    /// 进入时从服务端拉取的最新配置；父页快照在保存后不会刷新，回填与保存以此为准
+    @State private var latestConfig: WAFCcRuleConfig?
 
     private let client: APIClient
 
@@ -30,6 +34,13 @@ struct WAFCcSettingsView: View {
         self.scope = scope
         self.title = title
         self.client = APIClient.shared(for: server)
+        // 先用父页快照即时回填（不闪默认值），.task 再拉服务端最新覆盖
+        if let c = config {
+            _mode = State(initialValue: c.mode ?? "global")
+            _duration = State(initialValue: String(c.duration ?? 10))
+            _threshold = State(initialValue: String(c.threshold ?? 100))
+            _ipBlockTime = State(initialValue: String(c.ipBlockTime ?? 600))
+        }
     }
 
     var body: some View {
@@ -51,7 +62,7 @@ struct WAFCcSettingsView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { loadConfig() }
+        .task { await refreshConfig() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 EllipsisMenuButton {
@@ -62,11 +73,27 @@ struct WAFCcSettingsView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("保存默认")) { Task { await save(applyWebsite: nil) } },
-                    .action(title: L10n.t("应用到网站")) { Task { await save(applyWebsite: true) } },
+                    .action(title: L10n.t("保存默认")) {
+                        Task {
+                            do {
+                                try await save(applyWebsite: nil)
+                                successMessage = L10n.t("已保存")
+                            } catch {
+                                errorMessage = error.localizedDescription
+                            }
+                        }
+                    },
+                    .action(title: L10n.t("应用到网站")) { showApply = true },
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
                 }
+            }
+        }
+        .sheet(isPresented: $showApply) {
+            WAFWebsiteApplySheet(server: server) {
+                successMessage = L10n.t("已应用到网站")
+            } apply: { ids in
+                try await save(applyWebsite: true, websites: ids)
             }
         }
         .localToast(message: $successMessage)
@@ -80,37 +107,42 @@ struct WAFCcSettingsView: View {
         }
     }
 
-    private func loadConfig() {
-        guard let c = config else { return }
+    /// 进入时拉取服务端最新配置回填（父页快照保存后不刷新，返回再进会是旧值）；
+    /// 失败静默保持快照值
+    private func refreshConfig() async {
+        guard let cfg: WAFConfig = try? await client.send(
+            path: APIEndpoint.wafConfigGlobal.path, method: "GET", as: WAFConfig.self
+        ), let c = cfg.cc else { return }
+        latestConfig = c
         mode = c.mode ?? "global"
         duration = String(c.duration ?? 10)
         threshold = String(c.threshold ?? 100)
         ipBlockTime = String(c.ipBlockTime ?? 600)
     }
 
-    private func save(applyWebsite: Bool?) async {
+    /// 保存 CC 规则；applyWebsite=true 时携带所选网站 ID（空省略 = 面板按全部
+    /// 网站处理）。成功/失败提示由调用方呈现（菜单路径走 toast+alert，应用弹层
+    /// 内部自行提示，避免弹层覆盖时重复弹窗）
+    private func save(applyWebsite: Bool?, websites: [Int]? = nil) async throws {
         isSaving = true
+        defer { isSaving = false }
+        let base = latestConfig ?? config
         let req = WAFCcRuleSaveRequest(
-            state: config?.state ?? "off",
-            code: config?.code ?? 0,
-            action: config?.action ?? "deny",
+            state: base?.state ?? "off",
+            code: base?.code ?? 0,
+            action: base?.action ?? "deny",
             type: "cc",
             res: "",
-            ipBlock: config?.ipBlock ?? "on",
+            ipBlock: base?.ipBlock ?? "on",
             ipBlockTime: Int(ipBlockTime) ?? 600,
             threshold: Int(threshold) ?? 100,
             duration: Int(duration) ?? 10,
             mode: mode,
             scope: scope,
-            applyWebsite: applyWebsite
+            applyWebsite: applyWebsite,
+            websites: websites
         )
-        do {
-            let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCc.path, body: req, as: EmptyResponse.self)
-            successMessage = applyWebsite == true ? L10n.t("已应用到网站") : L10n.t("已保存")
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isSaving = false
+        let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCc.path, body: req, as: EmptyResponse.self)
     }
 }
 
@@ -128,6 +160,8 @@ struct WAFAttackCountSettingsView: View {
     @State private var isSaving = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
+    /// 进入时从服务端拉取的最新配置；父页快照在保存后不会刷新，回填与保存以此为准
+    @State private var latestConfig: WAFCcRuleConfig?
 
     private let client: APIClient
     private var ruleType: String { scope == "NotFoundCount" ? "notFoundCount" : "attackCount" }
@@ -139,6 +173,12 @@ struct WAFAttackCountSettingsView: View {
         self.scope = scope
         self.title = title
         self.client = APIClient.shared(for: server)
+        // 先用父页快照即时回填（不闪默认值），.task 再拉服务端最新覆盖
+        if let c = config {
+            _duration = State(initialValue: String(c.duration ?? 60))
+            _threshold = State(initialValue: String(c.threshold ?? 10))
+            _ipBlockTime = State(initialValue: String(c.ipBlockTime ?? 3000))
+        }
     }
 
     var body: some View {
@@ -154,7 +194,7 @@ struct WAFAttackCountSettingsView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { loadConfig() }
+        .task { await refreshConfig() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -176,8 +216,13 @@ struct WAFAttackCountSettingsView: View {
         }
     }
 
-    private func loadConfig() {
-        guard let c = config else { return }
+    /// 进入时拉取服务端最新配置回填（父页快照保存后不刷新，返回再进会是旧值）；
+    /// 失败静默保持快照值
+    private func refreshConfig() async {
+        guard let cfg: WAFConfig = try? await client.send(
+            path: APIEndpoint.wafConfigGlobal.path, method: "GET", as: WAFConfig.self
+        ), let c = scope == "NotFoundCount" ? cfg.notFoundCount : cfg.attackCount else { return }
+        latestConfig = c
         duration = String(c.duration ?? 60)
         threshold = String(c.threshold ?? 10)
         ipBlockTime = String(c.ipBlockTime ?? 3000)
@@ -185,19 +230,21 @@ struct WAFAttackCountSettingsView: View {
 
     private func save() async {
         isSaving = true
+        let base = latestConfig ?? config
         let req = WAFCcRuleSaveRequest(
-            state: config?.state ?? "off",
-            code: config?.code ?? defaultCode,
-            action: config?.action ?? "deny",
+            state: base?.state ?? "off",
+            code: base?.code ?? defaultCode,
+            action: base?.action ?? "deny",
             type: ruleType,
             res: "",
-            ipBlock: config?.ipBlock ?? "on",
+            ipBlock: base?.ipBlock ?? "on",
             ipBlockTime: Int(ipBlockTime) ?? 3000,
             threshold: Int(threshold) ?? 10,
             duration: Int(duration) ?? 60,
             mode: "",
             scope: scope,
-            applyWebsite: nil
+            applyWebsite: nil,
+            websites: nil
         )
         do {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.wafRuleCc.path, body: req, as: EmptyResponse.self)
