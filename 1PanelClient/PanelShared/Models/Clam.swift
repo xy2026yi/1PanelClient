@@ -117,6 +117,11 @@ nonisolated struct ClamRecordSearchRequest: Encodable {
     let endTime: String
 }
 
+/// 清空指定规则的扫描报告（POST /toolbox/clam/record/clean）
+nonisolated struct ClamRecordCleanRequest: Encodable {
+    let id: Int
+}
+
 /// 扫描报告行（/toolbox/clam/record/search 返回 items）
 nonisolated struct ClamRecordItem: Decodable, Identifiable, Hashable {
     let id: Int

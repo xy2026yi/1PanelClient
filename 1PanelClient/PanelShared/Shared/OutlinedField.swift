@@ -93,6 +93,8 @@ struct OutlinedTextField: View {
     var disabled = false
     /// 框下方常驻提示（如格式示例/路径说明），始终显示
     var hint: String? = nil
+    /// 框内右侧目录浏览按钮（挂载目录等路径字段用）；与密码框眼睛同位
+    var browseAction: (() -> Void)? = nil
 
     @FocusState private var isFocused: Bool
 
@@ -103,7 +105,18 @@ struct OutlinedTextField: View {
     private var fieldWithHint: some View {
         VStack(alignment: .leading, spacing: 4) {
             OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
-                          trailing: { EmptyView() }) {
+                          trailing: {
+                if let browseAction {
+                    Button(action: browseAction) {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    // borderless：Form 行内多按钮默认样式会整行同触
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(L10n.t("浏览目录"))
+                }
+            }) {
             TextField("", text: $text)
                 .keyboardType(keyboardType)
                 .focused($isFocused)

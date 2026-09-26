@@ -116,7 +116,8 @@ struct ClamConfigEditView: View {
                 message: L10n.t("修改配置后需要重启生效。如果确认操作，请手动输入「立即重启」。"),
                 expectedText: L10n.t("立即重启"),
                 fieldLabel: L10n.t("确认名称"),
-                fieldPlaceholder: L10n.t("立即重启")
+                fieldPlaceholder: L10n.t("立即重启"),
+                confirmTitle: L10n.t("确认")
             ) {
                 Task { await save() }
             }

@@ -254,13 +254,26 @@ struct DisksView: View {
         .refreshable { await vm.load() }
     }
 
+    /// 面板容量口径为 1024 进制（磁盘行 size 如 "64G"+"1G"=65G），总容量同样按
+    /// 1024 换算；ByteCountFormatter 的 1000 进制会显示 69.79 GB，与磁盘行对不上
+    private func formatCapacity(_ bytes: Int64) -> String {
+        let units = ["B", "KB", "MB", "GB", "TB"]
+        var size = Double(bytes)
+        var idx = 0
+        while size >= 1024 && idx < units.count - 1 {
+            size /= 1024
+            idx += 1
+        }
+        return String(format: "%.1f %@", size, units[idx])
+    }
+
     private var diskList: some View {
         List {
             // 总览
             Section {
                 InfoRow(L10n.t("磁盘数量"), value: "\(vm.info?.totalDisks ?? 0)")
                 if let capacity = vm.info?.totalCapacity, capacity > 0 {
-                    InfoRow(L10n.t("总容量"), value: ByteCountFormatter.string(fromByteCount: capacity, countStyle: .file))
+                    InfoRow(L10n.t("总容量"), value: formatCapacity(capacity))
                 }
             } header: {
                 SectionLabel(title: L10n.t("总览"), systemImage: "internaldrive")
@@ -308,7 +321,10 @@ struct DisksView: View {
                 } header: {
                     SectionLabel(title: L10n.t("未分区磁盘"), systemImage: "externaldrive")
                 } footer: {
-                    Text(L10n.t("长按磁盘可进行分区；分区会格式化所选磁盘，请谨慎操作。"))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L10n.t("长按磁盘可进行分区；分区会格式化所选磁盘，请谨慎操作。"))
+                        Text(L10n.t("依赖 partprobe 命令，需要安装 parted"))
+                    }
                 }
             }
         }
@@ -524,16 +540,8 @@ private struct DiskMountFormSheet: View {
                     .disabled(!isPartitionMode)
                     .foregroundStyle(isPartitionMode ? .primary : .secondary)
 
-                    HStack {
-                        OutlinedTextField(label: L10n.t("挂载目录"), text: $mountPoint, keyboardType: .URL)
-                        Button {
-                            showDirPicker = true
-                        } label: {
-                            Image(systemName: "folder.badge.plus")
-                        }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel(L10n.t("浏览目录"))
-                    }
+                    OutlinedTextField(label: L10n.t("挂载目录"), text: $mountPoint, keyboardType: .URL,
+                                      browseAction: { showDirPicker = true })
 
                     Toggle(L10n.t("开机自动挂载"), isOn: $autoMount)
                     Toggle(L10n.t("挂载失败不影响系统启动"), isOn: $noFail)

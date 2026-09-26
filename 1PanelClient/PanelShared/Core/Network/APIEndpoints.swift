@@ -331,6 +331,7 @@ enum APIEndpoint {
     case clamOperate             // POST 服务操作 {operation}（fresh- 前缀为病毒库服务）
     case clamDelete              // POST 删除规则 {ids[, isDeleteFile]}
     case clamRecordSearch        // POST 分页查询扫描报告
+    case clamRecordClean         // POST 清空规则的扫描报告 {id}
     case clamFileSearch          // POST 读取配置/日志 {name, tail}
     case clamFileUpdate          // POST 保存配置 {name, file}
 
@@ -967,6 +968,7 @@ enum APIEndpoint {
         case .clamOperate:           return "/api/v2/toolbox/clam/operate"
         case .clamDelete:            return "/api/v2/toolbox/clam/del"
         case .clamRecordSearch:      return "/api/v2/toolbox/clam/record/search"
+        case .clamRecordClean:       return "/api/v2/toolbox/clam/record/clean"
         case .clamFileSearch:        return "/api/v2/toolbox/clam/file/search"
         case .clamFileUpdate:        return "/api/v2/toolbox/clam/file/update"
         case .supervisorStatus:      return "/api/v2/hosts/tool/status"

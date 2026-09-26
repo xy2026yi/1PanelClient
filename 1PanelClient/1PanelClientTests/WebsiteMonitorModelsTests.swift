@@ -78,3 +78,34 @@ struct WebsiteMonitorModelTests {
         #expect(try decode(#"{"value": 1}"#).name == nil)
     }
 }
+
+@Suite("QPS/今日状态 data:null 回退")
+struct MonitorQpsEmptyFallbackTests {
+    @Test("信封 data=null 解码后为 nil，emptyInstance 按全 0 回退")
+    func nullDataFallsBackToZero() throws {
+        let envelope = try JSONDecoder().decode(
+            APIResponse<MonitorQpsInfo>.self,
+            from: Data(#"{"code": 200, "message": "", "data": null}"#.utf8))
+        #expect(envelope.isSuccess)
+        #expect(envelope.data == nil)
+
+        let qps = MonitorQpsInfo.emptyInstance()
+        #expect(qps.qps == 0)
+        #expect(qps.flow == 0)
+
+        let stat = WebsiteMonitorStat.emptyInstance()
+        #expect(stat.pv == 0 && stat.uv == 0 && stat.req == 0)
+        #expect(stat.count4xx == 0 && stat.count5xx == 0)
+    }
+
+    @Test("正常返回 {qps:0, flow:0} 与字段缺失 {qps:null} 均可解码")
+    func zeroAndNullFieldPayloads() throws {
+        let zero = try JSONDecoder().decode(
+            MonitorQpsInfo.self, from: Data(#"{"qps":0,"flow":0}"#.utf8))
+        #expect(zero.qps == 0 && zero.flow == 0)
+
+        let nulls = try JSONDecoder().decode(
+            MonitorQpsInfo.self, from: Data(#"{"qps":null,"flow":null}"#.utf8))
+        #expect(nulls.qps == nil && nulls.flow == nil)
+    }
+}

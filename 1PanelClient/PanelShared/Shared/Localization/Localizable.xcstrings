@@ -1928,6 +1928,17 @@
         }
       }
     },
+    "Fail2ban 配置修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modify Fail2ban Configuration"
+          }
+        }
+      }
+    },
     "GB" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6081,6 +6092,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load providers: %@"
+          }
+        }
+      }
+    },
+    "依赖 partprobe 命令，需要安装 parted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Depends on the partprobe command; parted must be installed"
           }
         }
       }
@@ -26534,6 +26556,17 @@
         }
       }
     },
+    "清空报告" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Reports"
+          }
+        }
+      }
+    },
     "清空执行记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28283,6 +28316,17 @@
         }
       }
     },
+    "直接修改配置文件可能会导致服务不可用，请谨慎操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editing the configuration file directly may make the service unavailable. Proceed with caution. Continue?"
+          }
+        }
+      }
+    },
     "直接升级" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28807,6 +28851,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clear the current log? This cannot be undone."
+          }
+        }
+      }
+    },
+    "确定清空规则「%@」的全部扫描报告吗？清空后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all scan reports of rule \"%@\"? This cannot be undone."
           }
         }
       }

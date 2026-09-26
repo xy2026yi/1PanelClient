@@ -22,6 +22,11 @@ struct ClamRecordView: View {
     @State private var loadGeneration = 0
     /// 行点击推入的任务日志页目标
     @State private var selectedRecord: ClamRecordItem?
+    /// 清空报告确认弹窗 / 进行中 / 失败提示
+    @State private var confirmClean = false
+    @State private var isClearing = false
+    @State private var clearError: String?
+    @State private var successMessage: String?
 
     private let client: APIClient
     private static let pageSize = 10
@@ -82,6 +87,22 @@ struct ClamRecordView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(L10n.t("报告"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // 清空当前规则的全部扫描报告（无报告时置灰）
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    confirmClean = true
+                } label: {
+                    if isClearing {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "trash")
+                    }
+                }
+                .disabled(isClearing || records.isEmpty)
+                .accessibilityLabel(L10n.t("清空报告"))
+            }
+        }
         .navigationDestination(isPresented: Binding(
             get: { selectedRecord != nil },
             set: { if !$0 { selectedRecord = nil } }
@@ -92,6 +113,24 @@ struct ClamRecordView: View {
         }
         .task { await load() }
         .refreshable { await load() }
+        .localToast(message: $successMessage)
+        .alert(L10n.t("清空报告"), isPresented: $confirmClean) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("清空"), role: .destructive) {
+                Haptic.warning()
+                Task { await cleanRecords() }
+            }
+        } message: {
+            Text(L10n.f("确定清空规则「%@」的全部扫描报告吗？清空后不可恢复。", ruleName))
+        }
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { clearError != nil },
+            set: { if !$0 { clearError = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { clearError = nil }
+        } message: {
+            Text(clearError ?? "")
+        }
     }
 
     // MARK: - 数据
@@ -151,6 +190,22 @@ struct ClamRecordView: View {
             page = next
         } catch {
             // 追加失败不打断列表，下拉刷新可重试
+        }
+    }
+
+    /// 清空当前规则的扫描报告（/toolbox/clam/record/clean {id}），完成后回到空态
+    private func cleanRecords() async {
+        isClearing = true
+        defer { isClearing = false }
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.clamRecordClean.path,
+                body: ClamRecordCleanRequest(id: clamID),
+                as: EmptyResponse.self)
+            successMessage = L10n.t("已清空")
+            await load()
+        } catch {
+            clearError = L10n.f("清空失败：%@", error.localizedDescription)
         }
     }
 }

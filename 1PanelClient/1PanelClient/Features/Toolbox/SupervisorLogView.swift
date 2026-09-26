@@ -43,21 +43,6 @@ struct SupervisorProcessLogView: View {
                 .onChange(of: logFile) { _, _ in
                     Task { await load() }
                 }
-
-                Toggle(L10n.t("追踪"), isOn: $isTracking)
-
-                Button(role: .destructive) {
-                    confirmClear = true
-                } label: {
-                    HStack {
-                        Label(L10n.t("清空当前日志"), systemImage: "trash")
-                        if isClearing {
-                            Spacer()
-                            ProgressView()
-                        }
-                    }
-                }
-                .disabled(isClearing)
             }
 
             Section {
@@ -93,6 +78,29 @@ struct SupervisorProcessLogView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(L10n.t("日志"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // 追踪开关与清空当前日志收进右上角（追踪与服务日志页同款按钮式开关）
+            ToolbarItem(placement: .topBarTrailing) {
+                Toggle(isOn: $isTracking) {
+                    Text(L10n.t("追踪"))
+                }
+                .toggleStyle(.button)
+                .tint(isTracking ? Color.accentColor : Color.secondary)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    confirmClear = true
+                } label: {
+                    if isClearing {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "trash")
+                    }
+                }
+                .disabled(isClearing)
+                .accessibilityLabel(L10n.t("清空当前日志"))
+            }
+        }
         .task { await load() }
         .refreshable { await load() }
         // 追踪：定时拉取最新日志

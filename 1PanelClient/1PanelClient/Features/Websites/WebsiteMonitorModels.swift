@@ -71,6 +71,12 @@ nonisolated struct MonitorQpsInfo: Decodable {
     let flow: Int64?
 }
 
+/// code=200 且 data=null（该网站近 1 分钟无任何请求）时按 0 回退，
+/// 卡片显示 0 而不是报「接口未返回数据」（与网页端 `res.data.qps ?? 0` 一致）
+extension MonitorQpsInfo: EmptyInitializable {
+    static func emptyInstance() -> Self { MonitorQpsInfo(qps: 0, flow: 0) }
+}
+
 // MARK: - 统计(今日状态)
 
 nonisolated struct MonitorStatRequest: Encodable {
@@ -87,6 +93,13 @@ nonisolated struct WebsiteMonitorStat: Decodable {
     let req: Int?
     let count4xx: Int?
     let count5xx: Int?
+}
+
+/// 与 QPS 同理：今日状态在 data=null（无任何监控数据）时按全 0 回退
+extension WebsiteMonitorStat: EmptyInitializable {
+    static func emptyInstance() -> Self {
+        WebsiteMonitorStat(pv: 0, uv: 0, ip: 0, flow: 0, spider: 0, req: 0, count4xx: 0, count5xx: 0)
+    }
 }
 
 // MARK: - 访客趋势

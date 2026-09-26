@@ -792,6 +792,8 @@ struct Fail2banFullConfigView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var successMessage: String?
+    /// 保存前确认：直接改配置文件有风险（与 Web 端同款提示）
+    @State private var showSaveConfirm = false
 
     private let client: APIClient
 
@@ -813,10 +815,19 @@ struct Fail2banFullConfigView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(L10n.t("保存")) {
-                    Task { await save() }
+                    showSaveConfirm = true
                 }
                 .disabled(isLoading || isSaving)
             }
+        }
+        .alert(L10n.t("Fail2ban 配置修改"), isPresented: $showSaveConfirm) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
+                Task { await save() }
+            }
+        } message: {
+            Text(L10n.t("直接修改配置文件可能会导致服务不可用，请谨慎操作，是否继续？"))
         }
         .localToast(message: $successMessage)
         .task { await load() }

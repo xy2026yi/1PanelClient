@@ -372,7 +372,8 @@ struct FirewallView: View {
                     message: L10n.f("将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略；重置后需重新初始化或同步。请输入后端名「%@」以确认。", vm.systemStatus?.backend ?? "", vm.systemStatus?.backend ?? ""),
                     expectedText: vm.systemStatus?.backend ?? "",
                     fieldLabel: L10n.t("确认输入"),
-                    fieldPlaceholder: vm.systemStatus?.backend
+                    fieldPlaceholder: vm.systemStatus?.backend,
+                    confirmTitle: L10n.t("重置")
                 ) {
                     Task { await vm.resetRules() }
                 }
@@ -384,7 +385,8 @@ struct FirewallView: View {
                     message: L10n.f("将删除 %@ 中的 1Panel Docker 端口防护运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。", vm.dockerGuard?.base?.backend ?? "", vm.dockerGuard?.base?.backend ?? ""),
                     expectedText: vm.dockerGuard?.base?.backend ?? "",
                     fieldLabel: L10n.t("确认输入"),
-                    fieldPlaceholder: vm.dockerGuard?.base?.backend
+                    fieldPlaceholder: vm.dockerGuard?.base?.backend,
+                    confirmTitle: L10n.t("重置")
                 ) {
                     Task { await vm.resetDockerGuard() }
                 }
@@ -396,7 +398,8 @@ struct FirewallView: View {
                     message: L10n.f("将删除 %@ 中的 1Panel 端口转发运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。", vm.forwardStatus?.backend ?? vm.systemStatus?.backend ?? "", vm.forwardStatus?.backend ?? vm.systemStatus?.backend ?? ""),
                     expectedText: vm.forwardStatus?.backend ?? vm.systemStatus?.backend ?? "",
                     fieldLabel: L10n.t("确认输入"),
-                    fieldPlaceholder: vm.forwardStatus?.backend ?? vm.systemStatus?.backend
+                    fieldPlaceholder: vm.forwardStatus?.backend ?? vm.systemStatus?.backend,
+                    confirmTitle: L10n.t("重置")
                 ) {
                     Task { await vm.resetForwarding() }
                 }
