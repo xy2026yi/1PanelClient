@@ -135,9 +135,10 @@ struct WAFGlobalConfigView: View {
         }
         .navigationTitle(L10n.t("全局配置"))
         .navigationBarTitleDisplayMode(.inline)
-        // 子页改的开关/配置不经 vm，返回本页（视图重现 .task 重跑）时重拉配置
-        // 回显，省去手动下拉刷新；首次进入与 WAF 页 loadAll 重复一次轻量 GET
-        .task { await vm.loadConfig() }
+        // 子页改的开关/配置不经 vm，返回本页时重拉配置回显，省去手动下拉刷新。
+        // onAppear（push 与 pop 回来都触发）而非 .task：不依赖系统对被覆盖视图
+        // task 重跑的调度；首次进入与 WAF 页 loadAll 重复一次轻量 GET
+        .onAppear { Task { await vm.loadConfig() } }
         .refreshable { await vm.loadAll() }
         .localToast(message: $vm.successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(

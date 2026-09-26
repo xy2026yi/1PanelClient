@@ -65,7 +65,7 @@ struct WAFCcSettingsView: View {
         .task { await refreshConfig() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                EllipsisMenuButton {
+                EllipsisMenuButton(isLoading: isSaving) {
                     withAnimation(Motion.fast) { showMenu.toggle() }
                 }
             }
@@ -73,7 +73,7 @@ struct WAFCcSettingsView: View {
         .overlay(alignment: .topTrailing) {
             if showMenu {
                 EllipsisMenuPopup(entries: [
-                    .action(title: L10n.t("保存默认")) {
+                    .action(title: L10n.t("保存默认"), isDisabled: isSaving) {
                         Task {
                             do {
                                 try await save(applyWebsite: nil)
@@ -83,7 +83,7 @@ struct WAFCcSettingsView: View {
                             }
                         }
                     },
-                    .action(title: L10n.t("应用到网站")) { showApply = true },
+                    .action(title: L10n.t("应用到网站"), isDisabled: isSaving) { showApply = true },
                 ]) {
                     withAnimation(Motion.fast) { showMenu = false }
                 }

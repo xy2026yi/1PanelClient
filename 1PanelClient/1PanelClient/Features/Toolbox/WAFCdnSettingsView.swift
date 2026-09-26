@@ -23,15 +23,16 @@ struct WAFCdnSettingsView: View {
 
     @State private var type = "header"
     @State private var header = "x-real-ip"
-    /// 网站级：当前站 CDN 开关（config 块/全局仍走 vm）
-    @State private var siteCdnOn = false
+    /// CDN 开关（/cdn 读到的实际状态；加载前用快照/全局配置种子）
+    @State private var cdnOn = false
     /// 源站保护（网站级）
     @State private var originProtection = WAFOriginProtection()
     @State private var ipGroups: [WAFIPGroupItem] = []
     /// 站级 /cdn 响应带回的 rules（保存时优先于传入 config，防止把全局 rules 写给单站）
     @State private var siteRules: [String]? = nil
     @State private var showIPGroupPicker = false
-    @State private var didLoadSite = false
+    /// /cdn 读取完成（含失败）；站级开关在完成前禁用
+    @State private var didLoadCDN = false
     @State private var isSaving = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
@@ -54,14 +55,20 @@ struct WAFCdnSettingsView: View {
         self.websiteID = websiteID
         self.onStateChanged = onStateChanged
         self.client = APIClient.shared(for: server)
-        _siteCdnOn = State(initialValue: config?.state == "on")
+        _cdnOn = State(initialValue: config?.state == "on")
         // 先用父页快照即时回填（不闪默认值），.task 再拉服务端最新覆盖
         _type = State(initialValue: config?.type ?? "header")
         let h = config?.header ?? ""
         _header = State(initialValue: h.isEmpty ? "x-real-ip" : h)
     }
 
-    private var isOn: Bool { websiteID != 0 ? siteCdnOn : (vm.config?.cdn?.state == "on") }
+    /// 开关以 /cdn 读到的实际状态为准（didLoadCDN 后恒用 cdnOn——config/global
+    /// 的 cdn 块不随 cdn/update 更新，state 同样可能滞后）；加载完成前：
+    /// 全局回落 vm.config，站级用快照种子（站级此时开关本就禁用）
+    private var isOn: Bool {
+        if didLoadCDN { return cdnOn }
+        return websiteID != 0 ? cdnOn : (vm.config?.cdn?.state == "on")
+    }
 
     var body: some View {
         Form {
@@ -72,7 +79,7 @@ struct WAFCdnSettingsView: View {
                         Task { await toggleCDN(on: newVal) }
                     }
                 ))
-                .disabled(vm.isOperating || (websiteID != 0 && !didLoadSite))
+                .disabled(vm.isOperating || (websiteID != 0 && !didLoadCDN))
             }
 
             Section {
@@ -181,17 +188,16 @@ struct WAFCdnSettingsView: View {
                 path: APIEndpoint.wafCdn.path,
                 body: WAFCdnRequest(websiteID: websiteID),
                 as: WAFCdnConfig.self)
-            siteCdnOn = cfg.state == "on"
+            cdnOn = cfg.state == "on"
             type = cfg.type ?? "header"
             let h = cfg.header ?? ""
             header = h.isEmpty ? "x-real-ip" : h
             originProtection = cfg.originProtection ?? WAFOriginProtection()
             siteRules = cfg.rules
-            if websiteID == 0 { vm.cdnType = cfg.type }
-            didLoadSite = true
+            didLoadCDN = true
         } catch {
             // 读取失败保持传入 config 的初值，页面仍可保存
-            didLoadSite = true
+            didLoadCDN = true
         }
     }
 
@@ -218,10 +224,21 @@ struct WAFCdnSettingsView: View {
             ? L10n.t("未选择") : originProtection.ipGroups.joined(separator: "、")
     }
 
-    /// 开关：全局走 config/global/state；网站级走 config/website/state {scope:Cdn}
+    /// 开关：全局走 config/global/state（vm.toggleRule 无成功回执、错误提示在
+    /// 被覆盖的父页不可见，故自行请求：成功本地置位并轻刷 vm 配置，失败本页
+    /// 提示回滚）；网站级走 config/website/state {scope:Cdn}
     private func toggleCDN(on: Bool) async {
-        guard websiteID != 0 else {
-            await vm.toggleRule(scope: "Cdn", state: on ? "on" : "off")
+        if websiteID == 0 {
+            do {
+                let _: EmptyResponse = try await client.send(
+                    path: APIEndpoint.wafConfigGlobalState.path,
+                    body: WAFGlobalStateRequest(scope: "Cdn", state: on ? "on" : "off"),
+                    as: EmptyResponse.self)
+                cdnOn = on
+                await vm.loadConfig()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
             return
         }
         do {
@@ -230,7 +247,7 @@ struct WAFCdnSettingsView: View {
                 body: WAFWebsiteStateRequest(websiteID: websiteID, scope: "Cdn",
                                              state: on ? "on" : "off", mode: nil),
                 as: EmptyResponse.self)
-            siteCdnOn = on
+            cdnOn = on
             onStateChanged?()
         } catch {
             errorMessage = error.localizedDescription
