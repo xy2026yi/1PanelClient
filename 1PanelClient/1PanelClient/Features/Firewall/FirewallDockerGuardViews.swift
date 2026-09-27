@@ -155,7 +155,6 @@ struct DockerGuardEndpointsView: View {
 
 struct DockerGuardEndpointRow: View {
     let endpoint: DockerGuardEndpoint
-    let onDelete: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -181,16 +180,9 @@ struct DockerGuardEndpointRow: View {
             }
         }
         .padding(.vertical, 2)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            if endpoint.readOnly != true, endpoint.policyUUID?.isEmpty == false {
-                Button(role: .destructive, action: onDelete) {
-                    Label(L10n.t("删除"), systemImage: "trash")
-                }
-            }
-        }
     }
 
-    private var hostLabel: String {
+    var hostLabel: String {
         let ip = endpoint.hostIP ?? ""
         let port = endpoint.hostPort.map(String.init) ?? ""
         return ip.isEmpty ? port : "\(ip):\(port)"

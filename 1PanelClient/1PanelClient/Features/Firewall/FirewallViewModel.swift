@@ -190,14 +190,16 @@ final class FirewallViewModel: ObservableObject {
             items: [FirewallRuleCreateItem(rule: rule, sourceKind: "user", sourceID: nil)]))
     }
 
-    func updateRule(uuid: String, rule: FirewallRule) async -> Bool {
+    /// 编辑规则：整规则替换（rule 内携带 orderIndex）与仅改优先级（顶层 orderIndex、
+    /// rule 为 nil）互斥——同传会被面板 excluded_with 校验拒绝（抓包 2026-09-17）
+    func updateRule(uuid: String, rule: FirewallRule?, orderIndex: Int64?) async -> Bool {
         isOperating = true
         defer { isOperating = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.firewallRulesUpdate.path,
                 body: FirewallRuleUpdateRequest(uuid: uuid, rule: rule, descriptionText: nil,
-                                                orderIndex: rule.orderIndex),
+                                                orderIndex: rule == nil ? orderIndex : nil),
                 as: EmptyResponse.self
             )
             await loadRules(replacing: true)
@@ -346,15 +348,26 @@ final class FirewallViewModel: ObservableObject {
 
     // MARK: 规则同步 / 重置 / Docker 策略（抓包 2026-09-17）
 
-    /// 同步预览：ready>0 才值得执行（existing=已一致，blocked=受阻）
+    /// 同步目标后端：转发/Docker 子系统有各自的后端，缺省回落系统后端
+    private func syncTargetProvider(_ subsystem: String) -> String {
+        switch subsystem {
+        case "forwarding":
+            return forwardStatus?.backend ?? systemStatus?.backend ?? "iptables"
+        case "docker":
+            return dockerGuard?.base?.backend ?? systemStatus?.backend ?? "iptables"
+        default:
+            return systemStatus?.backend ?? "iptables"
+        }
+    }
+
+    /// 同步预览：ready>0 才值得执行（existing=已一致，blocked=受阻）。
+    /// 子系统三档：system / forwarding / docker（面板 rules/sync 统一支持）
     func syncPreview(subsystem: String) async -> FirewallRuleSyncPreview? {
         do {
-            let target = subsystem == "forwarding"
-                ? (forwardStatus?.backend ?? systemStatus?.backend ?? "iptables")
-                : (systemStatus?.backend ?? "iptables")
             return try await client.send(
                 path: APIEndpoint.firewallRulesSyncPreview.path,
-                body: FirewallRuleSyncRequest(subsystem: subsystem, targetProvider: target,
+                body: FirewallRuleSyncRequest(subsystem: subsystem,
+                                              targetProvider: syncTargetProvider(subsystem),
                                               resetSource: false, taskID: nil),
                 as: FirewallRuleSyncPreview.self
             )
@@ -370,22 +383,20 @@ final class FirewallViewModel: ObservableObject {
         isOperating = true
         defer { isOperating = false }
         do {
-            let target = subsystem == "forwarding"
-                ? (forwardStatus?.backend ?? systemStatus?.backend ?? "iptables")
-                : (systemStatus?.backend ?? "iptables")
             let resp: FirewallRuleSyncResult = try await client.send(
                 path: APIEndpoint.firewallRulesSync.path,
-                body: FirewallRuleSyncRequest(subsystem: subsystem, targetProvider: target,
+                body: FirewallRuleSyncRequest(subsystem: subsystem,
+                                              targetProvider: syncTargetProvider(subsystem),
                                               resetSource: false, taskID: nil),
                 as: FirewallRuleSyncResult.self
             )
             if let taskID = resp.taskID, !taskID.isEmpty {
                 activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("同步防火墙规则"))
             }
-            if subsystem == "forwarding" {
-                await loadForwards(replacing: true)
-            } else {
-                await loadRules(replacing: true)
+            switch subsystem {
+            case "forwarding": await loadForwards(replacing: true)
+            case "docker": await loadDockerGuard()
+            default: await loadRules(replacing: true)
             }
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -803,23 +814,6 @@ final class FirewallViewModel: ObservableObject {
                 )
                 toastMessage = L10n.t("操作已提交")
             }
-            await loadDockerGuard()
-        } catch {
-            guard !APIError.isCancellation(error) else { return }
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func dockerSync() async {
-        isOperating = true
-        defer { isOperating = false }
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallDockerSync.path,
-                body: EmptyRequest(),
-                as: EmptyResponse.self
-            )
-            toastMessage = L10n.t("同步已提交")
             await loadDockerGuard()
         } catch {
             guard !APIError.isCancellation(error) else { return }

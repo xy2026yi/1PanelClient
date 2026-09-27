@@ -34,6 +34,9 @@ struct FirewallRuleFormView: View {
     /// 编辑保持原作用域的地址族（表单不再提供选择，仅随 IP 自动判定）
     @State private var family = "ipv4"
     @State private var isSubmitting = false
+    /// 提交失败提示：错误留在本页弹窗（写父页 errorMessage 会在 pop 后被
+    /// 自动刷新清掉，父页弹窗一闪而过）
+    @State private var submitError: String?
 
     /// Web 端创建仅 TCP/UDP/TCP-UDP/ALL 四档（ALL 不带端口）
     private static let protocols = ["tcp", "udp", "tcp/udp", "all"]
@@ -91,6 +94,14 @@ struct FirewallRuleFormView: View {
         .formWidthLimit()
         // 提交中禁止侧滑返回：避免请求在途时 pop 造成重复提交/状态错位
         .navigationBarBackButtonHidden(isSubmitting)
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { submitError != nil },
+            set: { if !$0 { submitError = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { submitError = nil }
+        } message: {
+            Text(submitError ?? "")
+        }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button {
@@ -194,13 +205,47 @@ struct FirewallRuleFormView: View {
             rule.connectionStates = editing?.connectionStates
         }
 
-        let ok: Bool
         if isEdit, let uuid = editingUUID ?? editing?.uuid {
-            ok = await vm.updateRule(uuid: uuid, rule: rule)
+            // 仅优先级变化 → 单改通道 {"uuid","orderIndex"}（与网页端一致）；
+            // 其余任一字段变化 → 整规则替换（orderIndex 放 rule 内）。
+            // 两个通道同传会被面板 excluded_with 校验拒绝
+            if isPriorityOnlyChange(rule) {
+                guard let idx = rule.orderIndex else {
+                    // 优先级清空且其余未变：无变更，直接返回
+                    return
+                }
+                let ok = await vm.updateRule(uuid: uuid, rule: nil, orderIndex: idx)
+                finishSubmit(ok: ok)
+            } else {
+                let ok = await vm.updateRule(uuid: uuid, rule: rule, orderIndex: nil)
+                finishSubmit(ok: ok)
+            }
         } else {
-            ok = await vm.createRule(rule)
+            let ok = await vm.createRule(rule)
+            finishSubmit(ok: ok)
         }
-        if ok { dismiss() }
+    }
+
+    /// 协议/地址/端口/策略/备注/地址族与原规则一致（只有优先级变化或无变化）
+    private func isPriorityOnlyChange(_ rule: FirewallRule) -> Bool {
+        guard let e = editing else { return false }
+        return e.protocolField == rule.protocolField
+            && (e.sourceAddress ?? "") == (rule.sourceAddress ?? "")
+            && (e.destinationPort ?? "") == (rule.destinationPort ?? "")
+            && e.action == rule.action
+            && (e.descriptionText ?? "") == (rule.descriptionText ?? "")
+            && (e.scope?.family ?? "ipv4") == (rule.scope?.family ?? "ipv4")
+    }
+
+    /// 失败错误收归本页弹窗：留在 vm.errorMessage 的话，pop 回父页后自动刷新
+    /// 成功会立刻清掉它，父页弹窗一闪而过用户来不及看清
+    private func finishSubmit(ok: Bool) {
+        if ok {
+            dismiss()
+        } else if let msg = vm.errorMessage {
+            vm.errorMessage = nil
+            submitError = msg
+        }
     }
 }
 

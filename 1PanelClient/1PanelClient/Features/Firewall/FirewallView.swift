@@ -38,7 +38,6 @@ struct FirewallView: View {
     @State private var pendingDeleteForwardForce = false
     // 同步 / 重置 / Docker 策略（抓包 2026-09-17 补齐）
     @State private var showSyncPreview = false
-    @State private var syncSubsystem = "system"
     @State private var showRulesReset = false
     @State private var showDockerReset = false
     @State private var showForwardReset = false
@@ -52,6 +51,9 @@ struct FirewallView: View {
     @State private var showDockerImport = false
     /// 长按弹出的规则操作目标
     @State private var actionItem: FirewallInventoryItem?
+    /// 孤立策略长按菜单目标 / 删除确认目标（与规则/转发同款交互）
+    @State private var actionOrphan: DockerGuardEndpoint?
+    @State private var pendingDeleteOrphan: DockerGuardEndpoint?
     /// 长按弹出的转发操作目标
     @State private var actionForward: FirewallForwardRule?
     /// 规则导出多选页
@@ -164,7 +166,12 @@ struct FirewallView: View {
             .toastOverlay(message: $vm.toastMessage)
             .alert(L10n.t("提示"), isPresented: Binding(
                 get: { vm.errorMessage != nil && vm.systemStatus != nil },
-                set: { if !$0 { vm.errorMessage = nil } }
+                set: { if !$0 {
+                    // 自动刷新成功清 errorMessage 时，alert 随绑定转 false 会在
+                    // 视图更新内同步回调 set——直接写 @Published 触发
+                    // "Publishing changes from within view updates"，推迟到下一周期
+                    DispatchQueue.main.async { vm.errorMessage = nil }
+                } }
             )) {
                 Button(L10n.t("好的"), role: .cancel) { vm.errorMessage = nil }
             } message: {
@@ -270,9 +277,11 @@ struct FirewallView: View {
     /// 弹层：半屏操作菜单 / 导入导出 / 同步预览 / 策略表单 / 重置确认 / 原文查看
     private func sheetLayer(_ content: some View) -> some View {
         content
-            // 同步预览（规则段 / 转发段共用）
+            // 同步预览（规则 / 转发 / Docker 三段共用）：子系统在呈现时按当前段
+            // 即时求值（单一事实源）——此前用独立 @State 中转，切段/重进页面后
+            // 抽屉按钮闭包可能拿到过期段，导致 Docker/转发段弹出规则的预览数据
             .sheet(isPresented: $showSyncPreview) {
-                FirewallSyncPreviewView(vm: vm, subsystem: syncSubsystem)
+                FirewallSyncPreviewView(vm: vm, subsystem: syncSubsystemName)
                     .bottomSheetDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
@@ -361,6 +370,39 @@ struct FirewallView: View {
             // Docker 导出多选（容器行长按「导出规则」进入：仅预选该容器的策略）
             .sheet(isPresented: $showDockerExportPicker) {
                 FirewallDockerExportPickerView(vm: vm, preselectedIndices: dockerExportPreselect)
+            }
+            // 孤立策略长按菜单（与规则/转发同款；构建时捕获目标值）
+            .sheet(isPresented: Binding(
+                get: { actionOrphan != nil },
+                set: { if !$0 { actionOrphan = nil } }
+            )) {
+                let orphan = actionOrphan
+                return ActionBottomSheet(
+                    title: orphan.map(orphanTitle) ?? L10n.t("孤立策略"),
+                    items: [
+                        ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red,
+                                       role: .destructive) {
+                            if let orphan { pendingDeleteOrphan = orphan }
+                        },
+                    ],
+                    onDismiss: { actionOrphan = nil }
+                )
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
+                .presentationDragIndicator(.visible)
+            }
+            .alert(L10n.t("删除孤立策略"), isPresented: Binding(
+                get: { pendingDeleteOrphan != nil },
+                set: { if !$0 { pendingDeleteOrphan = nil } }
+            )) {
+                Button(L10n.t("取消"), role: .cancel) { pendingDeleteOrphan = nil }
+                Button(L10n.t("删除"), role: .destructive) {
+                    Haptic.warning()
+                    let target = pendingDeleteOrphan
+                    pendingDeleteOrphan = nil
+                    if let target { Task { await vm.deleteDockerPolicy(target) } }
+                }
+            } message: {
+                Text(L10n.t("确定删除该端口的防护策略吗？删除后不可恢复。"))
             }
             // 规则重置（R1：输入后端名确认，对齐 Web 端「请手动输入 iptables」）
             .sheet(isPresented: $showRulesReset) {
@@ -503,6 +545,15 @@ struct FirewallView: View {
 
     // MARK: 状态卡
 
+    /// 同步子系统随当前段即时求值（不落独立状态，杜绝切段后过期）
+    private var syncSubsystemName: String {
+        switch segment {
+        case 1: return "forwarding"
+        case 2: return "docker"
+        default: return "system"
+        }
+    }
+
     private var statusSection: some View {
         Section {
             Button {
@@ -609,7 +660,6 @@ struct FirewallView: View {
                                      icon: "arrow.triangle.2.circlepath",
                                      color: .blue, busy: vm.isOperating,
                                      disabled: isRulesUnbound) {
-                        syncSubsystem = "system"
                         showSyncPreview = true
                     }
                     CardActionButton(title: L10n.t("重置"), icon: "trash",
@@ -630,7 +680,6 @@ struct FirewallView: View {
                     CardActionButton(title: L10n.t("同步规则"),
                                      icon: "arrow.triangle.2.circlepath",
                                      color: .blue, busy: vm.isOperating) {
-                        syncSubsystem = "forwarding"
                         showSyncPreview = true
                     }
                     CardActionButton(title: L10n.t("重置"), icon: "trash",
@@ -661,7 +710,7 @@ struct FirewallView: View {
                                      icon: "arrow.triangle.2.circlepath",
                                      color: .blue, busy: vm.isOperating,
                                      disabled: base.bound != true) {
-                        Task { await vm.dockerSync() }
+                        showSyncPreview = true
                     }
                     CardActionButton(title: L10n.t("重置"), icon: "trash",
                                      color: .statusError, busy: vm.isOperating) {
@@ -1024,6 +1073,13 @@ struct FirewallView: View {
         }
     }
 
+    /// 孤立策略菜单标题：主机 IP:端口（与行首展示一致）
+    private func orphanTitle(_ e: DockerGuardEndpoint) -> String {
+        let ip = e.hostIP ?? ""
+        let port = e.hostPort.map(String.init) ?? ""
+        return ip.isEmpty ? port : "\(ip):\(port)"
+    }
+
     /// Docker 段主内容（已初始化）：容器入口行 + 孤立策略
     private func dockerListContent(_ guard_: DockerGuardList, _ base: DockerGuardBase) -> some View {
         Group {
@@ -1049,13 +1105,24 @@ struct FirewallView: View {
                 if let orphans = guard_.orphanPolicies, !orphans.isEmpty {
                     Section {
                         ForEach(orphans) { endpoint in
-                            DockerGuardEndpointRow(endpoint: endpoint) {
-                                Haptic.warning()
-                                Task { await vm.deleteDockerPolicy(endpoint) }
-                            }
+                            // 可删除的孤立策略：长按弹半屏菜单（与规则/转发行一致，
+                            // 替代原右划删除）；只读/无策略 id 的行不提供菜单
+                            DockerGuardEndpointRow(endpoint: endpoint)
+                                .contentShape(Rectangle())
+                                .simultaneousGesture(
+                                    LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                        Haptic.selection()
+                                        actionOrphan = endpoint
+                                    }
+                                )
+                                .accessibilityAction(named: L10n.t("更多操作")) {
+                                    actionOrphan = endpoint
+                                }
                         }
                     } header: {
                         SectionLabel(title: L10n.t("孤立策略"), systemImage: "questionmark.circle")
+                    } footer: {
+                        Text(L10n.t("长按策略可删除；删除后该端口的访问控制将被移除。"))
                     }
                 }
         }

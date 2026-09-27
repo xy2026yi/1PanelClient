@@ -233,7 +233,6 @@ enum APIEndpoint {
     case firewallSettingsWhitelistDelete // POST 白名单删除 {rule}
     case firewallDockerPorts      // GET  Docker 端口守护总览（base+containers+orphan）
     case firewallDockerOperate    // POST Docker 守护操作 {operation: initialize|bind|unbind}
-    case firewallDockerSync       // POST 同步 Docker 守护规则（对账）
     case firewallDockerPolicyBatch // POST 批量 upsert 守护策略
     case firewallDockerPolicyDelete // POST 批量删除守护策略 {uuids}
     case monitorNetOptions        // GET  网卡列表（端口转发的入站网口选择）
@@ -892,7 +891,6 @@ enum APIEndpoint {
         case .firewallSettingsWhitelistDelete: return "/api/v2/hosts/firewall/settings/whitelist/delete"
         case .firewallDockerPorts:   return "/api/v2/hosts/firewall/docker/ports"
         case .firewallDockerOperate: return "/api/v2/hosts/firewall/docker/operate"
-        case .firewallDockerSync:    return "/api/v2/hosts/firewall/docker/sync"
         case .firewallDockerPolicyBatch: return "/api/v2/hosts/firewall/docker/policies/batch"
         case .firewallDockerPolicyDelete: return "/api/v2/hosts/firewall/docker/policies/delete/batch"
         case .monitorNetOptions:     return "/api/v2/hosts/monitor/netoptions"
