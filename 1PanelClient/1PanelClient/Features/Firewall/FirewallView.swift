@@ -317,30 +317,27 @@ struct FirewallView: View {
             .sheet(isPresented: $showExportPicker) {
                 FirewallExportPickerView(vm: vm, preselectedIDs: ruleExportPreselect)
             }
-            // 长按转发：半屏操作弹窗（编辑/删除/导出规则）
+            // 长按转发：半屏操作弹窗（编辑/删除/导出规则）。
+            // 菜单项在构建时捕获目标值：ActionBottomSheet 按钮是「先收抽屉、动作
+            // 延迟执行」，闭包内回读 actionForward 恒为 nil，动作会静默丢失
             .sheet(isPresented: Binding(
                 get: { actionForward != nil },
                 set: { if !$0 { actionForward = nil } }
             )) {
-                ActionBottomSheet(
-                    title: actionForward?.port ?? L10n.t("转发"),
+                let rule = actionForward
+                return ActionBottomSheet(
+                    title: rule?.port ?? L10n.t("转发"),
                     items: [
                         ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
-                            let rule = actionForward
-                            actionForward = nil
                             if let rule { editingForward = rule }
                         },
                         ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red,
                                        role: .destructive) {
                             Haptic.warning()
-                            let rule = actionForward
-                            actionForward = nil
                             if let rule { pendingDeleteForward = rule }
                         },
                         ActionMenuItem(title: L10n.t("导出规则"), icon: "square.and.arrow.up",
                                        color: .teal) {
-                            let rule = actionForward
-                            actionForward = nil
                             // 仅预选长按的这条转发（与计划任务「导出任务」语义一致）
                             if let rule {
                                 forwardExportPreselect = vm.forwards.firstIndex {

@@ -770,6 +770,11 @@ enum ActionRole {
 ///     .presentationDragIndicator(.visible)
 /// }
 /// ```
+///
+/// ⚠️ 菜单项闭包契约：按钮触发时先执行 onDismiss（收起抽屉）再延迟执行动作，
+/// 因此闭包内**不要回读**驱动本 sheet 的 @State（如 `let x = actionX`——届时
+/// 已被置 nil，`if let` 恒不成立，动作静默丢失）。正确写法是在构建 items 时
+/// 捕获目标值（闭包外 `let x = actionX` 后使用，见计划任务/防火墙规则菜单）。
 struct ActionBottomSheet: View {
     let title: String
     let items: [ActionMenuItem]

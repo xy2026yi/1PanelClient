@@ -362,7 +362,7 @@ struct FirewallWhitelistView: View {
                 }
             }
         }
-        // 条目表单以 push 进入（不再 sheet）
+        // 条目表单以 push 进入（与防火墙规则/转发表单同款呈现）
         .navigationDestination(isPresented: $showEntryForm) {
             FirewallWhitelistEntryFormView(
                 vm: vm,
@@ -372,36 +372,36 @@ struct FirewallWhitelistView: View {
             }
         }
         // 长按行：半屏操作弹窗（编辑/删除，与规则/转发行一致；添加走右上角 ＋，
-        // 删除为本地标记，随右上角「保存」按 diff 提交）
+        // 删除为本地标记，随右上角「保存」按 diff 提交）。
+        // 菜单项在构建时捕获目标值：ActionBottomSheet 按钮是「先收抽屉、动作延迟
+        // 执行」，闭包内回读 actionEntry 恒为 nil，动作会静默丢失；编辑与规则
+        // 菜单同款——收抽屉的同时请求推页（设备已验证可用）
         .sheet(isPresented: Binding(
             get: { actionEntry != nil },
             set: { if !$0 { actionEntry = nil } }
         )) {
-            ActionBottomSheet(
-                title: actionEntry?.display ?? L10n.t("面板端口白名单"),
-                items: [
-                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
-                        let entry = actionEntry
-                        actionEntry = nil
-                        if let entry {
-                            editingID = entry.id
-                            showEntryForm = true
-                        }
-                    },
-                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red,
-                                   role: .destructive) {
-                        Haptic.warning()
-                        let entry = actionEntry
-                        actionEntry = nil
-                        if let entry {
-                            entries.removeAll { $0.id == entry.id }
-                        }
-                    },
-                ],
-                onDismiss: { actionEntry = nil }
-            )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
+                let entry = actionEntry
+                return ActionBottomSheet(
+                    title: entry?.display ?? L10n.t("面板端口白名单"),
+                    items: [
+                        ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                            if let entry {
+                                editingID = entry.id
+                                showEntryForm = true
+                            }
+                        },
+                        ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red,
+                                       role: .destructive) {
+                            Haptic.warning()
+                            if let entry {
+                                entries.removeAll { $0.id == entry.id }
+                            }
+                        },
+                    ],
+                    onDismiss: { actionEntry = nil }
+                )
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+                .presentationDragIndicator(.visible)
         }
         .interactiveDismissDisabled(isSubmitting)
         // 提交中禁止侧滑返回：先删后写在途 pop 后，本地基线与服务器分叉
@@ -467,7 +467,9 @@ struct FirewallWhitelistView: View {
     }
 
     /// 编辑/添加结果落库：与其他条目全等（类型/协议/端口/来源均同）视为
-    /// 重复拒绝落库——否则 ForEach 会出现重号行；合法差异（同端口不同来源）不受影响
+    /// 重复拒绝落库——否则 ForEach 会出现重号行；合法差异（同端口不同来源）不受影响。
+    /// 关闭表单统一由本层置 showEntryForm = false 驱动（单一权威）；
+    /// 查重拒绝分支同样要收起表单，让 toast 在列表页可见
     private func applyResult(_ result: FirewallPortWhitelistEntry) {
         let editingIdx = editingID.flatMap { id in entries.firstIndex { $0.id == id } }
         if entries.enumerated().contains(where: { offset, entry in
@@ -475,6 +477,7 @@ struct FirewallWhitelistView: View {
         }) {
             vm.toastMessage = L10n.t("相同条目已存在")
             editingID = nil
+            showEntryForm = false
             return
         }
         if let idx = editingIdx {
@@ -483,6 +486,7 @@ struct FirewallWhitelistView: View {
             entries.append(result)
         }
         editingID = nil
+        showEntryForm = false
     }
 
     private func submit() async {
@@ -512,7 +516,6 @@ struct FirewallWhitelistEntryFormView: View {
     let editing: FirewallPortWhitelistEntry?
     let onSave: (FirewallPortWhitelistEntry) -> Void
 
-    @Environment(\.dismiss) private var dismiss
     /// "" = 其他 / "ssh" / "panel"
     @State private var type = ""
     @State private var proto = "tcp"
@@ -552,12 +555,13 @@ struct FirewallWhitelistEntryFormView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(L10n.t("保存")) {
+                    // 不在目标页内 dismiss()：返回由父层 applyResult 置
+                    // showEntryForm = false 驱动（防 isPresented 不同步卡 true）
                     onSave(FirewallPortWhitelistEntry(
                         protocolField: proto,
                         port: port.trimmingCharacters(in: .whitespaces),
                         type: type.isEmpty ? nil : type,
                         sources: sourceLines))
-                    dismiss()
                 }
                 .disabled(port.trimmingCharacters(in: .whitespaces).isEmpty)
             }

@@ -67,27 +67,25 @@ struct RepoListView: View {
         .navigationDestination(item: $editingRepo) { repo in
             RepoFormView(editing: repo, vm: vm) { await loadRepos() }
         }
-        // 长按操作弹窗：编辑 / 同步 / 删除
+        // 长按操作弹窗：编辑 / 同步 / 删除。
+        // 菜单项在构建时捕获目标值：ActionBottomSheet 按钮是「先收抽屉、动作延迟
+        // 执行」，闭包内回读 actionRepo 恒为 nil，动作会静默丢失
         .sheet(isPresented: Binding(
             get: { actionRepo != nil },
             set: { if !$0 { actionRepo = nil } }
         )) {
-            ActionBottomSheet(
-                title: actionRepo?.name ?? L10n.t("仓库"),
+            let repo = actionRepo
+            return ActionBottomSheet(
+                title: repo?.name ?? L10n.t("仓库"),
                 items: [
                     ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
-                        let repo = actionRepo
-                        actionRepo = nil
                         if let repo { editingRepo = repo }
                     },
                     ActionMenuItem(title: L10n.t("同步"), icon: "arrow.triangle.2.circlepath", color: .green) {
-                        let repo = actionRepo
-                        actionRepo = nil
                         if let repo { Task { await sync(repo) } }
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                        pendingDelete = actionRepo
-                        actionRepo = nil
+                        pendingDelete = repo
                     },
                 ],
                 onDismiss: { actionRepo = nil }
