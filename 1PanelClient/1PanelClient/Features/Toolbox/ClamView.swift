@@ -246,6 +246,93 @@ struct ClamView: View {
     }
 
     var body: some View {
+        alertAndDestinations
+    }
+
+    /// 弹窗与推页目标集中一层：body 单表达式过长会触发编译器类型检查超时
+    /// （与 SupervisorView / FilesTransferViews 同款拆分）
+    private var alertAndDestinations: some View {
+        baseModifiers
+            .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+                Button(L10n.t("好的"), role: .cancel) {}
+            } message: {
+                Text(vm.alertMessage)
+            }
+            .alert(
+                pendingAction.map { clamActionDisplayName($0) } ?? "",
+                isPresented: Binding(
+                    get: { pendingAction != nil },
+                    set: { if !$0 { pendingAction = nil } }
+                )
+            ) {
+                Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
+                Button(L10n.t("确认"), role: .destructive) {
+                    Haptic.warning()
+                    let op = pendingAction
+                    pendingAction = nil
+                    if let op { Task { await vm.operate(op) } }
+                }
+            } message: {
+                if let action = pendingAction {
+                    Text(L10n.f(
+                        "将对 %@ 进行 %@ 操作，是否继续？",
+                        isFreshAction(action) ? L10n.t("病毒库服务") : "ClamAV",
+                        clamActionDisplayName(action)))
+                }
+            }
+            .navigationDestination(isPresented: $showCreate) {
+                ClamRuleFormView(server: server, editing: nil, vm: vm)
+            }
+            .navigationDestination(isPresented: $showSettings) {
+                ClamSettingsView(server: server)
+            }
+            .navigationDestination(isPresented: Binding(
+                get: { editingRule != nil },
+                set: { if !$0 { editingRule = nil } }
+            )) {
+                if let rule = editingRule {
+                    ClamRuleFormView(server: server, editing: rule, vm: vm)
+                }
+            }
+            .navigationDestination(isPresented: Binding(
+                get: { recordRule != nil },
+                set: { if !$0 { recordRule = nil } }
+            )) {
+                if let rule = recordRule {
+                    // 清空报告后联动刷新规则列表（上次扫描时间/结果）
+                    ClamRecordView(server: server, clamID: rule.id, ruleName: rule.name) {
+                        Task { await vm.loadRules() }
+                    }
+                }
+            }
+    }
+
+    /// 基础修饰（标题 / 工具栏 / 刷新 / 轻提示）
+    private var baseModifiers: some View {
+        rootContent
+            .navigationTitle(L10n.t("病毒扫描"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // 未安装时不显示添加入口（设置已收进 ClamAV 状态抽屉）
+                if vm.isInstalled {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showCreate = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .accessibilityLabel(L10n.t("添加规则"))
+                    }
+                }
+            }
+            .refreshable { await vm.load() }
+            .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() } }
+            .toastOverlay(message: $vm.toastMessage)
+    }
+
+    /// 状态四分支（加载 / 未安装 / 正常 / 加载失败）
+    @ViewBuilder
+    private var rootContent: some View {
         Group {
             if vm.isLoading && vm.base == nil {
                 LoadingStateView()
@@ -263,73 +350,6 @@ struct ClamView: View {
                 } actions: {
                     Button(L10n.t("重试")) { Task { await vm.load() } }
                 }
-            }
-        }
-        .navigationTitle(L10n.t("病毒扫描"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            // 未安装时不显示添加入口（设置已收进 ClamAV 状态抽屉）
-            if vm.isInstalled {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showCreate = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel(L10n.t("添加规则"))
-                }
-            }
-        }
-        .refreshable { await vm.load() }
-        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() } }
-        .toastOverlay(message: $vm.toastMessage)
-        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
-            Button(L10n.t("好的"), role: .cancel) {}
-        } message: {
-            Text(vm.alertMessage)
-        }
-        .alert(
-            pendingAction.map { clamActionDisplayName($0) } ?? "",
-            isPresented: Binding(
-                get: { pendingAction != nil },
-                set: { if !$0 { pendingAction = nil } }
-            )
-        ) {
-            Button(L10n.t("取消"), role: .cancel) { pendingAction = nil }
-            Button(L10n.t("确认"), role: .destructive) {
-                Haptic.warning()
-                let op = pendingAction
-                pendingAction = nil
-                if let op { Task { await vm.operate(op) } }
-            }
-        } message: {
-            if let action = pendingAction {
-                Text(L10n.f(
-                    "将对 %@ 进行 %@ 操作，是否继续？",
-                    isFreshAction(action) ? L10n.t("病毒库服务") : "ClamAV",
-                    clamActionDisplayName(action)))
-            }
-        }
-        .navigationDestination(isPresented: $showCreate) {
-            ClamRuleFormView(server: server, editing: nil, vm: vm)
-        }
-        .navigationDestination(isPresented: $showSettings) {
-            ClamSettingsView(server: server)
-        }
-        .navigationDestination(isPresented: Binding(
-            get: { editingRule != nil },
-            set: { if !$0 { editingRule = nil } }
-        )) {
-            if let rule = editingRule {
-                ClamRuleFormView(server: server, editing: rule, vm: vm)
-            }
-        }
-        .navigationDestination(isPresented: Binding(
-            get: { recordRule != nil },
-            set: { if !$0 { recordRule = nil } }
-        )) {
-            if let rule = recordRule {
-                ClamRecordView(server: server, clamID: rule.id, ruleName: rule.name)
             }
         }
     }

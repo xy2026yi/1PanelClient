@@ -790,8 +790,11 @@ struct Fail2banFullConfigView: View {
     @State private var configText = ""
     @State private var isLoading = false
     @State private var isSaving = false
-    @State private var errorMessage: String?
     @State private var successMessage: String?
+    /// 保存失败提示（保存前确认弹窗之后，失败必须有可见反馈）
+    @State private var saveErrorMessage: String?
+    /// 加载失败文案：编辑器不落地（防止把加载失败的空内容保存上去覆盖配置）
+    @State private var loadErrorMessage: String?
     /// 保存前确认：直接改配置文件有风险（与 Web 端同款提示）
     @State private var showSaveConfirm = false
 
@@ -806,6 +809,17 @@ struct Fail2banFullConfigView: View {
         Group {
             if isLoading {
                 LoadingStateView()
+            } else if let loadError = loadErrorMessage {
+                ContentUnavailableView {
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(loadError)
+                } actions: {
+                    Button(L10n.t("重试")) {
+                        Task { await load() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             } else {
                 CodeEditorArea(text: $configText)
             }
@@ -817,7 +831,7 @@ struct Fail2banFullConfigView: View {
                 Button(L10n.t("保存")) {
                     showSaveConfirm = true
                 }
-                .disabled(isLoading || isSaving)
+                .disabled(isLoading || isSaving || loadErrorMessage != nil)
             }
         }
         .alert(L10n.t("Fail2ban 配置修改"), isPresented: $showSaveConfirm) {
@@ -829,6 +843,14 @@ struct Fail2banFullConfigView: View {
         } message: {
             Text(L10n.t("直接修改配置文件可能会导致服务不可用，请谨慎操作，是否继续？"))
         }
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { saveErrorMessage != nil },
+            set: { if !$0 { saveErrorMessage = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { saveErrorMessage = nil }
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
         .localToast(message: $successMessage)
         .task { await load() }
     }
@@ -837,8 +859,9 @@ struct Fail2banFullConfigView: View {
         isLoading = true
         do {
             configText = try await client.send(path: APIEndpoint.fail2banLoadConf.path, method: "GET", as: String.self)
+            loadErrorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            loadErrorMessage = error.localizedDescription
         }
         isLoading = false
     }
@@ -850,7 +873,7 @@ struct Fail2banFullConfigView: View {
             let _: EmptyResponse = try await client.send(path: APIEndpoint.fail2banUpdateByConf.path, body: req, as: EmptyResponse.self)
             successMessage = L10n.t("配置已保存")
         } catch {
-            errorMessage = error.localizedDescription
+            saveErrorMessage = L10n.f("保存失败：%@", error.localizedDescription)
         }
         isSaving = false
     }

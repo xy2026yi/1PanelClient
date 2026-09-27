@@ -222,24 +222,45 @@ struct WebsiteMonitorOverviewSection: View {
         .task { await load() }
         .onChange(of: range) { _, _ in Task { await load() } }
         .refreshable { await load() }
-        // 与网页端一致：当前(1分钟) 每 5 秒轮询一次实时 QPS/流量
+        // 与网页端一致：当前(1分钟) 每 5 秒轮询一次实时 QPS/流量。
+        // 无许可证时 xpack 接口返回 code=200 data=null（永远无数据），
+        // 空返回/失败退避到 60 秒一档，拿到真实数据后回到 5 秒
         .task {
+            var interval = Self.qpsPollInterval
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                try? await Task.sleep(nanoseconds: interval)
                 guard !Task.isCancelled else { break }
-                await pollQps()
+                interval = await pollQps() ? Self.qpsPollInterval : Self.qpsPollBackoffInterval
             }
         }
     }
 
-    /// 轮询只刷新「当前(1分钟)」两卡；失败静默保留上次值。整批加载（首屏/切换时间范围）
-    /// 进行中让位，避免与 load() 的同接口请求竞争
-    private func pollQps() async {
-        guard !isLoading else { return }
-        let r = await fetch(APIEndpoint.monitorQps.path,
-                            body: MonitorQpsRequest(websiteID: websiteID),
-                            as: MonitorQpsInfo.self)
-        if case .success(let x) = r { qpsInfo = x }
+    private static let qpsPollInterval: UInt64 = 5_000_000_000
+    private static let qpsPollBackoffInterval: UInt64 = 60_000_000_000
+
+    /// 轮询只刷新「当前(1分钟)」两卡，手动解析信封以区分 data=null。
+    /// 返回 true = 拿到数据（保持 5 秒档）；false = 空返回/失败（退避）。
+    /// 整批加载（首屏/切换时间范围）进行中让位且不降档，避免与 load() 竞争
+    @discardableResult
+    private func pollQps() async -> Bool {
+        guard !isLoading else { return true }
+        do {
+            let data = try await client.sendRaw(
+                path: APIEndpoint.monitorQps.path,
+                body: MonitorQpsRequest(websiteID: websiteID))
+            guard let wrapped = try? JSONDecoder().decode(APIResponse<MonitorQpsInfo>.self, from: data),
+                  wrapped.isSuccess else { return false }
+            guard let x = wrapped.data else {
+                // code=200 且 data=null（无许可证）：卡片按 0 显示并退避
+                qpsInfo = MonitorQpsInfo.emptyInstance()
+                return false
+            }
+            qpsInfo = x
+            return true
+        } catch {
+            // 网络失败/业务失败：保留上次值并退避
+            return false
+        }
     }
 
     @ViewBuilder

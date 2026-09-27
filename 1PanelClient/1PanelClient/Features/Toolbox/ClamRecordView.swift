@@ -12,6 +12,8 @@ struct ClamRecordView: View {
     let server: ServerConfig
     let clamID: Int
     let ruleName: String
+    /// 清空成功后回调：父页据此刷新规则列表（上次扫描时间/结果随报告清空变化）
+    var onRecordsCleared: (() -> Void)? = nil
 
     @State private var records: [ClamRecordItem] = []
     @State private var total = 0
@@ -31,10 +33,12 @@ struct ClamRecordView: View {
     private let client: APIClient
     private static let pageSize = 10
 
-    init(server: ServerConfig, clamID: Int, ruleName: String) {
+    init(server: ServerConfig, clamID: Int, ruleName: String,
+         onRecordsCleared: (() -> Void)? = nil) {
         self.server = server
         self.clamID = clamID
         self.ruleName = ruleName
+        self.onRecordsCleared = onRecordsCleared
         self.client = APIClient.shared(for: server)
     }
 
@@ -203,6 +207,7 @@ struct ClamRecordView: View {
                 body: ClamRecordCleanRequest(id: clamID),
                 as: EmptyResponse.self)
             successMessage = L10n.t("已清空")
+            onRecordsCleared?()
             await load()
         } catch {
             clearError = L10n.f("清空失败：%@", error.localizedDescription)
