@@ -199,6 +199,8 @@ struct WebsiteMonitorOverviewSection: View {
     private var qpsSettled: Bool { qpsInfo != nil || !isLoading }
     /// 今日状态同理：请求结束后缺失字段按 0 展示
     private var statSettled: Bool { stat != nil || !isLoading }
+    /// 今日状态整组拉取失败（qps 可能仍正常）：显示「—」占位而非误导性 0
+    private var statFailed: Bool { !isLoading && stat == nil }
 
     var body: some View {
         Group {
@@ -222,44 +224,78 @@ struct WebsiteMonitorOverviewSection: View {
         .task { await load() }
         .onChange(of: range) { _, _ in Task { await load() } }
         .refreshable { await load() }
-        // 与网页端一致：当前(1分钟) 每 5 秒轮询一次实时 QPS/流量。
-        // 无许可证时 xpack 接口返回 code=200 data=null（永远无数据），
-        // 空返回/失败退避到 60 秒一档，拿到真实数据后回到 5 秒
+        // 与网页端一致：当前(1分钟) 每 5 秒轮询一次实时 QPS/流量。分三档：
+        // - 有数据 5s；网络/业务失败退避 60s；
+        // - data=null 语义二义（无许可证恒 null；有许可证「近 1 分钟无请求」
+        //   也是 null），连续 qpsIdleStreakThreshold 次仍空才退到 15s——
+        //   空闲站流量恢复后最多一个退避周期内回到 5s，无许可证也不再高频打点
         .task {
             var interval = Self.qpsPollInterval
+            var idleStreak = 0
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: interval)
                 guard !Task.isCancelled else { break }
-                interval = await pollQps() ? Self.qpsPollInterval : Self.qpsPollBackoffInterval
+                switch await pollQps() {
+                case .data:
+                    idleStreak = 0
+                    interval = Self.qpsPollInterval
+                case .idle:
+                    idleStreak += 1
+                    interval = idleStreak >= Self.qpsIdleStreakThreshold
+                        ? Self.qpsPollIdleInterval : Self.qpsPollInterval
+                case .failure:
+                    interval = Self.qpsPollBackoffInterval
+                }
             }
         }
     }
 
+    /// 今日状态数值卡：整组失败显「—」，加载中转圈，正常显值（缺失字段按 0）
+    private func statCountCard(_ title: String, _ value: Int?) -> some View {
+        if statFailed {
+            MonitorStatCard(title: title, text: "—")
+        } else {
+            MonitorStatCard(title: title, count: statSettled ? (value ?? 0) : nil)
+        }
+    }
+
+    private func statTextCard(_ title: String, _ value: String?) -> some View {
+        if statFailed {
+            MonitorStatCard(title: title, text: "—")
+        } else {
+            MonitorStatCard(title: title, text: statSettled ? (value ?? "") : nil)
+        }
+    }
+
     private static let qpsPollInterval: UInt64 = 5_000_000_000
+    private static let qpsPollIdleInterval: UInt64 = 15_000_000_000
     private static let qpsPollBackoffInterval: UInt64 = 60_000_000_000
+    /// 连续空返回达到该次数后退到 15s 空闲档
+    private static let qpsIdleStreakThreshold = 3
+
+    /// 轮询结果三态：data=有数据；idle=code 200 且 data=null；failure=网络/业务失败
+    private enum QpsPollOutcome { case data, idle, failure }
 
     /// 轮询只刷新「当前(1分钟)」两卡，手动解析信封以区分 data=null。
-    /// 返回 true = 拿到数据（保持 5 秒档）；false = 空返回/失败（退避）。
     /// 整批加载（首屏/切换时间范围）进行中让位且不降档，避免与 load() 竞争
-    @discardableResult
-    private func pollQps() async -> Bool {
-        guard !isLoading else { return true }
+    private func pollQps() async -> QpsPollOutcome {
+        guard !isLoading else { return .data }
         do {
             let data = try await client.sendRaw(
                 path: APIEndpoint.monitorQps.path,
                 body: MonitorQpsRequest(websiteID: websiteID))
             guard let wrapped = try? JSONDecoder().decode(APIResponse<MonitorQpsInfo>.self, from: data),
-                  wrapped.isSuccess else { return false }
+                  wrapped.isSuccess else { return .failure }
             guard let x = wrapped.data else {
-                // code=200 且 data=null（无许可证）：卡片按 0 显示并退避
+                // data=null：无许可证或近 1 分钟无请求，卡片按 0 显示
                 qpsInfo = MonitorQpsInfo.emptyInstance()
-                return false
+                return .idle
             }
             qpsInfo = x
-            return true
+            return .data
         } catch {
-            // 网络失败/业务失败：保留上次值并退避
-            return false
+            // 网络失败/业务失败：保留上次值并长退避
+            return .failure
         }
     }
 
@@ -279,14 +315,14 @@ struct WebsiteMonitorOverviewSection: View {
         // 今日状态
         Section {
             AdaptiveStatGrid(spacing: 12) {
-                MonitorStatCard(title: L10n.t("浏览数"), count: statSettled ? (stat?.pv ?? 0) : nil)
-                MonitorStatCard(title: L10n.t("访客"), count: statSettled ? (stat?.uv ?? 0) : nil)
-                MonitorStatCard(title: L10n.t("独立IP"), count: statSettled ? (stat?.ip ?? 0) : nil)
-                MonitorStatCard(title: L10n.t("流量"), text: statSettled ? formatBytes(stat?.flow ?? 0) : nil)
-                MonitorStatCard(title: L10n.t("蜘蛛"), count: statSettled ? (stat?.spider ?? 0) : nil)
-                MonitorStatCard(title: L10n.t("请求数"), count: statSettled ? (stat?.req ?? 0) : nil)
-                MonitorStatCard(title: L10n.t("4xx 数量"), count: statSettled ? (stat?.count4xx ?? 0) : nil)
-                MonitorStatCard(title: L10n.t("5xx 数量"), count: statSettled ? (stat?.count5xx ?? 0) : nil)
+                statCountCard(L10n.t("浏览数"), stat?.pv)
+                statCountCard(L10n.t("访客"), stat?.uv)
+                statCountCard(L10n.t("独立IP"), stat?.ip)
+                statTextCard(L10n.t("流量"), stat.map { formatBytes($0.flow ?? 0) })
+                statCountCard(L10n.t("蜘蛛"), stat?.spider)
+                statCountCard(L10n.t("请求数"), stat?.req)
+                statCountCard(L10n.t("4xx 数量"), stat?.count4xx)
+                statCountCard(L10n.t("5xx 数量"), stat?.count5xx)
             }
         } header: {
             SectionLabel(title: L10n.t("今日状态"), systemImage: "calendar")

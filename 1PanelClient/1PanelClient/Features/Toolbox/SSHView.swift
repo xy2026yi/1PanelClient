@@ -181,8 +181,12 @@ struct SSHView: View {
             set: { if !$0 {
                 // 自动刷新成功清 errorMessage 时，alert 收起会在视图更新内同步回调
                 // set——直接写 @Published 触发 "Publishing changes from within
-                // view updates"警告，推迟到下一主线程周期
-                DispatchQueue.main.async { vm.errorMessage = nil }
+                // view updates"警告，推迟到下一主线程周期；比较后清除，
+                // 推迟窗口内新到的错误不被误抹
+                let cleared = vm.errorMessage
+                DispatchQueue.main.async {
+                    if vm.errorMessage == cleared { vm.errorMessage = nil }
+                }
             } }
         )) {
             Button(L10n.t("好的"), role: .cancel) { vm.errorMessage = nil }

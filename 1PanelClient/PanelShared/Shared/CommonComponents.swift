@@ -780,6 +780,10 @@ struct ActionBottomSheet: View {
     let items: [ActionMenuItem]
     var onDismiss: () -> Void
 
+    /// 一次性触发守卫：onDismiss 后收抽屉动画期间内容仍可命中，快速连点会
+    /// 双发非幂等动作（同步/断开等）
+    @State private var fired = false
+
     var body: some View {
         VStack(spacing: 0) {
             Text(title)
@@ -792,6 +796,8 @@ struct ActionBottomSheet: View {
 
             ForEach(items) { item in
                 Button {
+                    guard !fired else { return }
+                    fired = true
                     // 先收 sheet，动作推迟到下一主线程周期再触发：动作常是再弹
                     // alert/sheet，与 sheet 关闭在同一事务并发是已知的偶发丢呈现
                     // 场景（与 EllipsisMenuPopup 的 onDismiss-先-执行 模式一致）

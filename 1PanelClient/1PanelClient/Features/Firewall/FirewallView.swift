@@ -169,8 +169,12 @@ struct FirewallView: View {
                 set: { if !$0 {
                     // 自动刷新成功清 errorMessage 时，alert 随绑定转 false 会在
                     // 视图更新内同步回调 set——直接写 @Published 触发
-                    // "Publishing changes from within view updates"，推迟到下一周期
-                    DispatchQueue.main.async { vm.errorMessage = nil }
+                    // "Publishing changes from within view updates"，推迟到下一周期；
+                    // 比较后清除：推迟窗口内新到的错误不被误抹
+                    let cleared = vm.errorMessage
+                    DispatchQueue.main.async {
+                        if vm.errorMessage == cleared { vm.errorMessage = nil }
+                    }
                 } }
             )) {
                 Button(L10n.t("好的"), role: .cancel) { vm.errorMessage = nil }
@@ -1075,9 +1079,23 @@ struct FirewallView: View {
 
     /// 孤立策略菜单标题：主机 IP:端口（与行首展示一致）
     private func orphanTitle(_ e: DockerGuardEndpoint) -> String {
-        let ip = e.hostIP ?? ""
-        let port = e.hostPort.map(String.init) ?? ""
-        return ip.isEmpty ? port : "\(ip):\(port)"
+        e.hostLabel
+    }
+
+    /// 可删除的孤立策略行：长按弹半屏菜单（闭包构建时捕获 endpoint，
+    /// 经 ActionBottomSheet「先收抽屉再延迟执行」契约安全送达）
+    private func orphanRow(_ endpoint: DockerGuardEndpoint) -> some View {
+        DockerGuardEndpointRow(endpoint: endpoint)
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                    Haptic.selection()
+                    actionOrphan = endpoint
+                }
+            )
+            .accessibilityAction(named: L10n.t("更多操作")) {
+                actionOrphan = endpoint
+            }
     }
 
     /// Docker 段主内容（已初始化）：容器入口行 + 孤立策略
@@ -1106,18 +1124,14 @@ struct FirewallView: View {
                     Section {
                         ForEach(orphans) { endpoint in
                             // 可删除的孤立策略：长按弹半屏菜单（与规则/转发行一致，
-                            // 替代原右划删除）；只读/无策略 id 的行不提供菜单
-                            DockerGuardEndpointRow(endpoint: endpoint)
-                                .contentShape(Rectangle())
-                                .simultaneousGesture(
-                                    LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                                        Haptic.selection()
-                                        actionOrphan = endpoint
-                                    }
-                                )
-                                .accessibilityAction(named: L10n.t("更多操作")) {
-                                    actionOrphan = endpoint
-                                }
+                            // 替代原右划删除）；只读/无策略 id 的行不可删（VM 侧会
+                            // 静默 return），不挂菜单以免确认后零反馈
+                            if endpoint.readOnly != true,
+                               let uuid = endpoint.policyUUID, !uuid.isEmpty {
+                                orphanRow(endpoint)
+                            } else {
+                                DockerGuardEndpointRow(endpoint: endpoint)
+                            }
                         }
                     } header: {
                         SectionLabel(title: L10n.t("孤立策略"), systemImage: "questionmark.circle")

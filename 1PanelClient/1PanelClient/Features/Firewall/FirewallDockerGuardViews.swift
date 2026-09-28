@@ -153,13 +153,22 @@ struct DockerGuardEndpointsView: View {
     }
 }
 
+/// 主机 IP:端口 展示（行首与孤立策略菜单标题共用）
+extension DockerGuardEndpoint {
+    var hostLabel: String {
+        let ip = hostIP ?? ""
+        let port = hostPort.map(String.init) ?? ""
+        return ip.isEmpty ? port : "\(ip):\(port)"
+    }
+}
+
 struct DockerGuardEndpointRow: View {
     let endpoint: DockerGuardEndpoint
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 8) {
-                Text(hostLabel)
+                Text(endpoint.hostLabel)
                     .font(.dataMonospacedBody.bold())
                 if let proto = endpoint.protocolField {
                     StatusBadge(text: proto.uppercased(), color: .blue)
@@ -180,12 +189,6 @@ struct DockerGuardEndpointRow: View {
             }
         }
         .padding(.vertical, 2)
-    }
-
-    var hostLabel: String {
-        let ip = endpoint.hostIP ?? ""
-        let port = endpoint.hostPort.map(String.init) ?? ""
-        return ip.isEmpty ? port : "\(ip):\(port)"
     }
 
     @ViewBuilder

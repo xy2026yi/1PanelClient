@@ -467,8 +467,9 @@ struct ClamView: View {
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         vm.deleteInfectedFiles = false
-                        // 等动作抽屉收起后再弹确认 sheet，避免两个 sheet 同时呈现失败
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                        Task { @MainActor in
+                            // 等动作抽屉收起后再弹确认 sheet，避免两个 sheet 同时呈现失败
+                            try? await Task.sleep(nanoseconds: 450_000_000)
                             vm.pendingDeleteRule = rule
                         }
                     },

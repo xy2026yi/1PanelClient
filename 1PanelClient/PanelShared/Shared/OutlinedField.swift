@@ -111,6 +111,9 @@ struct OutlinedTextField: View {
                         Image(systemName: "folder.badge.plus")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            // 扩命中区：caption 图标热区远小于 44pt
+                            .padding(6)
+                            .contentShape(Rectangle())
                     }
                     // borderless：Form 行内多按钮默认样式会整行同触
                     .buttonStyle(.borderless)

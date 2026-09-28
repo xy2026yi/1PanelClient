@@ -210,8 +210,19 @@ struct FirewallRuleFormView: View {
             // 其余任一字段变化 → 整规则替换（orderIndex 放 rule 内）。
             // 两个通道同传会被面板 excluded_with 校验拒绝
             if isPriorityOnlyChange(rule) {
+                // 优先级清空且其余未变 = 无变更：直接关页，不发网络写；
+                // 非数字优先级（外接键盘可绕过 numberPad）提示而非静默吞掉
                 guard let idx = rule.orderIndex else {
-                    // 优先级清空且其余未变：无变更，直接返回
+                    if trimmedPriority.isEmpty {
+                        dismiss()
+                    } else {
+                        submitError = L10n.t("优先级需为数字")
+                    }
+                    return
+                }
+                // 优先级与原值相同：无变更，直接关页
+                if idx == (editingPosition.map(Int64.init) ?? editing?.orderIndex) {
+                    dismiss()
                     return
                 }
                 let ok = await vm.updateRule(uuid: uuid, rule: nil, orderIndex: idx)
@@ -226,15 +237,25 @@ struct FirewallRuleFormView: View {
         }
     }
 
-    /// 协议/地址/端口/策略/备注/地址族与原规则一致（只有优先级变化或无变化）
+    /// 协议/地址/端口/策略/备注/地址族与原规则一致（只有优先级变化或无变化）。
+    /// 原规则侧需按表单回显同口径归一（reject→drop、inet→ipv4，
+    /// 见 fillIfEditing）：否则这两类规则仅改优先级会被误判为有字段变化，
+    /// 走整替换把 action/family 静默改写
     private func isPriorityOnlyChange(_ rule: FirewallRule) -> Bool {
         guard let e = editing else { return false }
+        let originalAction = (e.action == "reject") ? "drop" : e.action
+        let originalFamily: String
+        switch e.scope?.family {
+        case "ipv6":     originalFamily = "ipv6"
+        case "inet":     originalFamily = "ipv4"
+        default:         originalFamily = e.scope?.family ?? "ipv4"
+        }
         return e.protocolField == rule.protocolField
             && (e.sourceAddress ?? "") == (rule.sourceAddress ?? "")
             && (e.destinationPort ?? "") == (rule.destinationPort ?? "")
-            && e.action == rule.action
+            && originalAction == rule.action
             && (e.descriptionText ?? "") == (rule.descriptionText ?? "")
-            && (e.scope?.family ?? "ipv4") == (rule.scope?.family ?? "ipv4")
+            && originalFamily == (rule.scope?.family ?? "ipv4")
     }
 
     /// 失败错误收归本页弹窗：留在 vm.errorMessage 的话，pop 回父页后自动刷新
@@ -372,6 +393,9 @@ struct FirewallWhitelistView: View {
     @State private var showEntryForm = false
     /// 长按弹出的操作目标（半屏操作弹窗，与规则/转发行一致）
     @State private var actionEntry: FirewallPortWhitelistEntry?
+    /// 基线只加载一次：服务器白名单为空时 original 恒为空数组，若按
+    /// original.isEmpty 判断，从条目表单返回会再次触发并把本地新增清掉
+    @State private var didLoadBaseline = false
 
     private var isDirty: Bool { entries != original }
 
@@ -454,12 +478,12 @@ struct FirewallWhitelistView: View {
         // 本页是 push 页：父页的 toast 被盖住，查重提示须本页自挂
         .toastOverlay(message: $vm.toastMessage)
         .onAppear {
-            if original.isEmpty {
-                // v2.3.1 上游即为对象数组，直接取用
-                let loaded = vm.settings?.portWhiteList ?? []
-                entries = loaded
-                original = loaded
-            }
+            guard !didLoadBaseline else { return }
+            didLoadBaseline = true
+            // v2.3.1 上游即为对象数组，直接取用
+            let loaded = vm.settings?.portWhiteList ?? []
+            entries = loaded
+            original = loaded
         }
     }
 
@@ -649,7 +673,7 @@ struct FirewallWhitelistEntryFormView: View {
 
 struct FirewallSyncPreviewView: View {
     @ObservedObject var vm: FirewallViewModel
-    /// system / forwarding
+    /// system / forwarding / docker
     let subsystem: String
 
     @Environment(\.dismiss) private var dismiss
@@ -737,6 +761,8 @@ struct FirewallSyncPreviewView: View {
             preview = p
         } else {
             loadError = vm.errorMessage ?? L10n.t("未知错误")
+            // 错误取走后清掉 vm 侧副本：本页已展示，取消返回后父页 alert 不再弹同一错误
+            vm.errorMessage = nil
         }
     }
 }

@@ -108,16 +108,17 @@ struct WAFCcSettingsView: View {
     }
 
     /// 进入时拉取服务端最新配置回填（父页快照保存后不刷新，返回再进会是旧值）；
-    /// 失败静默保持快照值
+    /// 失败静默保持快照值。仅覆盖仍等于快照种子的字段——读取在途期间
+    /// 用户已输入的内容不被服务端旧值冲掉
     private func refreshConfig() async {
         guard let cfg: WAFConfig = try? await client.send(
             path: APIEndpoint.wafConfigGlobal.path, method: "GET", as: WAFConfig.self
         ), let c = cfg.cc else { return }
         latestConfig = c
-        mode = c.mode ?? "global"
-        duration = String(c.duration ?? 10)
-        threshold = String(c.threshold ?? 100)
-        ipBlockTime = String(c.ipBlockTime ?? 600)
+        if mode == (config?.mode ?? "global") { mode = c.mode ?? "global" }
+        if duration == String(config?.duration ?? 10) { duration = String(c.duration ?? 10) }
+        if threshold == String(config?.threshold ?? 100) { threshold = String(c.threshold ?? 100) }
+        if ipBlockTime == String(config?.ipBlockTime ?? 600) { ipBlockTime = String(c.ipBlockTime ?? 600) }
     }
 
     /// 保存 CC 规则；applyWebsite=true 时携带所选网站 ID（空省略 = 面板按全部
@@ -217,15 +218,16 @@ struct WAFAttackCountSettingsView: View {
     }
 
     /// 进入时拉取服务端最新配置回填（父页快照保存后不刷新，返回再进会是旧值）；
-    /// 失败静默保持快照值
+    /// 失败静默保持快照值。仅覆盖仍等于快照种子的字段——读取在途期间
+    /// 用户已输入的内容不被服务端旧值冲掉
     private func refreshConfig() async {
         guard let cfg: WAFConfig = try? await client.send(
             path: APIEndpoint.wafConfigGlobal.path, method: "GET", as: WAFConfig.self
         ), let c = scope == "NotFoundCount" ? cfg.notFoundCount : cfg.attackCount else { return }
         latestConfig = c
-        duration = String(c.duration ?? 60)
-        threshold = String(c.threshold ?? 10)
-        ipBlockTime = String(c.ipBlockTime ?? 3000)
+        if duration == String(config?.duration ?? 60) { duration = String(c.duration ?? 60) }
+        if threshold == String(config?.threshold ?? 10) { threshold = String(c.threshold ?? 10) }
+        if ipBlockTime == String(config?.ipBlockTime ?? 3000) { ipBlockTime = String(c.ipBlockTime ?? 3000) }
     }
 
     private func save() async {

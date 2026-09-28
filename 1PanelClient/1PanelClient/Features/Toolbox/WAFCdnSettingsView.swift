@@ -33,6 +33,9 @@ struct WAFCdnSettingsView: View {
     @State private var showIPGroupPicker = false
     /// /cdn 读取完成（含失败）；站级开关在完成前禁用
     @State private var didLoadCDN = false
+    /// /cdn 读取代数令牌：开关切换成功后自增，读取期间发生过切换的慢返回
+    /// 整体作废——防止用切换前的旧 state 覆盖本地 cdnOn（界面与服务器相反）
+    @State private var cdnLoadToken = 0
     @State private var isSaving = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
@@ -183,22 +186,42 @@ struct WAFCdnSettingsView: View {
     }
 
     private func loadCDNConfig() async {
+        cdnLoadToken += 1
+        let token = cdnLoadToken
         do {
             let cfg: WAFCdnConfig = try await client.send(
                 path: APIEndpoint.wafCdn.path,
                 body: WAFCdnRequest(websiteID: websiteID),
                 as: WAFCdnConfig.self)
-            cdnOn = cfg.state == "on"
-            type = cfg.type ?? "header"
-            let h = cfg.header ?? ""
-            header = h.isEmpty ? "x-real-ip" : h
-            originProtection = cfg.originProtection ?? WAFOriginProtection()
-            siteRules = cfg.rules
-            didLoadCDN = true
+            applyLoaded(cfg, token: token)
         } catch {
             // 读取失败保持传入 config 的初值，页面仍可保存
-            didLoadCDN = true
+            applyLoaded(nil, token: token)
         }
+    }
+
+    /// /cdn 结果落地：读取期间发生过开关切换（令牌不一致）则整体作废，
+    /// 仅解除加载禁用；未被用户编辑过的字段（仍等于 init 种子）才回填，
+    /// 在途输入不被服务端旧值冲掉
+    private func applyLoaded(_ cfg: WAFCdnConfig?, token: Int) {
+        defer { didLoadCDN = true }
+        guard token == cdnLoadToken else { return }
+        cdnOn = cfg?.state == "on"
+        if type == (config?.type ?? "header") {
+            type = cfg?.type ?? "header"
+        }
+        let seedHeader: String = {
+            let h = config?.header ?? ""
+            return h.isEmpty ? "x-real-ip" : h
+        }()
+        if header == seedHeader {
+            let h = cfg?.header ?? ""
+            header = h.isEmpty ? "x-real-ip" : h
+        }
+        if originProtection == WAFOriginProtection() {
+            originProtection = cfg?.originProtection ?? WAFOriginProtection()
+        }
+        siteRules = cfg?.rules
     }
 
     /// 回源 IP 组候选（all:true 返回裸数组，抓包 2026-09-22；仅网站级展示）
@@ -235,6 +258,8 @@ struct WAFCdnSettingsView: View {
                     body: WAFGlobalStateRequest(scope: "Cdn", state: on ? "on" : "off"),
                     as: EmptyResponse.self)
                 cdnOn = on
+                // 作废在途的旧 /cdn 读取：其 state 是切换前的旧值
+                cdnLoadToken += 1
                 await vm.loadConfig()
             } catch {
                 errorMessage = error.localizedDescription
@@ -248,6 +273,7 @@ struct WAFCdnSettingsView: View {
                                              state: on ? "on" : "off", mode: nil),
                 as: EmptyResponse.self)
             cdnOn = on
+            cdnLoadToken += 1
             onStateChanged?()
         } catch {
             errorMessage = error.localizedDescription

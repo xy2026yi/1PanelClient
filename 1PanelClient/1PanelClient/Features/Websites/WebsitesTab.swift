@@ -196,7 +196,11 @@ struct WebsitesTab: View {
         } message: {
             Text(L10n.f("将删除选中的 %ld 个网站及其配置，该操作无法回滚，是否继续？", selectedIDs.count))
         }
-        // 长按行的半屏操作菜单（多选/启停/删除）
+        // 长按行的半屏操作菜单（多选/启停/删除）。
+        // pendingMenuAction 模式时序前提：ActionBottomSheet 在 Task 下一 MainActor
+        // 周期执行菜单闭包（写入 pendingMenuAction），必然早于 sheet 收起动画完成
+        // 后才回调的 onDismiss——若把闭包内派发改成更慢的调度（如 asyncAfter 长
+        // 延迟），runPendingMenuAction 会先于写入执行，动作丢失
         .sheet(item: $actionWebsite, onDismiss: {
             runPendingMenuAction()
         }) { w in

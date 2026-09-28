@@ -15,6 +15,9 @@ final class WAFViewModel: ObservableObject {
     /// CDN 类型角标回显：config/global 的 cdn 块不随 cdn/update 更新（抓包
     /// 2026-09-26），列表行以 POST /cdn {websiteID:0} 读到的为准
     @Published var cdnType: String?
+    /// /cdn 读到的 CDN 开关实际状态（config/global 的 cdn 块不随 cdn/update/state
+    /// 更新，全局配置页角标可见性以此为准）
+    @Published var cdnState: String?
     @Published var isLoading = true
     @Published var isOperating = false
     @Published var errorMessage: String?
@@ -62,17 +65,20 @@ final class WAFViewModel: ObservableObject {
     /// 子页（恶意 IP 组 / 蜘蛛 IP 池等）改开关不经 vm，快照会停在进入前。
     /// 静默失败保持旧快照，不设 isLoading（不打扰、无加载态）
     func loadConfig() async {
-        guard let cfg: WAFConfig = try? await client.send(
-            path: APIEndpoint.wafConfigGlobal.path, method: "GET", as: WAFConfig.self
-        ) else { return }
-        config = cfg
-        // cdn 块在 config/global 里不随 cdn/update 变化，角标另经 /cdn 读取
-        if let cdn: WAFCdnConfig = try? await client.send(
+        // 两请求相互独立，async let 并行省一个 RTT；各自失败静默保持旧快照
+        async let cfgTask = try? client.send(
+            path: APIEndpoint.wafConfigGlobal.path, method: "GET", as: WAFConfig.self)
+        async let cdnTask = try? client.send(
             path: APIEndpoint.wafCdn.path,
             body: WAFCdnRequest(websiteID: 0),
-            as: WAFCdnConfig.self
-        ) {
+            as: WAFCdnConfig.self)
+        if let cfg: WAFConfig = await cfgTask {
+            config = cfg
+        }
+        // cdn 块在 config/global 里不随 cdn/update/state 变化，state/type 均另经 /cdn 读取
+        if let cdn: WAFCdnConfig = await cdnTask {
             cdnType = cdn.type
+            cdnState = cdn.state
         }
     }
 

@@ -5722,6 +5722,17 @@
         }
       }
     },
+    "优先级需为数字" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priority must be a number"
+          }
+        }
+      }
+    },
     "优先级（留空不变）" : {
       "extractionState" : "manual",
       "localizations" : {
