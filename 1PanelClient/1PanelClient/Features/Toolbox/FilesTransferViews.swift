@@ -42,8 +42,13 @@ struct FilesDialogsModifier: ViewModifier {
                 .bottomSheetDetents([.medium])
                 .presentationDragIndicator(.visible)
             }
+            // alert 内必须用系统 TextField：自绘 OutlinedTextField 在 alert 行布局里
+            // 会被拉满整行宽（右侧贴边）且标签被渲染成独立按钮行
             .alert(L10n.t("前往路径"), isPresented: $showPathInput) {
-                OutlinedTextField(label: L10n.t("路径"), text: $pathInput, keyboardType: .URL)
+                TextField(L10n.t("路径"), text: $pathInput)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
                 Button(L10n.t("取消"), role: .cancel) { }
                 Button(L10n.t("前往")) {
                     let target = pathInput.trimmingCharacters(in: .whitespaces)
@@ -415,7 +420,7 @@ struct FileDeleteConfirmSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("删除"), role: .destructive) {
+                    Button(L10n.t("确认"), role: .destructive) {
                         Haptic.warning()
                         dismiss()
                         onDelete(forceDelete)

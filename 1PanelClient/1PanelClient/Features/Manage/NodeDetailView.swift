@@ -192,8 +192,7 @@ struct NodeDetailView: View {
                 message: L10n.f("删除后将从多机管理中移除该节点，此操作不可恢复。请输入节点名称「%@」以确认删除。", item?.displayName ?? server.name),
                 expectedText: item?.displayName ?? server.name,
                 fieldLabel: L10n.t("确认名称"),
-                fieldPlaceholder: L10n.t("节点名称"),
-                confirmTitle: L10n.t("删除")
+                fieldPlaceholder: L10n.t("节点名称")
             ) {
                 Task { await deleteNode() }
             } options: {

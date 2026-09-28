@@ -484,8 +484,7 @@ struct ClamView: View {
                 message: L10n.f("删除任务检测到的病毒文件，以确保服务器的安全和正常运行。此操作不可恢复，请输入规则名称「%@」以确认删除。", rule.name),
                 expectedText: rule.name,
                 fieldLabel: L10n.t("确认名称"),
-                fieldPlaceholder: L10n.t("规则名称"),
-                confirmTitle: L10n.t("确认")
+                fieldPlaceholder: L10n.t("规则名称")
             ) {
                 Task { await vm.delete(rule: rule) }
             } options: {

@@ -141,8 +141,7 @@ struct DatabaseMySQLPerformanceView: View {
                                 selectedPreset?.name ?? "", system.displayName),
                 expectedText: L10n.t("立即重启"),
                 fieldLabel: L10n.t("确认重启"),
-                fieldPlaceholder: L10n.t("请输入「立即重启」"),
-                confirmTitle: L10n.t("确认")
+                fieldPlaceholder: L10n.t("请输入「立即重启」")
             ) {
                 Task { await applyPreset() }
             }

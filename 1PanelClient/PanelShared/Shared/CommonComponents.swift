@@ -578,8 +578,8 @@ struct TextInputConfirmSheet<Options: View>: View {
     var fieldLabel: String = L10n.t("确认输入")
     /// 输入框占位符，默认与确认文本一致
     var fieldPlaceholder: String?
-    /// 确认按钮文案
-    var confirmTitle: String = L10n.t("删除")
+    /// 确认按钮文案；动作词更明确的场景可覆盖（重置/确认重启/卸载）
+    var confirmTitle: String = L10n.t("确认")
 
     let onConfirm: () async -> Void
     @ViewBuilder var options: () -> Options
@@ -590,7 +590,7 @@ struct TextInputConfirmSheet<Options: View>: View {
         expectedText: String,
         fieldLabel: String = L10n.t("确认输入"),
         fieldPlaceholder: String? = nil,
-        confirmTitle: String = L10n.t("删除"),
+        confirmTitle: String = L10n.t("确认"),
         onConfirm: @escaping () async -> Void,
         @ViewBuilder options: @escaping () -> Options = { EmptyView() }
     ) {

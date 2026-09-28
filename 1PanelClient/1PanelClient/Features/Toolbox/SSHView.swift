@@ -397,6 +397,8 @@ struct SSHFullConfigView: View {
     @State private var isSaving = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
+    /// 保存确认（与网页端一致：直接改配置文件有断服风险，先确认再提交）
+    @State private var showSaveConfirm = false
 
     private let client: APIClient
 
@@ -418,13 +420,22 @@ struct SSHFullConfigView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(L10n.t("保存")) {
-                    Task { await save() }
+                    showSaveConfirm = true
                 }
                 .disabled(isSaving || isLoading)
             }
         }
         .task { await loadConfig() }
         .localToast(message: $successMessage)
+        .alert(L10n.t("SSH 配置修改"), isPresented: $showSaveConfirm) {
+            Button(L10n.t("取消"), role: .cancel) { }
+            Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
+                Task { await save() }
+            }
+        } message: {
+            Text(L10n.t("直接修改配置文件可能会导致服务不可用，请谨慎操作，是否继续？"))
+        }
         .alert(L10n.t("提示"), isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }

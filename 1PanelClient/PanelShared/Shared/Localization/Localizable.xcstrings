@@ -3048,6 +3048,17 @@
         }
       }
     },
+    "SSH 配置修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modify SSH Configuration"
+          }
+        }
+      }
+    },
     "SSH 防暴力破解" : {
       "extractionState" : "manual",
       "localizations" : {

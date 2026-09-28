@@ -115,8 +115,7 @@ struct ContainerDaemonSettingsView: View {
             TextInputConfirmSheet(
                 title: op.title,
                 message: op.message,
-                expectedText: L10n.t("立即重启"),
-                confirmTitle: L10n.t("确认")) {
+                expectedText: L10n.t("立即重启")) {
                 await op.action()
             } options: {
                 EmptyView()
@@ -485,8 +484,7 @@ private struct DaemonListEditorPage: View {
             TextInputConfirmSheet(
                 title: L10n.t("配置修改"),
                 message: L10n.t("修改配置后需要重启 Docker 服务生效\n如果确认操作，请手动输入「立即重启」"),
-                expectedText: L10n.t("立即重启"),
-                confirmTitle: L10n.t("确认")) {
+                expectedText: L10n.t("立即重启")) {
                 await submit()
             } options: {
                 EmptyView()
@@ -593,8 +591,7 @@ private struct DaemonIPv6Page: View {
             TextInputConfirmSheet(
                 title: L10n.t("配置修改"),
                 message: L10n.t("修改配置后需要重启 Docker 服务生效\n如果确认操作，请手动输入「立即重启」"),
-                expectedText: L10n.t("立即重启"),
-                confirmTitle: L10n.t("确认")) {
+                expectedText: L10n.t("立即重启")) {
                 await submit()
             } options: {
                 EmptyView()
@@ -718,8 +715,7 @@ private struct DaemonLogPage: View {
             TextInputConfirmSheet(
                 title: L10n.t("配置修改"),
                 message: L10n.t("修改配置后需要重启 Docker 服务生效\n如果确认操作，请手动输入「立即重启」"),
-                expectedText: L10n.t("立即重启"),
-                confirmTitle: L10n.t("确认")) {
+                expectedText: L10n.t("立即重启")) {
                 await submit()
             } options: {
                 EmptyView()

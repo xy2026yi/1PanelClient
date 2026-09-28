@@ -672,8 +672,7 @@ struct SupervisorInitForm: View {
                 message: L10n.t("初始化会重启服务，导致原有的守护进程全部关闭。如果确认操作，请手动输入「立即重启」。"),
                 expectedText: L10n.t("立即重启"),
                 fieldLabel: L10n.t("确认名称"),
-                fieldPlaceholder: L10n.t("立即重启"),
-                confirmTitle: L10n.t("确认")
+                fieldPlaceholder: L10n.t("立即重启")
             ) {
                 Task { await submit() }
             }
