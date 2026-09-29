@@ -449,7 +449,9 @@ struct ContainerNetworksView: View {
         .sheet(item: $actionItem, onDismiss: {
             runPendingMenuAction()
         }) { network in
-            ActionBottomSheet(
+            // 预定义网络不提供删除入口（docker 内置 + 1Panel 默认，服务端同样会拒绝）
+            let isPredefined = Self.predefinedNetworks.contains(network.name)
+            return ActionBottomSheet(
                 title: network.name,
                 items: [
                     ActionMenuItem(title: L10n.t("详情"), icon: "info.circle", color: .blue) {
@@ -458,13 +460,14 @@ struct ContainerNetworksView: View {
                                 id: network.id, type: "network", name: network.name)
                         }
                     },
+                ] + (isPredefined ? [] : [
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         pendingMenuAction = { pendingDelete = network }
                     },
-                ],
+                ]),
                 onDismiss: { actionItem = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: isPredefined ? 1 : 2))])
             .presentationDragIndicator(.visible)
         }
         .navigationDestination(item: $detailTarget) { target in
@@ -477,6 +480,11 @@ struct ContainerNetworksView: View {
             }
         }
     }
+
+    /// docker 内置网络 + 1Panel 默认网络：不可删除（删除入口不提供）
+    private static let predefinedNetworks: Set<String> = [
+        "none", "host", "bridge", "1panel-network",
+    ]
 
     /// 菜单完全收起后再执行挂起动作（与文件模块一致）
     private func runPendingMenuAction() {
@@ -833,8 +841,8 @@ struct ContainerVolumesView: View {
     @State private var pruneTask: ContainerPruneTask?
     /// 长按弹出的操作菜单对应的存储卷
     @State private var actionItem: ContainerVolume?
-    /// 点击行查看详情（inspect）
-    @State private var detailTarget: ContainerInspectTarget?
+    /// 点击行进入的存储卷详情页
+    @State private var detailVolume: ContainerVolume?
     /// 菜单收起后再执行的动作
     @State private var pendingMenuAction: (() -> Void)?
 
@@ -866,8 +874,7 @@ struct ContainerVolumesView: View {
                     volumeRow(volume)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            detailTarget = ContainerInspectTarget(
-                                id: volume.name, type: "volume", name: volume.name)
+                            detailVolume = volume
                         }
                         .onLongPressGesture(minimumDuration: 0.5) {
                             Haptic.selection()
@@ -949,10 +956,7 @@ struct ContainerVolumesView: View {
                 title: volume.name,
                 items: [
                     ActionMenuItem(title: L10n.t("详情"), icon: "info.circle", color: .blue) {
-                        pendingMenuAction = {
-                            detailTarget = ContainerInspectTarget(
-                                id: volume.name, type: "volume", name: volume.name)
-                        }
+                        pendingMenuAction = { detailVolume = volume }
                     },
                     ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                         pendingMenuAction = { pendingDelete = volume }
@@ -963,8 +967,8 @@ struct ContainerVolumesView: View {
             .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
             .presentationDragIndicator(.visible)
         }
-        .navigationDestination(item: $detailTarget) { target in
-            ContainerInspectDetailView(client: client, target: target)
+        .navigationDestination(item: $detailVolume) { volume in
+            ContainerVolumeDetailView(volume: volume, server: server)
         }
         .navigationDestination(item: $pruneTask) { task in
             TaskProgressView(taskID: task.taskID, title: task.title) { isDone in
@@ -984,18 +988,13 @@ struct ContainerVolumesView: View {
     private func volumeRow(_ volume: ContainerVolume) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(volume.name).font(.body.weight(.medium))
+                // 匿名卷名为 64 位哈希：列表截前 15 位，全名在详情页查看
+                Text(volume.name.count > 15 ? "\(volume.name.prefix(15))…" : volume.name)
+                    .font(.body.weight(.medium))
                 Spacer()
                 Text(volume.driver ?? "-")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-            if let mountpoint = volume.mountpoint, !mountpoint.isEmpty {
-                Text(mountpoint)
-                    .font(.dataMonospacedCaption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.head)
             }
             // NFS 等挂载参数（type=nfs4 / o=addr… / device）
             if let options = volume.options, !options.isEmpty {
@@ -1037,6 +1036,58 @@ struct ContainerVolumesView: View {
             errorMessage = error.localizedDescription
             showError = true
         }
+    }
+}
+
+/// 存储卷详情：基本信息（全名）/ 挂载点跳转文件管理并定位到该路径 / inspect 原文
+struct ContainerVolumeDetailView: View {
+    let volume: ContainerVolume
+    let server: ServerConfig
+
+    var body: some View {
+        List {
+            Section(L10n.t("基本信息")) {
+                InfoRow(L10n.t("名称"), value: volume.name, monospaced: true)
+                InfoRow(L10n.t("驱动"), value: volume.driver ?? "—")
+                if let created = volume.createdAt, !created.isEmpty {
+                    InfoRow(L10n.t("创建时间"), value: String(created.prefix(19)))
+                }
+            }
+
+            // 挂载点：点击跳文件管理并直接定位到该目录
+            if let mountpoint = volume.mountpoint, !mountpoint.isEmpty {
+                Section {
+                    NavigationLink {
+                        FilesView(server: server, initialPath: mountpoint)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Label(L10n.t("挂载点"), systemImage: "folder")
+                            Text(mountpoint)
+                                .font(.dataMonospacedCaption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.head)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            Section {
+                NavigationLink {
+                    ContainerInspectDetailView(
+                        client: APIClient.shared(for: server),
+                        target: ContainerInspectTarget(
+                            id: volume.name, type: "volume", name: volume.name))
+                } label: {
+                    Label(L10n.t("详情"), systemImage: "info.circle")
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .navigationTitle(volume.name.count > 15 ? "\(volume.name.prefix(15))…" : volume.name)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

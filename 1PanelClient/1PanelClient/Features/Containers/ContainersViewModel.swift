@@ -294,6 +294,26 @@ final class ContainersViewModel: ObservableObject {
         }
     }
 
+    /// 单容器状态查询（详情页生命周期操作后回填本页快照）：独立请求 state=all，
+    /// 不走 load()——避免动列表的筛选/分页状态（列表可能停在 running 筛选态，
+    /// 容器停掉后已不在其结果里）；name 为模糊搜索，按 containerID 精确匹配，
+    /// 失败返回 nil 由调用方轮询重试
+    func fetchContainerState(name: String, containerID: String) async -> Container? {
+        let req = ContainerSearchRequest(
+            page: 1, pageSize: 10, name: name, state: "all",
+            orderBy: "createdAt", order: "null"
+        )
+        do {
+            let resp: ContainerListResponse = try await client.send(
+                path: APIEndpoint.containersSearch.path,
+                body: req, as: ContainerListResponse.self
+            )
+            return (resp.items ?? []).first { $0.containerID == containerID }
+        } catch {
+            return nil
+        }
+    }
+
     /// 提交容器操作并返回 taskID（供 TaskProgressView 轮询进度）；失败返回 nil
     func operateContainerTask(name: String, operation: String) async -> String? {
         containerOperating = true
@@ -317,8 +337,10 @@ final class ContainersViewModel: ObservableObject {
 
     // MARK: - 容器升级
 
+    /// 升级容器（POST /containers/upgrade，重建为异步任务）
+    /// 成功返回任务 ID（供 TaskProgressView 轮询），失败返回 nil
     @discardableResult
-    func upgradeContainer(name: String, image: String, forcePull: Bool) async -> Bool {
+    func upgradeContainer(name: String, image: String, forcePull: Bool) async -> String? {
         containerOperating = true
         defer { containerOperating = false }
         let req = ContainerUpgradeRequest(
@@ -329,13 +351,12 @@ final class ContainersViewModel: ObservableObject {
                 path: APIEndpoint.containersUpgrade.path,
                 body: req, as: EmptyResponse.self
             )
-            try? await Task.sleep(for: .seconds(1))
-            await load(query: "", state: lastState)
-            showToast(L10n.f("升级容器「%@」任务已提交", name))
-            return true
+            // 重建为异步任务：进度与结果由 TaskProgressView 轮询呈现，
+            // 列表/详情刷新由升级页退出后的 refreshContainer 收尾
+            return req.taskID
         } catch {
             showAlert(message: L10n.f("升级容器失败：%@", error.localizedDescription))
-            return false
+            return nil
         }
     }
 
@@ -467,8 +488,9 @@ final class ContainersViewModel: ObservableObject {
             exposedPorts: ports,
             nanoCPUs: draft.cpuCores * 1_000_000_000,
             cpuShares: draft.cpuShares,
-            memory: draft.memoryBytes,
+            memory: draft.memoryMB,
             volumes: volumes,
+            extraHosts: [],
             privileged: draft.privileged,
             autoRemove: draft.autoRemove,
             labels: draft.labels,
@@ -487,11 +509,12 @@ final class ContainersViewModel: ObservableObject {
         }
     }
 
-    /// 更新容器配置（POST /containers/update）
+    /// 更新容器配置（POST /containers/update，重建为异步任务）
     /// 编辑表单与创建共用 ContainerCreateDraft（全字段可编辑）；
     /// info 仅回写表单外字段（dns/domainName）及未变更网络的原有 IP/MAC
+    /// 成功返回任务 ID（供 TaskProgressView 轮询），失败返回 nil
     @discardableResult
-    func updateContainer(info: ContainerInfo, draft: ContainerCreateDraft) async -> Bool {
+    func updateContainer(info: ContainerInfo, draft: ContainerCreateDraft) async -> String? {
         containerOperating = true
         defer { containerOperating = false }
 
@@ -519,15 +542,16 @@ final class ContainersViewModel: ObservableObject {
             ipv6: isPanelNetwork ? draft.networkIPv6 : (sameNetwork ? (orig?.ipv6 ?? "") : ""),
             macAddr: sameNetwork ? (orig?.macAddr ?? "") : ""
         )]
-        // 内存：MB 值与原值换算一致（用户未改动）时原样回传字节，
-        // 避免非整 MB 容器保存一次后被取整"洗掉"精度；改动过（含换单位）按当前单位换算
-        let memoryBytes: Int64
+        // 内存：info 回读与提交同口径均为 MB（服务端重建时再 ×1024²）。
+        // 表单值与回填值一致（用户未改动）时原样回传 info 值，
+        // 避免非整 MB 上限保存一次后被取整"洗掉"精度；改动过（含换单位）按当前单位换算
+        let memoryMB: Double
         if draft.memoryUnit == "M",
            let origMemory = info.memory, origMemory > 0,
-           Int64(draft.memoryValue) == origMemory / 1024 / 1024 {
-            memoryBytes = origMemory
+           Double(draft.memoryValue) == origMemory.rounded(.towardZero) {
+            memoryMB = origMemory
         } else {
-            memoryBytes = draft.memoryBytes
+            memoryMB = draft.memoryMB
         }
         let req = ContainerUpdateRequest(
             taskID: UUID().uuidString,
@@ -552,8 +576,9 @@ final class ContainersViewModel: ObservableObject {
             exposedPorts: ports,
             nanoCPUs: draft.cpuCores * 1_000_000_000,
             cpuShares: draft.cpuShares,
-            memory: memoryBytes,
+            memory: memoryMB,
             volumes: volumes,
+            extraHosts: [],
             privileged: draft.privileged,
             autoRemove: draft.autoRemove,
             labels: draft.labels,
@@ -565,13 +590,12 @@ final class ContainersViewModel: ObservableObject {
                 path: APIEndpoint.containersUpdate.path,
                 body: req, as: EmptyResponse.self
             )
-            try? await Task.sleep(for: .seconds(1))
-            await load(query: "", state: lastState)
-            showToast(L10n.f("更新容器「%@」任务已提交", info.name))
-            return true
+            // 重建为异步任务：进度与结果由 TaskProgressView 轮询呈现，
+            // 列表/详情刷新由编辑页退出后的 refreshContainer 收尾
+            return req.taskID
         } catch {
             showAlert(message: L10n.f("更新容器失败：%@", error.localizedDescription))
-            return false
+            return nil
         }
     }
 

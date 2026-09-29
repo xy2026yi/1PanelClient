@@ -102,7 +102,9 @@ nonisolated struct ContainerNetworkCreateRequest: Encodable {
 /// POST /containers/volume/search 返回的存储卷
 nonisolated struct ContainerVolume: Decodable, Identifiable, Hashable {
     let name: String
-    let labels: [String]?
+    /// 卷标签（服务端为 {key,value} 对象数组，匿名卷带 com.docker.volume.anonymous；
+    /// 曾误声明 [String]，遇到带标签卷 typeMismatch 使整页解码失败）
+    let labels: [ContainerKVPair]?
     let driver: String?
     let mountpoint: String?
     let createdAt: String?
@@ -115,7 +117,7 @@ nonisolated struct ContainerVolume: Decodable, Identifiable, Hashable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         name = c.decodeDefault(String.self, forKey: .name, "")
-        labels = try c.decodeIfPresent([String].self, forKey: .labels)
+        labels = try c.decodeIfPresent([ContainerKVPair].self, forKey: .labels)
         driver = try c.decodeIfPresent(String.self, forKey: .driver)
         mountpoint = try c.decodeIfPresent(String.self, forKey: .mountpoint)
         createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)

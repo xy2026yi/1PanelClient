@@ -434,7 +434,9 @@ nonisolated struct ContainerInfo: Decodable {
     let entrypoint: [String]?
     let cpuShares: Int?
     let nanoCPUs: Double?
-    let memory: Int64?
+    /// 内存上限，单位 MB（服务端已由字节 /1024/1024，0=不限；浮点——
+    /// 非 1MB 整数倍的上限会出现小数，与 Web 端 toFixed(2) 口径一致）
+    let memory: Double?
     let privileged: Bool?
     let autoRemove: Bool?
     let volumes: [ContainerVolumeInfo]?
@@ -469,7 +471,7 @@ nonisolated struct ContainerInfo: Decodable {
         entrypoint = try c.decodeIfPresent([String].self, forKey: .entrypoint)
         cpuShares = try c.decodeIfPresent(Int.self, forKey: .cpuShares)
         nanoCPUs = try c.decodeIfPresent(Double.self, forKey: .nanoCPUs)
-        memory = try c.decodeIfPresent(Int64.self, forKey: .memory)
+        memory = try c.decodeIfPresent(Double.self, forKey: .memory)
         privileged = try c.decodeIfPresent(Bool.self, forKey: .privileged)
         autoRemove = try c.decodeIfPresent(Bool.self, forKey: .autoRemove)
         volumes = try c.decodeIfPresent([ContainerVolumeInfo].self, forKey: .volumes)
@@ -534,9 +536,9 @@ nonisolated struct ContainerCreateDraft {
     var envText = ""
     /// 标签多行原文（每行一条 KEY=VALUE，提交拆为 labels 数组）
     var labelsText = ""
-    /// 命令原文（如 "echo ."，提交按空白拆为 cmd 数组并原样带 cmdStr）
+    /// 命令原文（含空格的参数以双引号包裹；提交按引号感知拆分为 cmd 数组并原样带 cmdStr）
     var cmdStr = ""
-    /// 端点原文（如 "docker.sh"，提交按空白拆为 entrypoint 数组并原样带 entrypointStr）
+    /// 端点原文（同 cmdStr 的引号规则；提交拆为 entrypoint 数组并原样带 entrypointStr）
     var entrypointStr = ""
     var workingDir = ""
     var user = ""
@@ -544,7 +546,7 @@ nonisolated struct ContainerCreateDraft {
     var cpuShares = 1024
     /// CPU 核心数（0=不限，提交换算 nanoCPUs = cores × 1e9）
     var cpuCores: Double = 0
-    /// 内存值（单位见 memoryUnit；0=不限，提交换算字节）
+    /// 内存值（单位见 memoryUnit；0=不限，提交换算 MB）
     var memoryValue = 0
     var memoryUnit = "M"
 
@@ -557,13 +559,12 @@ nonisolated struct ContainerCreateDraft {
         }
     }
 
-    /// 内存值按当前单位换算的字节数（乘法溢出按上限饱和，
-    /// 防 G 单位下大数值输入触发 Int64 算术溢出 trap 崩溃）
-    var memoryBytes: Int64 {
-        let (result, overflow) = Int64(memoryValue)
-            .multipliedReportingOverflow(by: Self.memoryUnitBytes(memoryUnit))
-        return overflow ? Int64.max : result
+    /// 内存值按当前单位换算的 MB 数——create/update 接口的 memory 单位为 MB
+    /// （服务端重建时 ×1024×1024，见上游 container.go），不传字节
+    var memoryMB: Double {
+        Double(memoryValue) * Double(Self.memoryUnitBytes(memoryUnit)) / (1024.0 * 1024.0)
     }
+
     /// 1panel-network 指定 IP（其他网络忽略）
     var networkIPv4 = ""
     var networkIPv6 = ""
@@ -584,9 +585,53 @@ nonisolated struct ContainerCreateDraft {
             .filter { !$0.isEmpty }
     }
 
-    /// 命令/端点原文按空白拆为参数数组（"echo ." → ["echo", "."]）
+    /// 命令/端点原文 → 参数数组，与 Web 端 splitStringIgnoringQuotes 同口径：
+    /// \" 为转义引号（先掩码避免误判引号边界），双引号包裹段内的空白不切分；
+    /// 包裹引号与裸引号不进参数，拆分后转义还原——否则含空格参数（如
+    /// "daemon off;"）往返一次即被拆散，未改动保存也会重建出坏命令
     static func splitArgs(_ text: String) -> [String] {
-        text.split(whereSeparator: \.isWhitespace).map(String.init)
+        let mask = "\u{0}"
+        let masked = text.replacingOccurrences(of: "\\\"", with: mask)
+        var tokens: [String] = []
+        var current = ""
+        var inQuotes = false
+        for ch in masked {
+            if ch == "\"" {
+                inQuotes.toggle()
+            } else if ch.isWhitespace && !inQuotes {
+                if !current.isEmpty { tokens.append(current); current = "" }
+            } else {
+                current.append(ch)
+            }
+        }
+        if !current.isEmpty { tokens.append(current) }
+        return tokens.map {
+            $0.replacingOccurrences(of: mask, with: "\\\"")
+                .replacingOccurrences(of: "\\\"", with: "\"")
+        }
+    }
+
+    /// 参数数组 → 命令原文（编辑回填用），与 Web 端一致：
+    /// 含空格的参数以双引号包裹，参数内未转义的 " 转义为 \"，保证往返不丢边界
+    static func quoteArgs(_ args: [String]) -> String {
+        args.map { arg in
+            arg.contains(" ") ? "\"\(escapeQuotes(arg))\"" : arg
+        }.joined(separator: " ")
+    }
+
+    /// 仅转义未转义的 "（前面已有 \ 的保持原样），与 Web 端 escapeQuotes 一致
+    private static func escapeQuotes(_ s: String) -> String {
+        var out = ""
+        var prevIsBackslash = false
+        for ch in s {
+            if ch == "\"", !prevIsBackslash {
+                out += "\\\""
+            } else {
+                out.append(ch)
+            }
+            prevIsBackslash = ch == "\\"
+        }
+        return out
     }
 }
 
@@ -631,8 +676,10 @@ nonisolated struct ContainerUpdateRequest: Encodable {
     let exposedPorts: [ContainerUpdatePort]
     let nanoCPUs: Double
     let cpuShares: Int
-    let memory: Int64
+    /// 内存上限（MB；服务端重建时 ×1024×1024）
+    let memory: Double
     let volumes: [ContainerVolumeInfo]
+    let extraHosts: [String]
     let privileged: Bool
     let autoRemove: Bool
     let labels: [String]

@@ -20,6 +20,9 @@ struct RepoListView: View {
     /// 长按弹出的操作菜单目标
     @State private var actionRepo: ContainerRepo?
 
+    /// 内置默认仓库（无同步/编辑/删除操作，服务端同样会拒绝）
+    private static let defaultRepoName = "Docker Hub"
+
     var body: some View {
         Group {
             if isLoading && repos.isEmpty {
@@ -39,8 +42,13 @@ struct RepoListView: View {
                     ForEach(repos) { repo in
                         RepoRow(repo: repo)
                             .contentShape(Rectangle())
-                            // 长按弹窗：编辑 / 同步 / 删除（替代原点击直进编辑 + 滑动操作）
+                            // 长按弹窗：编辑 / 同步 / 删除（替代原点击直进编辑 + 滑动操作）；
+                            // Docker Hub 为内置默认仓库，无同步/编辑/删除操作，长按仅提示
                             .onLongPressGesture {
+                                guard repo.name != Self.defaultRepoName else {
+                                    vm.showToast(L10n.t("Docker Hub 为内置仓库，不支持此操作"))
+                                    return
+                                }
                                 actionRepo = repo
                             }
                     }

@@ -169,6 +169,13 @@ struct ContainerDetailView: View {
         .navigationDestination(isPresented: $showEdit) {
             ContainerEditView(container: current, vm: vm)
         }
+        // 编辑/升级会重建容器：返回本页时刷新快照（镜像/状态/运行时长可能已变）
+        .onChange(of: showEdit) { _, shown in
+            if !shown { Task { await refreshContainer() } }
+        }
+        .onChange(of: showUpgrade) { _, shown in
+            if !shown { Task { await refreshContainer() } }
+        }
         .navigationDestination(isPresented: $showInspect) {
             ContainerInspectDetailView(
                 client: APIClient.shared(for: server),
@@ -384,8 +391,38 @@ struct ContainerDetailView: View {
                     progressTaskID = taskID
                 }
             } else {
-                // 失败已在 VM 内呈现（alert），此处忽略返回值
-                _ = await vm.operateContainer(name: current.name, operation: action)
+                // 失败已在 VM 内呈现（alert）；成功后轮询回填本页状态快照
+                if await vm.operateContainer(name: current.name, operation: action) {
+                    await syncStateAfterOperation(action)
+                }
+            }
+        }
+    }
+
+    /// 停止/启动/重启/关闭提交成功后服务端状态翻转有延迟（operate 返回时任务刚下发），
+    /// 按 containerID 短轮询回填本页快照，观测到目标终态即止：start→running、
+    /// stop/kill→非 running/paused；restart 前后均为 running，以 runTime 重置为完成信号。
+    /// 走独立 state=all 查询而非 refreshContainer()：列表可能停在 running 筛选态，
+    /// 容器停掉后不在筛选结果里，会被误判为已删除而退出本页
+    private func syncStateAfterOperation(_ action: String) async {
+        let preRunTime = current.runTime
+        for attempt in 0..<3 {
+            // operateContainer 返回前内部已等 1 秒重拉过列表，首次立即取，此后每秒复核
+            if attempt > 0 { try? await Task.sleep(for: .seconds(1)) }
+            guard let updated = await vm.fetchContainerState(
+                name: current.name, containerID: current.containerID
+            ) else { continue }
+            current = updated
+            let state = updated.state.lowercased()
+            switch action {
+            case "start":
+                if state == "running" { return }
+            case "stop", "kill":
+                if state != "running" && state != "paused" { return }
+            case "restart":
+                if state == "running", updated.runTime != preRunTime { return }
+            default:
+                return
             }
         }
     }

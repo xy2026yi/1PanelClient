@@ -1765,6 +1765,17 @@
         }
       }
     },
+    "Docker Hub 为内置仓库，不支持此操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docker Hub is a built-in repository; this action is not supported"
+          }
+        }
+      }
+    },
     "Docker 守护" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10287,6 +10298,17 @@
         }
       }
     },
+    "升级容器 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade Container %@"
+          }
+        }
+      }
+    },
     "升级容器「%@」任务已提交" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10338,6 +10360,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upgrade Plugin"
+          }
+        }
+      }
+    },
+    "升级操作需要重建容器，任何未持久化的数据将会丢失，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrading rebuilds the container; any data not persisted will be lost. Continue?"
           }
         }
       }
@@ -17767,6 +17800,17 @@
         }
       }
     },
+    "当前镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Image"
+          }
+        }
+      }
+    },
     "当前防火墙未绑定，请先绑定！" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23054,6 +23098,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Update failed: %@"
+          }
+        }
+      }
+    },
+    "更新容器 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Container %@"
           }
         }
       }
@@ -31183,6 +31238,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Container"
+          }
+        }
+      }
+    },
+    "编辑容器需要重建，任何未持久化的数据将丢失，是否继续操作？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editing rebuilds the container; any data not persisted will be lost. Continue?"
           }
         }
       }

@@ -14,6 +14,11 @@ struct ContainerUpgradeView: View {
 
     @State private var image: String
     @State private var forcePull = false
+    /// 升级前的重建确认（升级会重建容器，确认后才提交并进入任务进度）
+    @State private var pendingUpgrade = false
+    /// 升级任务进度（logs/tasks/read 轮询，复用 TaskProgressView）
+    @State private var progressTaskID: String?
+    @State private var progressFinished = false
 
     init(container: Container, vm: ContainersViewModel) {
         self.container = container
@@ -23,6 +28,14 @@ struct ContainerUpgradeView: View {
 
     var body: some View {
         Form {
+            // 当前镜像仅展示不可改（升级 = 换目标镜像重建）
+            Section(L10n.t("当前镜像")) {
+                Text(container.imageName ?? "—")
+                    .font(.dataMonospacedBody)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
+
             Section(L10n.t("目标镜像")) {
                 TextField(L10n.t("如 nginx:latest"), text: $image)
                     .textInputAutocapitalization(.never)
@@ -45,7 +58,7 @@ struct ContainerUpgradeView: View {
 
             Section {
                 Button {
-                    Task { await submit() }
+                    pendingUpgrade = true
                 } label: {
                     HStack {
                         if vm.containerOperating {
@@ -64,6 +77,30 @@ struct ContainerUpgradeView: View {
         }
         .navigationTitle(L10n.f("升级 %@", container.name))
         .navigationBarTitleDisplayMode(.inline)
+        // 升级任务进度页：任务完成（或转后台）后进度页自行收起，随后收起升级页
+        .navigationDestination(isPresented: Binding(
+            get: { progressTaskID != nil },
+            set: { if !$0 { progressTaskID = nil } }
+        )) {
+            if let taskID = progressTaskID {
+                TaskProgressView(taskID: taskID,
+                                 title: L10n.f("升级容器 %@", container.name)) { _ in
+                    progressFinished = true
+                    // 返回 false：进度页自行 dismiss；onDisappear 再收起升级页
+                    return false
+                }
+                .onDisappear {
+                    if progressFinished { dismiss() }
+                }
+            }
+        }
+        // 升级需重建容器，提交前确认（对齐 Web 端 confirm 的弹出时机与文案）
+        .alert(L10n.t("升级"), isPresented: $pendingUpgrade) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("确认")) { Task { await submit() } }
+        } message: {
+            Text(L10n.t("升级操作需要重建容器，任何未持久化的数据将会丢失，是否继续？"))
+        }
         .toastOverlay(message: $vm.toastMessage)
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
@@ -73,12 +110,13 @@ struct ContainerUpgradeView: View {
     }
 
     private func submit() async {
-        let ok = await vm.upgradeContainer(
+        if let taskID = await vm.upgradeContainer(
             name: container.name,
             image: image.trimmingCharacters(in: .whitespaces),
             forcePull: forcePull
-        )
-        if ok { dismiss() }
+        ) {
+            progressTaskID = taskID
+        }
     }
 }
 
@@ -99,6 +137,12 @@ struct ContainerEditView: View {
     @State private var wizardPage = 0
     @State private var advancedEnabled = false
 
+    /// 更新任务进度（logs/tasks/read 轮询，复用 TaskProgressView）
+    @State private var progressTaskID: String?
+    @State private var progressFinished = false
+    /// 保存前的重建确认（保存会重建容器，确认后才提交并进入任务进度）
+    @State private var pendingSave = false
+
     var body: some View {
         Group {
             if isLoading {
@@ -115,16 +159,40 @@ struct ContainerEditView: View {
                     primaryTitle: L10n.t("保存"),
                     isBusy: vm.containerOperating,
                     primaryDisabled: draft.image.isEmpty,
-                    onPrimary: { Task { await submit() } })
+                    onPrimary: { pendingSave = true })
             }
         }
         .navigationTitle(L10n.t("编辑容器"))
         .navigationBarTitleDisplayMode(.inline)
         .formWidthLimit()
+        // 更新任务进度页：任务完成（或转后台）后进度页自行收起，随后收起整个编辑页
+        .navigationDestination(isPresented: Binding(
+            get: { progressTaskID != nil },
+            set: { if !$0 { progressTaskID = nil } }
+        )) {
+            if let taskID = progressTaskID {
+                TaskProgressView(taskID: taskID,
+                                 title: L10n.f("更新容器 %@", info?.name ?? container.name)) { _ in
+                    progressFinished = true
+                    // 返回 false：进度页自行 dismiss；onDisappear 再收起编辑页
+                    return false
+                }
+                .onDisappear {
+                    if progressFinished { dismiss() }
+                }
+            }
+        }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
+        }
+        // 保存需重建容器，提交前确认（对齐 Web 端 operate/confirm 的弹出时机）
+        .alert(L10n.t("编辑"), isPresented: $pendingSave) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("确认")) { Task { await submit() } }
+        } message: {
+            Text(L10n.t("编辑容器需要重建，任何未持久化的数据将丢失，是否继续操作？"))
         }
         .toastOverlay(message: $vm.toastMessage)
         .task {
@@ -174,7 +242,8 @@ struct ContainerEditView: View {
     }
 
     /// ContainerInfo → 编辑草稿：cmd/entrypoint 数组拼回空格分隔原文，
-    /// env/labels 数组拼回换行原文，内存字节换算数值+单位（整 GiB 取 G，否则 M）
+    /// env/labels 数组拼回换行原文；info.memory 单位为 MB（服务端已由字节换算）
+    /// 直接取值（整 GiB 且 ≥1G 取 G，否则 M，小数截断——提交侧未改动时原样回传防丢精度）
     private static func draft(from i: ContainerInfo) -> ContainerCreateDraft {
         var d = ContainerCreateDraft()
         d.name = i.name
@@ -196,21 +265,20 @@ struct ContainerEditView: View {
         }
         d.envText = (i.env ?? []).joined(separator: "\n")
         d.labelsText = (i.labels ?? []).joined(separator: "\n")
-        d.cmdStr = (i.cmd ?? []).joined(separator: " ")
-        d.entrypointStr = (i.entrypoint ?? []).joined(separator: " ")
+        d.cmdStr = ContainerCreateDraft.quoteArgs(i.cmd ?? [])
+        d.entrypointStr = ContainerCreateDraft.quoteArgs(i.entrypoint ?? [])
         d.workingDir = i.workingDir ?? ""
         d.user = i.user ?? ""
         d.restartPolicy = i.restartPolicy ?? "always"
         d.cpuShares = i.cpuShares ?? 1024
         d.cpuCores = (i.nanoCPUs ?? 0) / 1_000_000_000
-        // 字节 → 数值+单位（整除且 ≥1GB 取 GB，否则 MB；与创建表单单位菜单一致）
-        let memBytes = i.memory ?? 0
-        if memBytes % (1024 * 1024 * 1024) == 0, memBytes >= 1024 * 1024 * 1024 {
+        let memMB = i.memory ?? 0
+        if memMB >= 1024, memMB.truncatingRemainder(dividingBy: 1024) == 0 {
             d.memoryUnit = "G"
-            d.memoryValue = Int(memBytes / 1024 / 1024 / 1024)
+            d.memoryValue = Int(memMB / 1024)
         } else {
             d.memoryUnit = "M"
-            d.memoryValue = Int(memBytes / 1024 / 1024)
+            d.memoryValue = Int(memMB.rounded(.towardZero))
         }
         d.privileged = i.privileged ?? false
         d.autoRemove = i.autoRemove ?? false
@@ -221,8 +289,8 @@ struct ContainerEditView: View {
 
     private func submit() async {
         guard let info else { return }
-        if await vm.updateContainer(info: info, draft: draft) {
-            dismiss()
+        if let taskID = await vm.updateContainer(info: info, draft: draft) {
+            progressTaskID = taskID
         }
     }
 }

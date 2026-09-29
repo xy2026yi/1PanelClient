@@ -914,6 +914,8 @@ struct ContainerTemplatesView: View {
     @State private var loadError: String?
     @State private var showCreate = false
     @State private var editingTemplate: ContainerTemplate?
+    /// 长按菜单目标（编辑/删除入口；点击行仍直进编辑）
+    @State private var actionTemplate: ContainerTemplate?
     @State private var toastMessage: String?
     @State private var errorMessage: String?
     @State private var showError = false
@@ -961,12 +963,9 @@ struct ContainerTemplatesView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            pendingDelete = template
-                        } label: {
-                            Label(L10n.t("删除"), systemImage: "trash")
-                        }
+                    // 长按弹操作菜单（编辑/删除，替代右划滑动操作）；点击仍直进编辑
+                    .onLongPressGesture {
+                        actionTemplate = template
                     }
                 }
             }
@@ -987,6 +986,29 @@ struct ContainerTemplatesView: View {
         .task { await load() }
         .refreshable { await load() }
         .toastOverlay(message: $toastMessage)
+        // 长按操作弹窗：编辑 / 删除。
+        // 菜单项在构建时捕获目标值：ActionBottomSheet 按钮是「先收抽屉、动作延迟
+        // 执行」，闭包内回读 actionTemplate 恒为 nil，动作会静默丢失
+        .sheet(isPresented: Binding(
+            get: { actionTemplate != nil },
+            set: { if !$0 { actionTemplate = nil } }
+        )) {
+            let template = actionTemplate
+            return ActionBottomSheet(
+                title: template?.name ?? L10n.t("编排模板"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        if let template { editingTemplate = template }
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        pendingDelete = template
+                    },
+                ],
+                onDismiss: { actionTemplate = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {

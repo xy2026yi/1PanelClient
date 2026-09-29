@@ -120,6 +120,31 @@ struct ContainerResourceModelsTests {
 
     // MARK: 存储卷
 
+    @Test("存储卷列表解码（labels 为 {key,value} 对象数组或 null，抓包 2026-09-29）")
+    func decodeVolumeList() throws {
+        let json = """
+        {"total": 2, "items": [
+          {"name": "134", "labels": null, "driver": "local",
+           "mountpoint": "/var/lib/docker/volumes/134/_data",
+           "createdAt": "2026-09-29T09:24:19+08:00", "options": null},
+          {"name": "1bf2f92980dcefe07544b3d4ef9ed0577902407382c593c240ac496b75a532b2",
+           "labels": [{"key": "com.docker.volume.anonymous", "value": ""}],
+           "driver": "local",
+           "mountpoint": "/var/lib/docker/volumes/1bf2f92980dcefe07544b3d4ef9ed0577902407382c593c240ac496b75a532b2/_data",
+           "createdAt": "2026-09-23T14:20:35+08:00", "options": null}
+        ]}
+        """
+        let resp = try JSONDecoder().decode(PageResponse<ContainerVolume>.self,
+                                            from: Data(json.utf8))
+        let items = try #require(resp.items)
+        #expect(items.count == 2)
+        #expect(items[0].labels == nil)
+        #expect(items[0].id == "134")
+        // 带标签卷（匿名卷）：曾因 labels 误声明 [String] 整页解码失败、列表显空
+        #expect(items[1].labels?.first?.key == "com.docker.volume.anonymous")
+        #expect(items[1].labels?.first?.value == "")
+    }
+
     @Test("存储卷创建编码（NFS4：options 由地址/版本/挂载点推导，抓包样本）")
     func encodeVolumeNFS() throws {
         var req = ContainerVolumeCreateRequest(
@@ -292,5 +317,93 @@ struct InspectSectionsTests {
         #expect(InspectSectionsBuilder.plainValue(nil) == nil)
         #expect(InspectSectionsBuilder.plainValue(["a", "b"]) == "a, b")
         #expect(InspectSectionsBuilder.plainValue(["x" as Any]) == "x")
+    }
+}
+
+@Suite("容器内存单位（info/update 均为 MB 口径）")
+struct ContainerMemoryUnitTests {
+
+    /// /containers/info 的 memory 为服务端换算后的 MB（可为小数；0=不限）
+    private func decodeInfo(_ memoryJSON: String) throws -> ContainerInfo {
+        let json = """
+        {"name":"nginx","image":"nginx:latest","memory":\(memoryJSON)}
+        """
+        return try JSONDecoder().decode(ContainerInfo.self, from: Data(json.utf8))
+    }
+
+    @Test("info.memory 解码：整数/小数 MB（非 1MB 整数倍上限）与缺省")
+    func decodeInfoMemory() throws {
+        #expect(try decodeInfo("200").memory == 200)
+        #expect(try decodeInfo("200.5").memory == 200.5)
+        #expect(try decodeInfo("209715200").memory == 209715200)
+        #expect(try decodeInfo("0").memory == 0)
+        #expect(try decodeInfo("null").memory == nil)
+    }
+
+    @Test("draft.memoryMB：M/G/K 单位换算为 MB（不换算成字节）")
+    func memoryMBConversion() {
+        var d = ContainerCreateDraft()
+        d.memoryValue = 200; d.memoryUnit = "M"
+        #expect(d.memoryMB == 200)
+        d.memoryValue = 2; d.memoryUnit = "G"
+        #expect(d.memoryMB == 2048)
+        d.memoryValue = 1024; d.memoryUnit = "K"
+        #expect(d.memoryMB == 1)
+        d.memoryValue = 0; d.memoryUnit = "M"
+        #expect(d.memoryMB == 0)
+    }
+
+    @Test("update 请求 memory 编码为 MB 数值（200MB 发 200，非 209715200 字节）")
+    func encodeUpdateMemoryAsMB() throws {
+        var d = ContainerCreateDraft()
+        d.memoryValue = 200
+        d.memoryUnit = "M"
+        let req = ContainerUpdateRequest(
+            taskID: "t-1", name: "nginx", image: "nginx:latest", imageInput: false,
+            forcePull: false, networks: [], hostname: "", domainName: "", dns: [],
+            cmdStr: "", entrypointStr: "", memoryItem: 0, cmd: [],
+            workingDir: "", user: "", openStdin: false, tty: false,
+            entrypoint: [], publishAllPorts: false, exposedPorts: [],
+            nanoCPUs: 0, cpuShares: 1024, memory: d.memoryMB,
+            volumes: [], extraHosts: [], privileged: false, autoRemove: false,
+            labels: [], env: [], restartPolicy: "always")
+        let obj = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(req)) as? [String: Any]
+        #expect(obj?["memory"] as? Double == 200)
+    }
+}
+
+@Suite("命令/端点引号往返（与 Web 端 splitStringIgnoringQuotes / escapeQuotes 同口径）")
+struct ContainerCmdQuoteTests {
+
+    @Test("含空格参数往返不丢边界（nginx daemon off; 抓包样本）")
+    func roundTripDaemonOff() {
+        let cmd = ["nginx", "-g", "daemon off;"]
+        let text = ContainerCreateDraft.quoteArgs(cmd)
+        #expect(text == "nginx -g \"daemon off;\"")
+        #expect(ContainerCreateDraft.splitArgs(text) == cmd)
+    }
+
+    @Test("参数内引号：转义包裹后往返还原")
+    func roundTripEmbeddedQuotes() {
+        let cmd = ["sh", "-c", "echo \"hi\" there"]
+        let text = ContainerCreateDraft.quoteArgs(cmd)
+        #expect(text == "sh -c \"echo \\\"hi\\\" there\"")
+        #expect(ContainerCreateDraft.splitArgs(text) == cmd)
+    }
+
+    @Test("用户输入的引号原文拆分：包裹段保持单参数、转义引号还原")
+    func splitQuotedInput() {
+        #expect(ContainerCreateDraft.splitArgs("nginx -g \"daemon off;\"") == ["nginx", "-g", "daemon off;"])
+        #expect(ContainerCreateDraft.splitArgs("echo \\\"hi\\\"") == ["echo", "\"hi\""])
+        #expect(ContainerCreateDraft.splitArgs("echo .") == ["echo", "."])
+        #expect(ContainerCreateDraft.splitArgs("  a   b  ") == ["a", "b"])
+    }
+
+    @Test("无空格参数不加引号；空命令为空数组")
+    func joinBareArgs() {
+        #expect(ContainerCreateDraft.quoteArgs(["/docker-entrypoint.sh"]) == "/docker-entrypoint.sh")
+        #expect(ContainerCreateDraft.quoteArgs([]) == "")
+        #expect(ContainerCreateDraft.splitArgs("") == [])
     }
 }
