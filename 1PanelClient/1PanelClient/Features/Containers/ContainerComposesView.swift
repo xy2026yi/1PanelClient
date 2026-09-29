@@ -946,25 +946,24 @@ struct ContainerTemplatesView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(templates) { template in
-                    Button {
-                        editingTemplate = template
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(template.name ?? "#\(template.id)")
-                                .font(.body.weight(.medium))
-                                .foregroundStyle(.primary)
-                            if let desc = template.description, !desc.isEmpty {
-                                Text(desc)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                    // 纯视图 + 双手势（Button 会吞掉长按，菜单永远弹不出来）；
+                    // 点击直进编辑，长按弹操作菜单（编辑/删除）
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(template.name ?? "#\(template.id)")
+                            .font(.body.weight(.medium))
+                        if let desc = template.description, !desc.isEmpty {
+                            Text(desc)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    // 长按弹操作菜单（编辑/删除，替代右划滑动操作）；点击仍直进编辑
-                    .onLongPressGesture {
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        editingTemplate = template
+                    }
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        Haptic.selection()
                         actionTemplate = template
                     }
                 }

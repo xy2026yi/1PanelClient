@@ -24,6 +24,8 @@ struct ContainerDetailView: View {
     @State private var menuAlertMessage = ""
     /// 详情刷新失败（渲染页内错误态 + 重试；数据为进入时的快照，仅刷新失败时置位）
     @State private var loadError: String?
+    /// 生命周期操作后的状态轮询进行中（操作按钮保持 busy，防状态未稳时连点）
+    @State private var isSyncingState = false
     @State private var showUpgrade = false
     @State private var showEdit = false
     @State private var showTerminal = false
@@ -169,12 +171,14 @@ struct ContainerDetailView: View {
         .navigationDestination(isPresented: $showEdit) {
             ContainerEditView(container: current, vm: vm)
         }
-        // 编辑/升级会重建容器：返回本页时刷新快照（镜像/状态/运行时长可能已变）
+        // 编辑/升级会重建容器：返回本页时刷新快照（镜像/状态/运行时长可能已变）；
+        // 重建任务可能仍在进行（进度页选了后台运行），首刷会拿到 exited 中间态，
+        // 延迟补一次刷新兜底
         .onChange(of: showEdit) { _, shown in
-            if !shown { Task { await refreshContainer() } }
+            if !shown { Task { await refreshAfterRebuild() } }
         }
         .onChange(of: showUpgrade) { _, shown in
-            if !shown { Task { await refreshContainer() } }
+            if !shown { Task { await refreshAfterRebuild() } }
         }
         .navigationDestination(isPresented: $showInspect) {
             ContainerInspectDetailView(
@@ -310,7 +314,7 @@ struct ContainerDetailView: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .disabled(vm.containerOperating)
+            .disabled(vm.containerOperating || isSyncingState)
         }
         .padding(.vertical, 2)
     }
@@ -364,7 +368,8 @@ struct ContainerDetailView: View {
         color: Color,
         action: @escaping () -> Void
     ) -> some View {
-        CardActionButton(title: title, icon: icon, color: color, busy: vm.containerOperating, action: action)
+        CardActionButton(title: title, icon: icon, color: color,
+                         busy: vm.containerOperating || isSyncingState, action: action)
     }
 
     private func containerActionDisplayName(_ action: String) -> String {
@@ -391,12 +396,25 @@ struct ContainerDetailView: View {
                     progressTaskID = taskID
                 }
             } else {
-                // 失败已在 VM 内呈现（alert）；成功后轮询回填本页状态快照
+                // 失败已在 VM 内呈现（alert）；成功后轮询回填本页状态快照，
+                // 轮询期间按钮保持 busy（isSyncingState），防状态未稳时连点
                 if await vm.operateContainer(name: current.name, operation: action) {
+                    isSyncingState = true
                     await syncStateAfterOperation(action)
+                    isSyncingState = false
                 }
             }
         }
+    }
+
+    /// 编辑/升级（重建类）返回本页：立即刷新 + 延迟补一次。
+    /// 重建任务可能仍在进行（进度页选了「后台运行」即返回），首刷拿到的常是
+    /// exited 中间态，2 秒后的补刷让最终状态自己跟上，省一次手动下拉
+    private func refreshAfterRebuild() async {
+        await refreshContainer()
+        try? await Task.sleep(for: .seconds(2))
+        guard !Task.isCancelled else { return }
+        await refreshContainer()
     }
 
     /// 停止/启动/重启/关闭提交成功后服务端状态翻转有延迟（operate 返回时任务刚下发），

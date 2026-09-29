@@ -549,6 +549,9 @@ nonisolated struct ContainerCreateDraft {
     /// 内存值（单位见 memoryUnit；0=不限，提交换算 MB）
     var memoryValue = 0
     var memoryUnit = "M"
+    /// 用户是否改动过内存（值或单位）——编辑保存时据此判定"未改动"，
+    /// 未改动才回传 info 原值（保非整 MB 精度），改动过按表单值精确提交
+    var memoryTouched = false
 
     /// 单位 → 字节
     static func memoryUnitBytes(_ unit: String) -> Int64 {

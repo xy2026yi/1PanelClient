@@ -407,3 +407,50 @@ struct ContainerCmdQuoteTests {
         #expect(ContainerCreateDraft.splitArgs("") == [])
     }
 }
+
+@Suite("容器内存提交前校验（负数/超系统上限直接拒绝，不发请求）")
+struct ContainerMemoryValidationTests {
+
+    @Test("负数内存：创建与更新均拒绝并弹提示")
+    @MainActor
+    func negativeMemoryRejected() async throws {
+        let vm = ContainersViewModel(server: ServerConfig(name: "t", baseURL: "http://127.0.0.1:1", apiKey: "k"))
+        var d = ContainerCreateDraft()
+        d.name = "t"
+        d.image = "nginx:latest"
+        d.memoryValue = -5
+        let info = try JSONDecoder().decode(
+            ContainerInfo.self,
+            from: Data(#"{"name":"nginx","image":"nginx:latest"}"#.utf8))
+        let createTask = await vm.createContainer(draft: d)
+        #expect(createTask == nil)
+        #expect(vm.showAlert)
+        #expect(vm.alertMessage == L10n.t("内存不能为负数"))
+
+        vm.showAlert = false
+        let updateTask = await vm.updateContainer(info: info, draft: d)
+        #expect(updateTask == nil)
+        #expect(vm.showAlert)
+        #expect(vm.alertMessage == L10n.t("内存不能为负数"))
+    }
+
+    @Test("超过 /containers/limit 上限：拒绝并提示上限值")
+    @MainActor
+    func overLimitRejected() async throws {
+        let vm = ContainersViewModel(server: ServerConfig(name: "t", baseURL: "http://127.0.0.1:1", apiKey: "k"))
+        // 上限 1 GiB（limit 接口返回字节）
+        vm.containerLimit = ContainerLimit(cpu: 4, memory: 1024 * 1024 * 1024)
+        var d = ContainerCreateDraft()
+        d.name = "t"
+        d.image = "nginx:latest"
+        d.memoryValue = 2048
+        d.memoryUnit = "M"
+        #expect(await vm.createContainer(draft: d) == nil)
+        #expect(vm.alertMessage == L10n.f("内存上限不能超过 %@ MB", "1024"))
+        // 上限内（含恰好等于上限）校验放行
+        d.memoryValue = 1024
+        #expect(vm.memoryValidationError(d) == nil)
+        d.memoryValue = 512
+        #expect(vm.memoryValidationError(d) == nil)
+    }
+}

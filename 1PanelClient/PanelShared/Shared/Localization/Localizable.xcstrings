@@ -7647,6 +7647,28 @@
         }
       }
     },
+    "内存上限不能超过 %@ MB" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory limit cannot exceed %@ MB"
+          }
+        }
+      }
+    },
+    "内存不能为负数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory cannot be negative"
+          }
+        }
+      }
+    },
     "内存使用率" : {
       "extractionState" : "manual",
       "localizations" : {

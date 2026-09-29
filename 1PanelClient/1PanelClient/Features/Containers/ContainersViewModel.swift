@@ -296,11 +296,11 @@ final class ContainersViewModel: ObservableObject {
 
     /// 单容器状态查询（详情页生命周期操作后回填本页快照）：独立请求 state=all，
     /// 不走 load()——避免动列表的筛选/分页状态（列表可能停在 running 筛选态，
-    /// 容器停掉后已不在其结果里）；name 为模糊搜索，按 containerID 精确匹配，
-    /// 失败返回 nil 由调用方轮询重试
+    /// 容器停掉后已不在其结果里）；name 为模糊搜索，与列表同页宽防同前缀容器
+    /// 挤掉目标，按 containerID 精确匹配，失败返回 nil 由调用方轮询重试
     func fetchContainerState(name: String, containerID: String) async -> Container? {
         let req = ContainerSearchRequest(
-            page: 1, pageSize: 10, name: name, state: "all",
+            page: 1, pageSize: Self.pageSize, name: name, state: "all",
             orderBy: "createdAt", order: "null"
         )
         do {
@@ -433,6 +433,22 @@ final class ContainersViewModel: ObservableObject {
         self.containerLimit = l
     }
 
+    /// 内存输入校验（创建/更新共用）：负数与超过 /containers/limit 的系统内存上限
+    /// 直接拒绝，不把非法值交给服务端重建。返回错误文案，nil 表示通过
+    func memoryValidationError(_ draft: ContainerCreateDraft) -> String? {
+        if draft.memoryValue < 0 {
+            return L10n.t("内存不能为负数")
+        }
+        // containerLimit.memory 为字节（GET /containers/limit 原样，未加载/为 0 不校验）
+        guard let limitBytes = containerLimit?.memory, limitBytes > 0,
+              draft.memoryMB > 0 else { return nil }
+        let limitMB = Double(limitBytes) / 1024 / 1024
+        if draft.memoryMB > limitMB {
+            return L10n.f("内存上限不能超过 %@ MB", String(Int(limitMB.rounded(.up))))
+        }
+        return nil
+    }
+
     /// 创建容器（POST /containers），字段对齐 doc/手动创建容器.log
     /// 成功返回任务 ID（供进度页轮询），失败返回 nil
     @discardableResult
@@ -440,6 +456,10 @@ final class ContainersViewModel: ObservableObject {
         guard !draft.name.trimmingCharacters(in: .whitespaces).isEmpty,
               !draft.image.trimmingCharacters(in: .whitespaces).isEmpty else {
             showAlert(message: L10n.t("容器名称和镜像不能为空"))
+            return nil
+        }
+        if let err = memoryValidationError(draft) {
+            showAlert(message: err)
             return nil
         }
         containerOperating = true
@@ -515,6 +535,10 @@ final class ContainersViewModel: ObservableObject {
     /// 成功返回任务 ID（供 TaskProgressView 轮询），失败返回 nil
     @discardableResult
     func updateContainer(info: ContainerInfo, draft: ContainerCreateDraft) async -> String? {
+        if let err = memoryValidationError(draft) {
+            showAlert(message: err)
+            return nil
+        }
         containerOperating = true
         defer { containerOperating = false }
 
@@ -543,12 +567,10 @@ final class ContainersViewModel: ObservableObject {
             macAddr: sameNetwork ? (orig?.macAddr ?? "") : ""
         )]
         // 内存：info 回读与提交同口径均为 MB（服务端重建时再 ×1024²）。
-        // 表单值与回填值一致（用户未改动）时原样回传 info 值，
-        // 避免非整 MB 上限保存一次后被取整"洗掉"精度；改动过（含换单位）按当前单位换算
+        // 用户未改动（memoryTouched=false，值与单位都没碰）时原样回传 info 原值，
+        // 保非整 MB 上限精度（200.7 不会被显示值 200 覆盖）；改动过按表单值精确提交
         let memoryMB: Double
-        if draft.memoryUnit == "M",
-           let origMemory = info.memory, origMemory > 0,
-           Double(draft.memoryValue) == origMemory.rounded(.towardZero) {
+        if !draft.memoryTouched, let origMemory = info.memory {
             memoryMB = origMemory
         } else {
             memoryMB = draft.memoryMB

@@ -258,6 +258,7 @@ struct ContainerWizardForm: View {
                 // 切换单位时换算数值（可整除时），保持总量不变——
                 // 不换算会出现 512 M 切 G 即 512 GB（放大 1024 倍提交）
                 .onChange(of: draft.memoryUnit) { oldUnit, newUnit in
+                    draft.memoryTouched = true
                     let oldFactor = ContainerCreateDraft.memoryUnitBytes(oldUnit)
                     let newFactor = ContainerCreateDraft.memoryUnitBytes(newUnit)
                     guard oldFactor != newFactor, draft.memoryValue > 0 else { return }
@@ -304,7 +305,10 @@ struct ContainerWizardForm: View {
 
     private var memoryText: Binding<String> {
         Binding<String>(get: { String(draft.memoryValue) },
-                        set: { draft.memoryValue = Int($0) ?? 0 })
+                        set: {
+                            draft.memoryTouched = true
+                            draft.memoryValue = Int($0) ?? 0
+                        })
     }
 }
 
