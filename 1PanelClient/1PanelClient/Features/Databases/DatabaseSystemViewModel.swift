@@ -202,7 +202,12 @@ final class DatabaseSystemViewModel: ObservableObject {
     private var graceError: String?
 
     func operate(_ op: String) async {
-        guard let installId = check?.appInstallId else { return }
+        // check 未加载/无安装 id：此前的静默 return 是启停按钮无反馈的
+        // 另一入口，给明确提示（正常路径失败由下方 catch 写 errorMessage）
+        guard let installId = check?.appInstallId else {
+            errorMessage = L10n.t("状态信息未就绪，请刷新后重试")
+            return
+        }
         isOperating = true
         defer { isOperating = false }
         let req = AppOpRequest(installId: installId, operate: op)

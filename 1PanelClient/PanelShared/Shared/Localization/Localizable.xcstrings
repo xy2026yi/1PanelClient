@@ -27590,6 +27590,17 @@
         }
       }
     },
+    "状态信息未就绪，请刷新后重试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status info not ready. Please refresh and try again."
+          }
+        }
+      }
+    },
     "状态修改" : {
       "extractionState" : "manual",
       "localizations" : {

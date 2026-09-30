@@ -242,6 +242,25 @@ struct DatabaseSystemView: View {
                 Task { await vm.deleteUser(user) }
             }
         }
+        // 启停/重启等操作失败（如容器网络缺失时服务端 500）此前只写
+        // vm.errorMessage 无任何展示；与防火墙同款错误 alert
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { vm.errorMessage != nil },
+            set: { if !$0 {
+                // 宽限重试/后台 refresh 会在视图更新周期内写 errorMessage，
+                // alert 收起时同步清 @Published 会触发 "Publishing changes
+                // from within view updates"，推迟到下一周期；比较后清除，
+                // 推迟窗口内新到的错误不被误抹
+                let cleared = vm.errorMessage
+                DispatchQueue.main.async {
+                    if vm.errorMessage == cleared { vm.errorMessage = nil }
+                }
+            } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { vm.errorMessage = nil }
+        } message: {
+            Text(vm.errorMessage ?? "")
+        }
         } // ScrollViewReader
     }
 
