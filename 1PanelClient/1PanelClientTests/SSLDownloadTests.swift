@@ -132,4 +132,28 @@ struct SSLDownloadTests {
     func foreignOriginsRejected(url: String) {
         #expect(APIClient.resolveInPanelURL(url, baseURL: Self.panel) == nil)
     }
+
+    // MARK: - JSON 形态判定（Content-Type 不可靠时的前缀嗅探）
+
+    @Test("Content-Type 声明 json 即判定为 JSON（不看 body）", arguments: [
+        "application/json",
+        "application/json; charset=utf-8",
+        "APPLICATION/JSON",
+    ])
+    func jsonContentTypeWins(ct: String) {
+        #expect(APIClient.isJSONDownloadBody(contentType: ct, data: Data("PK\u{03}\u{04}".utf8)))
+    }
+
+    @Test("body 以 { 开头嗅探为 JSON（text/plain 的 JSON 兜底）")
+    func bracePrefixSniffed() {
+        #expect(APIClient.isJSONDownloadBody(contentType: "text/plain", data: Data(#"{"code":200}"#.utf8)))
+        #expect(APIClient.isJSONDownloadBody(contentType: "", data: Data("{".utf8)))
+    }
+
+    @Test("zip 二进制（PK 魔数）不误判为 JSON")
+    func zipNotJSON() {
+        #expect(!APIClient.isJSONDownloadBody(contentType: "application/zip", data: Data("PK\u{03}\u{04}rest".utf8)))
+        #expect(!APIClient.isJSONDownloadBody(contentType: "application/octet-stream", data: Data([0x50, 0x4B, 0x03, 0x04])))
+        #expect(!APIClient.isJSONDownloadBody(contentType: "text/plain", data: Data()))
+    }
 }

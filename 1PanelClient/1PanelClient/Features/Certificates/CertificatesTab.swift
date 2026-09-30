@@ -616,14 +616,14 @@ struct UploadCertificateView: View {
 
             switch mode {
             case .paste:
+                // 框内已有浮动标签，不再加重复的 Section header
                 Section {
                     OutlinedMultiLineField(label: L10n.t("私钥"),
                                            prompt: "-----BEGIN PRIVATE KEY-----",
                                            lines: 6, fixedLines: 6,
                                            zoomable: true, monospaced: true,
                                            text: $privateKey)
-                } header: { Text(L10n.t("私钥")) }
-                footer: { Text(L10n.t("粘贴以 -----BEGIN PRIVATE KEY----- 开头的完整内容")) }
+                } footer: { Text(L10n.t("粘贴以 -----BEGIN PRIVATE KEY----- 开头的完整内容")) }
 
                 Section {
                     OutlinedMultiLineField(label: L10n.t("证书"),
@@ -631,8 +631,7 @@ struct UploadCertificateView: View {
                                            lines: 6, fixedLines: 6,
                                            zoomable: true, monospaced: true,
                                            text: $certificate)
-                } header: { Text(L10n.t("证书")) }
-                footer: { Text(L10n.t("粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容")) }
+                } footer: { Text(L10n.t("粘贴以 -----BEGIN CERTIFICATE----- 开头的完整内容")) }
 
             case .local:
                 Section {
@@ -646,7 +645,7 @@ struct UploadCertificateView: View {
                                           showServerFilePicker = true
                                           serverFilePickTarget = .privateKey
                                       })
-                } header: { Text(L10n.t("私钥文件路径")) }
+                }
 
                 Section {
                     // 证书路径：同上
@@ -657,7 +656,7 @@ struct UploadCertificateView: View {
                                           showServerFilePicker = true
                                           serverFilePickTarget = .certificate
                                       })
-                } header: { Text(L10n.t("证书文件路径")) }
+                }
 
             case .phone:
                 // 手机上传：读文件内容提交（type=paste），网页端「上传」同本质
@@ -942,7 +941,7 @@ final class CertificatesViewModel: ObservableObject {
     /// （经 UIFileSharingEnabled 暴露到「文件」App），文件名优先取服务端
     /// Content-Disposition，兜底「主域名.zip」
     func downloadSSL(cert: WebsiteSSLCert) async -> SSLDownloadResult {
-        guard downloadingSSLID == nil else { return .failed("") }
+        guard downloadingSSLID == nil else { return .failed(L10n.t("正在下载中，请稍候")) }
         downloadingSSLID = cert.id
         defer { downloadingSSLID = nil }
         let domain = (cert.primaryDomain ?? "").trimmingCharacters(in: .whitespacesAndNewlines)

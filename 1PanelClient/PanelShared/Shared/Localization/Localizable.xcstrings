@@ -25438,6 +25438,17 @@
         }
       }
     },
+    "正在下载中，请稍候" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A download is already in progress. Please wait."
+          }
+        }
+      }
+    },
     "正在升级…" : {
       "extractionState" : "manual",
       "localizations" : {

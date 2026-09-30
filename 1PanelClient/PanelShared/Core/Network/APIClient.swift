@@ -504,7 +504,11 @@ final class APIClient {
             throw APIError.httpError(http.statusCode, L10n.t("下载失败"))
         }
 
-        if contentType.contains("application/json") {
+        // JSON 形态判定：Content-Type 声明 json，或 body 以 { 开头——
+        // 个别面板 Content-Type 标注不可靠（text/plain 回 JSON），靠前缀
+        // 嗅探兜底；zip 魔数是 PK 不会误伤，解不出路径会明确报
+        // 「下载地址无效」而不是把错误 JSON 存成坏 zip
+        if Self.isJSONDownloadBody(contentType: contentType, data: data) {
             // 旧版形态：JSON 里取站内路径再 GET 压缩包。
             // 相对路径拼到面板 baseURL；绝对地址仅放行与面板同源的 http/https
             //（防服务端异常数据把下载引向任意主机）
@@ -542,6 +546,14 @@ final class APIClient {
         let name = Self.fileName(fromContentDisposition: http.value(forHTTPHeaderField: "Content-Disposition"))
             ?? fallbackFileName
         return (data, name)
+    }
+
+    /// 下载响应是否为 JSON 形态：Content-Type 声明 json，或 body 以 { 开头
+    /// （Content-Type 不可靠的面板兜底；zip 魔数为 PK，前缀嗅探不误伤）。
+    /// internal 供单测（SSLDownloadTests）
+    static func isJSONDownloadBody(contentType: String, data: Data) -> Bool {
+        if contentType.lowercased().contains("application/json") { return true }
+        return data.first == UInt8(ascii: "{")
     }
 
     /// 下载路径解析：以单个 "/" 开头的站内相对路径拼面板 baseURL；
