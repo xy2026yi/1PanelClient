@@ -272,7 +272,8 @@ struct CertificateDetailView: View {
     @State private var pendingRenew = false
     @State private var showMenu = false
 
-    /// 详情菜单项：Acme 证书（编辑/重新申请）与手动证书（更新证书）互斥
+    /// 详情菜单项：Acme 证书（编辑/重新申请）与手动证书（更新证书）互斥；
+    /// 下载置前、删除置底（删除自底部危险区移入，与自签证书详情一致）
     private var menuEntries: [EllipsisMenuEntry] {
         var entries: [EllipsisMenuEntry] = []
         if isAcmeCert {
@@ -282,12 +283,28 @@ struct CertificateDetailView: View {
         if isManualCert {
             entries.append(.action(title: L10n.t("更新证书")) { showUpdateSheet = true })
         }
+        entries.append(.action(title: L10n.t("下载证书")) {
+            Task {
+                // 反馈就地呈现：列表页的 toast 挂在被 push 的本页下面不可见
+                switch await vm.downloadSSL(cert: detail ?? cert) {
+                case .saved(let name):
+                    downloadToast = L10n.f("已保存到「文件」App：我的 iPhone/1PanelClient/%@", name)
+                case .failed(let err):
+                    if !err.isEmpty { downloadError = err }
+                }
+            }
+        })
+        entries.append(.divider)
+        entries.append(.action(title: L10n.t("删除"), role: .destructive) { pendingDelete = true })
         return entries
     }
     @State private var pendingDelete = false
     @State private var isRenewing = false
     @State private var logLines: [String] = []
     @State private var isLoadingLog = false
+    /// 下载证书结果反馈（本页就地呈现，见菜单「下载证书」handler 注释）
+    @State private var downloadToast: String?
+    @State private var downloadError: String?
     @Environment(\.dismiss) private var dismiss
 
     private enum DetailTab: String, CaseIterable, Identifiable {
@@ -327,25 +344,14 @@ struct CertificateDetailView: View {
             case .privKey:  pemSection(title: L10n.t("私钥内容"), content: (detail ?? cert).privateKey)
             case .log:      logSection
             }
-
-            // 危险区（与数据库/进程/应用/容器详情一致：删除放底部独立 Section）
-            Section {
-                Button(role: .destructive) {
-                    pendingDelete = true
-                } label: {
-                    Label(L10n.t("删除证书"), systemImage: "trash")
-                }
-            }
         }
         .navigationTitle(cert.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                // 既非 Acme 也非手动证书时无菜单项，隐藏按钮避免弹出空气泡
-                if !menuEntries.isEmpty {
-                    EllipsisMenuButton {
-                        withAnimation(Motion.fast) { showMenu.toggle() }
-                    }
+                // 下载证书进行中：三点按钮转圈（下载入口在菜单里，菜单已收起）
+                EllipsisMenuButton(isLoading: vm.downloadingSSLID == cert.id) {
+                    withAnimation(Motion.fast) { showMenu.toggle() }
                 }
             }
         }
@@ -371,7 +377,7 @@ struct CertificateDetailView: View {
         } message: {
             Text(L10n.f("将重新申请证书「%@」，是否继续？", (detail ?? cert).displayName))
         }
-        .alert(L10n.t("删除证书"), isPresented: $pendingDelete) {
+        .alert(L10n.t("删除"), isPresented: $pendingDelete) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("删除"), role: .destructive) {
                 Haptic.warning()
@@ -383,6 +389,16 @@ struct CertificateDetailView: View {
             }
         } message: {
             Text(L10n.f("确定删除证书「%@」吗？删除后不可恢复。", (detail ?? cert).displayName))
+        }
+        // 下载证书：成功 toast / 失败 alert 均挂本页（列表页的被本页盖住不可见）
+        .toastOverlay(message: $downloadToast)
+        .alert(L10n.t("提示"), isPresented: Binding(
+            get: { downloadError != nil },
+            set: { if !$0 { downloadError = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) { downloadError = nil }
+        } message: {
+            Text(downloadError ?? "")
         }
         .task { await loadDetail() }
         .onChange(of: vm.needsRefresh) { _, refreshed in
@@ -561,11 +577,9 @@ struct UploadCertificateView: View {
     /// 换选文件读取失败的提示（必须显式报错：静默失败时界面仍显示旧文件名，
     /// 用户会误以为已换选、实际提交的是旧内容）
     @State private var loadFileError: String?
-    // 服务器文件：文件浏览器（选择目标 + 两个路径框的焦点态）
+    // 服务器文件：文件浏览器（选择目标 + 回填对应路径框）
     @State private var showServerFilePicker = false
     @State private var serverFilePickTarget: PickTarget?
-    @FocusState private var privateKeyFieldFocused: Bool
-    @FocusState private var certificateFieldFocused: Bool
 
     private enum UploadMode: String, CaseIterable, Identifiable {
         case paste = "粘贴内容"
@@ -622,53 +636,27 @@ struct UploadCertificateView: View {
 
             case .local:
                 Section {
-                    // 私钥路径：输入框 + 框内右侧文件浏览器图标，选中文件后自动回填
-                    OutlinedShape(label: L10n.t("私钥文件路径"),
-                                  isFocused: privateKeyFieldFocused,
-                                  hasValue: !privateKeyPath.isEmpty,
-                                  trailing: {
-                        Button {
-                            showServerFilePicker = true
-                            serverFilePickTarget = .privateKey
-                        } label: {
-                            Image(systemName: "folder")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel(L10n.t("选择文件"))
-                    }) {
-                        TextField("", text: $privateKeyPath, prompt: Text("/home/user/privkey.pem"))
-                            .keyboardType(.URL)
-                            .focused($privateKeyFieldFocused)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                    }
+                    // 私钥路径：框内右侧目录浏览按钮选中回填；路径示例走组件的
+                    // 聚焦占位——OutlinedShape 空态标签本身即占位，原生 TextField
+                    // prompt 会在同一位置与之重叠
+                    OutlinedTextField(label: L10n.t("私钥文件路径"),
+                                      prompt: "/home/user/privkey.pem",
+                                      text: $privateKeyPath, keyboardType: .URL,
+                                      browseAction: {
+                                          showServerFilePicker = true
+                                          serverFilePickTarget = .privateKey
+                                      })
                 } header: { Text(L10n.t("私钥文件路径")) }
 
                 Section {
-                    // 证书路径：同上，文件浏览器选中回填
-                    OutlinedShape(label: L10n.t("证书文件路径"),
-                                  isFocused: certificateFieldFocused,
-                                  hasValue: !certificatePath.isEmpty,
-                                  trailing: {
-                        Button {
-                            showServerFilePicker = true
-                            serverFilePickTarget = .certificate
-                        } label: {
-                            Image(systemName: "folder")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel(L10n.t("选择文件"))
-                    }) {
-                        TextField("", text: $certificatePath, prompt: Text("/home/user/fullchain.pem"))
-                            .keyboardType(.URL)
-                            .focused($certificateFieldFocused)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                    }
+                    // 证书路径：同上
+                    OutlinedTextField(label: L10n.t("证书文件路径"),
+                                      prompt: "/home/fullchain.pem",
+                                      text: $certificatePath, keyboardType: .URL,
+                                      browseAction: {
+                                          showServerFilePicker = true
+                                          serverFilePickTarget = .certificate
+                                      })
                 } header: { Text(L10n.t("证书文件路径")) }
 
             case .phone:
@@ -935,6 +923,78 @@ final class CertificatesViewModel: ObservableObject {
             showAlert(message: L10n.f("删除失败：%@", err.errorDescription ?? L10n.t("未知错误")))
         } catch {
             showAlert(message: L10n.f("删除失败：%@", error.localizedDescription))
+        }
+    }
+
+    // MARK: - 下载证书
+
+    /// 下载进行中的证书 id（详情页据此在 toolbar 转圈）
+    @Published var downloadingSSLID: Int?
+
+    /// 下载结果：成功带保存文件名、失败带可读错误。由详情页就地呈现——
+    /// 列表页的 toast/alert 挂在被 push 的详情页下面，成功 toast 必不可见
+    enum SSLDownloadResult {
+        case saved(String)
+        case failed(String)
+    }
+
+    /// 下载证书 zip（fullchain.pem + privkey.pem）到本机 Documents
+    /// （经 UIFileSharingEnabled 暴露到「文件」App），文件名优先取服务端
+    /// Content-Disposition，兜底「主域名.zip」
+    func downloadSSL(cert: WebsiteSSLCert) async -> SSLDownloadResult {
+        guard downloadingSSLID == nil else { return .failed("") }
+        downloadingSSLID = cert.id
+        defer { downloadingSSLID = nil }
+        let domain = (cert.primaryDomain ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallback = Self.localFileName(domain.isEmpty ? "cert-\(cert.id)" : domain, ext: "zip")
+        do {
+            let (data, serverName) = try await client.downloadPOST(
+                path: APIEndpoint.websitesSSLDownload.path,
+                body: WebsiteSSLDownloadRequest(id: cert.id),
+                fallbackFileName: fallback
+            )
+            guard !data.isEmpty else {
+                return .failed(L10n.t("下载失败：文件内容为空"))
+            }
+            // 服务端文件名同样过一遍本地合法化（通配符域名等字符）
+            let baseName = serverName.isEmpty ? fallback : Self.localFileName(serverName, ext: nil)
+            let destDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let finalName = Self.uniqueFileName(baseName, in: destDir)
+            try data.write(to: destDir.appendingPathComponent(finalName), options: .atomic)
+            return .saved(finalName)
+        } catch {
+            if APIError.isCancellation(error) { return .failed("") }
+            return .failed(L10n.f("下载失败：%@",
+                (error as? APIError)?.errorDescription ?? error.localizedDescription))
+        }
+    }
+
+    /// 本地文件系统合法名：取最后一段路径（防目录穿越），替换 iOS 非法字符；
+    /// ext 非空且原名无扩展名时补上（如主域名兜底名补 .zip）
+    private static func localFileName(_ name: String, ext: String?) -> String {
+        var safe = (name as NSString).lastPathComponent
+        for ch in ["/", ":", "\0"] where safe.contains(ch) {
+            safe = safe.replacingOccurrences(of: ch, with: "_")
+        }
+        if let ext, !ext.isEmpty, safe.lowercased().suffix(ext.count + 1) != ".\(ext.lowercased())" {
+            safe += ".\(ext)"
+        }
+        return safe
+    }
+
+    /// 目标目录下不冲突的文件名：同名时追加序号（与备份下载同策略）
+    private static func uniqueFileName(_ name: String, in dir: URL) -> String {
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: dir.appendingPathComponent(name).path) { return name }
+        let ext = (name as NSString).pathExtension
+        let base = ext.isEmpty ? name : String(name.dropLast(ext.count + 1))
+        var index = 1
+        while true {
+            let candidate = ext.isEmpty ? "\(base) \(index)" : "\(base) \(index).\(ext)"
+            if !fm.fileExists(atPath: dir.appendingPathComponent(candidate).path) {
+                return candidate
+            }
+            index += 1
         }
     }
 

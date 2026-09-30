@@ -457,6 +457,179 @@ final class APIClient {
         return destURL
     }
 
+    // MARK: - POST 下载（双形态响应）
+
+    /// POST 触发的文件下载（证书 zip 等）。不同版本面板响应形态不同：
+    /// - 新版（dev-v2+）：直接回附件二进制流，Content-Disposition 携带文件名；
+    ///   若服务端以重定向到站内下载地址，URLSession 自动跟随、最终仍落到这里
+    /// - 旧版：回 JSON 业务包（data 为 {url:"/<uuid>"} 或纯字符串路径），需再
+    ///   GET 一次取真正的压缩包（备份记录下载的返回路径与此同型）
+    /// 站内 url 仅接受以单个 "/" 开头的相对路径并拼到面板自身 baseURL：
+    /// 绝对地址 / 协议相对地址（//host）一律拒绝，防服务端异常数据把下载引向任意主机
+    func downloadPOST(
+        path: String,
+        body: (any Encodable)? = nil,
+        fallbackFileName: String
+    ) async throws -> (data: Data, fileName: String) {
+        try SecurityGate.check(server)
+        guard let url = URL(string: server.normalizedBaseURL + path) else {
+            throw APIError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.httpMethod = "POST"
+        for (k, v) in generateHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+        if let body {
+            request.httpBody = try JSONEncoder().encode(AnyEncodable(body))
+        } else {
+            request.httpBody = Data("{}".utf8)
+        }
+
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw APIError.networkError(error)
+        }
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        let contentType = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
+        if contentType.contains("text/html") {
+            throw APIError.htmlBlocked
+        }
+        guard (200...299).contains(http.statusCode) else {
+            throw APIError.httpError(http.statusCode, L10n.t("下载失败"))
+        }
+
+        if contentType.contains("application/json") {
+            // 旧版形态：JSON 里取站内路径再 GET 压缩包。
+            // 相对路径拼到面板 baseURL；绝对地址仅放行与面板同源的 http/https
+            //（防服务端异常数据把下载引向任意主机）
+            let downloadPath = try Self.inPanelDownloadPath(from: data)
+            guard let fileURL = Self.resolveInPanelURL(downloadPath, baseURL: server.normalizedBaseURL) else {
+                throw APIError.businessError(400, L10n.t("下载地址无效"))
+            }
+            var getRequest = URLRequest(url: fileURL)
+            getRequest.cachePolicy = .reloadIgnoringLocalCacheData
+            getRequest.httpMethod = "GET"
+            for (k, v) in generateHeaders() {
+                getRequest.setValue(v, forHTTPHeaderField: k)
+            }
+            let (fileData, fileResponse): (Data, URLResponse)
+            do {
+                (fileData, fileResponse) = try await session.data(for: getRequest)
+            } catch {
+                throw APIError.networkError(error)
+            }
+            guard let fileHTTP = fileResponse as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            if let ct = fileHTTP.value(forHTTPHeaderField: "Content-Type"), ct.contains("text/html") {
+                throw APIError.htmlBlocked
+            }
+            guard (200...299).contains(fileHTTP.statusCode) else {
+                throw APIError.httpError(fileHTTP.statusCode, L10n.t("下载失败"))
+            }
+            let name = Self.fileName(fromContentDisposition: fileHTTP.value(forHTTPHeaderField: "Content-Disposition"))
+                ?? fallbackFileName
+            return (fileData, name)
+        }
+
+        // 新版形态：响应体即文件内容
+        let name = Self.fileName(fromContentDisposition: http.value(forHTTPHeaderField: "Content-Disposition"))
+            ?? fallbackFileName
+        return (data, name)
+    }
+
+    /// 下载路径解析：以单个 "/" 开头的站内相对路径拼面板 baseURL；
+    /// 绝对地址仅在 http/https 且与面板同源（host + 端口，缺省按 scheme 补
+    /// 80/443）时原样放行；其余（含协议相对 //host、其他 scheme、跨源）
+    /// 一律拒绝返回 nil。internal 供单测（SSLDownloadTests）
+    static func resolveInPanelURL(_ downloadPath: String, baseURL: String) -> URL? {
+        let trimmed = downloadPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if trimmed.hasPrefix("/") && !trimmed.hasPrefix("//") {
+            return URL(string: baseURL + trimmed)
+        }
+        if let abs = URL(string: trimmed),
+           let scheme = abs.scheme?.lowercased(),
+           scheme == "http" || scheme == "https",
+           let host = abs.host, !host.isEmpty,
+           isSameOrigin(abs, as: baseURL) {
+            return abs
+        }
+        return nil
+    }
+
+    /// URL 与面板地址是否同源：仅比 host（大小写不敏感）与端口
+    static func isSameOrigin(_ url: URL, as baseURL: String) -> Bool {
+        guard let base = URL(string: baseURL),
+              let baseHost = base.host, !baseHost.isEmpty,
+              let host = url.host else { return false }
+        func resolvedPort(of u: URL) -> Int {
+            if let p = u.port { return p }
+            return u.scheme?.lowercased() == "https" ? 443 : 80
+        }
+        return host.lowercased() == baseHost.lowercased() && resolvedPort(of: url) == resolvedPort(of: base)
+    }
+
+    /// 旧版下载接口 JSON 里提取站内路径：兼容业务包 {data:{url}} 与 {data:"路径"}，
+    /// 再兜底裸 {url} / 裸字符串（业务包形态优先，保证 code!=200 的错误能抛出）。
+    /// internal 供单测（SSLDownloadTests）
+    static func inPanelDownloadPath(from data: Data) throws -> String {
+        if let wrapped = try? JSONDecoder().decode(APIResponse<WebsiteSSLDownloadResp>.self, from: data) {
+            guard wrapped.isSuccess else {
+                throw APIError.businessError(wrapped.code, wrapped.message ?? "")
+            }
+            if let url = wrapped.data?.url?.trimmingCharacters(in: .whitespacesAndNewlines), !url.isEmpty {
+                return url
+            }
+        }
+        if let wrapped = try? JSONDecoder().decode(APIResponse<String>.self, from: data) {
+            guard wrapped.isSuccess else {
+                throw APIError.businessError(wrapped.code, wrapped.message ?? "")
+            }
+            if let url = wrapped.data?.trimmingCharacters(in: .whitespacesAndNewlines), !url.isEmpty {
+                return url
+            }
+        }
+        if let bare = try? JSONDecoder().decode(WebsiteSSLDownloadResp.self, from: data),
+           let url = bare.url?.trimmingCharacters(in: .whitespacesAndNewlines), !url.isEmpty {
+            return url
+        }
+        throw APIError.businessError(400, L10n.t("下载地址无效"))
+    }
+
+    /// Content-Disposition 里的文件名：兼容 filename*=utf-8''<percent 编码>
+    /// （RFC 5987，dev-v2 服务端格式）与 filename="..."（旧格式）。
+    /// internal 供单测（SSLDownloadTests）
+    static func fileName(fromContentDisposition header: String?) -> String? {
+        guard let header, !header.isEmpty else { return nil }
+        if let range = header.range(of: "filename*=", options: .caseInsensitive) {
+            let raw = header[range.upperBound...]
+                .split(separator: ";").first?
+                .trimmingCharacters(in: .whitespaces) ?? ""
+            // 形如 utf-8''example.com.zip：跳过 charset 与语言两段（以 ' 分隔）
+            let segments = raw.split(separator: "'", maxSplits: 2, omittingEmptySubsequences: false)
+            let encoded = segments.count >= 3 ? String(segments[2]) : raw
+            let decoded = encoded.removingPercentEncoding ?? encoded
+            return decoded.isEmpty ? nil : decoded
+        }
+        if let range = header.range(of: "filename=", options: .caseInsensitive) {
+            var raw = header[range.upperBound...]
+                .split(separator: ";").first?
+                .trimmingCharacters(in: .whitespaces) ?? ""
+            if raw.hasPrefix("\""), raw.hasSuffix("\""), raw.count >= 2 {
+                raw = String(raw.dropFirst().dropLast())
+            }
+            return raw.isEmpty ? nil : raw
+        }
+        return nil
+    }
+
     // MARK: - SSE 流式请求（日志查看）
 
     /// 发起 SSE 流式请求，逐行产出日志内容（已剥离 `data: ` 前缀）

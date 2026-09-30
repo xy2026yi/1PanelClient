@@ -189,6 +189,12 @@ nonisolated struct WebsiteSSLDownloadRequest: Encodable {
     let id: Int
 }
 
+/// 下载 SSL 证书响应（旧版面板形态：返回站内静态下载路径 /<uuid>；
+/// 新版面板直接回 zip 二进制流，不走此结构——见 APIClient.downloadPOST）
+nonisolated struct WebsiteSSLDownloadResp: Decodable {
+    let url: String?
+}
+
 // MARK: - ACME 账户
 
 /// Acme 账户搜索请求

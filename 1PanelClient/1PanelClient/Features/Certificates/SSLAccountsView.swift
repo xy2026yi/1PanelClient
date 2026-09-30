@@ -260,6 +260,10 @@ struct DNSAccountListView: View {
     /// 列表加载失败（渲染页内错误态 + 重试）
     @State private var loadError: String?
     @State private var showCreate = false
+    /// 点击直进编辑（navigationDestination(item:) 推入）
+    @State private var editingAccount: DNSAccount?
+    /// 长按菜单目标（编辑/删除入口；点击行仍直进编辑）
+    @State private var actionAccount: DNSAccount?
     @State private var pendingDelete: DNSAccount?
 
     var body: some View {
@@ -295,6 +299,34 @@ struct DNSAccountListView: View {
         .navigationDestination(isPresented: $showCreate) {
             CreateDNSAccountView(vm: vm)
         }
+        .navigationDestination(item: $editingAccount) { account in
+            CreateDNSAccountView(vm: vm, existingAccount: account) {
+                Task { await load() }
+            }
+        }
+        // 长按操作弹窗：编辑 / 删除。
+        // 菜单项在构建时捕获目标值：ActionBottomSheet 按钮是「先收抽屉、动作延迟
+        // 执行」，闭包内回读 actionAccount 恒为 nil，动作会静默丢失
+        .sheet(isPresented: Binding(
+            get: { actionAccount != nil },
+            set: { if !$0 { actionAccount = nil } }
+        )) {
+            let account = actionAccount
+            return ActionBottomSheet(
+                title: account?.name ?? L10n.t("DNS 账户"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        if let account { editingAccount = account }
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        pendingDelete = account
+                    },
+                ],
+                onDismiss: { actionAccount = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
         .alert(L10n.t("删除 DNS 账户"), isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
@@ -323,20 +355,18 @@ struct DNSAccountListView: View {
     private var accountList: some View {
         List {
             ForEach(accounts) { account in
-                NavigationLink {
-                    CreateDNSAccountView(vm: vm, existingAccount: account) {
-                        Task { await load() }
+                // 纯视图 + 双手势（Button/NavigationLink 会吞掉长按，菜单永远
+                // 弹不出来）；点击直进编辑，长按弹操作菜单（编辑/删除）
+                DNSAccountRow(account: account)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        editingAccount = account
                     }
-                } label: {
-                    DNSAccountRow(account: account)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        pendingDelete = account
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        Haptic.selection()
+                        actionAccount = account
                     }
-                }
             }
         }
         .listStyle(.insetGrouped)
