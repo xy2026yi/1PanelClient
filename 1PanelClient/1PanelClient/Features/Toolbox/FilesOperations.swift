@@ -952,6 +952,10 @@ struct FileWgetProgressView: View {
                             Haptic.selection()
                             actionItem = item
                         }
+                        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                        .accessibilityAction(named: L10n.t("更多操作")) {
+                            if !item.isFinished, item.key != nil { actionItem = item }
+                        }
                     }
                 }
             }

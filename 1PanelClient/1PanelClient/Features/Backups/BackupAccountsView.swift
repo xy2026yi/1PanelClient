@@ -83,12 +83,13 @@ struct BackupAccountsView: View {
             set: { if !$0 { actionAccount = nil } }
         )) {
             let target = actionAccount
-            // 本机账号（LOCAL）不可删，长按菜单仅编辑
-            var items: [ActionMenuItem] = [
-                ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+            // 菜单按能力裁剪：可编辑才给「编辑」，非内置（LOCAL/localhost）才给「删除」
+            var items: [ActionMenuItem] = []
+            if target?.isEditable == true {
+                items.append(ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
                     editingAccount = target
-                },
-            ]
+                })
+            }
             if target?.isProtected != true {
                 items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash",
                                             color: .red, role: .destructive) {
@@ -141,16 +142,17 @@ struct BackupAccountsView: View {
                             .rowTapAndLongPress(
                                 onTap: { editingAccount = account },
                                 onLongPress: { actionAccount = account })
-                    } else if !account.isProtected {
-                        // 客户端暂不支持编辑的类型：保留删除入口（长按）
+                            // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                            .accessibilityAction(named: L10n.t("更多操作")) { actionAccount = account }
+                    } else {
+                        // 客户端暂不支持编辑的类型：长按弹操作菜单（仅删除）
                         BackupAccountRow(account: account)
                             .contentShape(Rectangle())
                             .onLongPressGesture(minimumDuration: 0.5) {
                                 Haptic.selection()
-                                pendingDelete = account
+                                actionAccount = account
                             }
-                    } else {
-                        BackupAccountRow(account: account)
+                            .accessibilityAction(named: L10n.t("更多操作")) { actionAccount = account }
                     }
                 }
             } footer: {

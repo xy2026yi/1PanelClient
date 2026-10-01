@@ -19685,17 +19685,6 @@
         }
       }
     },
-    "拉取中…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pulling…"
-          }
-        }
-      }
-    },
     "拉取失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29464,17 +29453,6 @@
         }
       }
     },
-    "确认拉取" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pull"
-          }
-        }
-      }
-    },
     "确认消息" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33413,17 +33391,6 @@
         }
       }
     },
-    "触发告警时通过发送方式通知，左滑可停用或删除" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alerts notify via send methods; swipe left to disable or delete"
-          }
-        }
-      }
-    },
     "触发告警时通过发送方式通知，长按可停用或删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36196,17 +36163,6 @@
         }
       }
     },
-    "输入镜像名后回车继续添加，支持同时拉取多个镜像。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Press Return after each image name to add more; multiple images can be pulled at once."
-          }
-        }
-      }
-    },
     "输出类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38381,17 +38337,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "image:tag"
-          }
-        }
-      }
-    },
-    "镜像名（回车添加）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Image (Return to add)"
           }
         }
       }

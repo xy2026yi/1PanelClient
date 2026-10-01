@@ -166,6 +166,8 @@ struct WebsiteLbsView: View {
         .rowTapAndLongPress(
             onTap: { editingItem = item },
             onLongPress: { actionLbs = item })
+        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+        .accessibilityAction(named: L10n.t("更多操作")) { actionLbs = item }
     }
 
     private func algorithmName(_ raw: String) -> String {

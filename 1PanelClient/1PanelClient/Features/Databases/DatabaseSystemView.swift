@@ -430,6 +430,8 @@ struct DatabaseSystemView: View {
                     .rowTapAndLongPress(
                         onTap: { pushedDb = db },
                         onLongPress: { actionDb = db })
+                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                    .accessibilityAction(named: L10n.t("更多操作")) { actionDb = db }
                     .onAppear {
                         // 触底判定用未过滤列表的末行：过滤后末行可能不可见，
                         // 挂底部的加载行兜底触发；过滤空时若还有未加载页，
@@ -473,6 +475,8 @@ struct DatabaseSystemView: View {
                     .rowTapAndLongPress(
                         onTap: { pushedUser = user },
                         onLongPress: { actionUser = user })
+                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                    .accessibilityAction(named: L10n.t("更多操作")) { actionUser = user }
             }
             if filteredUsers.isEmpty {
                 ContentUnavailableView {

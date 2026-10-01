@@ -310,6 +310,8 @@ struct AlertNotificationView: View {
                         .rowTapAndLongPress(
                             onTap: { editingRule = rule },
                             onLongPress: { actionRule = rule })
+                        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                        .accessibilityAction(named: L10n.t("更多操作")) { actionRule = rule }
                 }
             }
         }
@@ -409,6 +411,8 @@ struct AlertNotificationView: View {
                     .rowTapAndLongPress(
                         onTap: { editingConfig = config },
                         onLongPress: { actionConfig = config })
+                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                    .accessibilityAction(named: L10n.t("更多操作")) { actionConfig = config }
             } else {
                 // 客户端暂不支持编辑的类型：无单击，仅长按弹操作菜单（启停/删除）
                 AlertConfigRow(config: config)
@@ -417,6 +421,8 @@ struct AlertNotificationView: View {
                         Haptic.selection()
                         actionConfig = config
                     }
+                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                    .accessibilityAction(named: L10n.t("更多操作")) { actionConfig = config }
             }
         }
     }

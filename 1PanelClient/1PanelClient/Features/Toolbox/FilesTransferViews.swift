@@ -484,6 +484,8 @@ struct FileFavoriteView: View {
                         .rowTapAndLongPress(
                             onTap: { openFavorite(fav) },
                             onLongPress: { actionFav = fav })
+                        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                        .accessibilityAction(named: L10n.t("更多操作")) { actionFav = fav }
                         .onAppear {
                             if fav.id == favorites.last?.id {
                                 Task { await loadMore() }

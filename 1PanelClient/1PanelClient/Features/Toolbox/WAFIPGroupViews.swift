@@ -63,6 +63,8 @@ struct WAFIPGroupsView: View {
                         .rowTapAndLongPress(
                             onTap: { editingGroup = item },
                             onLongPress: { actionGroup = item })
+                        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                        .accessibilityAction(named: L10n.t("更多操作")) { actionGroup = item }
                     }
                 } header: {
                     SectionLabel(title: L10n.f("IP 组（%ld）", items.count), systemImage: "rectangle.3.group")

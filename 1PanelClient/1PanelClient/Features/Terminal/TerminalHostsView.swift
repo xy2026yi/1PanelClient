@@ -221,6 +221,8 @@ struct TerminalHostsView: View {
                     .rowTapAndLongPress(
                         onTap: { Task { await connect(host) } },
                         onLongPress: { actionHost = host })
+                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                    .accessibilityAction(named: L10n.t("更多操作")) { actionHost = host }
                 }
             }
         } header: {
@@ -772,6 +774,8 @@ struct PanelTerminalSessionsView: View {
                             Haptic.selection()
                             actionSession = session
                         }
+                        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                        .accessibilityAction(named: L10n.t("更多操作")) { actionSession = session }
                     }
                 } header: {
                     Text(L10n.f("共 %ld 个", sessions.count))

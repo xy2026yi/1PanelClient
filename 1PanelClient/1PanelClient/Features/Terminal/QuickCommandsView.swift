@@ -117,6 +117,8 @@ struct QuickCommandsView: View {
                         .rowTapAndLongPress(
                             onTap: { editing = cmd },
                             onLongPress: { actionCmd = cmd })
+                        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                        .accessibilityAction(named: L10n.t("更多操作")) { actionCmd = cmd }
                 }
             } footer: {
                 Text(L10n.t("在终端界面的菜单中可快速执行这些命令"))
