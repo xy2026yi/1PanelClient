@@ -15,6 +15,8 @@ struct WAFIPGroupsView: View {
     @State private var isLoading = false
     @State private var showCreate = false
     @State private var editingGroup: WAFIPGroupItem?
+    /// 长按半屏菜单目标（编辑/删除；点击行仍直进编辑）
+    @State private var actionGroup: WAFIPGroupItem?
     @State private var successMessage: String?
     @State private var errorMessage: String?
     /// 列表加载失败（区别于操作失败 errorMessage：本状态渲染页内错误态 + 重试）
@@ -42,32 +44,25 @@ struct WAFIPGroupsView: View {
             } else {
                 Section {
                     ForEach(items) { item in
-                        Button {
-                            editingGroup = item
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(item.name).font(.body)
-                                    // 配置内容不外显：点击进入即可完整查看
-                                    if let source = item.source, !source.isEmpty {
-                                        StatusBadge(text: source == "imported" ? L10n.t("手动") : L10n.t("远程"), color: .blue)
-                                    }
+                        // 纯视图 + 双手势（Button 会吞长按）：单击直达编辑、
+                        // 长按弹操作菜单（编辑/删除；长按松手不触发单击）
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.name).font(.body)
+                                // 配置内容不外显：点击进入即可完整查看
+                                if let source = item.source, !source.isEmpty {
+                                    StatusBadge(text: source == "imported" ? L10n.t("手动") : L10n.t("远程"), color: .blue)
                                 }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
                             }
-                            .contentShape(Rectangle())
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
                         }
-                        .buttonStyle(.plain)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                pendingDeleteGroup = item
-                            } label: {
-                                Label(L10n.t("删除"), systemImage: "trash")
-                            }
-                        }
+                        .contentShape(Rectangle())
+                        .rowTapAndLongPress(
+                            onTap: { editingGroup = item },
+                            onLongPress: { actionGroup = item })
                     }
                 } header: {
                     SectionLabel(title: L10n.f("IP 组（%ld）", items.count), systemImage: "rectangle.3.group")
@@ -97,6 +92,28 @@ struct WAFIPGroupsView: View {
             WAFIPGroupEditView(server: server, item: item) {
                 Task { await loadItems() }
             }
+        }
+        // 长按操作弹窗：编辑 / 删除（呈现时捕获目标，动作在 onDismiss 后执行）
+        .sheet(isPresented: Binding(
+            get: { actionGroup != nil },
+            set: { if !$0 { actionGroup = nil } }
+        )) {
+            let target = actionGroup
+            ActionBottomSheet(
+                title: target?.name ?? L10n.t("IP 组"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        editingGroup = target
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                   color: .red, role: .destructive) {
+                        pendingDeleteGroup = target
+                    },
+                ],
+                onDismiss: { actionGroup = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
         }
         .localToast(message: $successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(

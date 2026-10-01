@@ -17,6 +17,21 @@ struct ContainerResourceModelsTests {
         try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(req)) as? [String: Any])
     }
 
+    // MARK: 镜像打标签（抓包 2026-10-01：仅 sourceID + tags，仓库参数不参与提交）
+
+    @Test("打标签请求编码（sourceID + tags，无仓库字段）")
+    func encodeImageTag() throws {
+        let req = try encode(ImageTagRequest(
+            sourceID: "sha256:1ed1b0e1d7652937d6cbdaf4018c7b6fc009a7dd6c3047351e2eddda745de43f",
+            tags: ["nginx:alpine-old", "nginx-old:alpine"]))
+        #expect(req["sourceID"] as? String == "sha256:1ed1b0e1d7652937d6cbdaf4018c7b6fc009a7dd6c3047351e2eddda745de43f")
+        let tags = try #require(req["tags"] as? [String])
+        #expect(tags == ["nginx:alpine-old", "nginx-old:alpine"])
+        // 仓库开关/仓库名不参与提交（与网页端实测一致）
+        #expect(req["repoID"] == nil)
+        #expect(req["fromRepo"] == nil)
+    }
+
     // MARK: 网络
 
     @Test("网络创建编码（bridge + IPv4 + 参数/标签双字段，抓包样本）")

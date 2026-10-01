@@ -740,6 +740,23 @@ final class ContainersViewModel: ObservableObject {
         }
     }
 
+    /// 镜像打标签（POST /containers/image/tag）：成功返回 true 由调用方刷新列表
+    func tagImage(sourceID: String, tags: [String]) async -> Bool {
+        imageOperating = true
+        defer { imageOperating = false }
+        let req = ImageTagRequest(sourceID: sourceID, tags: tags)
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersImageTag.path,
+                body: req, as: EmptyResponse.self
+            )
+            return true
+        } catch {
+            showAlert(message: L10n.f("打标签失败：%@", error.localizedDescription))
+            return false
+        }
+    }
+
     // MARK: - 查询仓库
 
     private struct RepoSearchRequest: Encodable {

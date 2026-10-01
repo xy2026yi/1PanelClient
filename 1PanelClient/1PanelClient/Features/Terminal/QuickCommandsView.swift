@@ -20,6 +20,8 @@ struct QuickCommandsView: View {
 
     @State private var showCreate = false
     @State private var editing: QuickCommand?
+    /// 长按半屏菜单目标（编辑/删除；点击行仍直进编辑）
+    @State private var actionCmd: QuickCommand?
 
     var body: some View {
         Group {
@@ -78,6 +80,29 @@ struct QuickCommandsView: View {
         .navigationDestination(item: $editing) { cmd in
             QuickCommandEditView(vm: vm, editing: cmd, presentedAsSheet: false)
         }
+        // 长按操作弹窗：编辑 / 删除（呈现时捕获目标，动作在 onDismiss 后执行，
+        // 闭包晚读 actionCmd 恒为 nil）
+        .sheet(isPresented: Binding(
+            get: { actionCmd != nil },
+            set: { if !$0 { actionCmd = nil } }
+        )) {
+            let target = actionCmd
+            ActionBottomSheet(
+                title: target?.name ?? L10n.t("快速命令"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        editing = target
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                   color: .red, role: .destructive) {
+                        vm.pendingDelete = target
+                    },
+                ],
+                onDismiss: { actionCmd = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
         .task { await vm.loadAll() }
         .refreshable { await vm.loadAll(force: true) }
     }
@@ -86,25 +111,12 @@ struct QuickCommandsView: View {
         List {
             Section {
                 ForEach(vm.commands) { cmd in
-                    Button {
-                        editing = cmd
-                    } label: {
-                        QuickCommandRow(command: cmd)
-                    }
-                    .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            vm.pendingDelete = cmd
-                        } label: {
-                            Label(L10n.t("删除"), systemImage: "trash")
-                        }
-                        Button {
-                            editing = cmd
-                        } label: {
-                            Label(L10n.t("编辑"), systemImage: "pencil")
-                        }
-                        .tint(.blue)
-                    }
+                    // 纯视图 + 双手势（Button 会吞长按）：单击直达编辑、
+                    // 长按弹操作菜单（编辑/删除；长按松手不触发单击）
+                    QuickCommandRow(command: cmd)
+                        .rowTapAndLongPress(
+                            onTap: { editing = cmd },
+                            onLongPress: { actionCmd = cmd })
                 }
             } footer: {
                 Text(L10n.t("在终端界面的菜单中可快速执行这些命令"))

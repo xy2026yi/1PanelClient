@@ -17,6 +17,10 @@ struct BackupAccountsView: View {
     @StateObject private var vm: BackupAccountsViewModel
     @State private var showCreate = false
     @State private var pendingDelete: BackupAccount?
+    /// 点击/菜单「编辑」推入的账号（NavigationLink 会吞长按，改编程式推入）
+    @State private var editingAccount: BackupAccount?
+    /// 长按半屏菜单目标（编辑/删除；本机账号不提供删除）
+    @State private var actionAccount: BackupAccount?
 
     init(server: ServerConfig) {
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.backupAccount.storeKey(server: server)) {
@@ -65,8 +69,40 @@ struct BackupAccountsView: View {
                 Task { await vm.refresh() }
             }
         }
+        .navigationDestination(item: $editingAccount) { account in
+            BackupAccountEditView(vm: vm, existing: account) {
+                Task { await vm.refresh() }
+            }
+        }
         .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
         .refreshable { await vm.refresh() }
+        // 长按操作弹窗：编辑 / 删除（呈现时捕获目标，动作在 onDismiss 后执行，
+        // 闭包晚读 actionAccount 恒为 nil）
+        .sheet(isPresented: Binding(
+            get: { actionAccount != nil },
+            set: { if !$0 { actionAccount = nil } }
+        )) {
+            let target = actionAccount
+            // 本机账号（LOCAL）不可删，长按菜单仅编辑
+            var items: [ActionMenuItem] = [
+                ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                    editingAccount = target
+                },
+            ]
+            if target?.isProtected != true {
+                items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                            color: .red, role: .destructive) {
+                    pendingDelete = target
+                })
+            }
+            return ActionBottomSheet(
+                title: target?.displayName ?? L10n.t("备份账号"),
+                items: items,
+                onDismiss: { actionAccount = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: items.count))])
+            .presentationDragIndicator(.visible)
+        }
         .alert(L10n.t("删除备份账号"), isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
@@ -100,33 +136,21 @@ struct BackupAccountsView: View {
             Section {
                 ForEach(vm.accounts) { account in
                     if account.isEditable {
-                        NavigationLink {
-                            BackupAccountEditView(vm: vm, existing: account) {
-                                Task { await vm.refresh() }
+                        // 可编辑：单击进编辑、长按弹操作菜单（编辑/删除）
+                        BackupAccountRow(account: account)
+                            .rowTapAndLongPress(
+                                onTap: { editingAccount = account },
+                                onLongPress: { actionAccount = account })
+                    } else if !account.isProtected {
+                        // 客户端暂不支持编辑的类型：保留删除入口（长按）
+                        BackupAccountRow(account: account)
+                            .contentShape(Rectangle())
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                Haptic.selection()
+                                pendingDelete = account
                             }
-                        } label: {
-                            BackupAccountRow(account: account)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            if !account.isProtected {
-                                Button(role: .destructive) {
-                                    pendingDelete = account
-                                } label: {
-                                    Label(L10n.t("删除"), systemImage: "trash")
-                                }
-                            }
-                        }
                     } else {
                         BackupAccountRow(account: account)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                if !account.isProtected {
-                                    Button(role: .destructive) {
-                                        pendingDelete = account
-                                    } label: {
-                                        Label(L10n.t("删除"), systemImage: "trash")
-                                    }
-                                }
-                            }
                     }
                 }
             } footer: {

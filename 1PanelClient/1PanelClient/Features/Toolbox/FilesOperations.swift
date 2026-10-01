@@ -888,6 +888,8 @@ struct FileWgetProgressView: View {
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var session: FileWgetProcessSession
+    /// 长按操作菜单目标（停止；仅进行中且可停止的任务挂手势）
+    @State private var actionItem: FileWgetProgress?
 
     init(server: ServerConfig, target: FileWgetProgressTarget, onFinished: @escaping () -> Void) {
         self.server = server
@@ -942,15 +944,13 @@ struct FileWgetProgressView: View {
                             .foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 2)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            if !item.isFinished, item.key != nil {
-                                Button(role: .destructive) {
-                                    Haptic.warning()
-                                    Task { await session.stopDownload(item) }
-                                } label: {
-                                    Label(L10n.t("停止"), systemImage: "stop.fill")
-                                }
-                            }
+                        // 长按弹操作菜单「停止」（仅进行中且可停止的任务；
+                        // 原左划「停止」，中途一度改为点击）
+                        .contentShape(Rectangle())
+                        .onLongPressGesture(minimumDuration: 0.5) {
+                            guard !item.isFinished, item.key != nil else { return }
+                            Haptic.selection()
+                            actionItem = item
                         }
                     }
                 }
@@ -964,6 +964,28 @@ struct FileWgetProgressView: View {
             }
         }
         .presentationDragIndicator(.visible)
+        // 长按操作弹窗：停止（呈现时捕获目标，动作在 onDismiss 后执行）
+        .sheet(isPresented: Binding(
+            get: { actionItem != nil },
+            set: { if !$0 { actionItem = nil } }
+        )) {
+            let target = actionItem
+            ActionBottomSheet(
+                title: target?.name ?? L10n.t("下载任务"),
+                items: [
+                    ActionMenuItem(title: L10n.t("停止"), icon: "stop.fill",
+                                   color: .red, role: .destructive) {
+                        if let item = target {
+                            Haptic.warning()
+                            Task { await session.stopDownload(item) }
+                        }
+                    },
+                ],
+                onDismiss: { actionItem = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
+            .presentationDragIndicator(.visible)
+        }
         .task { session.start() }
         .onDisappear {
             session.stop()

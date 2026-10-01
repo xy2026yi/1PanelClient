@@ -58,6 +58,7 @@ enum APIEndpoint {
     case containersLimit          // GET  CPU/内存上限（创建容器用）
     case containersImagePull      // POST 拉取镜像
     case containersImageRemove    // POST 删除镜像（body: taskID + sha256 镜像 ID 列表）
+    case containersImageTag       // POST 镜像打标签（body: sourceID + tags 列表）
     case containersRepoSearch     // POST 查询已配置的仓库
     case containersRepoCreate     // POST 添加镜像仓库
     case containersRepoUpdate     // POST 编辑镜像仓库
@@ -748,6 +749,7 @@ enum APIEndpoint {
         case .containersLimit:          return "/api/v2/containers/limit"
         case .containersImagePull:      return "/api/v2/containers/image/pull"
         case .containersImageRemove:    return "/api/v2/containers/image/remove"
+        case .containersImageTag:       return "/api/v2/containers/image/tag"
         case .containersRepoSearch:     return "/api/v2/containers/repo/search"
         case .containersRepoCreate:     return "/api/v2/containers/repo"
         case .containersRepoUpdate:     return "/api/v2/containers/repo/update"

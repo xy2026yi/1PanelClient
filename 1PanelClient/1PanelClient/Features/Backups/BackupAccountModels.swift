@@ -11,7 +11,7 @@ import Combine
 // MARK: - 模型
 
 /// 备份账号（POST /backups/search 返回的 items 元素）
-nonisolated struct BackupAccount: Decodable, Identifiable {
+nonisolated struct BackupAccount: Decodable, Identifiable, Hashable {
     let id: Int
     let name: String?
     let type: String?

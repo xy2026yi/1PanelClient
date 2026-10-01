@@ -13,14 +13,27 @@ struct ContainerImageView: View {
     @State private var showRepos = false
     @State private var showPruneSelect = false
     @State private var showMenu = false
-    /// 左滑删除的待确认镜像
+    /// 长按菜单目标（更新/标签/删除）
+    @State private var actionImage: ContainerImage?
+    /// 删除待确认镜像
     @State private var pendingDeleteImage: ContainerImage?
+    /// 更新待确认镜像（确认后走 pull 任务）
+    @State private var pendingUpdateImage: ContainerImage?
+    /// 标签表单推入目标
+    @State private var taggingImage: ContainerImage?
     /// 删除任务进度（taskID 非空时 push TaskProgressView）
     @State private var deleteTaskID: String?
+    /// 更新任务进度（taskID 非空时 push TaskProgressView）
+    @State private var updateTaskID: String?
     /// 搜索框状态（服务端分页过滤，输入防抖后重查第一页）
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var searchDebounce: Task<Void, Never>?
+
+    /// 镜像是否可删除（原左划删除按钮的禁用条件：使用中 / 无 tag）
+    private func canDelete(_ img: ContainerImage) -> Bool {
+        img.isUsed != true && !(img.tags?.first ?? "").isEmpty
+    }
 
     var body: some View {
         Group {
@@ -44,13 +57,11 @@ struct ContainerImageView: View {
                 List {
                     ForEach(vm.images) { img in
                         ImageRow(image: img)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    pendingDeleteImage = img
-                                } label: {
-                                    Label(L10n.t("删除"), systemImage: "trash")
-                                }
-                                .disabled(img.isUsed == true || (img.tags?.first ?? "").isEmpty)
+                            // 无点击动作：长按弹操作菜单（原左划删除收编为 更新/标签/删除）
+                            .contentShape(Rectangle())
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                Haptic.selection()
+                                actionImage = img
                             }
                             .onAppear {
                                 // 滚动到底自动追加下一页
@@ -106,6 +117,37 @@ struct ContainerImageView: View {
                 }
             }
         }
+        // 长按操作弹窗（呈现时捕获目标，动作在 onDismiss 后执行，闭包晚读恒为 nil）。
+        // 更新/删除均需镜像带 tag（更新按 名:tag 拉取、删除按完整 ID）
+        .sheet(isPresented: Binding(
+            get: { actionImage != nil },
+            set: { if !$0 { actionImage = nil } }
+        )) {
+            let target = actionImage
+            let hasTag = !(target?.tags?.first ?? "").isEmpty
+            var items: [ActionMenuItem] = []
+            if hasTag {
+                items.append(ActionMenuItem(title: L10n.t("更新"), icon: "arrow.clockwise", color: .blue) {
+                    pendingUpdateImage = target
+                })
+            }
+            items.append(ActionMenuItem(title: L10n.t("标签"), icon: "tag", color: .teal) {
+                taggingImage = target
+            })
+            if let img = target, canDelete(img) {
+                items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                            color: .red, role: .destructive) {
+                    pendingDeleteImage = target
+                })
+            }
+            return ActionBottomSheet(
+                title: target?.displayName ?? L10n.t("镜像"),
+                items: items,
+                onDismiss: { actionImage = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: items.count))])
+            .presentationDragIndicator(.visible)
+        }
         .navigationDestination(isPresented: $showPull) {
             PullImageView(vm: vm)
         }
@@ -115,12 +157,36 @@ struct ContainerImageView: View {
         .navigationDestination(isPresented: $showPruneSelect) {
             ImagePruneSelectView(vm: vm)
         }
+        .navigationDestination(item: $taggingImage) { img in
+            ImageTagView(vm: vm, image: img) {
+                Task { await vm.loadImages() }
+            }
+        }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
         .toastOverlay(message: $vm.toastMessage)
+        // 更新确认（对齐网页端文案）：确认后按 名:tag 走 pull 任务
+        .alert(L10n.t("更新"), isPresented: Binding(
+            get: { pendingUpdateImage != nil },
+            set: { if !$0 { pendingUpdateImage = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingUpdateImage = nil }
+            Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
+                if let img = pendingUpdateImage, let tag = img.tags?.first {
+                    Task {
+                        updateTaskID = await vm.pullImage(
+                            fromRepo: false, repoID: 0, imageNames: [tag])
+                    }
+                }
+                pendingUpdateImage = nil
+            }
+        } message: {
+            Text(L10n.t("将检查镜像仓库中的同名标签，若有更新则拉取并更新本地镜像。"))
+        }
         .alert(L10n.t("删除镜像"), isPresented: Binding(
             get: { pendingDeleteImage != nil },
             set: { if !$0 { pendingDeleteImage = nil } }
@@ -145,6 +211,19 @@ struct ContainerImageView: View {
                 TaskProgressView(taskID: taskID, title: L10n.t("删除镜像")) { _ in
                     Task { await vm.loadImages() }
                     deleteTaskID = nil
+                    return true
+                }
+            }
+        }
+        // 更新任务进度页；完成或转后台后刷新列表并返回
+        .navigationDestination(isPresented: Binding(
+            get: { updateTaskID != nil },
+            set: { if !$0 { updateTaskID = nil } }
+        )) {
+            if let taskID = updateTaskID {
+                TaskProgressView(taskID: taskID, title: L10n.t("更新镜像")) { _ in
+                    Task { await vm.loadImages() }
+                    updateTaskID = nil
                     return true
                 }
             }
@@ -191,6 +270,114 @@ struct ImageRow: View {
     }
 }
 
+// MARK: - 镜像打标签
+
+/// 镜像打标签表单（POST /containers/image/tag {sourceID, tags}，抓包 2026-10-01）。
+/// 「镜像仓库」开关与仓库名下拉对齐网页端表单，但均不参与提交（实测开与关请求体相同）
+struct ImageTagView: View {
+    @ObservedObject var vm: ContainersViewModel
+    let image: ContainerImage
+    var onDone: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    /// 镜像仓库默认关（与网页端一致；开关与仓库名均不参与提交）
+    @State private var fromRepo = false
+    @State private var repos: [ContainerRepo] = []
+    @State private var selectedRepoID = 0
+    /// 现有标签回填（一行一个；提交时按行拆分）
+    @State private var tagsText: String
+    @State private var isSubmitting = false
+    @State private var showValidationAlert = false
+
+    init(vm: ContainersViewModel, image: ContainerImage, onDone: @escaping () -> Void) {
+        self.vm = vm
+        self.image = image
+        self.onDone = onDone
+        _tagsText = State(initialValue: (image.tags ?? []).joined(separator: "\n"))
+    }
+
+    /// 仓库名下拉 Int ↔ String（OutlinedPicker 用 String）
+    private var repoIDBinding: Binding<String> {
+        Binding<String>(
+            get: { String(selectedRepoID) },
+            set: { selectedRepoID = Int($0) ?? 0 }
+        )
+    }
+
+    var body: some View {
+        Form {
+            Section(L10n.t("来源")) {
+                Toggle(L10n.t("镜像仓库"), isOn: $fromRepo)
+                if fromRepo {
+                    if repos.isEmpty {
+                        Text(L10n.t("暂无已配置的仓库"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        OutlinedPicker(
+                            label: L10n.t("仓库名"),
+                            options: repos.map { String($0.id) },
+                            selection: repoIDBinding,
+                            optionLabels: Dictionary(uniqueKeysWithValues:
+                                repos.map { (String($0.id), $0.name ?? L10n.t("未知")) }))
+                    }
+                }
+            }
+
+            Section {
+                OutlinedMultiLineField(label: L10n.t("镜像标签"),
+                                       lines: 4, fixedLines: 4,
+                                       monospaced: true, text: $tagsText)
+            } footer: {
+                Text(L10n.t("一行一个标签（如 nginx:alpine-old）"))
+            }
+        }
+        .navigationTitle(L10n.t("标签"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(isSubmitting ? L10n.t("保存中…") : L10n.t("确认")) {
+                    Task { await submit() }
+                }
+                .disabled(isSubmitting)
+            }
+        }
+        .alert(L10n.t("提示"), isPresented: $showValidationAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(L10n.t("请填写镜像标签"))
+        }
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
+        .task {
+            // 仓库名仅表单展示（不参与提交），加载失败静默为空
+            repos = (try? await vm.loadRepos()) ?? []
+            if let first = repos.first { selectedRepoID = first.id }
+        }
+    }
+
+    private func submit() async {
+        let tags = tagsText.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        guard !tags.isEmpty else {
+            showValidationAlert = true
+            return
+        }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        if await vm.tagImage(sourceID: image.id, tags: tags) {
+            vm.showToast(L10n.t("镜像标签已保存"))
+            onDone()
+            dismiss()
+        }
+    }
+}
+
 // MARK: - 拉取镜像
 
 struct PullImageView: View {
@@ -200,11 +387,18 @@ struct PullImageView: View {
     @State private var fromRepo = true
     @State private var repos: [ContainerRepo] = []
     @State private var selectedRepoID: Int = 0
-    @State private var imageNameInput = ""
-    @State private var imageNames: [String] = []
+    /// 镜像名（形态 7.1：一行一个，提交时拆分）
+    @State private var namesText = ""
     @State private var isPulling = false
     @State private var pullTaskID: String?
     @State private var showTaskProgress = false
+
+    /// 提交用镜像名列表（按行拆分、去空白行）
+    private var imageNames: [String] {
+        namesText.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
 
     private var canPull: Bool {
         !imageNames.isEmpty && (!fromRepo || selectedRepoID > 0)
@@ -231,60 +425,29 @@ struct PullImageView: View {
             }
 
             Section {
-                ForEach(imageNames.indices, id: \.self) { idx in
-                    HStack {
-                        Image(systemName: "square.stack.3d.up")
-                            .foregroundStyle(.teal)
-                        Text(imageNames[idx])
-                            .font(.dataMonospaced)
-                        Spacer()
-                        Button {
-                            imageNames.remove(at: idx)
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.red.opacity(0.7))
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-
-                HStack {
-                    Image(systemName: "plus.circle")
-                        .foregroundStyle(.secondary)
-                    TextField(L10n.t("镜像名（回车添加）"), text: $imageNameInput)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .onSubmit {
-                            addImage()
-                        }
-                    if !imageNameInput.isEmpty {
-                        Button(L10n.t("添加")) {
-                            addImage()
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            } header: {
-                Text(L10n.t("镜像名"))
+                OutlinedMultiLineField(label: L10n.t("镜像名"),
+                                       lines: 4, fixedLines: 4,
+                                       monospaced: true, text: $namesText)
             } footer: {
-                Text(L10n.t("输入镜像名后回车继续添加，支持同时拉取多个镜像。"))
+                Text(L10n.t("一行一个镜像名，可同时拉取多个。"))
             }
-
-            Section {
+        }
+        .navigationTitle(L10n.t("拉取镜像"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { await startPull() }
                 } label: {
-                    HStack {
-                        if isPulling { ProgressView().scaleEffect(0.7) }
-                        Text(isPulling ? L10n.t("拉取中…") : L10n.t("确认拉取"))
-                            .frame(maxWidth: .infinity)
+                    if isPulling {
+                        ProgressView()
+                    } else {
+                        Text(L10n.t("拉取")).bold()
                     }
                 }
                 .disabled(!canPull || isPulling)
             }
         }
-        .navigationTitle(L10n.t("拉取镜像"))
-        .navigationBarTitleDisplayMode(.inline)
         .task {
             // 拉取表单仅需仓库名列表，加载失败静默为空（表单会提示暂无仓库）
             repos = (try? await vm.loadRepos()) ?? []
@@ -298,13 +461,6 @@ struct PullImageView: View {
                 }
             }
         }
-    }
-
-    private func addImage() {
-        let trimmed = imageNameInput.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
-        imageNames.append(trimmed)
-        imageNameInput = ""
     }
 
     private func startPull() async {
@@ -321,7 +477,6 @@ struct PullImageView: View {
         }
     }
 }
-
 
 // MARK: - 镜像清理选择
 

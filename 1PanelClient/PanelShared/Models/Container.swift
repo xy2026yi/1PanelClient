@@ -271,6 +271,15 @@ nonisolated struct ImageDeleteRequest: Encodable {
     let names: [String]
 }
 
+// MARK: - 镜像打标签请求（POST /containers/image/tag，抓包 2026-10-01）
+
+/// sourceID 为完整镜像 ID（sha256:...）；tags 一行一个（如 nginx:alpine-old）。
+/// 网页端表单的「镜像仓库/仓库名」开关与下拉不参与提交（实测开与关请求体相同）
+nonisolated struct ImageTagRequest: Encodable {
+    let sourceID: String
+    let tags: [String]
+}
+
 // MARK: - 镜像（GET /containers/image/all · POST /containers/image/search）
 
 /// 镜像分页搜索请求（orderBy/order 为服务端 required oneof 校验，须传合法值）
@@ -282,7 +291,7 @@ nonisolated struct ContainerImageSearchRequest: Encodable {
     let order: String
 }
 
-nonisolated struct ContainerImage: Decodable, Identifiable {
+nonisolated struct ContainerImage: Decodable, Identifiable, Hashable {
     let id: String
     let createdAt: String?
     let isUsed: Bool?

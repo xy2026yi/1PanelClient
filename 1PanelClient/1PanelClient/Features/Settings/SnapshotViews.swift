@@ -25,6 +25,8 @@ struct SnapshotListView: View {
     @State private var recoveringItem: SnapshotItem?
     @State private var editingSnapshot: SnapshotItem?
     @State private var pendingRecreate: SnapshotItem?
+    /// 长按半屏菜单目标（恢复/修改描述/重新制作/删除；点击行仍直达恢复）
+    @State private var actionSnapshot: SnapshotItem?
     /// 创建/恢复任务（taskID → 任务进度页）
     @State private var progressTask: SnapshotTaskTarget?
 
@@ -80,6 +82,34 @@ struct SnapshotListView: View {
                 showAddMenu = false
             }
             .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
+        // 长按操作弹窗（呈现时捕获目标，动作在 onDismiss 后执行，闭包晚读恒为 nil）
+        .sheet(isPresented: Binding(
+            get: { actionSnapshot != nil },
+            set: { if !$0 { actionSnapshot = nil } }
+        )) {
+            let target = actionSnapshot
+            ActionBottomSheet(
+                title: target?.displayName ?? L10n.t("快照"),
+                items: [
+                    ActionMenuItem(title: L10n.t("恢复"), icon: "arrow.counterclockwise", color: .blue) {
+                        recoveringItem = target
+                    },
+                    ActionMenuItem(title: L10n.t("修改描述"), icon: "pencil.line", color: .teal) {
+                        editingSnapshot = target
+                    },
+                    ActionMenuItem(title: L10n.t("重新制作"), icon: "hammer", color: .indigo) {
+                        pendingRecreate = target
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        deleteWithFile = false
+                        pendingDelete = target
+                    },
+                ],
+                onDismiss: { actionSnapshot = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 4))])
             .presentationDragIndicator(.visible)
         }
         .task { await vm.load() }
@@ -206,34 +236,10 @@ struct SnapshotListView: View {
             }
         }
         .padding(.vertical, 2)
-        .contentShape(Rectangle())
-        .onTapGesture { recoveringItem = snapshot }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                deleteWithFile = false
-                pendingDelete = snapshot
-            } label: {
-                Label(L10n.t("删除"), systemImage: "trash")
-            }
-            Button {
-                recoveringItem = snapshot
-            } label: {
-                Label(L10n.t("恢复"), systemImage: "arrow.counterclockwise")
-            }
-            .tint(.blue)
-            Button {
-                editingSnapshot = snapshot
-            } label: {
-                Label(L10n.t("修改描述"), systemImage: "pencil.line")
-            }
-            .tint(.teal)
-            Button {
-                pendingRecreate = snapshot
-            } label: {
-                Label(L10n.t("重新制作"), systemImage: "hammer")
-            }
-            .tint(.indigo)
-        }
+        // 单击直达恢复（原行为不变），长按弹操作菜单（原左划四动作收编）
+        .rowTapAndLongPress(
+            onTap: { recoveringItem = snapshot },
+            onLongPress: { actionSnapshot = snapshot })
     }
 
     static func fmt(_ bytes: Int64) -> String {

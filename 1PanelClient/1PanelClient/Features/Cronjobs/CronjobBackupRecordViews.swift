@@ -90,14 +90,9 @@ struct CronjobBackupRecordsView: View {
             }
         }
         .padding(.vertical, 2)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button {
-                editingRecord = record
-            } label: {
-                Label(L10n.t("修改描述"), systemImage: "pencil.line")
-            }
-            .tint(.teal)
-        }
+        // 点击行修改描述（原左划「修改描述」，唯一动作直提为点击）
+        .contentShape(Rectangle())
+        .onTapGesture { editingRecord = record }
     }
 }
 

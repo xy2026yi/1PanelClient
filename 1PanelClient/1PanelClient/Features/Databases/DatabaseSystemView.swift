@@ -53,6 +53,14 @@ struct DatabaseSystemView: View {
     }
 
     @State private var pendingDeleteUser: DatabaseUser?
+    /// 数据库长按菜单目标（编辑/删除；点击行仍直进详情）
+    @State private var actionDb: DatabaseItem?
+    /// 点击/菜单「编辑」推入的数据库（详情页即编辑面；NavigationLink 会吞长按改编程式推入）
+    @State private var pushedDb: DatabaseItem?
+    /// 用户长按菜单目标（编辑/删除；点击行仍直进详情）
+    @State private var actionUser: DatabaseUser?
+    /// 点击/菜单「编辑」推入的用户
+    @State private var pushedUser: DatabaseUser?
     /// 删除前记录的相邻用户 id：usersReloadToken 整节重建后回滚列表位置
     @State private var usersAnchorID: String?
     @State private var searchText = ""
@@ -141,6 +149,58 @@ struct DatabaseSystemView: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateDatabaseView(system: vm.system) { await vm.loadDatabases() }
+        }
+        .navigationDestination(item: $pushedDb) { db in
+            DatabaseDetailView(database: db, system: vm.system) { await vm.loadDatabases() }
+        }
+        .navigationDestination(item: $pushedUser) { user in
+            DatabaseUserDetailView(user: user, system: vm.system, availableDatabases: vm.databases.map { $0.name ?? "" }.filter { !$0.isEmpty }) {
+                await vm.loadUsers()
+            }
+        }
+        // 数据库长按操作弹窗：编辑 / 删除（呈现时捕获目标，动作在 onDismiss 后执行）
+        .sheet(isPresented: Binding(
+            get: { actionDb != nil },
+            set: { if !$0 { actionDb = nil } }
+        )) {
+            let target = actionDb
+            ActionBottomSheet(
+                title: target?.name ?? L10n.t("数据库"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        pushedDb = target
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                   color: .red, role: .destructive) {
+                        pendingDeleteDb = target
+                    },
+                ],
+                onDismiss: { actionDb = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
+        // 用户长按操作弹窗：编辑 / 删除
+        .sheet(isPresented: Binding(
+            get: { actionUser != nil },
+            set: { if !$0 { actionUser = nil } }
+        )) {
+            let target = actionUser
+            ActionBottomSheet(
+                title: target?.username ?? L10n.t("用户"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        pushedUser = target
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                   color: .red, role: .destructive) {
+                        pendingDeleteUser = target
+                    },
+                ],
+                onDismiss: { actionUser = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showCreateUser) {
             CreateDatabaseUserView(system: vm.system, availableDatabases: vm.databases.map { $0.name ?? "" }.filter { !$0.isEmpty }) {
@@ -364,24 +424,20 @@ struct DatabaseSystemView: View {
     private var databaseListSection: some View {
         Section {
             ForEach(filteredDatabases, id: \.id) { db in
-                NavigationLink {
-                    DatabaseDetailView(database: db, system: vm.system) { await vm.loadDatabases() }
-                } label: {
-                    DatabaseItemRow(db: db)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        pendingDeleteDb = db
-                    } label: { Label(L10n.t("删除"), systemImage: "trash") }
-                }
-                .onAppear {
-                    // 触底判定用未过滤列表的末行：过滤后末行可能不可见，
-                    // 挂底部的加载行兜底触发；过滤空时若还有未加载页，
-                    // 加载行仍渲染、翻页不会被空态卡停
-                    if db.id == vm.databases.last?.id {
-                        Task { await vm.loadMoreDatabases() }
+                // 纯视图 + 双手势（NavigationLink 会吞长按）：单击直达详情、
+                // 长按弹操作菜单（编辑/删除；长按松手不触发单击）
+                DatabaseItemRow(db: db)
+                    .rowTapAndLongPress(
+                        onTap: { pushedDb = db },
+                        onLongPress: { actionDb = db })
+                    .onAppear {
+                        // 触底判定用未过滤列表的末行：过滤后末行可能不可见，
+                        // 挂底部的加载行兜底触发；过滤空时若还有未加载页，
+                        // 加载行仍渲染、翻页不会被空态卡停
+                        if db.id == vm.databases.last?.id {
+                            Task { await vm.loadMoreDatabases() }
+                        }
                     }
-                }
             }
             if filteredDatabases.isEmpty {
                 ContentUnavailableView {
@@ -411,18 +467,12 @@ struct DatabaseSystemView: View {
     private var userListSection: some View {
         Section {
             ForEach(filteredUsers, id: \.id) { user in
-                NavigationLink {
-                    DatabaseUserDetailView(user: user, system: vm.system, availableDatabases: vm.databases.map { $0.name ?? "" }.filter { !$0.isEmpty }) {
-                        await vm.loadUsers()
-                    }
-                } label: {
-                    DatabaseUserRow(user: user, grants: vm.databasesForUser(user))
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        pendingDeleteUser = user
-                    } label: { Label(L10n.t("删除"), systemImage: "trash") }
-                }
+                // 纯视图 + 双手势（NavigationLink 会吞长按）：单击直达详情、
+                // 长按弹操作菜单（编辑/删除）
+                DatabaseUserRow(user: user, grants: vm.databasesForUser(user))
+                    .rowTapAndLongPress(
+                        onTap: { pushedUser = user },
+                        onLongPress: { actionUser = user })
             }
             if filteredUsers.isEmpty {
                 ContentUnavailableView {

@@ -18,6 +18,10 @@ struct AlertNotificationView: View {
     @State private var editingConfig: AlertConfigItem?
     @State private var showCreateConfig = false
     @State private var selectedLog: AlertLog?
+    /// 长按半屏菜单目标（规则：启停/编辑/删除；点击行仍直进编辑）
+    @State private var actionRule: AlertRule?
+    /// 长按半屏菜单目标（发送方式：启停/编辑/删除；可编辑类型点击行仍直进编辑）
+    @State private var actionConfig: AlertConfigItem?
 
     /// 无发送方式时点击「创建告警」的提示
     @State private var showNoConfigAlert = false
@@ -159,6 +163,74 @@ struct AlertNotificationView: View {
         .sheet(item: $selectedLog) { log in
             AlertLogDetailView(log: log)
         }
+        // 规则长按操作弹窗：启停 / 编辑 / 删除（呈现时捕获目标，
+        // 动作在 onDismiss 后执行，闭包晚读恒为 nil）
+        .sheet(isPresented: Binding(
+            get: { actionRule != nil },
+            set: { if !$0 { actionRule = nil } }
+        )) {
+            let target = actionRule
+            ActionBottomSheet(
+                title: target?.title ?? target?.alertType.displayName ?? L10n.t("告警规则"),
+                items: [
+                    ActionMenuItem(
+                        title: (target?.isEnabled ?? false) ? L10n.t("停用") : L10n.t("启用"),
+                        icon: (target?.isEnabled ?? false) ? "pause.fill" : "play.fill",
+                        color: (target?.isEnabled ?? false) ? .orange : .green
+                    ) {
+                        Haptic.selection()
+                        vm.pendingRuleToggle = target
+                    },
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        editingRule = target
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                   color: .red, role: .destructive) {
+                        vm.pendingDeleteRule = target
+                    },
+                ],
+                onDismiss: { actionRule = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
+            .presentationDragIndicator(.visible)
+        }
+        // 发送方式长按操作弹窗：启停 / 编辑（可编辑类型）/ 删除
+        .sheet(isPresented: Binding(
+            get: { actionConfig != nil },
+            set: { if !$0 { actionConfig = nil } }
+        )) {
+            let target = actionConfig
+            var items: [ActionMenuItem] = [
+                ActionMenuItem(
+                    title: (target?.isEnabled ?? false) ? L10n.t("停用") : L10n.t("启用"),
+                    icon: (target?.isEnabled ?? false) ? "pause.fill" : "play.fill",
+                    color: (target?.isEnabled ?? false) ? .orange : .green
+                ) {
+                    if let config = target {
+                        Task { await vm.toggleConfig(config) }
+                    }
+                },
+            ]
+            if let config = target,
+               AlertSendType(rawValue: config.type ?? "") != nil {
+                items.append(ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                    editingConfig = target
+                })
+            }
+            if let config = target {
+                items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                            color: .red, role: .destructive) {
+                    vm.pendingDeleteConfig = config
+                })
+            }
+            return ActionBottomSheet(
+                title: target?.sendConfig.displayName ?? target?.type ?? L10n.t("发送方式"),
+                items: items,
+                onDismiss: { actionConfig = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: items.count))])
+            .presentationDragIndicator(.visible)
+        }
         .navigationDestination(isPresented: $showCreateRule) {
             AlertEditView(vm: vm, editing: nil)
         }
@@ -232,27 +304,12 @@ struct AlertNotificationView: View {
         } else {
             Section {
                 ForEach(vm.rules) { rule in
-                    Button {
-                        editingRule = rule
-                    } label: {
-                        AlertRuleRow(rule: rule)
-                    }
-                    .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            vm.pendingDeleteRule = rule
-                        } label: {
-                            Label(L10n.t("删除"), systemImage: "trash")
-                        }
-                        Button {
-                            Haptic.selection()
-                            vm.pendingRuleToggle = rule
-                        } label: {
-                            Label(rule.isEnabled ? L10n.t("停用") : L10n.t("启用"),
-                                  systemImage: rule.isEnabled ? "pause.circle" : "play.circle")
-                        }
-                        .tint(rule.isEnabled ? .orange : .green)
-                    }
+                    // 纯视图 + 双手势（Button 会吞长按）：单击直达编辑、
+                    // 长按弹操作菜单（启停/编辑/删除；长按松手不触发单击）
+                    AlertRuleRow(rule: rule)
+                        .rowTapAndLongPress(
+                            onTap: { editingRule = rule },
+                            onLongPress: { actionRule = rule })
                 }
             }
         }
@@ -338,41 +395,29 @@ struct AlertNotificationView: View {
             } header: {
                 Text(L10n.t("发送方式"))
             } footer: {
-                Text(L10n.t("触发告警时通过发送方式通知，左滑可停用或删除"))
+                Text(L10n.t("触发告警时通过发送方式通知，长按可停用或删除"))
             }
         }
     }
 
-    /// 发送方式行：邮箱 / Bark 可点击编辑，其余类型仅展示；均支持左滑停用/删除
+    /// 发送方式行：邮箱 / Bark 可点击编辑，其余类型仅展示；均支持长按启停/删除
     private func configRow(_ config: AlertConfigItem) -> some View {
         Group {
             if AlertSendType(rawValue: config.type ?? "") != nil {
-                Button {
-                    editingConfig = config
-                } label: {
-                    AlertConfigRow(config: config)
-                }
-                .buttonStyle(.plain)
-            } else {
+                // 纯视图 + 双手势（Button 会吞长按）：单击直达编辑、长按弹操作菜单
                 AlertConfigRow(config: config)
+                    .rowTapAndLongPress(
+                        onTap: { editingConfig = config },
+                        onLongPress: { actionConfig = config })
+            } else {
+                // 客户端暂不支持编辑的类型：无单击，仅长按弹操作菜单（启停/删除）
+                AlertConfigRow(config: config)
+                    .contentShape(Rectangle())
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        Haptic.selection()
+                        actionConfig = config
+                    }
             }
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                vm.pendingDeleteConfig = config
-            } label: {
-                Label(L10n.t("删除"), systemImage: "trash")
-            }
-
-            Button {
-                Task { await vm.toggleConfig(config) }
-            } label: {
-                Label(
-                    config.isEnabled ? L10n.t("停用") : L10n.t("启用"),
-                    systemImage: config.isEnabled ? "pause.circle" : "play.circle"
-                )
-            }
-            .tint(.orange)
         }
     }
 

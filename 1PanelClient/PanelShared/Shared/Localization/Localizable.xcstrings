@@ -3955,6 +3955,17 @@
         }
       }
     },
+    "一行一个标签（如 nginx:alpine-old）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One tag per line (e.g. nginx:alpine-old)"
+          }
+        }
+      }
+    },
     "一行一个端口，支持 17331 或 80/tcp 格式；修改后点右上角「确认」提交。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3973,6 +3984,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "One mirror URL per line; submitted as a comma-separated list"
+          }
+        }
+      }
+    },
+    "一行一个镜像名，可同时拉取多个。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One image name per line; multiple can be pulled at once."
           }
         }
       }
@@ -15923,6 +15945,17 @@
         }
       }
     },
+    "将检查镜像仓库中的同名标签，若有更新则拉取并更新本地镜像。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checks the image registry for the same tag; pulls and updates the local image if a newer one exists."
+          }
+        }
+      }
+    },
     "将永久删除选中的 %ld 项（不进入回收站），该操作无法回滚，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19164,6 +19197,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open Files (%ld)"
+          }
+        }
+      }
+    },
+    "打标签失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to tag image: %@"
           }
         }
       }
@@ -23674,6 +23718,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Update Remote"
+          }
+        }
+      }
+    },
+    "更新镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update image"
           }
         }
       }
@@ -33369,6 +33424,17 @@
         }
       }
     },
+    "触发告警时通过发送方式通知，长按可停用或删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alerts notify via send methods; long-press to disable or delete"
+          }
+        }
+      }
+    },
     "触发告警时通过所选方式通知" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34960,6 +35026,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Redirect URL is required"
+          }
+        }
+      }
+    },
+    "请填写镜像标签" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter image tags"
           }
         }
       }
@@ -38326,6 +38403,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The image is derived from the version and usually needs no change; the model directory mounts the weights"
+          }
+        }
+      }
+    },
+    "镜像标签" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image tags"
+          }
+        }
+      }
+    },
+    "镜像标签已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image tags saved"
           }
         }
       }

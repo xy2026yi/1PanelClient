@@ -272,7 +272,7 @@ struct CronjobsTab: View {
                         selectingRow(job)
                     } else {
                         // tap 手势 + 编程式推入（原 NavigationLink(value:) + 长按共存，
-                        // 松手仍会误触导航进详情）
+                        // 松手仍会误触导航进详情）；操作入口统一在长按菜单
                         CronjobRow(job: job)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .rowTapAndLongPress(
@@ -280,20 +280,6 @@ struct CronjobsTab: View {
                                 onLongPress: { actionJob = job })
                             // VoiceOver 无长按手势：以自定义操作暴露同一菜单
                             .accessibilityAction(named: L10n.t("更多操作")) { actionJob = job }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button {
-                                    Task { await vm.handle(job: job) }
-                                } label: {
-                                    Label(L10n.t("执行"), systemImage: "play.fill")
-                                }
-                                .tint(.blue)
-
-                                Button(role: .destructive) {
-                                    vm.pendingDeleteJob = job
-                                } label: {
-                                    Label(L10n.t("删除"), systemImage: "trash")
-                                }
-                            }
                     }
                 }
             }

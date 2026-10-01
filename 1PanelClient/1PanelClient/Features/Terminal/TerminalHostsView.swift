@@ -20,6 +20,8 @@ struct TerminalHostsView: View {
     @State private var editingHost: SSHHostInfo?
     @State private var connectedHost: SSHHostInfo?
     @State private var connectingHostID: Int?
+    /// 长按半屏菜单目标（编辑/删除；点击行仍直连终端）
+    @State private var actionHost: SSHHostInfo?
     @State private var showQuickCommands = false
     @State private var showSettings = false
     @State private var showMenu = false
@@ -118,6 +120,29 @@ struct TerminalHostsView: View {
                 SSHHostEditView(vm: vm, editing: host)
             }
         }
+        // 长按操作弹窗：编辑 / 删除（呈现时捕获目标，动作在 onDismiss 后执行，
+        // 闭包晚读 actionHost 恒为 nil）
+        .sheet(isPresented: Binding(
+            get: { actionHost != nil },
+            set: { if !$0 { actionHost = nil } }
+        )) {
+            let target = actionHost
+            ActionBottomSheet(
+                title: target?.displayName ?? L10n.t("主机"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        editingHost = target
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                   color: .red, role: .destructive) {
+                        vm.pendingDeleteHost = target
+                    },
+                ],
+                onDismiss: { actionHost = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
         .navigationDestination(isPresented: Binding(
             get: { connectedHost != nil },
             set: { if !$0 { connectedHost = nil } }
@@ -187,29 +212,15 @@ struct TerminalHostsView: View {
                 )
             } else {
                 ForEach(vm.hosts) { host in
-                    Button {
-                        Task { await connect(host) }
-                    } label: {
-                        SSHHostRow(
-                            host: host,
-                            isConnecting: connectingHostID == host.id
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            vm.pendingDeleteHost = host
-                        } label: {
-                            Label(L10n.t("删除"), systemImage: "trash")
-                        }
-
-                        Button {
-                            editingHost = host
-                        } label: {
-                            Label(L10n.t("编辑"), systemImage: "pencil")
-                        }
-                        .tint(.blue)
-                    }
+                    // 纯视图 + 双手势（Button 会吞长按，菜单永远弹不出来）：
+                    // 单击连接终端、长按弹操作菜单（编辑/删除；长按松手不触发单击）
+                    SSHHostRow(
+                        host: host,
+                        isConnecting: connectingHostID == host.id
+                    )
+                    .rowTapAndLongPress(
+                        onTap: { Task { await connect(host) } },
+                        onLongPress: { actionHost = host })
                 }
             }
         } header: {
@@ -701,6 +712,8 @@ struct PanelTerminalSessionsView: View {
     @State private var errorMessage: String?
     @State private var toastMessage: String?
     @State private var pendingCloseAll = false
+    /// 长按操作菜单目标（关闭）
+    @State private var actionSession: PanelTerminalSession?
 
     private let client: APIClient
 
@@ -753,13 +766,11 @@ struct PanelTerminalSessionsView: View {
                             }
                         }
                         .padding(.vertical, 2)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                Haptic.warning()
-                                Task { await close(session) }
-                            } label: {
-                                Label(L10n.t("关闭"), systemImage: "xmark.circle")
-                            }
+                        // 无点击动作：长按弹操作菜单（关闭）
+                        .contentShape(Rectangle())
+                        .onLongPressGesture(minimumDuration: 0.5) {
+                            Haptic.selection()
+                            actionSession = session
                         }
                     }
                 } header: {
@@ -776,6 +787,28 @@ struct PanelTerminalSessionsView: View {
                         .foregroundStyle(.red)
                 }
             }
+        }
+        // 长按操作弹窗：关闭（呈现时捕获目标，动作在 onDismiss 后执行）
+        .sheet(isPresented: Binding(
+            get: { actionSession != nil },
+            set: { if !$0 { actionSession = nil } }
+        )) {
+            let target = actionSession
+            ActionBottomSheet(
+                title: target?.title ?? target?.sessionID ?? L10n.t("面板会话"),
+                items: [
+                    ActionMenuItem(title: L10n.t("关闭"), icon: "xmark.circle",
+                                   color: .red, role: .destructive) {
+                        if let session = target {
+                            Haptic.warning()
+                            Task { await close(session) }
+                        }
+                    },
+                ],
+                onDismiss: { actionSession = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
+            .presentationDragIndicator(.visible)
         }
         .refreshable { await load() }
         .toastOverlay(message: $toastMessage)

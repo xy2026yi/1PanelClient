@@ -443,6 +443,8 @@ struct FileFavoriteView: View {
     @State private var favorites: [FileFavorite] = []
     @State private var isLoading = true
     @State private var loadError: String?
+    /// 长按半屏菜单目标（前往路径/取消收藏；点击行仍直达跳转）
+    @State private var actionFav: FileFavorite?
     /// 分页：滚动到底自动追加（收藏超过首页 200 条时不再截断）
     @State private var total = 0
     @State private var page = 1
@@ -476,24 +478,17 @@ struct FileFavoriteView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(favorites) { fav in
-                    Button {
-                        openFavorite(fav)
-                    } label: {
-                        favoriteRow(fav)
-                    }
-                    .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            Task { await remove(fav) }
-                        } label: {
-                            Label(L10n.t("取消收藏"), systemImage: "star.slash")
+                    // 纯视图 + 双手势（Button 会吞长按）：单击直达跳转、
+                    // 长按弹操作菜单（前往路径/取消收藏；长按松手不触发单击）
+                    favoriteRow(fav)
+                        .rowTapAndLongPress(
+                            onTap: { openFavorite(fav) },
+                            onLongPress: { actionFav = fav })
+                        .onAppear {
+                            if fav.id == favorites.last?.id {
+                                Task { await loadMore() }
+                            }
                         }
-                    }
-                    .onAppear {
-                        if fav.id == favorites.last?.id {
-                            Task { await loadMore() }
-                        }
-                    }
                 }
                 if favorites.count < total || isLoadingMore {
                     HStack { Spacer(); ProgressView(); Spacer() }
@@ -504,6 +499,32 @@ struct FileFavoriteView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(L10n.t("收藏夹"))
         .navigationBarTitleDisplayMode(.inline)
+        // 长按操作弹窗：前往路径 / 取消收藏（呈现时捕获目标，动作在 onDismiss 后执行）
+        .sheet(isPresented: Binding(
+            get: { actionFav != nil },
+            set: { if !$0 { actionFav = nil } }
+        )) {
+            let target = actionFav
+            ActionBottomSheet(
+                title: target?.name ?? L10n.t("收藏"),
+                items: [
+                    ActionMenuItem(title: L10n.t("前往路径"), icon: "arrow.right.circle", color: .blue) {
+                        if let fav = target {
+                            openFavorite(fav)
+                        }
+                    },
+                    ActionMenuItem(title: L10n.t("取消收藏"), icon: "star.slash",
+                                   color: .red, role: .destructive) {
+                        if let fav = target {
+                            Task { await remove(fav) }
+                        }
+                    },
+                ],
+                onDismiss: { actionFav = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
         .task { await load() }
         .refreshable { await load() }
     }
