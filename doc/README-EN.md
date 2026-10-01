@@ -11,31 +11,43 @@ Built natively with Swift + SwiftUI, it manages your servers remotely via the 1P
 ## Features
 
 ### Overview (Home)
-- Resource cards (CPU, memory, disk, network, load) with real-time monitoring charts
-- System info (hostname, OS version, kernel, uptime)
-- Panel version update detection, certificate expiry countdown
-- Multi-node overview card, app / container status cards
+- Real-time resource cards (load / CPU / memory / per-mount disks, 3s polling) with quick access to monitor charts
+- Website / app (with upgradable count) / database / container stat cards, tapping jumps to the module
+- Panel & system info (version, IP, timezone, distro, kernel, uptime), upgrade banner with release notes, certificate expiry countdown
+- Multi-node overview card
 
 ### Manage
-- **Apps** — Installed app management, app store install/uninstall, upgrades (Compose diff view), app logs
-- **Websites** — Website list & config, reverse proxy, SSL certificate management (apply / manual / self-signed / DNS / HTTP), website logs, website monitoring
-- **Databases** — MySQL / PostgreSQL / Redis instance management, database terminal, connection info
-- **Containers** — Docker container list / create / edit / details / terminal, image management (pull / prune / registries), live container monitoring
-- **Cronjobs** — CRUD, run now, execution records, log viewing, script library
-- **Terminal** — WebSocket remote terminal (host / container / database / SSH hosts)
-- **Files** — Server file management
-- **Monitor** — Load / CPU / memory / disk I/O / network charts
-- **Processes** — System process monitoring
-- **Firewall / Fail2ban / WAF** — Port & IP rules, SSH brute-force protection, web application firewall (rules / blocklists-allowlists / monitoring)
-- **Alerts** — Alert rules, alert logs, delivery method configuration
-- **Backup Accounts** — MINIO / WebDAV / SFTP backup storage and backup lists
-- **Task Center** — Async tasks (app sync, image pull, etc.) with logs
-- **Logs** — Panel / operation / SSH login / website logs
-- **Panel & Server** — Restart panel and server
-- **Multi-node** — Node overview / details / add / switch (1Panel Pro), the whole app follows the current node
+
+**Apps**
+- **Apps** — Installed app management (start/stop, restart, logs, uninstall, parameter rebuild), app store install, upgrades (line-level Compose diff adoption)
+- **AI** — Model accounts & model pool (multi-provider, availability check), agents (message channels, skill market, plugin market, multi-role, chat sessions), MCP Server, Ollama local models, vLLM instances, model downloader (HuggingFace / ModelScope)
+- **Websites** — Create wizard (one-click deploy / reverse proxy / static site), groups & batch ops, OpenResty management & Nginx config editing; details include HTTPS config, logs and full settings (domains, default docs, rate limiting, reverse proxy, load balancing, password access, CORS, real IP, rewrite, hotlink protection, redirects, PHP runtime, linked resources, basic info); website monitoring (QPS / visitor trends / request logs)
+- **Certificates** — List & details (apply / upload / re-apply / download / delete / application logs), ACME accounts, DNS accounts, self-signed CA (create / issue)
+- **Databases** — MySQL / MariaDB / PostgreSQL / MongoDB / Redis instance management, database & user CRUD, connection info, password/permission changes, status & performance tuning, database terminal
+- **Containers** — Container list / create wizard / edit / upgrade / details / terminal / live monitoring; images (pull / update / tag / prune / registries), compose templates, networks, volumes, Docker daemon config
+
+**Host**
+- **SSH** — Local & remote host terminals (SwiftTerm), host management, SSH keys, live sessions, quick commands, retained panel sessions
+- **Files** — Directory browsing, upload / download (transfer queue), wget remote download (live progress), archive & extract, permissions, trash, favorites, text editing
+- **Monitor** — Load / CPU / memory / disk I/O / network history charts (1h–7d), monitor settings
+- **Processes** — Live process & network connections, search & sort, kill process
+- **Firewall** — Port / IP rules, port forwarding, panel port whitelist, Docker port guard, rule import/export
+
+**Toolbox**
+- Fail2ban (blocklists / config editing), FTP (account management), antivirus (ClamAV rules / reports), process supervisor, disk management (partition / mount), cache cleanup
+
+**Advanced**
+- GPU monitoring, WAF (status / monitoring / blocklists & IP groups / per-site / global config), website monitoring, multi-node management (1Panel Pro; the whole app follows the current node)
+
+**Panel**
+- Panel settings (basic, device DNS / hosts, license), alerts (rules / logs / Email · Bark · Webhook delivery), backup accounts (MINIO / OSS / WebDAV / SFTP etc., 11 types), cronjobs (shell / backup / snapshot / URL / log-cleanup types, records, import & export, script library), snapshots (create / restore / import), task center, logs (panel / operation / SSH login / system)
+
+### UX
+- Unified list interactions across the app: tap to open, long-press for the action menu (enable/disable, edit, delete, etc.)
+- Outlined-style form component system, instant EN/中文 switching, adaptive iPad layout (sidebar / icon bar / bottom tab)
 
 ### Settings
-- Multi-server management (credentials stored in Keychain), connection testing
+- Multi-server management (credentials stored in Keychain), connection testing, group management
 - "HTTPS only" toggle (off by default; when enabled, all plaintext `http://` panel addresses are rejected, and saving an HTTP address shows a plaintext-risk warning)
 - App Lock (FaceID / TouchID biometrics with 4-digit passcode fallback)
 - Appearance (system / light / dark) and UI language (English / Chinese, applied instantly)
