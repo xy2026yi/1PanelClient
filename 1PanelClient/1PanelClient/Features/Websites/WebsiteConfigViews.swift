@@ -50,6 +50,10 @@ struct WebsiteDefaultDocView: View {
             }
         }
         .task { await load() }
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: { Text(vm.alertMessage) }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private func load() async {
@@ -77,6 +81,7 @@ struct WebsiteDefaultDocView: View {
             params: .object(["index": docText])
         )
         if ok {
+            vm.showToast(L10n.t("默认文档已更新"))
             await load()
         }
     }
@@ -133,6 +138,10 @@ struct WebsiteLimitConnView: View {
         .navigationTitle(L10n.t("流量限制"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: { Text(vm.alertMessage) }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     /// 方案索引 Int ↔ String（OutlinedPicker 用 String）
@@ -248,6 +257,7 @@ struct WebsiteLimitConnView: View {
             params: buildParams()
         )
         if ok {
+            vm.showToast(L10n.t(on ? "已开启流量限制" : "已关闭流量限制"))
             await load()
         }
     }
@@ -263,6 +273,7 @@ struct WebsiteLimitConnView: View {
             params: buildParams()
         )
         if ok {
+            vm.showToast(L10n.t("流量限制已保存"))
             await load()
         }
     }
@@ -306,6 +317,8 @@ struct WebsiteRedirectView: View {
         }
         .navigationTitle(L10n.t("重定向"))
         .navigationBarTitleDisplayMode(.inline)
+        // 创建/编辑/源文保存成功即退页，toast 在退回后的本页呈现
+        .toastOverlay(message: $vm.toastMessage)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -418,13 +431,6 @@ struct WebsiteRedirectView: View {
                 .rowTapAndLongPress(
                     onTap: { editingRedirect = r },
                     onLongPress: { actionRedirect = r })
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        pendingDelete = r
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
-                    }
-                }
             }
         }
         .refreshable {
@@ -465,6 +471,7 @@ struct WebsiteRedirectView: View {
     private func deleteRedirect(_ r: WebsiteRedirect) async {
         let ok = await vm.operateRedirect(Self.request(from: r, websiteId: websiteId, operate: "delete"))
         if ok {
+            vm.showToast(L10n.f("重定向「%@」已删除", r.displayName))
             await load()
         }
     }
@@ -474,6 +481,7 @@ struct WebsiteRedirectView: View {
         let operate = (r.enable == true) ? "disable" : "enable"
         let ok = await vm.operateRedirect(Self.request(from: r, websiteId: websiteId, operate: operate))
         if ok {
+            vm.showToast(L10n.t(operate == "enable" ? "已开启重定向" : "已关闭重定向"))
             await load()
         }
     }
@@ -632,6 +640,7 @@ struct WebsiteRedirectEditView: View {
         }
         let ok = await vm.operateRedirect(req)
         if ok {
+            vm.showToast(L10n.t(isEdit ? "重定向已保存" : "重定向已创建"))
             onDone()
             dismiss()
         }
@@ -694,6 +703,7 @@ struct WebsiteRedirectSourceView: View {
             content: content
         )
         if ok {
+            vm.showToast(L10n.t("源文已保存"))
             originalContent = content
             dismiss()
         }
@@ -715,6 +725,8 @@ struct WebsiteAuthsView: View {
     @State private var editingItem: WebsiteAuthItem?
     @State private var showEdit = false
     @State private var pendingDelete: WebsiteAuthItem?
+    /// 长按半屏菜单目标（编辑/删除；点击行仍直进编辑）
+    @State private var actionItem: WebsiteAuthItem?
     @State private var isToggling = false
 
     var body: some View {
@@ -755,6 +767,29 @@ struct WebsiteAuthsView: View {
                 Task { await load() }
             }
         }
+        // 长按操作弹窗：编辑 / 删除（呈现时捕获目标，动作在 onDismiss 后执行，
+        // 闭包晚读 actionItem 恒为 nil）
+        .sheet(isPresented: Binding(
+            get: { actionItem != nil },
+            set: { if !$0 { actionItem = nil } }
+        )) {
+            let target = actionItem
+            ActionBottomSheet(
+                title: target?.username ?? L10n.t("密码访问"),
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
+                        editingItem = target
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                   color: .red, role: .destructive) {
+                        pendingDelete = target
+                    },
+                ],
+                onDismiss: { actionItem = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
         .alert(
             L10n.t("删除"),
             isPresented: Binding(
@@ -780,6 +815,8 @@ struct WebsiteAuthsView: View {
         } message: {
             Text(vm.alertMessage)
         }
+        // 创建/编辑保存退页后的成功 toast 在本页呈现
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private var list: some View {
@@ -801,39 +838,32 @@ struct WebsiteAuthsView: View {
                         .listRowBackground(Color.clear)
                 }
                 ForEach(items) { item in
-                    Button {
-                        editingItem = item
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                    // 「用户名」灰标让账号值可自解释（与反代/重定向列表一致）
-                                    Text(L10n.t("用户名"))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    Text(item.username ?? "—")
-                                        .font(.body.bold().monospaced())
-                                        .foregroundStyle(.primary)
-                                }
-                                if let remark = item.remark, !remark.isEmpty {
-                                    Text(remark)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                // 「用户名」灰标让账号值可自解释（与反代/重定向列表一致）
+                                Text(L10n.t("用户名"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(item.username ?? "—")
+                                    .font(.body.bold().monospaced())
                             }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                            if let remark = item.remark, !remark.isEmpty {
+                                Text(remark)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            pendingDelete = item
-                        } label: {
-                            Label(L10n.t("删除"), systemImage: "trash")
-                        }
-                    }
+                    // 纯视图 + 双手势（Button 会吞长按，菜单永远弹不出来）；
+                    // 单击直达编辑、长按弹半屏操作菜单（长按松手不触发单击）
+                    .rowTapAndLongPress(
+                        onTap: { editingItem = item },
+                        onLongPress: { actionItem = item })
                 }
             }
         }
@@ -860,6 +890,7 @@ struct WebsiteAuthsView: View {
             operate: on ? "enable" : "disable"
         )
         if ok {
+            vm.showToast(L10n.t(on ? "已开启密码访问" : "已关闭密码访问"))
             await load()
         }
     }
@@ -872,6 +903,7 @@ struct WebsiteAuthsView: View {
             remark: item.remark ?? ""
         )
         if ok {
+            vm.showToast(L10n.f("账号「%@」已删除", item.username ?? ""))
             await load()
         }
     }
@@ -976,6 +1008,7 @@ struct WebsiteAuthEditView: View {
             remark: remark
         )
         if ok {
+            vm.showToast(L10n.t(isEdit ? "账号已保存" : "账号已创建"))
             onDone()
             dismiss()
         }

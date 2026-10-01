@@ -19,6 +19,8 @@ struct WebsiteDomainsView: View {
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var pendingDelete: WebsiteDomainItem?
+    /// 长按操作菜单目标（删除入口；行内 SSL 开关不受手势影响）
+    @State private var actionDomain: WebsiteDomainItem?
     @State private var switchingID: Int?
     @State private var showAdd = false
 
@@ -51,6 +53,27 @@ struct WebsiteDomainsView: View {
         }
         .task { await load() }
         .refreshable { await load() }
+        // 长按操作菜单（删除入口；仅剩一个域名时不可删、不挂手势）
+        .sheet(isPresented: Binding(
+            get: { actionDomain != nil },
+            set: { if !$0 { actionDomain = nil } }
+        )) {
+            // 呈现时捕获目标：动作在 onDismiss（清空 actionDomain）之后执行，
+            // 闭包晚读状态恒为 nil
+            let target = actionDomain
+            ActionBottomSheet(
+                title: target?.domain ?? L10n.t("域名"),
+                items: [
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                   color: .red, role: .destructive) {
+                        pendingDelete = target
+                    },
+                ],
+                onDismiss: { actionDomain = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
+            .presentationDragIndicator(.visible)
+        }
         .alert(L10n.t("删除域名"), isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
@@ -71,6 +94,7 @@ struct WebsiteDomainsView: View {
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: { Text(vm.alertMessage) }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private var list: some View {
@@ -102,14 +126,14 @@ struct WebsiteDomainsView: View {
                 .disabled((d.port ?? 80) == 80)
             }
         }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                pendingDelete = d
-            } label: {
-                Label(L10n.t("删除"), systemImage: "trash")
-            }
-            .disabled(domains.count <= 1)
-        }
+        // 行内已有 SSL 开关：不挂单击，仅长按弹删除菜单（原左划删除按钮带
+        // 「仅剩一个域名不可删」约束——单域名时长按不弹菜单）
+        .contentShape(Rectangle())
+        .onLongPressGesture(minimumDuration: 0.5, perform: {
+            guard domains.count > 1 else { return }
+            Haptic.selection()
+            actionDomain = d
+        })
     }
 
     private func load() async {
@@ -124,6 +148,7 @@ struct WebsiteDomainsView: View {
         switchingID = d.id
         defer { switchingID = nil }
         if await vm.updateDomainSSL(id: domainID, ssl: on) {
+            vm.showToast(L10n.t(on ? "已开启 SSL" : "已关闭 SSL"))
             await load()
         }
     }
@@ -131,6 +156,7 @@ struct WebsiteDomainsView: View {
     private func delete(_ d: WebsiteDomainItem) async {
         guard let domainID = d.id else { return }
         if await vm.deleteDomain(id: domainID) {
+            vm.showToast(L10n.f("域名「%@」已删除", d.domain ?? ""))
             await load()
         }
     }
@@ -206,6 +232,7 @@ struct WebsiteDomainAddView: View {
         let effectiveSSL = (port == 80) ? false : ssl
         if await vm.addWebsiteDomain(websiteId: websiteId, domain: domain,
                                      port: port, ssl: effectiveSSL) {
+            vm.showToast(L10n.t("域名已添加"))
             onDone()
             dismiss()
         }
@@ -496,6 +523,8 @@ struct WebsiteResourceView: View {
 
 struct WebsiteLeechView: View {
     let websiteId: Int
+    /// 启用防盗链时允许的域名默认填入当前主域名
+    let primaryDomain: String
     @ObservedObject var vm: WebsitesViewModel
 
     @State private var config = WebsiteLeechConfig()
@@ -525,6 +554,17 @@ struct WebsiteLeechView: View {
             }
         }
         .task { await load() }
+        .onChange(of: config.enable) { _, enabled in
+            // 启用时允许的域名为必填：空时默认填入当前域名，不覆盖已填内容
+            if enabled, domainsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               !primaryDomain.isEmpty {
+                domainsText = primaryDomain
+            }
+        }
+        .onChange(of: config.cache) { _, on in
+            // 开启浏览器缓存时记录请求日志默认关（开关仅缓存开启时展示）
+            if on { config.logEnable = false }
+        }
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: { Text(vm.alertMessage) }
@@ -555,10 +595,17 @@ struct WebsiteLeechView: View {
             Section(L10n.t("缓存控制")) {
                 Toggle(L10n.t("浏览器缓存"), isOn: $config.cache)
                 if config.cache {
-                    OutlinedUnitField(label: L10n.t("缓存时间"), unit: L10n.t("天"),
-                                      text: cacheTimeText, range: 1...3650)
+                    OutlinedTextField(label: L10n.t("缓存时间"),
+                                      text: cacheTimeText, keyboardType: .numberPad)
+                    OutlinedPicker(label: L10n.t("缓存单位"),
+                                   options: LeechCacheUnit.allCases,
+                                   selection: cacheUnit) { $0.displayName }
                 }
-                Toggle(L10n.t("记录请求日志"), isOn: $config.logEnable)
+                // 记录请求日志：浏览器缓存或防盗链任一开启即显示（对齐网页端
+                // v-if="form.cache || form.enable"；开启缓存时默认关）
+                if config.cache || config.enable {
+                    Toggle(L10n.t("记录请求日志"), isOn: $config.logEnable)
+                }
             }
         }
     }
@@ -573,15 +620,31 @@ struct WebsiteLeechView: View {
                 set: { config.return = $0 })
     }
 
+    /// 缓存单位 String ↔ 枚举桥接（服务端空串/未知值回落「天」，与网页端默认一致）
+    private var cacheUnit: Binding<LeechCacheUnit> {
+        Binding(get: { LeechCacheUnit(rawValue: config.cacheUint) ?? .fallback },
+                set: { config.cacheUint = $0.rawValue })
+    }
+
+    /// 缓存时间 Int ↔ String（输入钳制 1...65535，对齐网页端 checkNumberRange）
     private var cacheTimeText: Binding<String> {
         Binding(get: { String(config.cacheTime) },
-                set: { config.cacheTime = Int($0) ?? config.cacheTime })
+                set: { text in
+                    guard let parsed = Int(text) else { return }
+                    config.cacheTime = min(max(parsed, 1), 65_535)
+                })
     }
 
     private func load() async {
         do {
             let c = try await vm.loadLeech(websiteId: websiteId)
             config = c
+            if config.cacheUint.isEmpty {
+                config.cacheUint = LeechCacheUnit.fallback.rawValue
+            }
+            if config.cacheTime == 0 {
+                config.cacheTime = 30
+            }
             domainsText = c.serverNames.joined(separator: "\n")
             loadError = nil
         } catch {
@@ -591,18 +654,26 @@ struct WebsiteLeechView: View {
     }
 
     private func save() async {
-        isSaving = true
-        defer { isSaving = false }
         let names = domainsText.split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+        // 启用防盗链时允许的域名为必填（与网页端校验一致）
+        guard !config.enable || !names.isEmpty else {
+            vm.alertMessage = L10n.t("允许的域名不能为空")
+            vm.showAlert = true
+            return
+        }
+        isSaving = true
+        defer { isSaving = false }
         let req = WebsiteLeechUpdateRequest(
             enable: config.enable, cache: config.cache,
-            cacheTime: config.cacheTime, cacheUint: config.cache ? "d" : "",
+            cacheTime: config.cacheTime, cacheUint: config.cacheUint,
             extends: extendBinding.wrappedValue,
             return: returnBinding.wrappedValue,
             domains: names.joined(separator: "\n"),
-            noneRef: config.noneRef, logEnable: config.logEnable,
+            noneRef: config.noneRef,
+            // 记录请求日志开关不可见时（缓存与防盗链均关）提交恒为关
+            logEnable: (config.cache || config.enable) ? config.logEnable : false,
             blocked: config.blocked, serverNames: names, websiteID: websiteId)
         _ = await vm.updateLeech(req)
         await load()
@@ -850,6 +921,7 @@ struct WebsiteCorsView: View {
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: { Text(vm.alertMessage) }
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private var form: some View {
@@ -994,6 +1066,7 @@ struct WebsiteOtherView: View {
         req.webSiteGroupID = selectedGroupID != 0 ? selectedGroupID : (d.webSiteGroupId ?? 1)
         let ok = await vm.updateWebsite(req)
         if ok {
+            vm.showToast(L10n.t("网站信息已保存"))
             dismiss()
         }
     }

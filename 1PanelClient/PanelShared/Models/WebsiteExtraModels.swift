@@ -23,6 +23,34 @@ nonisolated struct WebsiteDomainDeleteRequest: Encodable {
 
 // MARK: - 防盗链
 
+/// 防盗链缓存单位（对齐上游 Units：nginx expires 单位，月为大写 "M"）
+nonisolated enum LeechCacheUnit: String, CaseIterable, Identifiable {
+    case second = "s"
+    case minute = "m"
+    case hour = "h"
+    case day = "d"
+    case week = "w"
+    case month = "M"
+    case year = "y"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .second: return L10n.t("秒")
+        case .minute: return L10n.t("分钟")
+        case .hour:   return L10n.t("小时")
+        case .day:    return L10n.t("天")
+        case .week:   return L10n.t("周")
+        case .month:  return L10n.t("月")
+        case .year:   return L10n.t("年")
+        }
+    }
+
+    /// 服务端未存单位（空串）时的兜底，与网页端表单默认一致
+    static let fallback = LeechCacheUnit.day
+}
+
 /// 防盗链配置（POST /websites/leech 响应 / leech/update 请求体）
 nonisolated struct WebsiteLeechConfig: Codable {
     var enable: Bool = false

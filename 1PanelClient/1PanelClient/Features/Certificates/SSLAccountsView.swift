@@ -19,6 +19,8 @@ struct AcmeAccountListView: View {
     @State private var loadError: String?
     @State private var showCreate = false
     @State private var pendingDelete: AcmeAccount?
+    /// 长按操作菜单目标（删除入口；与同页 DNS 账户列表交互一致）
+    @State private var actionAccount: AcmeAccount?
 
     var body: some View {
         Group {
@@ -53,6 +55,26 @@ struct AcmeAccountListView: View {
         .navigationDestination(isPresented: $showCreate) {
             CreateAcmeAccountView(vm: vm)
         }
+        // 长按操作弹窗：删除（呈现时捕获目标，动作在 onDismiss 后执行，
+        // 闭包晚读 actionAccount 恒为 nil）
+        .sheet(isPresented: Binding(
+            get: { actionAccount != nil },
+            set: { if !$0 { actionAccount = nil } }
+        )) {
+            let account = actionAccount
+            ActionBottomSheet(
+                title: account?.email ?? L10n.t("Acme 账户"),
+                items: [
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                   color: .red, role: .destructive) {
+                        pendingDelete = account
+                    },
+                ],
+                onDismiss: { actionAccount = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
+            .presentationDragIndicator(.visible)
+        }
         .alert(L10n.t("删除 Acme 账户"), isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
@@ -81,13 +103,12 @@ struct AcmeAccountListView: View {
     private var accountList: some View {
         List {
             ForEach(accounts) { account in
+                // 纯视图 + 长按弹操作菜单（删除）；无编辑入口，点击行无动作
                 AcmeAccountRow(account: account)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            pendingDelete = account
-                        } label: {
-                            Label(L10n.t("删除"), systemImage: "trash")
-                        }
+                    .contentShape(Rectangle())
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        Haptic.selection()
+                        actionAccount = account
                     }
             }
         }

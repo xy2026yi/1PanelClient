@@ -21,7 +21,7 @@ struct WebsiteLbsView: View {
     @State private var editingItem: WebsiteLbsItem?
     @State private var sourceItem: WebsiteLbsItem?
     @State private var pendingDelete: WebsiteLbsItem?
-    /// 长按半屏菜单目标（编辑 / 源文 / 删除；左滑操作保留）
+    /// 长按半屏菜单目标（编辑 / 源文 / 删除）
     @State private var actionLbs: WebsiteLbsItem?
 
     var body: some View {
@@ -104,6 +104,7 @@ struct WebsiteLbsView: View {
                     pendingDelete = nil
                     Task {
                         if await vm.deleteLbs(websiteId: websiteId, name: item.name ?? "") {
+                            vm.showToast(L10n.f("负载均衡「%@」已删除", item.name ?? ""))
                             await load()
                         }
                     }
@@ -117,6 +118,8 @@ struct WebsiteLbsView: View {
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: { Text(vm.alertMessage) }
+        // 创建/编辑/源文保存退页后的成功 toast 在本页呈现
+        .toastOverlay(message: $vm.toastMessage)
     }
 
     private var list: some View {
@@ -158,26 +161,11 @@ struct WebsiteLbsView: View {
                 }
             }
         }
-        // 单击直达编辑；长按整行弹半屏菜单（源文入口原仅左滑，可发现性差；
-        // 长按松手不触发单击）
+        // 单击直达编辑；长按整行弹半屏菜单（编辑/源文/删除，源文入口原仅左滑，
+        // 可发现性差；长按松手不触发单击）
         .rowTapAndLongPress(
             onTap: { editingItem = item },
             onLongPress: { actionLbs = item })
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                pendingDelete = item
-            } label: {
-                Label(L10n.t("删除"), systemImage: "trash")
-            }
-        }
-        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            Button {
-                sourceItem = item
-            } label: {
-                Label(L10n.t("源文"), systemImage: "doc.text")
-            }
-            .tint(.teal)
-        }
     }
 
     private func algorithmName(_ raw: String) -> String {

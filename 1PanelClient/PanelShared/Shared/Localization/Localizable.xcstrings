@@ -6892,6 +6892,17 @@
         }
       }
     },
+    "允许的域名不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed domains cannot be empty"
+          }
+        }
+      }
+    },
     "允许的访问来源" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8087,6 +8098,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recently updated"
+          }
+        }
+      }
+    },
+    "月" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month(s)"
           }
         }
       }
@@ -11127,6 +11149,39 @@
         }
       }
     },
+    "反向代理「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reverse proxy \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "反向代理已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reverse proxy saved"
+          }
+        }
+      }
+    },
+    "反向代理已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reverse proxy created"
+          }
+        }
+      }
+    },
     "反向解析" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12744,6 +12799,17 @@
         }
       }
     },
+    "周" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Week(s)"
+          }
+        }
+      }
+    },
     "周一" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13323,6 +13389,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Domains"
+          }
+        }
+      }
+    },
+    "域名「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domain \"%@\" deleted"
+          }
+        }
+      }
+    },
+    "域名已添加" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domain added"
           }
         }
       }
@@ -16231,6 +16319,50 @@
         }
       }
     },
+    "已关闭 SSL" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSL disabled"
+          }
+        }
+      }
+    },
+    "已关闭反向代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reverse proxy disabled"
+          }
+        }
+      }
+    },
+    "已关闭密码访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password access disabled"
+          }
+        }
+      }
+    },
+    "已关闭流量限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate limiting disabled"
+          }
+        }
+      }
+    },
     "已关闭自动同步" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16238,6 +16370,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto sync disabled"
+          }
+        }
+      }
+    },
+    "已关闭重定向" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect disabled"
           }
         }
       }
@@ -16561,6 +16704,17 @@
         }
       }
     },
+    "已开启 SSL" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSL enabled"
+          }
+        }
+      }
+    },
     "已开启「仅允许 HTTPS 连接」：该服务器为 http:// 明文地址，请在 设置 → 安全 关闭该限制，或改用 https:// 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16583,6 +16737,17 @@
         }
       }
     },
+    "已开启反向代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reverse proxy enabled"
+          }
+        }
+      }
+    },
     "已开启可用性验证：点击模型选中验证所用模型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16594,6 +16759,28 @@
         }
       }
     },
+    "已开启密码访问" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password access enabled"
+          }
+        }
+      }
+    },
+    "已开启流量限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate limiting enabled"
+          }
+        }
+      }
+    },
     "已开启自动同步" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16601,6 +16788,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto sync enabled"
+          }
+        }
+      }
+    },
+    "已开启重定向" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect enabled"
           }
         }
       }
@@ -25988,6 +26186,17 @@
         }
       }
     },
+    "流量限制已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate limiting saved"
+          }
+        }
+      }
+    },
     "测试发送失败，请检查配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31114,6 +31323,17 @@
         }
       }
     },
+    "缓存单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Unit"
+          }
+        }
+      }
+    },
     "缓存控制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31737,6 +31957,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Website \"%@\" certificate expiring"
+          }
+        }
+      }
+    },
+    "网站信息已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website info saved"
           }
         }
       }
@@ -35151,6 +35382,17 @@
         }
       }
     },
+    "负载均衡「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load balancer \"%@\" deleted"
+          }
+        }
+      }
+    },
     "负载均衡已保存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35235,6 +35477,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load model accounts"
+          }
+        }
+      }
+    },
+    "账号已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account saved"
+          }
+        }
+      }
+    },
+    "账号已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account created"
           }
         }
       }
@@ -37626,6 +37890,17 @@
         }
       }
     },
+    "重定向「%@」已删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect \"%@\" deleted"
+          }
+        }
+      }
+    },
     "重定向到首页" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37633,6 +37908,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Redirect to Home"
+          }
+        }
+      }
+    },
+    "重定向已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect saved"
+          }
+        }
+      }
+    },
+    "重定向已创建" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redirect created"
           }
         }
       }
@@ -39294,6 +39591,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Documents"
+          }
+        }
+      }
+    },
+    "默认文档已更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default documents updated"
           }
         }
       }

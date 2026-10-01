@@ -18,7 +18,6 @@ struct CAListView: View {
     /// 列表加载失败（渲染页内错误态 + 重试）
     @State private var loadError: String?
     @State private var showCreate = false
-    @State private var pendingDelete: CertificateAuthority?
 
     var body: some View {
         Group {
@@ -63,28 +62,6 @@ struct CAListView: View {
                 Task { await load() }
             }
         }
-        .alert(L10n.t("删除"), isPresented: Binding(
-            get: { pendingDelete != nil },
-            set: { if !$0 { pendingDelete = nil } }
-        )) {
-            Button(L10n.t("取消"), role: .cancel) {
-                pendingDelete = nil
-            }
-            Button(L10n.t("删除"), role: .destructive) {
-                Haptic.warning()
-                if let account = pendingDelete {
-                    Task {
-                        if await vm.deleteCA(id: account.id) {
-                            await load()
-                        }
-                    }
-                }
-            }
-        } message: {
-            if let account = pendingDelete {
-                Text(L10n.f("将对以下证书颁发机构进行 删除 操作，是否继续？\n\n%@", account.name))
-            }
-        }
         .task { await load() }
     }
 
@@ -98,13 +75,7 @@ struct CAListView: View {
                 } label: {
                     CARow(ca: account)
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        pendingDelete = account
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
-                    }
-                }
+                // 删除入口在详情页三点菜单；列表不提供左划删除
             }
         }
         .listStyle(.insetGrouped)

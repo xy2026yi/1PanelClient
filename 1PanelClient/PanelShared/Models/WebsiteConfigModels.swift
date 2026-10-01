@@ -30,9 +30,16 @@ nonisolated struct WebsiteUpdateRequest: Encodable {
         self.primaryDomain = detail.primaryDomain ?? ""
         self.remark = detail.remark ?? ""
         self.ipv6 = detail.ipv6 ?? false
-        self.expireDate = detail.expireDate ?? ""
+        self.expireDate = Self.dateOnly(detail.expireDate)
         self.favorite = detail.favorite ?? false
         self.webSiteGroupID = detail.webSiteGroupId ?? 1
+    }
+
+    /// 服务端按日期布局解析（time.Parse(DateLayout)，空串跳过），
+    /// 详情返回的完整时间戳（9999-12-31T00:00:00Z）直传会报 extra text，截成 yyyy-MM-dd
+    static func dateOnly(_ raw: String?) -> String {
+        guard let raw, !raw.isEmpty else { return "" }
+        return String(raw.prefix(10))
     }
 }
 

@@ -217,7 +217,9 @@ struct WebsiteDetailView: View {
             WebsiteRewriteView(websiteId: website.id, vm: vm)
         }
         .navigationDestination(isPresented: $showLeech) {
-            WebsiteLeechView(websiteId: website.id, vm: vm)
+            WebsiteLeechView(websiteId: website.id,
+                             primaryDomain: website.primaryDomain ?? "",
+                             vm: vm)
         }
         .navigationDestination(isPresented: $showOther) {
             WebsiteOtherView(website: website, vm: vm)

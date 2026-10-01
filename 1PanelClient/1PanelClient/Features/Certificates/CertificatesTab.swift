@@ -145,13 +145,7 @@ struct CertificatesTab: View {
                         } label: {
                             CertificateRow(cert: cert)
                         }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                vm.pendingDeleteCert = cert
-                            } label: {
-                                Label(L10n.t("删除"), systemImage: "trash")
-                            }
-                        }
+                        // 删除入口在详情页三点菜单；列表不提供左划删除
                     }
                 }
             }
@@ -160,26 +154,7 @@ struct CertificatesTab: View {
         .refreshable {
             await vm.refresh()
         }
-        .alert(L10n.t("删除证书"), isPresented: Binding(
-            get: { vm.pendingDeleteCert != nil },
-            set: { if !$0 { vm.pendingDeleteCert = nil } }
-        )) {
-            Button(L10n.t("取消"), role: .cancel) {
-                vm.pendingDeleteCert = nil
-            }
-            Button(L10n.t("删除"), role: .destructive) {
-                Haptic.warning()
-                if let cert = vm.pendingDeleteCert {
-                    Task {
-                        await vm.delete(cert: cert)
-                    }
-                }
-            }
-        } message: {
-            if let cert = vm.pendingDeleteCert {
-                Text(L10n.f("确定删除证书「%@」吗？删除后不可恢复。", cert.displayName))
-            }
-        }
+        // 删除入口在详情页三点菜单
     }
 
     /// 「安全凭证」抽屉：Acme 账户 / DNS 账户 / 自签证书 入口（展开后为按钮网格）
@@ -835,9 +810,6 @@ final class CertificatesViewModel: ObservableObject {
     /// 成功/已提交类轻提示（toast）；错误与需确认的信息仍走 alert
     @Published var toastMessage: String?
 
-    /// 列表删除确认
-    @Published var pendingDeleteCert: WebsiteSSLCert?
-
     /// 上传成功后用于触发列表刷新
     @Published var needsRefresh = false
 
@@ -909,7 +881,6 @@ final class CertificatesViewModel: ObservableObject {
     }
 
     func delete(cert: WebsiteSSLCert) async {
-        pendingDeleteCert = nil
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.websitesSSLDelete.path,

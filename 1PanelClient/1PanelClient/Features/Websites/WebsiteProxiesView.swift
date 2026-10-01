@@ -20,7 +20,7 @@ struct WebsiteProxiesView: View {
     @State private var editingProxy: WebsiteProxy?
     @State private var sourceProxy: WebsiteProxy?
     @State private var togglingProxyId: String?
-    /// 长按半屏菜单目标（启停/编辑/源文/删除；左滑删除保留）
+    /// 长按半屏菜单目标（启停/编辑/源文/删除）
     @State private var actionProxy: WebsiteProxy?
     @State private var pendingDeleteProxy: WebsiteProxy?
 
@@ -44,6 +44,8 @@ struct WebsiteProxiesView: View {
         }
         .navigationTitle(L10n.t("反向代理"))
         .navigationBarTitleDisplayMode(.inline)
+        // 创建/编辑/源文保存退页后的成功 toast 在本页呈现
+        .toastOverlay(message: $vm.toastMessage)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -157,18 +159,10 @@ struct WebsiteProxiesView: View {
                     }
                 }
                 .padding(.vertical, 2)
-                // 单击直达编辑（与负载均衡/脚本库一致），长按弹半屏操作菜单
-                // （长按松手不触发单击）
+                // 单击直达编辑，长按弹半屏操作菜单（长按松手不触发单击）
                 .rowTapAndLongPress(
                     onTap: { editingProxy = p },
                     onLongPress: { actionProxy = p })
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        pendingDeleteProxy = p
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
-                    }
-                }
             }
         }
         .refreshable {
@@ -207,6 +201,7 @@ struct WebsiteProxiesView: View {
         )
         let ok = await vm.operateProxy(websiteId: websiteId, operate: .delete, req: req)
         if ok {
+            vm.showToast(L10n.f("反向代理「%@」已删除", p.displayName))
             await load()
         }
     }
@@ -218,6 +213,7 @@ struct WebsiteProxiesView: View {
         let newEnable = !(p.enable ?? true)
         let ok = await vm.toggleProxy(websiteId: websiteId, proxy: p, enable: newEnable)
         if ok {
+            vm.showToast(L10n.t(newEnable ? "已开启反向代理" : "已关闭反向代理"))
             await load()
         }
     }
@@ -380,6 +376,7 @@ struct WebsiteProxyEditView: View {
         )
         let ok = await vm.operateProxy(websiteId: websiteId, operate: operate, req: req)
         if ok {
+            vm.showToast(L10n.t(isEdit ? "反向代理已保存" : "反向代理已创建"))
             onDone()
             dismiss()
         }
@@ -440,6 +437,7 @@ struct WebsiteProxySourceView: View {
             content: content
         )
         if ok {
+            vm.showToast(L10n.t("源文已保存"))
             originalContent = content
             dismiss()
         }
