@@ -69,6 +69,14 @@ struct AppsTab: View {
             }
         }
         .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
+        .onAppear {
+            // 从长按菜单直推的编辑（更新参数）页返回时消费 needsRefresh：
+            // 原流程经详情页 onDisappear 刷新，列表直达流程在此补齐
+            if vm.needsRefresh {
+                vm.needsRefresh = false
+                Task { await vm.refresh() }
+            }
+        }
     }
 
     /// 列表根内容（不含 NavigationStack），供 ManageTab 嵌入复用

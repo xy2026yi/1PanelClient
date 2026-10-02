@@ -134,10 +134,15 @@ struct AIAgentWecomChannelView: View {
             }
         }
         .task {
-            await load()
+            // 频道 GET 与插件状态并行加载（互不依赖，缩短首屏等待）；
             // 插件状态在页面级加载：List 内条件视图上的 .task 可能不执行
             if isOpenClaw {
-                pluginStatus = await loadChannelPluginStatus(client: client, agentId: agentId, type: "wecom")
+                async let plugin = loadChannelPluginStatus(client: client, agentId: agentId, type: "wecom")
+                async let config: Void = load()
+                pluginStatus = await plugin
+                await config
+            } else {
+                await load()
             }
         }
         .refreshable { await load() }

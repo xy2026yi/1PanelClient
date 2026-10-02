@@ -123,7 +123,7 @@ struct UpgradeSheetView: View {
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.borderless)
-                            .disabled(vm.upgradingVersionId != nil)
+                            .disabled(vm.upgradingVersionId != nil || vm.loadingComposeVersionId != nil)
                             .accessibilityLabel(L10n.t("忽略此版本"))
                         }
 
