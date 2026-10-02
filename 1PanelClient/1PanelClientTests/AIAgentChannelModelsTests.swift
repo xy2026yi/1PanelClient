@@ -13,6 +13,17 @@ import Foundation
 @Suite("智能体频道模型")
 struct AIAgentChannelModelsTests {
 
+    @Test("插件 latestVersion JSON 数组字符串解析（抓包 2026-10-02）")
+    func parsePluginLatestVersion() throws {
+        // 数组字符串取首个版本号（含带换行缩进的抓包原样形态）
+        #expect(ChannelPluginSection.displayVersion(#"["0.8.26"]"#) == "0.8.26")
+        #expect(ChannelPluginSection.displayVersion("[\n  \"2.0.4\"\n]") == "2.0.4")
+        // 非数组按原样返回，空值返回 nil
+        #expect(ChannelPluginSection.displayVersion("1.2.3") == "1.2.3")
+        #expect(ChannelPluginSection.displayVersion("") == nil)
+        #expect(ChannelPluginSection.displayVersion(nil) == nil)
+    }
+
     @Test("QQ 频道 get 响应解码（bots 数组 + installed 标记）")
     func decodeQQChannel() throws {
         let json = """

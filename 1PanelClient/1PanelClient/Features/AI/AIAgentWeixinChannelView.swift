@@ -18,8 +18,12 @@ struct AIAgentWeixinChannelView: View {
 
     @State private var enabled = false
     /// 微信频道无 get 接口：插件 installed 作为对接状态的替代信号，
-    /// 驱动「删除对接」入口（否则重进页面后入口消失）
-    @State private var pluginInstalled = false
+    /// 驱动「删除对接」入口（否则重进页面后入口消失）；
+    /// 亦驱动 OpenClaw 未安装时只显示插件安装区（nil=未知/检查失败）。
+    /// 状态在页面级 .task 加载——List 内条件视图上的 .task 可能不执行
+    @State private var pluginStatus: AIAgentPluginStatus?
+    /// 插件任务进度（List 外 navigationDestination 推入）
+    @State private var pluginTask: ChannelPluginTask?
     @State private var isLoggingIn = false
     @State private var logLines: [String] = []
     @State private var qrURL: String?
@@ -45,14 +49,9 @@ struct AIAgentWeixinChannelView: View {
         List {
             if agentType == "openclaw" {
                 ChannelPluginSection(client: client, agentId: agentId, type: "weixin",
-                                     onUninstalled: {
-                                         enabled = false
-                                         pluginInstalled = false
-                                         qrURL = nil
-                                     },
-                                     onStatus: { status in
-                                         pluginInstalled = (status?.installed == true)
-                                     })
+                                     status: pluginStatus,
+                                     onError: { errorMessage = $0; showError = true },
+                                     onTask: { pluginTask = $0 })
             }
 
             // 顶层状态开关仅 QwenPaw 显示；Hermes（网页无开关）与
@@ -72,35 +71,39 @@ struct AIAgentWeixinChannelView: View {
                 }
             }
 
-            Section {
-                if let url = qrURL {
-                    VStack(spacing: 14) {
-                        QRCodeView(text: url, side: 200)
-                        Text(L10n.t("请使用微信扫描二维码"))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+            // OpenClaw 插件未安装时只显示安装区（对齐网页端），扫码对接隐藏；
+            // nil=状态未知（检查失败）不吞对接入口，按原样兜底显示
+            if !(agentType == "openclaw" && pluginStatus?.installed == false) {
+                Section {
+                    if let url = qrURL {
+                        VStack(spacing: 14) {
+                            QRCodeView(text: url, side: 200)
+                            Text(L10n.t("请使用微信扫描二维码"))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    } else if isLoggingIn || isPolling {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Text(L10n.t("正在生成二维码…"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                    } else {
+                        Button {
+                            Task { await startLogin() }
+                        } label: {
+                            Label(L10n.t("扫码对接"), systemImage: "qrcode.viewfinder")
+                        }
+                        .disabled(isLoggingIn)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                } else if isLoggingIn || isPolling {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Text(L10n.t("正在生成二维码…"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
-                } else {
-                    Button {
-                        Task { await startLogin() }
-                    } label: {
-                        Label(L10n.t("扫码对接"), systemImage: "qrcode.viewfinder")
-                    }
-                    .disabled(isLoggingIn)
+                } header: {
+                    SectionLabel(title: L10n.t("扫码对接"), systemImage: "qrcode")
                 }
-            } header: {
-                SectionLabel(title: L10n.t("扫码对接"), systemImage: "qrcode")
             }
 
             if !logLines.isEmpty {
@@ -115,7 +118,7 @@ struct AIAgentWeixinChannelView: View {
                 }
             }
 
-            if enabled || pluginInstalled {
+            if enabled || pluginStatus?.installed == true {
                 Section {
                     Button(role: .destructive) {
                         confirmDelete = true
@@ -130,14 +133,31 @@ struct AIAgentWeixinChannelView: View {
         .formWidthLimit()
         .task {
             enabled = initialEnabled || enabled
+            if agentType == "openclaw" {
+                pluginStatus = await loadChannelPluginStatus(client: client, agentId: agentId, type: "weixin")
+            }
         }
         // 微信无 get 接口：下拉刷新插件安装状态（驱动「删除对接」入口可见性）
         .refreshable {
-            if let resp: AIAgentPluginStatus = try? await client.send(
-                path: APIEndpoint.aiAgentPluginCheck.path,
-                body: AIAgentPluginCheckRequest(agentId: agentId, type: "weixin", checkLatest: false),
-                as: AIAgentPluginStatus.self) {
-                pluginInstalled = (resp.installed == true)
+            if agentType == "openclaw" {
+                pluginStatus = await loadChannelPluginStatus(client: client, agentId: agentId, type: "weixin")
+            }
+        }
+        // 插件任务进度（挂在 List 外，避免 misplaced navigationDestination 警告）；
+        // 完成/后台运行均刷新插件状态；卸载完成后清空本地对接状态
+        .navigationDestination(item: $pluginTask) { task in
+            TaskProgressView(taskID: task.taskID, title: task.title, latest: false, node: "local") { _ in
+                if agentType == "openclaw" {
+                    Task {
+                        pluginStatus = await loadChannelPluginStatus(client: client, agentId: agentId, type: "weixin")
+                        if task.isUninstall {
+                            enabled = false
+                            qrURL = nil
+                            logLines = []
+                        }
+                    }
+                }
+                return false
             }
         }
         .onDisappear { isPolling = false }

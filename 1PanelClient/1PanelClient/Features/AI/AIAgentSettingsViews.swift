@@ -116,13 +116,9 @@ struct AIAgentModelConfigView: View {
                                     metadata = updated
                                 }
                             } label: {
-                                HStack {
-                                    Text(L10n.t("模型能力配置"))
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
-                                }
+                                // NavigationLink 在 Form 行内自带右侧箭头，
+                                // 不再手绘 chevron（否则出现两个 >）
+                                Text(L10n.t("模型能力配置"))
                             }
                         }
                     }
@@ -678,11 +674,21 @@ struct AIAgentSettingsView: View {
     }
 }
 
-// MARK: - 模型能力配置页（模型池逐个：输入类型 / 上下文窗口 / Max Tokens）
+// MARK: - 模型能力配置（列表 + 单模型配置页）
 
-/// 账号模型池逐模型的能力映射：条目数与模型数一致且不可移除；
-/// 保存走 agents/model/update 全量（账号/主模型/备用模型一并带出）。
-/// 未设置上下文窗口/Max Tokens 时提交 0（服务端按模型默认值处理）。
+/// 输入类型 rawValue → 展示文案（列表徽标与编辑页选项共用）
+private func aiModelInputModeLabel(_ raw: String) -> String {
+    switch raw {
+    case "text":  return L10n.t("仅文本")
+    case "image": return L10n.t("文本和图片")
+    default:      return L10n.t("自动识别")
+    }
+}
+
+/// 模型池能力配置列表（模型多时不再整页铺开）：逐模型一行，徽标标记
+/// 非默认输入类型与自定义数值，点击进入单模型配置页。
+/// 保存为账号级全量接口（agents/model/update 携带全部模型的 metadata，
+/// 抓包确认），由单模型页合并后整体 POST，成功后经 onSaved 同步父页镜像
 struct AIAgentModelCapabilityPage: View {
     let server: ServerConfig
     let agentId: Int
@@ -695,19 +701,8 @@ struct AIAgentModelCapabilityPage: View {
     /// 保存成功回调（回写父页 metadata 镜像）
     var onSaved: ([AIAgentModelMetadata]) -> Void
 
-    @Environment(\.dismiss) private var dismiss
-
-    /// 逐模型可编辑副本（输入类型 + 两个可选数值，空 = 0 提交）
-    @State private var inputModes: [String: String] = [:]
-    @State private var contextTexts: [String: String] = [:]
-    @State private var maxTokensTexts: [String: String] = [:]
-    @State private var didInit = false
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-    @State private var showError = false
-
-    private let client: APIClient
-    private let inputOptions = ["auto", "text", "image"]
+    /// 当前能力映射（单模型页保存成功后原地更新并上抛父页）
+    @State private var metadata: [AIAgentModelMetadata]
 
     init(server: ServerConfig, agentId: Int, accountId: Int, models: [AIModelRef],
          currentModel: String, fallbacks: [String],
@@ -721,44 +716,130 @@ struct AIAgentModelCapabilityPage: View {
         self.fallbacks = fallbacks
         self.initialMetadata = initialMetadata
         self.onSaved = onSaved
+        _metadata = State(initialValue: initialMetadata)
+    }
+
+    private func entry(for model: String) -> AIAgentModelMetadata {
+        metadata.first(where: { $0.model == model }) ?? AIAgentModelMetadata(model: model)
+    }
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(models) { ref in
+                    NavigationLink {
+                        AIAgentModelCapabilityEditPage(
+                            server: server,
+                            agentId: agentId,
+                            accountId: accountId,
+                            currentModel: currentModel,
+                            fallbacks: fallbacks,
+                            allMetadata: metadata,
+                            target: ref) { newFull in
+                            metadata = newFull
+                            onSaved(newFull)
+                        }
+                    } label: {
+                        capabilityRow(ref)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } footer: {
+                Text(L10n.t("点击模型进入配置；保存将全量提交该账号所有模型的能力映射"))
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(L10n.t("模型能力配置"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// 模型行：模型名 + 非默认输入类型徽标 + 自定义数值标记
+    private func capabilityRow(_ ref: AIModelRef) -> some View {
+        let e = entry(for: ref.id)
+        return HStack(spacing: 8) {
+            Text(ref.id)
+                .font(.body.monospaced())
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            if e.inputMode != "auto" {
+                StatusBadge(text: aiModelInputModeLabel(e.inputMode), color: .blue)
+            }
+            if e.contextWindow > 0 || e.maxTokens > 0 {
+                StatusBadge(text: L10n.t("已自定义"), color: .orange)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+/// 单模型能力配置：输入类型 / 上下文窗口 / Max Tokens。
+/// 保存时把该模型条目合并进全量 metadata 整体 POST（账号级全量接口，
+/// 未设置的数值提交 0 = 使用模型默认值），成功后回抛新全量数组并退回列表
+private struct AIAgentModelCapabilityEditPage: View {
+    let server: ServerConfig
+    let agentId: Int
+    let accountId: Int
+    let currentModel: String
+    let fallbacks: [String]
+    /// 列表页当前持有的全量能力映射（合并基准）
+    let allMetadata: [AIAgentModelMetadata]
+    let target: AIModelRef
+    var onSaved: ([AIAgentModelMetadata]) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var inputMode: String
+    @State private var contextText: String
+    @State private var maxTokensText: String
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+
+    private let client: APIClient
+    private static let inputOptions = ["auto", "text", "image"]
+
+    init(server: ServerConfig, agentId: Int, accountId: Int,
+         currentModel: String, fallbacks: [String],
+         allMetadata: [AIAgentModelMetadata], target: AIModelRef,
+         onSaved: @escaping ([AIAgentModelMetadata]) -> Void) {
+        self.server = server
+        self.agentId = agentId
+        self.accountId = accountId
+        self.currentModel = currentModel
+        self.fallbacks = fallbacks
+        self.allMetadata = allMetadata
+        self.target = target
+        self.onSaved = onSaved
+        let entry = allMetadata.first(where: { $0.model == target.id })
+            ?? AIAgentModelMetadata(model: target.id)
+        _inputMode = State(initialValue: entry.inputMode.isEmpty ? "auto" : entry.inputMode)
+        _contextText = State(initialValue: entry.contextWindow > 0 ? String(entry.contextWindow) : "")
+        _maxTokensText = State(initialValue: entry.maxTokens > 0 ? String(entry.maxTokens) : "")
         self.client = APIClient.shared(for: server)
     }
 
     var body: some View {
         Form {
-            ForEach(models) { ref in
-                Section {
-                    OutlinedShape(label: L10n.t("模型"), isFocused: false,
-                                  hasValue: true, trailing: { EmptyView() }) {
-                        Text(ref.id)
-                            .font(.dataMonospacedCaption)
-                            .lineLimit(1)
-                    }
-                    OutlinedPicker(label: L10n.t("输入类型"), options: inputOptions,
-                                   selection: Binding(
-                                       get: { inputModes[ref.id] ?? "auto" },
-                                       set: { inputModes[ref.id] = $0 }),
-                                   optionLabels: [
-                                    "auto": L10n.t("自动识别"),
-                                    "text": L10n.t("仅文本"),
-                                    "image": L10n.t("文本和图片")
-                                   ])
-                    OutlinedUnitField(label: L10n.t("上下文窗口"), unit: "",
-                                      prompt: L10n.t("使用模型默认值"),
-                                      text: Binding(
-                                          get: { contextTexts[ref.id] ?? "" },
-                                          set: { contextTexts[ref.id] = $0 }))
-                    OutlinedUnitField(label: "Max Tokens", unit: "",
-                                      prompt: L10n.t("使用模型默认值"),
-                                      text: Binding(
-                                          get: { maxTokensTexts[ref.id] ?? "" },
-                                          set: { maxTokensTexts[ref.id] = $0 }))
-                } header: {
-                    Text(ref.id)
+            Section {
+                OutlinedShape(label: L10n.t("模型"), isFocused: false,
+                              hasValue: true, trailing: { EmptyView() }) {
+                    Text(target.id)
+                        .font(.dataMonospacedCaption)
+                        .lineLimit(1)
                 }
+                OutlinedPicker(label: L10n.t("输入类型"), options: Self.inputOptions,
+                               selection: $inputMode,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   Self.inputOptions.map { ($0, aiModelInputModeLabel($0)) }))
+                OutlinedUnitField(label: L10n.t("上下文窗口"), unit: "",
+                                  prompt: L10n.t("使用模型默认值"), text: $contextText)
+                OutlinedUnitField(label: "Max Tokens", unit: "",
+                                  prompt: L10n.t("使用模型默认值"), text: $maxTokensText)
+            } footer: {
+                Text(L10n.t("保存将连同该账号其他模型的能力配置一并提交"))
             }
         }
-        .navigationTitle(L10n.t("模型能力配置"))
+        .navigationTitle(L10n.t("模型配置"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -770,19 +851,6 @@ struct AIAgentModelCapabilityPage: View {
                 .disabled(isSaving)
             }
         }
-        .onAppear {
-            guard !didInit else { return }
-            didInit = true
-            for item in initialMetadata {
-                inputModes[item.model] = item.inputMode
-                if item.contextWindow > 0 {
-                    contextTexts[item.model] = String(item.contextWindow)
-                }
-                if item.maxTokens > 0 {
-                    maxTokensTexts[item.model] = String(item.maxTokens)
-                }
-            }
-        }
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -790,22 +858,22 @@ struct AIAgentModelCapabilityPage: View {
         }
     }
 
-    /// 全量 metadata：模型池逐个（顺序稳定），未填数值提交 0
-    private func buildMetadata() -> [AIAgentModelMetadata] {
-        models.map { ref in
-            AIAgentModelMetadata(
-                model: ref.id,
-                inputMode: inputModes[ref.id] ?? "auto",
-                contextWindow: Int(contextTexts[ref.id] ?? "") ?? 0,
-                maxTokens: Int(maxTokensTexts[ref.id] ?? "") ?? 0)
-        }
-    }
-
     private func save() async {
         isSaving = true
         defer { isSaving = false }
+        let newEntry = AIAgentModelMetadata(
+            model: target.id,
+            inputMode: inputMode,
+            contextWindow: Int(contextText) ?? 0,
+            maxTokens: Int(maxTokensText) ?? 0)
+        // 合并进全量：原位替换（缺失则追加），保持列表顺序
+        var newFull = allMetadata
+        if let idx = newFull.firstIndex(where: { $0.model == target.id }) {
+            newFull[idx] = newEntry
+        } else {
+            newFull.append(newEntry)
+        }
         do {
-            let newMetadata = buildMetadata()
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentModelUpdate.path,
                 body: AIAgentModelUpdateRequest(
@@ -813,9 +881,9 @@ struct AIAgentModelCapabilityPage: View {
                     accountId: accountId,
                     model: currentModel,
                     fallbacks: fallbacks,
-                    metadata: newMetadata),
+                    metadata: newFull),
                 as: EmptyResponse.self)
-            onSaved(newMetadata)
+            onSaved(newFull)
             dismiss()
         } catch {
             guard !APIError.isCancellation(error) else { return }

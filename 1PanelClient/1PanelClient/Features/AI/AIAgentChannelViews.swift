@@ -412,64 +412,106 @@ struct PairingApproveSection: View {
     }
 }
 
-// MARK: - 频道插件区（OpenClaw 频道为插件：版本 / 卸载带进度）
+// MARK: - 频道插件区（OpenClaw 频道为插件：版本 / 升级 / 卸载带进度）
 
-/// 频道页顶部插件状态区：plugin/check（checkLatest=true 取最新版本）；
-/// 已安装 → 版本 + 升级 + 卸载；未安装 → 安装（plugin/install，taskID 驱动进度页）；
-/// 检查失败时整区隐藏
+/// 插件任务（安装/升级/卸载提交成功后由页面推入进度页）。
+/// 状态由页面持有、navigationDestination 挂在 List 外——挂进 List 行内
+/// 会触发 misplaced navigationDestination 警告（未来版本将被忽略），
+/// 状态加载同理不能依赖 List 内条件视图上的 .task（条件分支为空时
+/// task 可能不执行，微信无频道 GET 兜底曾因此连安装区都不出现）
+struct ChannelPluginTask: Identifiable, Hashable {
+    let taskID: String
+    let title: String
+    let isUninstall: Bool
+    var id: String { taskID }
+}
+
+/// 插件状态两段式查询（页面级 .task 调用，抓包 2026-10-02 确认协议）：
+/// checkLatest:false 对已装/未装都可用，先定安装态；未装不再发
+/// checkLatest:true（网页端同样确认已装后才发起，未装直发会报错）；
+/// 已装再查一次拿最新版本与 upgradable
+func loadChannelPluginStatus(client: APIClient, agentId: Int, type: String) async -> AIAgentPluginStatus? {
+    guard let base = await checkChannelPlugin(client: client, agentId: agentId, type: type, latest: false) else {
+        return nil
+    }
+    guard base.installed == true else { return base }
+    return await checkChannelPlugin(client: client, agentId: agentId, type: type, latest: true) ?? base
+}
+
+private func checkChannelPlugin(client: APIClient, agentId: Int, type: String, latest: Bool) async -> AIAgentPluginStatus? {
+    do {
+        return try await client.send(
+            path: APIEndpoint.aiAgentPluginCheck.path,
+            body: AIAgentPluginCheckRequest(agentId: agentId, type: type, checkLatest: latest),
+            as: AIAgentPluginStatus.self)
+    } catch {
+        return nil
+    }
+}
+
+/// 频道页顶部插件信息区（纯渲染：状态由页面加载传入）。
+/// 已安装 → 版本/新版本两段描边行（行尾卸载/升级图标）；
+/// 未安装 → FTP 未安装页同款居中安装入口（页面门控此时已隐藏全部配置区，
+/// 整页仅剩此安装块）
 struct ChannelPluginSection: View {
     let client: APIClient
     let agentId: Int
     let type: String
-    /// 任一插件动作（安装/升级/卸载）完成后的通用刷新
-    var onChanged: () -> Void = {}
-    /// 卸载完成后额外回调（微信：清空本地对接状态）
-    var onUninstalled: () -> Void = {}
-    /// 状态加载后回调（微信：用 installed 驱动「删除对接」入口——该频道无 get 接口）
-    var onStatus: (AIAgentPluginStatus?) -> Void = { _ in }
+    /// 页面加载的插件状态
+    let status: AIAgentPluginStatus?
+    /// check 彻底失败时的兜底安装态（频道 GET 的 installed，与列表徽标同源）：
+    /// false 时仍渲染安装入口
+    var fallbackInstalled: Bool? = nil
+    /// 动作请求失败提示（页面 alert 展示）
+    var onError: (String) -> Void = { _ in }
+    /// 动作提交成功：进度页推入由页面处理
+    var onTask: (ChannelPluginTask) -> Void
 
-    @State private var status: AIAgentPluginStatus?
     @State private var confirmUninstall = false
-    @State private var progressTaskID = ""
-    @State private var showProgress = false
-    @State private var progressTitle = ""
-    /// 进度页对应的动作（uninstall：完成时分派 onUninstalled）
-    @State private var progressIsUninstall = false
-    @State private var errorMessage: String?
-    @State private var showError = false
+    @State private var isInstalling = false
+
+    private var kind: AIChannelKind? { AIChannelKind(rawValue: type) }
 
     var body: some View {
         Group {
-            if let s = status {
+            if let s = status, s.installed == true {
+                // 无标题分组：版本/新版本作为浮动标签嵌在描边框顶线
+                //（OutlinedShape，与表单描边控件同一视觉语言）
                 Section {
-                    if s.installed == true {
-                        LabeledContent(L10n.t("插件版本"), value: s.currentVersion ?? "-")
-                        if let latest = s.latestVersion, !latest.isEmpty, latest != s.currentVersion {
-                            LabeledContent(L10n.t("最新版本"), value: latest)
-                            if s.upgradable == true {
-                                Button {
-                                    Task { await upgrade() }
-                                } label: {
-                                    Label(L10n.t("升级插件"), systemImage: "arrow.up.circle")
-                                }
+                    versionRow(
+                        label: L10n.t("版本"),
+                        version: s.currentVersion ?? "-",
+                        actionTitle: L10n.t("卸载插件"),
+                        actionIcon: "trash",
+                        actionColor: .red
+                    ) {
+                        confirmUninstall = true
+                    }
+                    .listRowSeparator(.hidden)
+
+                    if let latest = Self.displayVersion(s.latestVersion),
+                       !latest.isEmpty, latest != s.currentVersion {
+                        if s.upgradable == true {
+                            versionRow(
+                                label: L10n.t("新版本"),
+                                version: latest,
+                                actionTitle: L10n.t("升级插件"),
+                                actionIcon: "arrow.up.circle",
+                                actionColor: .orange
+                            ) {
+                                Task { await upgrade() }
                             }
-                        }
-                        Button(role: .destructive) {
-                            confirmUninstall = true
-                        } label: {
-                            Label(L10n.t("卸载插件"), systemImage: "trash")
-                        }
-                    } else {
-                        LabeledContent(L10n.t("插件版本"), value: L10n.t("未安装"))
-                        Button {
-                            Task { await install() }
-                        } label: {
-                            Label(L10n.t("安装插件"), systemImage: "arrow.down.circle")
+                            .listRowSeparator(.hidden)
+                        } else {
+                            // 有新版本号但 upgradable 缺失：仅展示版本
+                            versionRow(label: L10n.t("新版本"), version: latest,
+                                       actionTitle: "", actionIcon: "", actionColor: .accentColor) {}
+                                .listRowSeparator(.hidden)
                         }
                     }
-                } header: {
-                    SectionLabel(title: L10n.t("频道插件"), systemImage: "puzzlepiece")
                 }
+            } else if status?.installed == false || fallbackInstalled == false {
+                notInstalledBlock
             }
         }
         .alert(L10n.t("卸载插件"), isPresented: $confirmUninstall) {
@@ -480,59 +522,107 @@ struct ChannelPluginSection: View {
         } message: {
             Text(L10n.t("卸载后该频道将不可用，需重新安装插件"))
         }
-        .alert(L10n.t("提示"), isPresented: $showError) {
-            Button(L10n.t("好的"), role: .cancel) {}
-        } message: {
-            Text(errorMessage ?? "")
-        }
-        .navigationDestination(isPresented: $showProgress) {
-            TaskProgressView(taskID: progressTaskID, title: progressTitle, latest: false, node: "local") { _ in
-                // 完成 or 用户选后台运行都刷新（后台运行后插件状态同样变化）
-                let wasUninstall = progressIsUninstall
-                Task {
-                    await load()
-                    await MainActor.run {
-                        // 插件动作完成后：通用刷新；卸载额外回调（get 的 installed 会变化）
-                        onChanged()
-                        if wasUninstall { onUninstalled() }
-                    }
-                }
-                return false
-            }
-        }
-        // task 必须挂在条件块外：status 初始为 nil，挂在 Section 上时
-        // 视图不存在 → load 永不执行 → 插件区从不显示（含未安装时的安装按钮）
-        .task { await load() }
     }
 
-    private func load() async {
-        do {
-            status = try await client.send(
-                path: APIEndpoint.aiAgentPluginCheck.path,
-                body: AIAgentPluginCheckRequest(agentId: agentId, type: type, checkLatest: true),
-                as: AIAgentPluginStatus.self)
-        } catch {
-            // 检查失败隐藏整区（不影响频道配置）
-            status = nil
+    /// 未安装：FTP/数据库未安装页同款居中安装块（无 section 头，整页仅此一块）
+    @ViewBuilder
+    private var notInstalledBlock: some View {
+        if let kind {
+            Section {
+                VStack(spacing: 20) {
+                    IconBadge(systemName: kind.icon, color: kind.iconColor,
+                              size: 72, cornerRadius: Radius.large)
+                        .opacity(0.5)
+
+                    VStack(spacing: 8) {
+                        Text(L10n.f("%@插件未安装", kind.displayName))
+                            .font(.headline)
+                        Text(L10n.t("安装频道插件后即可配置并使用该频道"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    Button {
+                        Task { await install() }
+                    } label: {
+                        if isInstalling {
+                            ProgressView()
+                                .tint(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 4)
+                        } else {
+                            // List 行环境会把 Label 图标染成 tint 色（蓝底蓝图标
+                            // 不可见，FTP 同款按钮不在 List 内故无此问题），
+                            // 显式白色前景与 borderedProminent 底色匹配
+                            Label(L10n.t("安装插件"), systemImage: "arrow.down.circle.fill")
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 4)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isInstalling)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 32)
+                .padding(.bottom, 24)
+                .listRowBackground(Color.clear)
+            }
         }
-        onStatus(status)
+    }
+
+    /// 版本信息行：描边包裹（浮动标签 版本/新版本 + 版本号 + 行尾动作图标），
+    /// 复用表单描边控件的 OutlinedShape（标签跨顶线、背景截断边框）
+    private func versionRow(
+        label: String,
+        version: String,
+        actionTitle: String,
+        actionIcon: String,
+        actionColor: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        OutlinedShape(label: label, isFocused: false, hasValue: true) {
+            if !actionIcon.isEmpty {
+                Button(action: action) {
+                    Image(systemName: actionIcon)
+                        .font(.title3)
+                        .foregroundStyle(actionColor)
+                        .frame(width: 34, height: 34)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(actionTitle)
+            }
+        } content: {
+            Text(version)
+                .font(.body.monospacedDigit())
+        }
+    }
+
+    /// latestVersion 为 JSON 数组字符串（抓包："[\"0.8.26\"]"），
+    /// 解析取首个版本号展示；解析失败按原样返回
+    static func displayVersion(_ raw: String?) -> String? {
+        guard let raw, !raw.isEmpty else { return nil }
+        if let versions = try? JSONDecoder().decode([String].self, from: Data(raw.utf8)) {
+            return versions.first ?? raw
+        }
+        return raw
     }
 
     private func install() async {
+        isInstalling = true
+        defer { isInstalling = false }
         let taskID = UUID().uuidString
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentPluginInstall.path,
                 body: AIAgentPluginInstallRequest(agentId: agentId, type: type, taskID: taskID),
                 as: EmptyResponse.self)
-            progressTaskID = taskID
-            progressTitle = L10n.t("安装插件")
-            progressIsUninstall = false
-            showProgress = true
+            onTask(ChannelPluginTask(taskID: taskID, title: L10n.t("安装插件"), isUninstall: false))
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            errorMessage = error.localizedDescription
-            showError = true
+            onError(error.localizedDescription)
         }
     }
 
@@ -543,14 +633,10 @@ struct ChannelPluginSection: View {
                 path: APIEndpoint.aiAgentPluginUpgrade.path,
                 body: AIAgentPluginUpgradeRequest(agentId: agentId, type: type, taskID: taskID),
                 as: EmptyResponse.self)
-            progressTaskID = taskID
-            progressTitle = L10n.t("升级插件")
-            progressIsUninstall = false
-            showProgress = true
+            onTask(ChannelPluginTask(taskID: taskID, title: L10n.t("升级插件"), isUninstall: false))
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            errorMessage = error.localizedDescription
-            showError = true
+            onError(error.localizedDescription)
         }
     }
 
@@ -561,14 +647,10 @@ struct ChannelPluginSection: View {
                 path: APIEndpoint.aiAgentPluginUninstall.path,
                 body: AIAgentPluginUninstallRequest(agentId: agentId, type: type, taskID: taskID),
                 as: EmptyResponse.self)
-            progressTaskID = taskID
-            progressTitle = L10n.t("卸载插件")
-            progressIsUninstall = true
-            showProgress = true
+            onTask(ChannelPluginTask(taskID: taskID, title: L10n.t("卸载插件"), isUninstall: true))
         } catch {
             guard !APIError.isCancellation(error) else { return }
-            errorMessage = error.localizedDescription
-            showError = true
+            onError(error.localizedDescription)
         }
     }
 }

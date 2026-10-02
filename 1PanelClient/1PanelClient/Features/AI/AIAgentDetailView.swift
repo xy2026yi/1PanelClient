@@ -264,7 +264,9 @@ struct AIAgentDetailView: View {
                         InfoRow(L10n.t("安装目录"), value: path, monospaced: true)
                     }
                 }
-                if let message = a.message, !message.isEmpty {
+                // Hermes 不展示 message（服务端部署提示，无参考价值）；
+                // 其余类型保留——错误态时可能携带诊断信息
+                if let message = a.message, !message.isEmpty, !isHermesAgent(a) {
                     InfoRow(L10n.t("消息"), value: message)
                 }
                 InfoRow(L10n.t("创建时间"), value: a.displayCreatedAt)

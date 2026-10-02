@@ -39779,6 +39779,61 @@
           }
         }
       }
+    },
+    "%@插件未安装" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ plugin is not installed"
+          }
+        }
+      }
+    },
+    "安装频道插件后即可配置并使用该频道" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install the channel plugin to configure and use this channel"
+          }
+        }
+      }
+    },
+    "已自定义" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Customized"
+          }
+        }
+      }
+    },
+    "点击模型进入配置；保存将全量提交该账号所有模型的能力映射" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a model to configure it; saving submits the capability mapping of all models in this account"
+          }
+        }
+      }
+    },
+    "保存将连同该账号其他模型的能力配置一并提交" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving also submits the capability settings of the other models in this account"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

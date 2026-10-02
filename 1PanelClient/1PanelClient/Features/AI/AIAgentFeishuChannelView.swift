@@ -31,6 +31,17 @@ struct AIAgentFeishuChannelView: View {
     @State private var loadError: String?
     @State private var errorMessage: String?
     @State private var showError = false
+    /// 页面级插件状态（List 外 .task 加载，两段式查询）；
+    /// check 失败时以频道 GET 的 installed 兜底（与列表徽标同源）
+    @State private var pluginStatus: AIAgentPluginStatus?
+    /// 频道 GET 的 installed：check 未知时的兜底信号
+    @State private var channelInstalled: Bool?
+    /// 插件任务进度（List 外 navigationDestination 推入）
+    @State private var pluginTask: ChannelPluginTask?
+    /// 有效安装态：check 结果优先，GET 兜底；false 时频道页只显示插件安装区
+    private var pluginInstalledEffective: Bool? {
+        pluginStatus?.installed ?? channelInstalled
+    }
     @State private var editingBot: AIChannelFeishuBotItem?
     @State private var showAddBot = false
     /// 行内批准配对（Bot 私聊策略=配队码时）
@@ -75,47 +86,54 @@ struct AIAgentFeishuChannelView: View {
                     }
                 }
             } else if isOpenClaw {
-                ChannelPluginSection(client: client, agentId: agentId, type: "feishu") {
-                    Task { await load() }
-                }
+                ChannelPluginSection(
+                    client: client, agentId: agentId, type: "feishu",
+                    status: pluginStatus,
+                    fallbackInstalled: channelInstalled,
+                    onError: { errorMessage = $0; showError = true },
+                    onTask: { pluginTask = $0 })
 
-                Section {
-                    // OpenClaw 顶层插件状态开关：切换即提交；服务端把默认 Bot 的
-                    // enabled 与顶层 enabled 联动落库，行内默认 Bot 开关镜像顶层开关
-                    Toggle(L10n.t("启用"), isOn: Binding(
-                        get: { c.enabled ?? false },
-                        set: { on in
-                            c.enabled = on
-                            Task { await toggleTopEnabled(on) }
-                        }))
-                        .disabled(isSaving)
-                    Toggle(L10n.t("线程会话"), isOn: Binding(
-                        get: { c.threadSession ?? true }, set: { c.threadSession = $0 }))
-                    Toggle(L10n.t("流式传输"), isOn: Binding(
-                        get: { c.streaming ?? false }, set: { c.streaming = $0 }))
-                    // 回复模式：网页端为带标签展示（值 auto），非自由输入
-                    LabeledContent(L10n.t("回复模式"), value: c.replyMode ?? "auto")
-                    OutlinedPicker(label: L10n.t("群聊需@机器人"),
-                                   options: mentionModes.map(\.value),
-                                   selection: Binding(
-                                       get: {
-                                           let v = c.requireMention ?? ""
-                                           return mentionModes.contains(where: { $0.value == v }) ? v : "true"
-                                       },
-                                       set: { c.requireMention = $0 }),
-                                   optionLabels: Dictionary(uniqueKeysWithValues:
-                                       mentionModes.map { ($0.value, $0.label) }))
-                    ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
-                                         value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
-                    if c.groupPolicy == "allowlist" {
-                        WhitelistEditor(title: L10n.t("群组白名单"), list: Binding(
-                            get: { c.groupAllowFrom ?? [] }, set: { c.groupAllowFrom = $0 }))
+                // 插件未安装时只显示安装区（对齐网页端），配置区隐藏；
+                // nil=两路信号都未知（check 与 GET 均失败）不吞配置，按原样兜底显示
+                if pluginInstalledEffective != false {
+                    Section {
+                        // OpenClaw 顶层插件状态开关：切换即提交；服务端把默认 Bot 的
+                        // enabled 与顶层 enabled 联动落库，行内默认 Bot 开关镜像顶层开关
+                        Toggle(L10n.t("启用"), isOn: Binding(
+                            get: { c.enabled ?? false },
+                            set: { on in
+                                c.enabled = on
+                                Task { await toggleTopEnabled(on) }
+                            }))
+                            .disabled(isSaving)
+                        Toggle(L10n.t("线程会话"), isOn: Binding(
+                            get: { c.threadSession ?? true }, set: { c.threadSession = $0 }))
+                        Toggle(L10n.t("流式传输"), isOn: Binding(
+                            get: { c.streaming ?? false }, set: { c.streaming = $0 }))
+                        // 回复模式：网页端为带标签展示（值 auto），非自由输入
+                        LabeledContent(L10n.t("回复模式"), value: c.replyMode ?? "auto")
+                        OutlinedPicker(label: L10n.t("群聊需@机器人"),
+                                       options: mentionModes.map(\.value),
+                                       selection: Binding(
+                                           get: {
+                                               let v = c.requireMention ?? ""
+                                               return mentionModes.contains(where: { $0.value == v }) ? v : "true"
+                                           },
+                                           set: { c.requireMention = $0 }),
+                                       optionLabels: Dictionary(uniqueKeysWithValues:
+                                           mentionModes.map { ($0.value, $0.label) }))
+                        ChannelPolicyPicker(title: L10n.t("群组策略"), options: AIChannelPolicy.groupPoliciesFull,
+                                             value: Binding(get: { c.groupPolicy ?? "open" }, set: { c.groupPolicy = $0 }))
+                        if c.groupPolicy == "allowlist" {
+                            WhitelistEditor(title: L10n.t("群组白名单"), list: Binding(
+                                get: { c.groupAllowFrom ?? [] }, set: { c.groupAllowFrom = $0 }))
+                        }
+                    } header: {
+                        SectionLabel(title: L10n.t("会话设置"), systemImage: "bubble.left.and.bubble.right")
                     }
-                } header: {
-                    SectionLabel(title: L10n.t("会话设置"), systemImage: "bubble.left.and.bubble.right")
-                }
 
-                openclawBotList
+                    openclawBotList
+                }
             } else {
                 Section {
                     // Hermes 网页端无启用开关（核对隐藏），保存恒传 enabled:true
@@ -160,16 +178,36 @@ struct AIAgentFeishuChannelView: View {
         .formWidthLimit()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await save() }
-                } label: {
-                    if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
+                // 插件未安装时无配置可保存，随配置区一并隐藏
+                if !(isOpenClaw && pluginInstalledEffective == false) {
+                    Button {
+                        Task { await save() }
+                    } label: {
+                        if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
+                    }
+                    .disabled(isLoading || loadError != nil || isSaving)
                 }
-                .disabled(isLoading || loadError != nil || isSaving)
             }
         }
-        .task { await load() }
+        .task {
+            await load()
+            // 插件状态在页面级加载：List 内条件视图上的 .task 可能不执行
+            if isOpenClaw {
+                pluginStatus = await loadChannelPluginStatus(client: client, agentId: agentId, type: "feishu")
+            }
+        }
         .refreshable { await load() }
+        // 插件任务进度（挂在 List 外，避免 misplaced navigationDestination 警告）；
+        // 完成/后台运行均刷新：插件状态重查 + 频道配置重载
+        .navigationDestination(item: $pluginTask) { task in
+            TaskProgressView(taskID: task.taskID, title: task.title, latest: false, node: "local") { _ in
+                Task {
+                    pluginStatus = await loadChannelPluginStatus(client: client, agentId: agentId, type: "feishu")
+                    await load()
+                }
+                return false
+            }
+        }
         .modifier(HermesChannelDeleteModifier(
             client: client, agentId: agentId, type: "feishu",
             isEnabled: isHermes && isConfigured))
@@ -413,6 +451,8 @@ struct AIAgentFeishuChannelView: View {
             c = loaded
             savedC = loaded
             if isOpenClaw {
+                // 频道 GET 的插件标记（列表徽标同源），驱动未安装时隐藏配置区
+                channelInstalled = loaded.installed
                 bots = loaded.bots ?? []
                 savedBots = bots
             } else {
