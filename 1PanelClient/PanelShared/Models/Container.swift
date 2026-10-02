@@ -265,10 +265,12 @@ nonisolated struct ImagePullRequest: Encodable {
 
 // MARK: - 删除镜像请求（POST /containers/image/remove）
 
-/// names 为完整镜像 ID（sha256:...）；同一镜像的多个 tag 行共用一个 ID，调用方需去重
+/// names 可为完整镜像 ID（sha256:...，连同全部标签一次移除）或标签名（仅删所选标签），
+/// 网页端两种形态均带 force=true（抓包 2026-10-02；多 tag 镜像按 ID 删除 Docker 要求 force）
 nonisolated struct ImageDeleteRequest: Encodable {
     let taskID: String
     let names: [String]
+    let force: Bool
 }
 
 // MARK: - 镜像打标签请求（POST /containers/image/tag，抓包 2026-10-01）

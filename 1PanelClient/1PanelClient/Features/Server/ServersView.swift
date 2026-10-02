@@ -41,20 +41,16 @@ struct ServersView: View {
                             actionServer = server
                         }
                     )
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            serverToRemove = server
-                        } label: {
-                            Label(L10n.t("移除"), systemImage: "trash")
-                        }
-                    }
+                    // 移除操作走长按面板（动作统一：全站不再有左划行）
+                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                    .accessibilityAction(named: L10n.t("更多操作")) { actionServer = server }
                 }
             }
             // C3：无服务器空态给引导 CTA，不再只有 footer 说明文字
             if manager.servers.isEmpty {
                 Section {
                 } footer: {
-                    Text(L10n.t("单击切换服务器，长按更多操作，左滑移除；下拉刷新健康状态"))
+                    Text(L10n.t("单击切换服务器，长按更多操作；下拉刷新健康状态"))
                 }
                 ContentUnavailableView {
                     Label(L10n.t("暂无服务器"), systemImage: "server.rack")
@@ -73,7 +69,7 @@ struct ServersView: View {
                 // 无行的 Section 只渲染 footer 文本，不带卡片背景
                 Section {
                 } footer: {
-                    Text(L10n.t("单击切换服务器，长按更多操作，左滑移除；下拉刷新健康状态"))
+                    Text(L10n.t("单击切换服务器，长按更多操作；下拉刷新健康状态"))
                 }
             }
         }
@@ -395,9 +391,8 @@ private struct ServerRow: View {
         }
         .padding(.vertical, 2)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onTap)
-        .onLongPressGesture(perform: onLongPress)
+        // 全站统一的行单击/长按互斥手势：长按弹菜单后松手不再触发单击切换
+        .rowTapAndLongPress(onTap: onTap, onLongPress: onLongPress)
     }
 
     /// 指标环：首页状态卡同款 RingStatView（compact 54pt + 环下详情），定宽以适配横滑行

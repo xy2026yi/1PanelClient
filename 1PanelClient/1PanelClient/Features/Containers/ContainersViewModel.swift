@@ -829,13 +829,15 @@ final class ContainersViewModel: ObservableObject {
 
     // MARK: - 删除镜像
 
-    /// 删除指定镜像（POST /containers/image/remove），返回任务 ID 供进度页轮询
+    /// 删除指定镜像（POST /containers/image/remove），返回任务 ID 供进度页轮询。
+    /// names 为完整镜像 ID（全部标签一并移除）或标签名（仅删所选标签）；
+    /// force 默认 true——网页端两种形态均带 force（抓包 2026-10-02）
     @discardableResult
-    func deleteImages(names: [String]) async -> String? {
+    func deleteImages(names: [String], force: Bool = true) async -> String? {
         guard !names.isEmpty else { return nil }
         imageOperating = true
         defer { imageOperating = false }
-        let req = ImageDeleteRequest(taskID: UUID().uuidString, names: names)
+        let req = ImageDeleteRequest(taskID: UUID().uuidString, names: names, force: force)
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.containersImageRemove.path,

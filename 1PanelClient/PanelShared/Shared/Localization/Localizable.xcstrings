@@ -1,9 +1,7 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "" : {
-
-    },
+    "" : {},
     " abc.test.com\n abc1.test.com:8080" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10764,17 +10762,6 @@
         }
       }
     },
-    "单击切换服务器，长按更多操作，左滑移除；下拉刷新健康状态" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap to switch server, long-press for more actions, swipe left to remove; pull to refresh health"
-          }
-        }
-      }
-    },
     "单请求限速" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16183,17 +16170,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toolbox"
-          }
-        }
-      }
-    },
-    "左滑可取消忽略，恢复升级检查" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipe left to unignore and resume upgrade checks"
           }
         }
       }
@@ -39712,6 +39688,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Connection"
+          }
+        }
+      }
+    },
+    "单击切换服务器，长按更多操作；下拉刷新健康状态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to switch server, long-press for more actions; pull to refresh health"
+          }
+        }
+      }
+    },
+    "点击可取消忽略，恢复升级检查" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a record to unignore and resume upgrade checks"
+          }
+        }
+      }
+    },
+    "将对应用「%@」进行 %@ 操作，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply %2$@ to the app \"%1$@\"?"
+          }
+        }
+      }
+    },
+    "将恢复「%@」的升级检查，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume upgrade checks for \"%@\"?"
+          }
+        }
+      }
+    },
+    "更新（所有）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update (all)"
+          }
+        }
+      }
+    },
+    "更新（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update (%ld)"
+          }
+        }
+      }
+    },
+    "选择「所有」将连同全部标签一并删除；也可以只删除所选标签。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choosing \"All\" removes the image with all its tags; you can also remove only the selected tags."
+          }
+        }
+      }
+    },
+    "将检查所选标签的镜像仓库更新并拉取。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checks the registry for updates to the selected tags and pulls them."
           }
         }
       }

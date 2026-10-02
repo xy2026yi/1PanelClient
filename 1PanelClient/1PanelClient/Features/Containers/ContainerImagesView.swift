@@ -15,10 +15,14 @@ struct ContainerImageView: View {
     @State private var showMenu = false
     /// 长按菜单目标（更新/标签/删除）
     @State private var actionImage: ContainerImage?
-    /// 删除待确认镜像
+    /// 删除待确认镜像（单 tag：直接确认弹窗）
     @State private var pendingDeleteImage: ContainerImage?
-    /// 更新待确认镜像（确认后走 pull 任务）
+    /// 删除待选标签镜像（多 tag：「所有/单个标签」选择弹窗）
+    @State private var deleteSelectImage: ContainerImage?
+    /// 更新待确认镜像（单 tag：确认后走 pull 任务）
     @State private var pendingUpdateImage: ContainerImage?
+    /// 更新待选标签镜像（多 tag：「所有/单个标签」选择弹窗）
+    @State private var updateSelectImage: ContainerImage?
     /// 标签表单推入目标
     @State private var taggingImage: ContainerImage?
     /// 删除任务进度（taskID 非空时 push TaskProgressView）
@@ -120,17 +124,24 @@ struct ContainerImageView: View {
             }
         }
         // 长按操作弹窗（呈现时捕获目标，动作在 onDismiss 后执行，闭包晚读恒为 nil）。
-        // 更新/删除均需镜像带 tag（更新按 名:tag 拉取、删除按完整 ID）
+        // 更新需镜像带 tag（按 名:tag 拉取）；多 tag 镜像更新/删除先弹
+        // 「所有/单个标签」选择（全选删除按完整 ID、部分按标签名，均带 force）
         .sheet(isPresented: Binding(
             get: { actionImage != nil },
             set: { if !$0 { actionImage = nil } }
         )) {
             let target = actionImage
-            let hasTag = !(target?.tags?.first ?? "").isEmpty
+            let tagList = (target?.tags ?? []).filter { !$0.isEmpty }
+            let hasTag = !tagList.isEmpty
+            let isMultiTag = tagList.count > 1
             var items: [ActionMenuItem] = []
             if hasTag {
                 items.append(ActionMenuItem(title: L10n.t("更新"), icon: "arrow.clockwise", color: .blue) {
-                    pendingUpdateImage = target
+                    if isMultiTag {
+                        updateSelectImage = target
+                    } else {
+                        pendingUpdateImage = target
+                    }
                 })
             }
             items.append(ActionMenuItem(title: L10n.t("标签"), icon: "tag", color: .teal) {
@@ -139,7 +150,11 @@ struct ContainerImageView: View {
             if let img = target, canDelete(img) {
                 items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash",
                                             color: .red, role: .destructive) {
-                    pendingDeleteImage = target
+                    if isMultiTag {
+                        deleteSelectImage = target
+                    } else {
+                        pendingDeleteImage = target
+                    }
                 })
             }
             return ActionBottomSheet(
@@ -195,7 +210,7 @@ struct ContainerImageView: View {
         )) {
             Button(L10n.t("取消"), role: .cancel) { pendingDeleteImage = nil }
             Button(L10n.t("删除"), role: .destructive) {
-                // 删除接口要求完整镜像 ID（sha256:...），tag 名会返回 404
+                // 单 tag：按完整镜像 ID 连标签一并删除（force）
                 Haptic.warning()
                 if let img = pendingDeleteImage {
                     Task { deleteTaskID = await vm.deleteImages(names: [img.id]) }
@@ -203,6 +218,40 @@ struct ContainerImageView: View {
             }
         } message: {
             Text(L10n.f("确定删除镜像「%@」吗？删除后不可恢复。", pendingDeleteImage?.displayName ?? ""))
+        }
+        // 多 tag 镜像删除：先选「所有/单个标签」——全选按完整 ID 提交
+        // （连同全部标签一次移除），部分选按标签名提交（抓包 2026-10-02）
+        .sheet(item: $deleteSelectImage) { img in
+            ImageTagPickerSheet(
+                mode: .delete,
+                tags: (img.tags ?? []).filter { !$0.isEmpty }
+            ) { all, selected in
+                deleteSelectImage = nil
+                Haptic.warning()
+                Task {
+                    deleteTaskID = await vm.deleteImages(names: all ? [img.id] : selected)
+                }
+            } onCancel: {
+                deleteSelectImage = nil
+            }
+        }
+        // 多 tag 镜像更新：先选「所有/单个标签」——全选提交全部标签，
+        // 部分选提交所选标签（pull 按标签逐一检查更新，抓包 2026-10-02）
+        .sheet(item: $updateSelectImage) { img in
+            ImageTagPickerSheet(
+                mode: .update,
+                tags: (img.tags ?? []).filter { !$0.isEmpty }
+            ) { all, selected in
+                updateSelectImage = nil
+                Task {
+                    updateTaskID = await vm.pullImage(
+                        fromRepo: false,
+                        repoID: 0,
+                        imageNames: all ? (img.tags ?? []).filter { !$0.isEmpty } : selected)
+                }
+            } onCancel: {
+                updateSelectImage = nil
+            }
         }
         // 删除任务进度页；完成或转后台后刷新列表并返回
         .navigationDestination(isPresented: Binding(
@@ -269,6 +318,121 @@ struct ImageRow: View {
             Spacer()
         }
         .padding(.vertical, 2)
+    }
+}
+
+// MARK: - 多 tag 镜像的「所有/单个标签」选择弹窗
+
+/// 多 tag 镜像删除/更新前的标签选择：勾选「所有」即全选标签，取消任一标签则
+/// 「所有」同步取消（口径同清理镜像页的「所有」勾选）。打开即全选——默认动作
+/// 与原「按整镜像操作」一致，一键可确认。
+/// 提交语义由调用方实现：删除全选按完整 ID（连同全部标签移除）、部分选按标签名；
+/// 更新提交所选标签列表（全选即全部标签）
+struct ImageTagPickerSheet: View {
+    enum Mode {
+        case delete, update
+
+        var title: String {
+            self == .delete ? L10n.t("删除镜像") : L10n.t("更新镜像")
+        }
+
+        /// 确认按钮文案（跟随选择数量，与清理镜像页同款）
+        func confirmTitle(selectedCount: Int, totalCount: Int) -> String {
+            if selectedCount == totalCount {
+                return L10n.t(self == .delete ? "删除（所有）" : "更新（所有）")
+            }
+            return L10n.f(self == .delete ? "删除（%ld）" : "更新（%ld）", selectedCount)
+        }
+    }
+
+    let mode: Mode
+    /// 镜像标签（调用方已滤空）
+    let tags: [String]
+    /// all=true 表示「所有」全选；selected 为按原顺序排列的所选标签
+    var onConfirm: (_ all: Bool, _ selected: [String]) -> Void
+    var onCancel: () -> Void
+
+    @State private var selectedTags: Set<String>
+
+    init(mode: Mode, tags: [String],
+         onConfirm: @escaping (_ all: Bool, _ selected: [String]) -> Void,
+         onCancel: @escaping () -> Void) {
+        self.mode = mode
+        self.tags = tags
+        self.onConfirm = onConfirm
+        self.onCancel = onCancel
+        _selectedTags = State(initialValue: Set(tags))
+    }
+
+    private var isAllSelected: Bool {
+        !tags.isEmpty && selectedTags.count == tags.count
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    tagRow(title: L10n.t("所有"), bold: true, selected: isAllSelected) {
+                        selectedTags = isAllSelected ? [] : Set(tags)
+                    }
+                    ForEach(Array(tags.enumerated()), id: \.offset) { _, tag in
+                        tagRow(title: tag, bold: false, selected: selectedTags.contains(tag)) {
+                            if selectedTags.contains(tag) {
+                                selectedTags.remove(tag)
+                            } else {
+                                selectedTags.insert(tag)
+                            }
+                        }
+                    }
+                } footer: {
+                    Text(mode == .delete
+                         ? L10n.t("选择「所有」将连同全部标签一并删除；也可以只删除所选标签。")
+                         : L10n.t("将检查所选标签的镜像仓库更新并拉取。"))
+                }
+            }
+            .navigationTitle(mode.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(L10n.t("取消"), role: .cancel) { onCancel() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        let selected = tags.filter { selectedTags.contains($0) }
+                        onConfirm(isAllSelected, selected)
+                    } label: {
+                        Text(mode.confirmTitle(
+                            selectedCount: selectedTags.count,
+                            totalCount: tags.count))
+                            .fontWeight(.medium)
+                    }
+                    .disabled(selectedTags.isEmpty)
+                }
+            }
+        }
+        .bottomSheetDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func tagRow(
+        title: String,
+        bold: Bool,
+        selected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                    .font(bold ? .subheadline.bold() : .dataMonospaced)
+                    .foregroundStyle(.primary)
+                Spacer()
+                if selected {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.tint)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

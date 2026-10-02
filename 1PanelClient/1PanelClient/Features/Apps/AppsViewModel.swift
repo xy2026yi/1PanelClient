@@ -436,7 +436,7 @@ final class AppsViewModel: ObservableObject {
 
     // MARK: - 忽略升级
 
-    /// 忽略指定版本的升级（在版本列表里左滑）
+    /// 忽略指定版本的升级（版本列表长按菜单）
     func ignoreUpgrade(app: AppInstall, version: AppVersion) async {
         let req = AppIgnoreUpgradeRequest(
             appID: app.appID ?? 0,

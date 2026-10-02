@@ -112,6 +112,19 @@ struct UpgradeSheetView: View {
                             if vm.upgradingVersionId == ver.detailId {
                                 ProgressView()
                             }
+                            // 忽略此版本：行内显式图标（原左划/长按菜单收编），
+                            // 忽略可随时取消，非破坏操作不用红色
+                            Button {
+                                Task { await vm.ignoreUpgrade(app: app, version: ver) }
+                            } label: {
+                                Image(systemName: "eye.slash")
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 30, height: 30)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.borderless)
+                            .disabled(vm.upgradingVersionId != nil)
+                            .accessibilityLabel(L10n.t("忽略此版本"))
                         }
 
                         HStack(spacing: 8) {
@@ -159,15 +172,7 @@ struct UpgradeSheetView: View {
                         .font(.caption)
                     }
                     .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        // 忽略升级可随时取消，非破坏操作不用红色
-                        Button {
-                            Task { await vm.ignoreUpgrade(app: app, version: ver) }
-                        } label: {
-                            Label(L10n.t("忽略此版本"), systemImage: "eye.slash")
-                        }
-                        .tint(.gray)
-                    }
+                    // 忽略入口在标题行右侧图标，行本身不再挂长按手势
                 }
             }
 
@@ -265,6 +270,9 @@ struct UpgradableAppsView: View {
                         Task { await vm.loadVersions(for: app) }
                     } label: {
                         AppRow(app: app)
+                            // plain 样式下按钮命中区默认只有文字内容，
+                            // 补全行矩形命中（与全站行手势口径一致）
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -306,6 +314,8 @@ struct IgnoredAppsView: View {
     @State private var ignored: [AppIgnoreUpgrade] = []
     @State private var isLoading = false
     @State private var loadError: String?
+    /// 点击行待确认取消忽略的记录
+    @State private var pendingUnignore: AppIgnoreUpgrade?
 
     var body: some View {
         Group {
@@ -325,40 +335,59 @@ struct IgnoredAppsView: View {
                 List {
                     Section {
                         ForEach(ignored) { item in
-                            HStack {
-                                Image(systemName: "shippingbox")
-                                    .foregroundStyle(.secondary)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.name ?? L10n.t("未知应用"))
-                                        .font(.body.bold())
-                                    if item.scope == "all" {
-                                        Text(L10n.t("忽略所有版本"))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    } else if let v = item.version, !v.isEmpty {
-                                        Text(L10n.f("忽略版本 %@", v))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                            // 点击弹确认取消忽略（动作统一：原左划）
+                            Button {
+                                pendingUnignore = item
+                            } label: {
+                                HStack {
+                                    Image(systemName: "shippingbox")
+                                        .foregroundStyle(.secondary)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.name ?? L10n.t("未知应用"))
+                                            .font(.body.bold())
+                                        if item.scope == "all" {
+                                            Text(L10n.t("忽略所有版本"))
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        } else if let v = item.version, !v.isEmpty {
+                                            Text(L10n.f("忽略版本 %@", v))
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
                                     }
+                                    Spacer()
                                 }
-                                Spacer()
+                                // plain 样式下按钮命中区默认只有文字内容，
+                                // 补全行矩形命中（与全站行手势口径一致）
+                                .contentShape(Rectangle())
                             }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    Task { await cancelIgnore(recordId: item.id) }
-                                } label: {
-                                    Label(L10n.t("取消忽略"), systemImage: "eye")
-                                }
-                            }
+                            .buttonStyle(.plain)
                         }
                     } header: {
                         Text(L10n.f("已忽略升级 (%ld)", ignored.count))
                     } footer: {
-                        Text(L10n.t("左滑可取消忽略，恢复升级检查"))
+                        Text(L10n.t("点击可取消忽略，恢复升级检查"))
                     }
                 }
                 .listStyle(.insetGrouped)
                 .refreshable { await load() }
+            }
+        }
+        // 点击行：取消忽略确认弹窗（取消忽略可恢复升级检查，非破坏操作）
+        .alert(L10n.t("取消忽略"), isPresented: Binding(
+            get: { pendingUnignore != nil },
+            set: { if !$0 { pendingUnignore = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingUnignore = nil }
+            Button(L10n.t("取消忽略")) {
+                if let item = pendingUnignore {
+                    Task { await cancelIgnore(recordId: item.id) }
+                }
+                pendingUnignore = nil
+            }
+        } message: {
+            if let item = pendingUnignore {
+                Text(L10n.f("将恢复「%@」的升级检查，是否继续？", item.name ?? L10n.t("未知应用")))
             }
         }
         .navigationTitle(L10n.t("忽略升级"))

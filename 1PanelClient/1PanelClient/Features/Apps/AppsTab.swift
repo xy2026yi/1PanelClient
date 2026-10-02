@@ -17,6 +17,30 @@ struct AppsTab: View {
     @State private var showSettings = false
     @State private var showMenu = false
 
+    // 列表行动作（动作统一：左划 → 长按半屏菜单，与网站列表同构）
+    /// 单击推入详情的目标（tap 手势 + 编程式推入，避免 NavigationLink
+    /// 内置点击与长按手势在整行 contentShape 上竞争）
+    @State private var pushedApp: AppInstall?
+    /// 长按弹操作菜单的目标
+    @State private var actionApp: AppInstall?
+    /// 菜单动作延迟到 sheet 收起后执行（时序说明见 WebsitesTab 同名实现）
+    @State private var pendingMenuAction: (() -> Void)?
+    /// 启停/重启/重建的确认弹窗目标
+    @State private var pendingRowOperate: (app: AppInstall, op: AppOperation)?
+    /// 编辑（更新参数）推入目标
+    @State private var editTarget: AppInstall?
+    /// 备份列表推入目标
+    @State private var backupTarget: AppInstall?
+
+    // 卸载（长按菜单「卸载」）：确认 sheet + 选项 + 进度
+    @State private var uninstallTarget: AppInstall?
+    @State private var showUninstallProgress = false
+    @State private var uninstallTaskID = ""
+    @State private var uninstallDeleteDB = false
+    @State private var uninstallDeleteImage = false
+    @State private var uninstallDeleteBackup = false
+    @State private var uninstallForceDelete = false
+
 
     init(manager: ServerManager) {
         self.manager = manager
@@ -119,8 +143,21 @@ struct AppsTab: View {
             // 切换类别：沿用当前搜索词重查第一页
             Task { await vm.search(query: searchText) }
         }
-        .navigationDestination(for: AppInstall.self) { app in
+        // 单击行进入详情（pushedApp 由行 tap 手势驱动；pop 时自动置 nil）
+        .navigationDestination(item: $pushedApp) { app in
             AppDetailView(app: app, vm: vm)
+        }
+        // 长按菜单「编辑」→ 更新参数（与详情页同一页面）
+        .navigationDestination(item: $editTarget) { app in
+            UpdateParamsView(app: app, vm: vm)
+        }
+        // 长按菜单「备份」→ 应用备份列表（type=app，name/detailName 均为安装名）
+        .navigationDestination(item: $backupTarget) { app in
+            BackupListView(target: BackupTarget(
+                type: "app",
+                name: app.name ?? "",
+                detailName: app.name ?? ""
+            ))
         }
         .navigationDestination(isPresented: $showUpgradable) {
             UpgradableAppsView(vm: vm)
@@ -131,39 +168,96 @@ struct AppsTab: View {
         .navigationDestination(isPresented: $showStore) {
             AppStoreTab(manager: manager)
         }
+        // 长按行的半屏操作菜单（启停/重启/重建/编辑/备份/卸载）。
+        // pendingMenuAction 模式时序前提：ActionBottomSheet 在 Task 下一 MainActor
+        // 周期执行菜单闭包（写入 pendingMenuAction），必然早于 sheet 收起动画完成
+        // 后才回调的 onDismiss——runPendingMenuAction 取到动作后再弹确认层
+        .sheet(item: $actionApp, onDismiss: {
+            runPendingMenuAction()
+        }) { app in
+            ActionBottomSheet(
+                title: app.displayName,
+                items: appActions(app),
+                onDismiss: { actionApp = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: appActions(app).count))])
+            .presentationDragIndicator(.visible)
+        }
+        // 长按菜单：启停/重启/重建确认（口径同详情页操作区）
+        .alert(
+            pendingRowOperate?.op.displayName ?? "",
+            isPresented: Binding(
+                get: { pendingRowOperate != nil },
+                set: { if !$0 { pendingRowOperate = nil } }
+            )
+        ) {
+            Button(L10n.t("取消"), role: .cancel) { pendingRowOperate = nil }
+            Button(L10n.t("确认")) {
+                guard let target = pendingRowOperate else { return }
+                pendingRowOperate = nil
+                Task { await vm.operate(app: target.app, op: target.op) }
+            }
+        } message: {
+            if let target = pendingRowOperate {
+                Text(L10n.f("将对应用「%@」进行 %@ 操作，是否继续？", target.app.displayName, target.op.displayName))
+            }
+        }
+        // 长按菜单：卸载确认（输入应用名 + 连带删除选项，与详情页同款组件）
+        .sheet(item: $uninstallTarget) { app in
+            TextInputConfirmSheet(
+                title: L10n.f("卸载 %@", app.displayName),
+                message: L10n.f("此操作不可恢复。请输入应用名称「%@」以确认卸载。", app.displayName),
+                expectedText: app.displayName,
+                fieldLabel: L10n.t("确认名称"),
+                fieldPlaceholder: L10n.t("应用名称"),
+                confirmTitle: L10n.t("卸载")
+            ) {
+                Task { await performUninstall(app) }
+            } options: {
+                Section(L10n.t("选项")) {
+                    if app.linkDB == true {
+                        Toggle(L10n.t("同时删除数据库"), isOn: $uninstallDeleteDB)
+                    }
+                    Toggle(L10n.t("删除备份"), isOn: $uninstallDeleteBackup)
+                    Toggle(L10n.t("删除镜像"), isOn: $uninstallDeleteImage)
+                    Toggle(L10n.t("强制删除"), isOn: $uninstallForceDelete)
+                }
+            }
+        }
+        // 卸载进度（确认提交成功后推入；完成/后台运行均返回列表）
+        .navigationDestination(isPresented: $showUninstallProgress) {
+            TaskProgressView(
+                taskID: uninstallTaskID,
+                title: L10n.t("卸载应用"),
+                onComplete: { isDone in
+                    vm.needsRefresh = true
+                    if isDone { Task { await vm.refresh() } }
+                    return false
+                }
+            )
+        }
     }
 
     private var appList: some View {
         List {
             Section {
                 ForEach(vm.apps) { app in
-                    NavigationLink(value: app) {
-                        AppRow(
-                            app: app,
-                            isOperating: vm.operatingAppIds.contains(app.id)
-                        )
-                    }
+                    // 单击进详情 / 长按弹操作菜单（启停/重启/重建/编辑/备份/卸载）：
+                    // 行手势全站统一口径，原左划启停/重启已并入长按菜单
+                    AppRow(
+                        app: app,
+                        isOperating: vm.operatingAppIds.contains(app.id)
+                    )
+                    .rowTapAndLongPress(
+                        onTap: { pushedApp = app },
+                        onLongPress: { actionApp = app }
+                    )
+                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                    .accessibilityAction(named: L10n.t("更多操作")) { actionApp = app }
                     .onAppear {
                         if app.id == vm.apps.last?.id {
                             Task { await vm.loadMoreApps() }
                         }
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if app.isRunning {
-                            Button {
-                                Task { await vm.operate(app: app, op: .stop) }
-                            } label: { Label(L10n.t("停止"), systemImage: "stop.fill") }
-                            .tint(.orange)
-                        } else {
-                            Button {
-                                Task { await vm.operate(app: app, op: .start) }
-                            } label: { Label(L10n.t("启动"), systemImage: "play.fill") }
-                            .tint(.green)
-                        }
-                        Button {
-                            Task { await vm.operate(app: app, op: .restart) }
-                        } label: { Label(L10n.t("重启"), systemImage: "arrow.triangle.2.circlepath") }
-                        .tint(.blue)
                     }
                 }
                 if vm.apps.count < vm.total || vm.isLoadingMore {
@@ -175,6 +269,73 @@ struct AppsTab: View {
         .listStyle(.insetGrouped)
         .refreshable {
             await vm.refresh()
+        }
+    }
+
+    // MARK: - 长按操作菜单
+
+    /// 菜单条目与详情页操作区同集：启停/重启/重建/编辑/备份/卸载
+    private func appActions(_ app: AppInstall) -> [ActionMenuItem] {
+        [
+            ActionMenuItem(
+                title: app.isRunning ? L10n.t("停止") : L10n.t("启动"),
+                icon: app.isRunning ? "stop.fill" : "play.fill",
+                color: app.isRunning ? .orange : .green
+            ) {
+                pendingMenuAction = {
+                    pendingRowOperate = (app, app.isRunning ? .stop : .start)
+                }
+            },
+            ActionMenuItem(title: L10n.t("重启"), icon: "arrow.triangle.2.circlepath", color: .blue) {
+                pendingMenuAction = { pendingRowOperate = (app, .restart) }
+            },
+            ActionMenuItem(title: L10n.t("重建"), icon: "hammer", color: .indigo) {
+                pendingMenuAction = { pendingRowOperate = (app, .rebuild) }
+            },
+            ActionMenuItem(title: L10n.t("编辑"), icon: "slider.horizontal.3", color: .teal) {
+                pendingMenuAction = { editTarget = app }
+            },
+            ActionMenuItem(title: L10n.t("备份"), icon: "externaldrive.badge.timemachine", color: .purple) {
+                pendingMenuAction = { backupTarget = app }
+            },
+            ActionMenuItem(title: L10n.t("卸载"), icon: "trash", color: .red, role: .destructive) {
+                pendingMenuAction = { Task { await prepareUninstall(app) } }
+            },
+        ]
+    }
+
+    private func runPendingMenuAction() {
+        guard let action = pendingMenuAction else { return }
+        pendingMenuAction = nil
+        action()
+    }
+
+    /// 打开卸载确认前确保应用设置已加载，「删除备份 / 删除镜像」默认勾选
+    /// 与设置页保持一致（同详情页 prepareUninstall）
+    private func prepareUninstall(_ app: AppInstall) async {
+        if vm.appStoreConfig == nil {
+            await vm.loadAppStoreConfig()
+        }
+        uninstallDeleteBackup = vm.appStoreConfig?.isUninstallDeleteBackup ?? false
+        uninstallDeleteImage = vm.appStoreConfig?.isUninstallDeleteImage ?? false
+        uninstallTarget = app
+    }
+
+    /// 执行卸载：成功后收确认 sheet 并推入任务进度页
+    private func performUninstall(_ app: AppInstall) async {
+        let taskID = UUID().uuidString
+        await vm.uninstall(
+            app: app,
+            deleteDB: uninstallDeleteDB,
+            deleteImage: uninstallDeleteImage,
+            deleteBackup: uninstallDeleteBackup,
+            forceDelete: uninstallForceDelete,
+            taskID: taskID
+        )
+        if vm.uninstallDone {
+            uninstallTarget = nil
+            uninstallTaskID = taskID
+            showUninstallProgress = true
         }
     }
 }
