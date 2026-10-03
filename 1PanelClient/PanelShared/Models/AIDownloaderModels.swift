@@ -67,13 +67,61 @@ nonisolated enum ModelRepoSort: String, CaseIterable, Identifiable {
 
 // MARK: - 设置
 
-/// GET/POST /api/v2/xpack/model/downloader/settings（保存时全字段回传）
-nonisolated struct ModelDownloaderSettings: Codable {
+/// 任意字符串键（多键容错解码用：键名不从固定枚举取）
+private nonisolated struct FlexKey: CodingKey {
+    var stringValue: String
+    var intValue: Int? { nil }
+    init?(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { nil }
+}
+
+/// GET/POST /api/v2/xpack/model/downloader/settings（保存时全字段回传）。
+/// 解码对键名拼写变体容错：抓包（2026-09-12）为 hfEndpoint 等驼峰键，但真机
+/// 反馈出现过「仅加速地址不回填、其余字段正常」——解码整体成功而单键取空，
+/// 即当前面板版本 GET 返回的该键拼写与抓包不一致（Go 结构体无 tag 时按字段名
+/// 大写开头输出等）。逐字段依次尝试 驼峰/大写开头/下划线/EndPoint 变体；
+/// 编码仍按抓包键名原样输出（POST 体不变）
+nonisolated struct ModelDownloaderSettings: Codable, Equatable {
     var modelDir: String?
     var hfEndpoint: String?
     var hfToken: String?
     var modelScopeEndpoint: String?
     var modelScopeToken: String?
+
+    enum CodingKeys: String, CodingKey {
+        case modelDir, hfEndpoint, hfToken, modelScopeEndpoint, modelScopeToken
+    }
+
+    init(modelDir: String? = nil, hfEndpoint: String? = nil, hfToken: String? = nil,
+         modelScopeEndpoint: String? = nil, modelScopeToken: String? = nil) {
+        self.modelDir = modelDir
+        self.hfEndpoint = hfEndpoint
+        self.hfToken = hfToken
+        self.modelScopeEndpoint = modelScopeEndpoint
+        self.modelScopeToken = modelScopeToken
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: FlexKey.self)
+        modelDir = Self.flexString(c, ["modelDir", "ModelDir", "model_dir"])
+        hfEndpoint = Self.flexString(c, ["hfEndpoint", "hfEndPoint", "HFEndpoint",
+                                         "HfEndpoint", "hf_endpoint"])
+        hfToken = Self.flexString(c, ["hfToken", "HFToken", "HfToken", "hf_token"])
+        modelScopeEndpoint = Self.flexString(c, ["modelScopeEndpoint", "modelScopeEndPoint",
+                                                  "ModelScopeEndpoint", "model_scope_endpoint"])
+        modelScopeToken = Self.flexString(c, ["modelScopeToken", "ModelScopeToken",
+                                               "model_scope_token"])
+    }
+
+    /// 依次尝试候选键，取首个存在的字符串值（键存在但为 null / 类型不符则继续尝试）
+    private static func flexString(_ c: KeyedDecodingContainer<FlexKey>, _ keys: [String]) -> String? {
+        for key in keys {
+            if let value = try? c.decodeIfPresent(String.self, forKey: FlexKey(stringValue: key)!) {
+                return value
+            }
+        }
+        return nil
+    }
 }
 
 // MARK: - 已下载模型

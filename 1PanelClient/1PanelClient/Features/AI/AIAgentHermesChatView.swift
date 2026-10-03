@@ -4,7 +4,7 @@
 //
 //  Hermes Agent 对话（/api/v2/ai/agents/hermes/chat/*，logs/会话.md 抓包）：
 //  会话列表（标题/模型/消息数/最近活跃）+ 新对话与恢复会话（容器终端内
-//  启动 hermes CLI，恢复用 --resume <会话id>）+ 下拉刷新 / 滑动重命名与删除
+//  启动 hermes CLI，恢复用 --resume <会话id>）+ 下拉刷新 / 长按重命名与删除
 //
 
 import SwiftUI
@@ -28,6 +28,8 @@ struct AIAgentHermesChatView: View {
     @State private var pendingDelete: AIHermesChatSession?
     /// 重命名目标
     @State private var renameTarget: AIHermesChatSession?
+    /// 长按半屏菜单挂起的会话（重命名/删除）
+    @State private var actionSession: AIHermesChatSession?
 
     private let client: APIClient
 
@@ -101,6 +103,16 @@ struct AIAgentHermesChatView: View {
                 Task { await rename(session, to: newTitle) }
             }
         }
+        // 会话长按半屏菜单（动作统一：全站不再有左划行）
+        .sheet(item: $actionSession) { session in
+            ActionBottomSheet(
+                title: session.displayTitle,
+                items: sessionMenuItems(session),
+                onDismiss: { actionSession = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: sessionMenuItems(session).count))])
+            .presentationDragIndicator(.visible)
+        }
         .navigationDestination(isPresented: Binding(
             get: { activeChat != nil },
             set: { if !$0 { activeChat = nil } }
@@ -131,46 +143,48 @@ struct AIAgentHermesChatView: View {
     // MARK: 会话行
 
     private func sessionRow(_ session: AIHermesChatSession) -> some View {
-        Button {
-            startChat(.resume(session))
-        } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(session.displayTitle)
-                    .font(.body.weight(.medium))
-                    .lineLimit(1)
-                HStack(spacing: 6) {
-                    if let model = session.model, !model.isEmpty {
-                        Text(model)
-                            .font(.dataMonospacedCaption)
-                    }
-                    if let count = session.messageCount {
-                        Text(L10n.f("%ld 条消息", count))
-                            .font(.caption)
-                    }
-                    if let time = SessionTime.text(session.lastActive) {
-                        Text(time)
-                            .font(.caption)
-                    }
-                }
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(session.displayTitle)
+                .font(.body.weight(.medium))
                 .lineLimit(1)
+            HStack(spacing: 6) {
+                if let model = session.model, !model.isEmpty {
+                    Text(model)
+                        .font(.dataMonospacedCaption)
+                }
+                if let count = session.messageCount {
+                    Text(L10n.f("%ld 条消息", count))
+                        .font(.caption)
+                }
+                if let time = SessionTime.text(session.lastActive) {
+                    Text(time)
+                        .font(.caption)
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
         }
-        .buttonStyle(.plain)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button {
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 3)
+        // 单击恢复会话（终端内 --resume）、长按半屏菜单（重命名/删除）
+        .rowTapAndLongPress(
+            onTap: { startChat(.resume(session)) },
+            onLongPress: { actionSession = session })
+        // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+        .accessibilityAction(named: L10n.t("更多操作")) { actionSession = session }
+    }
+
+    /// 长按菜单条目（动作统一：重命名/删除；闭包捕获 sheet 参数 session，
+    /// 不回读 actionSession；删除仍走确认弹窗）
+    private func sessionMenuItems(_ session: AIHermesChatSession) -> [ActionMenuItem] {
+        [
+            ActionMenuItem(title: L10n.t("重命名"), icon: "pencil") {
                 renameTarget = session
-            } label: {
-                Label(L10n.t("重命名"), systemImage: "pencil")
-            }
-            Button(role: .destructive) {
+            },
+            ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
                 pendingDelete = session
-            } label: {
-                Label(L10n.t("删除"), systemImage: "trash")
-            }
-        }
+            },
+        ]
     }
 
     // MARK: 操作

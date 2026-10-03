@@ -32,6 +32,10 @@ struct AIAgentTelegramChannelView: View {
     @State private var showError = false
     @State private var editingBot: AIChannelTelegramBotItem?
     @State private var showAddBot = false
+    /// 长按半屏菜单挂起的 Bot（编辑/设为默认/批准配对/删除）
+    @State private var actionBot: AIChannelTelegramBotItem?
+    /// 行内批准配对（Bot 长按菜单进入）
+    @State private var pairingBot: AIChannelTelegramBotItem?
 
     private let client: APIClient
 
@@ -138,11 +142,6 @@ struct AIAgentTelegramChannelView: View {
                 if !isHermes {
                     botListSection
                 }
-
-                if (c.dmPolicy ?? "").isEmpty || c.dmPolicy == "pairing" {
-                    PairingApproveSection(client: client, agentId: agentId, type: "telegram",
-                                          accountId: pairingAccountID)
-                }
             }
         }
         .navigationTitle("Telegram")
@@ -191,44 +190,52 @@ struct AIAgentTelegramChannelView: View {
                 bots.append(newBot)
             }
         }
+        // 行内批准配对（Bot 长按菜单进入；标准表单 sheet，
+        // alert 内嵌输入框在真机上渲染异常——自定义视图与原生 TextField 均贴右）
+        .sheet(item: $pairingBot) { bot in
+            PairingApproveSheet(botName: bot.name ?? bot.accountId ?? "-") { code in
+                await approvePairing(bot, code: code)
+            }
+        }
+        // Bot 长按半屏菜单（动作统一：全站不再有左划行）
+        .sheet(item: $actionBot) { bot in
+            ActionBottomSheet(
+                title: bot.name ?? bot.accountId ?? "-",
+                items: botMenuItems(bot),
+                onDismiss: { actionBot = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: botMenuItems(bot).count))])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private var botListSection: some View {
         Section {
             ForEach(bots) { bot in
                 HStack(spacing: 12) {
-                    Button {
-                        editingBot = bot
-                    } label: {
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack(spacing: 6) {
-                                    Text(bot.name ?? bot.accountId ?? "-")
-                                        .font(.body.bold())
-                                        .foregroundStyle(.primary)
-                                    if bot.isDefault == true {
-                                        StatusBadge(text: L10n.t("默认"), color: .blue)
-                                    }
-                                    // OpenClaw 行尾有状态开关；基础类型保持未启用徽标
-                                    if !isOpenClaw, bot.enabled != true {
-                                        StatusBadge(text: L10n.t("未启用"), color: .secondary)
-                                    }
-                                }
-                                Text(bot.accountId ?? "-")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(bot.name ?? bot.accountId ?? "-")
+                                .font(.body.bold())
+                                .foregroundStyle(.primary)
+                            if bot.isDefault == true {
+                                StatusBadge(text: L10n.t("默认"), color: .blue)
                             }
-                            Spacer()
-                            if !isOpenClaw {
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
+                            // OpenClaw 行尾有状态开关；基础类型保持未启用徽标
+                            if !isOpenClaw, bot.enabled != true {
+                                StatusBadge(text: L10n.t("未启用"), color: .secondary)
                             }
                         }
-                        .padding(.vertical, 3)
-                        .contentShape(Rectangle())
+                        Text(bot.accountId ?? "-")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    Spacer()
+                    if !isOpenClaw {
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
                     // OpenClaw Bot 状态开关：默认 Bot 镜像顶层开关，其余行内即时提交
                     if isOpenClaw {
                         Toggle("", isOn: botEnabledBinding(bot))
@@ -237,21 +244,14 @@ struct AIAgentTelegramChannelView: View {
                             .accessibilityLabel(L10n.t("启用"))
                     }
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        Task { await removeBot(bot) }
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
-                    }
-                    if bot.isDefault != true {
-                        Button {
-                            Task { await setDefaultBot(bot) }
-                        } label: {
-                            Label(L10n.t("设为默认"), systemImage: "star")
-                        }
-                        .tint(.blue)
-                    }
-                }
+                .padding(.vertical, 3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // 单击编辑、长按半屏菜单（设为默认/批准配对/删除将立即保存）
+                .rowTapAndLongPress(
+                    onTap: { editingBot = bot },
+                    onLongPress: { actionBot = bot })
+                // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                .accessibilityAction(named: L10n.t("更多操作")) { actionBot = bot }
             }
 
             Button {
@@ -268,6 +268,28 @@ struct AIAgentTelegramChannelView: View {
                 Text(L10n.t("点击 Bot 编辑凭证与策略；删除与设为默认将立即保存"))
             }
         }
+    }
+
+    /// 长按菜单条目（动作统一：编辑/设为默认/批准配对/删除，
+    /// 后三者随菜单立即保存；闭包捕获 sheet 参数 bot，不回读 actionBot）
+    private func botMenuItems(_ bot: AIChannelTelegramBotItem) -> [ActionMenuItem] {
+        var items: [ActionMenuItem] = [
+            ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
+                editingBot = bot
+            },
+        ]
+        if bot.isDefault != true {
+            items.append(ActionMenuItem(title: L10n.t("设为默认"), icon: "star", color: .blue) {
+                Task { await setDefaultBot(bot) }
+            })
+        }
+        items.append(ActionMenuItem(title: L10n.t("批准配对"), icon: "link", color: .teal) {
+            pairingBot = bot
+        })
+        items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+            Task { await removeBot(bot) }
+        })
+        return items
     }
 
     /// 行内 Bot 状态开关绑定：默认 Bot 与顶层启用开关联动（显示与提交均镜像
@@ -375,12 +397,31 @@ struct AIAgentTelegramChannelView: View {
     }
 
     private func setDefaultBot(_ bot: AIChannelTelegramBotItem) async {
-        let updated = bots.map { item in
+        let updated = bots.map { item -> AIChannelTelegramBotItem in
             var copy = item
             copy.isDefault = (item.id == bot.id)
             return copy
         }
         await saveBots(updated, defaultAccount: bot.accountId)
+    }
+
+    /// 行内批准配对（基础类型抓包 approve 不携带 accountId，仅 OpenClaw 传
+    /// 默认账户；配对码由调用方捕获传入）
+    private func approvePairing(_ bot: AIChannelTelegramBotItem, code: String) async {
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.aiAgentChannelPairingApprove.path,
+                body: AIAgentChannelPairingApproveRequest(
+                    agentId: agentId, type: "telegram",
+                    pairingCode: code, accountId: pairingAccountID),
+                as: EmptyResponse.self)
+            errorMessage = L10n.t("已批准配对")
+            showError = true
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
     }
 
     /// OpenClaw 顶层插件状态开关即时提交：基于已保存快照（不含草稿）仅改

@@ -130,6 +130,7 @@ struct WAFCdnSettingsView: View {
                     Button {
                         showIPGroupPicker = true
                     } label: {
+                        // plain 样式命中区只有文字部分，补全行矩形命中
                         HStack {
                             Text(L10n.t("CDN回源IP组"))
                             Spacer()
@@ -141,6 +142,7 @@ struct WAFCdnSettingsView: View {
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 } header: {
@@ -342,6 +344,7 @@ private struct IPGroupMultiPickerView: View {
                             Button {
                                 toggle(group.name)
                             } label: {
+                                // plain 样式命中区只有文字部分，补全行矩形命中
                                 HStack(spacing: 12) {
                                     Image(systemName: selection.contains(group.name)
                                           ? "checkmark.circle.fill" : "circle")
@@ -359,6 +362,7 @@ private struct IPGroupMultiPickerView: View {
                                     }
                                     Spacer()
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }

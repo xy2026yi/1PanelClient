@@ -307,7 +307,9 @@ struct AIAgentsView: View {
                     Button {
                         detailAgent = agent
                     } label: {
+                        // plain 样式命中区只有文字部分，补全行矩形命中
                         AIAgentRow(agent: agent)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .onAppear {

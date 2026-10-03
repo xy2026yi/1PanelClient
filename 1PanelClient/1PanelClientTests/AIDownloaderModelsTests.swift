@@ -119,4 +119,54 @@ struct AIDownloaderModelsTests {
                 == ["downloads", "trending", "likes", "created", "updated"])
         #expect(ModelRepoSource.allCases.map(\.rawValue) == ["huggingface", "modelscope"])
     }
+
+    @Test("下载设置解码（抓包键名）与编码回传不变")
+    func settingsDecodeEncode() throws {
+        let json = """
+        {"modelDir":"/opt/1panel/ai/models","hfEndpoint":"https://hf-mirror.com",
+         "hfToken":"123456","modelScopeEndpoint":"https://www.modelscope.cn",
+         "modelScopeToken":"23456"}
+        """
+        let s = try JSONDecoder().decode(ModelDownloaderSettings.self, from: Data(json.utf8))
+        #expect(s.modelDir == "/opt/1panel/ai/models")
+        #expect(s.hfEndpoint == "https://hf-mirror.com")
+        #expect(s.hfToken == "123456")
+        #expect(s.modelScopeEndpoint == "https://www.modelscope.cn")
+        #expect(s.modelScopeToken == "23456")
+
+        // 编码仍按抓包键名输出（POST 体不变）
+        let obj = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(s)) as? [String: Any])
+        #expect(obj["hfEndpoint"] as? String == "https://hf-mirror.com")
+        #expect(obj["modelScopeToken"] as? String == "23456")
+    }
+
+    @Test("下载设置解码容错键名变体（仅单键拼写漂移仍可回填）")
+    func settingsDecodeKeyVariants() throws {
+        // 真机反馈场景：面板版本 GET 返回键名与抓包不一致（如 Go 无 tag 的大写字段名），
+        // 其余字段正常、仅该键取空
+        let variants: [(String, String, String)] = [
+            ("hfEndPoint", "hfEndPoint", "https://hf-mirror.com"),
+            ("HFEndpoint", "HFEndpoint", "https://hf-mirror.com"),
+            ("HfEndpoint", "HfEndpoint", "https://hf-mirror.com"),
+            ("hf_endpoint", "hf_endpoint", "https://hf-mirror.com"),
+            ("ModelScopeEndpoint", "ModelScopeEndpoint", "https://www.modelscope.cn"),
+        ]
+        for (_, key, value) in variants {
+            let json = #"{"modelDir":"/opt/1panel/ai/models","\#(key)":"\#(value)","hfToken":"123456"}"#
+            let s = try JSONDecoder().decode(ModelDownloaderSettings.self, from: Data(json.utf8))
+            #expect(s.modelDir == "/opt/1panel/ai/models")
+            #expect(s.hfToken == "123456")
+            if key.hasPrefix("hf") || key.hasPrefix("HF") || key.hasPrefix("Hf") {
+                #expect(s.hfEndpoint == value, "variant key \(key) should fill hfEndpoint")
+            } else {
+                #expect(s.modelScopeEndpoint == value, "variant key \(key) should fill modelScopeEndpoint")
+            }
+        }
+
+        // 全部候选键都不存在 → 各字段为空、解码不失败
+        let empty = #"{"modelDir":"/opt/1panel/ai/models","unknown":"x"}"#
+        let s2 = try JSONDecoder().decode(ModelDownloaderSettings.self, from: Data(empty.utf8))
+        #expect(s2.modelDir == "/opt/1panel/ai/models")
+        #expect(s2.hfEndpoint == nil)
+    }
 }

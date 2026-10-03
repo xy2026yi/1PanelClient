@@ -38,6 +38,8 @@ struct AIAgentPluginsView: View {
     @State private var operatingPluginID: String?
     /// 卸载确认弹窗挂起的插件
     @State private var pendingUninstall: AIAgentPluginInfo?
+    /// 长按半屏菜单挂起的插件（升级/卸载，仅 origin=global）
+    @State private var actionPlugin: AIAgentPluginInfo?
 
     @State private var toastMessage: String?
     @State private var errorMessage: String?
@@ -102,6 +104,16 @@ struct AIAgentPluginsView: View {
                 return false
             }
         }
+        // 插件长按半屏菜单（动作统一：全站不再有左划行）
+        .sheet(item: $actionPlugin) { plugin in
+            ActionBottomSheet(
+                title: plugin.name ?? plugin.id,
+                items: pluginMenuItems(plugin),
+                onDismiss: { actionPlugin = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: pluginMenuItems(plugin).count))])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: 已安装
@@ -161,22 +173,19 @@ struct AIAgentPluginsView: View {
                         }
                     }
                     .padding(.vertical, 3)
-                    // 升级/卸载（plugins/operate，抓包确认）：仅 origin=global 的插件可操作，
-                    // bundled 内置不可卸载/升级
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if plugin.origin == "global" {
-                            Button(role: .destructive) {
-                                pendingUninstall = plugin
-                            } label: {
-                                Label(L10n.t("卸载"), systemImage: "trash")
-                            }
-                            Button {
-                                Task { await operatePlugin(plugin, operate: "update") }
-                            } label: {
-                                Label(L10n.t("升级"), systemImage: "arrow.up.circle")
-                            }
-                            .tint(.blue)
-                        }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    // 单击无动作、长按半屏菜单：升级/卸载（plugins/operate，抓包
+                    // 确认）仅 origin=global 的插件可操作，bundled 内置不可
+                    .rowTapAndLongPress(
+                        onTap: {},
+                        onLongPress: {
+                            guard plugin.origin == "global" else { return }
+                            actionPlugin = plugin
+                        })
+                    // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                    .accessibilityAction(named: L10n.t("更多操作")) {
+                        guard plugin.origin == "global" else { return }
+                        actionPlugin = plugin
                     }
                 }
             }
@@ -193,6 +202,19 @@ struct AIAgentPluginsView: View {
         case "global": return L10n.t("全局")
         default: return origin
         }
+    }
+
+    /// 长按菜单条目（动作统一：升级/卸载；闭包捕获 sheet 参数 plugin，
+    /// 不回读 actionPlugin；卸载仍走确认弹窗）
+    private func pluginMenuItems(_ plugin: AIAgentPluginInfo) -> [ActionMenuItem] {
+        [
+            ActionMenuItem(title: L10n.t("升级"), icon: "arrow.up.circle", color: .blue) {
+                Task { await operatePlugin(plugin, operate: "update") }
+            },
+            ActionMenuItem(title: L10n.t("卸载"), icon: "trash", color: .red, role: .destructive) {
+                pendingUninstall = plugin
+            },
+        ]
     }
 
     // MARK: 插件市场

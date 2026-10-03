@@ -101,11 +101,13 @@ struct CronjobExportView: View {
                 selectedIDs.insert(job.id)
             }
         } label: {
+            // plain 样式命中区只有文字部分，补全行矩形命中
             HStack(spacing: 12) {
                 Image(systemName: selectedIDs.contains(job.id) ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(selectedIDs.contains(job.id) ? Color.accentColor : Color.secondary)
                 CronjobRow(job: job)
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

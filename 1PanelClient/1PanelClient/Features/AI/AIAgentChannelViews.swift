@@ -352,9 +352,64 @@ struct WhitelistEditor: View {
     }
 }
 
+/// Bot 行内批准配对输入弹层（长按菜单进入；配对码为自由输入数字，
+/// 区别于 TextInputConfirmSheet 的「输入确认文本」场景）。
+/// 不用 alert 内嵌输入框：自定义视图会被横向挤压渲染成按钮行，
+/// 原生 TextField 在 iOS 26 上同样贴右，改为标准表单 sheet
+struct PairingApproveSheet: View {
+    /// Bot 显示名（标题下方提示「为 Bot「xx」批准配对」）
+    let botName: String
+    let onApprove: (String) async -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var code = ""
+    @State private var isSubmitting = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text(L10n.f("为 Bot「%@」批准配对", botName))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section {
+                    OutlinedTextField(label: L10n.t("配对码"), text: $code, keyboardType: .numberPad)
+                } footer: {
+                    Text(L10n.t("私聊策略为配队码时，用户发起对话后在对应平台提交配对码，在此批准完成对接"))
+                }
+            }
+            .navigationTitle(L10n.t("批准配对"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isSubmitting)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        guard !isSubmitting else { return }
+                        isSubmitting = true
+                        let pairingCode = code
+                        // 先收 sheet 再执行请求：结果提示是 alert，与 sheet 关闭
+                        // 同事务并发呈现会偶发丢失（与 ActionBottomSheet 同款时序）
+                        let approve = onApprove
+                        dismiss()
+                        Task { await approve(pairingCode) }
+                    } label: {
+                        Text(L10n.t("批准配对"))
+                    }
+                    .disabled(code.isEmpty || isSubmitting)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.medium])
+    }
+}
+
 /// 配对码批准（私聊策略=配队码时显示；POST channel/pairing/approve）
-struct PairingApproveSection: View {
-    let client: APIClient
+struct PairingApproveSection: View {    let client: APIClient
     let agentId: Int
     let type: String
     /// 多 Bot 频道（Telegram）传默认账号 id

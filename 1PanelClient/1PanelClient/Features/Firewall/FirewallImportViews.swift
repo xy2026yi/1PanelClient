@@ -335,6 +335,7 @@ struct FirewallDockerImportView: View {
                                     selected.insert(idx)
                                 }
                             } label: {
+                                // plain 样式命中区只有文字部分，补全行矩形命中
                                 HStack {
                                     VStack(alignment: .leading, spacing: 3) {
                                         HStack(spacing: 6) {
@@ -362,6 +363,7 @@ struct FirewallDockerImportView: View {
                                         .foregroundStyle(selected.contains(idx)
                                                          ? Color.accentColor : Color.secondary)
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
@@ -729,6 +731,7 @@ struct FirewallDockerExportPickerView: View {
                                     selected.insert(idx)
                                 }
                             } label: {
+                                // plain 样式命中区只有文字部分，补全行矩形命中
                                 HStack {
                                     VStack(alignment: .leading, spacing: 3) {
                                         HStack(spacing: 6) {
@@ -756,6 +759,7 @@ struct FirewallDockerExportPickerView: View {
                                         .foregroundStyle(selected.contains(idx)
                                                          ? Color.accentColor : Color.secondary)
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }

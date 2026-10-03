@@ -326,7 +326,9 @@ struct AIVllmView: View {
                         Button {
                             actionInstance = instance
                         } label: {
+                            // plain 样式命中区只有文字部分，补全行矩形命中
                             VllmInstanceRow(instance: instance, isOperating: vm.operatingIDs.contains(instance.id))
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .onAppear {

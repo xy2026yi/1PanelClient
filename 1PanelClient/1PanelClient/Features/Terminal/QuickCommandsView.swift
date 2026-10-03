@@ -341,7 +341,9 @@ struct QuickCommandPickerSheet: View {
                                     dismiss()
                                     onPick(cmd.command ?? "")
                                 } label: {
+                                    // plain 样式命中区只有文字部分，补全行矩形命中
                                     QuickCommandRow(command: cmd)
+                                        .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
                             }

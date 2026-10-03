@@ -281,6 +281,8 @@ struct AIDownloaderView: View {
     @State private var segment: Segment = .local
     @State private var showSettings = false
     @State private var deleteLocalItem: ModelLocalItem?
+    /// 长按半屏菜单挂起的本地模型（删除）
+    @State private var actionLocal: ModelLocalItem?
 
     init(server: ServerConfig) {
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.aiDownloader.storeKey(server: server)) {
@@ -340,6 +342,21 @@ struct AIDownloaderView: View {
         }
         .sheet(isPresented: $showSettings) {
             AIDownloaderSettingsSheet(vm: vm)
+        }
+        // 本地模型长按半屏菜单（动作统一：全站不再有左划行）
+        .sheet(item: $actionLocal) { item in
+            ActionBottomSheet(
+                title: item.name,
+                items: [
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        Haptic.warning()
+                        deleteLocalItem = item
+                    },
+                ],
+                onDismiss: { actionLocal = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: Binding(
             get: { deleteLocalItem != nil },
@@ -409,14 +426,13 @@ struct AIDownloaderView: View {
                 } else {
                     ForEach(vm.localModels) { item in
                         ModelLocalRow(item: item)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    Haptic.warning()
-                                    deleteLocalItem = item
-                                } label: {
-                                    Label(L10n.t("删除"), systemImage: "trash")
-                                }
-                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            // 单击无动作、长按半屏菜单删除（动作统一：全站不再有左划行）
+                            .rowTapAndLongPress(
+                                onTap: {},
+                                onLongPress: { actionLocal = item })
+                            // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                            .accessibilityAction(named: L10n.t("更多操作")) { actionLocal = item }
                             .onAppear {
                                 if item.id == vm.localModels.last?.id {
                                     Task { await vm.loadMoreLocal() }
@@ -434,10 +450,6 @@ struct AIDownloaderView: View {
                     title: L10n.f("本地模型 · 共 %d 个", vm.localTotal),
                     systemImage: "internaldrive"
                 )
-            } footer: {
-                if let dir = vm.settings?.modelDir, !dir.isEmpty {
-                    Text(L10n.f("模型目录：%@", dir))
-                }
             }
         }
         .listStyle(.insetGrouped)
@@ -648,12 +660,14 @@ struct AIDownloaderSettingsSheet: View {
     @State private var modelScopeToken = ""
     @State private var isSaving = false
     @State private var saveError: String?
+    /// 只回填一次：避免后台刷新 settings 时覆盖用户正在编辑的草稿
+    @State private var hasFilled = false
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    OutlinedTextField(label: "/opt/1panel/ai/models", text: $modelDir)
+                    OutlinedTextField(label: L10n.t("目录"), text: $modelDir)
                         .font(.dataMonospacedBody)
                 } header: {
                     SectionLabel(title: L10n.t("模型目录"), systemImage: "internaldrive")
@@ -662,7 +676,7 @@ struct AIDownloaderSettingsSheet: View {
                 }
 
                 Section {
-                    OutlinedTextField(label: "https://hf-mirror.com", text: $hfEndpoint, keyboardType: .URL)
+                    OutlinedTextField(label: L10n.t("加速地址"), text: $hfEndpoint, keyboardType: .URL)
                         .font(.dataMonospacedBody)
                     OutlinedPasswordField(label: L10n.t("令牌"), prompt: L10n.t("可选"), text: $hfToken)
                 } header: {
@@ -672,11 +686,22 @@ struct AIDownloaderSettingsSheet: View {
                 }
 
                 Section {
-                    OutlinedTextField(label: "https://www.modelscope.cn", text: $modelScopeEndpoint, keyboardType: .URL)
+                    OutlinedTextField(label: L10n.t("地址"), text: $modelScopeEndpoint, keyboardType: .URL)
                         .font(.dataMonospacedBody)
                     OutlinedPasswordField(label: L10n.t("令牌"), prompt: L10n.t("可选"), text: $modelScopeToken)
                 } header: {
                     SectionLabel(title: "ModelScope", systemImage: "sparkles.rectangle.stack")
+                }
+
+                // 页面初始加载失败/超时（请求超时 15s）时 settings 仍为 nil：
+                // 页内给出错误与重试，避免表单永远空白（vm.errorMessage 失败置值、成功清空）
+                if vm.settings == nil, let err = vm.errorMessage {
+                    Section {
+                        LoadErrorStateView(message: err) {
+                            Task { await vm.loadSettings() }
+                        }
+                        .listRowBackground(Color.clear)
+                    }
                 }
 
                 if let err = saveError {
@@ -702,13 +727,24 @@ struct AIDownloaderSettingsSheet: View {
                 }
             }
         }
-        .onAppear(perform: fill)
+        .onAppear {
+            fill()
+            // 打开设置页时设置仍为 nil（页面初始加载未完成/已失败）则自行拉取，
+            // 到达后回填——否则字段将永远空白
+            if vm.settings == nil {
+                Task { await vm.loadSettings() }
+            }
+        }
+        // 设置可能在 sheet 打开后才异步返回。用 onReceive 直接订阅
+        // $settings（sheet 内 onChange(of:) 对后到数据实测不触发）
+        .onReceive(vm.$settings) { _ in fill() }
         .presentationDragIndicator(.visible)
         .bottomSheetDetents([.large])
     }
 
     private func fill() {
-        guard modelDir.isEmpty, let s = vm.settings else { return }
+        guard !hasFilled, let s = vm.settings else { return }
+        hasFilled = true
         modelDir = s.modelDir ?? ""
         hfEndpoint = s.hfEndpoint ?? ""
         hfToken = s.hfToken ?? ""

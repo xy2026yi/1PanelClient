@@ -44,10 +44,10 @@ struct AIAgentFeishuChannelView: View {
     }
     @State private var editingBot: AIChannelFeishuBotItem?
     @State private var showAddBot = false
-    /// 行内批准配对（Bot 私聊策略=配队码时）
+    /// 长按半屏菜单挂起的 Bot（编辑/批准配对/删除）
+    @State private var actionBot: AIChannelFeishuBotItem?
+    /// 行内批准配对（Bot 长按菜单进入）
     @State private var pairingBot: AIChannelFeishuBotItem?
-    @State private var pairingCode = ""
-    @State private var isApproving = false
 
     private let client: APIClient
 
@@ -243,26 +243,22 @@ struct AIAgentFeishuChannelView: View {
                 bots.append(newBot)
             }
         }
-        // 行内批准配对（私聊策略=配队码的 Bot）
-        .alert(L10n.t("批准配对"), isPresented: Binding(
-            get: { pairingBot != nil },
-            set: { if !$0 { pairingBot = nil } }
-        )) {
-            OutlinedTextField(label: L10n.t("配对码"), text: $pairingCode, keyboardType: .numberPad)
-            Button(L10n.t("批准配对")) {
-                // alert 关闭先于 Task 执行：配对码在 action 内捕获，避免发出空串
-                if let bot = pairingBot {
-                    let code = pairingCode
-                    Task { await approvePairing(bot, code: code) }
-                }
+        // 行内批准配对（Bot 长按菜单进入；标准表单 sheet，
+        // alert 内嵌输入框在真机上渲染异常——自定义视图与原生 TextField 均贴右）
+        .sheet(item: $pairingBot) { bot in
+            PairingApproveSheet(botName: bot.name ?? bot.accountId ?? "-") { code in
+                await approvePairing(bot, code: code)
             }
-            .disabled(pairingCode.isEmpty || isApproving)
-            Button(L10n.t("取消"), role: .cancel) {
-                pairingBot = nil
-                pairingCode = ""
-            }
-        } message: {
-            Text(L10n.f("为 Bot「%@」批准配对", pairingBot?.name ?? pairingBot?.accountId ?? ""))
+        }
+        // Bot 长按半屏菜单（动作统一：全站不再有左划行）
+        .sheet(item: $actionBot) { bot in
+            ActionBottomSheet(
+                title: bot.name ?? bot.accountId ?? "-",
+                items: botMenuItems(bot),
+                onDismiss: { actionBot = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: botMenuItems(bot).count))])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -272,48 +268,34 @@ struct AIAgentFeishuChannelView: View {
         Section {
             ForEach(bots) { bot in
                 HStack(spacing: 12) {
-                    Button {
-                        editingBot = bot
-                    } label: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack(spacing: 6) {
-                                Text(bot.name ?? bot.accountId ?? "-")
-                                    .font(.body.bold())
-                                    .foregroundStyle(.primary)
-                                if bot.isDefault == true {
-                                    StatusBadge(text: L10n.t("默认"), color: .blue)
-                                }
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(bot.name ?? bot.accountId ?? "-")
+                                .font(.body.bold())
+                                .foregroundStyle(.primary)
+                            if bot.isDefault == true {
+                                StatusBadge(text: L10n.t("默认"), color: .blue)
                             }
-                            Text(bot.accountId ?? "-")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                        .padding(.vertical, 3)
+                        Text(bot.accountId ?? "-")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    Spacer()
                     // Bot 状态开关：默认 Bot 镜像顶层开关，其余行内即时提交
                     Toggle("", isOn: botEnabledBinding(bot))
                         .labelsHidden()
                         .disabled(isSaving)
                         .accessibilityLabel(L10n.t("启用"))
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    if (bot.dmPolicy ?? "") == "pairing" {
-                        Button {
-                            pairingBot = bot
-                        } label: {
-                            Label(L10n.t("批准配对"), systemImage: "link")
-                        }
-                        .tint(.teal)
-                    }
-                    Button(role: .destructive) {
-                        Task { await removeBot(bot) }
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
-                    }
-                }
+                .padding(.vertical, 3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // 单击编辑、长按半屏菜单（批准配对/删除将立即保存）
+                .rowTapAndLongPress(
+                    onTap: { editingBot = bot },
+                    onLongPress: { actionBot = bot })
+                // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                .accessibilityAction(named: L10n.t("更多操作")) { actionBot = bot }
             }
 
             Button {
@@ -326,6 +308,22 @@ struct AIAgentFeishuChannelView: View {
         } footer: {
             Text(L10n.t("点击 Bot 编辑凭证与策略；状态开关、批准配对与删除将立即保存。默认 Bot 随顶部启用开关联动"))
         }
+    }
+
+    /// 长按菜单条目（动作统一：编辑/批准配对/删除，后两者随菜单立即保存；
+    /// 闭包捕获 sheet 参数 bot，不回读 actionBot）
+    private func botMenuItems(_ bot: AIChannelFeishuBotItem) -> [ActionMenuItem] {
+        [
+            ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
+                editingBot = bot
+            },
+            ActionMenuItem(title: L10n.t("批准配对"), icon: "link", color: .teal) {
+                pairingBot = bot
+            },
+            ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                Task { await removeBot(bot) }
+            },
+        ]
     }
 
     /// 行内 Bot 状态开关绑定：默认 Bot 与顶层启用开关联动（显示与提交均镜像
@@ -417,8 +415,6 @@ struct AIAgentFeishuChannelView: View {
 
     /// 行内批准配对（带该 Bot 的 accountId；配对码由调用方捕获传入）
     private func approvePairing(_ bot: AIChannelFeishuBotItem, code: String) async {
-        isApproving = true
-        defer { isApproving = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.aiAgentChannelPairingApprove.path,
@@ -426,8 +422,6 @@ struct AIAgentFeishuChannelView: View {
                     agentId: agentId, type: "feishu",
                     pairingCode: code, accountId: bot.accountId),
                 as: EmptyResponse.self)
-            pairingBot = nil
-            pairingCode = ""
             errorMessage = L10n.t("已批准配对")
             showError = true
         } catch {

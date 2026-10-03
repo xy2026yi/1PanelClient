@@ -46,6 +46,7 @@ struct CronjobMultiPickerSheet: View {
                             Button {
                                 toggle(option.id)
                             } label: {
+                                // plain 样式命中区只有文字部分，补全行矩形命中
                                 HStack(spacing: 12) {
                                     Image(systemName: selection.contains(option.id)
                                           ? "checkmark.circle.fill" : "circle")
@@ -64,6 +65,7 @@ struct CronjobMultiPickerSheet: View {
                                     }
                                     Spacer()
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
@@ -341,6 +343,7 @@ struct CronjobAlertMethodsPickerView: View {
                             Button {
                                 toggle(method.id)
                             } label: {
+                                // plain 样式命中区只有文字部分，补全行矩形命中
                                 HStack(spacing: 12) {
                                     Image(systemName: selection.contains(method.id)
                                           ? "checkmark.circle.fill" : "circle")
@@ -360,6 +363,7 @@ struct CronjobAlertMethodsPickerView: View {
                                     }
                                     Spacer()
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }

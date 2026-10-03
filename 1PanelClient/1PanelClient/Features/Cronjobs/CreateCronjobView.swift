@@ -497,6 +497,7 @@ struct CreateCronjobView: View {
                     Button {
                         showBackupParamsPicker = true
                     } label: {
+                        // plain 样式命中区只有文字部分，补全行矩形命中
                         HStack {
                             Text(L10n.t("备份参数"))
                             Spacer()
@@ -508,6 +509,7 @@ struct CreateCronjobView: View {
                                 .foregroundStyle(.secondary)
                                 .font(.caption)
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 } header: {
@@ -969,6 +971,7 @@ struct CreateCronjobView: View {
                 Button {
                     showAlertMethodPicker = true
                 } label: {
+                    // plain 样式命中区只有文字部分，补全行矩形命中
                     HStack {
                         Text(L10n.t("告警方式"))
                         Spacer()
@@ -980,6 +983,7 @@ struct CreateCronjobView: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
 

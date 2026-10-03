@@ -42,18 +42,14 @@ struct FilesDialogsModifier: ViewModifier {
                 .bottomSheetDetents([.medium])
                 .presentationDragIndicator(.visible)
             }
-            // alert 内必须用系统 TextField：自绘 OutlinedTextField 在 alert 行布局里
-            // 会被拉满整行宽（右侧贴边）且标签被渲染成独立按钮行
-            .alert(L10n.t("前往路径"), isPresented: $showPathInput) {
-                TextField(L10n.t("路径"), text: $pathInput)
-                    .keyboardType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                Button(L10n.t("取消"), role: .cancel) { }
-                Button(L10n.t("前往")) {
-                    let target = pathInput.trimmingCharacters(in: .whitespaces)
-                    if !target.isEmpty { jumpTo(target) }
+            // alert 内嵌输入框在真机上渲染异常（自绘 OutlinedTextField 拉满整行
+            // 贴右、iOS 26 原生 TextField 同样贴右），统一改标准表单 sheet
+            .sheet(isPresented: $showPathInput) {
+                FilePathJumpSheet(initialPath: pathInput) { target in
+                    jumpTo(target)
                 }
+                .bottomSheetDetents([.medium])
+                .presentationDragIndicator(.visible)
             }
             .alert(L10n.t("提示"), isPresented: Binding(
                 get: { successMessage != nil || errorMessage != nil },
@@ -63,6 +59,56 @@ struct FilesDialogsModifier: ViewModifier {
             } message: {
                 Text(errorMessage ?? successMessage ?? "")
             }
+    }
+}
+
+// MARK: - 前往路径弹层
+
+/// 前往路径输入弹层（文件管理目录跳转；菜单动作预填当前目录）。
+/// 不用 alert 内嵌输入框：alert 行布局里自绘与原生 TextField 在真机上均贴右
+struct FilePathJumpSheet: View {
+    /// 打开时的初始路径（当前目录）
+    let initialPath: String
+    let onJump: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var path = ""
+
+    private var trimmed: String {
+        path.trimmingCharacters(in: .whitespaces)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    OutlinedTextField(label: L10n.t("路径"), text: $path, keyboardType: .URL)
+                        .font(.dataMonospacedBody)
+                }
+            }
+            .navigationTitle(L10n.t("前往路径"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("前往")) {
+                        let target = trimmed
+                        guard !target.isEmpty else { return }
+                        // 先收 sheet 再跳转：跳转常伴随推入/滚动，与 sheet 关闭
+                        // 同事务并发会偶发丢动画（与 ActionBottomSheet 同款时序）
+                        let jump = onJump
+                        dismiss()
+                        jump(target)
+                    }
+                    .disabled(trimmed.isEmpty)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .bottomSheetDetents([.medium])
+        .onAppear { path = initialPath }
     }
 }
 

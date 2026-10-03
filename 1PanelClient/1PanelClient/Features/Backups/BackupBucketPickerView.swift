@@ -47,6 +47,7 @@ struct BackupBucketPickerView: View {
                             bucket = name
                             dismiss()
                         } label: {
+                            // plain 样式命中区只有文字部分，补全行矩形命中
                             HStack {
                                 Text(name).font(.dataMonospacedBody)
                                 Spacer()
@@ -55,6 +56,7 @@ struct BackupBucketPickerView: View {
                                         .foregroundStyle(Color.accentColor)
                                 }
                             }
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }

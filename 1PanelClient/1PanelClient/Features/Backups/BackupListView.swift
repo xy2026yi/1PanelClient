@@ -888,6 +888,7 @@ struct BackupArgsPicker: View {
                             selection.insert(opt.value)
                         }
                     } label: {
+                        // plain 样式命中区只有文字部分，补全行矩形命中
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: selection.contains(opt.value) ? "checkmark.circle.fill" : "circle")
                                 .foregroundStyle(selection.contains(opt.value) ? Color.accentColor : .secondary)
@@ -903,6 +904,7 @@ struct BackupArgsPicker: View {
                             }
                             Spacer()
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }

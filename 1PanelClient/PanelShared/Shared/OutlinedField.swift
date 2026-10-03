@@ -151,7 +151,7 @@ struct OutlinedTextField: View {
 /// 是两个视图身份，切换瞬间可能掉焦/键盘闪落；叠放共享同一绑定，切换不中断编辑
 struct OutlinedPasswordField: View {
     let label: String
-    /// 聚焦且空值时框内的格式提示（可选，区别于标签）
+    /// 空值时框内右侧的占位提示（如「可选」，区别于标签）
     var prompt: String? = nil
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
@@ -163,16 +163,26 @@ struct OutlinedPasswordField: View {
         VStack(alignment: .leading, spacing: 4) {
             OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
                           trailing: {
-                Button {
-                    showPlain.toggle()
-                } label: {
-                    Image(systemName: showPlain ? "eye.slash" : "eye")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                // 空值占位提示贴框内右侧（眼睛左侧）：非聚焦空态标签占框内左侧，
+                // 两侧分置互不重叠；有值即隐藏
+                HStack(spacing: 8) {
+                    if text.isEmpty, let prompt {
+                        Text(prompt)
+                            .font(.subheadline)
+                            .foregroundStyle(.tertiary)
+                            .allowsHitTesting(false)
+                    }
+                    Button {
+                        showPlain.toggle()
+                    } label: {
+                        Image(systemName: showPlain ? "eye.slash" : "eye")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    // borderless：Form 行内多按钮默认样式会整行同触
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(L10n.t(showPlain ? "隐藏密码" : "显示密码"))
                 }
-                // borderless：Form 行内多按钮默认样式会整行同触
-                .buttonStyle(.borderless)
-                .accessibilityLabel(L10n.t(showPlain ? "隐藏密码" : "显示密码"))
             }) {
                 ZStack {
                     TextField("", text: $text)
@@ -187,12 +197,6 @@ struct OutlinedPasswordField: View {
                 .keyboardType(keyboardType)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            }
-            if isFocused, text.isEmpty, let prompt {
-                Text(prompt)
-                    .font(.subheadline)
-                    .foregroundStyle(.tertiary)
-                    .allowsHitTesting(false)
             }
         }
     }

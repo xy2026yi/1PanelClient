@@ -163,6 +163,19 @@ final class TerminalSession: ObservableObject {
     private var receiveTask: Task<Void, Never>?
     private var pingTask: Task<Void, Never>?
 
+    /// 服务端下发的会话 id（连接建立时 {"type":"session","id":...}）：
+    /// 终端 PTY 会话跨连接保留，带 session 参数重连即恢复同一会话
+    /// （网页端同款机制：WS 约 60s 一换，靠 session 重挂 + terminalRevalidate 保活）
+    private var sessionID: String?
+    /// 用户主动断开（手动断开/离开页面）不再自动重连
+    private var isUserClosed = false
+    /// 初始命令只执行一次：重连恢复同一 PTY 后再次执行会嵌套（如 hermes 套 hermes）
+    private var hasSentInitialCommand = false
+    /// 连续自动重连失败计数（成功首包清零；超限转为手动重连提示）
+    private var reconnectFailures = 0
+    /// 连接代次：旧连接的 receive/ping 回调不得触碰新连接的状态
+    private var generation = 0
+
     /// 收到原始字节时是否直接当文本喂入（true）；否则解析 JSON+base64
     private var rawFrameMode = false
 
@@ -171,7 +184,13 @@ final class TerminalSession: ObservableObject {
         self.target = target
         self.initialCommand = initialCommand
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
+        // 请求级空闲超时按「等待新数据」计时：终端可能长时间无输出（CLI 等待
+        // AI 生成回复、长任务无回显），30s 静默即被 URLSession 掐断 WebSocket，
+        // 表现为生成完成前夕「连接已断开: Socket未连接」+ ping 失败。
+        // 超时放开为不限（与 APIClient 流式会话同款），断线检测交给 pingLoop
+        // 的心跳（sendPing 失败即连接已死）
+        config.timeoutIntervalForRequest = .infinity
+        config.timeoutIntervalForResource = .infinity
         config.waitsForConnectivity = false
         self.session = URLSession(configuration: config)
     }
@@ -207,10 +226,16 @@ final class TerminalSession: ObservableObject {
         comp.path = target.path
         // 跟随多机管理切换的当前节点：operateNode 查询参数优先级高于请求头，
         // 枚举里写死的 local 会被替换，否则远程节点终端永远连到本机
-        let node = NodeScope.current(for: server.id) ?? "local"
-        comp.queryItems = target.queryItems.map {
-            $0.name == "operateNode" ? URLQueryItem(name: "operateNode", value: node) : $0
+        var items = target.queryItems.map {
+            $0.name == "operateNode" ? URLQueryItem(name: "operateNode", value: NodeScope.current(for: server.id) ?? "local") : $0
         }
+        // 会话恢复重连（网页端同款参数）：session 挂回保留的 PTY，
+        // terminalRevalidate 让服务端顺带校验/续期该会话
+        if let sessionID {
+            items.append(URLQueryItem(name: "session", value: sessionID))
+            items.append(URLQueryItem(name: "terminalRevalidate", value: "1"))
+        }
+        comp.queryItems = items
         return comp.url
     }
 
@@ -218,6 +243,12 @@ final class TerminalSession: ObservableObject {
 
     func connect() {
         guard !isConnecting, !isConnected else { return }
+        isUserClosed = false
+        openSocket()
+    }
+
+    /// 建立一条 WS 连接（首连与自动重连共用；重连时 URL 携带 session 参数恢复会话）
+    private func openSocket() {
         observeNodeScope()
         guard let url = makeWebSocketURL() else {
             errorMessage = L10n.t("无法构造终端连接地址")
@@ -232,6 +263,13 @@ final class TerminalSession: ObservableObject {
         isConnecting = true
         errorMessage = nil
 
+        // 旧连接的收包/心跳回调作废（代次 +1），任务收尾
+        generation += 1
+        receiveTask?.cancel()
+        pingTask?.cancel()
+        task?.cancel(with: .goingAway, reason: nil)
+
+        let gen = generation
         let ws = session.webSocketTask(with: request)
         ws.resume()
         task = ws
@@ -241,14 +279,16 @@ final class TerminalSession: ObservableObject {
 
         // 启动接收与心跳循环
         receiveTask = Task { [weak self] in
-            await self?.receiveLoop()
+            await self?.receiveLoop(gen: gen)
         }
         pingTask = Task { [weak self] in
-            await self?.pingLoop()
+            await self?.pingLoop(gen: gen)
         }
     }
 
     func disconnect() {
+        isUserClosed = true
+        generation += 1
         receiveTask?.cancel()
         pingTask?.cancel()
         task?.cancel(with: .normalClosure, reason: nil)
@@ -317,27 +357,30 @@ final class TerminalSession: ObservableObject {
 
     // MARK: - 接收循环
 
-    private func receiveLoop() async {
+    private func receiveLoop(gen: Int) async {
         guard let task else { return }
         // 首次成功接收即判定连接成功
         var firstPacket = true
         while !Task.isCancelled {
             do {
                 let msg = try await task.receive()
+                // 过期连接的回调：新连接已建立（自动重连）或已断开，静默退出
+                guard gen == self.generation else { return }
                 if firstPacket {
                     firstPacket = false
                     isConnecting = false
                     isConnected = true
-                    sendInitialCommandIfNeeded()
+                    reconnectFailures = 0
+                    if !hasSentInitialCommand {
+                        hasSentInitialCommand = true
+                        sendInitialCommandIfNeeded()
+                    }
                 }
                 handleIncoming(msg)
             } catch {
-                if !Task.isCancelled {
-                    await MainActor.run {
-                        self.handleDisconnect(error: error)
-                    }
-                }
-                break
+                guard gen == self.generation, !Task.isCancelled else { return }
+                handleDisconnect(error: error)
+                return
             }
         }
     }
@@ -372,7 +415,11 @@ final class TerminalSession: ObservableObject {
                         emit(Data(raw.utf8))
                     }
                     return
-                case "resize", "ping", "pong":
+                case "session":
+                    // 服务端下发的会话 id：记录用于断线后恢复重连
+                    if let id = obj["id"] as? String, !id.isEmpty { sessionID = id }
+                    return
+                case "resize", "ping", "pong", "heartbeat":
                     return
                 default:
                     return
@@ -393,33 +440,91 @@ final class TerminalSession: ObservableObject {
         onOutput?(data)
     }
 
+    /// 连接断开（服务端关闭/网络中断）。非用户主动断开且服务端支持会话保留
+    /// （已下发 session id）时自动重连恢复，对用户透明；否则提示手动重连
     private func handleDisconnect(error: Error) {
+        // 已有新连接在建立（自动重连竞态）或已按用户意愿关闭：不重复处理
+        guard isConnected || isConnecting else { return }
+        generation += 1
+        receiveTask?.cancel()
+        pingTask?.cancel()
+        task?.cancel(with: .goingAway, reason: nil)
+        task = nil
         isConnected = false
-        isConnecting = false
-        var msg: String
-        if let urlErr = error as? URLError {
-            msg = L10n.f("连接已断开 [code: %ld]\n%@", urlErr.code.rawValue, urlErr.localizedDescription)
-        } else {
-            msg = L10n.f("连接已断开：%@", error.localizedDescription)
+
+        guard !isUserClosed, sessionID != nil else {
+            isConnecting = false
+            var msg: String
+            if let urlErr = error as? URLError {
+                msg = L10n.f("连接已断开 [code: %ld]\n%@", urlErr.code.rawValue, urlErr.localizedDescription)
+            } else {
+                msg = L10n.f("连接已断开：%@", error.localizedDescription)
+            }
+            errorMessage = msg
+            emit("\r\n\u{1B}[31m\(msg)\u{1B}[0m\r\n")
+            return
         }
-        errorMessage = msg
-        emit("\r\n\u{1B}[31m\(msg)\u{1B}[0m\r\n")
+        scheduleReconnect()
+    }
+
+    /// 自动重连：短暂退避后重做会话校验并携带 session 参数重挂（网页端同款）
+    private func scheduleReconnect() {
+        reconnectFailures += 1
+        guard reconnectFailures <= 3 else {
+            isConnecting = false
+            let msg = L10n.f("连接已断开：%@", L10n.t("自动重连失败，请手动重连"))
+            errorMessage = msg
+            emit("\r\n\u{1B}[31m\(msg)\u{1B}[0m\r\n")
+            return
+        }
+        isConnecting = true
+        let delayMs = UInt64(300 * reconnectFailures)
+        Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(delayMs))
+            guard let self, !self.isUserClosed, self.sessionID != nil,
+                  !self.isConnected else { return }
+            self.revalidateSession()
+            self.openSocket()
+        }
+    }
+
+    /// 会话校验/保活（对齐网页端周期性 terminalRevalidate GET；结果不消费）
+    private func revalidateSession() {
+        guard sessionID != nil, let url = makeWebSocketURL() else { return }
+        guard var comp = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+        comp.scheme = comp.scheme == "wss" ? "https" : "http"
+        guard let httpURL = comp.url else { return }
+        var request = URLRequest(url: httpURL)
+        request.timeoutInterval = 10
+        for (k, v) in authHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+        session.dataTask(with: request) { _, _, _ in }.resume()
     }
 
     // MARK: - 心跳
 
-    private func pingLoop() async {
+    /// 每 10s 应用层心跳 + WebSocket ping（服务端会回显 heartbeat，维持数据流）。
+    /// 空闲超时已放开为不限，连接存活的检测职责在本循环：sendPing 本地发送
+    /// 失败即连接已死（服务端不回 pong 不会报错，无需担心误判）。
+    /// 每第 5 轮（约 50s）做一次会话校验，对齐网页端 ~60s 的 terminalRevalidate
+    /// 保活周期（服务端 PTY 会话静默超时的保活信号）
+    private func pingLoop(gen: Int) async {
+        var tick = 0
         while !Task.isCancelled {
             try? await Task.sleep(for: .seconds(10))
-            guard !Task.isCancelled, let task else { break }
+            guard gen == self.generation, !Task.isCancelled, let task else { break }
+            tick += 1
             let ts = String(Int(Date().timeIntervalSince1970 * 1000))
             let heartbeat = "{\"type\":\"heartbeat\",\"timestamp\":\"\(ts)\"}"
             try? await task.send(.string(heartbeat))
+            if tick % 5 == 0 { revalidateSession() }
             task.sendPing { [weak self] err in
                 guard let self, let err else { return }
-                let msg = "\r\n\u{1B}[33m" + L10n.f("ping 失败：%@", err.localizedDescription) + "\u{1B}[0m\r\n"
                 Task { @MainActor in
-                    self.emit(msg)
+                    // 过期连接的回调不得触发新连接的断开/重连
+                    guard gen == self.generation else { return }
+                    self.handleDisconnect(error: err)
                 }
             }
         }

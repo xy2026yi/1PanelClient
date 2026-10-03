@@ -69,7 +69,9 @@ struct ClamRecordView: View {
                         Button {
                             selectedRecord = record
                         } label: {
+                            // plain 样式命中区只有文字部分，补全行矩形命中
                             ClamRecordRow(record: record)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .onAppear {

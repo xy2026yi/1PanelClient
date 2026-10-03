@@ -94,6 +94,7 @@ struct TerminalSettingsView: View {
                     vm.pendingConnEdit = conn
                 }
             } label: {
+                // plain 样式命中区只有文字部分，补全行矩形命中
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(L10n.t("连接信息"))
@@ -107,6 +108,7 @@ struct TerminalSettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.tint)
                 }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(vm.conn == nil)

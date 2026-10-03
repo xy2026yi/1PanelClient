@@ -44,6 +44,8 @@ struct AIAgentDingtalkChannelView: View {
     }
     @State private var editingBot: AIChannelDingtalkBotItem?
     @State private var showAddBot = false
+    /// 长按半屏菜单挂起的 Bot（编辑/删除）
+    @State private var actionBot: AIChannelDingtalkBotItem?
 
     private let client: APIClient
 
@@ -220,6 +222,16 @@ struct AIAgentDingtalkChannelView: View {
                 bots.append(newBot)
             }
         }
+        // Bot 长按半屏菜单（动作统一：全站不再有左划行）
+        .sheet(item: $actionBot) { bot in
+            ActionBottomSheet(
+                title: bot.name ?? bot.accountId ?? "-",
+                items: botMenuItems(bot),
+                onDismiss: { actionBot = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: botMenuItems(bot).count))])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     /// OpenClaw 会话设置：会话隔离 / 群会话范围 / 共享记忆 / 异步模式 + 确认消息
@@ -280,41 +292,35 @@ struct AIAgentDingtalkChannelView: View {
         Section {
             ForEach(bots) { bot in
                 HStack(spacing: 12) {
-                    Button {
-                        editingBot = bot
-                    } label: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack(spacing: 6) {
-                                Text(bot.name ?? bot.accountId ?? "-")
-                                    .font(.body.bold())
-                                    .foregroundStyle(.primary)
-                                // 服务端不回 isDefault，首个 Bot 即联动的默认 Bot
-                                if bot.id == defaultBotID() {
-                                    StatusBadge(text: L10n.t("默认"), color: .blue)
-                                }
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(bot.name ?? bot.accountId ?? "-")
+                                .font(.body.bold())
+                                .foregroundStyle(.primary)
+                            // 服务端不回 isDefault，首个 Bot 即联动的默认 Bot
+                            if bot.id == defaultBotID() {
+                                StatusBadge(text: L10n.t("默认"), color: .blue)
                             }
-                            Text(bot.accountId ?? "-")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                        .padding(.vertical, 3)
+                        Text(bot.accountId ?? "-")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    Spacer()
                     // Bot 状态开关：默认 Bot 镜像顶层开关，其余行内即时提交
                     Toggle("", isOn: botEnabledBinding(bot))
                         .labelsHidden()
                         .disabled(isSaving)
                         .accessibilityLabel(L10n.t("启用"))
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        Task { await removeBot(bot) }
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
-                    }
-                }
+                .padding(.vertical, 3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // 单击编辑、长按半屏菜单（删除将立即保存）
+                .rowTapAndLongPress(
+                    onTap: { editingBot = bot },
+                    onLongPress: { actionBot = bot })
+                // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                .accessibilityAction(named: L10n.t("更多操作")) { actionBot = bot }
             }
 
             Button {
@@ -327,6 +333,19 @@ struct AIAgentDingtalkChannelView: View {
         } footer: {
             Text(L10n.t("点击 Bot 编辑凭证；状态开关与删除将立即保存。默认 Bot 随顶部启用开关联动"))
         }
+    }
+
+    /// 长按菜单条目（动作统一：编辑/删除，删除随菜单立即保存；
+    /// 闭包捕获 sheet 参数 bot，不回读 actionBot）
+    private func botMenuItems(_ bot: AIChannelDingtalkBotItem) -> [ActionMenuItem] {
+        [
+            ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
+                editingBot = bot
+            },
+            ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                Task { await removeBot(bot) }
+            },
+        ]
     }
 
     /// 行内 Bot 状态开关绑定：默认 Bot 与顶层启用开关联动（显示与提交均镜像

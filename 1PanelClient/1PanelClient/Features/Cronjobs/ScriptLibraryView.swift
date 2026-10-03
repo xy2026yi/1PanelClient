@@ -452,7 +452,9 @@ struct ScriptLibraryView: View {
                     Button {
                         if let pick = onPick { pick(script) }
                     } label: {
+                        // plain 样式命中区只有文字部分，补全行矩形命中
                         ScriptRow(script: script)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 } else {
@@ -758,6 +760,7 @@ struct ScriptCreateView: View {
                 Button {
                     showGroupPicker = true
                 } label: {
+                    // plain 样式命中区只有文字部分，补全行矩形命中
                     HStack {
                         Text(L10n.t("分组"))
                         Spacer()
@@ -769,6 +772,7 @@ struct ScriptCreateView: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             } header: {
@@ -896,6 +900,7 @@ private struct ScriptGroupMultiPickerView: View {
                                     selection.insert(group.id)
                                 }
                             } label: {
+                                // plain 样式命中区只有文字部分，补全行矩形命中
                                 HStack(spacing: 12) {
                                     Image(systemName: selection.contains(group.id)
                                           ? "checkmark.circle.fill" : "circle")
@@ -911,6 +916,7 @@ private struct ScriptGroupMultiPickerView: View {
                                             .foregroundStyle(.secondary)
                                     }
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }

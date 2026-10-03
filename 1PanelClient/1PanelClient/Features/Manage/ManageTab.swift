@@ -57,12 +57,14 @@ struct ManageTab: View {
                     Button {
                         showRemoveServer = true
                     } label: {
+                        // plain 样式命中区只有文字部分，补全行矩形命中
                         HStack {
                             Spacer()
                             Text(L10n.t("移除服务器"))
                                 .foregroundStyle(.red)
                             Spacer()
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .disabled(manager.current == nil)
@@ -72,11 +74,13 @@ struct ManageTab: View {
                     Button {
                         showEditSheet = true
                     } label: {
+                        // plain 样式命中区只有文字部分，补全行矩形命中
                         HStack {
                             Spacer()
                             Text(L10n.t("编辑"))
                             Spacer()
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }

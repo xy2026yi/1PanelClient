@@ -298,6 +298,7 @@ struct NodeManageView: View {
             NodeScope.setCurrent(card.item.name, for: server.id)
             navPath.append(dest)
         } label: {
+            // plain 样式命中区只有文字部分，补全行矩形命中
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .foregroundStyle(tint)
@@ -311,6 +312,7 @@ struct NodeManageView: View {
             }
             .padding(10)
             .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

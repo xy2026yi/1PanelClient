@@ -290,7 +290,9 @@ struct TerminalCommandPicker: View {
                         Button {
                             command = preset
                         } label: {
+                            // plain 样式命中区只有文字部分，补全行矩形命中
                             CheckRow(title: preset, isSelected: command == preset)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }

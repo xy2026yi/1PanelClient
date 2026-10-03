@@ -33,6 +33,8 @@ struct AIAgentQQChannelView: View {
     @State private var showError = false
     @State private var editingBot: AIChannelQQBotItem?
     @State private var showAddBot = false
+    /// 长按半屏菜单挂起的 Bot（编辑/删除）
+    @State private var actionBot: AIChannelQQBotItem?
     /// 页面级插件状态（List 外 .task 加载，两段式查询）；
     /// check 失败时以频道 GET 的 installed 兜底（与列表徽标同源）
     @State private var pluginStatus: AIAgentPluginStatus?
@@ -176,6 +178,8 @@ struct AIAgentQQChannelView: View {
         .sheet(item: $editingBot) { bot in
             AIQQBotFormSheet(
                 bot: bot, isEdit: true,
+                // 默认 Bot 账户 ID 固定 default 不可修改（网页端行为）
+                lockAccountID: isProtectedDefaultBot(bot),
                 existingAccountIDs: bots.compactMap(\.accountId),
                 selfOriginalID: bot.accountId) { updated in
                 // 按打开弹窗时的行身份匹配（允许修改账户 ID）
@@ -195,6 +199,16 @@ struct AIAgentQQChannelView: View {
                 bots.append(newBot)
             }
         }
+        // Bot 长按半屏菜单（动作统一：全站不再有左划行）
+        .sheet(item: $actionBot) { bot in
+            ActionBottomSheet(
+                title: bot.name ?? bot.accountId ?? "-",
+                items: botMenuItems(bot),
+                onDismiss: { actionBot = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: botMenuItems(bot).count))])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: OpenClaw Bot 列表
@@ -203,40 +217,34 @@ struct AIAgentQQChannelView: View {
         Section {
             ForEach(bots) { bot in
                 HStack(spacing: 12) {
-                    Button {
-                        editingBot = bot
-                    } label: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack(spacing: 6) {
-                                Text(bot.name ?? bot.accountId ?? "-")
-                                    .font(.body.bold())
-                                    .foregroundStyle(.primary)
-                                if bot.isDefault == true {
-                                    StatusBadge(text: L10n.t("默认"), color: .blue)
-                                }
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(bot.name ?? bot.accountId ?? "-")
+                                .font(.body.bold())
+                                .foregroundStyle(.primary)
+                            if bot.isDefault == true {
+                                StatusBadge(text: L10n.t("默认"), color: .blue)
                             }
-                            Text(bot.accountId ?? "-")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                        .padding(.vertical, 3)
+                        Text(bot.accountId ?? "-")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    Spacer()
                     // Bot 状态开关：默认 Bot 镜像顶层开关，其余行内即时提交
                     Toggle("", isOn: botEnabledBinding(bot))
                         .labelsHidden()
                         .disabled(isSaving)
                         .accessibilityLabel(L10n.t("启用"))
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        Task { await removeBot(bot) }
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
-                    }
-                }
+                .padding(.vertical, 3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // 单击编辑、长按半屏菜单（删除将立即保存）
+                .rowTapAndLongPress(
+                    onTap: { editingBot = bot },
+                    onLongPress: { actionBot = bot })
+                // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                .accessibilityAction(named: L10n.t("更多操作")) { actionBot = bot }
             }
 
             Button {
@@ -247,8 +255,32 @@ struct AIAgentQQChannelView: View {
         } header: {
             SectionLabel(title: L10n.f("Bot 列表 · 共 %d 个", bots.count), systemImage: "person.2")
         } footer: {
-            Text(L10n.t("点击 Bot 编辑凭证与策略；状态开关与删除将立即保存。默认 Bot 随顶部启用开关联动"))
+            Text(L10n.t("点击 Bot 编辑凭证与策略；状态开关与删除将立即保存，默认 Bot 不可删除。默认 Bot 随顶部启用开关联动"))
         }
+    }
+
+    /// 长按菜单条目（动作统一：编辑/删除，删除随菜单立即保存；
+    /// 闭包捕获 sheet 参数 bot，不回读 actionBot）
+    private func botMenuItems(_ bot: AIChannelQQBotItem) -> [ActionMenuItem] {
+        var items: [ActionMenuItem] = [
+            ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
+                editingBot = bot
+            },
+        ]
+        // QQ 无「设为默认」菜单：服务端固定默认 Bot（抓包 isDefault/accountId=default，
+        // 缺标记时按首个回退），该 Bot 不可删除（网页端行为）
+        if !isProtectedDefaultBot(bot) {
+            items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                Task { await removeBot(bot) }
+            })
+        }
+        return items
+    }
+
+    /// 默认 Bot 判定：isDefault 标记 / accountId=default 任一命中，或首个 Bot 兜底
+    /// （QQ 无「设为默认」菜单，第一个创建的 Bot 即默认，账户 ID 固定 default）
+    private func isProtectedDefaultBot(_ bot: AIChannelQQBotItem) -> Bool {
+        bot.isDefault == true || bot.accountId == "default" || bot.id == defaultBotID()
     }
 
     /// 行内 Bot 状态开关绑定：默认 Bot 与顶层启用开关联动（显示与提交均镜像
@@ -292,19 +324,20 @@ struct AIAgentQQChannelView: View {
         await saveBots(updated)
     }
 
-    /// 删除 Bot：基于已保存快照组装（不携带表单未保存草稿），
-    /// 删除默认 Bot 时默认让位第一个；至少保留一个（抓包从未出现空 bots 数组）
+    /// 删除 Bot：基于已保存快照组装（不携带表单未保存草稿）；
+    /// 默认 Bot 不可删除（网页端行为），至少保留一个
     private func removeBot(_ bot: AIChannelQQBotItem) async {
+        guard !isProtectedDefaultBot(bot) else {
+            errorMessage = L10n.t("默认 Bot 不可删除")
+            showError = true
+            return
+        }
         guard savedBots.count > 1 else {
             errorMessage = L10n.t("至少保留一个 Bot")
             showError = true
             return
         }
-        var updated = savedBots.filter { $0.id != bot.id }
-        if bot.isDefault == true, !updated.isEmpty {
-            updated[0].isDefault = true
-        }
-        await saveBots(updated)
+        await saveBots(savedBots.filter { $0.id != bot.id })
     }
 
     /// OpenClaw：Bot 删除即时全量保存（顶层与 bots 均取已保存快照，不含草稿）
@@ -448,11 +481,11 @@ struct AIAgentQQChannelView: View {
 
 /// OpenClaw QQ Bot 新建/编辑表单（名称/账户ID/AppID/AppSecret/
 /// 私聊白名单/系统提示词；启用状态由列表行内开关即时提交，不在表单内；
-/// 首个 Bot 账户 ID 固定 default，抓包确认）
+/// 首个/默认 Bot 账户 ID 固定 default 不可修改，抓包确认）
 private struct AIQQBotFormSheet: View {
     @State var bot: AIChannelQQBotItem
     let isEdit: Bool
-    /// 首个 Bot 的账户 ID 固定为 default（不可修改，网页端行为）
+    /// 账户 ID 锁定不可修改（首个创建与默认 Bot 固定为 default，网页端行为）
     var lockAccountID: Bool = false
     var existingAccountIDs: [String] = []
     var selfOriginalID: String? = nil

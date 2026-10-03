@@ -583,6 +583,7 @@ struct AppInstallView: View {
                         Button {
                             showComposeEditor = true
                         } label: {
+                            // plain 样式命中区只有文字部分，补全行矩形命中
                             HStack {
                                 Text("docker-compose.yml")
                                 Spacer()
@@ -594,6 +595,7 @@ struct AppInstallView: View {
                                     .font(.caption)
                                     .foregroundStyle(.tertiary)
                             }
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     } footer: {

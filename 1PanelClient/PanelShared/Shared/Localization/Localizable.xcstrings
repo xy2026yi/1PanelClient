@@ -3122,17 +3122,6 @@
         }
       }
     },
-    "ping 失败：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ping failed: %@"
-          }
-        }
-      }
-    },
     "QPS / 访客趋势 / 访客地图 / 请求日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10417,6 +10406,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accelerator Type"
+          }
+        }
+      }
+    },
+    "加速地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mirror URL"
           }
         }
       }
@@ -25535,17 +25535,6 @@
         }
       }
     },
-    "模型目录：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Model directory: %@"
-          }
-        }
-      }
-    },
     "模型终端 · %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27339,13 +27328,13 @@
         }
       }
     },
-    "点击 Bot 编辑凭证与策略；状态开关与删除将立即保存。默认 Bot 随顶部启用开关联动" : {
+    "点击 Bot 编辑凭证与策略；状态开关与删除将立即保存，默认 Bot 不可删除。默认 Bot 随顶部启用开关联动" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap a bot to edit credentials and policies; the status switch and delete save immediately. The default bot follows the top-level enable switch."
+            "value" : "Tap a bot to edit credentials and policies; the status switch and delete save immediately, and the default bot cannot be deleted. The default bot follows the top-level enable switch."
           }
         }
       }
@@ -32549,6 +32538,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto Restart restarts the process after an abnormal exit; Auto Start launches it with the Supervisor service"
+          }
+        }
+      }
+    },
+    "自动重连失败，请手动重连" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic reconnection failed; please reconnect manually"
           }
         }
       }
@@ -39523,6 +39523,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default (none)"
+          }
+        }
+      }
+    },
+    "默认 Bot 不可删除" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The default bot cannot be deleted"
           }
         }
       }

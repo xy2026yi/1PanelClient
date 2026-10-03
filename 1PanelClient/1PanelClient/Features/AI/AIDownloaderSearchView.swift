@@ -161,7 +161,9 @@ struct AIDownloaderSearchView: View {
                     Button {
                         detailRepo = item
                     } label: {
+                        // plain 样式命中区只有文字部分，补全行矩形命中
                         ModelRepoRow(item: item)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .onAppear {

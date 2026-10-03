@@ -421,6 +421,7 @@ struct ImageTagPickerSheet: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
+            // plain 样式命中区只有文字部分，补全行矩形命中
             HStack {
                 Text(title)
                     .font(bold ? .subheadline.bold() : .dataMonospaced)
@@ -431,6 +432,7 @@ struct ImageTagPickerSheet: View {
                         .foregroundStyle(.tint)
                 }
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

@@ -341,7 +341,9 @@ struct AlertNotificationView: View {
                     Button {
                         selectedLog = log
                     } label: {
+                        // plain 样式命中区只有文字部分，补全行矩形命中
                         AlertLogRow(log: log)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }

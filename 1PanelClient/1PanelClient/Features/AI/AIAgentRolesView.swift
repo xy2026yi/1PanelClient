@@ -8,6 +8,13 @@
 
 import SwiftUI
 
+/// 绑定行长按菜单目标（解绑需要同时定位角色与绑定；sheet(item:) 需 Identifiable）
+private struct BindingActionTarget: Identifiable {
+    let role: AIAgentRole
+    let binding: AIAgentRoleBinding
+    var id: String { role.id + "|" + binding.id }
+}
+
 struct AIAgentRolesView: View {
     let server: ServerConfig
     let agentId: Int
@@ -23,6 +30,8 @@ struct AIAgentRolesView: View {
     @State private var showError = false
     /// 删除确认目标
     @State private var pendingDelete: AIAgentRole?
+    /// 长按半屏菜单挂起的绑定（取消绑定；角色+绑定组合，sheet(item:) 需 Identifiable）
+    @State private var actionBinding: BindingActionTarget?
 
     private let client: APIClient
 
@@ -110,6 +119,21 @@ struct AIAgentRolesView: View {
                 Task { await load() }
             }
         }
+        // 绑定行长按半屏菜单（动作统一：全站不再有左划行）
+        .sheet(item: $actionBinding) { target in
+            ActionBottomSheet(
+                title: "\(target.binding.channel ?? "-"):\(target.binding.accountId ?? "-")",
+                items: [
+                    ActionMenuItem(title: L10n.t("取消绑定"), icon: "minus.circle",
+                                   color: .red, role: .destructive) {
+                        Task { await unbind(target.role, target.binding) }
+                    },
+                ],
+                onDismiss: { actionBinding = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: 角色卡片
@@ -132,12 +156,15 @@ struct AIAgentRolesView: View {
                         .font(.dataMonospaced)
                     Spacer()
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        Task { await unbind(role, binding) }
-                    } label: {
-                        Label(L10n.t("取消绑定"), systemImage: "minus.circle")
-                    }
+                .padding(.vertical, 3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // 长按取消绑定（动作统一：全站不再有左划行）
+                .rowTapAndLongPress(
+                    onTap: {},
+                    onLongPress: { actionBinding = BindingActionTarget(role: role, binding: binding) })
+                // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                .accessibilityAction(named: L10n.t("更多操作")) {
+                    actionBinding = BindingActionTarget(role: role, binding: binding)
                 }
             }
 
