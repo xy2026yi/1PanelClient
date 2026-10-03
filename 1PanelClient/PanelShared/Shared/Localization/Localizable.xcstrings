@@ -36700,6 +36700,17 @@
         }
       }
     },
+    "连接中断，正在恢复会话（第 %ld 次）…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection lost, restoring session (attempt %ld)…"
+          }
+        }
+      }
+    },
     "连接信息" : {
       "extractionState" : "manual",
       "localizations" : {

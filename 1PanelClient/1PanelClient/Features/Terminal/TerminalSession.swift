@@ -467,7 +467,9 @@ final class TerminalSession: ObservableObject {
         scheduleReconnect()
     }
 
-    /// 自动重连：短暂退避后重做会话校验并携带 session 参数重挂（网页端同款）
+    /// 自动重连：短暂退避后重做会话校验并携带 session 参数重挂（网页端同款）。
+    /// 首次（多为服务端例行换链）完全静默；连续失败从第 2 次起打灰色提示，
+    /// 弱网用户能看出在自愈而非卡死
     private func scheduleReconnect() {
         reconnectFailures += 1
         guard reconnectFailures <= 3 else {
@@ -476,6 +478,9 @@ final class TerminalSession: ObservableObject {
             errorMessage = msg
             emit("\r\n\u{1B}[31m\(msg)\u{1B}[0m\r\n")
             return
+        }
+        if reconnectFailures >= 2 {
+            emit("\r\n\u{1B}[90m" + L10n.f("连接中断，正在恢复会话（第 %ld 次）…", reconnectFailures) + "\u{1B}[0m\r\n")
         }
         isConnecting = true
         let delayMs = UInt64(300 * reconnectFailures)

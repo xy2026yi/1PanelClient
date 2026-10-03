@@ -10,6 +10,7 @@
 //
 
 import Foundation
+import os
 
 // MARK: - 宽松数值解码
 
@@ -103,20 +104,27 @@ nonisolated struct ModelDownloaderSettings: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: FlexKey.self)
-        modelDir = Self.flexString(c, ["modelDir", "ModelDir", "model_dir"])
-        hfEndpoint = Self.flexString(c, ["hfEndpoint", "hfEndPoint", "HFEndpoint",
-                                         "HfEndpoint", "hf_endpoint"])
-        hfToken = Self.flexString(c, ["hfToken", "HFToken", "HfToken", "hf_token"])
-        modelScopeEndpoint = Self.flexString(c, ["modelScopeEndpoint", "modelScopeEndPoint",
-                                                  "ModelScopeEndpoint", "model_scope_endpoint"])
-        modelScopeToken = Self.flexString(c, ["modelScopeToken", "ModelScopeToken",
-                                               "model_scope_token"])
+        modelDir = Self.flexString(c, field: "modelDir", ["modelDir", "ModelDir", "model_dir"])
+        hfEndpoint = Self.flexString(c, field: "hfEndpoint", ["hfEndpoint", "hfEndPoint", "HFEndpoint",
+                                                              "HfEndpoint", "hf_endpoint"])
+        hfToken = Self.flexString(c, field: "hfToken", ["hfToken", "HFToken", "HfToken", "hf_token"])
+        modelScopeEndpoint = Self.flexString(c, field: "modelScopeEndpoint",
+                                             ["modelScopeEndpoint", "modelScopeEndPoint",
+                                              "ModelScopeEndpoint", "model_scope_endpoint"])
+        modelScopeToken = Self.flexString(c, field: "modelScopeToken",
+                                          ["modelScopeToken", "ModelScopeToken", "model_scope_token"])
     }
 
-    /// 依次尝试候选键，取首个存在的字符串值（键存在但为 null / 类型不符则继续尝试）
-    private static func flexString(_ c: KeyedDecodingContainer<FlexKey>, _ keys: [String]) -> String? {
+    /// 依次尝试候选键，取首个存在的字符串值（键存在但为 null / 类型不符则继续尝试）。
+    /// 命中非首选（变体）键时记日志——真遇面板键名漂移可从控制台直接定位
+    private static func flexString(_ c: KeyedDecodingContainer<FlexKey>,
+                                   field: String, _ keys: [String]) -> String? {
         for key in keys {
             if let value = try? c.decodeIfPresent(String.self, forKey: FlexKey(stringValue: key)!) {
+                if key != keys[0] {
+                    Logger(subsystem: "com.xy.panelclient", category: "ModelDownloaderSettings")
+                        .notice("字段 \(field, privacy: .public) 未按抓包键名返回，命中变体键 \(key, privacy: .public)")
+                }
                 return value
             }
         }

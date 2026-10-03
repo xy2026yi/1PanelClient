@@ -84,7 +84,7 @@ struct OutlinedShape<Content: View, Trailing: View>: View {
 /// 描边包裹式文本输入（密码场景用 OutlinedPasswordField）
 struct OutlinedTextField: View {
     let label: String
-    /// 聚焦且空值时框内的格式提示（可选，区别于标签）
+    /// 空值时框内右侧的占位提示（如「可选」，与密码框同款；区别于标签）
     var prompt: String? = nil
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
@@ -106,18 +106,28 @@ struct OutlinedTextField: View {
         VStack(alignment: .leading, spacing: 4) {
             OutlinedShape(label: label, isFocused: isFocused, hasValue: !text.isEmpty,
                           trailing: {
-                if let browseAction {
-                    Button(action: browseAction) {
-                        Image(systemName: "folder.badge.plus")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            // 扩命中区：caption 图标热区远小于 44pt
-                            .padding(6)
-                            .contentShape(Rectangle())
+                // 空值占位提示贴框内右侧（浏览按钮左侧）：非聚焦空态标签占框内
+                // 左侧，两侧分置互不重叠（与密码框同款）；有值即隐藏
+                HStack(spacing: 8) {
+                    if text.isEmpty, let prompt {
+                        Text(prompt)
+                            .font(.subheadline)
+                            .foregroundStyle(.tertiary)
+                            .allowsHitTesting(false)
                     }
-                    // borderless：Form 行内多按钮默认样式会整行同触
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel(L10n.t("浏览目录"))
+                    if let browseAction {
+                        Button(action: browseAction) {
+                            Image(systemName: "folder.badge.plus")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                // 扩命中区：caption 图标热区远小于 44pt
+                                .padding(6)
+                                .contentShape(Rectangle())
+                        }
+                        // borderless：Form 行内多按钮默认样式会整行同触
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.t("浏览目录"))
+                    }
                 }
             }) {
             TextField("", text: $text)
@@ -125,12 +135,6 @@ struct OutlinedTextField: View {
                 .focused($isFocused)
                 .disabled(disabled)
                 .modifier(OutlinedMachineValue(enabled: machineValue))
-            if isFocused, text.isEmpty, let prompt {
-                Text(prompt)
-                    .font(.subheadline)
-                    .foregroundStyle(.tertiary)
-                    .allowsHitTesting(false)
-            }
         }
         if let hint {
             Text(hint)

@@ -271,7 +271,8 @@ struct AIAgentTelegramChannelView: View {
     }
 
     /// 长按菜单条目（动作统一：编辑/设为默认/批准配对/删除，
-    /// 后三者随菜单立即保存；闭包捕获 sheet 参数 bot，不回读 actionBot）
+    /// 后三者随菜单立即保存；批准配对仅私聊策略=配队码（含未配置回退）时显示；
+    /// 闭包捕获 sheet 参数 bot，不回读 actionBot）
     private func botMenuItems(_ bot: AIChannelTelegramBotItem) -> [ActionMenuItem] {
         var items: [ActionMenuItem] = [
             ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
@@ -283,9 +284,11 @@ struct AIAgentTelegramChannelView: View {
                 Task { await setDefaultBot(bot) }
             })
         }
-        items.append(ActionMenuItem(title: L10n.t("批准配对"), icon: "link", color: .teal) {
-            pairingBot = bot
-        })
+        if (c.dmPolicy ?? "").isEmpty || c.dmPolicy == "pairing" {
+            items.append(ActionMenuItem(title: L10n.t("批准配对"), icon: "link", color: .teal) {
+                pairingBot = bot
+            })
+        }
         items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
             Task { await removeBot(bot) }
         })

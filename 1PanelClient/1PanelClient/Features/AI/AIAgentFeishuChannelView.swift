@@ -311,19 +311,22 @@ struct AIAgentFeishuChannelView: View {
     }
 
     /// 长按菜单条目（动作统一：编辑/批准配对/删除，后两者随菜单立即保存；
-    /// 闭包捕获 sheet 参数 bot，不回读 actionBot）
+    /// 批准配对仅该 Bot 私聊策略=配队码时显示；闭包捕获 sheet 参数 bot，不回读 actionBot）
     private func botMenuItems(_ bot: AIChannelFeishuBotItem) -> [ActionMenuItem] {
-        [
+        var items: [ActionMenuItem] = [
             ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
                 editingBot = bot
             },
-            ActionMenuItem(title: L10n.t("批准配对"), icon: "link", color: .teal) {
-                pairingBot = bot
-            },
-            ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                Task { await removeBot(bot) }
-            },
         ]
+        if (bot.dmPolicy ?? "") == "pairing" {
+            items.append(ActionMenuItem(title: L10n.t("批准配对"), icon: "link", color: .teal) {
+                pairingBot = bot
+            })
+        }
+        items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+            Task { await removeBot(bot) }
+        })
+        return items
     }
 
     /// 行内 Bot 状态开关绑定：默认 Bot 与顶层启用开关联动（显示与提交均镜像
