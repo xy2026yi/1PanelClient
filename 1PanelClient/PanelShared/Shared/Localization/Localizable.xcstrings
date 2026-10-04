@@ -6681,6 +6681,17 @@
         }
       }
     },
+    "修改配置后需要重启生效。如果确认操作，请手动输入 '立即重启'" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart is required for changes to take effect. If you confirm, type 'Restart now'"
+          }
+        }
+      }
+    },
     "修改配置后需要重启 Docker 服务生效\n保存设置 Socket 路径可能导致 Docker 服务不可用，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30250,6 +30261,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restart Docker Now"
+          }
+        }
+      }
+    },
+    "端口号为 1-65535 的整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port must be an integer between 1 and 65535"
+          }
+        }
+      }
+    },
+    "端口修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Port"
           }
         }
       }

@@ -2,74 +2,16 @@
 //  DatabaseMySQLAdvancedViews.swift
 //  1PanelClient
 //
-//  MySQL/MariaDB 参数 / 性能调整 / 配置修改（抓包 2026-09-15）：
-//  · 参数：databases/variables（SHOW VARIABLES 全量展示）
+//  MySQL/MariaDB 性能调整 / 配置修改（抓包 2026-09-15）：
 //  · 性能调整：databases/variables + 1-2GB…16-32GB 预设，应用走
 //    databases/variables/update（需输入「立即重启」确认）
 //  · 配置修改：databases/common/load/file 读取 → common/update/conf 保存，
 //    apps/installed/conf 取默认配置
+//  （原「参数」页与性能调整同源 databases/variables，2026-10-04 移除，
+//   端口查看/修改见 DatabasePortView）
 //
 
 import SwiftUI
-
-// MARK: - 参数（SHOW VARIABLES）
-
-struct DatabaseMySQLVariablesView: View {
-    let system: DatabaseSystem
-
-    @State private var variables: [String: String]?
-    @State private var isLoading = true
-    @State private var loadError: String?
-
-    private let client: APIClient
-
-    init(system: DatabaseSystem) {
-        self.system = system
-        self.client = APIClient.shared(for: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
-    }
-
-    var body: some View {
-        List {
-            if isLoading {
-                HStack { Spacer(); LoadingStateView(); Spacer() }
-                    .listRowBackground(Color.clear)
-            } else if let loadError {
-                LoadErrorStateView(message: loadError) {
-                    Task { await load() }
-                }
-                .listRowBackground(Color.clear)
-            } else if let variables {
-                Section {
-                    ForEach(MySQLVariablesDisplay.displayKeys(variables), id: \.self) { key in
-                        InfoRow(key, value: MySQLVariablesDisplay.value(key, variables[key]), monospaced: true)
-                    }
-                } header: {
-                    SectionLabel(title: L10n.t("参数"), systemImage: "slider.horizontal.3")
-                }
-            }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle(L10n.t("参数"))
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
-        .refreshable { await load() }
-    }
-
-    private func load() async {
-        do {
-            let resp: [String: String] = try await client.send(
-                path: APIEndpoint.databasesVariables.path,
-                body: DatabaseStatusRequest(type: system.type, name: system.database),
-                as: [String: String].self)
-            variables = resp
-            loadError = nil
-        } catch {
-            guard !APIError.isCancellation(error) else { return }
-            loadError = error.localizedDescription
-        }
-        isLoading = false
-    }
-}
 
 // MARK: - 性能调整（优化方案预设 + 应用）
 

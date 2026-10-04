@@ -4,7 +4,7 @@
 //
 //  MySQL/MariaDB 运行状态（logs/MySQL 状态抓包 2026-09-14）：
 //  databases/status（基础参数 + 性能参数，命中率类客户端计算）。
-//  系统变量（SHOW VARIABLES）独立成 DatabaseMySQLVariablesView（抽屉「参数」入口）
+//  系统变量（SHOW VARIABLES）原独立「参数」页已移除（与性能调整同源），抽屉改为「端口」入口
 //
 
 import SwiftUI

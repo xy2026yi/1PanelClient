@@ -260,6 +260,9 @@ enum APIEndpoint {
     case databasesCommonLoadFile  // POST 读取配置文件 {type:"<db>-conf",name}
     case databasesCommonUpdateConf // POST 保存配置文件 {type,database,file}
     case appsInstalledConf        // POST 默认配置文件 {type,name}
+    // 端口查看/修改（抓包 2026-10-04）
+    case databasesCommonInfo      // POST 安装信息 {type,name} → 容器名/端口
+    case appsInstalledPortChange  // POST 修改应用端口 {key,name,port}
     case appsInstalledCheck       // POST 已安装应用检查(状态/端口)
     case appsInstalledConnInfo    // POST 已安装应用连接信息
     case appsDetailApp            // GET  应用商店详情参数原始形态（:id/:version 路径参数；曾散在调用点）
@@ -912,6 +915,8 @@ enum APIEndpoint {
         case .databasesVariables:    return "/api/v2/databases/variables"
         case .databasesRedisStatus:  return "/api/v2/databases/redis/status"
         case .databasesVariablesUpdate: return "/api/v2/databases/variables/update"
+        case .databasesCommonInfo:      return "/api/v2/databases/common/info"
+        case .appsInstalledPortChange: return "/api/v2/apps/installed/port/change"
         case .databasesCommonLoadFile: return "/api/v2/databases/common/load/file"
         case .databasesCommonUpdateConf: return "/api/v2/databases/common/update/conf"
         case .appsInstalledConf:    return "/api/v2/apps/installed/conf"

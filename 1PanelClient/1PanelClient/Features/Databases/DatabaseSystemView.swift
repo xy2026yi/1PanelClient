@@ -19,8 +19,10 @@ struct DatabaseSystemView: View {
     @State private var showDatabaseTerminal = false
     /// MySQL/MariaDB 状态（databases/status）
     @State private var showMySQLStatus = false
-    /// MySQL/MariaDB 参数（databases/variables）
-    @State private var showMySQLVariables = false
+    /// 端口修改半屏弹窗（MySQL/MariaDB/PostgreSQL/Redis）
+    @State private var showPortSheet = false
+    /// 端口保存成功 toast（sheet 收起后在父页展示）
+    @State private var portSavedToast: String?
     /// MySQL/MariaDB 性能调整（优化方案预设）
     @State private var showMySQLPerformance = false
     /// MySQL/MariaDB 配置修改（my.cnf）
@@ -213,10 +215,14 @@ struct DatabaseSystemView: View {
         .navigationDestination(isPresented: $showMySQLStatus) {
             DatabaseMySQLStatusView(system: vm.system)
         }
-        .navigationDestination(isPresented: $showMySQLVariables) {
-            DatabaseMySQLVariablesView(system: vm.system)
+        // 端口修改半屏弹窗：保存成功收起后父页 toast + 刷新（连接信息里的端口随之更新）
+        .sheet(isPresented: $showPortSheet) {
+            DatabasePortSheet(system: vm.system) {
+                portSavedToast = L10n.t("已保存，重启后生效")
+                Task { await vm.refresh() }
+            }
         }
-        .navigationDestination(isPresented: $showMySQLPerformance) {
+        .toastOverlay(message: $portSavedToast)        .navigationDestination(isPresented: $showMySQLPerformance) {
             DatabaseMySQLPerformanceView(system: vm.system)
         }
         .navigationDestination(isPresented: $showMySQLConf) {
@@ -357,7 +363,8 @@ struct DatabaseSystemView: View {
     }
 
     /// 抽屉操作：启停/重启/终端 + 连接信息（创建数据库/用户入口在右上角加号菜单）；
-    /// MySQL/MariaDB 追加「状态 / 参数 / 性能调整 / 配置修改」四入口
+    /// MySQL/MariaDB 追加「状态 / 端口 / 性能调整 / 配置修改」四入口
+    ///（原「参数」与性能调整同源 databases/variables，已移除）
     private func drawerActions(_ check: AppInstallCheck) -> [ServiceAction] {
         var actions: [ServiceAction] = [
             ServiceAction(
@@ -393,10 +400,6 @@ struct DatabaseSystemView: View {
                                           isDisabled: !check.isRunning) {
                 showMySQLStatus = true
             })
-            actions.append(ServiceAction(title: L10n.t("参数"), icon: "slider.horizontal.3", color: .indigo,
-                                          isDisabled: !check.isRunning) {
-                showMySQLVariables = true
-            })
             actions.append(ServiceAction(title: L10n.t("性能调整"), icon: "wand.and.stars", color: .mint,
                                           isDisabled: !check.isRunning) {
                 showMySQLPerformance = true
@@ -414,6 +417,14 @@ struct DatabaseSystemView: View {
             actions.append(ServiceAction(title: L10n.t("性能调整"), icon: "wand.and.stars", color: .mint,
                                           isDisabled: !check.isRunning) {
                 showRedisPerformance = true
+            })
+        }
+        // 端口修改（common/info 读 + port/change 写）：MySQL/MariaDB/PostgreSQL/Redis，
+        // MongoDB 网页端无此入口
+        if ["mysql", "mariadb", "postgresql", "redis"].contains(vm.system.type.lowercased()) {
+            actions.append(ServiceAction(title: L10n.t("端口"), icon: "number", color: .indigo,
+                                          isDisabled: !check.isRunning) {
+                showPortSheet = true
             })
         }
         return actions
