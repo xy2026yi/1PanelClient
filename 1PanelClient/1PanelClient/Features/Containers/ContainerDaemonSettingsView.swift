@@ -269,6 +269,13 @@ struct ContainerDaemonSettingsView: View {
         return (size, unit, files)
     }
 
+    /// 服务端未配置 Driver 时返回空串而非 null，?? 兜底不生效会显示空白；
+    /// 与网页端一致回退 cgroupfs（Docker 默认值）
+    private func cgroupDriverValue(_ daemon: DockerDaemonJSON) -> String {
+        guard let v = daemon.cgroupDriver, !v.isEmpty else { return "cgroupfs" }
+        return v
+    }
+
     /// iptables / Live restore / Cgroup Driver
     private func basicSection(_ daemon: DockerDaemonJSON) -> some View {
         Section {
@@ -290,9 +297,9 @@ struct ContainerDaemonSettingsView: View {
 
             OutlinedPicker(label: "Cgroup Driver", options: ["cgroupfs", "systemd"],
                            selection: Binding(
-                               get: { daemon.cgroupDriver ?? "cgroupfs" },
+                               get: { cgroupDriverValue(daemon) },
                                set: { newValue in
-                                   guard newValue != (daemon.cgroupDriver ?? "cgroupfs") else { return }
+                                   guard newValue != cgroupDriverValue(daemon) else { return }
                                    pendingOp = DaemonPendingOp(
                                        title: L10n.t("配置修改"),
                                        message: standardDaemonMessage) {
