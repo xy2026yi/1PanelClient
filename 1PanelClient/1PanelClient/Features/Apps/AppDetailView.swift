@@ -83,9 +83,12 @@ struct AppDetailView: View {
                         // .popAppDetail 的整栈重置对 item/isPresented 推入层失效——
                         // 这两层不在 ManageTab 的 NavigationPath 里，栈值本就是 [.apps]，
                         // 同值重置是 no-op，表现为点「完成」无反应；
-                        // 再 dismiss 弹掉详情页（应用已卸载，不应停留在详情）
+                        // 再 dismiss 弹掉详情页（应用已卸载，不应停留在详情）。
+                        // 两级 pop 须错峰 0.35s：同帧竞争会丢弃后者（差一页回不到列表）
                         showUninstallProgress = false
-                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            dismiss()
+                        }
                         Task { await vm.refresh() }
                         return true
                     }

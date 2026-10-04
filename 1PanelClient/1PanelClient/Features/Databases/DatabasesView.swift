@@ -126,11 +126,22 @@ struct DatabasesView: View {
     /// 用 item binding 而非静态 NavigationLink：安装完成后由父页置 nil 收回，
     /// 不依赖子页 dismiss()（多层 push 收栈时 env dismiss 不可靠，会停留在引导页）
     @State private var notInstalledCategory: DBCategory?
+    /// 安装完成后直达该分类新实例的管理页（item binding，pop 后自动置 nil）
+    @State private var installedSystem: DatabaseSystem?
+    /// 提示页「安装」推入的商店详情页（item binding；推入/收栈全在父页——
+    /// isPresented 挂在提示页自身的收法在嵌套链上会被 iOS 26 延迟写回吞掉，
+    /// 实测表现为详情页孤儿化在栈顶、手动返回直达 hub）
+    @State private var installCategory: DBCategory?
+    /// 是否已进入安装表单（区分「自己的安装完成」与无关的全局 installCompleted 通知）
+    @State private var didEnterInstall = false
+    /// 安装链共用的商店 VM（详情页 + 安装表单）
+    @StateObject private var installVM: AppStoreViewModel
 
     init(server: ServerConfig) {
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.database.storeKey(server: server)) {
             DatabasesViewModel(server: server)
         })
+        _installVM = StateObject(wrappedValue: AppStoreViewModel(server: server))
     }
 
     var body: some View {
@@ -167,10 +178,43 @@ struct DatabasesView: View {
         .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
             Task { await vm.loadSystems() }
         }
-        // 未安装引导页：binding 收回（含安装完成后由子页回调触发）
+        // 未安装引导页：纯展示 + 回调，安装链的全部导航状态由本页（父级 binding）持有
         .navigationDestination(item: $notInstalledCategory) { category in
-            NotInstalledDatabaseView(category: category) {
-                withAnimation { notInstalledCategory = nil }
+            NotInstalledDatabaseView(
+                category: category,
+                onInstallRequested: {
+                    installCategory = category
+                },
+                onCompleted: {
+                    Task { await completeInstall(for: category) }
+                })
+        }
+        // 提示页「安装」推入的商店详情页（item binding，back 后自动置 nil）
+        .navigationDestination(item: $installCategory) { category in
+            AppStoreDetailView(appKey: category.appKey, vm: installVM)
+        }
+        // 安装完成后直达的分类管理页（item binding，pop 后自动置 nil）
+        .navigationDestination(item: $installedSystem) { sys in
+            DatabaseSystemView(system: sys)
+        }
+        // 跟踪本链是否进入过安装表单（详情页上的 showInstall 变化）
+        .onChange(of: installVM.showInstall) { _, isShown in
+            if isShown { didEnterInstall = true }
+        }
+        // 详情页被手动退出（back 写回置 nil）时复位跟踪，避免后续无关通知误触发收栈
+        .onChange(of: installCategory) { _, newValue in
+            if newValue == nil { didEnterInstall = false }
+        }
+        // 安装完成：分步收栈（同帧多级 pop 会动画竞争、后者被丢弃）——
+        // 进度页自弹 → 安装表单 0.35s（AppInstallView 自理）→ 商店详情 0.9s（父级
+        // binding，可靠）→ 1.25s 起收提示页并直达该分类管理页（completeInstall）
+        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
+            guard didEnterInstall, let category = installCategory else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                installCategory = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    Task { await completeInstall(for: category) }
+                }
             }
         }
         .overlay {
@@ -216,6 +260,19 @@ struct DatabasesView: View {
         case .mongodb:     return vm.mongoSystems
         }
     }
+
+    /// 安装完成后收提示页并直达该分类新实例的管理页；
+    /// 新实例未就位（列表滞后/安装失败）则仅收提示页回列表
+    private func completeInstall(for category: DBCategory) async {
+        await vm.loadSystems()
+        let system = systems(for: category).first
+        withAnimation { notInstalledCategory = nil }
+        if let system {
+            // 等提示页 pop 转场结束再推管理页，避免同帧叠层
+            try? await Task.sleep(for: .seconds(0.35))
+            installedSystem = system
+        }
+    }
 }
 
 // MARK: - 未安装占位行
@@ -247,25 +304,23 @@ struct NotInstalledDatabaseRow: View {
 
 // MARK: - 未安装数据库详情页（提示 + 安装按钮）
 
-/// 未安装数据库的详情页：提示未安装并提供跳转应用商店安装的入口
+/// 未安装数据库的详情页：纯展示 + 两个回调——「安装」由父页推商店详情，
+/// 兜底检测到已安装时收回；安装链的全部导航状态与收栈都在父页（父级 binding 可靠）
 struct NotInstalledDatabaseView: View {
     let category: DBCategory
-    /// 安装完成/检测到已安装时收回本页（父页置 nil binding，比 env dismiss 可靠）
-    var onInstallCompleted: () -> Void = {}
-
-    /// 应用商店 ViewModel（详情页 + 安装表单共用）
-    @StateObject private var storeVM: AppStoreViewModel = {
-        let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
-        return AppStoreViewModel(server: server)
-    }()
-    /// 是否已进入安装表单（用于区分「自己的安装完成」与无关的全局 installCompleted 通知）
-    @State private var didEnterInstall = false
+    /// 点「安装」：父页推入商店详情页
+    var onInstallRequested: () -> Void = {}
+    /// 检测到已安装（回到本页的兜底路径）：父页收提示页并直达管理页
+    var onCompleted: () -> Void = {}
 
     private let client: APIClient
 
-    init(category: DBCategory, onInstallCompleted: @escaping () -> Void = {}) {
+    init(category: DBCategory,
+         onInstallRequested: @escaping () -> Void = {},
+         onCompleted: @escaping () -> Void = {}) {
         self.category = category
-        self.onInstallCompleted = onInstallCompleted
+        self.onInstallRequested = onInstallRequested
+        self.onCompleted = onCompleted
         self.client = APIClient.shared(for: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: ""))
     }
 
@@ -285,9 +340,8 @@ struct NotInstalledDatabaseView: View {
                     .multilineTextAlignment(.center)
             }
 
-            // 用 NavigationLink 直接 push 应用详情页（避免 isPresented 时序问题）
-            NavigationLink {
-                AppStoreDetailView(appKey: category.appKey, vm: storeVM)
+            Button {
+                onInstallRequested()
             } label: {
                 Label(L10n.f("安装 %@", category.title), systemImage: "arrow.down.circle.fill")
                     .frame(maxWidth: .infinity)
@@ -301,43 +355,20 @@ struct NotInstalledDatabaseView: View {
         .padding()
         .navigationTitle(category.title)
         .navigationBarTitleDisplayMode(.inline)
-        // 安装表单的 push 由 AppStoreDetailView 上的同名 destination 统一处理
-        //（点「安装」时的栈顶页，注册页=触发页）。此前本页也挂了一份注册，
-        // 数据库入口的栈内出现两层同名 isPresented 注册竞争同一次 push，
-        // 偶发表现为点了安装被弹回/无反应，多试几次才进
-        // 跟踪是否进入过安装表单（showInstall true→false 表示用户开始了安装流程）
-        .onChange(of: storeVM.showInstall) { _, isShown in
-            if isShown { didEnterInstall = true }
-        }
-        // 安装完成通知：仅当确实进入了本页发起的安装流程时才收回本页，
-        // 避免无关的全局 installCompleted 通知误触发（表现为点击安装变返回）；
-        // 收回走父页 binding（onInstallCompleted），不依赖 env dismiss()。
-        // 安装表单由 AppInstallView 自行收栈（0.35s 延迟 + pop 转场），
-        // 本页须等其彻底结束再收，否则两级 pop 动画竞争、后者被丢弃，
-        // 表现为安装完成后停在应用详情页少返回一层
-        .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
-            guard didEnterInstall else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                onInstallCompleted()
-            }
-        }
-        // 兜底：回到本页时重查安装状态，已安装则收回本页（列表页已按通知刷新）。
-        // 覆盖「后台运行」等通知链路未覆盖的返回路径
+        // 兜底：回到本页时重查安装状态，已安装则通知父页收回（覆盖手动返回等路径）
         .onAppear {
             Task { await dismissIfInstalled() }
         }
     }
 
-    /// 重查该分类是否已有实例：有则收回本页（列表数据由 installCompleted 通知刷新）
+    /// 重查该分类是否已有实例：有则通知父页收回
     private func dismissIfInstalled() async {
-        // 安装表单仍在展示时不查（后台运行中途返回的场景查了也是未完成态）
-        guard !storeVM.showInstall else { return }
         guard let list: [DatabaseSystem] = try? await client.send(
             path: APIEndpoint.databasesDbList.path.replacingOccurrences(of: ":types", with: category.listTypes),
             method: "GET",
             as: [DatabaseSystem].self) else { return }
         if !list.isEmpty {
-            onInstallCompleted()
+            onCompleted()
         }
     }
 }
