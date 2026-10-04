@@ -79,9 +79,14 @@ struct AppDetailView: View {
                 onComplete: { isDone in
                     vm.needsRefresh = true
                     if isDone {
-                        // 通过通知操作 ManageTab 的 NavigationPath，
-                        // 由接收方显式 pop 回应用列表（详情页 + 进度页全部移除）
-                        NotificationCenter.default.post(name: .popAppDetail, object: nil)
+                        // 直写绑定弹掉进度页（对齐 AppUpgradeViews 的兜底）：
+                        // .popAppDetail 的整栈重置对 item/isPresented 推入层失效——
+                        // 这两层不在 ManageTab 的 NavigationPath 里，栈值本就是 [.apps]，
+                        // 同值重置是 no-op，表现为点「完成」无反应；
+                        // 再 dismiss 弹掉详情页（应用已卸载，不应停留在详情）
+                        showUninstallProgress = false
+                        dismiss()
+                        Task { await vm.refresh() }
                         return true
                     }
                     return false
