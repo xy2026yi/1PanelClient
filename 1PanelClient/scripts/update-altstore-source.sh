@@ -20,6 +20,19 @@ set -euo pipefail
 
 die() { echo "::error::altstore: $*" >&2; exit 1; }
 
+# releases API 统一走这里：CI 里有 GH_TOKEN 时用 gh api 认证调用——
+# runner 出口 IP 对 api.github.com 匿名调用限流很凶，一旦命中，
+# body 拉空只是说明缺失，取上一正式版的调用被打断则会断掉自链；
+# 本地无 token 时回落匿名 curl
+api_get() {
+  local path="$1"
+  if [[ -n "${GH_TOKEN:-}" ]] && command -v gh >/dev/null 2>&1; then
+    gh api "$path"
+  else
+    curl -sSL "https://api.github.com/$path"
+  fi
+}
+
 TAG="${TAG:-}"
 IPA_PATH="${IPA_PATH:-}"
 REPO="${GITHUB_REPOSITORY:-xy2026yi/1PanelClient}"
@@ -50,13 +63,12 @@ IPA_REF="${IPA_REF:-$TAG}"
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/1PanelClient-${IPA_REF}.ipa"
 
 # ---------- release body（自动 notes 在 attach 之后才存在，故本脚本后置运行） ----------
-API="https://api.github.com/repos/${REPO}"
-BODY="$(curl -sSL "$API/releases/tags/$TAG" | jq -r '.body // ""' 2>/dev/null || true)"
+BODY="$(api_get "repos/${REPO}/releases/tags/${TAG}" | jq -r '.body // ""' 2>/dev/null || true)"
 
 # ---------- 定位上一正式版，拉取旧 versions（无则空状态） ----------
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
-PREV_TAG="$(curl -sSL "$API/releases?per_page=20" \
+PREV_TAG="$(api_get "repos/${REPO}/releases?per_page=20" \
   | jq -r --arg tag "$TAG" \
       '[.[] | select((.prerelease // false) | not) | select((.draft // false) | not)
         | select(.tag_name != $tag) | .tag_name] | .[0] // empty' 2>/dev/null || true)"
