@@ -660,8 +660,11 @@ private struct OpenRestyInstallFlowDetailView: View {
             .onReceive(NotificationCenter.default.publisher(for: .installCompleted)) { _ in
                 guard didEnterInstall else { return }
                 storeVM.showInstall = false
-                // 等导航栈稳定后再 dismiss，避免动画冲突
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                // 等安装表单（AppInstallView 0.35s 延迟自行收栈 + pop 转场）彻底结束
+                // 再收本页：两级 pop 同帧/紧邻会动画竞争、后者被丢弃，表现为完成后
+                // 停在应用详情页少返回一层（数据库页安装流程同款坑，口径见
+                // DatabasesView 的 0.9s 错峰注释）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
                     dismiss()
                 }
             }
