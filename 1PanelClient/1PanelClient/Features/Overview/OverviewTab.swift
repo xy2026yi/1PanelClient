@@ -156,6 +156,9 @@ struct OverviewTab: View {
             if tab == .overview {
                 Task {
                     await vm.refreshAppUpdateCount()
+                    // 资源卡数量一并补拉：网站/应用/数据库/容器的增删发生在管理 Tab
+                    // 或网页端，不补拉的话四个数字要等下拉才更新（与 appUpdateCount 同一动机）
+                    await vm.refreshCounts()
                     // 版本/更新信息一并轻量重查：网页端升级面板后回到 App 即可见新版本
                     await vm.refreshPanelInfo()
                 }
@@ -771,6 +774,28 @@ final class OverviewViewModel: ObservableObject {
         let (sv, uv) = await (s, up)
         if let sv { settingInfo = sv }
         if let uv { upgradeInfo = uv }
+    }
+
+    /// 仅刷新资源卡数量（切回首页 Tab 的轻量路径之一）：
+    /// 网站/应用/数据库三数同源于 dashboard/base（一个请求换三个），
+    /// 容器数独立请求且依赖 Docker daemon；失败保留旧值，与 refresh 同惯例
+    func refreshCounts() async {
+        refreshGeneration += 1
+        let generation = refreshGeneration
+        async let b: DashboardBase? = try? await client.send(
+            path: APIEndpoint.dashboardBase.path,
+            method: APIEndpoint.dashboardBase.method,
+            as: DashboardBase.self)
+        async let ct: ContainerListResponse? = try? await client.send(
+            path: APIEndpoint.containersSearch.path,
+            body: ContainerSearchRequest(page: 1, pageSize: 1, name: "", state: "all", orderBy: "createdAt", order: "null"),
+            as: ContainerListResponse.self)
+        let (bv, cv) = await (b, ct)
+        guard generation == refreshGeneration else { return }
+        // base 虽含 currentInfo 字段但不回写——实时监控由 5s 轮询的独立 current
+        // 接口维护，两数据源互不覆盖（与 refresh() 的赋值口径一致）
+        if let bv { self.base = bv }
+        if let cv { self.containerCount = cv.total }
     }
 
     /// 仅刷新可更新应用数（供切回首页 Tab 时调用）：
