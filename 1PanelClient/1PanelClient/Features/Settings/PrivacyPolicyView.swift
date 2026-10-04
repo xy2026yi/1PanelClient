@@ -113,7 +113,7 @@ struct PrivacyPolicyView: View {
             } header: {
                 Text(L10n.t("联系方式"))
             } footer: {
-                if let url = URL(string: "https://github.com/xy2026yi/1PanelClient/blob/main/doc/privacy-policy.md") {
+                if let url = URL(string: "https://github.com/xy2026yi/1PanelClient/blob/main/docs/privacy-policy.md") {
                     Link(L10n.t("查看在线版本"), destination: url)
                 }
             }
