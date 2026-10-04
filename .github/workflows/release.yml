@@ -1,6 +1,7 @@
 name: Release IPA
 
-# 发布路径：push v* tag → 打未签名 IPA（剔除小组件）→ 附到该 tag 的 pre-release。
+# 发布路径：push v* tag → 打未签名 IPA（剔除小组件）→ 附到该 tag 的正式 release，
+# 并生成 AltStore/SideStore 源（altstore.json，模板内嵌脚本）随 release 自链更新。
 # 手动触发（workflow_dispatch）用于试跑流水线：只上传 artifact，不建 release。
 # 注意：未签名 IPA 不能直接装机，需 Apple Developer 证书重签
 # （AltStore / Sideloadly / fastlane resign）；接入正式签名后改造本文件即可。
@@ -75,18 +76,31 @@ jobs:
             > "1PanelClient-${REF}.ipa.sha256"
           echo "IPA_REF=${REF}" >> "$GITHUB_ENV"
 
-      # tag 触发：建（或更新）该 tag 的 pre-release 并附上 IPA
-      - name: 附到 tag 的 pre-release
+      # tag 触发：建（或更新）该 tag 的正式 release 并附上 IPA
+      - name: 附到 tag 的正式 release
+        id: attach
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: true
+          prerelease: false
           generate_release_notes: true
           # 附件缺失（上游步骤失败/产物名漂移）时让步骤失败，不静默发空 release
           fail_on_unmatched_files: true
           files: |
             build/1PanelClient-*.ipa
             build/*.ipa.sha256
+
+      # 正式 release 建好后生成 AltStore/SideStore 源并上传附带：
+      # 模板内嵌脚本；旧版本列表自链上一正式版的同名资产（releases API
+      # 过滤 prerelease/draft，历史 pre-release 天然不入链）；
+      # --clobber 覆盖上传，重跑不产生重复条目。用户加源地址见脚本头注释
+      - name: 生成并上传 AltStore 源
+        if: startsWith(github.ref, 'refs/tags/') && steps.attach.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          IPA_PATH: build/1PanelClient-${{ env.IPA_REF }}.ipa
+        run: bash 1PanelClient/scripts/update-altstore-source.sh
 
       # 手动触发：只传 artifact（无 tag 可挂 release）
       - name: 上传 artifact

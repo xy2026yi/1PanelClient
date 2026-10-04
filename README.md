@@ -32,6 +32,22 @@ cd 1PanelClient
 
 用 Xcode 26+ 打开 `1PanelClient/1PanelClient.xcodeproj`，连接真机 Build & Run；或使用 `build-ipa.sh` 打包未签名 IPA。详见上方文档。
 
+## 侧载安装 / Sideload
+
+每次 Release 附带未签名 IPA，可用 [AltStore](https://altstore.io) / [SideStore](https://sidestore.io) / Sideloadly 用你自己的 Apple ID 重签安装。
+
+**AltStore / SideStore 一键更新**：在「源 / Sources」中添加以下地址，之后每次发版刷新即可收到更新提示：
+
+```
+https://github.com/xy2026yi/1PanelClient/releases/latest/download/altstore.json
+```
+
+注意事项：
+
+- 免费 Apple ID 签名有效期 7 天、最多同时 3 个应用，到期需连接 AltServer 重新签名；付费开发者账号有效期为 1 年
+- 侧载版不含桌面小组件（App 内功能不受影响）
+- 需要 iOS 26.5+
+
 ## License
 
 本项目基于 [GPL-3.0](LICENSE) 许可发布。
