@@ -730,9 +730,10 @@ struct PressableCardStyle: ButtonStyle {
 // MARK: - 跨组件导航通知（environment 无法穿透 navigationDestination 时的可靠方案）
 
 extension Notification.Name {
-    /// 请求 pop 应用详情页，回到应用列表
-    static let popAppDetail = Notification.Name("1PanelClient.popAppDetail")
     /// 安装完成：pop 回应用列表并刷新
+    ///（原 popAppDetail「重置 NavigationPath 弹回应用列表」经证实对 item/isPresented
+    /// 推入层是 no-op——这两层不在 path 里，同值重置不触发弹栈——已移除，
+    /// 收栈一律走父级 binding / 直写绑定 / env dismiss，见各安装/卸载流程注释）
     static let installCompleted = Notification.Name("1PanelClient.installCompleted")
 }
 

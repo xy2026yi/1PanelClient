@@ -125,9 +125,6 @@ struct ManageTab: View {
                 await gate.refresh(server: server)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .popAppDetail)) { _ in
-            popToAppList()
-        }
         .environmentObject(prefs)
     }
 
@@ -144,13 +141,6 @@ struct ManageTab: View {
         } else {
             navPath = NavigationPath([item])
         }
-    }
-
-    /// pop 回应用列表：重置为 [.apps]。
-    /// 不依赖「弹几层」的假设——兼容 isPresented 推入是否计入 NavigationPath 的系统行为差异；
-    /// 应用列表会重建并重新加载（卸载/升级后正好需要刷新）
-    private func popToAppList() {
-        navPath = NavigationPath([ManageItem.apps])
     }
 
     @ViewBuilder

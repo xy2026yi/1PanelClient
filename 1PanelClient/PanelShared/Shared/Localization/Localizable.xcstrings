@@ -30265,28 +30265,6 @@
         }
       }
     },
-    "端口号为 1-65535 的整数" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Port must be an integer between 1 and 65535"
-          }
-        }
-      }
-    },
-    "端口修改" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change Port"
-          }
-        }
-      }
-    },
     "端口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30338,6 +30316,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Port/Range"
+          }
+        }
+      }
+    },
+    "端口修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Port"
+          }
+        }
+      }
+    },
+    "端口号为 1-65535 的整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port must be an integer between 1 and 65535"
           }
         }
       }

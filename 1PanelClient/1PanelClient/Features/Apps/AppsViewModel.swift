@@ -410,7 +410,7 @@ final class AppsViewModel: ObservableObject {
             upgradeSuccess = true
             // 先置位 taskID，再触发进度视图导航（progress 的 navigationDestination 挂在
             // UpgradeSheetView 上，因此不能关闭 UpgradeSheetView，否则会失去锚点导致白屏）。
-            // 进度页完成时由 .popAppDetail 通知一次性 pop 回应用列表。
+            // 进度页完成时收升级 sheet 回到应用详情页。
             upgradeTaskID = taskID
             showUpgradeProgress = true
         } catch let err as APIError {

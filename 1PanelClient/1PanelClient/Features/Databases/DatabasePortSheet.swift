@@ -34,6 +34,7 @@ struct DatabasePortSheet: View {
     var onSaved: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
+    @State private var info: DatabaseCommonInfo?
     @State private var portInput = ""
     @State private var restartInput = ""
     @State private var isLoading = true
@@ -59,8 +60,6 @@ struct DatabasePortSheet: View {
     private var currentPort: Int? {
         info?.port
     }
-
-    @State private var info: DatabaseCommonInfo?
 
     /// 保存条件：端口合规 + 已完整输入「立即重启」（与网页端同款确认语义）
     private var canSave: Bool {

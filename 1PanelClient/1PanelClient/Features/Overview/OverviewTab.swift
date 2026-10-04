@@ -127,10 +127,10 @@ struct OverviewTab: View {
                         currentVersion: vm.settingInfo?.systemVersion,
                         upgradeInfo: info
                     ) {
-                        // 先收 sheet 再 push：sheet 未收完时推页会有转场叠加掉帧
+                        // 先收 sheet 再 push（0.35s 统一错峰口径：sheet 未收完时推页会有转场叠加掉帧）
                         showPanelUpdate = false
                         Task {
-                            try? await Task.sleep(nanoseconds: 400_000_000)
+                            try? await Task.sleep(nanoseconds: 350_000_000)
                             navPath.append(OverviewRoute.upgradeLog)
                         }
                     }
@@ -155,12 +155,13 @@ struct OverviewTab: View {
         .onChange(of: selectedTab) { _, tab in
             if tab == .overview {
                 Task {
-                    await vm.refreshAppUpdateCount()
-                    // 资源卡数量一并补拉：网站/应用/数据库/容器的增删发生在管理 Tab
-                    // 或网页端，不补拉的话四个数字要等下拉才更新（与 appUpdateCount 同一动机）
-                    await vm.refreshCounts()
-                    // 版本/更新信息一并轻量重查：网页端升级面板后回到 App 即可见新版本
-                    await vm.refreshPanelInfo()
+                    // 轻量刷新统一走 5 秒节流（对齐各页面 autoRefresh 口径）：
+                    // 应用角标 + 资源卡数量（增删发生在管理 Tab 或网页端）+ 面板信息/New 徽标
+                    await PageVMStore.shared.autoRefresh(vm: vm) {
+                        await vm.refreshAppUpdateCount()
+                        await vm.refreshCounts()
+                        await vm.refreshPanelInfo()
+                    }
                 }
             }
         }
@@ -665,6 +666,9 @@ final class OverviewViewModel: ObservableObject {
     /// 刷新代际：并发 refresh 时只让最后一次的结果生效，
     /// 避免先发出的慢请求晚到，把新数据覆盖回旧值（表现为"怎么刷新都不变"）
     private var refreshGeneration = 0
+    /// 轻量刷新代际：与全量代际分离——切 Tab 的高频轻量刷新不再作废在途全量
+    /// 刷新的成果（此前共用计数，下拉刷新进行中切走再切回会让整批结果丢弃）
+    private var lightGeneration = 0
 
     var hasData: Bool { base != nil || osInfo != nil || deviceInfo != nil }
 
@@ -780,8 +784,8 @@ final class OverviewViewModel: ObservableObject {
     /// 网站/应用/数据库三数同源于 dashboard/base（一个请求换三个），
     /// 容器数独立请求且依赖 Docker daemon；失败保留旧值，与 refresh 同惯例
     func refreshCounts() async {
-        refreshGeneration += 1
-        let generation = refreshGeneration
+        lightGeneration += 1
+        let generation = lightGeneration
         async let b: DashboardBase? = try? await client.send(
             path: APIEndpoint.dashboardBase.path,
             method: APIEndpoint.dashboardBase.method,
@@ -791,7 +795,7 @@ final class OverviewViewModel: ObservableObject {
             body: ContainerSearchRequest(page: 1, pageSize: 1, name: "", state: "all", orderBy: "createdAt", order: "null"),
             as: ContainerListResponse.self)
         let (bv, cv) = await (b, ct)
-        guard generation == refreshGeneration else { return }
+        guard generation == lightGeneration else { return }
         // base 虽含 currentInfo 字段但不回写——实时监控由 5s 轮询的独立 current
         // 接口维护，两数据源互不覆盖（与 refresh() 的赋值口径一致）
         if let bv { self.base = bv }
@@ -802,13 +806,13 @@ final class OverviewViewModel: ObservableObject {
     /// 升级/忽略/卸载发生在管理 Tab，返回首页时若不主动拉取，
     /// 应用卡片角标会一直停留到下次下拉刷新
     func refreshAppUpdateCount() async {
-        refreshGeneration += 1
-        let generation = refreshGeneration
+        lightGeneration += 1
+        let generation = lightGeneration
         if let au: AppInstalledListResponse = try? await client.send(
             path: APIEndpoint.appsInstalledSearch.path,
             body: AppInstalledSearchRequest(page: 1, pageSize: 1, name: "", type: "", tags: [], update: true, all: false, unused: false, sync: false),
             as: AppInstalledListResponse.self
-        ), generation == refreshGeneration {
+        ), generation == lightGeneration {
             appUpdateCount = au.total
         }
     }

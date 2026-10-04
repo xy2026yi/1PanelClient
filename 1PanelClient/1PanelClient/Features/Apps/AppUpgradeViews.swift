@@ -62,9 +62,8 @@ struct UpgradeSheetView: View {
                     // 重置进度状态，避免重新进入时残留
                     vm.showUpgradeProgress = false
                     if isDone {
-                        // 升级完成：通过通知 pop 回应用列表（ManageTab 嵌入模式下一次性 pop AppDetailView）
-                        NotificationCenter.default.post(name: .popAppDetail, object: nil)
-                        // 同时关闭升级页，兼容独立模式（popAppDetail 无效时由 showUpgradeSheet=false 收起）
+                        // 升级完成：收升级 sheet 回到详情页（应用还在，详情即合理落点）。
+                        // 此前发的 .popAppDetail 经证实对 item/isPresented 推入层是 no-op，已随机制一并移除
                         vm.showUpgradeSheet = false
                         return true
                     }

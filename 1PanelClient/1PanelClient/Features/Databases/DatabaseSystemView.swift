@@ -222,7 +222,8 @@ struct DatabaseSystemView: View {
                 Task { await vm.refresh() }
             }
         }
-        .toastOverlay(message: $portSavedToast)        .navigationDestination(isPresented: $showMySQLPerformance) {
+        .toastOverlay(message: $portSavedToast)
+        .navigationDestination(isPresented: $showMySQLPerformance) {
             DatabaseMySQLPerformanceView(system: vm.system)
         }
         .navigationDestination(isPresented: $showMySQLConf) {
