@@ -23533,6 +23533,17 @@
         }
       }
     },
+    "更新说明" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Release Notes"
+          }
+        }
+      }
+    },
     "更新参数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24948,6 +24959,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "View the online version"
+          }
+        }
+      }
+    },
+    "查看完整更新日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Full Changelog"
           }
         }
       }

@@ -24,6 +24,8 @@ struct OverviewTab: View {
     @StateObject private var vm: OverviewViewModel
     /// 多机管理切换的当前节点名（nil=local），工具栏提示当前展示的是哪个节点的数据
     @State private var currentNodeName: String? = nil
+    /// New 徽标点开的「本次更新速览」sheet（新版本 + 更新说明 + 一键升级）
+    @State private var showPanelUpdate = false
 
     /// 卡片点击回调：传递具体 ManageItem，由 MainTabView 跨 Tab 跳转到管理详情
     var onSelectManageItem: ((ManageItem) -> Void)? = nil
@@ -115,6 +117,25 @@ struct OverviewTab: View {
                     }
                 }
             }
+            // New 徽标的本次更新速览：数据直接用首页已有的 upgradeInfo/settingInfo，
+            // 打开即显示（不loading）；面板在网页端升级后回 App 切 Tab 会自动重查刷新徽标
+            .sheet(isPresented: $showPanelUpdate) {
+                if let server = manager.current, let info = vm.upgradeInfo,
+                   info.hasUpdate(comparedTo: vm.settingInfo?.systemVersion) {
+                    PanelUpdateSheet(
+                        server: server,
+                        currentVersion: vm.settingInfo?.systemVersion,
+                        upgradeInfo: info
+                    ) {
+                        // 先收 sheet 再 push：sheet 未收完时推页会有转场叠加掉帧
+                        showPanelUpdate = false
+                        Task {
+                            try? await Task.sleep(nanoseconds: 400_000_000)
+                            navPath.append(OverviewRoute.upgradeLog)
+                        }
+                    }
+                }
+            }
         }
         .task {
             currentNodeName = manager.current.flatMap { NodeScope.current(for: $0.id) }
@@ -194,13 +215,24 @@ struct OverviewTab: View {
                     .font(.headline)
                 Spacer()
                 if vm.upgradeInfo?.hasUpdate(comparedTo: vm.settingInfo?.systemVersion) == true {
-                    // 可更新徽标（中/英同款）：图标 + New，贴标题行右侧
-                    HStack(spacing: 2) {
-                        Image(systemName: "arrowshape.up.circle")
-                        Text("New")
+                    // 可更新徽标（中/英同款）：图标 + New，贴标题行右侧；
+                    // 点击弹出本次更新速览（新版本 + 更新说明 + 一键升级，PanelUpdateSheet），
+                    // 完整历史日志仍由下方版本号行进入
+                    Button {
+                        showPanelUpdate = true
+                    } label: {
+                        HStack(spacing: 2) {
+                            Image(systemName: "arrowshape.up.circle")
+                            Text("New")
+                        }
+                        .font(.caption.bold())
+                        .foregroundStyle(.orange)
+                        // 扩命中区：caption 徽标本身远小于 44pt，向上下与左侧加不可见热区
+                        .padding(.vertical, 4)
+                        .padding(.leading, 8)
+                        .contentShape(Rectangle())
                     }
-                    .font(.caption.bold())
-                    .foregroundStyle(.orange)
+                    .buttonStyle(.plain)
                 }
             }
             Divider()
@@ -754,6 +786,114 @@ final class OverviewViewModel: ObservableObject {
         ), generation == refreshGeneration {
             appUpdateCount = au.total
         }
+    }
+}
+
+// MARK: - 面板新版本速览（首页 New 徽标点开）
+
+/// 只看「本次更新」的速览页：新版本号 + 当前→最新 + 更新说明 + 一键升级；
+/// 完整历史日志仍由版本号行进入 PanelUpgradeView（两者共用升级请求逻辑）
+struct PanelUpdateSheet: View {
+    let currentVersion: String?
+    let upgradeInfo: PanelUpgradeInfo
+    /// 「查看完整更新日志」回调：关 sheet 后由首页 push 升级日志页
+    var onShowAll: () -> Void = {}
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var isUpgrading = false
+    @State private var errorMessage: String?
+    /// 升级任务提交成功：轻提示 toast（成功语义走 toast，错误才用 alert）
+    @State private var toastMessage: String?
+
+    private let client: APIClient
+
+    init(server: ServerConfig, currentVersion: String?, upgradeInfo: PanelUpgradeInfo,
+         onShowAll: @escaping () -> Void = {}) {
+        self.currentVersion = currentVersion
+        self.upgradeInfo = upgradeInfo
+        self.onShowAll = onShowAll
+        self.client = APIClient.shared(for: server)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .firstTextBaseline) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(upgradeInfo.latestVersion ?? "")
+                                .font(.title2.bold())
+                            Text(L10n.f("当前 %@ → 最新 %@", currentVersion ?? L10n.t("未知"), upgradeInfo.latestVersion ?? ""))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button {
+                            Task { await upgrade() }
+                        } label: {
+                            Label(isUpgrading ? L10n.t("更新中…") : L10n.t("更新"), systemImage: "arrow.down.circle.fill")
+                                .font(.callout)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.blue)
+                        .disabled(isUpgrading)
+                    }
+
+                    if let note = upgradeInfo.releaseNote, !note.isEmpty {
+                        Divider()
+                        Text(L10n.t("更新说明"))
+                            .font(.headline)
+                        // 服务端返回 markdown 纯文本（##/* 原样展示），与升级日志页的正文展示方式一致
+                        Text(note)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .lineSpacing(4)
+                            .textSelection(.enabled)
+                    }
+
+                    Button {
+                        onShowAll()
+                    } label: {
+                        Label(L10n.t("查看完整更新日志"), systemImage: "clock.arrow.circlepath")
+                            .font(.callout)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding()
+            }
+            .navigationTitle(L10n.t("发现新版本"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("关闭")) { dismiss() }
+                }
+            }
+            .toastOverlay(message: $toastMessage)
+            .alert(L10n.t("提示"), isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button(L10n.t("好的"), role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    /// 与 PanelUpgradeView.upgrade 同一请求（POST settings/upgrade）
+    private func upgrade() async {
+        guard let latest = upgradeInfo.latestVersion, !latest.isEmpty else { return }
+        isUpgrading = true
+        let req = PanelUpgradeRequest(version: latest)
+        do {
+            let _: EmptyResponse = try await client.send(path: APIEndpoint.settingsUpgrade.path, body: req, as: EmptyResponse.self)
+            toastMessage = L10n.t("更新任务已提交，请稍后查看面板状态")
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isUpgrading = false
     }
 }
 
