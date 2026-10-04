@@ -23,6 +23,8 @@ This client is currently aligned with 1Panel ** v2.3.1** (the firewall module ta
 
 **此项目使用 Vibe Coding 随手开发的，本人完全不会代码，功能也尚未经过完整测试与验收。如需下载使用，请务必留意数据安全并谨慎评估，重要数据建议提前备份。如果你有实际使用需求，更推荐选择同类中成熟优秀的开源项目，或直接使用官方 App，它们在稳定性、安全性和后续维护上都更有保障。另外，本项目可能随时停止维护，请勿将其用于关键场景。**
 
+**This project was hastily developed using Vibe Coding. I have absolutely no coding skills, and its functionality has not yet undergone complete testing and acceptance. If you wish to download and use it, please pay close attention to data security and carefully evaluate the project. It is strongly recommended to back up important data in advance. If you have actual usage needs, it is highly recommended to choose a mature and excellent open-source project in the same category, or directly use the official app, as they offer better guarantees in terms of stability, security, and subsequent maintenance. Furthermore, this project may cease maintenance at any time; please do not use it for critical scenarios.**
+
 ## 快速开始
 
 ```bash
