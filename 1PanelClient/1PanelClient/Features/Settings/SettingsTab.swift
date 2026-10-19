@@ -9,6 +9,7 @@ import SwiftUI
 /// 绑定写回延迟甚至丢失，MainTabView 依路径计数推导底部栏可见性会失步）
 enum SettingsRoute: Hashable {
     case about
+    case privacyPolicy
     case diagnostics
 }
 
@@ -99,6 +100,8 @@ struct SettingsTab: View {
             switch route {
             case .about:
                 AboutDetailView { navPath.append($0) }
+            case .privacyPolicy:
+                PrivacyPolicyView()
             case .diagnostics:
                 MetricDiagnosticsView()
             }
@@ -227,11 +230,17 @@ private struct AboutDetailContent: View {
 
     @ObservedObject private var gate = AdvancedFeatureGate.shared
     @ObservedObject private var updater = AppUpdateChecker.shared
+    @Environment(\.openURL) private var openURL
+    /// 隐私政策在线可达性探测进行中（行尾转圈，防重复点击）
+    @State private var isProbingPrivacy = false
     /// 连点版本号解锁计数（Android 开发者选项同款彩蛋）——挂在顶部卡片的
     /// 版本行上（整行热区），7 次渐进提示逻辑不变
     @State private var versionTaps = 0
     @State private var tapToast: String?
     private static let unlockTaps = 7
+
+    private static let privacyPolicyURL =
+        "https://github.com/xy2026yi/1PanelClient/blob/main/docs/privacy-policy.md"
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
@@ -309,25 +318,55 @@ private struct AboutDetailContent: View {
                     Label(L10n.t("1Panel 官网"), systemImage: "safari")
                 }
             }
-            // 隐私政策走在线版（git 跟踪的 docs/privacy-policy.md 为源头）；
-            // 本地页已随本次改版移除
-            if let url = URL(string: "https://github.com/xy2026yi/1PanelClient/blob/main/docs/privacy-policy.md") {
-                Link(destination: url) {
+            // 隐私政策默认在线版（源头 docs/privacy-policy.md）：探测可达即跳
+            // Safari；离线/网络阻断（如 GitHub 不可达）回退 App 内本地页兜底
+            Button {
+                Task { await openPrivacyPolicy() }
+            } label: {
+                HStack {
                     Label(L10n.t("隐私政策"), systemImage: "hand.raised")
+                    Spacer()
+                    if isProbingPrivacy { ProgressView() }
                 }
             }
+            .disabled(isProbingPrivacy)
             Button {
                 onOpen(.diagnostics)
             } label: {
-                HStack {
-                    Label(L10n.t("诊断数据"), systemImage: "stethoscope")
-                    Spacer()
-                    Text(L10n.t("仅保存在本机"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    Image(systemName: "stethoscope")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(L10n.t("诊断数据"))
+                        Text(L10n.t("仅保存在本机"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             checkUpdateRow
+        }
+    }
+
+    /// HEAD 探测在线版可达性（超时 4s）：任何 HTTP 响应都算可达——回退只服务
+    /// 「打不开网络」的场景，页面级 4xx/5xx 交给 Safari 自行呈现
+    private func openPrivacyPolicy() async {
+        guard !isProbingPrivacy, let url = URL(string: Self.privacyPolicyURL) else { return }
+        isProbingPrivacy = true
+        defer { isProbingPrivacy = false }
+        var request = URLRequest(url: url)
+        request.httpMethod = "HEAD"
+        request.timeoutInterval = 4
+        let reachable: Bool
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            reachable = response is HTTPURLResponse
+        } catch {
+            reachable = false
+        }
+        if reachable {
+            openURL(url)
+        } else {
+            onOpen(.privacyPolicy)
         }
     }
 
@@ -338,7 +377,7 @@ private struct AboutDetailContent: View {
             Task { await runManualCheck() }
         } label: {
             HStack {
-                Text(L10n.t("检查更新"))
+                Label(L10n.t("检查更新"), systemImage: "arrow.triangle.2.circlepath")
                 Spacer()
                 switch updater.state {
                 case .checking:
