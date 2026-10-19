@@ -40065,6 +40065,28 @@
           }
         }
       }
+    },
+    "常规" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        }
+      }
+    },
+    "主题跟随系统时自动切换；语言切换后立即生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Theme follows system appearance; language takes effect immediately"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -39,7 +39,7 @@ struct SettingsTab: View {
     /// 根内容（List 及其修饰符）
     var settingsRootContent: some View {
         List {
-            // MARK: - 外观
+            // MARK: - 常规（主题 + 语言）
             Section {
                 Picker(selection: $themeRaw) {
                     ForEach(AppTheme.allCases) { theme in
@@ -48,14 +48,6 @@ struct SettingsTab: View {
                 } label: {
                     settingsRowLabel(L10n.t("主题"), systemName: "paintpalette", color: .purple)
                 }
-            } header: {
-                Text(L10n.t("外观"))
-            } footer: {
-                Text(L10n.t("跟随系统时随设备外观自动切换"))
-            }
-
-            // MARK: - 语言
-            Section {
                 Picker(selection: $languageRaw) {
                     ForEach(L10n.Language.allCases) { lang in
                         Text(lang.displayName).tag(lang.rawValue)
@@ -64,9 +56,9 @@ struct SettingsTab: View {
                     settingsRowLabel(L10n.t("语言"), systemName: "globe", color: .teal)
                 }
             } header: {
-                Text(L10n.t("语言"))
+                Text(L10n.t("常规"))
             } footer: {
-                Text(L10n.t("切换后立即生效"))
+                Text(L10n.t("主题跟随系统时自动切换；语言切换后立即生效"))
             }
 
             // MARK: - 安全
@@ -107,6 +99,10 @@ struct SettingsTab: View {
         }
         .navigationTitle(hSize == .regular ? "" : L10n.t("设置"))
         .navigationBarTitleDisplayMode(hSize == .regular ? .inline : .large)
+        // TabBar 上方留白：与首页/管理页 contentMargins 同一机制、同一数值——
+        // safeAreaInset 底栏不产生滚动内容避让，缺它时末行被 Tab 栏遮住
+        //（行高变大后内容超出屏即暴露：可滚余量极小表现为拖动回弹）
+        .contentMargins(.bottom, 60, for: .scrollContent)
         // navigationDestination 必须挂在 List 外，否则 lazy 容器内会被忽略
         .navigationDestination(for: SettingsRoute.self) { route in
             switch route {
