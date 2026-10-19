@@ -1392,17 +1392,6 @@
         }
       }
     },
-    "API 版本" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "API Version"
-          }
-        }
-      }
-    },
     "API 类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7440,17 +7429,6 @@
         }
       }
     },
-    "关于APP" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "About"
-          }
-        }
-      }
-    },
     "关联" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8459,17 +8437,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Switch Protocol"
-          }
-        }
-      }
-    },
-    "切换后立即生效" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Takes effect immediately"
           }
         }
       }
@@ -13915,17 +13882,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copy Password"
-          }
-        }
-      }
-    },
-    "外观" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appearance"
           }
         }
       }
@@ -27867,17 +27823,6 @@
         }
       }
     },
-    "版本信息" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Version Info"
-          }
-        }
-      }
-    },
     "版本更新日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34049,17 +33994,6 @@
         }
       }
     },
-    "诊断数据（本地）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diagnostics (Local)"
-          }
-        }
-      }
-    },
     "试用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35816,17 +35750,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Follow System"
-          }
-        }
-      }
-    },
-    "跟随系统时随设备外观自动切换" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When set to Follow System, appearance switches with the device setting"
           }
         }
       }
