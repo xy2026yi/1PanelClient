@@ -43,12 +43,9 @@ struct NodeDetailView: View {
     @State private var showDeleteSheet = false
     @State private var deleteForce = false
     @State private var deleteWithData = false
-    @State private var isSyncing = false
     @State private var toastMessage: String?
     @State private var alertMessage: String?
     @State private var showRestartAlert = false
-
-    private let client: APIClient
 
     init(manager: ServerManager, server: ServerConfig, nodeID: Int,
          navPath: Binding<NavigationPath>, onReload: @escaping () -> Void = {}) {
@@ -57,7 +54,6 @@ struct NodeDetailView: View {
         self.nodeID = nodeID
         self._navPath = navPath
         self.onReload = onReload
-        self.client = APIClient.shared(for: server)
         _vm = StateObject(wrappedValue: NodeDetailViewModel(nodeID: nodeID, server: server))
     }
 
@@ -104,7 +100,7 @@ struct NodeDetailView: View {
                     } label: {
                         Label(L10n.t("同步"), systemImage: "arrow.triangle.2.circlepath")
                     }
-                    .disabled(isSyncing)
+                    .disabled(vm.isSyncing)
                     Button {
                         navPath.append(NodeManageView.Dest.upgradeLogs(nodeID))
                     } label: {
@@ -364,66 +360,40 @@ struct NodeDetailView: View {
         .font(.subheadline)
     }
 
-    // MARK: - 操作（数据请求在 VM 化前的过渡形态：仍走 View 的 client；
-    // 呈现与导航职责留在 View）
+    // MARK: - 操作（请求与业务判定在 VM；这里只按结果呈现/导航）
 
     private func syncNode() async {
-        guard !isSyncing else { return }
-        isSyncing = true
-        defer { isSyncing = false }
-        let taskID = UUID().uuidString
-        do {
-            _ = try await client.send(
-                path: APIEndpoint.nodesSync.path,
-                body: NodeSyncRequest(id: nodeID, taskID: taskID),
-                as: EmptyResponse.self
-            )
-            navPath.append(NodeManageView.Dest.taskProgress(taskID: taskID, title: L10n.t("同步节点")))
+        switch await vm.syncNode() {
+        case .ok(let taskID):
+            if let taskID {
+                navPath.append(NodeManageView.Dest.taskProgress(taskID: taskID, title: L10n.t("同步节点")))
+            }
             onReload()
-        } catch {
-            alertMessage = error.localizedDescription
+        case .failed(let message):
+            alertMessage = message
             showRestartAlert = true
         }
     }
 
     private func restart(_ target: RestartTarget) async {
-        do {
-            _ = try await client.send(
-                path: APIEndpoint.nodesRestart.path,
-                body: NodeRestartRequest(id: nodeID, restartService: target.rawValue),
-                as: EmptyResponse.self
-            )
+        switch await vm.restartNode(service: target.rawValue) {
+        case .ok:
             toastMessage = target.successToast
             onReload()
-        } catch {
-            // 仅重启本机（主控）时，服务端收到指令后会主动断开连接，这类网络错误按成功处理；
-            // 远程节点重启经主控转发、主控不重启，错误如实上报
-            if vm.isLocalNode, NodeDetailViewModel.isConnectionDropped(error) {
-                toastMessage = target.successToast
-                onReload()
-            } else {
-                alertMessage = error.localizedDescription
-                showRestartAlert = true
-            }
+        case .failed(let message):
+            alertMessage = message
+            showRestartAlert = true
         }
     }
 
     private func deleteNode() async {
-        do {
-            _ = try await client.send(
-                path: APIEndpoint.nodesDelete.path,
-                body: NodeDeleteRequest(ids: [nodeID], force: deleteForce, withUninstall: deleteWithData),
-                as: EmptyResponse.self
-            )
-            // 删除的是当前切换节点时回退本机，避免后续请求路由到不存在的节点
-            if vm.nodeName == (NodeScope.current(for: server.id) ?? "local") {
-                NodeScope.setCurrent(nil, for: server.id)
-            }
+        switch await vm.deleteNode(force: deleteForce, withUninstall: deleteWithData) {
+        case .ok:
             onReload()
             // 返回多机管理列表
             if !navPath.isEmpty { navPath.removeLast() }
-        } catch {
-            alertMessage = error.localizedDescription
+        case .failed(let message):
+            alertMessage = message
             showRestartAlert = true
         }
     }

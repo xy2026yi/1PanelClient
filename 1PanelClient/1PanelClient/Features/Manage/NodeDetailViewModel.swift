@@ -96,4 +96,69 @@ final class NodeDetailViewModel: ObservableObject {
         }
         hasLoaded = true
     }
+
+    // MARK: - 操作（请求与业务判定归 VM；呈现/导航由 View 按结果处理）
+
+    enum NodeOpOutcome {
+        /// 成功（含主控重启预期断连按成功处理）；关联值为导航载荷（同步的 taskID）
+        case ok(String?)
+        case failed(String)
+    }
+
+    @Published private(set) var isSyncing = false
+
+    /// 同步节点：提交成功返回 taskID（View 据此进任务进度页）
+    func syncNode() async -> NodeOpOutcome {
+        guard !isSyncing else { return .ok(nil) }
+        isSyncing = true
+        defer { isSyncing = false }
+        let taskID = UUID().uuidString
+        do {
+            _ = try await client.send(
+                path: APIEndpoint.nodesSync.path,
+                body: NodeSyncRequest(id: nodeID, taskID: taskID),
+                as: EmptyResponse.self
+            )
+            return .ok(taskID)
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+    }
+
+    /// 重启面板/服务器（service 为 RestartTarget.rawValue）；
+    /// 仅重启本机（主控）时服务端收到指令后会主动断开连接，这类网络错误
+    /// 按成功处理——远程节点重启经主控转发、主控不重启，错误如实上报
+    func restartNode(service: String) async -> NodeOpOutcome {
+        do {
+            _ = try await client.send(
+                path: APIEndpoint.nodesRestart.path,
+                body: NodeRestartRequest(id: nodeID, restartService: service),
+                as: EmptyResponse.self
+            )
+            return .ok(nil)
+        } catch {
+            if isLocalNode, Self.isConnectionDropped(error) {
+                return .ok(nil)
+            }
+            return .failed(error.localizedDescription)
+        }
+    }
+
+    /// 删除节点；删除的是当前切换节点时回退本机，
+    /// 避免后续请求路由到不存在的节点
+    func deleteNode(force: Bool, withUninstall: Bool) async -> NodeOpOutcome {
+        do {
+            _ = try await client.send(
+                path: APIEndpoint.nodesDelete.path,
+                body: NodeDeleteRequest(ids: [nodeID], force: force, withUninstall: withUninstall),
+                as: EmptyResponse.self
+            )
+            if nodeName == (NodeScope.current(for: serverID) ?? "local") {
+                NodeScope.setCurrent(nil, for: serverID)
+            }
+            return .ok(nil)
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+    }
 }
