@@ -19034,17 +19034,6 @@
         }
       }
     },
-    "所有请求仅发往你本人添加的面板地址；应用不连接任何开发者或第三方服务器。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All requests go only to panel addresses you added yourself; the app never connects to any developer or third-party server."
-          }
-        }
-      }
-    },
     "手动" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39908,6 +39897,105 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saving also submits the capability settings of the other models in this account"
+          }
+        }
+      }
+    },
+    "检查更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check for Updates"
+          }
+        }
+      }
+    },
+    "已是最新版本 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already up to date (%@)"
+          }
+        }
+      }
+    },
+    "检查更新失败，请稍后再试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update check failed. Please try again later."
+          }
+        }
+      }
+    },
+    "发现新版本 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Version Available: %@"
+          }
+        }
+      }
+    },
+    "发布于 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Released %@"
+          }
+        }
+      }
+    },
+    "前往下载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        }
+      }
+    },
+    "AltStore / SideStore 用户也可在源中直接刷新获取更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AltStore / SideStore users can also refresh to update directly from the source."
+          }
+        }
+      }
+    },
+    "面板请求仅发往你本人添加的面板地址。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel requests are sent only to the panel addresses you add."
+          }
+        }
+      }
+    },
+    "检查更新会匿名访问 GitHub API（api.github.com）获取本 App 的最新版本号与更新说明，请求不携带任何身份或设备标识；除该请求外，应用不连接任何开发者或第三方服务器。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking for updates anonymously accesses the GitHub API (api.github.com) to fetch the latest version and release notes of this app; the request carries no identity or device identifier. Apart from this request, the app does not connect to any developer or third-party server."
           }
         }
       }

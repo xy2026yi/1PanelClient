@@ -81,6 +81,9 @@ struct MainTabView: View {
                     }
                 }
             }
+            // App 更新静默检查（与服务器无关，欢迎页也检查）：24h 节流在
+            // checker 内判定，失败静默——角标由缓存或本次结果驱动
+            .task { await AppUpdateChecker.shared.autoCheckIfDue() }
     }
 
     /// 双形态统一结构：tabContent 是 ZStack 的恒定首子视图，尺寸类翻转时不换分支、

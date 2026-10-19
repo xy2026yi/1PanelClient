@@ -167,6 +167,9 @@ enum AppTheme: String, CaseIterable, Identifiable {
 struct AboutSectionView: View {
     var onOpen: () -> Void
 
+    /// 有新版时的标题角标（冷启动由缓存恢复，不等网络）
+    @ObservedObject private var updater = AppUpdateChecker.shared
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
     }
@@ -180,9 +183,19 @@ struct AboutSectionView: View {
                     IconBadge(systemName: "info", color: .accentColor,
                               size: 34, cornerRadius: Radius.small, backgroundOpacity: 0.08)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(L10n.t("关于APP"))
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                        HStack(spacing: 6) {
+                            Text(L10n.t("关于APP"))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                            if updater.updateAvailable {
+                                Text(L10n.t("新版本"))
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 1.5)
+                                    .background(Capsule().fill(.red))
+                            }
+                        }
                         Text(appVersion)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -216,6 +229,7 @@ private struct AboutDetailContent: View {
     var onOpen: (SettingsRoute) -> Void
 
     @ObservedObject private var gate = AdvancedFeatureGate.shared
+    @ObservedObject private var updater = AppUpdateChecker.shared
     /// 连点版本号解锁计数（Android 开发者选项同款彩蛋）
     @State private var versionTaps = 0
     @State private var tapToast: String?
@@ -228,6 +242,10 @@ private struct AboutDetailContent: View {
                     .contentShape(Rectangle())
                     .onTapGesture { handleVersionTap() }
                 LabeledContent(L10n.t("API 版本"), value: "v2")
+                checkUpdateRow
+            }
+            if case .available(let info) = updater.state {
+                updateSection(info)
             }
             Section {
                 if let url = URL(string: "https://1panel.cn") {
@@ -249,6 +267,75 @@ private struct AboutDetailContent: View {
             }
         }
         .localToast(message: $tapToast)
+    }
+
+    // MARK: 检查更新（单源 GitHub Releases API，失败不回落）
+
+    private var checkUpdateRow: some View {
+        Button {
+            Task { await runManualCheck() }
+        } label: {
+            HStack {
+                Text(L10n.t("检查更新"))
+                Spacer()
+                switch updater.state {
+                case .checking:
+                    ProgressView()
+                case .available:
+                    Image(systemName: "arrow.down.circle.fill")
+                        .foregroundStyle(.red)
+                default:
+                    EmptyView()
+                }
+            }
+        }
+        .disabled(updater.state == .checking)
+    }
+
+    /// 有新版时紧随「版本信息」出现的展示块：日期 + 更新说明 + 前往下载
+    private func updateSection(_ info: AppUpdateInfo) -> some View {
+        Section {
+            VStack(alignment: .leading, spacing: 6) {
+                if let date = info.publishedDate {
+                    Text(L10n.f("发布于 %@", date))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if let notes = info.notes {
+                    // release body 是 GitHub 自动生成的 markdown：内联解析保留换行，
+                    // 解析失败回落纯文本
+                    Text((try? AttributedString(
+                        markdown: notes,
+                        options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+                        ?? AttributedString(notes))
+                        .font(.footnote)
+                }
+            }
+            .padding(.vertical, 2)
+            if let url = URL(string: info.releaseURL) {
+                Link(destination: url) {
+                    Label(L10n.t("前往下载"), systemImage: "safari")
+                }
+            }
+        } header: {
+            Text(L10n.f("发现新版本 %@", info.version))
+        } footer: {
+            Text(L10n.t("AltStore / SideStore 用户也可在源中直接刷新获取更新"))
+        }
+    }
+
+    private func runManualCheck() async {
+        await updater.check()
+        switch updater.state {
+        case .latest:
+            tapToast = L10n.f("已是最新版本 %@", AppUpdateChecker.currentVersion)
+        case .available:
+            Haptic.success()
+        case .failed:
+            tapToast = L10n.t("检查更新失败，请稍后再试")
+        default:
+            break
+        }
     }
 
     // MARK: 连点解锁（7 次，第 3 次起渐进提示；一次性解锁后交给「管理→编辑」管控）

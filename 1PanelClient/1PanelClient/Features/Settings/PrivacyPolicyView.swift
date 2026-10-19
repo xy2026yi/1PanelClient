@@ -18,7 +18,7 @@ struct PrivacyPolicyView: View {
         let leavesIcon: String
     }
 
-    private static let updated = "2026-09-06"
+    private static let updated = "2026-10-19"
 
     private static let dataItems: [DataItem] = [
         .init(
@@ -85,7 +85,9 @@ struct PrivacyPolicyView: View {
             }
 
             Section(L10n.t("网络请求")) {
-                Text(L10n.t("所有请求仅发往你本人添加的面板地址；应用不连接任何开发者或第三方服务器。"))
+                Text(L10n.t("面板请求仅发往你本人添加的面板地址。"))
+                    .font(.subheadline)
+                Text(L10n.t("检查更新会匿名访问 GitHub API（api.github.com）获取本 App 的最新版本号与更新说明，请求不携带任何身份或设备标识；除该请求外，应用不连接任何开发者或第三方服务器。"))
                     .font(.subheadline)
                 Text(L10n.t("若你配置了 http:// 明文地址，界面会明示风险，并可在设置中开启「仅允许 HTTPS 连接」。"))
                     .font(.subheadline)
