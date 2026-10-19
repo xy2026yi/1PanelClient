@@ -317,10 +317,12 @@ struct CronjobDetailView: View {
     }
 
     /// 快照详情加载：load/info + 排除应用名解析所需的已装应用（轻量拉取，
-    /// 不随 createOptions 全套请求）；失败置位供错误态重试
+    /// 不随 createOptions 全套请求）；两者互不依赖并行发出；失败置位供错误态重试
     private func loadSnapshotInfo() async {
-        await vm.loadInstalledApps()
-        if let info = await vm.loadCronjobInfo(id: currentJob.id) {
+        async let apps: Void = vm.loadInstalledApps()
+        let info = await vm.loadCronjobInfo(id: currentJob.id)
+        await apps
+        if let info {
             snapshotInfo = info
             snapshotLoadFailed = false
         } else {

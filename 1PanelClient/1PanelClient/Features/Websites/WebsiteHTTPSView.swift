@@ -151,8 +151,11 @@ struct WebsiteHTTPSView: View {
             }
         }
         .task {
+            // HTTPS 配置与证书列表互不依赖，并行拉取（此前串行多等一轮 RTT）；
+            // selectedSSLId 只依赖 load() 的结果，两路收齐后回填
+            async let certs: Void = vm.loadSSLCerts()
             await load()
-            await vm.loadSSLCerts()
+            await certs
             // 默认显示当前使用证书；不在可选列表时由选择器的「当前证书」兜底行接住
             selectedSSLId = originalSSLId
         }
