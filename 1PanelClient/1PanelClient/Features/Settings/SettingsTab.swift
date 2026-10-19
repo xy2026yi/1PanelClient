@@ -9,7 +9,6 @@ import SwiftUI
 /// 绑定写回延迟甚至丢失，MainTabView 依路径计数推导底部栏可见性会失步）
 enum SettingsRoute: Hashable {
     case about
-    case privacyPolicy
     case diagnostics
 }
 
@@ -100,8 +99,6 @@ struct SettingsTab: View {
             switch route {
             case .about:
                 AboutDetailView { navPath.append($0) }
-            case .privacyPolicy:
-                PrivacyPolicyView()
             case .diagnostics:
                 MetricDiagnosticsView()
             }
@@ -162,7 +159,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
 // MARK: - 关于（居中卡片入口）
 
-/// 设置页底部的「关于APP」入口行：小号圆圈 i 图标 + 左对齐标题与版本号
+/// 设置页底部的「关于」入口行：小号圆圈 i 图标 + 左对齐标题与版本号
 /// 注意：只负责展示，导航由宿主以 path 驱动挂载（避免 lazy 容器内 navigationDestination）
 struct AboutSectionView: View {
     var onOpen: () -> Void
@@ -184,7 +181,7 @@ struct AboutSectionView: View {
                               size: 34, cornerRadius: Radius.small, backgroundOpacity: 0.08)
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
-                            Text(L10n.t("关于APP"))
+                            Text(L10n.t("关于"))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.primary)
                             if updater.updateAvailable {
@@ -213,14 +210,14 @@ struct AboutSectionView: View {
     }
 }
 
-/// 关于详情：版本 / API 版本 / 1Panel 官网 / 隐私政策（本地页）/ 诊断数据（本地）
+/// 关于详情：图标卡片（说明/版本）+ 功能组（问题反馈/官网/隐私政策/诊断/检查更新）
 struct AboutDetailView: View {
-    /// 二级推入（隐私政策/诊断）回写宿主导航路径
+    /// 二级推入（诊断）回写宿主导航路径
     var onOpen: (SettingsRoute) -> Void
 
     var body: some View {
         AboutDetailContent(onOpen: onOpen)
-            .navigationTitle(L10n.t("关于APP"))
+            .navigationTitle(L10n.t("关于"))
             .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -230,43 +227,108 @@ private struct AboutDetailContent: View {
 
     @ObservedObject private var gate = AdvancedFeatureGate.shared
     @ObservedObject private var updater = AppUpdateChecker.shared
-    /// 连点版本号解锁计数（Android 开发者选项同款彩蛋）
+    /// 连点版本号解锁计数（Android 开发者选项同款彩蛋）——挂在顶部卡片的
+    /// 版本行上（整行热区），7 次渐进提示逻辑不变
     @State private var versionTaps = 0
     @State private var tapToast: String?
     private static let unlockTaps = 7
 
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+    }
+
     var body: some View {
         List {
-            Section(L10n.t("版本信息")) {
-                LabeledContent(L10n.t("版本"), value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0")
-                    .contentShape(Rectangle())
-                    .onTapGesture { handleVersionTap() }
-                LabeledContent(L10n.t("API 版本"), value: "v2")
-                checkUpdateRow
-            }
+            headerCard
+            actionSection
             if case .available(let info) = updater.state {
                 updateSection(info)
             }
-            Section {
-                if let url = URL(string: "https://1panel.cn") {
-                    Link(destination: url) {
-                        Label(L10n.t("1Panel 官网"), systemImage: "safari")
-                    }
-                }
-                // E5：隐私政策为 App 内本地页（离线可读），页内附在线版链接
-                Button {
-                    onOpen(.privacyPolicy)
-                } label: {
-                    Label(L10n.t("隐私政策"), systemImage: "hand.raised")
-                }
-                Button {
-                    onOpen(.diagnostics)
-                } label: {
-                    Label(L10n.t("诊断数据（本地）"), systemImage: "stethoscope")
-                }
-            }
         }
         .localToast(message: $tapToast)
+    }
+
+    // MARK: 顶部卡片（图标 + 一句话说明 + 版本；版本行承载连点彩蛋）
+
+    private var headerCard: some View {
+        Section {
+            VStack(spacing: 10) {
+                appIcon
+                Text(L10n.t("服务器运维管理面板 1Panel 的移动端 App"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Text(L10n.f("版本 %@", appVersion))
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    // 整行热区：连点彩蛋的命中区不因居中文本变窄
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture { handleVersionTap() }
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    /// 主 App 图标：经 CFBundleIcons 取实际图标文件（列表按尺寸升序，取末位）
+    @ViewBuilder
+    private var appIcon: some View {
+        if let image = Self.loadAppIcon() {
+            Image(uiImage: image)
+                .resizable()
+                .frame(width: 88, height: 88)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        } else {
+            // 兜底：图标资产缺失（如 CI 未签名包）不空占位
+            IconBadge(systemName: "apps.iphone", color: .accentColor,
+                      size: 88, cornerRadius: 20, backgroundOpacity: 0.12)
+        }
+    }
+
+    private static func loadAppIcon() -> UIImage? {
+        guard let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
+              let primary = icons["CFBundlePrimaryIcon"] as? [String: Any],
+              let files = primary["CFBundleIconFiles"] as? [String] else { return nil }
+        for name in files.reversed() {
+            if let image = UIImage(named: name) { return image }
+        }
+        return nil
+    }
+
+    // MARK: 功能组（无标题）：问题反馈 / 官网 / 隐私政策（在线）/ 诊断数据 / 检查更新
+
+    private var actionSection: some View {
+        Section {
+            if let url = URL(string: "https://github.com/xy2026yi/1PanelClient/issues") {
+                Link(destination: url) {
+                    Label(L10n.t("问题反馈"), systemImage: "ladybug")
+                }
+            }
+            if let url = URL(string: "https://1panel.cn") {
+                Link(destination: url) {
+                    Label(L10n.t("1Panel 官网"), systemImage: "safari")
+                }
+            }
+            // 隐私政策走在线版（git 跟踪的 docs/privacy-policy.md 为源头）；
+            // 本地页已随本次改版移除
+            if let url = URL(string: "https://github.com/xy2026yi/1PanelClient/blob/main/docs/privacy-policy.md") {
+                Link(destination: url) {
+                    Label(L10n.t("隐私政策"), systemImage: "hand.raised")
+                }
+            }
+            Button {
+                onOpen(.diagnostics)
+            } label: {
+                HStack {
+                    Label(L10n.t("诊断数据"), systemImage: "stethoscope")
+                    Spacer()
+                    Text(L10n.t("仅保存在本机"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            checkUpdateRow
+        }
     }
 
     // MARK: 检查更新（单源 GitHub Releases API，失败不回落）
@@ -292,7 +354,7 @@ private struct AboutDetailContent: View {
         .disabled(updater.state == .checking)
     }
 
-    /// 有新版时紧随「版本信息」出现的展示块：日期 + 更新说明 + 前往下载
+    /// 有新版时紧随功能组出现的展示块：日期 + 更新说明 + 前往下载
     private func updateSection(_ info: AppUpdateInfo) -> some View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
