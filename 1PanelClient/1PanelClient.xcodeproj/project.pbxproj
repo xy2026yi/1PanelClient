@@ -138,6 +138,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 14904F6B2FE7BFC7009BA44F /* Build configuration list for PBXNativeTarget "1PanelClient" */;
 			buildPhases = (
+				7D00000000000000000000E1 /* Embed Privacy Policy */,
 				14904F5C2FE7BFC6009BA44F /* Sources */,
 				14904F5D2FE7BFC6009BA44F /* Frameworks */,
 				14904F5E2FE7BFC6009BA44F /* Resources */,
@@ -269,6 +270,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		7D00000000000000000000E1 /* Embed Privacy Policy */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(PROJECT_DIR)/../docs/privacy-policy.md",
+			);
+			name = "Embed Privacy Policy";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/PrivacyPolicy.md",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cp \"${PROJECT_DIR}/../docs/privacy-policy.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PrivacyPolicy.md\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		14904F5C2FE7BFC6009BA44F /* Sources */ = {

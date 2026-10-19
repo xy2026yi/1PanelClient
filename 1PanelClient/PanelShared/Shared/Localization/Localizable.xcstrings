@@ -1100,17 +1100,6 @@
         }
       }
     },
-    "1PanelClient 是开源服务器管理面板 1Panel 的 iOS 客户端。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1PanelClient is an iOS client for the open-source server management panel 1Panel."
-          }
-        }
-      }
-    },
     "1分钟" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2534,17 +2523,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "InnoDB Buffer Hit Rate"
-          }
-        }
-      }
-    },
-    "iOS 钥匙串 · 连接你自己的 1Panel 面板" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iOS Keychain · Connecting to your own 1Panel panel"
           }
         }
       }
@@ -4525,28 +4503,6 @@
         }
       }
     },
-    "不离开设备" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Never leaves this device"
-          }
-        }
-      }
-    },
-    "不离开设备（仅发往你配置的面板地址）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Never leaves this device (sent only to the panel address you configured)"
-          }
-        }
-      }
-    },
     "不重启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5148,17 +5104,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Predefined commands only"
-          }
-        }
-      }
-    },
-    "仅当你主动分享导出时离开设备" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leaves this device only when you explicitly share or export it"
           }
         }
       }
@@ -7968,17 +7913,6 @@
         }
       }
     },
-    "最后更新：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last updated: %@"
-          }
-        }
-      }
-    },
     "最大上传文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9629,17 +9563,6 @@
         }
       }
     },
-    "删除数据" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deleting Data"
-          }
-        }
-      }
-    },
     "删除数据库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10879,17 +10802,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uninstall App"
-          }
-        }
-      }
-    },
-    "卸载应用即删除本机所有数据（Keychain 条目随卸载清除）；面板侧的 API 密钥可随时在 1Panel 面板「面板设置 → API 接口」中禁用或重新生成。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uninstalling the app deletes all local data (Keychain entries are removed with it); the panel-side API key can be disabled or regenerated at any time in 1Panel under Panel Settings → API."
           }
         }
       }
@@ -17395,17 +17307,6 @@
         }
       }
     },
-    "应用偏好设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App preferences"
-          }
-        }
-      }
-    },
     "应用到网站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17578,17 +17479,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App Lock"
-          }
-        }
-      }
-    },
-    "应用锁密码" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App lock passcode"
           }
         }
       }
@@ -18579,17 +18469,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Performance"
-          }
-        }
-      }
-    },
-    "总则" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "General"
           }
         }
       }
@@ -24567,28 +24446,6 @@
         }
       }
     },
-    "本地网络：用于连接局域网内的面板，仅在你主动测试连接时触发系统弹窗。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local Network: used to reach panels on your LAN; the system prompt appears only when you actively test a connection."
-          }
-        }
-      }
-    },
-    "本应用不收集、不上传任何用户数据——无内嵌分析 SDK、无广告、无追踪、无账号体系。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This app does not collect or upload any user data — no embedded analytics SDK, no ads, no tracking, no account system."
-          }
-        }
-      }
-    },
     "本机" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24596,39 +24453,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Local"
-          }
-        }
-      }
-    },
-    "本机 App 沙盒 · 离线展示最近一次快照" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local app sandbox · Shows the latest snapshot offline"
-          }
-        }
-      }
-    },
-    "本机 Application Support · 崩溃与性能自诊断，保留 30 天" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local Application Support · Crash & performance self-diagnostics, kept for 30 days"
-          }
-        }
-      }
-    },
-    "本机 UserDefaults · 记住你的设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local UserDefaults · Remembers your settings"
           }
         }
       }
@@ -24717,17 +24541,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permissions"
-          }
-        }
-      }
-    },
-    "权限使用" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permission Usage"
           }
         }
       }
@@ -30969,17 +30782,6 @@
         }
       }
     },
-    "系统钥匙串 · 本机解锁校验" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "System Keychain · Local unlock verification"
-          }
-        }
-      }
-    },
     "系统防火墙" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32157,17 +31959,6 @@
         }
       }
     },
-    "网络请求" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Network Requests"
-          }
-        }
-      }
-    },
     "网络连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32274,17 +32065,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Took %@"
-          }
-        }
-      }
-    },
-    "联系方式" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contact"
           }
         }
       }
@@ -32769,17 +32549,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Node Detail"
-          }
-        }
-      }
-    },
-    "若你配置了 http:// 明文地址，界面会明示风险，并可在设置中开启「仅允许 HTTPS 连接」。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If you configure a plaintext http:// address, the app shows the risk explicitly, and you can enable \"HTTPS Only\" in Settings."
           }
         }
       }
@@ -33979,17 +33748,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Certificate Config"
-          }
-        }
-      }
-    },
-    "诊断数据（MetricKit）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diagnostic data (MetricKit)"
           }
         }
       }
@@ -37382,17 +37140,6 @@
         }
       }
     },
-    "通过 GitHub Issue 反馈" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Feedback via GitHub issues"
-          }
-        }
-      }
-    },
     "通过 iptables 来禁用指定的 IP 地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38746,17 +38493,6 @@
         }
       }
     },
-    "面容 ID / 触控 ID：仅用于应用锁解锁（可选功能），不上传任何生物信息。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Face ID / Touch ID: used only for app lock unlock (optional); no biometric data is ever uploaded."
-          }
-        }
-      }
-    },
     "面板" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38878,17 +38614,6 @@
         }
       }
     },
-    "面板地址、名称与 API 密钥" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Panel address, name & API key"
-          }
-        }
-      }
-    },
     "面板密码 / 证书 / 网站到期、面板更新等通知类告警的可发送时间范围" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38951,17 +38676,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Panel host"
-          }
-        }
-      }
-    },
-    "面板数据本地缓存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local panel data cache"
           }
         }
       }
@@ -39897,28 +39611,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AltStore / SideStore users can also refresh to update directly from the source."
-          }
-        }
-      }
-    },
-    "面板请求仅发往你本人添加的面板地址。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Panel requests are sent only to the panel addresses you add."
-          }
-        }
-      }
-    },
-    "检查更新会匿名访问 GitHub API（api.github.com）获取本 App 的最新版本号与更新说明，请求不携带任何身份或设备标识；除该请求外，应用不连接任何开发者或第三方服务器。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checking for updates anonymously accesses the GitHub API (api.github.com) to fetch the latest version and release notes of this app; the request carries no identity or device identifier. Apart from this request, the app does not connect to any developer or third-party server."
           }
         }
       }
