@@ -41,9 +41,10 @@ struct PageSnapshotTests {
         try? FileManager.default.removeItem(at: dir)
     }
 
-    /// 后台写盘落地等待：轮询直至谓词成立或超时
+    /// 后台写盘落地等待：轮询直至谓词成立或超时。CI 机器高负载下
+    /// utility 优先级的 detached 写任务可能饿几秒，超时窗口给足防时序脆断
     private func waitUntil(_ condition: @autoclosure () -> Bool,
-                           timeout: TimeInterval = 2,
+                           timeout: TimeInterval = 15,
                            _ what: String) async {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
