@@ -109,6 +109,24 @@ struct PageSnapshotTests {
         #expect(files.isEmpty == false)
     }
 
+    @Test("回后台全量补写：不经 autoRefresh 更新的数据也落盘")
+    func persistAllOnBackground() async {
+        let dir = makeDir("background")
+        defer { cleanup(dir) }
+        let key = "page|apps|\(UUID().uuidString)|1|node|local"
+        let store = PageVMStore(snapshotDirectory: dir)
+
+        // 建 VM 后直接改数据（模拟手动下拉刷新拿到的新结果），不经 autoRefresh
+        let vm = store.vm(key: key) { SnapshotVM() }
+        vm.items = ["fresh-from-pull-refresh"]
+        store.persistAllSnapshots()
+        await waitUntil(PageVMStore.readSnapshot(dir: dir, key: key) != nil, "回后台补写")
+
+        let store2 = PageVMStore(snapshotDirectory: dir)
+        let vm2 = store2.vm(key: key) { SnapshotVM() }
+        #expect(vm2.items == ["fresh-from-pull-refresh"])
+    }
+
     @Test("无快照/解码失败：回填忽略，行为退化为无快照")
     func restoreIgnoresGarbage() {
         let dir = makeDir("garbage")

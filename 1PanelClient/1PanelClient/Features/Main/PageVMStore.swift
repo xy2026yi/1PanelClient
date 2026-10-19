@@ -143,6 +143,23 @@ final class PageVMStore {
         }
     }
 
+    /// 回到后台时全量补写：覆盖不经 autoRefresh 的数据更新路径（手动下拉
+    /// 刷新、页面内增删改）——否则冷启动恢复的快照可能落后于用户最后所见
+    ///（仅陈旧数秒即被静默刷新追平的小问题，此钩子把它也消掉）。
+    /// 逐 VM 提取在主线程，写盘后台并行
+    func persistAllSnapshots() {
+        for entry in keyByVM.values {
+            guard let vm = entry.vm,
+                  let provider = vm as? PageSnapshotProvider,
+                  let data = provider.snapshotData() else { continue }
+            let envelope = SnapshotEnvelope(key: entry.key, savedAt: .now, payload: data)
+            let dir = snapshotDir
+            Task.detached(priority: .utility) {
+                Self.writeSnapshot(envelope, dir: dir)
+            }
+        }
+    }
+
     /// 清掉某台服务器相关的全部页面 VM（服务器被移除时）；
     /// 磁盘快照同清（信封里的 key 含服务器指纹可反查）
     func purge(serverID: UUID) {

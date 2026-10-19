@@ -40,6 +40,11 @@ struct ContentView: View {
                 // 来电横幅等短暂失焦同样视为离开，与应用锁的隐私预期一致
                 if phase != .active {
                     appLock.lockIfEnabled()
+                    if phase == .background {
+                        // 回后台补写页面快照：覆盖手动下拉刷新等不经 autoRefresh
+                        // 的更新路径，冷启动恢复不落后于用户最后所见
+                        PageVMStore.shared.persistAllSnapshots()
+                    }
                 } else if lastWidgetReload == nil || Date().timeIntervalSince(lastWidgetReload!) >= 300 {
                     // 回前台补一次小组件重载（节流 ≥5 分钟）：重装后系统可能丢弃
                     // 此前的 reload 请求导致小组件拖到分钟级不更新，每次回前台再
