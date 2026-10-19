@@ -97,8 +97,9 @@ struct SettingsTab: View {
             // MARK: - 关于
             AboutSectionView(onOpen: { navPath.append(SettingsRoute.about) })
         }
-        .navigationTitle(hSize == .regular ? "" : L10n.t("设置"))
-        .navigationBarTitleDisplayMode(hSize == .regular ? .inline : .large)
+        // 与管理页根部同款：无标题（原大标题「设置」已按需求移除）
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         // TabBar 上方留白：与首页/管理页 contentMargins 同一机制、同一数值——
         // safeAreaInset 底栏不产生滚动内容避让，缺它时末行被 Tab 栏遮住
         //（行高变大后内容超出屏即暴露：可滚余量极小表现为拖动回弹）

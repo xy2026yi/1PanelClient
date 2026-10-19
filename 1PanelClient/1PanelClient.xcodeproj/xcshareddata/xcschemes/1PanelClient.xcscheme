@@ -6,6 +6,15 @@
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
       buildArchitectures = "Automatic">
+      <PreActions>
+         <ExecutionAction
+            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+            <ActionContent
+               title = "清理 .mimosa 会话产物"
+               scriptText = "&#35;&#35; Mimosa 钩子会往被编辑文件所在目录写 .mimosa/，同步组当资源打包会 Multiple commands produce&#10;ROOT=&quot;${PROJECT_DIR:-$(pwd)}&#47;1PanelClient&quot;&#10;[ -d &quot;$ROOT&quot; ] &amp;&amp; find &quot;$ROOT&quot; -type d -name .mimosa -prune -exec rm -rf {} + || true">
+            </ActionContent>
+         </ExecutionAction>
+      </PreActions>
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"

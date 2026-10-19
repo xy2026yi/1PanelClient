@@ -35,6 +35,15 @@ jobs:
           key: spm-${{ runner.os }}-${{ hashFiles('1PanelClient/1PanelClient.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: spm-${{ runner.os }}-
 
+      - name: 清理源码树内的 Mimosa 会话产物
+        run: |
+          # ZCode 的 Mimosa 安全钩子会把 hook 状态写进「被编辑文件所在目录」的
+          # .mimosa/（位置随编辑对象漂移）。Xcode 文件夹同步组不认 .gitignore，
+          # 同名 json 进包即 Multiple commands produce（目录级 membershipExceptions
+          # 实验证伪：xcodebuild 会重写裁剪且不阻止拷贝）。构建前清掉兜底；
+          # GUI 构建由 scheme 预动作同款清理
+          find 1PanelClient -type d -name .mimosa -prune -exec rm -rf {} +
+
       - name: Build & Test
         shell: bash
         run: |
