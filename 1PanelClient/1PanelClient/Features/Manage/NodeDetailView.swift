@@ -34,13 +34,9 @@ struct NodeDetailView: View {
         }
     }
 
-    @State private var item: NodeDetailItem?
-    @State private var current: NodeCurrentItem?
-    @State private var counts: NodeCounts?
-    @State private var currentNode = "local"
-    @State private var isLoading = true
-    @State private var hasLoaded = false
-    @State private var errorMessage: String?
+    /// 数据态与加载逻辑在 NodeDetailViewModel（本文件下方）；
+    /// 以下只留交互/呈现态
+    @StateObject private var vm: NodeDetailViewModel
     @State private var showEditSheet = false
     @State private var showRenameSheet = false
     @State private var restartTarget: RestartTarget?
@@ -48,8 +44,6 @@ struct NodeDetailView: View {
     @State private var deleteForce = false
     @State private var deleteWithData = false
     @State private var isSyncing = false
-    /// 加载代际：并发 load 时只让最后一次的结果生效
-    @State private var loadGeneration = 0
     @State private var toastMessage: String?
     @State private var alertMessage: String?
     @State private var showRestartAlert = false
@@ -64,25 +58,23 @@ struct NodeDetailView: View {
         self._navPath = navPath
         self.onReload = onReload
         self.client = APIClient.shared(for: server)
+        _vm = StateObject(wrappedValue: NodeDetailViewModel(nodeID: nodeID, server: server))
     }
-
-    private var nodeName: String { item?.name ?? "" }
-    private var isCurrentNode: Bool { nodeName == currentNode && !nodeName.isEmpty }
 
     var body: some View {
         Group {
-            if isLoading && item == nil {
+            if vm.isLoading && vm.item == nil {
                 LoadingStateView()
-            } else if let errorMessage, item == nil {
+            } else if let errorMessage = vm.errorMessage, vm.item == nil {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(errorMessage)
                 } actions: {
-                    Button(L10n.t("重试")) { Task { await load() } }
+                    Button(L10n.t("重试")) { Task { await vm.load() } }
                         .buttonStyle(.borderedProminent)
                 }
-            } else if let item {
+            } else if let item = vm.item {
                 List {
                     headerSection(item)
                     statusSection
@@ -92,7 +84,7 @@ struct NodeDetailView: View {
                 }
             }
         }
-        .navigationTitle(item?.displayName ?? L10n.t("节点详情"))
+        .navigationTitle(vm.item?.displayName ?? L10n.t("节点详情"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -130,7 +122,7 @@ struct NodeDetailView: View {
                         Label(RestartTarget.system.title, systemImage: "power.dotted")
                     }
                     // local 为主控节点，删除后当前面板连接即失效，不提供删除入口
-                    if !isLocalNode {
+                    if !vm.isLocalNode {
                         Divider()
                         Button(role: .destructive) {
                             deleteForce = false
@@ -145,31 +137,31 @@ struct NodeDetailView: View {
                 }
             }
         }
-        .refreshable { await load() }
+        .refreshable { await vm.load() }
         .task {
-            currentNode = NodeScope.current(for: server.id) ?? "local"
-            await load()
+            vm.syncCurrentNode()
+            await vm.load()
         }
         // 从日志/进度/资源页返回时静默刷新（编辑、同步完成后数据变化可见）
         .onAppear {
-            currentNode = NodeScope.current(for: server.id) ?? "local"
-            if hasLoaded { Task { await load() } }
+            vm.syncCurrentNode()
+            if vm.hasLoaded { Task { await vm.load() } }
         }
         .onReceive(NotificationCenter.default.publisher(for: NodeScope.changeNotification)) { _ in
-            currentNode = NodeScope.current(for: server.id) ?? "local"
+            vm.syncCurrentNode()
         }
         // 编辑节点 push 进入（与安装应用一致）；提交成功后分步收栈再进任务进度
         .navigationDestination(isPresented: $showEditSheet) {
-            AddNodeView(server: server, editing: item, currentNode: current) { taskID in
+            AddNodeView(server: server, editing: vm.item, currentNode: vm.current) { taskID in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                     navPath.append(NodeManageView.Dest.taskProgress(taskID: taskID, title: L10n.t("编辑节点")))
                 }
             }
         }
         .sheet(isPresented: $showRenameSheet) {
-            if let item {
+            if let item = vm.item {
                 NodeRenameSheet(server: server, item: item) {
-                    Task { await load() }
+                    Task { await vm.load() }
                     onReload()
                 }
             }
@@ -189,8 +181,8 @@ struct NodeDetailView: View {
         .sheet(isPresented: $showDeleteSheet) {
             TextInputConfirmSheet(
                 title: L10n.t("删除节点"),
-                message: L10n.f("删除后将从多机管理中移除该节点，此操作不可恢复。请输入节点名称「%@」以确认删除。", item?.displayName ?? server.name),
-                expectedText: item?.displayName ?? server.name,
+                message: L10n.f("删除后将从多机管理中移除该节点，此操作不可恢复。请输入节点名称「%@」以确认删除。", vm.item?.displayName ?? server.name),
+                expectedText: vm.item?.displayName ?? server.name,
                 fieldLabel: L10n.t("确认名称"),
                 fieldPlaceholder: L10n.t("节点名称")
             ) {
@@ -221,12 +213,12 @@ struct NodeDetailView: View {
                 HStack(spacing: 8) {
                     Text(item.displayName)
                         .font(.headline)
-                    if isCurrentNode {
+                    if vm.isCurrentNode {
                         StatusBadge(text: L10n.t("当前节点"), color: .blue)
                     }
                     Spacer()
-                    StatusBadge(text: NodeUI.statusText(current?.status ?? item.status),
-                                color: NodeUI.statusColor(current?.status ?? item.status))
+                    StatusBadge(text: NodeUI.statusText(vm.current?.status ?? item.status),
+                                color: NodeUI.statusColor(vm.current?.status ?? item.status))
                 }
                 HStack(spacing: 6) {
                     Text("\(item.name).\(item.addr ?? "")")
@@ -248,15 +240,15 @@ struct NodeDetailView: View {
         Section(L10n.t("运行状态")) {
             usageBar(
                 label: L10n.t("CPU 使用率"),
-                detail: current.map { L10n.f("%ld 核", $0.cpuTotal ?? 0) },
-                percent: current?.cpuUsedPercent
+                detail: vm.current.map { L10n.f("%ld 核", $0.cpuTotal ?? 0) },
+                percent: vm.current?.cpuUsedPercent
             )
             usageBar(
                 label: L10n.t("内存使用率"),
-                detail: current.map {
+                detail: vm.current.map {
                     ByteCountFormatter.string(fromByteCount: Int64($0.memoryTotal ?? 0), countStyle: .memory)
                 },
-                percent: current?.memoryUsedPercent
+                percent: vm.current?.memoryUsedPercent
             )
         }
     }
@@ -297,12 +289,12 @@ struct NodeDetailView: View {
     private var resourceSection: some View {
         Section(L10n.t("资源概览")) {
             HStack(spacing: 8) {
-                countLink(dest: .apps(nodeName), icon: "app.badge", title: L10n.t("应用"), tint: .blue, value: counts?.apps)
-                countLink(dest: .websites(nodeName), icon: "globe", title: L10n.t("网站"), tint: .green, value: counts?.websites)
+                countLink(dest: .apps(vm.nodeName), icon: "app.badge", title: L10n.t("应用"), tint: .blue, value: vm.counts?.apps)
+                countLink(dest: .websites(vm.nodeName), icon: "globe", title: L10n.t("网站"), tint: .green, value: vm.counts?.websites)
             }
             HStack(spacing: 8) {
-                countLink(dest: .databases(nodeName), icon: "cylinder", title: L10n.t("数据库"), tint: .purple, value: counts?.databases)
-                countLink(dest: .cronjobs(nodeName), icon: "clock.badge.checkmark", title: L10n.t("计划任务"), tint: .teal, value: counts?.cronjobs)
+                countLink(dest: .databases(vm.nodeName), icon: "cylinder", title: L10n.t("数据库"), tint: .purple, value: vm.counts?.databases)
+                countLink(dest: .cronjobs(vm.nodeName), icon: "clock.badge.checkmark", title: L10n.t("计划任务"), tint: .teal, value: vm.counts?.cronjobs)
             }
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -310,7 +302,7 @@ struct NodeDetailView: View {
 
     private func countLink(dest: NodeManageView.Dest, icon: String, title: String, tint: Color, value: Int?) -> some View {
         Button {
-            NodeScope.setCurrent(nodeName, for: server.id)
+            NodeScope.setCurrent(vm.nodeName, for: server.id)
             navPath.append(dest)
         } label: {
             // plain 样式命中区只有文字部分，补全行矩形命中
@@ -321,7 +313,7 @@ struct NodeDetailView: View {
                     .font(.subheadline)
                     .foregroundStyle(.primary)
                 Spacer()
-                Text(value.map(String.init) ?? (hasLoaded ? "-" : "…"))
+                Text(value.map(String.init) ?? (vm.hasLoaded ? "-" : "…"))
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
@@ -336,7 +328,7 @@ struct NodeDetailView: View {
     private var logSection: some View {
         Section(L10n.t("节点日志")) {
             Button {
-                navPath.append(NodeManageView.Dest.log(nodeName))
+                navPath.append(NodeManageView.Dest.log(vm.nodeName))
             } label: {
                 HStack {
                     Label(L10n.t("查看系统日志"), systemImage: "doc.text.magnifyingglass")
@@ -372,47 +364,8 @@ struct NodeDetailView: View {
         .font(.subheadline)
     }
 
-    // MARK: - 数据加载
-
-    private func load() async {
-        loadGeneration += 1
-        let generation = loadGeneration
-        if item == nil { isLoading = true }
-        do {
-            let resp: PageResponse<NodeDetailItem> = try await client.send(
-                path: APIEndpoint.nodesSearch.path,
-                body: NodeSearchRequest(page: 1, pageSize: 100),
-                as: PageResponse<NodeDetailItem>.self
-            )
-            guard generation == loadGeneration else { return }
-            errorMessage = nil
-            item = (resp.items ?? []).first(where: { $0.id == nodeID })
-            if item == nil {
-                errorMessage = L10n.t("节点不存在或已被移除")
-            }
-        } catch {
-            guard generation == loadGeneration else { return }
-            errorMessage = error.localizedDescription
-        }
-        isLoading = false
-        // 实时状态与数量（失败不阻塞页面）
-        if let currents = try? await client.send(
-            path: APIEndpoint.nodesCurrent.path,
-            method: APIEndpoint.nodesCurrent.method,
-            as: [NodeCurrentItem].self
-        ) {
-            guard generation == loadGeneration else { return }
-            current = currents.first(where: { $0.nodeName == nodeName })
-        }
-        if !nodeName.isEmpty {
-            let loaded = await NodeCountsLoader.load(for: nodeName, client: client)
-            guard generation == loadGeneration else { return }
-            counts = loaded
-        }
-        hasLoaded = true
-    }
-
-    // MARK: - 操作
+    // MARK: - 操作（数据请求在 VM 化前的过渡形态：仍走 View 的 client；
+    // 呈现与导航职责留在 View）
 
     private func syncNode() async {
         guard !isSyncing else { return }
@@ -445,7 +398,7 @@ struct NodeDetailView: View {
         } catch {
             // 仅重启本机（主控）时，服务端收到指令后会主动断开连接，这类网络错误按成功处理；
             // 远程节点重启经主控转发、主控不重启，错误如实上报
-            if isLocalNode, Self.isConnectionDropped(error) {
+            if vm.isLocalNode, NodeDetailViewModel.isConnectionDropped(error) {
                 toastMessage = target.successToast
                 onReload()
             } else {
@@ -453,15 +406,6 @@ struct NodeDetailView: View {
                 showRestartAlert = true
             }
         }
-    }
-
-    private var isLocalNode: Bool { (item?.name ?? "local") == "local" }
-
-    /// 响应过程中连接被服务端断开（主控自身重启的预期表现），按 URLError 精确识别
-    private static func isConnectionDropped(_ error: Error) -> Bool {
-        guard case .networkError(let err) = error as? APIError,
-              let urlErr = err as? URLError else { return false }
-        return urlErr.code == .networkConnectionLost || urlErr.code == .timedOut
     }
 
     private func deleteNode() async {
@@ -472,7 +416,7 @@ struct NodeDetailView: View {
                 as: EmptyResponse.self
             )
             // 删除的是当前切换节点时回退本机，避免后续请求路由到不存在的节点
-            if nodeName == (NodeScope.current(for: server.id) ?? "local") {
+            if vm.nodeName == (NodeScope.current(for: server.id) ?? "local") {
                 NodeScope.setCurrent(nil, for: server.id)
             }
             onReload()
