@@ -54,7 +54,10 @@ struct NodeDetailView: View {
         self.nodeID = nodeID
         self._navPath = navPath
         self.onReload = onReload
-        _vm = StateObject(wrappedValue: NodeDetailViewModel(nodeID: nodeID, server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: PageVMStore.pageKey("nodeDetail|\(nodeID)", server: server)) {
+            NodeDetailViewModel(nodeID: nodeID, server: server)
+        })
     }
 
     var body: some View {
@@ -136,12 +139,15 @@ struct NodeDetailView: View {
         .refreshable { await vm.load() }
         .task {
             vm.syncCurrentNode()
-            await vm.load()
+            await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() }
         }
-        // 从日志/进度/资源页返回时静默刷新（编辑、同步完成后数据变化可见）
+        // 从日志/进度/资源页返回时静默刷新（编辑、同步完成后数据变化可见）。
+        // hasLoaded 门控防与 .task 双首发；5s 节流由 autoRefresh 承担
         .onAppear {
             vm.syncCurrentNode()
-            if vm.hasLoaded { Task { await vm.load() } }
+            if vm.hasLoaded {
+                Task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() } }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NodeScope.changeNotification)) { _ in
             vm.syncCurrentNode()
@@ -518,23 +524,31 @@ struct NodeUpgradeLogsView: View {
     let server: ServerConfig
     let nodeID: Int
 
-    @State private var items: [NodeUpgradeLogItem] = []
-    @State private var total = 0
-    @State private var isLoading = true
-    @State private var errorMessage: String?
-
-    private let client: APIClient
+    /// 复用日志列表通用 VM（单页展示：无追加 UI，loadMore 天然不触发），
+    /// 经 PageVMStore 常驻——重访即时渲染、autoRefresh 静默刷新
+    @StateObject private var vm: LogListViewModel<NodeUpgradeLogItem>
 
     init(server: ServerConfig, nodeID: Int) {
         self.server = server
         self.nodeID = nodeID
-        self.client = APIClient.shared(for: server)
+        let client = APIClient.shared(for: server)
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: PageVMStore.pageKey("nodeUpgradeLogs|\(nodeID)", server: server)) {
+            LogListViewModel(pageSize: 50) { page in
+                let resp: NodeUpgradeLogResponse = try await client.send(
+                    path: APIEndpoint.nodesUpgradeLogs.path,
+                    body: NodeUpgradeLogSearchRequest(page: page, pageSize: 50, nodeID: nodeID),
+                    as: NodeUpgradeLogResponse.self
+                )
+                return (resp.items ?? [], resp.total)
+            }
+        })
     }
 
     var body: some View {
         List {
             Section {
-                if isLoading && items.isEmpty {
+                if vm.isLoading && vm.items.isEmpty {
                     HStack {
                         Spacer()
                         LoadingStateView()
@@ -542,25 +556,25 @@ struct NodeUpgradeLogsView: View {
                     }
                     .frame(minHeight: 160)
                     .listRowBackground(Color.clear)
-                } else if let errorMessage, items.isEmpty {
+                } else if let errorMessage = vm.errorMessage, vm.items.isEmpty {
                     VStack(spacing: 10) {
                         Text(errorMessage)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
-                        Button(L10n.t("重试")) { Task { await load() } }
+                        Button(L10n.t("重试")) { Task { await vm.load() } }
                             .buttonStyle(.bordered)
                     }
                     .frame(maxWidth: .infinity, minHeight: 140)
                     .listRowBackground(Color.clear)
-                } else if items.isEmpty {
+                } else if vm.items.isEmpty {
                     ContentUnavailableView {
                         Label(L10n.t("暂无更新记录"), systemImage: "tray")
                     }
                     .frame(maxWidth: .infinity, minHeight: 120)
                         .listRowBackground(Color.clear)
                 } else {
-                    ForEach(items, id: \.uid) { log in
+                    ForEach(vm.items, id: \.uid) { log in
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 Text(log.version?.isEmpty == false ? log.version! : "—")
@@ -582,31 +596,15 @@ struct NodeUpgradeLogsView: View {
                     }
                 }
             } footer: {
-                if !isLoading && errorMessage == nil && !items.isEmpty {
-                    Text(L10n.f("共 %ld 条", total))
+                if !vm.isLoading && vm.errorMessage == nil && !vm.items.isEmpty {
+                    Text(L10n.f("共 %ld 条", vm.total))
                 }
             }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(L10n.t("更新记录"))
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await load() }
-        .task { await load() }
-    }
-
-    private func load() async {
-        do {
-            let resp: NodeUpgradeLogResponse = try await client.send(
-                path: APIEndpoint.nodesUpgradeLogs.path,
-                body: NodeUpgradeLogSearchRequest(page: 1, pageSize: 50, nodeID: nodeID),
-                as: NodeUpgradeLogResponse.self
-            )
-            items = resp.items ?? []
-            total = resp.total
-            errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isLoading = false
+        .refreshable { await vm.load() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() } }
     }
 }

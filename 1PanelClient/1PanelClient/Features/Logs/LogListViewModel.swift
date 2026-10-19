@@ -18,6 +18,9 @@ final class LogListViewModel<Item: Decodable & Identifiable>: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var isLoadingMore = false
 
+    /// 总条数（页脚「共 N 条」等展示用）
+    @Published private(set) var total = 0
+
     var hasMore: Bool { items.count < total }
 
     /// 列表代数：load() 替换列表时递增，追加页响应到达时与捕获值比对——
@@ -25,7 +28,6 @@ final class LogListViewModel<Item: Decodable & Identifiable>: ObservableObject {
     /// next==2==page+1 恒成立，首次翻页恰是页码判定的盲区）
     private var loadGeneration = 0
     private var page = 1
-    private var total = 0
     private let pageSize: Int
     /// 取一页（页码从 1 起）：返回条目与总数
     private let fetchPage: (_ page: Int) async throws -> ([Item], Int)
