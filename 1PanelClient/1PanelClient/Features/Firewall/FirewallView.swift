@@ -74,7 +74,10 @@ struct FirewallView: View {
 
     init(server: ServerConfig) {
         self.server = server
-        _vm = StateObject(wrappedValue: FirewallViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: ManageItem.firewall.storeKey(server: server)) {
+            FirewallViewModel(server: server)
+        })
     }
 
     // body 修饰链过长会触发「unable to type-check in reasonable time」：
@@ -181,7 +184,7 @@ struct FirewallView: View {
             } message: {
                 Text(vm.errorMessage ?? "")
             }
-            .task { await vm.refresh() }
+            .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
     }
 
     /// 导航层：规则/转发/容器的推入目标 + 任务进度页 + 删除/生命周期确认

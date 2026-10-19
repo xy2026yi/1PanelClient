@@ -464,7 +464,9 @@ struct ContainerDetailView: View {
 }
 
 /// 容器详情 → 关联应用详情：
-/// 拉取已安装应用列表后按 容器名/安装名 匹配，直接展示应用详情页（返回即回容器详情）
+/// 按容器名/安装名匹配已安装应用，直接展示应用详情页（返回即回容器详情）。
+/// VM 复用应用列表页的常驻实例——本会话进过应用页则零请求即时匹配，
+/// 否则经 autoRefresh 静默补拉（5s 节流同应用页口径）
 struct AppDetailFromContainerView: View {
     let container: Container
     let server: ServerConfig
@@ -473,7 +475,10 @@ struct AppDetailFromContainerView: View {
     init(container: Container, server: ServerConfig) {
         self.container = container
         self.server = server
-        _vm = StateObject(wrappedValue: AppsViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: ManageItem.apps.storeKey(server: server)) {
+            AppsViewModel(server: server)
+        })
     }
 
     private var matchedApp: AppInstall? {
@@ -503,14 +508,15 @@ struct AppDetailFromContainerView: View {
         .navigationTitle(L10n.t("应用程序"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            if vm.apps.isEmpty { await vm.refresh() }
+            await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() }
         }
     }
 }
 
 /// 容器详情 → 关联网站详情：
-/// 容器接口的 websites 为「主域名:端口」形式，搜索网站列表后按 primaryDomain /
-/// 去端口的域名（alias）匹配，直接展示网站详情页（返回即回容器详情）
+/// 容器接口的 websites 为「主域名:端口」形式，按 primaryDomain /
+/// 去端口的域名（alias）匹配，直接展示网站详情页（返回即回容器详情）。
+/// VM 复用网站列表页的常驻实例（同应用桥接页口径）
 struct WebsiteDetailFromContainerView: View {
     let domain: String
     let server: ServerConfig
@@ -519,7 +525,10 @@ struct WebsiteDetailFromContainerView: View {
     init(domain: String, server: ServerConfig) {
         self.domain = domain
         self.server = server
-        _vm = StateObject(wrappedValue: WebsitesViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: ManageItem.websites.storeKey(server: server)) {
+            WebsitesViewModel(server: server)
+        })
     }
 
     /// 去掉端口后的域名（adg.domain.xyz:443 → adg.domain.xyz）
@@ -553,7 +562,7 @@ struct WebsiteDetailFromContainerView: View {
         .navigationTitle(L10n.t("网站"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            if vm.websites.isEmpty { await vm.search(query: "") }
+            await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() }
         }
     }
 }

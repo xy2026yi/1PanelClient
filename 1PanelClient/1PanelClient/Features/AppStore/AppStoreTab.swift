@@ -22,12 +22,15 @@ struct AppStoreTab: View {
     init(manager: ServerManager) {
         self.manager = manager
         let server = manager.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
-        _vm = StateObject(wrappedValue: AppStoreViewModel(server: server))
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: PageVMStore.pageKey("appStore", server: server)) {
+            AppStoreViewModel(server: server)
+        })
     }
 
     var body: some View {
         storeRootContent
-        .task { await vm.refresh() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
     }
 
     /// 列表根内容（不含 NavigationStack/task），供外层复用

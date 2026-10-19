@@ -142,7 +142,11 @@ struct GroupManageView: View {
     @State private var actionGroup: PanelGroup?
 
     init(server: ServerConfig, scope: GroupScope, onChanged: (() -> Void)? = nil) {
-        _vm = StateObject(wrappedValue: GroupManageViewModel(server: server, scope: scope))
+        // key 含 scope：网站/计划任务/脚本库三处入口各自独立缓存
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: PageVMStore.pageKey("groups|\(scope.type)", server: server)) {
+            GroupManageViewModel(server: server, scope: scope)
+        })
         self.onChanged = onChanged
     }
 
@@ -211,7 +215,7 @@ struct GroupManageView: View {
         } message: {
             Text(vm.alertMessage)
         }
-        .task { await vm.load() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() } }
     }
 
     private var groupList: some View {

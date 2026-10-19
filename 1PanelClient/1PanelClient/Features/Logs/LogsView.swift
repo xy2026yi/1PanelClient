@@ -69,52 +69,46 @@ struct LogsView: View {
 
 struct OperationLogView: View {
     let server: ServerConfig
-    @State private var items: [OperationLogItem] = []
-    @State private var isLoading = true
-    @State private var errorMessage: String?
-    /// 分页（C5）：首屏 100/页 + 滚动到底自动追加，超出首屏的记录不再被截断
-    @State private var page = 1
-    @State private var total = 0
-    @State private var isLoadingMore = false
-    /// 列表代数：load() 替换列表时递增，追加页响应到达时与捕获值比对——
-    /// 期间发生过任何重载即丢弃过期追加。用代数而非页码比对：页码归 1 后
-    /// next==2==page+1 恒成立，首次翻页恰是页码判定的盲区。本页刷新时
-    /// isLoading 仅在列表为空时为 true，追加页可在刷新在途时启动，
-    /// 故代数必须在替换点（而非 load 入口）递增
-    @State private var loadGeneration = 0
-    private let pageSize = 100
-
-    private var hasMore: Bool { items.count < total }
-
-    private let client: APIClient
+    @StateObject private var vm: LogListViewModel<OperationLogItem>
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient.shared(for: server)
+        let client = APIClient.shared(for: server)
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: PageVMStore.pageKey("logs.operation", server: server)) {
+            LogListViewModel(pageSize: 100) { page in
+                let resp: OperationLogResponse = try await client.send(
+                    path: APIEndpoint.logsOperation.path,
+                    body: OperationLogRequest(page: page, pageSize: 100),
+                    as: OperationLogResponse.self
+                )
+                return (resp.items ?? [], resp.total)
+            }
+        })
     }
 
     var body: some View {
         Group {
-            if isLoading {
+            if vm.isLoading && vm.items.isEmpty {
                 LoadingStateView()
-            } else if let errorMessage {
+            } else if let errorMessage = vm.errorMessage, vm.items.isEmpty {
                 LoadErrorStateView(message: errorMessage) {
-                    Task { await load() }
+                    Task { await vm.load() }
                 }
-            } else if items.isEmpty {
+            } else if vm.items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无操作日志"), systemImage: "square.and.pencil")
             } else {
                 List {
-                    ForEach(items) { item in
+                    ForEach(vm.items) { item in
                         row(item)
                             .onAppear {
-                                if item.id == items.last?.id {
-                                    Task { await loadMore() }
+                                if item.id == vm.items.last?.id {
+                                    Task { await vm.loadMore() }
                                 }
                             }
                     }
-                    if hasMore || isLoadingMore {
-                        logLoadMoreRow { Task { await loadMore() } }
+                    if vm.hasMore || vm.isLoadingMore {
+                        logLoadMoreRow { Task { await vm.loadMore() } }
                     }
                 }
                 .listStyle(.insetGrouped)
@@ -122,8 +116,8 @@ struct OperationLogView: View {
         }
         .navigationTitle(L10n.t("操作日志"))
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await load() }
-        .task { await load() }
+        .refreshable { await vm.load() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() } }
     }
 
     private func row(_ item: OperationLogItem) -> some View {
@@ -164,107 +158,52 @@ struct OperationLogView: View {
         }
         .padding(.vertical, 2)
     }
-
-    private func load() async {
-        isLoading = items.isEmpty
-        do {
-            let resp: OperationLogResponse = try await client.send(
-                path: APIEndpoint.logsOperation.path,
-                body: OperationLogRequest(page: 1, pageSize: pageSize),
-                as: OperationLogResponse.self
-            )
-            items = resp.items ?? []
-            total = resp.total
-            page = 1
-            loadGeneration += 1
-            errorMessage = nil
-        } catch {
-            // 页面退出取消不是失败：保留原快照、不写错误态（pop 转场期间
-            // 取消错误写入会短暂渲染出「网络错误」）
-            if !APIError.isCancellation(error) {
-                errorMessage = error.localizedDescription
-            }
-        }
-        isLoading = false
-    }
-
-    /// 追加下一页（滚动到底触发；按 id 去重，防翻页期间新记录导致跨页重复）
-    private func loadMore() async {
-        guard hasMore, !isLoadingMore, !isLoading else { return }
-        isLoadingMore = true
-        defer { isLoadingMore = false }
-        let next = page + 1
-        let gen = loadGeneration
-        do {
-            let resp: OperationLogResponse = try await client.send(
-                path: APIEndpoint.logsOperation.path,
-                body: OperationLogRequest(page: next, pageSize: pageSize),
-                as: OperationLogResponse.self
-            )
-            // 期间列表已被重载（下拉刷新触发新代数）：丢弃过期追加
-            guard gen == loadGeneration else { return }
-            let existing = Set(items.map(\.id))
-            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
-            if newItems.isEmpty {
-                // 翻页间隙服务器侧数据变动，去重后零新增：total 收敛为已加载量
-                total = items.count
-                return
-            }
-            items += newItems
-            total = resp.total
-            page = next
-        } catch {
-            // 追加失败不打断列表，下拉刷新可重试
-        }
-    }
 }
 
 // MARK: - 访问日志（面板登录）
 
 struct LoginLogView: View {
     let server: ServerConfig
-    @State private var items: [LoginLogItem] = []
-    @State private var isLoading = true
-    @State private var errorMessage: String?
-    /// 分页（C5）：同操作日志，首屏 100/页 + 滚动到底自动追加
-    @State private var page = 1
-    @State private var total = 0
-    @State private var isLoadingMore = false
-    /// 列表代数：同操作日志——load() 替换列表时递增，追加页据此丢弃过期追加
-    @State private var loadGeneration = 0
-    private let pageSize = 100
-
-    private var hasMore: Bool { items.count < total }
-
-    private let client: APIClient
+    @StateObject private var vm: LogListViewModel<LoginLogItem>
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient.shared(for: server)
+        let client = APIClient.shared(for: server)
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: PageVMStore.pageKey("logs.login", server: server)) {
+            LogListViewModel(pageSize: 100) { page in
+                let resp: LoginLogResponse = try await client.send(
+                    path: APIEndpoint.logsLogin.path,
+                    body: LoginLogRequest(page: page, pageSize: 100),
+                    as: LoginLogResponse.self
+                )
+                return (resp.items ?? [], resp.total)
+            }
+        })
     }
 
     var body: some View {
         Group {
-            if isLoading {
+            if vm.isLoading && vm.items.isEmpty {
                 LoadingStateView()
-            } else if let errorMessage {
+            } else if let errorMessage = vm.errorMessage, vm.items.isEmpty {
                 LoadErrorStateView(message: errorMessage) {
-                    Task { await load() }
+                    Task { await vm.load() }
                 }
-            } else if items.isEmpty {
+            } else if vm.items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无访问日志"), systemImage: "person.badge.key")
             } else {
                 List {
-                    ForEach(items) { item in
+                    ForEach(vm.items) { item in
                         row(item)
                             .onAppear {
-                                if item.id == items.last?.id {
-                                    Task { await loadMore() }
+                                if item.id == vm.items.last?.id {
+                                    Task { await vm.loadMore() }
                                 }
                             }
                     }
-                    if hasMore || isLoadingMore {
-                        logLoadMoreRow { Task { await loadMore() } }
+                    if vm.hasMore || vm.isLoadingMore {
+                        logLoadMoreRow { Task { await vm.loadMore() } }
                     }
                 }
                 .listStyle(.insetGrouped)
@@ -272,8 +211,8 @@ struct LoginLogView: View {
         }
         .navigationTitle(L10n.t("访问日志"))
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await load() }
-        .task { await load() }
+        .refreshable { await vm.load() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() } }
     }
 
     private func row(_ item: LoginLogItem) -> some View {
@@ -305,58 +244,6 @@ struct LoginLogView: View {
             }
         }
         .padding(.vertical, 2)
-    }
-
-    private func load() async {
-        isLoading = items.isEmpty
-        do {
-            let resp: LoginLogResponse = try await client.send(
-                path: APIEndpoint.logsLogin.path,
-                body: LoginLogRequest(page: 1, pageSize: pageSize),
-                as: LoginLogResponse.self
-            )
-            items = resp.items ?? []
-            total = resp.total
-            page = 1
-            loadGeneration += 1
-            errorMessage = nil
-        } catch {
-            // 页面退出取消不是失败：保留原快照、不写错误态
-            if !APIError.isCancellation(error) {
-                errorMessage = error.localizedDescription
-            }
-        }
-        isLoading = false
-    }
-
-    /// 追加下一页（滚动到底触发；按 id 去重，防翻页期间新记录导致跨页重复）
-    private func loadMore() async {
-        guard hasMore, !isLoadingMore, !isLoading else { return }
-        isLoadingMore = true
-        defer { isLoadingMore = false }
-        let next = page + 1
-        let gen = loadGeneration
-        do {
-            let resp: LoginLogResponse = try await client.send(
-                path: APIEndpoint.logsLogin.path,
-                body: LoginLogRequest(page: next, pageSize: pageSize),
-                as: LoginLogResponse.self
-            )
-            // 期间列表已被重载（下拉刷新触发新代数）：丢弃过期追加
-            guard gen == loadGeneration else { return }
-            let existing = Set(items.map(\.id))
-            let newItems = (resp.items ?? []).filter { !existing.contains($0.id) }
-            if newItems.isEmpty {
-                // 翻页间隙服务器侧数据变动，去重后零新增：total 收敛为已加载量
-                total = items.count
-                return
-            }
-            items += newItems
-            total = resp.total
-            page = next
-        } catch {
-            // 追加失败不打断列表，下拉刷新可重试
-        }
     }
 }
 
@@ -482,29 +369,38 @@ struct SystemLogView: View {
 
 struct SSHLogView: View {
     let server: ServerConfig
-    @State private var items: [SSHLogItem] = []
-    @State private var isLoading = true
-    @State private var errorMessage: String?
-
-    private let client: APIClient
+    /// 非分页接口：fetchPage 忽略页码返回全量，loadMore 因 total 收敛空转
+    @StateObject private var vm: LogListViewModel<SSHLogItem>
 
     init(server: ServerConfig) {
         self.server = server
-        self.client = APIClient.shared(for: server)
+        let client = APIClient.shared(for: server)
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: PageVMStore.pageKey("logs.ssh", server: server)) {
+            LogListViewModel(pageSize: 100) { _ in
+                let resp: SSHLogResponse = try await client.send(
+                    path: APIEndpoint.logsSSHLog.path,
+                    body: SSHLogRequest(),
+                    as: SSHLogResponse.self
+                )
+                let items = resp.items ?? []
+                return (items, items.count)
+            }
+        })
     }
 
     var body: some View {
         Group {
-            if isLoading {
+            if vm.isLoading && vm.items.isEmpty {
                 LoadingStateView()
-            } else if let errorMessage {
+            } else if let errorMessage = vm.errorMessage, vm.items.isEmpty {
                 LoadErrorStateView(message: errorMessage) {
-                    Task { await load() }
+                    Task { await vm.load() }
                 }
-            } else if items.isEmpty {
+            } else if vm.items.isEmpty {
                 ContentUnavailableView(L10n.t("暂无 SSH 登陆日志"), systemImage: "terminal")
             } else {
-                List(items) { item in
+                List(vm.items) { item in
                     row(item)
                 }
                 .listStyle(.insetGrouped)
@@ -512,8 +408,8 @@ struct SSHLogView: View {
         }
         .navigationTitle(L10n.t("SSH 登陆日志"))
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await load() }
-        .task { await load() }
+        .refreshable { await vm.load() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() } }
     }
 
     private func row(_ item: SSHLogItem) -> some View {
@@ -549,22 +445,6 @@ struct SSHLogView: View {
             }
         }
         .padding(.vertical, 2)
-    }
-
-    private func load() async {
-        isLoading = items.isEmpty
-        do {
-            let resp: SSHLogResponse = try await client.send(
-                path: APIEndpoint.logsSSHLog.path,
-                body: SSHLogRequest(),
-                as: SSHLogResponse.self
-            )
-            items = resp.items ?? []
-            errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isLoading = false
     }
 }
 

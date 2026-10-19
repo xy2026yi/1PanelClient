@@ -82,7 +82,12 @@ struct DatabaseSystemView: View {
     }
 
     init(system: DatabaseSystem) {
-        _vm = StateObject(wrappedValue: DatabaseSystemViewModel(system: system, server: ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")))
+        let server = ServerManager.shared.current ?? ServerConfig(name: "", baseURL: "", apiKey: "")
+        // key 含实例标识（类型 + 服务名）：同服务器多个数据库实例互不串页
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: PageVMStore.pageKey("dbSystem|\(system.type)|\(system.database)", server: server)) {
+            DatabaseSystemViewModel(system: system, server: server)
+        })
     }
 
     var body: some View {
@@ -141,7 +146,7 @@ struct DatabaseSystemView: View {
                 usersAnchorID = nil
             }
         }
-        .task { await vm.refresh() }
+        .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
         .sheet(isPresented: $showAddMenu) {
             ActionBottomSheet(title: vm.system.displayName, items: addMenuItems) {
                 showAddMenu = false

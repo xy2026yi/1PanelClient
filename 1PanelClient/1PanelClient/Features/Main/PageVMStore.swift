@@ -107,6 +107,16 @@ final class PageVMStore {
 
 // MARK: - 页面 key
 
+extension PageVMStore {
+    /// 页面 key 通用组键：无独立 ManageItem 的子页/桥接页（分组管理、数据库
+    /// 实例、容器跳应用/网站详情等）用页面标识自组，与 storeKey 同构——
+    /// 服务器指纹与节点任一变化即新 VM（同 storeKey 的防错靶语义）
+    static func pageKey(_ page: String, server: ServerConfig) -> String {
+        let node = NodeScope.current(for: server.id) ?? "local"
+        return "page|\(page)|\(server.id.uuidString)|\(server.hashValue)|node|\(node)"
+    }
+}
+
 extension ManageItem {
     /// VM 缓存键：页面 + 服务器 id + 配置指纹 + 当前节点（任一变化即新 VM）。
     /// 节点维度必须入键：应用/网站/数据库/计划任务页都可从「管理根入口」与
@@ -115,7 +125,6 @@ extension ManageItem {
     /// 会直接渲染 A 的列表快照，行点击带着 B 的节点头按自增 id 请求，
     /// 极易命中 B 上的同 id 资源（列表显示 A、操作落在 B 的错靶）
     func storeKey(server: ServerConfig) -> String {
-        let node = NodeScope.current(for: server.id) ?? "local"
-        return "page|\(rawValue)|\(server.id.uuidString)|\(server.hashValue)|node|\(node)"
+        PageVMStore.pageKey(rawValue, server: server)
     }
 }
