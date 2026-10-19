@@ -34,7 +34,7 @@ nonisolated struct ContainerStatsSnapshot: Decodable {
 
 /// 单个容器（1Panel v2 实际返回的字段，已通过 logs/输出11.log 验证）
 /// L1 加固：containerID/name/state 缺失或类型漂移回退默认值
-nonisolated struct Container: Decodable, Identifiable, Hashable {
+nonisolated struct Container: Codable, Identifiable, Hashable {
     let containerID: String
     let name: String
     let imageName: String?
@@ -125,7 +125,7 @@ nonisolated struct Container: Decodable, Identifiable, Hashable {
 
 // MARK: - Docker 服务状态（GET /containers/docker/status）
 
-nonisolated struct DockerStatus: Decodable {
+nonisolated struct DockerStatus: Codable {
     let isActive: Bool?
     let isExist: Bool?
 }

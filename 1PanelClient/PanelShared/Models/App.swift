@@ -27,7 +27,7 @@ nonisolated struct AppInstalledListResponse: Decodable, Sendable {
 
 /// 已安装应用
 /// 字段已通过 logs/输出16.log 实际返回数据验证
-nonisolated struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct AppInstall: Codable, Identifiable, Hashable, Sendable {
     let id: Int
     let name: String?
     let appID: Int?
@@ -63,7 +63,7 @@ nonisolated struct AppInstall: Decodable, Identifiable, Hashable, Sendable {
     /// 非 nil 表示该应用已被忽略升级，nil 表示未忽略
     var ignoredRecordID: Int?
 
-    nonisolated struct AppLinks: Decodable, Hashable, Sendable {
+    nonisolated struct AppLinks: Codable, Hashable, Sendable {
         let website: String?
         let document: String?
         let github: String?

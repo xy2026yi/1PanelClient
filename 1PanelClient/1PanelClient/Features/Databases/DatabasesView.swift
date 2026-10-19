@@ -399,3 +399,21 @@ struct DatabaseSystemRow: View {
     }
 }
 
+
+// MARK: - 快照落盘（PageVMStore 磁盘层：冷启动回填首屏数据）
+// 仅系统列表；各实例的库/用户表归 DatabaseSystemViewModel 按需拉取，不入快照
+
+private struct DatabasesPageSnapshot: Codable {
+    var systems: [DatabaseSystem]
+}
+
+extension DatabasesViewModel: PageSnapshotProvider {
+    func snapshotData() -> Data? {
+        try? JSONEncoder().encode(DatabasesPageSnapshot(systems: systems))
+    }
+
+    func restore(snapshotData: Data) {
+        guard let snapshot = try? JSONDecoder().decode(DatabasesPageSnapshot.self, from: snapshotData) else { return }
+        systems = snapshot.systems
+    }
+}

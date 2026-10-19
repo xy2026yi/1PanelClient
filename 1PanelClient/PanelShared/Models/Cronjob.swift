@@ -130,7 +130,7 @@ nonisolated struct CronjobSearchRequest: Encodable {
 typealias CronjobListResponse = PageEnvelope<Cronjob>
 
 /// 单个计划任务（response.CronjobDTO，仅取列表/详情展示所需字段）
-nonisolated struct Cronjob: Decodable, Identifiable, Hashable {
+nonisolated struct Cronjob: Codable, Identifiable, Hashable {
     let id: Int
     let name: String?
     let type: String?                  // CronjobType.rawValue

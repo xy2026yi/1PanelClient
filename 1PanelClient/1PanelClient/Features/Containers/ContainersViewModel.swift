@@ -865,3 +865,24 @@ final class ContainersViewModel: ObservableObject {
     }
 }
 
+
+// MARK: - 快照落盘（PageVMStore 磁盘层：冷启动回填首屏数据）
+// dockerStatus 入快照：避免「Docker 未运行」横幅闪现
+
+private struct ContainersPageSnapshot: Codable {
+    var containers: [Container]
+    var dockerStatus: DockerStatus?
+}
+
+extension ContainersViewModel: PageSnapshotProvider {
+    func snapshotData() -> Data? {
+        try? JSONEncoder().encode(ContainersPageSnapshot(
+            containers: containers, dockerStatus: dockerStatus))
+    }
+
+    func restore(snapshotData: Data) {
+        guard let snapshot = try? JSONDecoder().decode(ContainersPageSnapshot.self, from: snapshotData) else { return }
+        containers = snapshot.containers
+        dockerStatus = snapshot.dockerStatus
+    }
+}

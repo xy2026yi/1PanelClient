@@ -12,7 +12,7 @@ import Foundation
 
 /// GET /api/v2/databases/db/list/<types> 返回的数据库系统
 /// L1 加固：id/type/from/database 缺失或类型漂移回退默认值，不整页失败
-nonisolated struct DatabaseSystem: Decodable, Identifiable, Hashable {
+nonisolated struct DatabaseSystem: Codable, Identifiable, Hashable {
     let id: Int
     let type: String          // "mysql" / "postgresql" / "redis"
     let from: String          // "local"

@@ -529,3 +529,20 @@ struct WebsiteOptionSimple: Decodable, Identifiable, Hashable {
 
 /// 空 POST body
 struct EmptyRequest: Encodable {}
+
+// MARK: - 快照落盘（PageVMStore 磁盘层：冷启动回填首屏数据）
+
+private struct CronjobsPageSnapshot: Codable {
+    var cronjobs: [Cronjob]
+}
+
+extension CronjobsViewModel: PageSnapshotProvider {
+    func snapshotData() -> Data? {
+        try? JSONEncoder().encode(CronjobsPageSnapshot(cronjobs: cronjobs))
+    }
+
+    func restore(snapshotData: Data) {
+        guard let snapshot = try? JSONDecoder().decode(CronjobsPageSnapshot.self, from: snapshotData) else { return }
+        cronjobs = snapshot.cronjobs
+    }
+}

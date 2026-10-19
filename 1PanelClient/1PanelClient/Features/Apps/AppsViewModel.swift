@@ -673,3 +673,22 @@ final class AppsViewModel: ObservableObject {
     }
 }
 
+
+// MARK: - 快照落盘（PageVMStore 磁盘层：冷启动回填首屏数据）
+
+private struct AppsPageSnapshot: Codable {
+    var apps: [AppInstall]
+    var total: Int
+}
+
+extension AppsViewModel: PageSnapshotProvider {
+    func snapshotData() -> Data? {
+        try? JSONEncoder().encode(AppsPageSnapshot(apps: apps, total: total))
+    }
+
+    func restore(snapshotData: Data) {
+        guard let snapshot = try? JSONDecoder().decode(AppsPageSnapshot.self, from: snapshotData) else { return }
+        apps = snapshot.apps
+        total = snapshot.total
+    }
+}

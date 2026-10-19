@@ -24,7 +24,7 @@ nonisolated struct WebsiteSearchRequest: Encodable {
 typealias WebsiteListResponse = PageEnvelope<Website>
 
 /// 单个网站（response.WebsiteDTO）
-nonisolated struct Website: Decodable, Identifiable, Hashable, Sendable {
+nonisolated struct Website: Codable, Identifiable, Hashable, Sendable {
     let id: Int
     let primaryDomain: String?
     let type: String?

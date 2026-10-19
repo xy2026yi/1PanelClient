@@ -1064,3 +1064,25 @@ private struct WebsiteProxiesResponse: Decodable {
     }
 }
 
+
+// MARK: - 快照落盘（PageVMStore 磁盘层：冷启动回填首屏数据）
+
+private struct WebsitesPageSnapshot: Codable {
+    var websites: [Website]
+    var groups: [PanelGroup]
+    var total: Int
+}
+
+extension WebsitesViewModel: PageSnapshotProvider {
+    func snapshotData() -> Data? {
+        try? JSONEncoder().encode(WebsitesPageSnapshot(
+            websites: websites, groups: groups, total: total))
+    }
+
+    func restore(snapshotData: Data) {
+        guard let snapshot = try? JSONDecoder().decode(WebsitesPageSnapshot.self, from: snapshotData) else { return }
+        websites = snapshot.websites
+        groups = snapshot.groups
+        total = snapshot.total
+    }
+}

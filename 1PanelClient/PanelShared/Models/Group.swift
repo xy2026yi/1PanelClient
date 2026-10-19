@@ -13,7 +13,7 @@ import Foundation
 // MARK: - 模型
 
 /// 分组项（response.GroupInfo）
-nonisolated struct PanelGroup: Decodable, Identifiable, Hashable {
+nonisolated struct PanelGroup: Codable, Identifiable, Hashable {
     let id: Int
     let name: String?
     let type: String?
