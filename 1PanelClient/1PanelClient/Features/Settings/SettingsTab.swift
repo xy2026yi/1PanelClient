@@ -256,9 +256,6 @@ private struct AboutDetailContent: View {
     @State private var tapToast: String?
     private static let unlockTaps = 7
 
-    private static let privacyPolicyURL =
-        "https://github.com/xy2026yi/1PanelClient/blob/main/docs/privacy-policy.md"
-
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
     }
@@ -367,7 +364,7 @@ private struct AboutDetailContent: View {
     /// HEAD 探测在线版可达性（超时 4s）：任何 HTTP 响应都算可达——回退只服务
     /// 「打不开网络」的场景，页面级 4xx/5xx 交给 Safari 自行呈现
     private func openPrivacyPolicy() async {
-        guard !isProbingPrivacy, let url = URL(string: Self.privacyPolicyURL) else { return }
+        guard !isProbingPrivacy, let url = PrivacyPolicyView.onlineURL else { return }
         isProbingPrivacy = true
         defer { isProbingPrivacy = false }
         var request = URLRequest(url: url)

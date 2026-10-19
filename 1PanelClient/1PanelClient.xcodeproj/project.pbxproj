@@ -280,14 +280,16 @@
 			);
 			inputPaths = (
 				"$(PROJECT_DIR)/../docs/privacy-policy.md",
+				"$(PROJECT_DIR)/../docs/privacy-policy.en.md",
 			);
 			name = "Embed Privacy Policy";
 			outputPaths = (
 				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/PrivacyPolicy.md",
+				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/PrivacyPolicy.en.md",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cp \"${PROJECT_DIR}/../docs/privacy-policy.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PrivacyPolicy.md\"\n";
+			shellScript = "cp \"${PROJECT_DIR}/../docs/privacy-policy.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PrivacyPolicy.md\"\ncp \"${PROJECT_DIR}/../docs/privacy-policy.en.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PrivacyPolicy.en.md\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

@@ -32,9 +32,19 @@ struct PrivacyPolicyView: View {
         sections = Self.parse(Self.markdown)
     }
 
-    /// 构建期资源：ShellScript 阶段从 docs/privacy-policy.md 拷贝进主包
+    /// 在线版地址（跟随 App 语言；资源缺失兜底页与关于页探测共用）
+    static var onlineURL: URL? {
+        let file = L10n.shared.isEnglishEffective ? "privacy-policy.en.md" : "privacy-policy.md"
+        return URL(string: "https://github.com/xy2026yi/1PanelClient/blob/main/docs/\(file)")
+    }
+
+    /// 构建期资源：ShellScript 阶段从 docs/privacy-policy.md 与 .en.md 拷贝进
+    /// 主包；按 App 生效语言选英文版，英文资源缺失回落中文版
     private static var markdown: String {
-        guard let url = Bundle.main.url(forResource: "PrivacyPolicy", withExtension: "md") else { return "" }
+        let name = L10n.shared.isEnglishEffective ? "PrivacyPolicy.en" : "PrivacyPolicy"
+        let url = Bundle.main.url(forResource: name, withExtension: "md")
+            ?? Bundle.main.url(forResource: "PrivacyPolicy", withExtension: "md")
+        guard let url else { return "" }
         return (try? String(contentsOf: url, encoding: .utf8)) ?? ""
     }
 
@@ -100,7 +110,7 @@ struct PrivacyPolicyView: View {
             if sections.isEmpty {
                 // 资源缺失兜底（正常构建不会走到）：直接给在线版入口
                 Section {
-                    if let url = URL(string: "https://github.com/xy2026yi/1PanelClient/blob/main/docs/privacy-policy.md") {
+                    if let url = Self.onlineURL {
                         Link(L10n.t("查看在线版本"), destination: url)
                     }
                 }
