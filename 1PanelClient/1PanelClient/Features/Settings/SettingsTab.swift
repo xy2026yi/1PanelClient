@@ -16,9 +16,6 @@ enum SettingsRoute: Hashable {
 struct SettingsTab: View {
     /// 导航路径由 MainTabView 持有（跨尺寸类重建不丢栈）；底部栏可见性由计数推导
     @Binding var navPath: NavigationPath
-    /// regular（iPad 全屏）下不显示导航大标题，与首页/管理空标题一致——
-    /// 独立 NavigationStack 的 large 标题会在页顶多出一行「设置」
-    @Environment(\.horizontalSizeClass) private var hSize
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
     @AppStorage(SecurityGate.httpsOnlyKey) private var httpsOnly = false
     @AppStorage(AppLockManager.enabledKey) private var appLockEnabled = false
@@ -515,7 +512,7 @@ struct MetricDiagnosticsView: View {
                 }
             }
         }
-        .navigationTitle(L10n.t("诊断数据（本地）"))
+        .navigationTitle(L10n.t("诊断数据"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { files = MetricStore.listFiles() }
     }

@@ -52,7 +52,7 @@ final class AppUpdateChecker: ObservableObject {
 
     @Published private(set) var state: AppUpdateState = .idle
 
-    /// 设置页「关于APP」入口行角标判定
+    /// 设置页「关于」入口行角标判定
     var updateAvailable: Bool {
         if case .available = state { return true }
         return false

@@ -5,7 +5,7 @@
 //  底部三段式结构（对齐 1Panel 官方 App）：
 //    1. 首页   - OverviewTab（资源卡片 + 实时监控 + 系统信息，顶栏进入服务器管理）
 //    2. 管理   - ManageTab（应用/网站/容器/计划任务等列表式入口）
-//    3. 设置   - SettingsTab（外观与关于APP）
+//    3. 设置   - SettingsTab（常规 / 安全 / 关于）
 //
 //  双形态导航（iPad 适配，自绘侧栏方案）：
 //    - tabContent 恒为 ZStack 首子视图（三 Tab 保活切换），regular 时侧栏以兄弟
