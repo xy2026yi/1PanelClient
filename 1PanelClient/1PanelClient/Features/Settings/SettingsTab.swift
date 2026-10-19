@@ -41,10 +41,12 @@ struct SettingsTab: View {
         List {
             // MARK: - 外观
             Section {
-                Picker(L10n.t("主题"), selection: $themeRaw) {
+                Picker(selection: $themeRaw) {
                     ForEach(AppTheme.allCases) { theme in
                         Text(theme.displayName).tag(theme.rawValue)
                     }
+                } label: {
+                    settingsRowLabel(L10n.t("主题"), systemName: "paintpalette", color: .purple)
                 }
             } header: {
                 Text(L10n.t("外观"))
@@ -54,10 +56,12 @@ struct SettingsTab: View {
 
             // MARK: - 语言
             Section {
-                Picker(L10n.t("语言"), selection: $languageRaw) {
+                Picker(selection: $languageRaw) {
                     ForEach(L10n.Language.allCases) { lang in
                         Text(lang.displayName).tag(lang.rawValue)
                     }
+                } label: {
+                    settingsRowLabel(L10n.t("语言"), systemName: "globe", color: .teal)
                 }
             } header: {
                 Text(L10n.t("语言"))
@@ -67,8 +71,10 @@ struct SettingsTab: View {
 
             // MARK: - 安全
             Section {
-                Toggle(L10n.t("仅允许 HTTPS 连接"), isOn: $httpsOnly)
-                Toggle(L10n.t("应用锁"), isOn: Binding(
+                Toggle(isOn: $httpsOnly) {
+                    settingsRowLabel(L10n.t("仅允许 HTTPS 连接"), systemName: "lock.shield", color: .green)
+                }
+                Toggle(isOn: Binding(
                     get: { appLockEnabled && AppLockManager.hasPasscode },
                     set: { on in
                         if on {
@@ -80,11 +86,17 @@ struct SettingsTab: View {
                             AppLockManager.clearPasscode()
                         }
                     }
-                ))
+                )) {
+                    settingsRowLabel(L10n.t("应用锁"), systemName: "lock", color: .indigo)
+                }
                 if AppLockManager.hasPasscode {
-                    Button(L10n.t("修改密码")) {
+                    Button {
                         showSetPin = true
+                    } label: {
+                        settingsRowLabel(L10n.t("修改密码"), systemName: "key.horizontal", color: .orange)
+                            .foregroundStyle(.primary)
                     }
+                    .buttonStyle(.plain)
                 }
             } header: {
                 Text(L10n.t("安全"))
@@ -124,6 +136,17 @@ struct SettingsTab: View {
         .onChange(of: languageRaw) { _, new in
             L10n.shared.setLanguage(L10n.Language(rawValue: new) ?? .system)
         }
+    }
+
+    /// 设置行统一图标样式：与「关于」入口行同款（34pt IconBadge + 左对齐标题），
+    /// 供 Picker/Toggle/Button 行的 label 复用
+    private func settingsRowLabel(_ title: String, systemName: String, color: Color) -> some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: systemName, color: color,
+                      size: 34, cornerRadius: Radius.small, backgroundOpacity: 0.08)
+            Text(title)
+        }
+        .padding(.vertical, 4)
     }
 }
 
