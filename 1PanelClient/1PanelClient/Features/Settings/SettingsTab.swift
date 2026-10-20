@@ -342,7 +342,7 @@ private struct AboutDetailContent: View {
 
     @ObservedObject private var gate = AdvancedFeatureGate.shared
     @ObservedObject private var updater = AppUpdateChecker.shared
-    @Environment(\.openURL) private var openURL
+    @EnvironmentObject private var safari: InAppSafariPresenter
     /// 隐私政策在线可达性探测进行中（行尾转圈，防重复点击）
     @State private var isProbingPrivacy = false
     /// 连点版本号解锁计数（Android 开发者选项同款彩蛋）——挂在顶部卡片的
@@ -417,15 +417,19 @@ private struct AboutDetailContent: View {
 
     private var actionSection: some View {
         Section {
-            if let url = URL(string: "https://github.com/xy2026yi/1PanelClient/issues") {
-                Link(destination: url) {
-                    Label(L10n.t("问题反馈"), systemImage: "ladybug")
+            Button {
+                if let url = URL(string: "https://github.com/xy2026yi/1PanelClient/issues") {
+                    safari.open(url)
                 }
+            } label: {
+                Label(L10n.t("问题反馈"), systemImage: "ladybug")
             }
-            if let url = URL(string: "https://1panel.cn") {
-                Link(destination: url) {
-                    Label(L10n.t("1Panel 官网"), systemImage: "safari")
+            Button {
+                if let url = URL(string: "https://1panel.cn") {
+                    safari.open(url)
                 }
+            } label: {
+                Label(L10n.t("1Panel 官网"), systemImage: "safari")
             }
             // 隐私政策默认在线版（源头 docs/privacy-policy.md）：探测可达即跳
             // Safari；离线/网络阻断（如 GitHub 不可达）回退 App 内本地页兜底
@@ -473,7 +477,7 @@ private struct AboutDetailContent: View {
             reachable = false
         }
         if reachable {
-            openURL(url)
+            safari.open(url)
         } else {
             onOpen(.privacyPolicy)
         }

@@ -173,6 +173,7 @@ struct AppStoreTab: View {
 struct AppStoreDetailView: View {
     let appKey: String
     @ObservedObject var vm: AppStoreViewModel
+    @EnvironmentObject private var safari: InAppSafariPresenter
     @State private var detail: AppStoreDetail?
     @State private var isLoading = true
 
@@ -254,16 +255,32 @@ struct AppStoreDetailView: View {
             // 相关链接（应用页面固定展示，其余链接存在才显示）
             Section(L10n.t("相关链接")) {
                 if let url = URL(string: "https://apps.fit2cloud.com/1panel/\(appKey)") {
-                    Link(destination: url) { Label(L10n.t("应用页面"), systemImage: "arrow.up.right.square") }
+                    Button {
+                        safari.open(url)
+                    } label: {
+                        Label(L10n.t("应用页面"), systemImage: "arrow.up.right.square")
+                    }
                 }
                 if let website = detail.website, let url = URL(string: website) {
-                    Link(destination: url) { Label(L10n.t("官方网站"), systemImage: "globe") }
+                    Button {
+                        safari.open(url)
+                    } label: {
+                        Label(L10n.t("官方网站"), systemImage: "globe")
+                    }
                 }
                 if let doc = detail.document, let url = URL(string: doc) {
-                    Link(destination: url) { Label(L10n.t("文档"), systemImage: "book") }
+                    Button {
+                        safari.open(url)
+                    } label: {
+                        Label(L10n.t("文档"), systemImage: "book")
+                    }
                 }
                 if let github = detail.github, let url = URL(string: github) {
-                    Link(destination: url) { Label("GitHub", systemImage: "network") }
+                    Button {
+                        safari.open(url)
+                    } label: {
+                        Label("GitHub", systemImage: "network")
+                    }
                 }
             }
 

@@ -11593,6 +11593,17 @@
         }
       }
     },
+    "在 Safari 中打开" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in Safari"
+          }
+        }
+      }
+    },
     "在技能市场搜索并安装技能" : {
       "extractionState" : "manual",
       "localizations" : {

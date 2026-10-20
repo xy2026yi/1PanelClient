@@ -38,8 +38,8 @@ struct WebsiteDetailView: View {
     // PHP / 资源入口（三点菜单子页，位于重定向与其他之间）
     @State private var showPHP = false
     @State private var showResource = false
-    /// 浏览器打开网站链接（toolbar 打开按钮用）
-    @Environment(\.openURL) private var openURL
+    /// 浏览器打开网站链接（toolbar 打开按钮用；应用内 SFSafari 打开）
+    @EnvironmentObject private var safari: InAppSafariPresenter
 
     /// 当前服务器配置（根目录跳转文件管理用）
     private var server: ServerConfig {
@@ -159,7 +159,7 @@ struct WebsiteDetailView: View {
             if let url = website.browserURL {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        openURL(url)
+                        safari.open(url)
                     } label: {
                         Image(systemName: "arrow.up.forward.app")
                     }

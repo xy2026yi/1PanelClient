@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var lastWidgetReload: Date? = nil
 
     @StateObject private var appLock = AppLockManager()
+    @StateObject private var safari = InAppSafariPresenter()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -32,9 +33,18 @@ struct ContentView: View {
                         .transition(.opacity)
                 }
             }
+            // 应用内浏览器 sheet：sheet 浮在窗口最上层（overlay 锁屏遮不住），上锁时
+            // 主动关掉，避免外链页面露在锁屏之上（其余编辑类 sheet 的同类问题遗留中）
+            .sheet(item: $safari.target) { target in
+                InAppSafariSheet(target: target)
+            }
+            .onChange(of: appLock.isLocked) { _, locked in
+                if locked { safari.close() }
+            }
             // environmentObject 必须包在 overlay 之外：overlay 内容不在内侧修饰器的
             // 环境作用域内，放 overlay 前会导致 LockScreenView 取不到 AppLockManager 而崩溃
             .environmentObject(appLock)
+            .environmentObject(safari)
             .onChange(of: scenePhase) { _, phase in
                 // 非 active 即锁（拉通知中心/进切换器会先 inactive，后台快照不露内容）；
                 // 来电横幅等短暂失焦同样视为离开，与应用锁的隐私预期一致。
