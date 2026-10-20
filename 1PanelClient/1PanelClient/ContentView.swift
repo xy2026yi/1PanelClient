@@ -37,9 +37,10 @@ struct ContentView: View {
             .environmentObject(appLock)
             .onChange(of: scenePhase) { _, phase in
                 // 非 active 即锁（拉通知中心/进切换器会先 inactive，后台快照不露内容）；
-                // 来电横幅等短暂失焦同样视为离开，与应用锁的隐私预期一致
+                // 来电横幅等短暂失焦同样视为离开，与应用锁的隐私预期一致。
+                // 设置页发起的面容验证造成的 inactive 由 manager 内部豁免
                 if phase != .active {
-                    appLock.lockIfEnabled()
+                    appLock.lockIfEnabled(leavingTo: phase)
                     if phase == .background {
                         // 回后台补写页面快照：覆盖手动下拉刷新等不经 autoRefresh
                         // 的更新路径，冷启动恢复不落后于用户最后所见

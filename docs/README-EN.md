@@ -49,7 +49,7 @@ Built natively with Swift + SwiftUI, it manages your servers remotely via the 1P
 ### Settings
 - Multi-server management (credentials stored in Keychain), connection testing, group management
 - "HTTPS only" toggle (off by default; when enabled, all plaintext `http://` panel addresses are rejected, and saving an HTTP address shows a plaintext-risk warning)
-- App Lock (FaceID / TouchID biometrics with 4-digit passcode fallback)
+- App Lock (independent Face ID / Touch ID and 4-digit passcode toggles; the app locks when either is on; turning one off requires verification, and the passcode can't be changed — turn it off and on again to set a new one)
 - Appearance (system / light / dark) and UI language (English / Chinese, applied instantly)
 
 ### Home Screen Widgets

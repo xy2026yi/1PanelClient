@@ -3,6 +3,7 @@
 //  1PanelClient
 //
 
+import LocalAuthentication
 import SwiftUI
 
 /// 设置页导航路由（path 驱动；不用 isPresented 绑定——iOS 26 上 back 返回后
@@ -18,9 +19,16 @@ struct SettingsTab: View {
     @Binding var navPath: NavigationPath
     @AppStorage(AppTheme.storageKey) private var themeRaw = AppTheme.system.rawValue
     @AppStorage(SecurityGate.httpsOnlyKey) private var httpsOnly = false
-    @AppStorage(AppLockManager.enabledKey) private var appLockEnabled = false
+    @AppStorage(AppLockManager.biometricsEnabledKey) private var biometricsEnabled = false
+    @AppStorage(AppLockManager.passcodeEnabledKey) private var passcodeEnabled = false
+    /// 开/关面容走系统验证时需豁免 inactive 上锁，经 manager 发起
+    @EnvironmentObject private var appLock: AppLockManager
     @State private var showSetPin = false
-    @State private var setPinToast: String? = nil
+    /// 正在关闭的方式（非 nil 时弹关闭前验证 sheet）
+    @State private var pendingDisable: AppLockMethod? = nil
+    @State private var biometricAuthInFlight = false
+    @State private var securityToast: String? = nil
+    @State private var biometricAlert: String? = nil
     @State private var languageRaw = L10n.shared.language.rawValue
 
     init(navPath: Binding<NavigationPath> = .constant(NavigationPath())) {
@@ -63,29 +71,34 @@ struct SettingsTab: View {
                 Toggle(isOn: $httpsOnly) {
                     settingsRowLabel(L10n.t("仅允许 HTTPS 连接"), systemName: "lock.shield", color: .green)
                 }
+                // 应用锁两种方式各自独立开关；无生物识别硬件的机型不显示面容行
+                if AppLockManager.hasBiometryHardware {
+                    Toggle(isOn: Binding(
+                        get: { biometricsEnabled },
+                        set: { on in
+                            if on {
+                                enableBiometrics()
+                            } else {
+                                requestDisable(.biometrics)
+                            }
+                        }
+                    )) {
+                        settingsRowLabel(AppLockManager.biometryDisplayName,
+                                         systemName: AppLockManager.biometryIcon, color: .indigo)
+                    }
+                }
                 Toggle(isOn: Binding(
-                    get: { appLockEnabled && AppLockManager.hasPasscode },
+                    get: { passcodeEnabled && AppLockManager.hasPasscode },
                     set: { on in
                         if on {
-                            // 未设过密码：先弹设置密码，成功后再真正开启
+                            // 先弹设置密码，成功后再真正开启
                             showSetPin = true
                         } else {
-                            appLockEnabled = false
-                            // 一并清除已存密码：重新开启时重设新密码，避免凭据残留
-                            AppLockManager.clearPasscode()
+                            requestDisable(.passcode)
                         }
                     }
                 )) {
-                    settingsRowLabel(L10n.t("应用锁"), systemName: "lock", color: .indigo)
-                }
-                if AppLockManager.hasPasscode {
-                    Button {
-                        showSetPin = true
-                    } label: {
-                        settingsRowLabel(L10n.t("修改密码"), systemName: "key.horizontal", color: .orange)
-                            .foregroundStyle(.primary)
-                    }
-                    .buttonStyle(.plain)
+                    settingsRowLabel(L10n.t("密码"), systemName: "lock", color: .orange)
                 }
             } header: {
                 Text(L10n.t("安全"))
@@ -114,21 +127,103 @@ struct SettingsTab: View {
         }
         .sheet(isPresented: $showSetPin) {
             SetPasscodeSheet {
-                appLockEnabled = true
-                setPinToast = L10n.t("应用锁已开启")
+                passcodeEnabled = true
+                Haptic.success()
+                securityToast = L10n.t("密码已开启")
             }
         }
-        .toastOverlay(message: $setPinToast)
+        .sheet(item: $pendingDisable) { method in
+            AppLockVerifySheet(
+                allowBiometrics: canVerifyWithBiometrics,
+                allowPasscode: canVerifyWithPasscode
+            ) {
+                disable(method)
+            }
+        }
+        .alert(AppLockManager.biometryDisplayName, isPresented: Binding(
+            get: { biometricAlert != nil },
+            set: { if !$0 { biometricAlert = nil } }
+        )) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(biometricAlert ?? "")
+        }
+        .toastOverlay(message: $securityToast)
         // toast 2 秒自动消失（同各 ViewModel.showToast 惯例；比较新值防连续提示被旧任务清掉）
-        .onChange(of: setPinToast) { _, newValue in
+        .onChange(of: securityToast) { _, newValue in
             guard newValue != nil else { return }
             Task {
                 try? await Task.sleep(for: .seconds(2))
-                if setPinToast == newValue { setPinToast = nil }
+                if securityToast == newValue { securityToast = nil }
             }
         }
         .onChange(of: languageRaw) { _, new in
             L10n.shared.setLanguage(L10n.Language(rawValue: new) ?? .system)
+        }
+    }
+
+    // MARK: - 应用锁开关流程
+
+    /// 当前可用于「关闭前验证」的方式 = 已开启且确实可用的方式
+    private var canVerifyWithBiometrics: Bool {
+        biometricsEnabled && AppLockManager.hasBiometryHardware
+    }
+
+    private var canVerifyWithPasscode: Bool {
+        passcodeEnabled && AppLockManager.hasPasscode
+    }
+
+    /// 开启面容/触控 ID：先验一次（确认确实可用，并在此刻触发系统权限弹窗），通过才置开
+    private func enableBiometrics() {
+        guard !biometricAuthInFlight else { return }
+        biometricAuthInFlight = true
+        Task {
+            defer { biometricAuthInFlight = false }
+            // 隐藏系统回退按钮：此处只为确认生物识别本身可用，没有「改用密码」的语义
+            let outcome = await appLock.authenticateInForeground(
+                policy: .deviceOwnerAuthenticationWithBiometrics,
+                reason: L10n.t("验证以更改应用锁设置"),
+                fallbackTitle: ""
+            )
+            let name = AppLockManager.biometryDisplayName
+            switch outcome {
+            case .success:
+                biometricsEnabled = true
+                Haptic.success()
+                securityToast = L10n.f("%@ 已开启", name)
+            case .cancelled, .fallbackRequested:
+                break
+            case .failed(let code):
+                switch code {
+                case .biometryNotEnrolled:
+                    biometricAlert = L10n.f("设备尚未录入%@，请先在系统设置中录入", name)
+                case .biometryNotAvailable:
+                    biometricAlert = L10n.f("%@ 不可用，请在系统设置中检查权限", name)
+                default:
+                    biometricAlert = L10n.f("%@ 验证失败，未开启", name)
+                }
+            }
+        }
+    }
+
+    /// 关闭某方式前先验证身份：可用方式 = 当前已开启的方式（仅面容→面容；仅密码→密码；
+    /// 都开→任一）。若无任一可验证方式（如密码开关位残留但 Keychain 已无密码），无从验证，直接关闭
+    private func requestDisable(_ method: AppLockMethod) {
+        guard canVerifyWithBiometrics || canVerifyWithPasscode else {
+            disable(method)
+            return
+        }
+        pendingDisable = method
+    }
+
+    private func disable(_ method: AppLockMethod) {
+        switch method {
+        case .biometrics:
+            biometricsEnabled = false
+        case .passcode:
+            passcodeEnabled = false
+            // 一并清除已存密码：密码不可修改，重新开启时必须设新密码，也避免凭据残留
+            AppLockManager.clearPasscode()
         }
     }
 
