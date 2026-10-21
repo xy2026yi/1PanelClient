@@ -10,6 +10,7 @@ import SwiftUI
 /// 绑定写回延迟甚至丢失，MainTabView 依路径计数推导底部栏可见性会失步）
 enum SettingsRoute: Hashable {
     case about
+    case serverBackup
     case privacyPolicy
     case termsOfUse
     case openSourceLicense
@@ -106,6 +107,27 @@ struct SettingsTab: View {
                 Text(L10n.t("安全"))
             }
 
+            // MARK: - 服务器（备份与恢复入口，推入 ServerBackupView）
+            Section {
+                Button {
+                    navPath.append(SettingsRoute.serverBackup)
+                } label: {
+                    HStack(spacing: 12) {
+                        IconBadge(systemName: "externaldrive", color: .blue,
+                                  size: 34, cornerRadius: Radius.small, backgroundOpacity: 0.08)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(L10n.t("备份"))
+                            Text(L10n.t("备份或恢复服务器配置数据"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: {
+                Text(L10n.t("服务器"))
+            }
+
             // MARK: - 关于
             AboutSectionView(onOpen: { navPath.append(SettingsRoute.about) })
         }
@@ -121,6 +143,8 @@ struct SettingsTab: View {
             switch route {
             case .about:
                 AboutDetailView { navPath.append($0) }
+            case .serverBackup:
+                ServerBackupView()
             case .privacyPolicy:
                 PrivacyPolicyView()
             case .termsOfUse:
@@ -243,9 +267,7 @@ struct SettingsTab: View {
         }
         .padding(.vertical, 4)
     }
-}
-
-// MARK: - 主题
+}// MARK: - 主题
 
 /// 版本号唯一来源：工程 MARKETING_VERSION（构建时注入 CFBundleShortVersionString，审计 E7）。
 /// 升级版本只改 pbxproj（或 `agvtool new-marketing-version <x.y.z>`），源码不再双写兜底版本号。
