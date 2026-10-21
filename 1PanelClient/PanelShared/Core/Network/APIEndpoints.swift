@@ -227,6 +227,7 @@ enum APIEndpoint {
     case firewallForwardEnable    // POST 启用转发子系统（任务式 {taskID?}）
     case firewallSettings         // GET  三组后端设置 + ping + 端口白名单
     case firewallSettingsOperate  // POST 后端操作 {subsystem,backend,operation: select|initialize|cleanup}
+    case firewallSettingsIPv6     // POST IPv6 支持开关 {status: Enable|Disable}（v2.4.0 新增，任务式）
     case firewallSettingsWhitelist // POST 白名单新增 {rule}（v2.3.1 逐条写）
     case firewallSettingsWhitelistUpdate // POST 白名单更新 {oldRule, rule}
     case firewallSettingsWhitelistDelete // POST 白名单删除 {rule}
@@ -887,6 +888,7 @@ enum APIEndpoint {
         case .firewallForwardEnable: return "/api/v2/hosts/firewall/forward/enable"
         case .firewallSettings:      return "/api/v2/hosts/firewall/settings"
         case .firewallSettingsOperate: return "/api/v2/hosts/firewall/settings/operate"
+        case .firewallSettingsIPv6:  return "/api/v2/hosts/firewall/settings/ipv6"
         case .firewallSettingsWhitelist: return "/api/v2/hosts/firewall/settings/whitelist"
         case .firewallSettingsWhitelistUpdate: return "/api/v2/hosts/firewall/settings/whitelist/update"
         case .firewallSettingsWhitelistDelete: return "/api/v2/hosts/firewall/settings/whitelist/delete"

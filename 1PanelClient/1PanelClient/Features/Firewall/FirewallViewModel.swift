@@ -851,6 +851,30 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
+    /// IPv6 支持开关（settings/ipv6，v2.4.0；抓包 2026-10-21：{status:Enable|Disable}
+    /// 任务式——后台逐子系统解绑/重建 IPv6 族）。乐观更新本地态防开关回弹，
+    /// 完成返回时经 refreshAfterDone 整页校准（规则/白名单/容器 IPv6 端口都会变）
+    func setIPv6Enabled(_ enabled: Bool) async {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let resp: FirewallTaskResponse = try await client.send(
+                path: APIEndpoint.firewallSettingsIPv6.path,
+                body: FirewallIPv6StatusRequest(status: enabled ? "Enable" : "Disable"),
+                as: FirewallTaskResponse.self
+            )
+            settings?.ipv6Enabled = enabled
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID,
+                                                title: L10n.t("设置 IPv6 支持"),
+                                                refreshAfterDone: true)
+            }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// 面板端口白名单（v2.3.1 逐条写）。差异配对不按含 sources 的行 id：
     /// id 含 sources 后「仅改来源」会退化成删+建，对 ssh/panel 条目
     /// （服务端按 type 键控）有风险。改为：全等条目跳过；剩余按
@@ -1034,5 +1058,8 @@ final class FirewallViewModel: ObservableObject {
 struct FirewallTaskTarget: Identifiable, Hashable {
     let taskID: String
     let title: String
+    /// 完成返回时是否整页刷新（IPv6 开关：任务后台改写全部子系统的族状态/
+    /// 规则/白名单/容器 IPv6 端口，返回时需重拉校准）
+    var refreshAfterDone: Bool = false
     var id: String { taskID }
 }

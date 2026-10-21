@@ -126,6 +126,34 @@ struct FirewallV2ModelsTests {
         #expect(settings.portWhiteList?.map(\.display) == ["80/tcp", "443/tcp"])
     }
 
+    @Test("设置 v2.4.0：顶层 ipv6Enabled 解码 + 开关请求编码（抓包 2026-10-21）")
+    func settingsIPv6() throws {
+        let json = """
+        {"ipv6Enabled":true,
+         "system":{"selected":"iptables","current":"iptables","options":[
+            {"name":"iptables","installed":true,"active":false,"initialized":true,"bound":true,
+             "supported":true,"implementation":"iptables",
+             "ipv4":{"partial":false,"available":true,"initialized":true,"bound":true},
+             "ipv6":{"partial":false,"available":true,"initialized":true,"bound":true}}]},
+         "forwarding":{"selected":"iptables","options":[]},
+         "docker":{"selected":"iptables","options":[]},
+         "pingStatus":"Disable","portWhiteList":[],"panelPort":"17331","sshPort":"22"}
+        """
+        let settings = try JSONDecoder().decode(FirewallSettings.self, from: Data(json.utf8))
+        #expect(settings.ipv6Enabled == true)
+        // 开关请求体与抓包一致：{"status":"Enable"|"Disable"}（任务式）
+        let off = try JSONSerialization.jsonObject(with: JSONEncoder().encode(
+            FirewallIPv6StatusRequest(status: "Disable"))) as? [String: Any]
+        #expect(off?["status"] as? String == "Disable")
+        let on = try JSONSerialization.jsonObject(with: JSONEncoder().encode(
+            FirewallIPv6StatusRequest(status: "Enable"))) as? [String: Any]
+        #expect(on?["status"] as? String == "Enable")
+        // 开关乐观更新通道：ipv6Enabled 可变（副本修改不影响原值）
+        var mutable = settings
+        mutable.ipv6Enabled = false
+        #expect(mutable.ipv6Enabled == false && settings.ipv6Enabled == true)
+    }
+
     @Test("Docker 端口守护总览（容器/端口组/孤立策略）")
     func dockerGuardList() throws {
         let json = """

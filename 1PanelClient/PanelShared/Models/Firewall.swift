@@ -505,6 +505,8 @@ nonisolated struct FirewallBackendGroup: Decodable, Sendable {
 }
 
 nonisolated struct FirewallSettings: Decodable, Sendable {
+    /// v2.4.0 顶层新增：IPv6 支持开关（抓包 2026-10-21；可变——开关乐观更新）
+    var ipv6Enabled: Bool?
     let system: FirewallBackendGroup?
     let forwarding: FirewallBackendGroup?
     let docker: FirewallBackendGroup?
@@ -519,6 +521,13 @@ nonisolated struct FirewallSettings: Decodable, Sendable {
         guard let s = pingStatus?.lowercased() else { return false }
         return s != "disable" && s != "normaldisable"
     }
+}
+
+/// POST /firewall/settings/ipv6：IPv6 支持开关（v2.4.0 新增；抓包 2026-10-21，
+/// 任务式——后台逐子系统解绑/重建 IPv6 族，进度走任务日志）
+nonisolated struct FirewallIPv6StatusRequest: Encodable, Sendable {
+    /// Enable / Disable
+    let status: String
 }
 
 /// POST /firewall/settings/operate：subsystem = system/forwarding/docker，

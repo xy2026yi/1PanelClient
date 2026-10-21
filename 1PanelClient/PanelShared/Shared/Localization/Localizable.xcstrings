@@ -2179,6 +2179,17 @@
         }
       }
     },
+    "IPv6 支持" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv6 Support"
+          }
+        }
+      }
+    },
     "IP组" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6001,6 +6012,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disable"
+          }
+        }
+      }
+    },
+    "停用 1Panel 管理的 iptables、nftables IPv6 规则。\n隐藏容器 IPv6 端口信息。\n移除白名单中的 IPv6 规则，其余已有 IPv6 规则保留。\n不会关闭服务器的 IPv6 网络功能。\n停用后，相关 IPv6 访问限制和端口转发将不再生效。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disables the IPv6 rules managed by 1Panel in iptables/nftables.\nHides container IPv6 port information.\nRemoves IPv6 entries from the whitelist; other existing IPv6 rules are kept.\nThe server's IPv6 networking itself is not turned off.\nOnce disabled, related IPv6 access restrictions and port forwarding no longer take effect."
+          }
+        }
+      }
+    },
+    "停用 IPv6 支持" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable IPv6 Support"
           }
         }
       }
@@ -30773,6 +30806,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Set a 4-digit passcode"
+          }
+        }
+      }
+    },
+    "设置 IPv6 支持" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update IPv6 Support"
           }
         }
       }

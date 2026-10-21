@@ -21,6 +21,8 @@ struct FirewallSettingsContent: View {
     @State private var pendingSwitch: BackendSwitch?
     /// 被拦截的切换（当前后端仍含运行时规则，仅提示不发请求）
     @State private var blockedSwitch: (current: String, target: String)?
+    /// 停用 IPv6 支持（高危：逐子系统解绑 IPv6 族 + 移除白名单 v6 条目，先弹窗确认）
+    @State private var pendingIPv6Off = false
 
     struct BackendSwitch: Identifiable {
         let subsystem: String
@@ -86,12 +88,34 @@ struct FirewallSettingsContent: View {
         } message: {
             Text(L10n.f("当前后端 %@ 仍存在 1Panel 运行时规则，请先重置该后端，再切换到 %@。重置仅清理运行时规则，数据库策略会保留，切换后可以重新初始化或同步。", blockedSwitch?.current ?? "", blockedSwitch?.target ?? ""))
         }
+        // 停用 IPv6 支持确认（开启无确认直接执行；抓包 2026-10-21 只有停用提示文案）
+        .alert(L10n.t("停用 IPv6 支持"), isPresented: $pendingIPv6Off) {
+            Button(L10n.t("取消"), role: .cancel) { }
+            Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
+                Task { await vm.setIPv6Enabled(false) }
+            }
+        } message: {
+            Text(L10n.t("停用 1Panel 管理的 iptables、nftables IPv6 规则。\n隐藏容器 IPv6 端口信息。\n移除白名单中的 IPv6 规则，其余已有 IPv6 规则保留。\n不会关闭服务器的 IPv6 网络功能。\n停用后，相关 IPv6 访问限制和端口转发将不再生效。"))
+        }
     }
 
     /// 设置段正常内容（settings 已加载时）
     @ViewBuilder
     private var settingsSections: some View {
         Section {
+            // IPv6 支持（v2.4.0 顶层开关；置于禁 Ping 之上，停用需弹窗确认）
+            Toggle(L10n.t("IPv6 支持"), isOn: Binding(
+                get: { vm.settings?.ipv6Enabled ?? vm.systemStatus?.ipv6Enabled ?? false },
+                set: { on in
+                    if on {
+                        Task { await vm.setIPv6Enabled(true) }
+                    } else {
+                        pendingIPv6Off = true
+                    }
+                }
+            ))
+            .disabled(vm.isOperating)
             Toggle(L10n.t("禁 Ping"), isOn: Binding(
                 get: { vm.settings?.pingBlocked ?? vm.systemStatus?.pingBlocked ?? false },
                 set: { on in

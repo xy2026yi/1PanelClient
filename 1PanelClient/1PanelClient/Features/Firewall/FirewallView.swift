@@ -278,9 +278,15 @@ struct FirewallView: View {
                     }
                 }
             }
-            // 任务式操作进度页（初始化/启用转发/白名单/Docker 操作）
+            // 任务式操作进度页（初始化/启用转发/白名单/Docker 操作/IPv6 开关）
             .navigationDestination(item: $vm.activeTask) { target in
-                TaskProgressView(taskID: target.taskID, title: target.title) { _ in false }
+                TaskProgressView(taskID: target.taskID, title: target.title) { _ in
+                    // IPv6 开关等整页校准型任务：完成返回时重拉
+                    if target.refreshAfterDone {
+                        Task { await vm.refresh() }
+                    }
+                    return false
+                }
             }
     }
 
