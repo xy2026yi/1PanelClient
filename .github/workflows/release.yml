@@ -27,6 +27,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 适配面板基线的单一来源是源码常量 PanelVersionTools.adaptedBaseline
+      # （DashboardModels.swift）：此处 grep 提取，注入 release 说明首行——
+      # 「适配面板版本：v2.3.1」行是三方（Release 页 / AltStore 源更新弹窗 /
+      # App 内更新提示）共用的机器可读约定，App 端按正则解析（见
+      # AppUpdateChecker.parsePanelBaseline）。提取失败即 fail：基线漂移要在
+      # CI 暴露，不能等用户装上不适配才发现。手动触发（试跑）同样执行本步
+      - name: 读取适配面板基线
+        id: panelver
+        run: |
+          BASELINE=$(grep -oE 'adaptedBaseline = "v[0-9.]+"' \
+            1PanelClient/PanelShared/Models/DashboardModels.swift \
+            | grep -oE 'v[0-9.]+' | head -1)
+          if [[ -z "$BASELINE" ]]; then
+            echo "::error::未能从 DashboardModels.swift 提取 adaptedBaseline（release 适配声明需要）"
+            exit 1
+          fi
+          echo "baseline=$BASELINE" >> "$GITHUB_OUTPUT"
+          echo "适配面板基线：$BASELINE"
+
       - name: SPM 依赖缓存
         uses: actions/cache@v4
         with:
@@ -76,7 +95,10 @@ jobs:
             > "1PanelClient-${REF}.ipa.sha256"
           echo "IPA_REF=${REF}" >> "$GITHUB_ENV"
 
-      # tag 触发：建（或更新）该 tag 的正式 release 并附上 IPA
+      # tag 触发：建（或更新）该 tag 的正式 release 并附上 IPA。
+      # body 首行是适配面板声明（软链 PanelVersionTools.adaptedBaseline），
+      # generate_release_notes 的自动提交列表拼接在其后；AltStore 源脚本拉取
+      # body 做版本说明，声明随之出现在 AltStore/SideStore 更新弹窗里
       - name: 附到 tag 的正式 release
         id: attach
         if: startsWith(github.ref, 'refs/tags/')
@@ -84,6 +106,7 @@ jobs:
         with:
           prerelease: false
           generate_release_notes: true
+          body: "适配面板版本：${{ steps.panelver.outputs.baseline }}（面板版本不一致时，App 内总览页会有提示）"
           # 附件缺失（上游步骤失败/产物名漂移）时让步骤失败，不静默发空 release
           fail_on_unmatched_files: true
           files: |

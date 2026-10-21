@@ -13,7 +13,14 @@ Unofficial third-party iOS client for [1Panel](https://1panel.cn) — the open-s
 
 接口请求与页面显示均基于该版本抓包对齐；面板版本过高或过低时，接口字段口径可能不一致，导致数据显示异常或部分功能不可用。遇到显示 / 功能问题时，请先确认服务端面板版本是否为适配版本。
 
-This client is currently aligned with 1Panel ** v2.3.1** (the firewall module targets the v2.3.0 rebuilt API; older panels are prompted to upgrade). 
+各版本对应关系（Release 说明首行与 AltStore 更新弹窗也会标注适配面板版本）：
+
+| 客户端版本 | 适配面板基线 | 备注 |
+|---|---|---|
+| ≤ v0.2.3 | v2.3.1 | 现行（防火墙模块基于 v2.3.0 重构后 API） |
+
+This client is currently aligned with 1Panel **v2.3.1** (the firewall module targets the v2.3.0 rebuilt API; older panels are prompted to upgrade).
+Requests and UI are aligned against this version via packet captures; if the panel version is newer or older, API field shapes may differ, causing display issues or unavailable features. Each release's notes (and the AltStore update prompt) state the panel version it targets.
 
 ## 文档 / Documentation
 
@@ -55,5 +62,7 @@ https://github.com/xy2026yi/1PanelClient/releases/latest/download/altstore.json
 ## License
 
 本项目基于 [GPL-3.0](LICENSE) 许可发布。
+
 1Panel 本体（[1Panel-dev/1Panel](https://github.com/1Panel-dev/1Panel)）同样采用 GPL-3.0。
+
 本项目使用 [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm)（MIT License）。
