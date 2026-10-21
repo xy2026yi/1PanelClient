@@ -76,18 +76,23 @@ struct ServerBackupView: View {
             let data = try ServerBackup.seal(servers, keyBase64: key)
             let saved = try LocalDownloads.save(
                 data: data, fileName: ServerBackup.backupFileName(), category: .backups)
-            exportResult = BackupExportResult(saved: saved, key: key)
+            exportResult = BackupExportResult(
+                saved: saved, key: key,
+                emptyKeyCount: servers.filter { $0.apiKey.isEmpty }.count)
         } catch {
             toast = L10n.f("导出失败：%@", error.localizedDescription)
         }
     }
 }
 
-/// sheet(item:) 的载荷：导出结果（落盘路径 + 随机密钥）
+/// sheet(item:) 的载荷：导出结果（落盘路径 + 随机密钥 + API Key 为空的台数）
 struct BackupExportResult: Identifiable {
     let id = UUID()
     let saved: LocalDownloads.Saved
     let key: String
+    /// Keychain 不可读等极端情形下 apiKey 为空串：备份能解密但无法恢复连接，
+    /// 导出页据此告警，避免用户持有一份「看似成功」的坏备份
+    let emptyKeyCount: Int
 }
 
 /// sheet(item:) 的载荷：导入文件内容（fileImporter 回调里即读即闭安全作用域）
@@ -109,6 +114,13 @@ struct BackupKeySheet: View {
                 Section {
                     Label(result.saved.displayPath, systemImage: "lock.doc")
                         .font(.footnote)
+                    if result.emptyKeyCount > 0 {
+                        Label(L10n.f("%ld 台服务器的 API Key 为空（钥匙串不可读），此备份无法恢复它们的连接",
+                                     result.emptyKeyCount),
+                              systemImage: "exclamationmark.triangle")
+                            .font(.footnote)
+                            .foregroundStyle(.orange)
+                    }
                 } header: {
                     Text(L10n.t("备份文件"))
                 }
@@ -116,8 +128,15 @@ struct BackupKeySheet: View {
                     Text(result.key)
                         .font(.system(.footnote, design: .monospaced))
                         .textSelection(.enabled)
+                        // App 切换器快照等隐私遮蔽场景下掩码，前台正常显示
+                        .privacySensitive()
                     Button {
-                        UIPasteboard.general.string = result.key
+                        // 密钥是高敏凭据：仅本机剪贴板 + 60 秒自动过期，
+                        // 不经 Handoff 通用剪贴板同步到其它设备
+                        UIPasteboard.general.setItems(
+                            [[UTType.utf8PlainText.identifier: result.key]],
+                            options: [.localOnly: true,
+                                      .expirationDate: Date().addingTimeInterval(60)])
                         copied = true
                         Haptic.success()
                     } label: {
@@ -159,6 +178,7 @@ struct BackupImportSheet: View {
                         .font(.system(.footnote, design: .monospaced))
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                        .privacySensitive()
                     Button {
                         decrypt()
                     } label: {
@@ -221,19 +241,12 @@ struct BackupImportSheet: View {
     /// 刷新随现有 CRUD 自动完成），已存在跳过
     private func runImport() {
         guard let preview else { return }
-        let manager = ServerManager.shared
-        let existing = Set(manager.servers.map { $0.normalizedBaseURL })
-        var added = 0
-        var skipped = 0
-        for server in preview where !server.normalizedBaseURL.isEmpty {
-            if existing.contains(server.normalizedBaseURL) {
-                skipped += 1
-            } else {
-                manager.add(server)
-                added += 1
-            }
+        let (toAdd, skipped) = ServerBackup.mergePlan(
+            preview, existingURLs: Set(ServerManager.shared.servers.map { $0.normalizedBaseURL }))
+        for server in toAdd {
+            ServerManager.shared.add(server)
         }
-        if added > 0 { Haptic.success() }
-        onDone(L10n.f("已导入 %ld 台，跳过 %ld 台已存在", added, skipped))
+        if !toAdd.isEmpty { Haptic.success() }
+        onDone(L10n.f("已导入 %ld 台，跳过 %ld 台已存在", toAdd.count, skipped))
     }
 }

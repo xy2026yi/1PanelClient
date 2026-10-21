@@ -342,6 +342,17 @@
         }
       }
     },
+    "%ld 台服务器的 API Key 为空（钥匙串不可读），此备份无法恢复它们的连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld server(s) have an empty API key (Keychain unreadable); this backup cannot restore their connections"
+          }
+        }
+      }
+    },
     "%ld 天" : {
       "extractionState" : "manual",
       "localizations" : {

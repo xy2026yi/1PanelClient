@@ -84,6 +84,24 @@ nonisolated enum ServerBackup {
         }
     }
 
+    /// 导入合并计划：按 baseURL 去重——既跳过与现有服务器同址的，也吸收
+    /// 备份文件内部的同址重复（existing 快照法会漏掉后者，故集内即时判重）
+    static func mergePlan(_ incoming: [ServerConfig],
+                          existingURLs: Set<String>) -> (add: [ServerConfig], skipped: Int) {
+        var seen = existingURLs
+        var add: [ServerConfig] = []
+        var skipped = 0
+        for server in incoming where !server.normalizedBaseURL.isEmpty {
+            if seen.contains(server.normalizedBaseURL) {
+                skipped += 1
+            } else {
+                seen.insert(server.normalizedBaseURL)
+                add.append(server)
+            }
+        }
+        return (add, skipped)
+    }
+
     private static func parseKey(_ raw: String) throws -> SymmetricKey {
         guard let data = Data(base64Encoded: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
               data.count == 32 else { throw ServerBackupError.badKey }

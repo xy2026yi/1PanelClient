@@ -89,4 +89,28 @@ struct ServerBackupTests {
         #expect(name.hasPrefix("1Panel-servers-"))
         #expect(name.hasSuffix(".enc"))
     }
+
+    @Test("合并计划：与现有同址跳过、新址新增、文件内部同址重复只取首个、空址忽略")
+    func mergePlanDedup() {
+        let incoming = [
+            ServerConfig(name: "已有", baseURL: "https://a.invalid/", apiKey: "k1"),
+            ServerConfig(name: "新", baseURL: "https://b.invalid", apiKey: "k2"),
+            ServerConfig(name: "新-重复", baseURL: "https://b.invalid/", apiKey: "k3"),
+            ServerConfig(name: "空址", baseURL: "   ", apiKey: "k4"),
+        ]
+        let plan = ServerBackup.mergePlan(incoming, existingURLs: ["https://a.invalid"])
+        #expect(plan.add.map(\.name) == ["新"])
+        #expect(plan.skipped == 2)
+    }
+
+    @Test("合并计划：现有为空时全部新增（仍吸收文件内部重复）")
+    func mergePlanFreshDevice() {
+        let incoming = [
+            ServerConfig(name: "x", baseURL: "https://x.invalid", apiKey: "k"),
+            ServerConfig(name: "x-again", baseURL: "https://x.invalid", apiKey: "k"),
+        ]
+        let plan = ServerBackup.mergePlan(incoming, existingURLs: [])
+        #expect(plan.add.count == 1)
+        #expect(plan.skipped == 1)
+    }
 }
