@@ -79,7 +79,7 @@ struct ServerBackupTests {
         let a = ServerBackup.generateKey()
         let b = ServerBackup.generateKey()
         #expect(a.count == 44)
-        #expect(try Data(base64Encoded: a)?.count == 32)
+        #expect(Data(base64Encoded: a)?.count == 32)
         #expect(a != b)
     }
 
