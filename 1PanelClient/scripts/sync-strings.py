@@ -9,7 +9,7 @@ sync-strings.py — L10n 字符串目录同步工具
   python3 scripts/sync-strings.py                     # 扫描源码，同步 key 进 xcstrings（保留已有翻译）
   python3 scripts/sync-strings.py --prune             # 额外删除 xcstrings 中未被源码引用的 key
   python3 scripts/sync-strings.py --apply FILE.json   # 从 JSON（{key: en翻译}）应用英文翻译
-  python3 scripts/sync-strings.py --check             # CI 模式：不写文件，仅报告缺失/未用/未翻译
+  python3 scripts/sync-strings.py --check             # CI 模式：不写文件；缺失/未用/未翻译任一存在即失败
 
 规则：
   - 提取 L10n.t("…") / L10n.f("…") 的字符串字面量（含转义解析）
@@ -301,6 +301,18 @@ def main() -> int:
         k for k, v in strings.items()
         if not v.get("localizations", {}).get("en", {}).get("stringUnit", {}).get("value")
     )
+
+    # CI 门禁（--check）：未引用 / 未翻译任一存在即失败。Xcode GUI 构建会把 SwiftUI
+    # 字面量（%@ 格式串、分隔符等噪声）自动提取进目录，关 SWIFT_EMIT_LOC_STRINGS 与
+    # STRING_CATALOG_GENERATE_SYMBOLS 均实测拦不住；此门禁保证脏目录进不了 main，
+    # 本地构建后随手 --prune 即可。写入模式不判：sync 新增 key 本就先未翻译再 --apply
+    if args.check:
+        if unused:
+            errors.append(f"xcstrings 存在 {len(unused)} 条未被引用的 key（本地运行 --prune 清理）")
+        if untranslated:
+            sample = ", ".join(repr(k) for k in untranslated[:5])
+            more = " …" if len(untranslated) > 5 else ""
+            errors.append(f"xcstrings 存在 {len(untranslated)} 条未翻译 key（en 为空）: {sample}{more}")
 
     catalog["strings"] = {k: strings[k] for k in sorted(strings)}
     if not args.check:
