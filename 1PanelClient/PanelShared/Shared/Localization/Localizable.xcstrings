@@ -4531,6 +4531,28 @@
         }
       }
     },
+    "仅失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failures only"
+          }
+        }
+      }
+    },
+    "仅成功" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Successes only"
+          }
+        }
+      }
+    },
     "仅文本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5011,17 +5033,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Task Name"
-          }
-        }
-      }
-    },
-    "任务失败达到告警次数后，将通过所选方式发送通知" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Once job failures reach the alert count, a notification is sent via the selected methods"
           }
         }
       }
@@ -17082,6 +17093,17 @@
         }
       }
     },
+    "成功或失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Success or failure"
+          }
+        }
+      }
+    },
     "我已知晓恢复将重启 Docker 与 1Panel 服务" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24866,6 +24888,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scroll to Bottom"
+          }
+        }
+      }
+    },
+    "满足通知条件达到告警次数后，将通过所选方式发送通知" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once the notification condition is met this many times in a row, a notice is sent via the selected methods."
           }
         }
       }
@@ -34348,6 +34381,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notice Alerts"
+          }
+        }
+      }
+    },
+    "通知条件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify On"
           }
         }
       }

@@ -140,7 +140,7 @@ struct CronjobNewTypeModelsTests {
         #expect(!CronjobType.database.supportsCompressionSecret)
     }
 
-    @Test("详情解码：文件列表 / urlItems / 告警字段")
+    @Test("详情解码：文件列表 / urlItems / 告警字段 + 通知条件（v2.4.0 alertTriggerMode）")
     func decodeInfoFields() throws {
         let json = """
         {"id":1,"name":"文件","type":"directory","isDir":false,
@@ -149,7 +149,8 @@ struct CronjobNewTypeModelsTests {
          "url":"https://baidu.com,https://bing.com","urlItems":["https://baidu.com","https://bing.com"],
          "scopes":["website"],"hasAlert":true,"alertCount":3,
          "alertTitle":"计划任务-清理日志「 清理日志 」任务失败告警",
-         "alertMethod":"5,6","alertMethodItems":["5","6"],"secret":"111111"}
+         "alertMethod":"5,6","alertMethodItems":["5","6"],
+         "alertTriggerMode":"both","secret":"111111"}
         """
         let info = try JSONDecoder().decode(CronjobInfo.self, from: Data(json.utf8))
         #expect(info.jobType == .directory)
@@ -159,9 +160,15 @@ struct CronjobNewTypeModelsTests {
         #expect(info.hasAlert == true)
         #expect(info.alertCount == 3)
         #expect(info.secret == "111111")
+        // 通知条件（抓包 2026-10-21：列表项含 alertTriggerMode）
+        #expect(info.alertTriggerModeValue == "both")
+        // 旧面板无该字段 → 回落「仅失败」
+        let legacy = try JSONDecoder().decode(CronjobInfo.self,
+            from: Data(#"{"id":2,"name":"旧","type":"shell","hasAlert":true,"alertCount":3}"#.utf8))
+        #expect(legacy.alertTriggerMode == nil && legacy.alertTriggerModeValue == "failed")
     }
 
-    @Test("创建请求编码：文件列表为 {val} 形状 + 告警字段")
+    @Test("创建请求编码：文件列表为 {val} 形状 + 告警字段 + 通知条件")
     func encodeCreateRequest() throws {
         var req = CronjobCreateRequest()
         req.type = "directory"
@@ -174,6 +181,7 @@ struct CronjobNewTypeModelsTests {
         req.alertTitle = "计划任务-备份目录或文件「 文件 」任务失败告警"
         req.alertMethod = "5,6"
         req.alertMethodItems = ["5", "6"]
+        req.alertTriggerMode = "success"
 
         let data = try JSONEncoder().encode(req)
         let root = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -183,5 +191,9 @@ struct CronjobNewTypeModelsTests {
         #expect(root["hasAlert"] as? Bool == true)
         #expect(root["alertMethod"] as? String == "5,6")
         #expect(root["alertMethodItems"] as? [String] == ["5", "6"])
+        // 通知条件随请求提交；缺省值为 failed（与 Web 表单默认一致）
+        #expect(root["alertTriggerMode"] as? String == "success")
+        let defaulted = try JSONSerialization.jsonObject(with: JSONEncoder().encode(CronjobCreateRequest())) as? [String: Any]
+        #expect(defaulted?["alertTriggerMode"] as? String == "failed")
     }
 }

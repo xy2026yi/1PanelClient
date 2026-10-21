@@ -71,6 +71,8 @@ struct CreateCronjobView: View {
     @State private var hasAlert = false
     @State private var alertMethodIDs: Set<Int> = []
     @State private var alertCount = 3
+    /// 通知条件（v2.4.0 新增，位于告警方式之上）：failed 仅失败 / success 仅成功 / both 成功或失败
+    @State private var alertTriggerMode = "failed"
     @State private var showAlertMethodPicker = false
     /// 标记是否已完成编辑模式的数据预填
     @State private var hasPrefilled = false
@@ -968,6 +970,14 @@ struct CreateCronjobView: View {
             Toggle(L10n.t("告警"), isOn: $hasAlert)
 
             if hasAlert {
+                OutlinedPicker(label: L10n.t("通知条件"),
+                               options: ["failed", "success", "both"],
+                               selection: $alertTriggerMode,
+                               optionLabels: [
+                                   "failed": L10n.t("仅失败"),
+                                   "success": L10n.t("仅成功"),
+                                   "both": L10n.t("成功或失败"),
+                               ])
                 Button {
                     showAlertMethodPicker = true
                 } label: {
@@ -993,7 +1003,7 @@ struct CreateCronjobView: View {
         } header: {
             Text(L10n.t("告警"))
         } footer: {
-            Text(L10n.t("任务失败达到告警次数后，将通过所选方式发送通知"))
+            Text(L10n.t("满足通知条件达到告警次数后，将通过所选方式发送通知"))
         }
     }
 
@@ -1104,6 +1114,7 @@ struct CreateCronjobView: View {
         if hasAlert {
             req.hasAlert = true
             req.alertCount = alertCount
+            req.alertTriggerMode = alertTriggerMode
             req.alertTitle = L10n.f("计划任务-%@「 %@ 」任务失败告警", type.displayName, name)
             // 只提交现存发送方式的 id（编辑回填可能含已删除的方式）
             let validIDs = Set(vm.alertMethods.map(\.id))
@@ -1188,6 +1199,7 @@ struct CreateCronjobView: View {
         if let count = info.alertCount, count > 0 {
             alertCount = count
         }
+        alertTriggerMode = info.alertTriggerModeValue
         alertMethodIDs = info.alertMethodIDSet
 
         // 各类型特定字段（多值字段 "2,1" → 逗号拆分数组，顺序保留）
