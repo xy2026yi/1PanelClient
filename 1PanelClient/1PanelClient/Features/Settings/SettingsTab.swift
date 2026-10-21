@@ -11,6 +11,7 @@ import SwiftUI
 enum SettingsRoute: Hashable {
     case about
     case privacyPolicy
+    case termsOfUse
     case diagnostics
 }
 
@@ -121,6 +122,8 @@ struct SettingsTab: View {
                 AboutDetailView { navPath.append($0) }
             case .privacyPolicy:
                 PrivacyPolicyView()
+            case .termsOfUse:
+                TermsOfUseView()
             case .diagnostics:
                 MetricDiagnosticsView()
             }
@@ -443,6 +446,12 @@ private struct AboutDetailContent: View {
                 }
             }
             .disabled(isProbingPrivacy)
+            // 本地打包页直开（轻量版，不走在线探测）
+            Button {
+                onOpen(.termsOfUse)
+            } label: {
+                Label(L10n.t("使用条款"), systemImage: "doc.text")
+            }
             Button {
                 onOpen(.diagnostics)
             } label: {

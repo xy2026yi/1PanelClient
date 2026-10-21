@@ -5290,6 +5290,17 @@
         }
       }
     },
+    "使用条款" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Use"
+          }
+        }
+      }
+    },
     "使用模型默认值" : {
       "extractionState" : "manual",
       "localizations" : {
